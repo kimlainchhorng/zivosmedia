@@ -1,7 +1,7 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const APP_ORIGIN = "https://zivollc.com";
+const APP_ORIGIN = "https://zivosmedia.com";
 
 Deno.serve(withSecurity("channel-og", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;

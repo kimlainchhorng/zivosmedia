@@ -1,3 +1,5 @@
 # Cloudflare deploy note:
 # The Worker handles /share/c/:handle and wrangler.toml uses
 # not_found_handling = "single-page-application" for React Router.
+
+# Legacy host redirects are handled by cloudflare/legacy-domain-redirect.ts.

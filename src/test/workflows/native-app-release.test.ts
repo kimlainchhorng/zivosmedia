@@ -55,8 +55,8 @@ describe("native app release workflow", () => {
 
     expect(listing).toContain("Bundle ID: `com.hizovo.app`");
     expect(listing).toContain("Privacy URL:");
-    expect(listing).toContain("https://hizivo.com/legal/privacy");
-    expect(listing).toContain("https://hizivo.com/legal/terms");
+    expect(listing).toContain("https://zivosmedia.com/legal/privacy");
+    expect(listing).toContain("https://zivosmedia.com/legal/terms");
     expect(listing).toContain("What's New in This Version");
   });
 
@@ -81,10 +81,10 @@ describe("native app release workflow", () => {
     expect(listing).toContain("Package name: `com.hizovo.app`");
     expect(listing).toContain("Privacy Policy URL");
     expect(listing).toContain("Account Deletion URL");
-    expect(listing).toContain("https://hizivo.com/legal/privacy");
-    expect(listing).toContain("https://hizivo.com/legal/terms");
-    expect(listing).toContain("https://hizivo.com/delete-account");
-    expect(listing).not.toContain("https://www.zivollc.com");
+    expect(listing).toContain("https://zivosmedia.com/legal/privacy");
+    expect(listing).toContain("https://zivosmedia.com/legal/terms");
+    expect(listing).toContain("https://zivosmedia.com/delete-account");
+    expect(listing).not.toContain("https://www.zivosmedia.com");
     expect(setup).toContain("android/local.properties");
     expect(setup).toContain("npm run android:build:debug");
   });

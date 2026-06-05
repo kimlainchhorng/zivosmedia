@@ -4,12 +4,30 @@ import { encryptToken } from "../_shared/tokenCrypto.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PREVIEW_FALLBACK = "https://id-preview--72f99340-9c9f-453a-acff-60e5a9b25774.lovable.app";
+const GOOGLE_ADS_REDIRECT_URI_FALLBACK = "https://zivosmedia.com/auth/google-ads/callback";
 
-function htmlRedirect(url: string, message = "Connecting...") {
-  return new Response(
-    `<!doctype html><html><head><meta charset="utf-8"><title>${message}</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><p>${message}</p><script>window.location.href=${JSON.stringify(url)}</script></body></html>`,
-    { headers: { "Content-Type": "text/html" } }
-  );
+function isLocalDevOrigin(url: URL) {
+  const hostname = url.hostname.toLowerCase();
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  const match = hostname.match(/^172\.(\d{1,2})\.\d{1,3}\.\d{1,3}$/);
+  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
+}
+
+function htmlRedirect(url: string, _message = "Connecting...") {
+  return new Response(null, {
+    status: 303,
+    headers: {
+      "Location": url,
+      "Content-Type": "text/plain",
+    },
+  });
+}
+
+function getGoogleAdsRedirectUri() {
+  return Deno.env.get("GOOGLE_ADS_REDIRECT_URI") || GOOGLE_ADS_REDIRECT_URI_FALLBACK;
 }
 
 function allowedReturnUrl(value: unknown) {
@@ -18,14 +36,14 @@ function allowedReturnUrl(value: unknown) {
     Deno.env.get("APP_URL") || "",
     Deno.env.get("SITE_URL") || "",
     Deno.env.get("PUBLIC_SITE_URL") || "",
-    "https://hizivo.com",
-    "https://www.zivollc.com",
+    "https://zivosmedia.com",
+    "https://www.zivosmedia.com",
   ].filter(Boolean).map((origin) => new URL(origin).origin));
   if (typeof value !== "string" || !value) return `${PREVIEW_FALLBACK}/connect/callback`;
   if (value.startsWith("/") && !value.startsWith("//")) return `${PREVIEW_FALLBACK}${value}`;
   try {
     const url = new URL(value);
-    return allowedOrigins.has(url.origin) ? url.toString() : `${PREVIEW_FALLBACK}/connect/callback`;
+    return allowedOrigins.has(url.origin) || isLocalDevOrigin(url) ? url.toString() : `${PREVIEW_FALLBACK}/connect/callback`;
   } catch {
     return `${PREVIEW_FALLBACK}/connect/callback`;
   }
@@ -59,7 +77,7 @@ Deno.serve(withSecurity("google-ads-oauth-callback", async (req) => {
     const clientSecret = Deno.env.get("GOOGLE_ADS_CLIENT_SECRET");
     if (!clientId || !clientSecret) throw new Error("Google Ads credentials not configured");
 
-    const redirectUri = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/google-ads-oauth-callback`;
+    const redirectUri = getGoogleAdsRedirectUri();
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },

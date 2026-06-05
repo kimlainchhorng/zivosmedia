@@ -58,6 +58,6 @@ describe("legal policy page related links", () => {
     expect(partnerDisclosure).toContain("Partner Disclosure");
     expect(partnerDisclosure).toContain('to="/legal/refunds"');
     expect(flightTerms).toContain('to="/legal/partner-disclosure"');
-    expect(flightTerms).toContain("support@hizivo.com");
+    expect(flightTerms).toContain("support@zivosmedia.com");
   });
 });

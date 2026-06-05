@@ -145,7 +145,7 @@ export default function GroceryReturns() {
         </motion.div>
 
         <div className="text-center pt-4 space-y-2">
-          <p className="text-[11px] text-muted-foreground">Need help? Contact <span className="text-primary font-semibold">support@hizivo.com</span></p>
+          <p className="text-[11px] text-muted-foreground">Need help? Contact <span className="text-primary font-semibold">support@zivosmedia.com</span></p>
           <p className="text-[9px] text-muted-foreground/50">
             See also: <Link to="/grocery/terms" className="text-primary/60 underline">Terms of Service</Link> · <Link to="/grocery/fees" className="text-primary/60 underline">Pricing & Fees</Link>
           </p>

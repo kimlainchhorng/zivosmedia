@@ -417,7 +417,7 @@ export default function HotelResultsPage() {
               For changes, cancellations, or refunds, contact the booking partner listed in your confirmation email.
             </p>
             <p className="text-sm text-muted-foreground">
-              For website issues, contact <a href="mailto:support@hizivo.com" className="text-amber-500 hover:underline">support@hizivo.com</a>.
+              For website issues, contact <a href="mailto:support@zivosmedia.com" className="text-amber-500 hover:underline">support@zivosmedia.com</a>.
             </p>
           </div>
         </section>

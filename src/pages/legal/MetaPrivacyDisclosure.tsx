@@ -58,7 +58,7 @@ export default function MetaPrivacyDisclosure() {
             icon: Shield,
             title: "Your Rights & Opt-Out",
             content:
-              "You can opt out of personalized advertising at any time through your device settings (iOS: Settings → Privacy → Tracking; Android: Settings → Google → Ads). You can also request data deletion by contacting support@hizivo.com. We comply with GDPR, CCPA, and Cambodia's data protection regulations.",
+              "You can opt out of personalized advertising at any time through your device settings (iOS: Settings → Privacy → Tracking; Android: Settings → Google → Ads). You can also request data deletion by contacting support@zivosmedia.com. We comply with GDPR, CCPA, and Cambodia's data protection regulations.",
           },
         ].map((section) => (
           <Card key={section.title} className="border-border/30">
@@ -109,7 +109,7 @@ export default function MetaPrivacyDisclosure() {
             .
           </p>
           <p className="text-[10px] text-muted-foreground/60">
-            Last updated: April 2026 · Contact: support@hizivo.com
+            Last updated: April 2026 · Contact: support@zivosmedia.com
           </p>
         </div>
       </div>

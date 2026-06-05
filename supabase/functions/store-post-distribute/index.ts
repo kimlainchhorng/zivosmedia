@@ -97,11 +97,22 @@ Deno.serve(async (req) => {
     const isAdmin = ((roles as any[]) || []).some((role) => role.role === "admin" || role.role === "super_admin");
     if (!ownerAllowed && !isAdmin) return json({ error: "Forbidden" }, 403, headers);
 
-    const { data: pageRows } = await admin
-      .from("store_ad_pages")
-      .select("platform, external_id, name, is_default")
-      .eq("store_id", post.store_id);
-    const connected = new Set(((pageRows as any[]) || []).map((row) => String(row.platform)));
+    const [{ data: pageRows }, { data: accountRows }] = await Promise.all([
+      admin
+        .from("store_ad_pages")
+        .select("platform, external_id, name, is_default")
+        .eq("store_id", post.store_id),
+      admin
+        .from("store_ad_accounts")
+        .select("platform, status, external_account_id, display_name, connected_at")
+        .eq("store_id", post.store_id),
+    ]);
+    const connected = new Set([
+      ...(((pageRows as any[]) || []).map((row) => String(row.platform))),
+      ...(((accountRows as any[]) || [])
+        .filter((row) => row.status === "connected" || row.status === "active")
+        .map((row) => String(row.platform))),
+    ]);
 
     const rows = platforms.flatMap((platform) => {
       const connectionPlatform = PLATFORM_TO_CONNECTION[platform];

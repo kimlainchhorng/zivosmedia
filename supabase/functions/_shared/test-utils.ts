@@ -44,7 +44,7 @@ export function fnUrl(name: string, query?: Record<string, string>): string {
 export async function callFn(name: string, opts: CallOptions = {}): Promise<CallResult> {
   const headers = new Headers({
     "Content-Type": "application/json",
-    "Origin": opts.origin ?? "https://hizivo.com",
+    "Origin": opts.origin ?? "https://zivosmedia.com",
     ...(opts.headers ?? {}),
   });
   if (opts.authToken !== null) {
@@ -69,7 +69,7 @@ export async function callFn(name: string, opts: CallOptions = {}): Promise<Call
   return { status: res.status, headers: res.headers, body, text };
 }
 
-export async function preflight(name: string, origin = "https://hizivo.com"): Promise<CallResult> {
+export async function preflight(name: string, origin = "https://zivosmedia.com"): Promise<CallResult> {
   const res = await fetch(fnUrl(name), {
     method: "OPTIONS",
     headers: {
@@ -82,7 +82,7 @@ export async function preflight(name: string, origin = "https://hizivo.com"): Pr
   return { status: res.status, headers: res.headers, body: text, text };
 }
 
-export function assertCors(res: CallResult, expectedOrigin = "https://hizivo.com") {
+export function assertCors(res: CallResult, expectedOrigin = "https://zivosmedia.com") {
   const allow = res.headers.get("access-control-allow-origin");
   assert(
     allow === expectedOrigin || allow === "*",

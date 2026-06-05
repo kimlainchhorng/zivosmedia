@@ -69,7 +69,7 @@ Deno.serve(withSecurity("check-zivo-plus", async (req, ctx) => {
     const now = new Date().toISOString();
     const { data: localSubscription, error: localSubError } = await supabaseClient
       .from("zivo_subscriptions")
-      .select("id, billing_cycle, current_period_end, stripe_subscription_id")
+      .select("id, billing_cycle, plan_code, current_period_end, stripe_subscription_id")
       .eq("user_id", user.id)
       .eq("status", "active")
       .gt("current_period_end", now)
@@ -80,7 +80,10 @@ Deno.serve(withSecurity("check-zivo-plus", async (req, ctx) => {
     if (localSubError) {
       logStep("Local subscription lookup failed, falling back to Stripe", { error: localSubError.message });
     } else if (localSubscription) {
-      const plan = localSubscription.billing_cycle === "yearly" ? "annual" : "monthly";
+      const storedPlan = (localSubscription as any).plan_code;
+      const plan = ["monthly", "chat", "pro", "annual"].includes(storedPlan)
+        ? storedPlan
+        : localSubscription.billing_cycle === "yearly" ? "annual" : "monthly";
       logStep("Active local ZIVO+ found", { plan, subscriptionEnd: localSubscription.current_period_end });
       return new Response(
         JSON.stringify({

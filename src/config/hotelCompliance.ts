@@ -62,7 +62,7 @@ export const HOTEL_DISCLAIMERS = {
   support: "For hotel changes, cancellations, or refunds, please contact the booking partner listed in your confirmation email.",
   
   /** Website support */
-  websiteSupport: "For website issues, contact support@hizivo.com.",
+  websiteSupport: "For website issues, contact support@zivosmedia.com.",
   
   /** Payment disclaimer */
   payment: "ZIVO does not collect or process payments for hotels. All payments are handled by the booking partner.",

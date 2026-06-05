@@ -56,10 +56,10 @@ export const FLIGHT_SUPPORT_INFO = {
   description: "For changes, cancellations, or refunds, please contact the booking provider directly.",
   
   /** Support email */
-  email: "support@hizivo.com",
+  email: "support@zivosmedia.com",
   
   /** Full message */
-  full: "Need help with your booking? For changes, cancellations, or refunds, please contact the booking provider directly. For site issues, contact support@hizivo.com.",
+  full: "Need help with your booking? For changes, cancellations, or refunds, please contact the booking provider directly. For site issues, contact support@zivosmedia.com.",
 } as const;
 
 // ============================================

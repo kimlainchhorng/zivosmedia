@@ -24,7 +24,7 @@ type Employee = {
 };
 
 const STAFF_ROLES = ["admin", "moderator", "support", "operations"] as const;
-const ADMIN_EMPLOYEE_LOGIN_URL = "https://zivollc.com/login?redirect=%2Fpersonal-dashboard";
+const ADMIN_EMPLOYEE_LOGIN_URL = "https://zivosmedia.com/login?redirect=%2Fpersonal-dashboard";
 
 export default function AdminEmployeesPage() {
   const queryClient = useQueryClient();

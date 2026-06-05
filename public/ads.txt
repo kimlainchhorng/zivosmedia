@@ -1,4 +1,4 @@
-# ads.txt — authorizes Google AdSense to sell ads on zivollc.com.
+# ads.txt — authorizes Google AdSense to sell ads on zivosmedia.com.
 # REQUIRED by Google. Without a correct line below, AdSense shows
 # "Earnings at risk" and may stop serving ads.
 #

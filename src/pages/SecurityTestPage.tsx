@@ -10,7 +10,7 @@ import { assessLinkSync } from "@/hooks/useLinkRisk";
 import { confirmContentSafe } from "@/lib/security/contentLinkValidation";
 
 const SAMPLE_LINKS = [
-  { label: "Real ZIVO domain", url: "https://hizivo.com/login" },
+  { label: "Real ZIVO domain", url: "https://zivosmedia.com/login" },
   { label: "Verified partner", url: "https://booking.com/hotel/abc" },
   { label: "URL shortener (suspicious)", url: "https://bit.ly/free-prize" },
   { label: "Suspicious TLD", url: "https://promo.zip/" },

@@ -53,7 +53,7 @@ const sections = [
   {
     icon: AlertTriangle,
     title: "8. Enforcement & Consequences",
-    content: "Violations may result in escalating consequences: (a) content removal and first warning; (b) temporary account restriction (7-30 days) for repeated violations; (c) permanent account suspension for severe or repeated violations; (d) reporting to law enforcement for illegal activity; and (e) civil legal action for damages caused by policy violations. ZIVO reviews reported content within 24–48 hours. Appeals can be submitted to support@hizivo.com within 14 days of enforcement action, including a detailed explanation of why you believe the action was in error."
+    content: "Violations may result in escalating consequences: (a) content removal and first warning; (b) temporary account restriction (7-30 days) for repeated violations; (c) permanent account suspension for severe or repeated violations; (d) reporting to law enforcement for illegal activity; and (e) civil legal action for damages caused by policy violations. ZIVO reviews reported content within 24–48 hours. Appeals can be submitted to support@zivosmedia.com within 14 days of enforcement action, including a detailed explanation of why you believe the action was in error."
   },
   {
     icon: Share2,
@@ -137,7 +137,7 @@ export default function SocialMediaPolicy() {
           <p className="text-sm font-semibold text-foreground">Report a Concern</p>
           <p className="text-xs text-muted-foreground">
             Report violations in-app or email{" "}
-            <span className="text-primary font-semibold">support@hizivo.com</span>
+            <span className="text-primary font-semibold">support@zivosmedia.com</span>
           </p>
         </div>
       </div>

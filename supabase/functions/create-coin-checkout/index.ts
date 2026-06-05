@@ -60,7 +60,7 @@ serve(withSecurity("create-coin-checkout", async (req, ctx) => {
     const existing = await stripe.customers.list({ email: user.email, limit: 1 });
     const customerId = existing.data[0]?.id;
 
-    const origin = req.headers.get("origin") || "https://hizivo.com";
+    const origin = req.headers.get("origin") || "https://zivosmedia.com";
     const totalCoins = pkg.coins + pkg.bonus;
 
     // Encode return_to into success_url so the success page can redirect back.

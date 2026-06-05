@@ -9,7 +9,7 @@ const AccountDeletionInfo = () => {
       <SEOHead
         title="Delete Your ZIVO Account"
         description="Request deletion of your ZIVO account and personal data from the web or inside the ZIVO app."
-        canonical="https://hizivo.com/delete-account"
+        canonical="https://zivosmedia.com/delete-account"
       />
 
       <main className="container mx-auto max-w-3xl px-4 py-10 md:py-16">
@@ -59,12 +59,12 @@ const AccountDeletionInfo = () => {
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button asChild>
-                  <a href="mailto:privacy@hizivo.com?subject=Delete%20my%20ZIVO%20account">
-                    Email privacy@hizivo.com
+                  <a href="mailto:privacy@zivosmedia.com?subject=Delete%20my%20ZIVO%20account">
+                    Email privacy@zivosmedia.com
                   </a>
                 </Button>
                 <Button asChild variant="outline">
-                  <a href="mailto:support@hizivo.com?subject=Delete%20my%20ZIVO%20account">
+                  <a href="mailto:support@zivosmedia.com?subject=Delete%20my%20ZIVO%20account">
                     Email support
                   </a>
                 </Button>

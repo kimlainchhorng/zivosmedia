@@ -1,0 +1,15 @@
+name = "zivo-legacy-domain-redirect"
+main = "legacy-domain-redirect.ts"
+compatibility_date = "2026-05-23"
+workers_dev = false
+preview_urls = false
+
+routes = [
+  { pattern = "zivollc.com/*", custom_domain = false },
+  { pattern = "www.zivollc.com/*", custom_domain = false },
+]
+
+# hizivo.com must be added to this Cloudflare account and proxied before
+# these routes can be enabled:
+# { pattern = "hizivo.com/*", custom_domain = false }
+# { pattern = "www.hizivo.com/*", custom_domain = false }

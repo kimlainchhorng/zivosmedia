@@ -94,7 +94,7 @@ const FlightTerms = () => {
                 </ul>
                 <p className="text-sm">
                   This right applies regardless of the fare type (refundable or non-refundable). To cancel within the 24-hour window, 
-                  contact ZIVO Support at <a href="mailto:support@hizivo.com">support@hizivo.com</a> or use your booking dashboard.
+                  contact ZIVO Support at <a href="mailto:support@zivosmedia.com">support@zivosmedia.com</a> or use your booking dashboard.
                 </p>
               </CardContent>
             </Card>
@@ -333,7 +333,7 @@ const FlightTerms = () => {
                   <li>Non-discrimination for exercising your privacy rights</li>
                 </ul>
                 <p className="text-sm">
-                  For full details, see our <Link to="/legal/privacy">Privacy Policy</Link>. To exercise your rights, contact <a href="mailto:support@hizivo.com">support@hizivo.com</a>.
+                  For full details, see our <Link to="/legal/privacy">Privacy Policy</Link>. To exercise your rights, contact <a href="mailto:support@zivosmedia.com">support@zivosmedia.com</a>.
                 </p>
               </CardContent>
             </Card>
@@ -352,7 +352,7 @@ const FlightTerms = () => {
                 </p>
                 <h4>Dispute Resolution Process</h4>
                 <ol>
-                  <li><strong>Customer Support:</strong> Contact ZIVO Support at <a href="mailto:support@hizivo.com">support@hizivo.com</a> to resolve issues informally. Most issues can be resolved within 48 hours.</li>
+                  <li><strong>Customer Support:</strong> Contact ZIVO Support at <a href="mailto:support@zivosmedia.com">support@zivosmedia.com</a> to resolve issues informally. Most issues can be resolved within 48 hours.</li>
                   <li><strong>Formal Complaint:</strong> If unresolved, submit a formal written complaint. ZIVO will respond within 30 days.</li>
                   <li><strong>Arbitration:</strong> Any dispute not resolved through the above steps shall be resolved by binding arbitration administered by the American Arbitration Association (AAA) under its Consumer Arbitration Rules.</li>
                 </ol>
@@ -361,7 +361,7 @@ const FlightTerms = () => {
                   <li>Arbitration is individual only — class actions and class arbitrations are waived</li>
                   <li>The arbitrator's decision is final and binding</li>
                   <li>Small claims court actions are exempt from this arbitration agreement</li>
-                  <li>You may opt out of arbitration within 30 days of your first booking by emailing <a href="mailto:support@hizivo.com">support@hizivo.com</a></li>
+                  <li>You may opt out of arbitration within 30 days of your first booking by emailing <a href="mailto:support@zivosmedia.com">support@zivosmedia.com</a></li>
                 </ul>
                 <h4>DOT Complaints</h4>
                 <p>
@@ -409,7 +409,7 @@ const FlightTerms = () => {
                   For questions about your booking or these terms:
                 </p>
                 <ul>
-                  <li><strong>Email:</strong> <a href="mailto:support@hizivo.com">support@hizivo.com</a></li>
+                  <li><strong>Email:</strong> <a href="mailto:support@zivosmedia.com">support@zivosmedia.com</a></li>
                   <li><strong>Support Center:</strong> <Link to="/support">ZIVO Support Center</Link></li>
                 </ul>
                 <p>

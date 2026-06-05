@@ -117,11 +117,46 @@ const buildTrips = (from: string, to: string, date: string): BusTrip[] => {
   // values mirror the canonical labels in src/config/busVehicleTypes.ts so the
   // rider taxonomy matches what operators select in the console.
   const operators = [
-    { name: "Giant Ibis Transport", type: "VIP Bus", base: 18, rating: 4.8, amenities: ["wifi", "ac", "charging"] as const },
-    { name: "Mekong Express", type: "AC Bus", base: 15, rating: 4.6, amenities: ["wifi", "ac"] as const },
-    { name: "Virak Buntham", type: "Sleeper Bus", base: 12, rating: 4.3, amenities: ["ac", "charging", "sleeper", "blanket"] as const },
-    { name: "Larryta Express", type: "Standard Bus", base: 14, rating: 4.5, amenities: ["wifi", "ac"] as const },
-    { name: "Vireak Buntham Night", type: "Night Sleeper", base: 16, rating: 4.4, amenities: ["wifi", "ac", "charging", "sleeper", "blanket", "meals"] as const },
+    {
+      name: "Giant Ibis Transport",
+      type: "VIP Bus",
+      base: 18,
+      rating: 4.8,
+      logoUrl: "https://www.google.com/s2/favicons?domain=giantibis.com&sz=128",
+      amenities: ["wifi", "ac", "charging"] as const,
+    },
+    {
+      name: "Mekong Express",
+      type: "AC Bus",
+      base: 15,
+      rating: 4.6,
+      logoUrl: "https://www.google.com/s2/favicons?domain=catmekongexpress.com&sz=128",
+      amenities: ["wifi", "ac"] as const,
+    },
+    {
+      name: "Vireak Buntham",
+      type: "Sleeper Bus",
+      base: 12,
+      rating: 4.3,
+      logoUrl: "https://vireakbuntham.com/favicon.ico",
+      amenities: ["ac", "charging", "sleeper", "blanket"] as const,
+    },
+    {
+      name: "Larryta Express",
+      type: "Standard Bus",
+      base: 14,
+      rating: 4.5,
+      logoUrl: "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/49/05/dc/4905dc4f-c0c1-790e-59cc-c94eb60989fc/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/100x100bb.jpg",
+      amenities: ["wifi", "ac"] as const,
+    },
+    {
+      name: "Vireak Buntham Night",
+      type: "Night Sleeper",
+      base: 16,
+      rating: 4.4,
+      logoUrl: "https://vireakbuntham.com/favicon.ico",
+      amenities: ["wifi", "ac", "charging", "sleeper", "blanket", "meals"] as const,
+    },
   ];
   const departBase = ["06:30", "08:00", "11:45", "14:15", "22:30"];
   const baseSeed = hashString(`${from}-${to}-${date}`);
@@ -135,7 +170,7 @@ const buildTrips = (from: string, to: string, date: string): BusTrip[] => {
       id: `${date}-${i}`,
       storeId: "",
       operator: op.name,
-      logoUrl: null,
+      logoUrl: op.logoUrl,
       rating: op.rating,
       reviewCount: 0,
       departTime: departBase[i],
@@ -257,7 +292,7 @@ const BusOperatorLogo = ({ trip, size = "md" }: { trip: BusTrip; size?: "sm" | "
   if (trip.logoUrl) {
     return (
       <span className={cn("shrink-0 overflow-hidden border border-border bg-background", dimensions)}>
-        <img src={trip.logoUrl} alt={`${trip.operator} logo`} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+        <img src={trip.logoUrl} alt={`${trip.operator} logo`} className="h-full w-full bg-white object-contain p-1" loading="lazy" decoding="async" />
       </span>
     );
   }

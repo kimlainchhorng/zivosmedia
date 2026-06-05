@@ -46,7 +46,7 @@ Deno.serve(withSecurity("create-trip-share", async (req, ctx) => {
 
     if (error) throw error;
 
-    const url = `https://hizivo.com/track/${shareToken}`;
+    const url = `https://zivosmedia.com/track/${shareToken}`;
     return new Response(JSON.stringify({ share_token: shareToken, url, expires_at: (share as any).expires_at }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -142,7 +142,7 @@ export default function ShareSheet({
     try {
       return new URL(effectiveShareUrl).host;
     } catch {
-      return "hizivo.com";
+      return "zivosmedia.com";
     }
   })();
 

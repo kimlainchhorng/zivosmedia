@@ -48,7 +48,7 @@ Deno.serve(withSecurity("google-ads-create-campaign", async (req, ctx) => {
       name = "ZIVO MVP Launch — Search",
       daily_budget_cents = 2000,
       keywords = ["ride app", "food delivery", "rides cambodia", "tuk tuk app"],
-      final_url = "https://hizivo.com",
+      final_url = "https://zivosmedia.com",
     } = await req.json().catch(() => ({}));
 
     const accessToken = await getAccessToken();

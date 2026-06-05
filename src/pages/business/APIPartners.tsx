@@ -367,8 +367,8 @@ const response = await zivo.flights.search({
             </p>
             <p className="text-sm text-muted-foreground mt-6">
               Questions? Contact us at{" "}
-              <a href="mailto:partners@hizivo.com" className="text-primary hover:underline">
-                partners@hizivo.com
+              <a href="mailto:partners@zivosmedia.com" className="text-primary hover:underline">
+                partners@zivosmedia.com
               </a>
             </p>
           </div>

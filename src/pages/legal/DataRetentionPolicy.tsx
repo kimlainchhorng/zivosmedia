@@ -31,7 +31,7 @@ const sections = [
   {
     icon: Trash2,
     title: "3. Data Deletion & Your Rights",
-    content: "You may request deletion of your personal data at any time via Account Settings → Delete Account or by emailing privacy@hizivo.com. Upon verified request, we will delete or irreversibly anonymize your data within 30 days, EXCEPT where retention is required by: (a) applicable law (tax, financial regulations); (b) ongoing legal proceedings or disputes; (c) fraud prevention obligations; (d) regulatory investigations; or (e) legitimate business interests as permitted by law. Backup copies may persist in encrypted backups for up to 90 days before automatic purge. Deletion is permanent and irreversible — we cannot recover deleted data."
+    content: "You may request deletion of your personal data at any time via Account Settings → Delete Account or by emailing privacy@zivosmedia.com. Upon verified request, we will delete or irreversibly anonymize your data within 30 days, EXCEPT where retention is required by: (a) applicable law (tax, financial regulations); (b) ongoing legal proceedings or disputes; (c) fraud prevention obligations; (d) regulatory investigations; or (e) legitimate business interests as permitted by law. Backup copies may persist in encrypted backups for up to 90 days before automatic purge. Deletion is permanent and irreversible — we cannot recover deleted data."
   },
   {
     icon: Server,
@@ -51,7 +51,7 @@ const sections = [
   {
     icon: Lock,
     title: "7. Automated Decision Making & Profiling",
-    content: "ZIVO may use automated systems for: fraud detection and prevention, risk scoring for account verification, personalized pricing and recommendations, and content moderation. You have the right to: (a) be informed about automated decision making; (b) request human review of automated decisions that significantly affect you; (c) express your point of view and contest decisions; and (d) opt out of certain profiling activities. Contact privacy@hizivo.com to exercise these rights."
+    content: "ZIVO may use automated systems for: fraud detection and prevention, risk scoring for account verification, personalized pricing and recommendations, and content moderation. You have the right to: (a) be informed about automated decision making; (b) request human review of automated decisions that significantly affect you; (c) express your point of view and contest decisions; and (d) opt out of certain profiling activities. Contact privacy@zivosmedia.com to exercise these rights."
   },
   {
     icon: AlertTriangle,
@@ -66,7 +66,7 @@ const sections = [
   {
     icon: FileText,
     title: "10. Your Data Access Rights",
-    content: "You have the right to: (a) request a copy of all personal data we hold about you (data portability); (b) correct inaccurate data; (c) restrict processing of your data in certain circumstances; (d) object to processing based on legitimate interests; (e) request deletion of your data (right to be forgotten, subject to legal retention requirements); and (f) file a complaint with relevant data protection authorities. Requests can be submitted to privacy@hizivo.com and will be processed within 30 days. We may verify your identity before fulfilling requests."
+    content: "You have the right to: (a) request a copy of all personal data we hold about you (data portability); (b) correct inaccurate data; (c) restrict processing of your data in certain circumstances; (d) object to processing based on legitimate interests; (e) request deletion of your data (right to be forgotten, subject to legal retention requirements); and (f) file a complaint with relevant data protection authorities. Requests can be submitted to privacy@zivosmedia.com and will be processed within 30 days. We may verify your identity before fulfilling requests."
   },
 ];
 
@@ -116,7 +116,7 @@ export default function DataRetentionPolicy() {
         })}
         <div className="rounded-2xl bg-primary/5 border border-primary/10 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Data Deletion or Access Request</p>
-          <p className="text-xs text-muted-foreground">Email <span className="text-primary font-semibold">privacy@hizivo.com</span> or use Account Settings → Delete Account</p>
+          <p className="text-xs text-muted-foreground">Email <span className="text-primary font-semibold">privacy@zivosmedia.com</span> or use Account Settings → Delete Account</p>
         </div>
       </div>
     </div>

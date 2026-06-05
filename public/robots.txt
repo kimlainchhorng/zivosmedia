@@ -1,5 +1,5 @@
 # ============================================
-# ZIVO (hizivo.com) - robots.txt
+# ZIVO (zivosmedia.com) - robots.txt
 # OTA-grade SEO configuration
 # ============================================
 
@@ -191,5 +191,5 @@ Disallow: /more
 # ===========================
 # SITEMAP
 # ===========================
-Sitemap: https://zivollc.com/sitemap-index.xml
-Sitemap: https://zivollc.com/sitemap.xml
+Sitemap: https://zivosmedia.com/sitemap-index.xml
+Sitemap: https://zivosmedia.com/sitemap.xml

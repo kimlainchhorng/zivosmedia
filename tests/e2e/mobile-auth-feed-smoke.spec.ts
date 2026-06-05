@@ -49,7 +49,7 @@ test.describe("mobile auth/feed smoke", () => {
   });
 
   test("verify otp route has accessible digit inputs", async ({ page }) => {
-    await page.goto("/verify-otp?email=qa%40hizivo.com");
+    await page.goto("/verify-otp?email=qa%40zivosmedia.com");
     await page.getByRole("button", { name: "I have a 6-digit code" }).click();
     const digits = page.locator('input[aria-label^="Verification code digit "]');
     await expect(digits).toHaveCount(6);
@@ -62,7 +62,7 @@ test.describe("mobile auth/feed smoke", () => {
 
   test("verify new device route renders 6-digit form when session keys exist", async ({ page }) => {
     await page.addInitScript(() => {
-      sessionStorage.setItem("zivo_device_otp_email", "qa@hizivo.com");
+      sessionStorage.setItem("zivo_device_otp_email", "qa@zivosmedia.com");
       sessionStorage.setItem("zivo_device_otp_userid", "00000000-0000-0000-0000-000000000000");
     });
 

@@ -13,7 +13,7 @@ not_found_handling = "single-page-application"
 run_worker_first = ["/media/*", "/downloads/*", "/share/c/*", "/healthz"]
 
 [vars]
-ALLOWED_ORIGINS = "https://zivollc.com,https://www.zivollc.com,https://app.zivollc.com,https://preview.zivollc.com,https://zivosoftware.com,https://www.zivosoftware.com,https://myzivo.com,https://www.myzivo.com,https://app.myzivo.com,https://preview.myzivo.com,https://zivo-web.myzivo.workers.dev,http://localhost:8081,http://localhost:5173"
+ALLOWED_ORIGINS = "https://zivosmedia.com,https://www.zivosmedia.com,https://zivosoftware.com,https://www.zivosoftware.com,https://zivollc.com,https://www.zivollc.com,https://app.zivollc.com,https://preview.zivollc.com,https://app.zivosmedia.com,https://preview.zivosmedia.com,https://myzivo.com,https://www.myzivo.com,https://app.myzivo.com,https://preview.myzivo.com,https://zivo-web.myzivo.workers.dev,http://localhost:8081,http://localhost:5173"
 
 [[r2_buckets]]
 binding = "ZIVO_MEDIA"

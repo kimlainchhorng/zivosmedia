@@ -12,11 +12,11 @@ const Privacy = () => {
       <SEOHead
         title="Privacy Policy - ZIVO | Travel Platform"
         description="Learn how ZIVO handles your data for Hotels, Car Rentals (direct sale), and Flights (partner referral). We protect your information."
-        canonical="https://hizivo.com/legal/privacy"
+        canonical="https://zivosmedia.com/legal/privacy"
       />
-      
+
       <Header />
-      
+
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Back Button */}
         <Link to="/">
@@ -207,7 +207,7 @@ const Privacy = () => {
                 <li>• Opt out of marketing communications</li>
               </ul>
               <p className="text-muted-foreground mt-4">
-                To exercise these rights, contact us at support@hizivo.com.
+                To exercise these rights, contact us at support@zivosmedia.com.
               </p>
             </div>
           </section>
@@ -224,12 +224,12 @@ const Privacy = () => {
               <p className="text-foreground mb-4">
                 For privacy-related questions:
               </p>
-              <a 
-                href="mailto:support@hizivo.com" 
+              <a
+                href="mailto:support@zivosmedia.com"
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="w-4 h-4" />
-                support@hizivo.com
+                support@zivosmedia.com
               </a>
             </div>
           </section>

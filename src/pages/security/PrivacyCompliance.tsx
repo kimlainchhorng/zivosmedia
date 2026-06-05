@@ -150,8 +150,8 @@ export default function PrivacyCompliance() {
                         Privacy Controls
                       </Link>{" "}
                       to submit data requests, or email{" "}
-                      <a href="mailto:privacy@hizivo.com" className="text-primary hover:underline">
-                        privacy@hizivo.com
+                      <a href="mailto:privacy@zivosmedia.com" className="text-primary hover:underline">
+                        privacy@zivosmedia.com
                       </a>
                     </p>
                   </div>

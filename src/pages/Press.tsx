@@ -40,17 +40,17 @@ const companyFacts = [
 const pressContacts = [
   {
     label: "Media Inquiries",
-    email: "press@hizivo.com",
+    email: "press@zivosmedia.com",
     description: "For press releases, interviews, and media coverage",
   },
   {
     label: "Business Partnerships",
-    email: "partners@hizivo.com",
+    email: "partners@zivosmedia.com",
     description: "For partnership and integration opportunities",
   },
   {
     label: "Corporate Accounts",
-    email: "business@hizivo.com",
+    email: "business@zivosmedia.com",
     description: "For enterprise and corporate travel solutions",
   },
 ];
@@ -75,7 +75,7 @@ const Press = () => {
       <SEOHead
         title="Press & Media | ZIVO"
         description="ZIVO press resources, media kit, and contact information for journalists and media outlets."
-        canonical="https://hizivo.com/press"
+        canonical="https://zivosmedia.com/press"
       />
       <Header />
 
@@ -376,10 +376,10 @@ const Press = () => {
                   <CardContent className="p-6">
                     <h3 className="font-bold mb-3">About ZIVO (Boilerplate)</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      ZIVO (hizivo.com) is a travel search and comparison platform that helps users find and compare flights, hotels, car rentals, and travel services from trusted partners worldwide. Founded in 2024, ZIVO's mission is to connect how the world moves by building a unified platform for travel and mobility. ZIVO does not sell tickets or process payments — when users select an option, they are redirected to trusted travel partners to complete their booking. ZIVO is free for users and earns revenue through affiliate commissions from travel partners. For more information, visit hizivo.com.
+                      ZIVO (zivosmedia.com) is a travel search and comparison platform that helps users find and compare flights, hotels, car rentals, and travel services from trusted partners worldwide. Founded in 2024, ZIVO's mission is to connect how the world moves by building a unified platform for travel and mobility. ZIVO does not sell tickets or process payments — when users select an option, they are redirected to trusted travel partners to complete their booking. ZIVO is free for users and earns revenue through affiliate commissions from travel partners. For more information, visit zivosmedia.com.
                     </p>
                     <p className="text-xs text-muted-foreground mt-3 italic">
-                      Copy-paste ready for publications. For custom quotes, contact press@hizivo.com.
+                      Copy-paste ready for publications. For custom quotes, contact press@zivosmedia.com.
                     </p>
                   </CardContent>
                 </Card>
@@ -405,14 +405,14 @@ const Press = () => {
                       <p className="text-xs text-muted-foreground mt-0.5">{asset.size}</p>
                     </div>
                     <Button size="sm" variant="outline" className="gap-1 shrink-0"
-                      onClick={() => window.open("mailto:press@hizivo.com?subject=Press Kit Request: " + asset.label)}>
+                      onClick={() => window.open("mailto:press@zivosmedia.com?subject=Press Kit Request: " + asset.label)}>
                       <Download className="w-3 h-3" /> Request
                     </Button>
                   </Card>
                 ))}
                 <Card className="col-span-full p-4 text-center bg-muted/30">
                   <p className="text-sm text-muted-foreground">
-                    Need a custom asset or higher resolution? Email <a href="mailto:press@hizivo.com" className="text-primary underline">press@hizivo.com</a>
+                    Need a custom asset or higher resolution? Email <a href="mailto:press@zivosmedia.com" className="text-primary underline">press@zivosmedia.com</a>
                   </p>
                 </Card>
               </div>

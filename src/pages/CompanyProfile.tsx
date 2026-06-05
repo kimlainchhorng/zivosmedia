@@ -33,7 +33,7 @@ const companyInfo = [
   { label: "Trading As", value: "ZIVO / Hizovo" },
   { label: "Founded", value: "2024" },
   { label: "Headquarters", value: "United States" },
-  { label: "Website", value: "hizivo.com" },
+  { label: "Website", value: "zivosmedia.com" },
   { label: "Industry", value: "Travel Technology / Mobility" },
 ];
 
@@ -69,7 +69,7 @@ const leadership = [
   {
     title: "Founder & CEO",
     name: "Kimlain",
-    email: "kimlain@hizivo.com",
+    email: "kimlain@zivosmedia.com",
   },
   {
     title: "Chief Technology Officer",
@@ -84,11 +84,11 @@ const leadership = [
 ];
 
 const contacts = [
-  { label: "General Business", email: "kimlain@hizivo.com" },
-  { label: "Press & Media", email: "press@hizivo.com" },
-  { label: "Investor Relations", email: "investors@hizivo.com" },
-  { label: "Partnerships", email: "partners@hizivo.com" },
-  { label: "Support", email: "info@hizivo.com" },
+  { label: "General Business", email: "kimlain@zivosmedia.com" },
+  { label: "Press & Media", email: "press@zivosmedia.com" },
+  { label: "Investor Relations", email: "investors@zivosmedia.com" },
+  { label: "Partnerships", email: "partners@zivosmedia.com" },
+  { label: "Support", email: "info@zivosmedia.com" },
 ];
 
 const CompanyProfile = () => {
@@ -97,7 +97,7 @@ const CompanyProfile = () => {
       <SEOHead
         title="Company Profile | ZIVO"
         description="ZIVO LLC company profile - Travel & Mobility Ecosystem. Overview for banks, partners, investors, and press."
-        canonical="https://hizivo.com/company-profile"
+        canonical="https://zivosmedia.com/company-profile"
       />
       <Header />
 

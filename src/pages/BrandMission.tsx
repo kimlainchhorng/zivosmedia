@@ -101,7 +101,7 @@ const BrandMission = () => {
       <SEOHead
         title="Brand Mission & Vision | ZIVO"
         description="ZIVO connects how the world moves. Discover our mission, vision, values, and brand architecture."
-        canonical="https://hizivo.com/brand"
+        canonical="https://zivosmedia.com/brand"
       />
       <Header />
 

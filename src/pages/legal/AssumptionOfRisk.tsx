@@ -106,7 +106,7 @@ export default function AssumptionOfRisk() {
         })}
         <div className="rounded-2xl bg-muted/30 border border-border/40 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Questions?</p>
-          <p className="text-xs text-muted-foreground">Contact <span className="text-primary font-semibold">legal@hizivo.com</span></p>
+          <p className="text-xs text-muted-foreground">Contact <span className="text-primary font-semibold">legal@zivosmedia.com</span></p>
         </div>
       </div>
     </div>

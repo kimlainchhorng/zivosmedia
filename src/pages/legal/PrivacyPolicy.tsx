@@ -4,10 +4,148 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+
+function ZivoSoftwarePrivacyMark() {
+  return (
+    <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] bg-[#101412] shadow-[0_16px_34px_rgba(17,20,18,0.2)]">
+      <span className="absolute -right-1 -top-1 h-4 w-4 rounded-md bg-[#48e7af]" />
+      <span className="absolute bottom-2 left-2 h-2 w-2 rounded-sm bg-[#35a8ff]/80" />
+      <svg viewBox="0 0 44 44" aria-hidden="true" className="relative h-8 w-8">
+        <defs>
+          <linearGradient id="zivoSoftwarePrivacyMark" x1="8" y1="8" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="0.5" stopColor="#48e7af" />
+            <stop offset="1" stopColor="#35a8ff" />
+          </linearGradient>
+        </defs>
+        <path d="M10 8h26v7.2H22.4L36 15.3 16.1 36H8l20-20.8H10V8Z" fill="url(#zivoSoftwarePrivacyMark)" />
+        <path d="M13.2 28.8h20.9V36H6.8l6.4-7.2Z" fill="#f8fffc" />
+      </svg>
+    </span>
+  );
+}
+
+function ZivoSoftwarePrivacy() {
+  const lastUpdated = "June 4, 2026";
+  const sections = [
+    {
+      icon: Database,
+      title: "Information We Collect",
+      copy: "ZIVO Software may process account details, business profile information, employee/team access records, customer records, vehicle or service details, appointments, bookings, invoices, payments, expenses, inventory, reports, and support communications.",
+    },
+    {
+      icon: Eye,
+      title: "How We Use Information",
+      copy: "We use information to provide dashboards, setup flows, bookings, work orders, invoices, customer history, team permissions, reporting, authentication, fraud prevention, support, and service reliability.",
+    },
+    {
+      icon: Users,
+      title: "Business-Controlled Data",
+      copy: "A business owner or authorized workspace administrator controls much of the customer, employee, and operational data entered into a workspace. Customers and staff should contact the business directly for many record changes unless ZIVO is required to assist.",
+    },
+    {
+      icon: Lock,
+      title: "Security",
+      copy: "We use authentication, role-based access, platform monitoring, and infrastructure safeguards to help protect software accounts and business records. No system is perfect, so workspace owners must also manage passwords, team roles, and device access responsibly.",
+    },
+    {
+      icon: Globe,
+      title: "Service Providers",
+      copy: "We may use infrastructure, authentication, analytics, storage, payment, email, and support providers to operate ZIVO Software. We do not sell business customer records for third-party marketing.",
+    },
+    {
+      icon: Trash2,
+      title: "Retention and Requests",
+      copy: "We keep information for as long as needed to provide the software, comply with law, prevent abuse, resolve disputes, and maintain business records. Account owners may request access, correction, export, or deletion where applicable.",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#f7f8f6] text-[#101412]">
+      <header className="sticky top-0 z-50 border-b border-black/10 bg-[#f7f8f6]/92 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+          <Link to="/business" className="flex items-center gap-3">
+            <ZivoSoftwarePrivacyMark />
+            <span>
+              <span className="block text-base font-black uppercase tracking-[0.2em]">ZIVO</span>
+              <span className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#138f68]">Software</span>
+            </span>
+          </Link>
+          <Button asChild variant="outline" className="rounded-lg border-black/15 bg-white text-[#101412]">
+            <Link to="/business">Back to software</Link>
+          </Button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-5 py-10">
+        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#138f68]">Privacy</p>
+            <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-normal sm:text-5xl">ZIVO Software Privacy Policy</h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5f6b65]">
+              This policy explains how ZIVO LLC handles information for ZIVO Software business workspaces on zivosmedia.com.
+            </p>
+            <p className="mt-4 text-sm font-semibold text-[#5f6b65]">Last updated: {lastUpdated}</p>
+          </div>
+          <div className="rounded-[1.2rem] border border-black/10 bg-[#101412] p-6 text-white shadow-[0_24px_70px_rgba(17,20,18,0.18)]">
+            <Shield className="h-8 w-8 text-[#48e7af]" />
+            <h2 className="mt-6 text-2xl font-black">Business data, handled for operations</h2>
+            <p className="mt-3 text-sm leading-6 text-white/65">
+              ZIVO Software focuses on the records operators need to run daily work: team access, customers, service activity, revenue, and reports.
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-8 flex flex-wrap gap-2">
+          <Badge variant="outline" className="border-[#138f68] text-[#138f68]">Business workspaces</Badge>
+          <Badge variant="outline" className="border-[#138f68] text-[#138f68]">Role-based access</Badge>
+          <Badge variant="outline" className="border-[#138f68] text-[#138f68]">No sale of customer records</Badge>
+        </section>
+
+        <section className="mt-8 grid gap-4 md:grid-cols-2">
+          {sections.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title} className="rounded-xl border border-black/10 bg-white p-5 shadow-sm">
+                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#101412] text-white">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h2 className="mt-5 text-xl font-black">{item.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-[#5f6b65]">{item.copy}</p>
+              </article>
+            );
+          })}
+        </section>
+
+        <section className="mt-10 rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black">Your Choices</h2>
+          <p className="mt-3 text-sm leading-7 text-[#5f6b65]">
+            You can sign out, update account information, manage team access, and contact support for privacy requests. Business workspace owners are responsible for responding to many customer and employee requests tied to their own records.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button asChild className="rounded-lg bg-[#101412] text-white hover:bg-black">
+              <Link to="/login?redirect=%2Fbusiness">Sign in</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-lg border-black/15 bg-white">
+              <Link to="/legal/terms">Terms of Service</Link>
+            </Button>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
 
 const PrivacyPolicy = () => {
   const lastUpdated = "March 13, 2026";
   const companyName = "ZIVO LLC";
+  const isZivoSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+
+  if (isZivoSoftwareDomain) {
+    return <ZivoSoftwarePrivacy />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,12 +180,12 @@ const PrivacyPolicy = () => {
         <Card className="mb-8">
           <CardContent className="p-6">
             <p className="text-muted-foreground leading-relaxed">
-              At ZIVO, we take your privacy seriously. This Privacy Policy explains how {companyName} ("ZIVO," "we," "us," or "our") 
-              collects, uses, shares, and protects your personal information when you use our ride-hailing, food delivery, 
+              At ZIVO, we take your privacy seriously. This Privacy Policy explains how {companyName} ("ZIVO," "we," "us," or "our")
+              collects, uses, shares, and protects your personal information when you use our ride-hailing, food delivery,
               car rental, flight booking, and hotel reservation services.
             </p>
             <p className="text-muted-foreground leading-relaxed mt-4">
-              This policy applies to all ZIVO services, including our mobile applications, websites, and any other platforms 
+              This policy applies to all ZIVO services, including our mobile applications, websites, and any other platforms
               where we collect personal information.
             </p>
           </CardContent>
@@ -88,7 +226,7 @@ const PrivacyPolicy = () => {
                 ZIVO collects only the information necessary to provide travel services and comply with legal obligations.
               </p>
               <p>
-                We do not collect excessive data or information unrelated to providing our services. Our data collection practices 
+                We do not collect excessive data or information unrelated to providing our services. Our data collection practices
                 are regularly reviewed to ensure we maintain the minimum data footprint necessary for operations.
               </p>
             </AccordionContent>
@@ -267,14 +405,14 @@ const PrivacyPolicy = () => {
 
               <h4 className="font-semibold text-foreground mt-6">3.4 Business Transfers</h4>
               <p>
-                In the event of a merger, acquisition, or sale of assets, your information may be transferred 
+                In the event of a merger, acquisition, or sale of assets, your information may be transferred
                 to the acquiring entity. We will notify you of any such transfer and any choices you may have.
               </p>
 
               <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
                 <p className="font-semibold text-foreground">We Do NOT Sell Your Personal Data</p>
                 <p className="text-sm mt-2">
-                  ZIVO does not sell, rent, or trade your personal information to third parties for their 
+                  ZIVO does not sell, rent, or trade your personal information to third parties for their
                   marketing purposes. We may share limited audience or conversion signals for targeted advertising
                   only with your consent and only as described in this policy, the Cookie Policy, and the Do Not Sell
                   or Share page.
@@ -373,7 +511,7 @@ const PrivacyPolicy = () => {
 
               <h4 className="font-semibold text-foreground mt-6">Managing Cookies</h4>
               <p>
-                You can control cookies through your browser settings or our cookie preference controls. 
+                You can control cookies through your browser settings or our cookie preference controls.
                 Note that disabling essential cookies may affect functionality.
               </p>
             </AccordionContent>
@@ -448,7 +586,7 @@ const PrivacyPolicy = () => {
 
               <h4 className="font-semibold text-foreground mt-6">Exercising Your Rights</h4>
               <p>
-                To exercise your rights, contact us at privacy@hizivo.com or use the privacy settings in your 
+                To exercise your rights, contact us at privacy@zivosmedia.com or use the privacy settings in your
                 account. We will respond within 30 days (or as required by law).
               </p>
             </AccordionContent>
@@ -499,7 +637,7 @@ const PrivacyPolicy = () => {
 
               <h4 className="font-semibold text-foreground mt-6">Account Deletion</h4>
               <p>
-                When you delete your account, we will remove or anonymize your personal data within 30 days, 
+                When you delete your account, we will remove or anonymize your personal data within 30 days,
                 except where retention is required by law or for legitimate business purposes.
               </p>
             </AccordionContent>
@@ -517,7 +655,7 @@ const PrivacyPolicy = () => {
             </AccordionTrigger>
             <AccordionContent className="text-muted-foreground space-y-4 pb-6">
               <p>
-                ZIVO operates globally, and your data may be transferred to and processed in countries other 
+                ZIVO operates globally, and your data may be transferred to and processed in countries other
                 than your country of residence.
               </p>
 
@@ -561,7 +699,7 @@ const PrivacyPolicy = () => {
               <p className="mt-4">
                 If we learn that we have collected information from a child under the permitted age, we will
                 delete it promptly. If you believe we have collected information from a child, please contact
-                us at privacy@hizivo.com.
+                us at privacy@zivosmedia.com.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -586,7 +724,7 @@ const PrivacyPolicy = () => {
                 <li>Displaying an in-app banner</li>
               </ul>
               <p className="mt-4">
-                We encourage you to review this policy periodically. Continued use of our services after changes 
+                We encourage you to review this policy periodically. Continued use of our services after changes
                 constitutes acceptance of the updated policy.
               </p>
             </AccordionContent>
@@ -601,8 +739,8 @@ const PrivacyPolicy = () => {
               If you have questions about this Privacy Policy or wish to exercise your privacy rights, contact us:
             </p>
             <div className="space-y-2">
-              <p><strong>Email:</strong> privacy@hizivo.com</p>
-              <p><strong>Data Protection Officer:</strong> dpo@hizivo.com</p>
+              <p><strong>Email:</strong> privacy@zivosmedia.com</p>
+              <p><strong>Data Protection Officer:</strong> dpo@zivosmedia.com</p>
               <p><strong>Address:</strong> {companyName}, 123 Innovation Drive, Wilmington, DE 19801, USA</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">

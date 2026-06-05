@@ -110,7 +110,7 @@ export default function DestinationActivitiesPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/things-to-do/${citySlug}`}
+        canonical={`https://zivosmedia.com/things-to-do/${citySlug}`}
       />
       <OrganizationSchema />
       <BreadcrumbSchema items={breadcrumbs} />

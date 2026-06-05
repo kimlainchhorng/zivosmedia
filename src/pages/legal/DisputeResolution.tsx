@@ -6,7 +6,7 @@ const sections = [
   {
     icon: MessageSquare,
     title: "1. Informal Resolution First",
-    content: "Before initiating formal proceedings, you MUST first attempt to resolve the dispute informally by contacting us at support@hizivo.com with a detailed description of your concern. We commit to responding within 5 business days and working toward a fair resolution within 30 days. You agree not to file any arbitration claim or court action until this 30-day informal resolution period has expired. Most disputes can be resolved through direct communication."
+    content: "Before initiating formal proceedings, you MUST first attempt to resolve the dispute informally by contacting us at support@zivosmedia.com with a detailed description of your concern. We commit to responding within 5 business days and working toward a fair resolution within 30 days. You agree not to file any arbitration claim or court action until this 30-day informal resolution period has expired. Most disputes can be resolved through direct communication."
   },
   {
     icon: Scale,
@@ -56,7 +56,7 @@ const sections = [
   {
     icon: AlertTriangle,
     title: "11. 30-Day Opt-Out Right",
-    content: "You may opt out of the arbitration agreement by sending written notice to legal@hizivo.com within 30 DAYS of first accepting these Terms. Your opt-out notice must include your full name, email address, mailing address, and a clear statement that you wish to opt out of the arbitration agreement. If you opt out, all other provisions of these Terms remain in full force and effect. Opting out of arbitration does not affect the class action waiver or the time limitation on claims."
+    content: "You may opt out of the arbitration agreement by sending written notice to legal@zivosmedia.com within 30 DAYS of first accepting these Terms. Your opt-out notice must include your full name, email address, mailing address, and a clear statement that you wish to opt out of the arbitration agreement. If you opt out, all other provisions of these Terms remain in full force and effect. Opting out of arbitration does not affect the class action waiver or the time limitation on claims."
   },
   {
     icon: Gavel,
@@ -101,7 +101,7 @@ export default function DisputeResolution() {
         })}
         <div className="rounded-2xl bg-primary/5 border border-primary/10 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Have a Dispute?</p>
-          <p className="text-xs text-muted-foreground">Start with <span className="text-primary font-semibold">support@hizivo.com</span> — we'll try to resolve it informally first</p>
+          <p className="text-xs text-muted-foreground">Start with <span className="text-primary font-semibold">support@zivosmedia.com</span> — we'll try to resolve it informally first</p>
         </div>
       </div>
     </div>

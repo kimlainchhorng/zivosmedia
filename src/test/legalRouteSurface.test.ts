@@ -108,6 +108,6 @@ describe("canonical legal route surface", () => {
 
     expect(retention).toContain("Consent & acceptance records");
     expect(retention).toContain("7 years");
-    expect(retention).toContain("privacy@hizivo.com");
+    expect(retention).toContain("privacy@zivosmedia.com");
   });
 });

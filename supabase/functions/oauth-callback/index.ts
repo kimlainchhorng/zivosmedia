@@ -5,11 +5,41 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PREVIEW_FALLBACK = "https://id-preview--72f99340-9c9f-453a-acff-60e5a9b25774.lovable.app";
 
+function isLocalDevOrigin(url: URL) {
+  const hostname = url.hostname.toLowerCase();
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  const match = hostname.match(/^172\.(\d{1,2})\.\d{1,3}\.\d{1,3}$/);
+  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
+}
+
 function htmlRedirect(url: string, message = "Connecting...") {
-  return new Response(
-    `<!doctype html><html><head><meta charset="utf-8"><title>${message}</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><p>${message}</p><script>window.location.href=${JSON.stringify(url)}</script></body></html>`,
-    { headers: { "Content-Type": "text/html" } }
-  );
+  return new Response(null, {
+    status: 303,
+    headers: {
+      "Location": url,
+      "Cache-Control": "no-store, max-age=0",
+    },
+  });
+}
+
+function addQueryParams(base: string, params: Record<string, string | null | undefined>) {
+  const fallbackBase = `${PREVIEW_FALLBACK}/connect/callback`;
+  try {
+    const url = new URL(base);
+    for (const [key, value] of Object.entries(params)) {
+      if (value) url.searchParams.set(key, value);
+    }
+    return url.toString();
+  } catch {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value) search.set(key, value);
+    }
+    return `${fallbackBase}?${search.toString()}`;
+  }
 }
 
 function getMetaAppId() {
@@ -29,20 +59,26 @@ function getMetaAppSecret() {
   return secret;
 }
 
+function getMetaRedirectUri() {
+  const configured = Deno.env.get("META_REDIRECT_URI")?.trim();
+  if (configured && !configured.includes("zivosmedia.com")) return configured;
+  return "https://zivosmedia.com/auth/meta/callback";
+}
+
 function allowedReturnUrl(value: unknown) {
   const allowedOrigins = new Set([
     PREVIEW_FALLBACK,
     Deno.env.get("APP_URL") || "",
     Deno.env.get("SITE_URL") || "",
     Deno.env.get("PUBLIC_SITE_URL") || "",
-    "https://hizivo.com",
-    "https://www.zivollc.com",
+    "https://zivosmedia.com",
+    "https://www.zivosmedia.com",
   ].filter(Boolean).map((origin) => new URL(origin).origin));
   if (typeof value !== "string" || !value) return `${PREVIEW_FALLBACK}/connect/callback`;
   if (value.startsWith("/") && !value.startsWith("//")) return `${PREVIEW_FALLBACK}${value}`;
   try {
     const url = new URL(value);
-    return allowedOrigins.has(url.origin) ? url.toString() : `${PREVIEW_FALLBACK}/connect/callback`;
+    return allowedOrigins.has(url.origin) || isLocalDevOrigin(url) ? url.toString() : `${PREVIEW_FALLBACK}/connect/callback`;
   } catch {
     return `${PREVIEW_FALLBACK}/connect/callback`;
   }
@@ -52,10 +88,19 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  const error = url.searchParams.get("error_description") || url.searchParams.get("error");
+  const error =
+    url.searchParams.get("error_description") ||
+    url.searchParams.get("error_message") ||
+    url.searchParams.get("error");
+  const errorCode = url.searchParams.get("error_code");
+  const errorReason = url.searchParams.get("error_reason");
 
   if (!state) {
-    return htmlRedirect(`${PREVIEW_FALLBACK}/connect/callback?error=missing_state`);
+    return htmlRedirect(addQueryParams(`${PREVIEW_FALLBACK}/connect/callback`, {
+      error: error || "missing_state",
+      error_code: errorCode,
+      error_reason: errorReason,
+    }));
   }
 
   const admin = createClient(
@@ -77,7 +122,11 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
   const returnBase = allowedReturnUrl(stateRow.return_url);
 
   if (error || !code) {
-    return htmlRedirect(`${returnBase}?error=${encodeURIComponent(error || "no_code")}`);
+    return htmlRedirect(addQueryParams(returnBase, {
+      error: error || "no_code",
+      error_code: errorCode,
+      error_reason: errorReason,
+    }));
   }
 
   try {
@@ -85,7 +134,7 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
       const appId = getMetaAppId();
       const appSecret = getMetaAppSecret();
       console.log("oauth-callback using META_APP_ID", { appIdLength: appId.length, appIdSuffix: appId.slice(-4) });
-      const redirectUri = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/oauth-callback`;
+      const redirectUri = getMetaRedirectUri();
 
       const tokRes = await fetch(
         `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`
@@ -114,7 +163,7 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
             status: "connected",
             access_token: encryptedUserToken,
             token_expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
-            scopes: "pages_show_list,pages_manage_metadata,pages_read_engagement,instagram_basic,ads_management,business_management",
+            scopes: "pages_show_list,pages_read_engagement,ads_management,business_management",
             user_external_id: me.id,
             display_name: me.name,
             connected_at: new Date().toISOString(),
@@ -184,8 +233,13 @@ Deno.serve(withSecurity("oauth-callback", async (req) => {
       );
     }
 
-    return htmlRedirect(`${returnBase}?error=platform_not_configured&platform=${stateRow.platform}`);
+    return htmlRedirect(addQueryParams(returnBase, {
+      error: "platform_not_configured",
+      platform: stateRow.platform,
+    }));
   } catch (e) {
-    return htmlRedirect(`${returnBase}?error=${encodeURIComponent((e as Error).message)}`);
+    return htmlRedirect(addQueryParams(returnBase, {
+      error: (e as Error).message,
+    }));
   }
 }, { allowedMethods: ["GET"], rateLimit: "admin_action", strictCors: true, skipWaf: true, trackNetwork: "suspicious" }));

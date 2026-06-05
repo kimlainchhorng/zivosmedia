@@ -367,7 +367,7 @@ Deno.serve(withSecurity("create-lodging-deposit", async (req, ctx) => {
       if (customers.data.length > 0) customerId = customers.data[0].id;
     }
 
-    const origin = req.headers.get("origin") || "https://hizivo.com";
+    const origin = req.headers.get("origin") || "https://zivosmedia.com";
     const defaultReturnUrl =
       `${origin}/hotel/${body.store_id}/booking-confirmed?reservation_id=${body.reservation_id}&payment=1&session_id={CHECKOUT_SESSION_ID}`;
     const defaultCancelUrl =

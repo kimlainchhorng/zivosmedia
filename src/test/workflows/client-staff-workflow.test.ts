@@ -48,10 +48,10 @@ describe("client, staff, and employee workflow", () => {
     expect(acceptInvite).toContain("navigate(\"/personal-dashboard\")");
     expect(contract).toContain('withRedirectParam("/login", inviteReturnPath)');
     expect(contract).not.toContain('"/auth?next="');
-    expect(employeeInviteTemplate).toContain("https://zivollc.com/login?redirect=%2Fpersonal-dashboard");
-    expect(employeeInviteTemplate).not.toContain("https://hizivo.com/auth");
-    expect(adminEmployees).toContain('const ADMIN_EMPLOYEE_LOGIN_URL = "https://zivollc.com/login?redirect=%2Fpersonal-dashboard";');
-    expect(adminEmployees).not.toContain("https://hizivo.com/auth");
+    expect(employeeInviteTemplate).toContain("https://zivosmedia.com/login?redirect=%2Fpersonal-dashboard");
+    expect(employeeInviteTemplate).not.toContain("https://zivosmedia.com/auth");
+    expect(adminEmployees).toContain('const ADMIN_EMPLOYEE_LOGIN_URL = "https://zivosmedia.com/login?redirect=%2Fpersonal-dashboard";');
+    expect(adminEmployees).not.toContain("https://zivosmedia.com/auth");
 
     expect(inviteMigration).toContain("CREATE TABLE IF NOT EXISTS public.store_employee_invites");
     expect(inviteMigration).toContain("token text NOT NULL UNIQUE");
@@ -98,9 +98,9 @@ describe("client, staff, and employee workflow", () => {
       expect(source).toContain(".from(\"store_employee_invites\")");
       expect(source).toContain('Deno.env.get("PUBLIC_APP_URL")');
       expect(source).toContain('Deno.env.get("SITE_URL")');
-      expect(source).toContain('"https://zivollc.com"');
+      expect(source).toContain('"https://zivosmedia.com"');
       expect(source).toContain("/auth/accept-invite?token=");
-      expect(source).not.toContain("https://hizivo.com/auth");
+      expect(source).not.toContain("https://zivosmedia.com/auth");
     }
 
     expect(smsInvite).toContain("rate_limited");

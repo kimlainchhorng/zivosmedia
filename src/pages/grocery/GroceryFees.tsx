@@ -178,7 +178,7 @@ export default function GroceryFees() {
         </div>
 
         <div className="text-center pt-4">
-          <p className="text-[11px] text-muted-foreground">Questions about pricing? Contact <span className="text-primary font-semibold">support@hizivo.com</span></p>
+          <p className="text-[11px] text-muted-foreground">Questions about pricing? Contact <span className="text-primary font-semibold">support@zivosmedia.com</span></p>
         </div>
       </div>
       <ZivoMobileNav />

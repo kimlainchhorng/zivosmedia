@@ -75,7 +75,7 @@ Cancellation fees compensate drivers for their time and effort. ZIVO reserves th
   {
     icon: Gavel,
     title: "Dispute Resolution",
-    content: `Any dispute arising from these Terms or the ZIVO Grocery service shall first be addressed through our customer support at support@hizivo.com. If unresolved within 30 days, disputes shall be resolved through binding arbitration administered under the rules of the American Arbitration Association (AAA), except that either party may seek injunctive relief in a court of competent jurisdiction. You agree to waive any right to participate in a class action lawsuit or class-wide arbitration.`,
+    content: `Any dispute arising from these Terms or the ZIVO Grocery service shall first be addressed through our customer support at support@zivosmedia.com. If unresolved within 30 days, disputes shall be resolved through binding arbitration administered under the rules of the American Arbitration Association (AAA), except that either party may seek injunctive relief in a court of competent jurisdiction. You agree to waive any right to participate in a class action lawsuit or class-wide arbitration.`,
   },
   {
     icon: Globe,
@@ -134,7 +134,7 @@ export default function GroceryTerms() {
         ))}
 
         <div className="text-center pt-4 space-y-2">
-          <p className="text-[11px] text-muted-foreground">Questions? Contact <span className="text-primary font-semibold">support@hizivo.com</span></p>
+          <p className="text-[11px] text-muted-foreground">Questions? Contact <span className="text-primary font-semibold">support@zivosmedia.com</span></p>
           <p className="text-[9px] text-muted-foreground/50">
             See also: <Link to="/legal/terms" className="text-primary/60 underline">General Terms</Link> · <Link to="/legal/privacy" className="text-primary/60 underline">Privacy Policy</Link> · <Link to="/grocery/fees" className="text-primary/60 underline">Pricing & Fees</Link> · <Link to="/grocery/returns" className="text-primary/60 underline">Returns Policy</Link>
           </p>

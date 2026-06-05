@@ -518,10 +518,10 @@ const FlightTravelerInfo = () => {
                       <h3 className="font-semibold text-foreground mb-1">Support</h3>
                       <p>For booking changes, cancellations, or refunds, contact the travel partner listed in your confirmation email. ZIVO provides support only for website and navigation issues.</p>
                       <a
-                        href="mailto:support@hizivo.com"
+                        href="mailto:support@zivosmedia.com"
                         className="inline-flex items-center gap-1.5 text-[hsl(var(--flights))] hover:underline font-medium text-xs mt-1.5"
                       >
-                        support@hizivo.com
+                        support@zivosmedia.com
                       </a>
                     </div>
 

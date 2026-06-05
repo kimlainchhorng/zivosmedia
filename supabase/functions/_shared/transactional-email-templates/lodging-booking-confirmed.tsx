@@ -87,7 +87,7 @@ export const template = {
     paidAmount: '$284.00',
     paymentMethod: 'PayPal',
     hostPhone: '+855 12 345 678',
-    manageUrl: 'https://hizivo.com/trips',
+    manageUrl: 'https://zivosmedia.com/trips',
   },
 } satisfies TemplateEntry<Props>
 

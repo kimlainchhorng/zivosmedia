@@ -1,7 +1,7 @@
 /**
  * ZIVO+ Membership Page — Premium subscription with pricing cards
  */
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { withRedirectParam } from "@/lib/authRedirect";
 import { motion } from "framer-motion";
@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQuery } from "@tanstack/react-query";
 
 const BENEFITS = [
   { icon: Sparkles, title: "No Service Fee", desc: "Save 5% on every grocery order — service fee completely waived." },
@@ -31,12 +32,54 @@ const BENEFITS = [
 
 type PlanId = "monthly" | "chat" | "pro" | "annual";
 
-const PLANS: { id: PlanId; name: string; price: string; period: string; savings: string | null; badge: string | null; highlight?: string; desc?: string }[] = [
-  { id: "monthly", name: "Basic", price: "$9.99", period: "/mo", savings: null, badge: null, desc: "Essential perks" },
-  { id: "chat", name: "Chat+", price: "$15.99", period: "/mo", savings: null, badge: "Popular", highlight: "Lock & Unlock", desc: "Creator tools" },
-  { id: "pro", name: "Pro", price: "$29.99", period: "/mo", savings: null, badge: "Best", highlight: "All perks", desc: "Everything included" },
-  { id: "annual", name: "Annual", price: "$79.99", period: "/yr", savings: "Save 33%", badge: null, desc: "Basic plan, yearly" },
-];
+type PlanCard = { id: PlanId; name: string; price: string; period: string; savings: string | null; badge: string | null; highlight?: string; desc?: string };
+type ZivoPlusPlanRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  price_monthly: number;
+  price_yearly: number | null;
+  benefits: Record<string, any> | null;
+  service_fee_discount_pct: number | null;
+  delivery_fee_discount_pct: number | null;
+  free_delivery_min_order: number | null;
+  priority_support: boolean | null;
+  stripe_price_id_monthly: string | null;
+  stripe_price_id_yearly: string | null;
+};
+
+const PLAN_COPY: Record<PlanId, Omit<PlanCard, "price" | "period" | "savings" | "badge"> & { fallbackPrice: number; fallbackPeriod: string; fallbackSavings?: string | null; fallbackBadge?: string | null }> = {
+  monthly: { id: "monthly", name: "Basic", fallbackPrice: 9.99, fallbackPeriod: "mo", desc: "Essential perks" },
+  chat: { id: "chat", name: "Chat+", fallbackPrice: 15.99, fallbackPeriod: "mo", fallbackBadge: "Popular", highlight: "Lock & Unlock", desc: "Creator tools" },
+  pro: { id: "pro", name: "Pro", fallbackPrice: 29.99, fallbackPeriod: "mo", fallbackBadge: "Best", highlight: "All perks", desc: "Everything included" },
+  annual: { id: "annual", name: "Annual", fallbackPrice: 79.99, fallbackPeriod: "yr", fallbackSavings: "Save 33%", desc: "Basic plan, yearly" },
+};
+
+function formatPrice(value: number | null | undefined) {
+  const amount = Number(value || 0);
+  return `$${amount.toFixed(2).replace(/\.00$/, "")}`;
+}
+
+function buildPlanCards(plan: ZivoPlusPlanRow | null | undefined): PlanCard[] {
+  if (!plan) return [];
+  const tiers = plan?.benefits?.tiers && typeof plan.benefits.tiers === "object" ? plan.benefits.tiers : {};
+  return (["monthly", "chat", "pro", "annual"] as PlanId[]).map((id) => {
+    const base = PLAN_COPY[id];
+    const tier = tiers[id] || {};
+    const dbPrice = id === "monthly" ? plan?.price_monthly : id === "annual" ? plan?.price_yearly : tier.price;
+    const price = Number(dbPrice ?? tier.price ?? base.fallbackPrice);
+    return {
+      id,
+      name: String(tier.name || base.name),
+      price: formatPrice(price),
+      period: `/${String(tier.period || base.fallbackPeriod)}`,
+      savings: (tier.savings || base.fallbackSavings || null) as string | null,
+      badge: (tier.badge || base.fallbackBadge || null) as string | null,
+      highlight: base.highlight,
+      desc: base.desc,
+    };
+  });
+}
 
 /* ── Inline Legal Content ── */
 function TermsContent() {
@@ -94,7 +137,7 @@ function TermsContent() {
       </div>
       <div>
         <h3 className="text-[14px] font-bold text-foreground mb-2">Contact</h3>
-        <p>For questions: <a href="mailto:support@hizivo.com" className="text-primary underline">support@hizivo.com</a></p>
+        <p>For questions: <a href="mailto:support@zivosmedia.com" className="text-primary underline">support@zivosmedia.com</a></p>
       </div>
       <p className="text-[11px] text-muted-foreground">Last updated: February 2, 2026</p>
     </div>
@@ -153,11 +196,11 @@ function PrivacyContent() {
           <li>Request deletion of your personal information</li>
           <li>Opt out of marketing communications</li>
         </ul>
-        <p className="mt-2 text-muted-foreground">Contact us at support@hizivo.com to exercise these rights.</p>
+        <p className="mt-2 text-muted-foreground">Contact us at support@zivosmedia.com to exercise these rights.</p>
       </div>
       <div>
         <h3 className="text-[14px] font-bold text-foreground mb-2">Contact</h3>
-        <p>For privacy-related questions: <a href="mailto:support@hizivo.com" className="text-primary underline">support@hizivo.com</a></p>
+        <p>For privacy-related questions: <a href="mailto:support@zivosmedia.com" className="text-primary underline">support@zivosmedia.com</a></p>
       </div>
       <p className="text-[11px] text-muted-foreground">Last updated: February 2, 2026</p>
     </div>
@@ -209,6 +252,68 @@ export default function ZivoPlusPage() {
   const [isManaging, setIsManaging] = useState(false);
   const [legalSheet, setLegalSheet] = useState<"terms" | "privacy" | null>(null);
 
+  const { data: zivoPlan, isLoading: isPlanLoading } = useQuery({
+    queryKey: ["zivo-plus-plan-page"],
+    queryFn: async (): Promise<ZivoPlusPlanRow | null> => {
+      const { data, error } = await (supabase as any)
+        .from("zivo_subscription_plans")
+        .select("id, name, description, price_monthly, price_yearly, benefits, service_fee_discount_pct, delivery_fee_discount_pct, free_delivery_min_order, priority_support, stripe_price_id_monthly, stripe_price_id_yearly")
+        .eq("slug", "zivo-plus")
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    },
+    staleTime: 60_000,
+  });
+
+  const planCards = useMemo(() => buildPlanCards(zivoPlan), [zivoPlan]);
+  const selectedPlanCard = planCards.find((item) => item.id === selectedPlan) || null;
+  const serviceFeeDiscount = Number(zivoPlan?.service_fee_discount_pct ?? 100);
+  const deliveryFeeDiscount = Number(zivoPlan?.delivery_fee_discount_pct ?? 100);
+  const guaranteeHours = Number(zivoPlan?.benefits?.extended_guarantee_hours ?? 48);
+  const backendReady = Boolean(zivoPlan?.id);
+  const backendStatusText = isPlanLoading ? "Checking backend" : backendReady ? "Live from Supabase" : "Plan unavailable";
+  const selectedPlanLabel = selectedPlanCard ? `${selectedPlanCard.name} ${selectedPlanCard.price}${selectedPlanCard.period}` : backendStatusText;
+  const workflowRows = useMemo(() => [
+    {
+      icon: Shield,
+      title: "Plan data",
+      value: backendReady ? "Supabase live" : isPlanLoading ? "Checking" : "Paused",
+      ok: backendReady,
+    },
+    {
+      icon: Lock,
+      title: "Checkout",
+      value: backendReady ? "Stripe ready" : "Waiting for plan",
+      ok: backendReady,
+    },
+    {
+      icon: Zap,
+      title: "Webhook sync",
+      value: "Plan code stored",
+      ok: true,
+    },
+    {
+      icon: Settings,
+      title: "Billing",
+      value: isPlus ? "Portal enabled" : "Ready after signup",
+      ok: true,
+    },
+  ], [backendReady, isPlanLoading, isPlus]);
+  const benefitRows = useMemo(() => BENEFITS.map((benefit) => {
+    if (benefit.title === "No Service Fee") {
+      return { ...benefit, desc: `${serviceFeeDiscount}% service fee discount on eligible ZIVO orders.` };
+    }
+    if (benefit.title === "Priority Delivery") {
+      return { ...benefit, desc: `${deliveryFeeDiscount}% delivery fee discount plus priority matching when available.` };
+    }
+    if (benefit.title === "Extended Guarantee") {
+      return { ...benefit, desc: `${guaranteeHours}-hour freshness guarantee for eligible member orders.` };
+    }
+    return benefit;
+  }), [deliveryFeeDiscount, guaranteeHours, serviceFeeDiscount]);
+
   useEffect(() => {
     if (searchParams.get("success") === "true") {
       toast.success("Welcome to ZIVO+! Your membership is now active.");
@@ -221,6 +326,10 @@ export default function ZivoPlusPage() {
   const handleCheckout = async () => {
     if (!user) {
       navigate(withRedirectParam("/login", "/zivo-plus"));
+      return;
+    }
+    if (!zivoPlan?.id) {
+      toast.error("ZIVO+ plan is not available from the backend yet.");
       return;
     }
     setIsCheckingOut(true);
@@ -285,19 +394,69 @@ export default function ZivoPlusPage() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-primary/5 to-amber-600/10 border border-amber-500/20 p-6 text-center"
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/15 via-white to-orange-500/10 border border-amber-500/25 p-5 shadow-[0_22px_60px_rgba(245,158,11,0.16)]"
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(245,158,11,0.08),transparent_50%)]" />
-          <div className="relative z-10 space-y-3">
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/25">
-              <Crown className="h-7 w-7 text-white" />
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                <Crown className="h-7 w-7 text-white" />
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-extrabold text-foreground">ZIVO+ Membership</h2>
+                  {isPlus && <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-600">Active</span>}
+                </div>
+                <p className="mt-1 text-[12px] text-muted-foreground leading-relaxed">
+                  {zivoPlan?.description || "Skip service fees, unlock priority delivery, and get member-only perks across ZIVO."}
+                </p>
+              </div>
             </div>
-            <h2 className="text-xl font-extrabold text-foreground">ZIVO+ Membership</h2>
-            <p className="text-[13px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
-              Skip the service fee, get priority delivery, and enjoy exclusive member perks on every order.
-            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "Service fee", value: `${serviceFeeDiscount}% off`, icon: Percent },
+                { label: "Delivery", value: `${deliveryFeeDiscount}% off`, icon: Zap },
+                { label: "Guarantee", value: `${guaranteeHours}h`, icon: Shield },
+              ].map(({ label, value, icon: Icon }) => (
+                <div key={label} className="rounded-2xl border border-white/70 bg-white/70 p-2 shadow-sm">
+                  <Icon className="mb-1 h-3.5 w-3.5 text-amber-600" />
+                  <p className="truncate text-[11px] font-black text-foreground">{value}</p>
+                  <p className="truncate text-[8px] font-bold uppercase text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/70 bg-white/75 px-3 py-2 text-[10px] font-bold shadow-sm">
+              <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+                <span className={`h-2 w-2 rounded-full ${backendReady ? "bg-emerald-500" : isPlanLoading ? "bg-amber-500" : "bg-destructive"}`} />
+                <span className="truncate">{backendStatusText}</span>
+              </span>
+              <span className="truncate text-right text-foreground">{selectedPlanLabel}</span>
+            </div>
           </div>
         </motion.div>
+
+        <div className="rounded-3xl border border-border/20 bg-card p-3 shadow-sm">
+          <div className="mb-2 flex items-center justify-between px-1">
+            <h3 className="text-[13px] font-black text-foreground">Connected workflow</h3>
+            <span className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase ${backendReady ? "bg-emerald-500/15 text-emerald-600" : "bg-amber-500/15 text-amber-600"}`}>
+              {backendReady ? "Ready" : "Checking"}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {workflowRows.map(({ icon: Icon, title, value, ok }) => (
+              <div key={title} className="rounded-2xl border border-border/20 bg-background/70 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-xl ${ok ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className={`h-2 w-2 rounded-full ${ok ? "bg-emerald-500" : "bg-amber-500"}`} />
+                </div>
+                <p className="truncate text-[11px] font-black text-foreground">{title}</p>
+                <p className="truncate text-[9px] font-bold text-muted-foreground">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Active membership card */}
         {isPlus && (
@@ -328,7 +487,7 @@ export default function ZivoPlusPage() {
         {/* Benefits */}
         <div className="space-y-2.5">
           <h3 className="text-[14px] font-bold text-foreground px-1">Member Benefits</h3>
-          {BENEFITS.map((b, i) => (
+          {benefitRows.map((b, i) => (
             <motion.div
               key={b.title}
               initial={{ opacity: 0, x: -10 }}
@@ -359,7 +518,10 @@ export default function ZivoPlusPage() {
           <div className="space-y-3">
             <h3 className="text-[14px] font-bold text-foreground px-1">Choose Your Plan</h3>
             <div className="grid grid-cols-2 gap-2.5">
-              {PLANS.map((p) => (
+              {isPlanLoading && Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="h-[116px] animate-pulse rounded-2xl border border-border/20 bg-muted/30" />
+              ))}
+              {!isPlanLoading && planCards.map((p) => (
                 <motion.button
                   key={p.id}
                   whileTap={{ scale: 0.97 }}
@@ -404,13 +566,21 @@ export default function ZivoPlusPage() {
                   )}
                 </motion.button>
               ))}
+              {!isPlanLoading && planCards.length === 0 && (
+                <div className="col-span-2 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-center">
+                  <p className="text-[12px] font-bold text-foreground">ZIVO+ is not available right now</p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                    The active plan row is missing from Supabase, so checkout is paused.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* CTA */}
             <motion.div whileTap={!isCheckingOut ? { scale: 0.97 } : {}}>
               <Button
                 className="w-full h-[52px] rounded-2xl text-[14px] font-bold gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg shadow-amber-500/25"
-                disabled={isCheckingOut || isLoading}
+                disabled={isCheckingOut || isLoading || isPlanLoading || !backendReady}
                 onClick={handleCheckout}
               >
                 {isCheckingOut ? (
@@ -421,14 +591,14 @@ export default function ZivoPlusPage() {
                 ) : (
                   <>
                     <Crown className="h-4 w-4" />
-                    {user ? "Subscribe to ZIVO+" : "Sign in to Subscribe"}
+                    {user ? `Subscribe ${selectedPlanCard?.price || ""}${selectedPlanCard?.period || ""}` : "Sign in to Subscribe"}
                   </>
                 )}
               </Button>
             </motion.div>
 
             <p className="text-[9px] text-muted-foreground/60 text-center leading-relaxed px-4">
-              Cancel anytime from your account settings. By subscribing you agree to our{" "}
+              Secure checkout opens with Stripe. Cancel anytime from your account settings. By subscribing you agree to our{" "}
               <button type="button" onClick={() => setLegalSheet("terms")} className="text-primary/60 underline hover:text-primary transition-colors">Terms</button> and{" "}
               <button type="button" onClick={() => setLegalSheet("privacy")} className="text-primary/60 underline hover:text-primary transition-colors">Privacy Policy</button>.
             </p>

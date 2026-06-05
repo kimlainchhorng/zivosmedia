@@ -105,7 +105,7 @@ Deno.serve(withSecurity("subscribe-salon-membership", async (req, ctx) => {
       .maybeSingle();
     const slug = (store as any)?.slug ?? "";
     const storeName = (store as any)?.name ?? "the salon";
-    const appUrl = Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || "https://hizivo.com";
+    const appUrl = Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || "https://zivosmedia.com";
 
     // ---- Create the Checkout Session -------------------------------------
     // Idempotency: tied to (tier, email) so a customer who taps Subscribe

@@ -120,8 +120,8 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const stripeCarRentalWebhook = read("supabase/functions/stripe-car-rental-webhook/index.ts");
     const twilioWebhook = read("supabase/functions/twilio-webhook/index.ts");
 
-    expect(cors).toContain("https://hizivo.com");
-    expect(cors).toContain(".hizivo.com");
+    expect(cors).toContain("https://zivosmedia.com");
+    expect(cors).toContain(".zivosmedia.com");
     expect(errors).toContain("ctx?.corsHeaders ?? getCorsHeaders(req)");
     expect(respond).toContain("type CorsSource = Request | Record<string, string>");
 

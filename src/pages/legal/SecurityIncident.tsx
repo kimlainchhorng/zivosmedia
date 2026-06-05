@@ -260,11 +260,11 @@ export default function SecurityIncident() {
                 If you believe you've discovered a security vulnerability or your account has been compromised, contact us immediately:
               </p>
               <a 
-                href="mailto:security@hizivo.com"
+                href="mailto:security@zivosmedia.com"
                 className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
               >
                 <Mail className="w-5 h-5" />
-                security@hizivo.com
+                security@zivosmedia.com
               </a>
             </CardContent>
           </Card>

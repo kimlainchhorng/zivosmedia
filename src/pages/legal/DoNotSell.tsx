@@ -97,10 +97,10 @@ export default function DoNotSell() {
                   <p className="text-sm text-muted-foreground mb-2">
                     Send a request to our privacy team and we will process your opt-out within 15 business days.
                   </p>
-                  <a href="mailto:privacy@hizivo.com">
+                  <a href="mailto:privacy@zivosmedia.com">
                     <Button variant="outline" size="sm" className="gap-2">
                       <Mail className="w-3.5 h-3.5" />
-                      privacy@hizivo.com
+                      privacy@zivosmedia.com
                     </Button>
                   </a>
                 </div>

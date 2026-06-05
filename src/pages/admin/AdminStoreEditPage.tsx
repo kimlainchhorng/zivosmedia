@@ -3891,11 +3891,11 @@ export default function AdminStoreEditPage() {
                   <p className="text-xs font-medium">Store URL Preview</p>
                   <div className="flex items-center gap-2">
                     <code className="text-xs font-mono bg-background px-2 py-1 rounded border border-border flex-1 truncate">
-                      hizivo.com/store/{form.slug || "your-store"}
+                      zivosmedia.com/store/{form.slug || "your-store"}
                     </code>
                     <Button variant="outline" size="sm" className="shrink-0 gap-1 text-xs"
                       onClick={() => {
-                        navigator.clipboard.writeText(`https://hizivo.com/store/${form.slug}`);
+                        navigator.clipboard.writeText(`https://zivosmedia.com/store/${form.slug}`);
                         toast.success("URL copied");
                       }}
                     >

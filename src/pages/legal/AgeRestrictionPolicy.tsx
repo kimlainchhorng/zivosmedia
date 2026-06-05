@@ -16,7 +16,7 @@ const sections = [
   {
     icon: AlertTriangle,
     title: "3. COPPA Compliance",
-    content: "ZIVO complies with the Children's Online Privacy Protection Act (COPPA), 15 U.S.C. §§ 6501–6506. We do NOT knowingly collect, use, or disclose personal information from children under 13. If we learn that we have collected personal information from a child under 13, we will delete that information immediately and terminate any associated account. Parents or guardians who believe their child has provided personal information to ZIVO should contact us at privacy@hizivo.com immediately."
+    content: "ZIVO complies with the Children's Online Privacy Protection Act (COPPA), 15 U.S.C. §§ 6501–6506. We do NOT knowingly collect, use, or disclose personal information from children under 13. If we learn that we have collected personal information from a child under 13, we will delete that information immediately and terminate any associated account. Parents or guardians who believe their child has provided personal information to ZIVO should contact us at privacy@zivosmedia.com immediately."
   },
   {
     icon: Scale,
@@ -60,7 +60,7 @@ const sections = [
   {
     icon: Users,
     title: "10. Reporting Underage Users",
-    content: "If you become aware of any individual under 18 using ZIVO services, you are encouraged to report it immediately to safety@hizivo.com. Reports can be made anonymously. ZIVO will investigate all reports within 24 hours. Knowingly aiding a minor in accessing ZIVO services (e.g., sharing account credentials) is a violation of these Terms and may result in your account being permanently terminated."
+    content: "If you become aware of any individual under 18 using ZIVO services, you are encouraged to report it immediately to safety@zivosmedia.com. Reports can be made anonymously. ZIVO will investigate all reports within 24 hours. Knowingly aiding a minor in accessing ZIVO services (e.g., sharing account credentials) is a violation of these Terms and may result in your account being permanently terminated."
   },
   {
     icon: Gavel,
@@ -115,7 +115,7 @@ export default function AgeRestrictionPolicy() {
         })}
         <div className="rounded-2xl bg-destructive/5 border border-destructive/10 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Report Underage Use</p>
-          <p className="text-xs text-muted-foreground">Email <span className="text-primary font-semibold">safety@hizivo.com</span> to report suspected underage users</p>
+          <p className="text-xs text-muted-foreground">Email <span className="text-primary font-semibold">safety@zivosmedia.com</span> to report suspected underage users</p>
         </div>
       </div>
     </div>

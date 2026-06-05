@@ -11,7 +11,7 @@ const sections = [
   {
     icon: Mail,
     title: "2. Methods of Delivery",
-    content: "Electronic communications may be delivered via: (a) email to the address associated with your account; (b) push notifications on your mobile device; (c) in-app messages and notifications; (d) SMS/text messages to your registered phone number (standard rates may apply); (e) posting on your ZIVO account dashboard; (f) posting on our website at hizivo.com; or (g) through secure document portals. Communications sent electronically are deemed delivered when sent, posted, or made available, REGARDLESS of whether you have read them. You bear the risk of not reading communications."
+    content: "Electronic communications may be delivered via: (a) email to the address associated with your account; (b) push notifications on your mobile device; (c) in-app messages and notifications; (d) SMS/text messages to your registered phone number (standard rates may apply); (e) posting on your ZIVO account dashboard; (f) posting on our website at zivosmedia.com; or (g) through secure document portals. Communications sent electronically are deemed delivered when sent, posted, or made available, REGARDLESS of whether you have read them. You bear the risk of not reading communications."
   },
   {
     icon: Monitor,
@@ -31,7 +31,7 @@ const sections = [
   {
     icon: Archive,
     title: "6. Record Retention & Access",
-    content: "You are responsible for maintaining your own copies of all electronic communications. ZIVO will make reasonable efforts to maintain copies of communications for the periods specified in our Data Retention Policy, but does not guarantee indefinite access. You may request copies of specific communications by contacting support@hizivo.com. ZIVO may charge a reasonable fee for retrieval of archived communications beyond standard retention periods. We recommend you save or print copies of all important communications at the time you receive them."
+    content: "You are responsible for maintaining your own copies of all electronic communications. ZIVO will make reasonable efforts to maintain copies of communications for the periods specified in our Data Retention Policy, but does not guarantee indefinite access. You may request copies of specific communications by contacting support@zivosmedia.com. ZIVO may charge a reasonable fee for retrieval of archived communications beyond standard retention periods. We recommend you save or print copies of all important communications at the time you receive them."
   },
   {
     icon: Globe,
@@ -41,12 +41,12 @@ const sections = [
   {
     icon: Lock,
     title: "8. Security of Electronic Communications",
-    content: "ZIVO employs industry-standard security measures to protect electronic communications, including TLS encryption for email transmission and secure HTTPS connections. However, you acknowledge that: (a) no electronic communication method is 100% secure; (b) email can be intercepted by third parties; (c) you should verify the sender of any communication purporting to be from ZIVO; (d) ZIVO will never ask for your password via email or text; and (e) you should report suspected phishing attempts to security@hizivo.com immediately."
+    content: "ZIVO employs industry-standard security measures to protect electronic communications, including TLS encryption for email transmission and secure HTTPS connections. However, you acknowledge that: (a) no electronic communication method is 100% secure; (b) email can be intercepted by third parties; (c) you should verify the sender of any communication purporting to be from ZIVO; (d) ZIVO will never ask for your password via email or text; and (e) you should report suspected phishing attempts to security@zivosmedia.com immediately."
   },
   {
     icon: CheckCircle2,
     title: "9. Withdrawal of Consent",
-    content: "You may withdraw your consent to receive electronic communications by sending written notice to legal@hizivo.com. However, withdrawing consent may result in: (a) immediate inability to use ZIVO services that require electronic agreement; (b) account limitations, suspension, or termination; (c) inability to process bookings, payments, or transactions; (d) loss of access to electronic records and booking history; (e) requirement to receive paper communications at YOUR expense (including printing, postage, and handling fees); and (f) significant delays in receiving legally required disclosures. Withdrawal of consent does NOT affect the validity or legal effect of any prior electronic communications already delivered."
+    content: "You may withdraw your consent to receive electronic communications by sending written notice to legal@zivosmedia.com. However, withdrawing consent may result in: (a) immediate inability to use ZIVO services that require electronic agreement; (b) account limitations, suspension, or termination; (c) inability to process bookings, payments, or transactions; (d) loss of access to electronic records and booking history; (e) requirement to receive paper communications at YOUR expense (including printing, postage, and handling fees); and (f) significant delays in receiving legally required disclosures. Withdrawal of consent does NOT affect the validity or legal effect of any prior electronic communications already delivered."
   },
   {
     icon: FileText,
@@ -91,7 +91,7 @@ export default function ElectronicConsent() {
         })}
         <div className="rounded-2xl bg-primary/5 border border-primary/10 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Need paper communications?</p>
-          <p className="text-xs text-muted-foreground">Email <span className="text-primary font-semibold">legal@hizivo.com</span> to request opt-out (fees may apply)</p>
+          <p className="text-xs text-muted-foreground">Email <span className="text-primary font-semibold">legal@zivosmedia.com</span> to request opt-out (fees may apply)</p>
         </div>
       </div>
     </div>

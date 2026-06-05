@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStores";
+import { isZivoSoftwareHost } from "@/config/autoRepairDomain";
 import {
   resolveBusinessDashboardRoute,
   RESTAURANT_CATEGORIES,
@@ -82,6 +83,9 @@ export default function BusinessPageWizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const forceNew = searchParams.get("new") === "1";
+  const requestedCategory = searchParams.get("category") as StoreCategory | null;
+  const isSoftwareDomain =
+    typeof window !== "undefined" && isZivoSoftwareHost(window.location.hostname);
   const { user } = useAuth();
   const { data: profile } = useUserProfile();
 
@@ -206,6 +210,17 @@ export default function BusinessPageWizard() {
     })();
   }, [user, navigate, forceNew]);
 
+  useEffect(() => {
+    if (!requestedCategory) return;
+    const allowedOptions = STORE_CATEGORY_OPTIONS.filter(
+      (option) => (!isSoftwareDomain || option.group !== "Other") && option.value === requestedCategory,
+    );
+    if (allowedOptions.length > 0 && !category) {
+      setCategory(requestedCategory);
+      setStep((current) => (current === 1 ? 2 : current));
+    }
+  }, [category, isSoftwareDomain, requestedCategory]);
+
   // Prefill from profile (runs once profile loads).
   useEffect(() => {
     if (!user) return;
@@ -267,12 +282,15 @@ export default function BusinessPageWizard() {
 
   const groupedCategories = useMemo(() => {
     const groups: Record<string, typeof STORE_CATEGORY_OPTIONS> = {};
-    for (const opt of STORE_CATEGORY_OPTIONS) {
+    const options = isSoftwareDomain
+      ? STORE_CATEGORY_OPTIONS.filter((option) => option.group !== "Other")
+      : STORE_CATEGORY_OPTIONS;
+    for (const opt of options) {
       const g = opt.group || "Other";
       (groups[g] ||= []).push(opt);
     }
     return groups;
-  }, []);
+  }, [isSoftwareDomain]);
 
   const uploadAsset = async (file: File, kind: "logo" | "banner") => {
     if (!user) return;

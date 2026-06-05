@@ -70,7 +70,7 @@ export default function TravelBookingsSupport() {
       <SEOHead 
         title="Travel Booking Support – ZIVO"
         description="Learn how to get support for flight, hotel, and car rental bookings. Understand the support process and contact the right team."
-        canonical="https://hizivo.com/support/travel-bookings"
+        canonical="https://zivosmedia.com/support/travel-bookings"
       />
       <Header />
 

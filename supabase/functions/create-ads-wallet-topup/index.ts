@@ -68,7 +68,7 @@ Deno.serve(withSecurity("create-ads-wallet-topup", async (req, ctx) => {
       );
     }
 
-    const origin = req.headers.get("origin") || "https://www.zivollc.com";
+    const origin = req.headers.get("origin") || "https://www.zivosmedia.com";
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer: customerId,

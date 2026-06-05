@@ -74,7 +74,7 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
   }
 
   const emailResponse = await resend.emails.send({
-    from: "ZIVO <info@hizivo.com>",
+    from: "ZIVO <info@zivosmedia.com>",
     to: [email],
     subject: "Your ZIVO verification code",
     html: `

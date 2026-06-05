@@ -5,12 +5,44 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 
 const META_SCOPES = [
   "pages_show_list",
-  "pages_manage_metadata",
   "pages_read_engagement",
-  "instagram_basic",
   "ads_management",
   "business_management",
 ].join(",");
+
+const CONNECT_CALLBACK_PATH = "/connect/callback";
+
+function isLocalDevOrigin(url: URL) {
+  const hostname = url.hostname.toLowerCase();
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  const match = hostname.match(/^172\.(\d{1,2})\.\d{1,3}\.\d{1,3}$/);
+  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
+}
+
+function configuredOrigins() {
+  return new Set([
+    Deno.env.get("APP_URL") || "",
+    Deno.env.get("SITE_URL") || "",
+    Deno.env.get("PUBLIC_SITE_URL") || "",
+    "https://zivosmedia.com",
+    "https://www.zivosmedia.com",
+  ].filter(Boolean).map((origin) => new URL(origin).origin));
+}
+
+function normalizeReturnUrl(value: unknown) {
+  if (typeof value !== "string" || !value) return CONNECT_CALLBACK_PATH;
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
+  try {
+    const url = new URL(value);
+    if (configuredOrigins().has(url.origin) || isLocalDevOrigin(url)) return url.toString();
+  } catch (_) {
+    // Fall through to the safe default.
+  }
+  return CONNECT_CALLBACK_PATH;
+}
 
 function getMetaAppId() {
   const raw = Deno.env.get("META_APP_ID")?.trim() ?? "";
@@ -21,6 +53,12 @@ function getMetaAppId() {
 
   if (digitsOnly && digitsOnly.length >= 6) return digitsOnly;
   return normalized;
+}
+
+function getMetaRedirectUri() {
+  const configured = Deno.env.get("META_REDIRECT_URI")?.trim();
+  if (configured && !configured.includes("zivosmedia.com")) return configured;
+  return "https://zivosmedia.com/auth/meta/callback";
 }
 
 Deno.serve(withSecurity("meta-oauth-start", async (req, ctx) => {
@@ -51,10 +89,7 @@ Deno.serve(withSecurity("meta-oauth-start", async (req, ctx) => {
     const body = await req.json();
     const storeId = typeof body?.store_id === "string" ? body.store_id : "";
     const platform = typeof body?.platform === "string" ? body.platform : "meta";
-    const requestedReturnUrl = typeof body?.return_url === "string" && body.return_url ? body.return_url : "/connect/callback";
-    const returnUrl = requestedReturnUrl.startsWith("/") && !requestedReturnUrl.startsWith("//")
-      ? requestedReturnUrl
-      : "/connect/callback";
+    const returnUrl = normalizeReturnUrl(body?.return_url);
     if (!storeId) {
       return new Response(JSON.stringify({ error: "store_id is required" }), {
         status: 400,
@@ -90,13 +125,17 @@ Deno.serve(withSecurity("meta-oauth-start", async (req, ctx) => {
     });
     if (insertErr) throw insertErr;
 
-    const redirectUri = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/oauth-callback`;
+    const redirectUri = getMetaRedirectUri();
     const url = new URL("https://www.facebook.com/v21.0/dialog/oauth");
     url.searchParams.set("client_id", appId);
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("state", state);
     url.searchParams.set("scope", META_SCOPES);
     url.searchParams.set("response_type", "code");
+    const configId = Deno.env.get("META_LOGIN_CONFIG_ID")?.trim();
+    if (configId) {
+      url.searchParams.set("config_id", configId);
+    }
 
     return new Response(JSON.stringify({ authorize_url: url.toString() }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -4,6 +4,45 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 
 const SCOPES = ["https://www.googleapis.com/auth/adwords", "openid", "email"].join(" ");
 
+const CONNECT_CALLBACK_PATH = "/connect/callback";
+const GOOGLE_ADS_REDIRECT_URI_FALLBACK = "https://zivosmedia.com/auth/google-ads/callback";
+
+function isLocalDevOrigin(url: URL) {
+  const hostname = url.hostname.toLowerCase();
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  const match = hostname.match(/^172\.(\d{1,2})\.\d{1,3}\.\d{1,3}$/);
+  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
+}
+
+function configuredOrigins() {
+  return new Set([
+    Deno.env.get("APP_URL") || "",
+    Deno.env.get("SITE_URL") || "",
+    Deno.env.get("PUBLIC_SITE_URL") || "",
+    "https://zivosmedia.com",
+    "https://www.zivosmedia.com",
+  ].filter(Boolean).map((origin) => new URL(origin).origin));
+}
+
+function normalizeReturnUrl(value: unknown) {
+  if (typeof value !== "string" || !value) return CONNECT_CALLBACK_PATH;
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
+  try {
+    const url = new URL(value);
+    if (configuredOrigins().has(url.origin) || isLocalDevOrigin(url)) return url.toString();
+  } catch (_) {
+    // Fall through to the safe default.
+  }
+  return CONNECT_CALLBACK_PATH;
+}
+
+function getGoogleAdsRedirectUri() {
+  return Deno.env.get("GOOGLE_ADS_REDIRECT_URI") || GOOGLE_ADS_REDIRECT_URI_FALLBACK;
+}
+
 Deno.serve(withSecurity("google-ads-oauth-start", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method !== "POST") {
@@ -29,10 +68,7 @@ Deno.serve(withSecurity("google-ads-oauth-start", async (req, ctx) => {
 
     const body = await req.json();
     const storeId = String(body?.store_id || "");
-    const requestedReturnUrl = String(body?.return_url || "/connect/callback");
-    const returnUrl = requestedReturnUrl.startsWith("/") && !requestedReturnUrl.startsWith("//")
-      ? requestedReturnUrl
-      : "/connect/callback";
+    const returnUrl = normalizeReturnUrl(body?.return_url);
     if (!storeId) {
       return new Response(JSON.stringify({ error: "store_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -65,7 +101,7 @@ Deno.serve(withSecurity("google-ads-oauth-start", async (req, ctx) => {
     });
     if (insertErr) throw insertErr;
 
-    const redirectUri = `${Deno.env.get("SUPABASE_URL")!}/functions/v1/google-ads-oauth-callback`;
+    const redirectUri = getGoogleAdsRedirectUri();
     const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     url.searchParams.set("client_id", clientId);
     url.searchParams.set("redirect_uri", redirectUri);

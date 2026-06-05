@@ -286,8 +286,8 @@ export default function ComplianceCenter() {
         <div className="text-center mt-12 text-sm text-muted-foreground max-w-2xl mx-auto">
           <p>
             Questions about our policies? Contact us at{" "}
-            <a href="mailto:legal@hizivo.com" className="text-primary hover:underline">
-              legal@hizivo.com
+            <a href="mailto:legal@zivosmedia.com" className="text-primary hover:underline">
+              legal@zivosmedia.com
             </a>
           </p>
           <p className="mt-2">

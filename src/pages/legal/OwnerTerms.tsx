@@ -20,9 +20,9 @@ const OwnerTerms = () => {
         description="Terms and conditions for listing your vehicle on the ZIVO peer-to-peer car rental marketplace. Understand your rights and responsibilities as a car owner."
         canonical="/terms/owner"
       />
-      
+
       <Header />
-      
+
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Back Button */}
         <Link to="/">
@@ -133,7 +133,7 @@ const OwnerTerms = () => {
                   ZIVO retains 20% of each rental to cover platform operations, customer support, and payment processing.
                 </p>
               </div>
-              
+
               <div className="space-y-3">
                 <h4 className="font-medium">Payout Terms</h4>
                 <ul className="space-y-2 text-muted-foreground">
@@ -185,14 +185,14 @@ const OwnerTerms = () => {
                   <span><strong>Lost income protection</strong> if vehicle is damaged</span>
                 </li>
               </ul>
-              
+
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                 <p className="font-medium text-foreground flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-500" />
                   Important Notice
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Your personal auto insurance may not apply during ZIVO rentals. Please consult with your 
+                  Your personal auto insurance may not apply during ZIVO rentals. Please consult with your
                   insurance provider about coverage gaps.
                 </p>
               </div>
@@ -288,7 +288,7 @@ const OwnerTerms = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground leading-relaxed">
-                These terms are governed by the laws of the State of Delaware, USA. Any disputes shall be resolved 
+                These terms are governed by the laws of the State of Delaware, USA. Any disputes shall be resolved
                 through binding arbitration in accordance with the rules of the American Arbitration Association.
               </p>
               <p className="text-sm text-muted-foreground">
@@ -337,12 +337,12 @@ const OwnerTerms = () => {
                   <p className="text-sm text-muted-foreground">We're here to help</p>
                 </div>
               </div>
-              <a 
-                href="mailto:support@hizivo.com" 
+              <a
+                href="mailto:support@zivosmedia.com"
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="w-4 h-4" />
-                support@hizivo.com
+                support@zivosmedia.com
               </a>
             </CardContent>
           </Card>

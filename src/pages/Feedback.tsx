@@ -117,7 +117,7 @@ export default function Feedback() {
 
   return (
     <>
-      <SEOHead title="Feedback | ZIVO" description="Share your feedback to help us improve ZIVO." canonical="https://hizivo.com/feedback" />
+      <SEOHead title="Feedback | ZIVO" description="Share your feedback to help us improve ZIVO." canonical="https://zivosmedia.com/feedback" />
 
       <Header />
 

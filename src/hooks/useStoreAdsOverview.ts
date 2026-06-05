@@ -18,6 +18,18 @@ export interface AdAccount {
   connected_at: string | null;
 }
 
+export interface AdPage {
+  id: string;
+  account_id: string;
+  platform: AdPlatform;
+  page_type: string;
+  external_id: string;
+  name: string | null;
+  picture_url: string | null;
+  is_default: boolean;
+  created_at: string;
+}
+
 export interface AdCampaign {
   id: string;
   name: string;
@@ -170,11 +182,16 @@ export function useStoreAdsOverview(storeId: string) {
     enabled: !!storeId,
     staleTime: 1000 * 60 * 2,
     queryFn: async () => {
-      const [accountsRes, campaignsRes, walletRes, ledgerRes] = await Promise.all([
+      const [accountsRes, pagesRes, campaignsRes, walletRes, ledgerRes] = await Promise.all([
         supabase
           .from("store_ad_accounts" as any)
           .select("*")
           .eq("store_id", storeId),
+        supabase
+          .from("store_ad_pages" as any)
+          .select("id, account_id, platform, page_type, external_id, name, picture_url, is_default, created_at")
+          .eq("store_id", storeId)
+          .order("created_at", { ascending: false }),
         supabase
           .from("store_ad_campaigns" as any)
           .select("*")
@@ -194,10 +211,12 @@ export function useStoreAdsOverview(storeId: string) {
       ]);
 
       if (accountsRes.error) throw accountsRes.error;
+      if (pagesRes.error) throw pagesRes.error;
       if (campaignsRes.error) throw campaignsRes.error;
       // wallet/ledger errors are non-fatal
 
       const accounts = ((accountsRes.data || []) as unknown) as AdAccount[];
+      const pages = ((pagesRes.data || []) as unknown) as AdPage[];
       const campaigns = ((campaignsRes.data || []) as unknown) as AdCampaign[];
       const w: any = walletRes.data ?? null;
       const wallet: WalletInfo = {
@@ -210,7 +229,7 @@ export function useStoreAdsOverview(storeId: string) {
       const ledger = ((ledgerRes.data || []) as unknown) as WalletLedgerEntry[];
       const hasBilling = wallet.balance_cents > 0;
 
-      return { accounts, campaigns, wallet, ledger, hasBilling };
+      return { accounts, pages, campaigns, wallet, ledger, hasBilling };
     },
   });
 
@@ -243,6 +262,18 @@ export function useStoreAdsOverview(storeId: string) {
           qc.invalidateQueries({ queryKey: QK(storeId) });
         }
       )
+      .on(
+        "postgres_changes" as any,
+        {
+          event: "*",
+          schema: "public",
+          table: "store_ad_pages",
+          filter: `store_id=eq.${storeId}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: QK(storeId) });
+        }
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -250,6 +281,7 @@ export function useStoreAdsOverview(storeId: string) {
   }, [storeId, qc]);
 
   const accounts = query.data?.accounts ?? [];
+  const pages = query.data?.pages ?? [];
   const campaigns = query.data?.campaigns ?? [];
   const hasBilling = query.data?.hasBilling ?? false;
   const wallet: WalletInfo = query.data?.wallet ?? {
@@ -272,6 +304,7 @@ export function useStoreAdsOverview(storeId: string) {
 
   return {
     accounts,
+    pages,
     campaigns,
     stats,
     checklist,

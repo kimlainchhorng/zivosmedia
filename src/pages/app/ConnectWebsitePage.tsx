@@ -53,8 +53,8 @@ const ConnectWebsitePage = () => {
   const snippet = siteId
     ? `<!-- ZIVO Travel Widget — SEO optimized -->
 <div id="zivo-widget" data-niche="${niche}" data-rel="${dofollow ? "dofollow" : "nofollow"}"></div>
-<script src="https://hizivo.com/api/embed/${siteId}.js" defer></script>
-<noscript><a href="https://hizivo.com/?ref=${siteId}" rel="${dofollow ? "" : "nofollow "}noopener">Travel deals by ZIVO</a></noscript>`
+<script src="https://zivosmedia.com/api/embed/${siteId}.js" defer></script>
+<noscript><a href="https://zivosmedia.com/?ref=${siteId}" rel="${dofollow ? "" : "nofollow "}noopener">Travel deals by ZIVO</a></noscript>`
     : "";
 
   const handleCopy = async () => {
@@ -105,7 +105,7 @@ const ConnectWebsitePage = () => {
           name="description"
           content="Embed ZIVO's free travel widget on your site. Auto-updating flight & hotel deals, dofollow backlinks, schema-ready content — built for SEO traffic and AdSense."
         />
-        <link rel="canonical" href="https://hizivo.com/connect-website" />
+        <link rel="canonical" href="https://zivosmedia.com/connect-website" />
         <meta property="og:title" content="Free SEO Travel Widget for Your Website — ZIVO" />
         <meta
           property="og:description"

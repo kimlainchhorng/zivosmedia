@@ -15,12 +15,12 @@ describe("pathFromNativeOpenUrl", () => {
   });
 
   it("accepts trusted web links received through native app open events", () => {
-    expect(pathFromNativeOpenUrl("https://hizivo.com/chat?thread=abc")).toBe("/chat?thread=abc");
+    expect(pathFromNativeOpenUrl("https://zivosmedia.com/chat?thread=abc")).toBe("/chat?thread=abc");
   });
 
   it("rejects untrusted schemes and hosts", () => {
     expect(pathFromNativeOpenUrl("https://example.com/chat")).toBeNull();
-    expect(pathFromNativeOpenUrl("mailto:support@hizivo.com")).toBeNull();
+    expect(pathFromNativeOpenUrl("mailto:support@zivosmedia.com")).toBeNull();
     expect(pathFromNativeOpenUrl("not a url")).toBeNull();
   });
 });

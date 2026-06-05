@@ -2,7 +2,8 @@
  * AdsConnectDialog — unified OAuth + manual fallback for a single ad platform.
  */
 import { useState } from "react";
-import { type LucideIcon, ExternalLink, Loader2, Trash2 } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
+import { Check, Copy, ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ interface Props {
   onClose: () => void;
   platform: AdPlatform;
   label: string;
-  icon: LucideIcon;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
   color: string;
   account?: AdAccount;
   supportsOAuth: boolean;
@@ -27,6 +28,40 @@ interface Props {
   oauthPending: boolean;
   savePending: boolean;
 }
+
+const GOOGLE_ADS_REDIRECT_URI = "https://zivosmedia.com/auth/google-ads/callback";
+
+const MANUAL_COPY: Record<AdPlatform, { label: string; placeholder: string; namePlaceholder: string; note?: string; setupUri?: string }> = {
+  meta: {
+    label: "Meta ad account ID",
+    placeholder: "act_1234567890",
+    namePlaceholder: "AB Complete Car Care Meta Ads",
+  },
+  instagram: {
+    label: "Instagram/Meta ad account ID",
+    placeholder: "act_1234567890",
+    namePlaceholder: "AB Complete Car Care Instagram Ads",
+  },
+  google: {
+    label: "Google Ads customer ID",
+    placeholder: "1234567890",
+    namePlaceholder: "AB Complete Car Care Google Ads",
+    note: "Google sign-in is waiting on Google Cloud setup. Add this authorized redirect URI to the OAuth client, then enable OAuth.",
+    setupUri: GOOGLE_ADS_REDIRECT_URI,
+  },
+  tiktok: {
+    label: "TikTok Ads advertiser ID",
+    placeholder: "1234567890123456789",
+    namePlaceholder: "AB Complete Car Care TikTok Ads",
+    note: "TikTok is manual-connect in this build. Add the advertiser ID from TikTok Ads Manager to save drafts and export campaign setup.",
+  },
+  x: {
+    label: "X Ads account ID",
+    placeholder: "18ce54d4x5t",
+    namePlaceholder: "AB Complete Car Care X Ads",
+    note: "X is manual-connect in this build. Add the ads account ID from X Ads Manager to save drafts and export campaign setup.",
+  },
+};
 
 export default function AdsConnectDialog({
   open,
@@ -47,6 +82,15 @@ export default function AdsConnectDialog({
 }: Props) {
   const [extId, setExtId] = useState(account?.external_account_id ?? "");
   const [name, setName] = useState(account?.display_name ?? "");
+  const [copiedSetupUri, setCopiedSetupUri] = useState(false);
+  const manualCopy = MANUAL_COPY[platform];
+
+  const copySetupUri = async () => {
+    if (!manualCopy.setupUri) return;
+    await navigator.clipboard.writeText(manualCopy.setupUri);
+    setCopiedSetupUri(true);
+    window.setTimeout(() => setCopiedSetupUri(false), 1600);
+  };
 
   return (
     <ResponsiveModal
@@ -106,13 +150,33 @@ export default function AdsConnectDialog({
           </>
         )}
 
+        {manualCopy.note && (
+          <div className="space-y-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2.5 text-[11px] leading-snug text-blue-900 dark:text-blue-200">
+            <p>{manualCopy.note}</p>
+            {manualCopy.setupUri && (
+              <button
+                type="button"
+                onClick={copySetupUri}
+                className="flex w-full items-center justify-between gap-2 rounded-md border border-blue-500/20 bg-white/70 px-2 py-1.5 text-left font-mono text-[10px] text-blue-950 transition hover:bg-white dark:bg-background/60 dark:text-blue-100"
+              >
+                <span className="truncate">{manualCopy.setupUri}</span>
+                {copiedSetupUri ? (
+                  <Check className="h-3.5 w-3.5 shrink-0" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5 shrink-0" />
+                )}
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="space-y-2">
           <div>
-            <Label className="text-xs">Ad account ID</Label>
+            <Label className="text-xs">{manualCopy.label}</Label>
             <Input
               value={extId}
               onChange={(e) => setExtId(e.target.value)}
-              placeholder="act_1234567890"
+              placeholder={manualCopy.placeholder}
               className="h-9"
             />
           </div>
@@ -121,7 +185,7 @@ export default function AdsConnectDialog({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="My Business Ads"
+              placeholder={manualCopy.namePlaceholder}
               className="h-9"
             />
           </div>

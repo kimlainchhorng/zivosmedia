@@ -28,7 +28,7 @@ const Refunds = () => {
       <SEOHead 
         title="Refund Policy | ZIVO"
         description="Learn about ZIVO's refund policy. All bookings are processed by our travel partners who handle refunds directly."
-        canonical="https://hizivo.com/legal/refunds"
+        canonical="https://zivosmedia.com/legal/refunds"
       />
       <Header />
       

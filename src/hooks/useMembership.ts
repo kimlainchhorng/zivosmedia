@@ -28,6 +28,8 @@ export interface Membership {
   user_id: string;
   plan_id: string;
   status: "active" | "trialing" | "past_due" | "cancelled" | "incomplete";
+  plan_code?: "monthly" | "chat" | "pro" | "annual" | null;
+  billing_cycle?: string | null;
   current_period_end: string | null;
   stripe_subscription_id: string | null;
   created_at: string;
@@ -67,6 +69,8 @@ export function useMembership() {
         user_id: data.user_id,
         plan_id: data.plan_id,
         status: data.status as Membership["status"],
+        plan_code: ((data as any).plan_code ?? null) as Membership["plan_code"],
+        billing_cycle: (data as any).billing_cycle ?? null,
         current_period_end: data.current_period_end,
         stripe_subscription_id: data.stripe_subscription_id,
         created_at: data.created_at,
@@ -163,11 +167,12 @@ export function useCreateMembershipCheckout() {
         throw new Error("You must be logged in to subscribe");
       }
 
-      const { data, error } = await supabase.functions.invoke("create-membership-checkout", {
-        body: { plan_id: planId, billing_cycle: billingCycle },
+      const plan = billingCycle === "yearly" ? "annual" : "monthly";
+      const { data, error } = await supabase.functions.invoke("create-zivo-plus-checkout", {
+        body: { plan, plan_id: planId },
       });
       if (error) throw new Error(error.message || "Failed to create checkout session");
-      return data as { url: string; session_id: string };
+      return data as { url: string; session_id?: string };
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -213,7 +218,7 @@ export function useOpenCustomerPortal() {
         throw new Error("You must be logged in");
       }
 
-      const { data, error } = await supabase.functions.invoke("customer-portal-membership");
+      const { data, error } = await supabase.functions.invoke("zivo-plus-portal");
       if (error) throw new Error(error.message || "Failed to open portal");
       return data as { url: string };
     },

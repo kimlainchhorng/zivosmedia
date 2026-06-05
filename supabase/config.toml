@@ -27,6 +27,10 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.create-zivo-plus-checkout]
     verify_jwt = true
+  [functions.zivo-plus-portal]
+    verify_jwt = true
+  [functions.cancel-membership]
+    verify_jwt = true
   [functions.chat-send-gift]
     verify_jwt = true
   [functions.chat-send-premium-gift]
@@ -116,6 +120,12 @@ project_id = "slirphzzwcogdbkeicff"
   [functions.admin-broadcast-notification]
     verify_jwt = true
   [functions.marketing-event-track]
+    verify_jwt = false
+  [functions.meta-oauth-start]
+    verify_jwt = false
+  [functions.google-ads-oauth-start]
+    verify_jwt = false
+  [functions.google-ads-oauth-callback]
     verify_jwt = false
   [functions.notifications-summary]
     verify_jwt = false

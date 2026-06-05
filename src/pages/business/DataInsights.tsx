@@ -78,7 +78,7 @@ export default function DataInsights() {
       <SEOHead
         title="Travel Intelligence for Business – ZIVO"
         description="Anonymized travel data and insights for airlines, hotels, and tourism businesses."
-        canonical="https://hizivo.com/business/insights"
+        canonical="https://zivosmedia.com/business/insights"
       />
       <Header />
 

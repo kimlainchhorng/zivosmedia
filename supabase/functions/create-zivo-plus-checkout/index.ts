@@ -68,21 +68,31 @@ serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
       gift_recipient_name,
       gift_duration,
     } = await req.json();
-    const priceId = PRICES[plan];
-    if (!priceId) throw new Error(`Invalid plan: ${plan}. Use 'monthly' or 'annual'`);
-    logStep("Plan selected", { plan, priceId });
+    const requestedPlan = String(plan || "monthly");
+    if (!["monthly", "chat", "pro", "annual"].includes(requestedPlan)) {
+      throw new Error(`Invalid plan: ${requestedPlan}. Use 'monthly', 'chat', 'pro', or 'annual'`);
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const { data: planRow, error: planError } = await supabaseClient
       .from("zivo_subscription_plans")
-      .select("id")
+      .select("id, stripe_price_id_monthly, stripe_price_id_yearly")
       .eq("slug", "zivo-plus")
       .eq("is_active", true)
       .maybeSingle();
 
     if (planError) throw planError;
     if (!planRow?.id) throw new Error("ZIVO+ plan is not configured");
+
+    const dbPriceId = requestedPlan === "annual"
+      ? planRow.stripe_price_id_yearly
+      : requestedPlan === "monthly"
+        ? planRow.stripe_price_id_monthly
+        : null;
+    const priceId = dbPriceId || PRICES[requestedPlan];
+    if (!priceId) throw new Error(`ZIVO+ price is not configured for ${requestedPlan}`);
+    logStep("Plan selected", { plan: requestedPlan, priceId, source: dbPriceId ? "database" : "function_fallback" });
 
     const hasGiftRecipient = typeof gift_recipient_id === "string" && gift_recipient_id.length > 0;
     if (hasGiftRecipient && !UUID_RE.test(gift_recipient_id)) {
@@ -121,7 +131,7 @@ serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
       const giftMetadata: Record<string, string> = {
         type: "zivo_plus_gift",
         user_id: gift_recipient_id,
-        plan,
+        plan: requestedPlan,
         plan_id: planRow.id,
         billing_cycle: giftDuration.months >= 12 ? "yearly" : "monthly",
         gift_duration: String(gift_duration || "three-months"),
@@ -169,8 +179,8 @@ serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
       type: "membership",
       user_id: user.id,
       plan_id: planRow.id,
-      plan,
-      billing_cycle: billingCycleFor(plan),
+      plan: requestedPlan,
+      billing_cycle: billingCycleFor(requestedPlan),
     };
 
     const session = await stripe.checkout.sessions.create({

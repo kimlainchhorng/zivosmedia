@@ -112,7 +112,7 @@ export async function notifyGroceryOrderConfirmed(
       deliveryAddress: (o as any).delivery_address,
       totalAmount,
       paymentMethod: paymentMethodLabel,
-      trackUrl: `${Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com"}/grocery/track/${orderId}`,
+      trackUrl: `${Deno.env.get("PUBLIC_APP_URL") || "https://zivosmedia.com"}/grocery/track/${orderId}`,
     },
     smsBody: `ZIVO Grocery: Order confirmed at ${(o as any).store || "your store"}. ${totalAmount} paid via ${paymentMethodLabel}.`,
   });

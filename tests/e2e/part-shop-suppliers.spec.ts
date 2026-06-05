@@ -1,6 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 
-const EMAIL = "kimlain@hizivo.com";
+const EMAIL = "kimlain@zivosmedia.com";
 const PASSWORD = "Chhorng@1903";
 // "AB Complete Car Care" — the only auto-repair store
 const STORE_ID = "a914b90d-c249-4794-ba5e-3fdac0deed44";

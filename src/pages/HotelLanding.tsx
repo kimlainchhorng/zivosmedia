@@ -79,16 +79,16 @@ export default function HotelLanding() {
                 "name": "Popular hotel destinations on ZIVO",
                 "itemListOrder": "https://schema.org/ItemListOrderAscending",
                 "itemListElement": [
-                  { "@type": "ListItem", "position": 1,  "name": "New York",    "url": "https://hizivo.com/hotels/in-new-york" },
-                  { "@type": "ListItem", "position": 2,  "name": "Paris",       "url": "https://hizivo.com/hotels/in-paris" },
-                  { "@type": "ListItem", "position": 3,  "name": "London",      "url": "https://hizivo.com/hotels/in-london" },
-                  { "@type": "ListItem", "position": 4,  "name": "Tokyo",       "url": "https://hizivo.com/hotels/in-tokyo" },
-                  { "@type": "ListItem", "position": 5,  "name": "Dubai",       "url": "https://hizivo.com/hotels/in-dubai" },
-                  { "@type": "ListItem", "position": 6,  "name": "Miami",       "url": "https://hizivo.com/hotels/in-miami" },
-                  { "@type": "ListItem", "position": 7,  "name": "Las Vegas",   "url": "https://hizivo.com/hotels/in-las-vegas" },
-                  { "@type": "ListItem", "position": 8,  "name": "Bangkok",     "url": "https://hizivo.com/hotels/in-bangkok" },
-                  { "@type": "ListItem", "position": 9,  "name": "Bali",        "url": "https://hizivo.com/hotels/in-bali" },
-                  { "@type": "ListItem", "position": 10, "name": "Cancun",      "url": "https://hizivo.com/hotels/in-cancun" }
+                  { "@type": "ListItem", "position": 1,  "name": "New York",    "url": "https://zivosmedia.com/hotels/in-new-york" },
+                  { "@type": "ListItem", "position": 2,  "name": "Paris",       "url": "https://zivosmedia.com/hotels/in-paris" },
+                  { "@type": "ListItem", "position": 3,  "name": "London",      "url": "https://zivosmedia.com/hotels/in-london" },
+                  { "@type": "ListItem", "position": 4,  "name": "Tokyo",       "url": "https://zivosmedia.com/hotels/in-tokyo" },
+                  { "@type": "ListItem", "position": 5,  "name": "Dubai",       "url": "https://zivosmedia.com/hotels/in-dubai" },
+                  { "@type": "ListItem", "position": 6,  "name": "Miami",       "url": "https://zivosmedia.com/hotels/in-miami" },
+                  { "@type": "ListItem", "position": 7,  "name": "Las Vegas",   "url": "https://zivosmedia.com/hotels/in-las-vegas" },
+                  { "@type": "ListItem", "position": 8,  "name": "Bangkok",     "url": "https://zivosmedia.com/hotels/in-bangkok" },
+                  { "@type": "ListItem", "position": 9,  "name": "Bali",        "url": "https://zivosmedia.com/hotels/in-bali" },
+                  { "@type": "ListItem", "position": 10, "name": "Cancun",      "url": "https://zivosmedia.com/hotels/in-cancun" }
                 ]
               }
         }

@@ -14,7 +14,7 @@ interface BreadcrumbSchemaProps {
   items: BreadcrumbItem[];
 }
 
-const SITE_URL = 'https://hizivo.com';
+const SITE_URL = 'https://zivosmedia.com';
 
 export default function BreadcrumbSchema({ items }: BreadcrumbSchemaProps) {
   useEffect(() => {

@@ -32,12 +32,16 @@ type Env = {
 };
 
 const DEFAULT_ALLOWED_ORIGINS = [
+  "https://zivosmedia.com",
+  "https://www.zivosmedia.com",
+  "https://zivosoftware.com",
+  "https://www.zivosoftware.com",
   "https://zivollc.com",
   "https://www.zivollc.com",
   "https://app.zivollc.com",
   "https://preview.zivollc.com",
-  "https://zivosoftware.com",
-  "https://www.zivosoftware.com",
+  "https://app.zivosmedia.com",
+  "https://preview.zivosmedia.com",
   "https://myzivo.com",
   "https://www.myzivo.com",
   "https://app.myzivo.com",

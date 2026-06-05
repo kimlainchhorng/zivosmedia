@@ -373,8 +373,8 @@ export default function SecurityReport() {
               <div className="mt-6 text-center text-sm text-muted-foreground">
                 <p>
                   Prefer email? Send reports directly to{" "}
-                  <a href="mailto:security@hizivo.com" className="text-primary hover:underline">
-                    security@hizivo.com
+                  <a href="mailto:security@zivosmedia.com" className="text-primary hover:underline">
+                    security@zivosmedia.com
                   </a>
                 </p>
               </div>

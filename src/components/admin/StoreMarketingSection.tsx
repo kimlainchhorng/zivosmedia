@@ -337,6 +337,24 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
     },
   });
 
+  const { data: adAccounts = [] } = useQuery({
+    queryKey: ["store-ad-accounts", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("store_ad_accounts" as any)
+        .select("platform, status, external_account_id, display_name, connected_at")
+        .eq("store_id", storeId);
+      if (error) throw error;
+      return ((data as any[]) || []) as Array<{
+        platform: string;
+        status: string | null;
+        external_account_id: string | null;
+        display_name: string | null;
+        connected_at: string | null;
+      }>;
+    },
+  });
+
   // Store profile for slug
   const { data: storeProfile } = useQuery({
     queryKey: ["store-profile-slug", storeId],
@@ -354,8 +372,8 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
   const slug = storeSlug || storeProfile?.slug || "";
   const name = storeName || storeProfile?.name || "Store";
   const isAutoRepair = storeCategory === "auto-repair";
-  const storeUrl = slug ? `https://hizivo.com/store/${slug}` : "";
-  const bookingUrl = slug ? `https://hizivo.com/book/${slug}` : "";
+  const storeUrl = slug ? `https://zivosmedia.com/store/${slug}` : "";
+  const bookingUrl = slug ? `https://zivosmedia.com/book/${slug}` : "";
   const postTemplates = useMemo(() => servicePostTemplates(storeCategory, name), [storeCategory, name]);
   const serviceWorkflowLabel = isAutoRepair ? "Auto repair workflow" : "Service workflow";
 
@@ -593,11 +611,19 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
     return platform;
   };
 
-  const connectedPlatformKeys = new Set(adPages.map((page) => String(page.platform)));
+  const connectedPlatformKeys = new Set([
+    ...adPages.map((page) => String(page.platform)),
+    ...adAccounts
+      .filter((account) => account.status === "connected" || account.status === "active")
+      .map((account) => String(account.platform)),
+  ]);
   const queuedWorkflowCount = distributionJobs.filter((job) => job.status === "queued" || job.status === "processing").length;
   const activeWorkflowCount = distributionJobs.filter((job) => job.status === "published" || job.status === "active").length;
   const needsConnectionCount = distributionJobs.filter((job) => job.status === "needs_connection").length;
   const totalBoostBudgetCents = distributionJobs.reduce((sum, job) => sum + (job.action === "boost_ad" ? job.total_budget_cents : 0), 0);
+  const connectedPlatformCount = DISTRIBUTION_PLATFORMS.filter((platform) => connectedPlatformKeys.has(platformConnectionName(platform.id))).length;
+  const publishedPostCount = posts.filter((post) => post.is_published).length;
+  const workflowHasJobs = distributionJobs.length > 0;
 
   return (
     <MarketingPreviewProvider>
@@ -1007,6 +1033,84 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                       </p>
                     </div>
                   </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary" /> Automation setup
+                  </h4>
+                  <p className="text-xs text-muted-foreground">Service post automation is prepared around the shop workflow.</p>
+                </div>
+                <Badge variant="secondary" className="text-[10px] shrink-0">
+                  {[
+                    postTemplates.length > 0,
+                    publishedPostCount > 0,
+                    connectedPlatformCount > 0,
+                    workflowHasJobs,
+                  ].filter(Boolean).length}/4 ready
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                {[
+                  {
+                    label: "Service presets",
+                    detail: `${postTemplates.length} ready`,
+                    ready: postTemplates.length > 0,
+                    action: null as null | (() => void),
+                    actionLabel: "",
+                  },
+                  {
+                    label: "Published post",
+                    detail: `${publishedPostCount} published`,
+                    ready: publishedPostCount > 0,
+                    action: openCreatePost,
+                    actionLabel: "Create",
+                  },
+                  {
+                    label: "Platforms",
+                    detail: `${connectedPlatformCount}/4 connected`,
+                    ready: connectedPlatformCount === DISTRIBUTION_PLATFORMS.length,
+                    action: () => setActiveSubTab("ads"),
+                    actionLabel: "Connect",
+                  },
+                  {
+                    label: "Auto workflow",
+                    detail: workflowHasJobs ? `${distributionJobs.length} jobs` : "No jobs yet",
+                    ready: workflowHasJobs,
+                    action: openCreatePost,
+                    actionLabel: "Start",
+                  },
+                ].map((step) => (
+                  <div key={step.label} className="rounded-xl border p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold">{step.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{step.detail}</p>
+                      </div>
+                      {step.ready ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                      )}
+                    </div>
+                    {!step.ready && step.action && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-full text-[11px]"
+                        onClick={step.action}
+                      >
+                        {step.actionLabel}
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
             </CardContent>
@@ -1537,15 +1641,24 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               <div>
                 <Label className="text-xs">Platforms</Label>
                 <div className="grid grid-cols-2 gap-2 mt-2">
-                  {DISTRIBUTION_PLATFORMS.map((platform) => (
-                    <label key={platform.id} className="flex items-center gap-2 rounded-lg border p-2 text-xs font-medium">
-                      <Checkbox
-                        checked={boostForm.platforms.includes(platform.id)}
-                        onCheckedChange={() => toggleBoostPlatform(platform.id)}
-                      />
-                      <span>{platform.label}</span>
-                    </label>
-                  ))}
+                  {DISTRIBUTION_PLATFORMS.map((platform) => {
+                    const isConnected = connectedPlatformKeys.has(platformConnectionName(platform.id));
+                    return (
+                      <label key={platform.id} className="flex items-center gap-2 rounded-lg border p-2 text-xs font-medium">
+                        <Checkbox
+                          checked={boostForm.platforms.includes(platform.id)}
+                          onCheckedChange={() => toggleBoostPlatform(platform.id)}
+                        />
+                        <span className="min-w-0 flex-1">{platform.label}</span>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[9px] px-1.5 ${isConnected ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+                        >
+                          {isConnected ? "Ready" : "Connect"}
+                        </Badge>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1630,6 +1743,12 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                       : "Organic only"}
                   </span>
                 </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Platform readiness</span>
+                  <span className="font-semibold">
+                    {boostForm.platforms.filter((platform) => connectedPlatformKeys.has(platformConnectionName(platform))).length}/{boostForm.platforms.length} ready
+                  </span>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-1">
@@ -1643,10 +1762,9 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                       const { data: userData, error: userError } = await supabase.auth.getUser();
                       if (userError || !userData.user) throw userError || new Error("Login required");
                       const total = boostForm.daily_budget * boostForm.days;
-                      const connectedPlatforms = new Set(adPages.map((page) => String(page.platform)));
                       const rows = boostForm.platforms.flatMap((platform) => {
                         const connectionPlatform = platformConnectionName(platform);
-                        const isConnected = connectedPlatforms.has(connectionPlatform);
+                        const isConnected = connectedPlatformKeys.has(connectionPlatform);
                         return boostForm.actions.map((action) => ({
                           store_id: storeId,
                           post_id: boostPost.id,

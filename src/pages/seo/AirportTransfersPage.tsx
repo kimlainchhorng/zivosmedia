@@ -58,7 +58,7 @@ export default function AirportTransfersPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical="https://hizivo.com/airport-transfers"
+        canonical="https://zivosmedia.com/airport-transfers"
       />
       <OrganizationSchema />
       <BreadcrumbSchema items={breadcrumbs} />

@@ -17,8 +17,8 @@ test.describe("refund and cancellation policy flow contracts", () => {
     expect(app).toContain('path="/legal/refunds"');
     expect(app).toContain('path="/legal/cancellation"');
 
-    expect(refundPolicy).toContain('canonical="https://hizivo.com/legal/refunds"');
-    expect(cancellationPolicy).toContain('canonical="https://hizivo.com/legal/cancellation"');
+    expect(refundPolicy).toContain('canonical="https://zivosmedia.com/legal/refunds"');
+    expect(cancellationPolicy).toContain('canonical="https://zivosmedia.com/legal/cancellation"');
 
     for (const phrase of [
       "ZIVO is Merchant of Record",
@@ -33,7 +33,7 @@ test.describe("refund and cancellation policy flow contracts", () => {
       "Hotels (ZIVO is Merchant of Record)",
       "Car Rentals (ZIVO is Merchant of Record)",
       "Flights (Partner Ticketing)",
-      "support@hizivo.com",
+      "support@zivosmedia.com",
     ]) {
       expect(cancellationPolicy).toContain(phrase);
     }

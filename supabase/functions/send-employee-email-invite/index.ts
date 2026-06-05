@@ -84,7 +84,7 @@ Deno.serve(withSecurity("send-employee-email-invite", async (req, ctx) => {
     });
     if (insErr) return json(500, { error: "invite_insert_failed", detail: insErr.message }, inviteHeaders);
 
-    const appUrl = Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || "https://zivollc.com";
+    const appUrl = Deno.env.get("PUBLIC_APP_URL") || Deno.env.get("SITE_URL") || "https://zivosmedia.com";
     const loginUrl = `${appUrl}/auth/accept-invite?token=${inviteToken}`;
 
     // Delegate actual email send to send-transactional-email (uses queue + suppression)

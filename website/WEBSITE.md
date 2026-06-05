@@ -1,4 +1,4 @@
-# 🌐 WEBSITE CONTENT — hizivo.com (ZIVO)
+# 🌐 WEBSITE CONTENT — zivosmedia.com (ZIVO)
 
 **Edit only the text inside the boxes. These are the strings the marketing site & SEO use.**
 
@@ -75,15 +75,15 @@ Q3: Can businesses sell or hire on ZIVO?
 A3: Yes. Businesses can open an online shop, manage orders with a built-in POS, post jobs, and receive applications — all from one ZIVO account.
 
 Q4: Where can I download the ZIVO app?
-A4: ZIVO is available on iOS and Android, and works as a fast web app at hizivo.com.
+A4: ZIVO is available on iOS and Android, and works as a fast web app at zivosmedia.com.
 ```
 
 ## 10. Footer / Contact Block
 
 ```
 Company:    ZIVO LLC
-Support:    support@hizivo.com
-Press:      info@hizivo.com
+Support:    support@zivosmedia.com
+Press:      info@zivosmedia.com
 Twitter/X:  @ZivoApp
 App Store:  https://apps.apple.com/app/id6759480121
 Play Store: https://play.google.com/store/apps/details?id=com.myzivo.app
@@ -113,4 +113,4 @@ Alt:   ZIVO – Compare Flights, Hotels & Car Rentals
 2. Mirror copy into `index.html` (SEO tags) and relevant pages in `src/pages/`
 3. `bun run build`
 4. Push to main → hosting (Lovable / Vercel / Netlify) deploys automatically
-5. Verify live at https://hizivo.com and re-share to refresh OG cache (use https://www.opengraph.xyz)
+5. Verify live at https://zivosmedia.com and re-share to refresh OG cache (use https://www.opengraph.xyz)

@@ -105,7 +105,7 @@ const URL_SHORTENERS = new Set([
  * ZIVO-owned hostnames — anything that's *similar but not identical* to one
  * of these is treated as a typosquat attempt and blocked.
  */
-const ZIVO_OWNED_HOSTS = ['hizivo.com', 'myzivo.lovable.app'];
+const ZIVO_OWNED_HOSTS = ['zivosmedia.com', 'myzivo.lovable.app'];
 
 /**
  * Check if a URL uses a safe protocol (http/https only).

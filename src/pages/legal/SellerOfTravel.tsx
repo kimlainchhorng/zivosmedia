@@ -88,8 +88,8 @@ const SellerOfTravel = () => {
                     <Mail className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm text-muted-foreground">Customer Support Email</p>
-                      <a href="mailto:support@hizivo.com" className="font-medium text-primary hover:underline">
-                        support@hizivo.com
+                      <a href="mailto:support@zivosmedia.com" className="font-medium text-primary hover:underline">
+                        support@zivosmedia.com
                       </a>
                     </div>
                   </div>
@@ -231,8 +231,8 @@ const SellerOfTravel = () => {
                   <p className="font-medium mb-2">Complaint Process</p>
                   <p className="text-sm text-muted-foreground mb-3">
                     If you have a complaint about your booking, please contact us first at{" "}
-                    <a href="mailto:support@hizivo.com" className="text-primary hover:underline">
-                      support@hizivo.com
+                    <a href="mailto:support@zivosmedia.com" className="text-primary hover:underline">
+                      support@zivosmedia.com
                     </a>. 
                     We aim to resolve all issues within 72 hours.
                   </p>

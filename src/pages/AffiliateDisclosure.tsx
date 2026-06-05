@@ -18,7 +18,7 @@ const AffiliateDisclosure = () => {
       <SEOHead 
         title="Affiliate Disclosure – ZIVO"
         description="ZIVO may earn a commission when users book through partner links. Learn about our affiliate relationships."
-        canonical="https://hizivo.com/affiliate-disclosure"
+        canonical="https://zivosmedia.com/affiliate-disclosure"
       />
       <Header />
       
@@ -126,10 +126,10 @@ const AffiliateDisclosure = () => {
                       If you have any questions, please contact us:
                     </p>
                     <p className="text-sm">
-                      Email: <a href="mailto:info@hizivo.com" className="text-primary hover:underline">info@hizivo.com</a>
+                      Email: <a href="mailto:info@zivosmedia.com" className="text-primary hover:underline">info@zivosmedia.com</a>
                     </p>
                     <p className="text-sm">
-                      Website: <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizivo.com"))} className="text-primary hover:underline">https://hizivo.com</button>
+                      Website: <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://zivosmedia.com"))} className="text-primary hover:underline">https://zivosmedia.com</button>
                     </p>
                   </div>
                 </div>

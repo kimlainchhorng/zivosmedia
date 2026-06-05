@@ -12,11 +12,11 @@ const Terms = () => {
       <SEOHead
         title="Terms of Service - ZIVO | Travel Platform"
         description="Read the terms of service for using ZIVO. Understand how we handle Hotels, Car Rentals (direct sale), and Flights (partner ticketing)."
-        canonical="https://hizivo.com/legal/terms"
+        canonical="https://zivosmedia.com/legal/terms"
       />
-      
+
       <Header />
-      
+
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Back Button */}
         <Link to="/">
@@ -264,12 +264,12 @@ const Terms = () => {
               <p className="text-foreground mb-4">
                 For questions about these Terms:
               </p>
-              <a 
-                href="mailto:support@hizivo.com" 
+              <a
+                href="mailto:support@zivosmedia.com"
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="w-4 h-4" />
-                support@hizivo.com
+                support@zivosmedia.com
               </a>
             </div>
           </section>

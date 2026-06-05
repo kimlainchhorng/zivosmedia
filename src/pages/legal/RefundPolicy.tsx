@@ -23,7 +23,7 @@ const RefundPolicy = () => {
       <SEOHead 
         title="Refund Policy – ZIVO Travel"
         description="Understand refund terms for hotels, car rentals processed by ZIVO, and flights handled by airline partners."
-        canonical="https://hizivo.com/legal/refunds"
+        canonical="https://zivosmedia.com/legal/refunds"
       />
       <NavBar />
       
@@ -299,7 +299,7 @@ const RefundPolicy = () => {
             <AccordionContent className="text-muted-foreground space-y-4 pb-6">
               <ol className="list-decimal list-inside space-y-3">
                 <li><strong>My Trips:</strong> Log in → My Trips → Select booking → Request Refund</li>
-                <li><strong>Email:</strong> Contact support@hizivo.com with your booking reference</li>
+                <li><strong>Email:</strong> Contact support@zivosmedia.com with your booking reference</li>
                 <li><strong>Response Time:</strong> We respond within 24-48 hours</li>
               </ol>
               <p className="mt-4">
@@ -342,10 +342,10 @@ const RefundPolicy = () => {
               For hotel and car rental refunds, contact ZIVO. For flight refunds, contact your airline partner.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <a href="mailto:support@hizivo.com">
+              <a href="mailto:support@zivosmedia.com">
                 <Button className="gap-2">
                   <Mail className="w-4 h-4" />
-                  support@hizivo.com
+                  support@zivosmedia.com
                 </Button>
               </a>
               <Link to="/legal/cancellation">

@@ -126,7 +126,7 @@ const faqs = [
   },
   {
     q: "What if the site isn't working properly?",
-    a: "Try clearing your browser cache, disabling extensions, or using a different browser. For persistent issues, contact us at support@hizivo.com with details about the problem."
+    a: "Try clearing your browser cache, disabling extensions, or using a different browser. For persistent issues, contact us at support@zivosmedia.com with details about the problem."
   },
 ];
 
@@ -147,7 +147,7 @@ export default function Help() {
       <SEOHead 
         title="Help Center – ZIVO"
         description="Get help with flights, hotels, car rentals, and technical issues. Find answers to common questions about booking travel on ZIVO."
-        canonical="https://hizivo.com/help"
+        canonical="https://zivosmedia.com/help"
       />
       <FAQStructuredData faqs={faqs.map(f => ({ question: f.q, answer: f.a }))} />
       <Header />
@@ -301,9 +301,9 @@ export default function Help() {
                 </p>
                 <div className="flex flex-wrap justify-center gap-3">
                   <Button asChild>
-                    <a href="mailto:support@hizivo.com" className="gap-2">
+                    <a href="mailto:support@zivosmedia.com" className="gap-2">
                       <Mail className="w-4 h-4" />
-                      support@hizivo.com
+                      support@zivosmedia.com
                     </a>
                   </Button>
                 </div>

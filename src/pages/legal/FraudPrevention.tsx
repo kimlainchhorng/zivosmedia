@@ -16,7 +16,7 @@ const sections = [
   { icon: Clock, title: "11. Statute of Limitations for Fraud Claims", content: "ZIVO reserves the right to investigate and take action on fraudulent activity for up to five (5) years after the fraudulent act occurred. This includes the right to retroactively terminate accounts, pursue legal action, and recover damages for fraud discovered after the fact." },
   { icon: Database, title: "12. Record Keeping", content: "ZIVO retains all transaction records, account activity logs, device information, and communication records for a minimum of seven (7) years for fraud prevention and investigation purposes. These records may be provided to law enforcement or used as evidence in legal proceedings without additional notice to you." },
   { icon: Globe, title: "13. International Fraud", content: "For fraud committed from outside the United States, ZIVO will: (a) cooperate with international law enforcement through mutual legal assistance treaties; (b) work with Interpol when appropriate; (c) pursue civil action in the user's jurisdiction; (d) report to local law enforcement in the user's country; (e) block access from countries associated with high fraud rates." },
-  { icon: FileText, title: "14. Whistleblower Protection", content: "ZIVO encourages reporting of suspected fraud. Users who report fraud in good faith will not face retaliation. Reports can be submitted anonymously to fraud@hizivo.com. ZIVO will investigate all reports and may offer rewards for information leading to the identification and prosecution of fraudsters." },
+  { icon: FileText, title: "14. Whistleblower Protection", content: "ZIVO encourages reporting of suspected fraud. Users who report fraud in good faith will not face retaliation. Reports can be submitted anonymously to fraud@zivosmedia.com. ZIVO will investigate all reports and may offer rewards for information leading to the identification and prosecution of fraudsters." },
 ];
 
 export default function FraudPrevention() {
@@ -50,7 +50,7 @@ export default function FraudPrevention() {
         ); })}
         <div className="rounded-2xl bg-muted/30 border border-border/40 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Report fraud</p>
-          <p className="text-xs text-muted-foreground">Contact <span className="text-primary font-semibold">fraud@hizivo.com</span></p>
+          <p className="text-xs text-muted-foreground">Contact <span className="text-primary font-semibold">fraud@zivosmedia.com</span></p>
         </div>
       </div>
     </div>

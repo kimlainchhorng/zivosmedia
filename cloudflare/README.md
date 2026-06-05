@@ -2,7 +2,7 @@
 
 This config adds Cloudflare hosting in two pieces:
 
-- Cloudflare Pages serves the preview web app at `https://preview.zivollc.com`.
+- Cloudflare Pages serves the preview web app at `https://preview.zivosmedia.com`.
 - A Cloudflare Worker serves R2 media/downloads and can also serve the built Vite app from `dist` with SPA fallback.
 - Serve R2 media through `/media/*` and large downloads through `/downloads/*`, with public `GET`/`HEAD` and secret-protected `PUT`/`DELETE`.
 - Proxy `/share/c/:handle` to the existing Supabase `channel-og` Edge Function for link previews.
@@ -16,7 +16,7 @@ Supabase remains the main backend for database, auth, RLS, realtime, and existin
 - Public URL: `https://zivo-web.myzivo.workers.dev`
 - Pages project: `zivo-preview`
 - Pages preview URL: `https://zivo-preview.pages.dev`
-- Custom preview domain: `https://preview.zivollc.com`
+- Custom preview domain: `https://preview.zivosmedia.com`
 - Auto repair software domain: `https://zivosoftware.com`
 - R2 buckets: `zivo-media` and `zivo-media-dev`
 - Migrated R2 object: `downloads/auto-repair/ZIVO Auto Repair Software-1.0.0-arm64.dmg`
@@ -89,33 +89,29 @@ The Pages deploy script removes `dist/downloads` before upload because Cloudflar
 
 `npm run cloudflare:check` runs the same local gate before the Worker dry-run. Both Cloudflare deploy scripts run `npm run security:scan` and `npm run deploy:preflight:local` before publishing, so local/preview deploys use the same safety gates as the Netlify preview path.
 
-Your production domain is `zivollc.com`. The safe preview domain is `preview.zivollc.com`, pointed from Lovable DNS to `zivo-preview.pages.dev`.
+Your production domain is `zivosmedia.com`. The safe preview domain is `preview.zivosmedia.com`, pointed from Lovable DNS to `zivo-preview.pages.dev`.
 
-The dedicated auto repair software domain is `zivosoftware.com`. Point both `zivosoftware.com` and `www.zivosoftware.com` to the same Cloudflare-hosted app. The React app restricts that host to the auto repair workspace for store `a914b90d-c249-4794-ba5e-3fdac0deed44`, and `/` redirects to:
-
-```txt
-/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair
-```
-
-Supabase Auth must also allow the software domain as a post-login destination. In Supabase Dashboard → Authentication → URL Configuration, keep the main Site URL on `https://zivollc.com`, then add these Redirect URLs:
+The dedicated business software domain is `zivosoftware.com`. Point both `zivosoftware.com` and `www.zivosoftware.com` to the same Cloudflare-hosted app. The React app restricts that host to business software flows only: the category portal, business setup, business software downloads, auth callbacks, and the auto repair workspace for store `a914b90d-c249-4794-ba5e-3fdac0deed44`. Consumer app routes such as Home, Reels, Chat, and Profile redirect back to:
 
 ```txt
-https://zivosoftware.com/auth-callback
-https://www.zivosoftware.com/auth-callback
-https://zivosoftware.com/auth-callback**
-https://www.zivosoftware.com/auth-callback**
-https://zivosoftware.com/reset-password**
-https://www.zivosoftware.com/reset-password**
+/business
 ```
 
-Keep the existing `zivollc.com` entries so main-app login continues to work. Supabase only redirects to URLs that are present in this allowlist.
+Supabase Auth must also allow the software domain as a post-login destination in the dedicated software project `ydxztoresbdeoeijhxww`. In Supabase Dashboard → Authentication → URL Configuration, keep that project's Site URL on `https://zivosoftware.com`, then add these Redirect URLs:
 
-Public DNS for `zivollc.com` is currently served by Name.com nameservers. The Cloudflare zone exists but is still initializing. To activate Cloudflare DNS, update the domain nameservers at Name.com to:
+```txt
+https://zivosoftware.com/**
+https://www.zivosoftware.com/**
+```
+
+Keep the main project `slirphzzwcogdbkeicff` on `https://zivosmedia.com`. Supabase only redirects to URLs that are present in each project's allowlist.
+
+Public DNS for `zivosmedia.com` is currently served by Name.com nameservers. The Cloudflare zone exists but is still initializing. To activate Cloudflare DNS, update the domain nameservers at Name.com to:
 
 - `emerson.ns.cloudflare.com`
 - `lauryn.ns.cloudflare.com`
 
-After the nameserver change propagates, Cloudflare DNS can manage apex and `www` directly. Until then, Lovable DNS is managing `zivollc.com`, and only the `preview` CNAME is pointed to Cloudflare Pages.
+After the nameserver change propagates, Cloudflare DNS can manage apex and `www` directly. Until then, Lovable DNS is managing `zivosmedia.com`, and only the `preview` CNAME is pointed to Cloudflare Pages.
 
 ## Next app integration step
 

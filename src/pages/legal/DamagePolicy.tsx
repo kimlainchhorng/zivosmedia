@@ -20,9 +20,9 @@ const DamagePolicy = () => {
         description="How to report damage, documentation requirements, and dispute resolution for ZIVO peer-to-peer car rentals."
         canonical="/damage-policy"
       />
-      
+
       <Header />
-      
+
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Back Button */}
         <Link to="/">
@@ -69,7 +69,7 @@ const DamagePolicy = () => {
                     <li>5. Do not admit fault at the scene</li>
                   </ul>
                 </div>
-                
+
                 <div className="p-4 border border-amber-500/20 bg-amber-500/5 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge className="bg-amber-500">At Return</Badge>
@@ -95,7 +95,7 @@ const DamagePolicy = () => {
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• Owners have <strong>48 hours</strong> to report damage</li>
                     <li>• Renters should report within <strong>24 hours</strong> if discovered later</li>
-                    <li>• Email photos and description to support@hizivo.com</li>
+                    <li>• Email photos and description to support@zivosmedia.com</li>
                   </ul>
                 </div>
               </div>
@@ -114,7 +114,7 @@ const DamagePolicy = () => {
               <p className="text-muted-foreground">
                 Proper documentation is essential for claim processing. Both renters and owners should:
               </p>
-              
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
                   <h4 className="font-medium mb-2 flex items-center gap-2">
@@ -129,7 +129,7 @@ const DamagePolicy = () => {
                     <li>• Interior condition</li>
                   </ul>
                 </div>
-                
+
                 <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
                   <h4 className="font-medium mb-2 flex items-center gap-2">
                     <Camera className="w-4 h-4 text-primary" />
@@ -172,7 +172,7 @@ const DamagePolicy = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-4">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     <span className="text-sm font-bold text-primary">2</span>
@@ -217,7 +217,7 @@ const DamagePolicy = () => {
                   </div>
                   <Badge variant="outline">48 hours</Badge>
                 </div>
-                
+
                 <div className="p-3 border rounded-lg flex items-center justify-between">
                   <div>
                     <p className="font-medium">Investigation</p>
@@ -234,7 +234,7 @@ const DamagePolicy = () => {
                   <Badge variant="outline">Within 14 days</Badge>
                 </div>
               </div>
-              
+
               <p className="text-sm text-muted-foreground">
                 Complex cases involving third-party insurance may take longer to resolve.
               </p>
@@ -251,7 +251,7 @@ const DamagePolicy = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">Damage claims may be resolved through:</p>
-              
+
               <div className="grid gap-3">
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium flex items-center gap-2 mb-2">
@@ -259,18 +259,18 @@ const DamagePolicy = () => {
                     Insurance Claim
                   </h4>
                   <p className="text-sm text-muted-foreground">
-                    If damage is covered by ZIVO's third-party insurance, the claim is processed through the insurer. 
+                    If damage is covered by ZIVO's third-party insurance, the claim is processed through the insurer.
                     Deductibles apply based on the renter's selected protection plan.
                   </p>
                 </div>
-                
+
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium flex items-center gap-2 mb-2">
                     <DollarSign className="w-4 h-4 text-primary" />
                     Direct Owner Compensation
                   </h4>
                   <p className="text-sm text-muted-foreground">
-                    For damage not covered by insurance, owners may be compensated directly from the 
+                    For damage not covered by insurance, owners may be compensated directly from the
                     renter's payment method on file.
                   </p>
                 </div>
@@ -281,7 +281,7 @@ const DamagePolicy = () => {
                     Dispute Escalation
                   </h4>
                   <p className="text-sm text-muted-foreground">
-                    If parties disagree, ZIVO provides mediation services. Final decisions are made based on 
+                    If parties disagree, ZIVO provides mediation services. Final decisions are made based on
                     available evidence and platform policies.
                   </p>
                 </div>
@@ -310,7 +310,7 @@ const DamagePolicy = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-4">
                   <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
                     <span className="text-sm font-bold text-amber-600">2</span>
@@ -425,12 +425,12 @@ const DamagePolicy = () => {
               </div>
               <div className="space-y-2">
                 <p className="font-medium">1-888-ZIVO-HELP</p>
-                <a 
-                  href="mailto:support@hizivo.com" 
+                <a
+                  href="mailto:support@zivosmedia.com"
                   className="inline-flex items-center gap-2 text-primary hover:underline"
                 >
                   <Mail className="w-4 h-4" />
-                  support@hizivo.com
+                  support@zivosmedia.com
                 </a>
               </div>
             </CardContent>

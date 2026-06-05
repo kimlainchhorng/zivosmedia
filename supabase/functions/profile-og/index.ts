@@ -1,7 +1,7 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const APP_ORIGIN = "https://zivollc.com";
+const APP_ORIGIN = "https://zivosmedia.com";
 const SOCIAL_CRAWLER_UA = /facebookexternalhit|facebot|twitterbot|xbot|linkedinbot|slackbot|discordbot|telegrambot|whatsapp|skypeuripreview|pinterest|redditbot|embedly|meta-externalagent|meta-externalfetcher/i;
 
 Deno.serve(withSecurity("profile-og", async (req, ctx) => {

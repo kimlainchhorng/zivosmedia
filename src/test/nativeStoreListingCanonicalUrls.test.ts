@@ -14,22 +14,22 @@ describe("native store listing canonical URLs", () => {
     const combined = `${appStore}\n${playStore}`;
 
     for (const canonicalUrl of [
-      "https://hizivo.com",
-      "https://hizivo.com/support",
-      "https://hizivo.com/legal/privacy",
-      "https://hizivo.com/legal/terms",
-      "https://hizivo.com/delete-account",
+      "https://zivosmedia.com",
+      "https://zivosmedia.com/support",
+      "https://zivosmedia.com/legal/privacy",
+      "https://zivosmedia.com/legal/terms",
+      "https://zivosmedia.com/delete-account",
     ]) {
       expect(combined).toContain(canonicalUrl);
     }
 
     for (const legacyUrl of [
-      "https://hizivo.com/privacy",
-      "https://hizivo.com/terms",
-      "https://www.zivollc.com",
-      "https://www.zivollc.com/privacy-policy",
-      "https://www.zivollc.com/terms-of-service",
-      "https://www.zivollc.com/account-deletion",
+      "https://zivosmedia.com/privacy",
+      "https://zivosmedia.com/terms",
+      "https://www.zivosmedia.com",
+      "https://www.zivosmedia.com/privacy-policy",
+      "https://www.zivosmedia.com/terms-of-service",
+      "https://www.zivosmedia.com/account-deletion",
     ]) {
       expect(combined).not.toContain(legacyUrl);
     }

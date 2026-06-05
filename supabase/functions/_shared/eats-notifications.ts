@@ -184,7 +184,7 @@ export async function notifyEatsOrderConfirmed(
       deliveryAddress: (o as any).delivery_address,
       totalAmount,
       paymentMethod: paymentMethodLabel,
-      trackUrl: `${Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com"}/eats/track/${orderId}`,
+      trackUrl: `${Deno.env.get("PUBLIC_APP_URL") || "https://zivosmedia.com"}/eats/track/${orderId}`,
     },
     smsBody: `ZIVO Eats: Order ${(o as any).tracking_code} confirmed at ${restaurant?.name || "the restaurant"}. ${totalAmount} paid via ${paymentMethodLabel}. Track: ${(o as any).tracking_code}`,
   });

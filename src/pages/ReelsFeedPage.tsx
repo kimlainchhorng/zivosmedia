@@ -175,7 +175,6 @@ const FollowSuggestions = lazy(() => import("@/components/social/FollowSuggestio
 const LiveNowStrip = lazy(() => import("@/components/social/LiveNowStrip"));
 const FriendActivity = lazy(() => import("@/components/social/FriendActivity"));
 const TrendingCreators = lazy(() => import("@/components/social/TrendingCreators"));
-const ProfileCompletionNudge = lazy(() => import("@/components/social/ProfileCompletionNudge"));
 const FloatingProductCard = lazy(() => import("@/components/reels/FloatingProductCard"));
 const CommentsSheet = lazy(() => import("@/components/social/CommentsSheet"));
 const FeedStoryRing = lazy(() => import("@/components/social/FeedStoryRing"));
@@ -1886,12 +1885,6 @@ export default function ReelsFeedPage() {
                             </button>
                           )
                         )}
-                        {sidebarDataReady && (
-                          <Suspense fallback={null}>
-                            <ProfileCompletionNudge />
-                          </Suspense>
-                        )}
-
                         {/* Facebook-style Create section */}
                         {userId && (
                           <div className="zivo-social-module rounded-[1.25rem] overflow-hidden">
@@ -2334,10 +2327,6 @@ export default function ReelsFeedPage() {
               </button>
             </div>
           )}
-
-          {/* ProfileCompletionNudge moved to the hamburger menu in the feed
-              header — a secondary destination that doesn't need to compete with
-              actual posts for vertical real estate. Open the ≡ menu to access it. */}
 
           {/* On this day — Facebook-style memories */}
           {sidebarDataReady && <Suspense fallback={null}><OnThisDay /></Suspense>}
@@ -3094,7 +3083,7 @@ export default function ReelsFeedPage() {
             </span>
           </button>
 
-          <p className="text-[10px] text-muted-foreground/60 mt-auto px-1 pt-2">© ZIVO LLC · hizivo.com</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-auto px-1 pt-2">© ZIVO LLC · zivosmedia.com</p>
         </aside>
 
       </div>
@@ -5898,7 +5887,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           <button type="button"
             onClick={() => {
               setShowPostMenu(false);
-              const embedCode = `<iframe src="https://hizivo.com/embed/${item.id.replace(/^u-/, "")}" width="400" height="500" frameborder="0" allowfullscreen></iframe>`;
+              const embedCode = `<iframe src="https://zivosmedia.com/embed/${item.id.replace(/^u-/, "")}" width="400" height="500" frameborder="0" allowfullscreen></iframe>`;
               try {
                 navigator.clipboard.writeText(embedCode);
                 toast.success("Embed code copied to clipboard");

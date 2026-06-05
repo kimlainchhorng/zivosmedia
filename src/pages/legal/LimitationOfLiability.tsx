@@ -241,7 +241,7 @@ const sections = [
   {
     icon: Mail,
     title: "48. Notice of Claims Requirement",
-    content: "AS A PREREQUISITE TO BRINGING ANY CLAIM AGAINST ZIVO, YOU MUST: (a) provide written notice to legal@hizivo.com describing the claim in detail within thirty (30) days of the event giving rise to the claim; (b) allow ZIVO sixty (60) days to investigate and attempt to resolve the issue; (c) cooperate fully with ZIVO's investigation; (d) provide all supporting documentation. FAILURE TO COMPLY WITH THESE REQUIREMENTS SHALL CONSTITUTE A WAIVER OF YOUR CLAIM. This notice requirement applies to all claims regardless of legal theory."
+    content: "AS A PREREQUISITE TO BRINGING ANY CLAIM AGAINST ZIVO, YOU MUST: (a) provide written notice to legal@zivosmedia.com describing the claim in detail within thirty (30) days of the event giving rise to the claim; (b) allow ZIVO sixty (60) days to investigate and attempt to resolve the issue; (c) cooperate fully with ZIVO's investigation; (d) provide all supporting documentation. FAILURE TO COMPLY WITH THESE REQUIREMENTS SHALL CONSTITUTE A WAIVER OF YOUR CLAIM. This notice requirement applies to all claims regardless of legal theory."
   },
   {
     icon: CircleAlert,
@@ -291,7 +291,7 @@ export default function LimitationOfLiability() {
         })}
         <div className="rounded-2xl bg-muted/30 border border-border/40 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Questions about liability limitations?</p>
-          <p className="text-xs text-muted-foreground">Contact <span className="text-primary font-semibold">legal@hizivo.com</span></p>
+          <p className="text-xs text-muted-foreground">Contact <span className="text-primary font-semibold">legal@zivosmedia.com</span></p>
         </div>
       </div>
     </div>

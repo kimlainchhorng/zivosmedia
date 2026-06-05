@@ -17,9 +17,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
 import {
-  Facebook, Instagram, Search as Google, Music2 as TikTok, Twitter as X,
+  Facebook, Instagram, Twitter as X,
   Plus, Megaphone, AlertCircle, Plug, Search as SearchIcon,
 } from "@/lib/lucide-react";
+import GoogleAds from "@/lib/icons/google-ads";
+import TikTok from "@/lib/icons/tiktok";
 import {
   AdsStatStripSkeleton,
   OnboardingChecklistSkeleton,
@@ -51,10 +53,20 @@ interface Props {
 const PLATFORMS = [
   { id: "meta" as AdPlatform, label: "Facebook", icon: Facebook, color: "text-[#1877F2]", oauth: true, brand: "bg-[#1877F2] hover:bg-[#1459bf]", help: "https://www.facebook.com/business/help/1492627900875762" },
   { id: "instagram" as AdPlatform, label: "Instagram", icon: Instagram, color: "text-[#E4405F]", oauth: true, brand: "bg-[#E4405F] hover:bg-[#c1304a]", help: "https://www.facebook.com/business/help/898752960195806" },
-  { id: "google" as AdPlatform, label: "Google Ads", icon: Google, color: "text-[#4285F4]", oauth: true, brand: "bg-[#4285F4] hover:bg-[#3367d6]", help: "https://support.google.com/google-ads/answer/1704344" },
-  { id: "tiktok" as AdPlatform, label: "TikTok Ads", icon: TikTok, color: "text-foreground", oauth: false, brand: "", help: "https://ads.tiktok.com/help/article/find-your-ad-account-id" },
+  { id: "google" as AdPlatform, label: "Google Ads", icon: GoogleAds, color: "", oauth: true, brand: "bg-[#4285F4] hover:bg-[#3367d6]", help: "https://support.google.com/google-ads/answer/1704344" },
+  { id: "tiktok" as AdPlatform, label: "TikTok Ads", icon: TikTok, color: "", oauth: false, brand: "", help: "https://ads.tiktok.com/help/article/find-your-ad-account-id" },
   { id: "x" as AdPlatform, label: "X (Twitter)", icon: X, color: "text-foreground", oauth: false, brand: "", help: "https://business.x.com/en/help/account-setup/finding-your-ads-account-id.html" },
 ];
+
+const META_BUSINESS_LOGIN_CONFIG_ID =
+  (import.meta.env.VITE_META_LOGIN_CONFIG_ID as string | undefined) || "1023966323302415";
+const GOOGLE_ADS_OAUTH_READY = import.meta.env.VITE_GOOGLE_ADS_OAUTH_READY === "true";
+
+const visiblePlatforms = PLATFORMS.map((platform) => (
+  platform.id === "google"
+    ? { ...platform, oauth: GOOGLE_ADS_OAUTH_READY }
+    : platform
+));
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -94,7 +106,7 @@ const EMPTY_FORM: CampaignFormState = {
 
 export default function StoreAdsManager({ storeId }: Props) {
   const navigate = useNavigate();
-  const { accounts, campaigns, stats, checklist, wallet, ledger, isLoading, invalidate } =
+  const { accounts, pages, campaigns, stats, checklist, wallet, ledger, isLoading, invalidate } =
     useStoreAdsOverview(storeId);
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -155,16 +167,22 @@ export default function StoreAdsManager({ storeId }: Props) {
       });
       if (error) throw error;
       if (!data?.authorize_url) throw new Error("No authorize URL returned");
+      let authorizeUrl = data.authorize_url as string;
+      if ((platform === "meta" || platform === "instagram") && META_BUSINESS_LOGIN_CONFIG_ID) {
+        const url = new URL(authorizeUrl);
+        url.searchParams.set("config_id", META_BUSINESS_LOGIN_CONFIG_ID);
+        authorizeUrl = url.toString();
+      }
 
       // Open OAuth in popup and poll for the resulting account row
       const popup = window.open(
-        data.authorize_url,
+        authorizeUrl,
         "ads-oauth",
         "width=600,height=700,menubar=no,toolbar=no"
       );
       if (!popup) {
         // Popup blocked — fallback to redirect
-        window.location.href = data.authorize_url;
+        window.location.href = authorizeUrl;
         return;
       }
 
@@ -378,8 +396,13 @@ export default function StoreAdsManager({ storeId }: Props) {
     return acc;
   }, [campaigns]);
 
-  const connectDef = connectPlatform ? PLATFORMS.find((p) => p.id === connectPlatform)! : null;
+  const connectDef = connectPlatform ? visiblePlatforms.find((p) => p.id === connectPlatform)! : null;
   const connectAcc = connectPlatform ? accountByPlatform(connectPlatform) : undefined;
+  const connectedMetaAccounts = accounts.filter(
+    (a) => (a.platform === "meta" || a.platform === "instagram") && (a.status === "connected" || a.status === "active")
+  );
+  const hasMetaAssets = pages.some((p) => p.platform === "meta" || p.platform === "instagram");
+  const needsMetaAssetSelection = connectedMetaAccounts.length > 0 && !hasMetaAssets;
 
   const scrollToPlatforms = () => {
     document.getElementById("ads-platforms")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -463,7 +486,7 @@ export default function StoreAdsManager({ storeId }: Props) {
             <PlatformTilesSkeleton />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-              {PLATFORMS.map((p) => (
+              {visiblePlatforms.map((p) => (
                 <AdsPlatformTile
                   key={p.id}
                   platform={p.id}
@@ -483,6 +506,29 @@ export default function StoreAdsManager({ storeId }: Props) {
                 title="No platforms connected"
                 body="Connect Meta, Google, TikTok or X to start running ads."
               />
+            </div>
+          )}
+          {!isLoading && needsMetaAssetSelection && (
+            <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                    Facebook login is connected, but no Page or ad account is linked yet.
+                  </p>
+                  <p className="mt-1 text-[11px] leading-snug text-amber-900/75 dark:text-amber-200/75">
+                    Open Facebook again and choose the business Page/ad account. Campaign drafts can be saved now; posting and boosting need that asset.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 shrink-0 border-amber-500/40 bg-background/70 text-xs"
+                  onClick={() => setConnectPlatform("meta")}
+                >
+                  Link assets
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

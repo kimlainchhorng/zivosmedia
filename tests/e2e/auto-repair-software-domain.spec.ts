@@ -3,7 +3,7 @@ import { chromium, expect, test } from "@playwright/test";
 const STORE_ID = "a914b90d-c249-4794-ba5e-3fdac0deed44";
 const host = "zivosoftware.com";
 
-test("zivosoftware.com opens the auto repair dashboard login flow", async () => {
+test("zivosoftware.com opens the business software login flow", async () => {
   const port = process.env.PLAYWRIGHT_PORT || "8080";
   const browser = await chromium.launch({
     args: [
@@ -19,12 +19,20 @@ test("zivosoftware.com opens the auto repair dashboard login flow", async () => 
     });
 
     await page.goto(`http://${host}:${port}/`, { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveURL(
-      new RegExp(
-        `^http://${host}:${port}/login\\?redirect=.*admin%2Fstores%2F${STORE_ID}.*tab%3Dar-dashboard.*category%3Dauto-repair`,
-      ),
-    );
-    await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`^http://${host}:${port}/business`));
+    await expect(page.getByRole("heading", { name: "Business software for every local operator" })).toBeVisible();
+    await expect(page.locator("header").getByRole("link", { name: "Log in" })).toBeVisible();
+    await expect(page.locator("header").getByRole("link", { name: "Sign up" })).toBeVisible();
+    await expect(page.getByText("Hotels & Resorts")).toBeVisible();
+    await expect(page.getByText("Auto Repair")).toBeVisible();
+    await expect(page.getByText("Laundry & Dry Clean")).toBeVisible();
+    await expect(page.getByText("Home", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Reels", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Chat", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Profile", { exact: true })).toHaveCount(0);
+
+    await page.goto(`http://${host}:${port}/chat`, { waitUntil: "domcontentloaded" });
+    await expect(page).toHaveURL(new RegExp(`^http://${host}:${port}/business`));
 
     await page.goto(`http://${host}:${port}/admin/stores/${STORE_ID}?tab=ar-dashboard`, {
       waitUntil: "domcontentloaded",

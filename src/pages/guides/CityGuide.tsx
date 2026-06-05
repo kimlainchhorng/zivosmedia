@@ -112,9 +112,9 @@ export default function CityGuide() {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: "https://hizivo.com" },
-        { "@type": "ListItem", position: 2, name: "Guides", item: "https://hizivo.com/guides" },
-        { "@type": "ListItem", position: 3, name: city.name, item: `https://hizivo.com/guides/${citySlug}` },
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://zivosmedia.com" },
+        { "@type": "ListItem", position: 2, name: "Guides", item: "https://zivosmedia.com/guides" },
+        { "@type": "ListItem", position: 3, name: city.name, item: `https://zivosmedia.com/guides/${citySlug}` },
       ],
     };
     const script = document.createElement("script");
@@ -153,7 +153,7 @@ export default function CityGuide() {
           name="description" 
           content={`Complete travel guide for ${city.name}. Find flights, hotels, attractions, and insider tips for your trip.`} 
         />
-        <link rel="canonical" href={`https://hizivo.com/guides/${citySlug}`} />
+        <link rel="canonical" href={`https://zivosmedia.com/guides/${citySlug}`} />
       </Helmet>
 
       <NavBar />

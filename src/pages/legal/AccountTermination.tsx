@@ -44,7 +44,7 @@ export default function AccountTermination() {
         ); })}
         <div className="rounded-2xl bg-muted/30 border border-border/40 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Account questions?</p>
-          <p className="text-xs text-muted-foreground">Contact <span className="text-primary font-semibold">support@hizivo.com</span></p>
+          <p className="text-xs text-muted-foreground">Contact <span className="text-primary font-semibold">support@zivosmedia.com</span></p>
         </div>
       </div>
     </div>

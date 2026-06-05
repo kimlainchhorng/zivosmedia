@@ -254,7 +254,7 @@ export default function BookingReturnPage() {
 
                   {/* Safe Actions */}
                   <div className="flex flex-col gap-3">
-                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizivo.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
+                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@zivosmedia.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
                         <Mail className="w-4 h-4" />
                         Check my email
                     </Button>
@@ -337,7 +337,7 @@ export default function BookingReturnPage() {
 
                   {/* Safe Actions */}
                   <div className="flex flex-col gap-3">
-                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizivo.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
+                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@zivosmedia.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
                         <Mail className="w-4 h-4" />
                         Check my email
                     </Button>
@@ -382,7 +382,7 @@ export default function BookingReturnPage() {
 
                   {/* Safe Actions */}
                   <div className="flex flex-col gap-3">
-                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizivo.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
+                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@zivosmedia.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
                         <Mail className="w-4 h-4" />
                         Check my email
                     </Button>
@@ -422,7 +422,7 @@ export default function BookingReturnPage() {
                       <strong>For changes, cancellations, or refunds:</strong> Contact the airline partner listed in your confirmation email.
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      <strong>For website issues:</strong> <a href="mailto:support@hizivo.com" className="text-foreground hover:underline">support@hizivo.com</a>
+                      <strong>For website issues:</strong> <a href="mailto:support@zivosmedia.com" className="text-foreground hover:underline">support@zivosmedia.com</a>
                     </p>
                   </div>
                 </div>

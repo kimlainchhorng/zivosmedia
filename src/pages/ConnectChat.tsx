@@ -23,7 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Origins permitted to receive a ZIVO session. Set the real ZIVO Chat
 // production origin here or via VITE_CHAT_ORIGINS (comma-separated).
-const STATIC_ALLOWED_ORIGINS = ["https://chat.hizivo.com"];
+const STATIC_ALLOWED_ORIGINS = ["https://chat.zivosmedia.com"];
 
 function allowedOrigins(): string[] {
   const fromEnv = (import.meta.env.VITE_CHAT_ORIGINS || "")

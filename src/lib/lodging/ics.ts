@@ -46,7 +46,7 @@ export function buildBookingIcs(input: IcsEventInput): string {
   const ciEnd = addHour(ci);
   const coEnd = addHour(co);
 
-  const orgLine = `ORGANIZER;CN=${escapeIcs(input.storeName)}:mailto:noreply@hizivo.com`;
+  const orgLine = `ORGANIZER;CN=${escapeIcs(input.storeName)}:mailto:noreply@zivosmedia.com`;
   const attLine = input.guestEmail
     ? `ATTENDEE;CN=${escapeIcs(input.guestName)};RSVP=FALSE:mailto:${input.guestEmail}`
     : null;

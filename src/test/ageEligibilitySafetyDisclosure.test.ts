@@ -36,7 +36,7 @@ describe("age eligibility safety disclosure", () => {
     expect(privacy).toContain("paid content");
     expect(privacy).toContain("business tools");
     expect(privacy).toContain("payout features");
-    expect(privacy).toContain("privacy@hizivo.com");
+    expect(privacy).toContain("privacy@zivosmedia.com");
     expect(privacy).not.toContain("privacy@zivo.com");
   });
 

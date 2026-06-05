@@ -117,7 +117,7 @@ serve(withSecurity("ar-reminders-dispatch", async (req, ctx) => {
 
   const RESEND_KEY = Deno.env.get("RESEND_API_KEY");
   const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
-  const fromEmail = Deno.env.get("AR_REMINDER_FROM_EMAIL") || "noreply@hizivo.com";
+  const fromEmail = Deno.env.get("AR_REMINDER_FROM_EMAIL") || "noreply@zivosmedia.com";
 
   let sent = 0;
   let failed = 0;

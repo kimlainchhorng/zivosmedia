@@ -173,7 +173,7 @@ export default function RewardsPage() {
       <SEOHead 
         title="ZIVO Points | Earn Rewards on Your Travels"
         description="Earn ZIVO Points on bookings and redeem for discounts, priority alerts, and exclusive deals."
-        canonical="https://hizivo.com/rewards"
+        canonical="https://zivosmedia.com/rewards"
       />
       
       {/* Premium Header */}

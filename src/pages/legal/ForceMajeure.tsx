@@ -41,7 +41,7 @@ const sections = [
   {
     icon: Bell,
     title: "8. Notice Requirements",
-    content: "ZIVO will provide notice of Force Majeure Events affecting its services as soon as reasonably practicable through: (a) email notifications to affected users; (b) in-app announcements; (c) website status page updates at status.hizivo.com; (d) social media communications; and (e) push notifications where enabled. Failure to provide notice does not waive ZIVO's right to invoke Force Majeure protections. Users are responsible for independently monitoring conditions affecting their travel plans."
+    content: "ZIVO will provide notice of Force Majeure Events affecting its services as soon as reasonably practicable through: (a) email notifications to affected users; (b) in-app announcements; (c) website status page updates at status.zivosmedia.com; (d) social media communications; and (e) push notifications where enabled. Failure to provide notice does not waive ZIVO's right to invoke Force Majeure protections. Users are responsible for independently monitoring conditions affecting their travel plans."
   },
   {
     icon: Scale,
@@ -91,7 +91,7 @@ export default function ForceMajeure() {
         })}
         <div className="rounded-2xl bg-muted/30 border border-border/40 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Active disruptions?</p>
-          <p className="text-xs text-muted-foreground">Check <span className="text-primary font-semibold">status.hizivo.com</span> for service updates</p>
+          <p className="text-xs text-muted-foreground">Check <span className="text-primary font-semibold">status.zivosmedia.com</span> for service updates</p>
         </div>
       </div>
     </div>

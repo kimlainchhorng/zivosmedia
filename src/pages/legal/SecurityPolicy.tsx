@@ -9,7 +9,7 @@ export default function SecurityPolicy() {
       <Helmet>
         <title>Security Policy | ZIVO</title>
         <meta name="description" content="ZIVO's security policy — how we protect your data, accounts, and transactions in 2026." />
-        <link rel="canonical" href="https://hizivo.com/legal/security" />
+        <link rel="canonical" href="https://zivosmedia.com/legal/security" />
       </Helmet>
       <main className="container mx-auto max-w-3xl py-10 px-4 space-y-6">
         <header className="space-y-2">
@@ -51,7 +51,7 @@ export default function SecurityPolicy() {
         <Card>
           <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
           <CardContent className="text-sm">
-            Report security issues to <a className="text-primary underline" href="mailto:security@hizivo.com">security@hizivo.com</a>. See our <Link className="text-primary underline" to="/legal/vdp">Vulnerability Disclosure Program</Link>.
+            Report security issues to <a className="text-primary underline" href="mailto:security@zivosmedia.com">security@zivosmedia.com</a>. See our <Link className="text-primary underline" to="/legal/vdp">Vulnerability Disclosure Program</Link>.
           </CardContent>
         </Card>
       </main>

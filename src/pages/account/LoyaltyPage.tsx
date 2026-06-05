@@ -79,7 +79,7 @@ export default function LoyaltyPage() {
       <SEOHead
         title="ZIVO Points | Earn & Redeem Rewards"
         description="Track your ZIVO Points balance, view earning history, and redeem rewards."
-        canonical="https://hizivo.com/account/loyalty"
+        canonical="https://zivosmedia.com/account/loyalty"
       />
 
       {/* Sticky app header */}

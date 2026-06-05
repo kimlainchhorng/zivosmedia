@@ -47,7 +47,7 @@ Deno.serve(withSecurity("meta-ads-create-campaign", async (req, ctx) => {
       daily_budget_cents = 2000,
       headline = "ZIVO — Rides, Eats, Travel",
       body = "Book rides, order food, and explore deals on ZIVO.",
-      link = "https://hizivo.com",
+      link = "https://zivosmedia.com",
       image_url,
     } = await req.json().catch(() => ({}));
 

@@ -18,9 +18,9 @@ import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 
 const officialChannels = [
-  { channel: "Email", value: "@hizivo.com domains only", icon: Mail },
+  { channel: "Email", value: "@zivosmedia.com domains only", icon: Mail },
   { channel: "In-App", value: "Official app notifications", icon: MessageSquare },
-  { channel: "Website", value: "hizivo.com only", icon: ExternalLink },
+  { channel: "Website", value: "zivosmedia.com only", icon: ExternalLink },
 ];
 
 const neverAskFor = [
@@ -227,13 +227,13 @@ export default function ScamPrevention() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button asChild>
-                  <a href="mailto:security@hizivo.com?subject=Scam Report">
+                  <a href="mailto:security@zivosmedia.com?subject=Scam Report">
                     <Flag className="w-4 h-4 mr-2" />
                     Report a Scam
                   </a>
                 </Button>
                 <Button variant="outline" asChild>
-                  <a href="mailto:security@hizivo.com?subject=Phishing Email Report">
+                  <a href="mailto:security@zivosmedia.com?subject=Phishing Email Report">
                     Forward Phishing Email
                   </a>
                 </Button>

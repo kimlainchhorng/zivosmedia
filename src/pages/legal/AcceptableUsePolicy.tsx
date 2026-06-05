@@ -24,7 +24,7 @@ const prohibitedUses = [
   "Circumventing security measures, rate limits, geo-restrictions, or access controls",
   "Reselling or commercially exploiting services obtained through ZIVO without authorization",
   "Using bots, scripts, or automated tools to make bookings or interact with the platform",
-  "Exploiting bugs, glitches, or vulnerabilities for personal gain (report to security@hizivo.com instead)",
+  "Exploiting bugs, glitches, or vulnerabilities for personal gain (report to security@zivosmedia.com instead)",
   "Using ZIVO's APIs without written authorization or in violation of API terms",
   "Engaging in price manipulation, fare gouging, or ticket scalping through the platform",
   "Creating bookings with intent to defraud, chargeback, or commit friendly fraud",
@@ -35,7 +35,7 @@ const sections = [
   {
     icon: Globe,
     title: "3. Network & System Integrity",
-    content: "Users must not attempt to disrupt ZIVO's systems, overload servers, or interfere with other users' access to the Services. Prohibited activities include: denial-of-service attacks, packet sniffing, port scanning, IP spoofing, forging TCP/IP packet headers, DNS cache poisoning, and any other method of disrupting network communications. Any security vulnerability discovered must be reported responsibly to security@hizivo.com and must NOT be exploited, disclosed publicly, or shared with third parties. We operate a responsible disclosure program and will not pursue legal action against good-faith security researchers."
+    content: "Users must not attempt to disrupt ZIVO's systems, overload servers, or interfere with other users' access to the Services. Prohibited activities include: denial-of-service attacks, packet sniffing, port scanning, IP spoofing, forging TCP/IP packet headers, DNS cache poisoning, and any other method of disrupting network communications. Any security vulnerability discovered must be reported responsibly to security@zivosmedia.com and must NOT be exploited, disclosed publicly, or shared with third parties. We operate a responsible disclosure program and will not pursue legal action against good-faith security researchers."
   },
   {
     icon: Scale,
@@ -50,7 +50,7 @@ const sections = [
   {
     icon: Lock,
     title: "6. Account Security Responsibilities",
-    content: "You are responsible for maintaining the security of your account. You must: (a) use a strong, unique password not used on other platforms; (b) enable two-factor authentication when available; (c) never share your login credentials with anyone; (d) immediately report any unauthorized access to security@hizivo.com; (e) log out of shared or public devices; (f) keep your device's operating system and browser updated; and (g) not circumvent or disable security features. You are liable for all activity conducted through your account, regardless of whether you authorized it."
+    content: "You are responsible for maintaining the security of your account. You must: (a) use a strong, unique password not used on other platforms; (b) enable two-factor authentication when available; (c) never share your login credentials with anyone; (d) immediately report any unauthorized access to security@zivosmedia.com; (e) log out of shared or public devices; (f) keep your device's operating system and browser updated; and (g) not circumvent or disable security features. You are liable for all activity conducted through your account, regardless of whether you authorized it."
   },
   {
     icon: Users,
@@ -75,7 +75,7 @@ const sections = [
   {
     icon: Gavel,
     title: "11. Reporting Violations",
-    content: "If you become aware of any violation of this Acceptable Use Policy, please report it immediately to: (a) In-app: Use the Report feature on any content or user profile; (b) Email: legal@hizivo.com for general violations; (c) Email: security@hizivo.com for security vulnerabilities; (d) Email: dmca@hizivo.com for copyright violations. Reports can be made anonymously. ZIVO will investigate all reports and take appropriate action. Retaliation against users who report violations in good faith is prohibited."
+    content: "If you become aware of any violation of this Acceptable Use Policy, please report it immediately to: (a) In-app: Use the Report feature on any content or user profile; (b) Email: legal@zivosmedia.com for general violations; (c) Email: security@zivosmedia.com for security vulnerabilities; (d) Email: dmca@zivosmedia.com for copyright violations. Reports can be made anonymously. ZIVO will investigate all reports and take appropriate action. Retaliation against users who report violations in good faith is prohibited."
   },
 ];
 
@@ -156,7 +156,7 @@ export default function AcceptableUsePolicy() {
         <div className="rounded-2xl bg-primary/5 border border-primary/10 p-4 text-center space-y-2">
           <p className="text-sm font-semibold text-foreground">Report a Violation</p>
           <p className="text-xs text-muted-foreground">
-            Contact <span className="text-primary font-semibold">legal@hizivo.com</span> for policy questions or to report violations
+            Contact <span className="text-primary font-semibold">legal@zivosmedia.com</span> for policy questions or to report violations
           </p>
         </div>
       </div>

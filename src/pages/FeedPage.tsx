@@ -5970,7 +5970,7 @@ export default function FeedPage() {
                 <button type="button" onClick={() => navigate("/shop")} className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-2 py-2 text-left font-black text-foreground"><ShoppingBag className="w-4 h-4 text-primary shrink-0" /> Shop</button>
               </div>
             </div>
-            <p className="mt-auto px-1 pt-4 text-[11px] font-semibold text-muted-foreground/70">© ZIVO LLC · hizivo.com</p>
+            <p className="mt-auto px-1 pt-4 text-[11px] font-semibold text-muted-foreground/70">© ZIVO LLC · zivosmedia.com</p>
           </aside>
         )}
 

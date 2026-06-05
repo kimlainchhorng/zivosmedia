@@ -111,7 +111,7 @@ export default function HotelBookingConfirmedPage() {
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
       "BEGIN:VEVENT",
-      `UID:zivo-hotel-${reservation.id}@hizivo.com`,
+      `UID:zivo-hotel-${reservation.id}@zivosmedia.com`,
       `DTSTAMP:${dtStamp}`,
       `DTSTART;VALUE=DATE:${dtStart}`,
       `DTEND;VALUE=DATE:${dtEnd}`,

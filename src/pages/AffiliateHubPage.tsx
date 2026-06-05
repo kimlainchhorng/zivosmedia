@@ -75,7 +75,7 @@ export default function AffiliateHubPage() {
   ];
 
   const copyLink = () => {
-    navigator.clipboard.writeText(`https://hizivo.com/ref/${referralCode}`);
+    navigator.clipboard.writeText(`https://zivosmedia.com/ref/${referralCode}`);
     trackMarketingEvent("Share", {
       eventId: `affiliate-copy-${referralCode}`,
       contentType: "affiliate_referral",
@@ -112,7 +112,7 @@ export default function AffiliateHubPage() {
           </div>
           <div className="flex items-center gap-2 bg-muted/30 rounded-xl p-3 mb-3 border border-border/20">
             <span className="text-xs text-muted-foreground flex-1 truncate font-mono">
-              hizivo.com/ref/{referralCode}
+              zivosmedia.com/ref/{referralCode}
             </span>
             <button type="button" onClick={copyLink} className="p-1.5 rounded-lg bg-primary/10 touch-manipulation active:scale-95">
               <Copy className="w-3.5 h-3.5 text-primary" />
@@ -130,7 +130,7 @@ export default function AffiliateHubPage() {
                   contentId: referralCode,
                   source: "affiliate_hub",
                 });
-                if (navigator.share) navigator.share({ url: `https://hizivo.com/ref/${referralCode}`, title: "Join ZIVO" });
+                if (navigator.share) navigator.share({ url: `https://zivosmedia.com/ref/${referralCode}`, title: "Join ZIVO" });
                 else copyLink();
               }}
               className="flex-1 py-2.5 rounded-2xl bg-muted/60 text-foreground text-xs font-bold touch-manipulation active:scale-95 flex items-center justify-center gap-1.5 border border-border/30"

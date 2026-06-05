@@ -22,7 +22,7 @@ export default function Partners() {
       <SEOHead 
         title="Partners | ZIVO"
         description="Partner with ZIVO to reach qualified travel shoppers. We send ready-to-book traffic to airlines, hotels, car rental companies, and travel services."
-        canonical="https://hizivo.com/partners"
+        canonical="https://zivosmedia.com/partners"
       />
       <Header />
       
@@ -167,10 +167,10 @@ export default function Partners() {
             <Button 
               size="lg" 
               className="bg-gradient-to-r from-primary to-teal-400 gap-2 shadow-[0_0_20px_hsl(var(--primary)/0.3)] hover:shadow-[0_0_30px_hsl(var(--primary)/0.4)] transition-shadow"
-              onClick={() => window.location.href = "mailto:kimlain@hizivo.com"}
+              onClick={() => window.location.href = "mailto:kimlain@zivosmedia.com"}
             >
               <Mail className="w-5 h-5" />
-              kimlain@hizivo.com
+              kimlain@zivosmedia.com
             </Button>
           </div>
 

@@ -1446,10 +1446,10 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
           <p className="text-[11px] text-muted-foreground text-center pt-2">
             Need something else? Email{" "}
             <a
-              href="mailto:partners@hizivo.com"
+              href="mailto:partners@zivosmedia.com"
               className="text-emerald-600 hover:underline"
             >
-              partners@hizivo.com
+              partners@zivosmedia.com
             </a>{" "}
             — we ship custom integrations for enterprise partners.
           </p>

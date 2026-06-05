@@ -24,7 +24,7 @@ const sections = [
   {
     icon: Mail,
     title: "3. Designated DMCA Agent",
-    content: "All DMCA notices must be sent to:\n\nZIVO LLC — DMCA Designated Agent\nEmail: dmca@hizivo.com\nMail: ZIVO LLC, Attn: DMCA Agent, [Address on file with U.S. Copyright Office]\n\nWe will acknowledge receipt of all valid DMCA notices within 2 business days. Please note that DMCA notices are legal documents — knowingly submitting a false notice may subject you to liability for damages, including attorneys' fees, under 17 U.S.C. § 512(f)."
+    content: "All DMCA notices must be sent to:\n\nZIVO LLC — DMCA Designated Agent\nEmail: dmca@zivosmedia.com\nMail: ZIVO LLC, Attn: DMCA Agent, [Address on file with U.S. Copyright Office]\n\nWe will acknowledge receipt of all valid DMCA notices within 2 business days. Please note that DMCA notices are legal documents — knowingly submitting a false notice may subject you to liability for damages, including attorneys' fees, under 17 U.S.C. § 512(f)."
   },
   {
     icon: AlertTriangle,
@@ -109,7 +109,7 @@ export default function DMCACopyrightPolicy() {
         })}
         <div className="rounded-2xl bg-primary/5 border border-primary/10 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Report Copyright Infringement</p>
-          <p className="text-xs text-muted-foreground">Email <span className="text-primary font-semibold">dmca@hizivo.com</span> with all required information</p>
+          <p className="text-xs text-muted-foreground">Email <span className="text-primary font-semibold">dmca@zivosmedia.com</span> with all required information</p>
         </div>
       </div>
     </div>

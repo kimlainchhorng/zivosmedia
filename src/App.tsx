@@ -119,16 +119,18 @@ import { P2P_TRANSFER_EVENT, hasPendingP2PTransfer, subscribeP2PTransferMount } 
 import { recordRequestIssue } from "@/lib/requestHealth";
 import RequestHealthBadge from "@/components/dev/RequestHealthBadge";
 import {
-  AUTO_REPAIR_DASHBOARD_PATH,
   AUTO_REPAIR_SOFTWARE_PATH,
   AUTO_REPAIR_STORE_ID,
   isAutoRepairSoftwareHost,
+  isZivoSoftwareDashboardPath,
+  ZIVO_SOFTWARE_HOME_PATH,
 } from "@/config/autoRepairDomain";
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ConnectCallback = lazy(() => import("./pages/ConnectCallback"));
+const OAuthForwarder = lazy(() => import("./pages/OAuthForwarder"));
 const ConnectChat = lazy(() => import("./pages/ConnectChat"));
 const PublicDocumentView = lazy(() => import("./pages/PublicDocumentView"));
 const PairPage = lazy(() => lazyRetry(() => import("./pages/PairPage")));
@@ -805,6 +807,7 @@ const EnterpriseTrust = lazy(() => import("./pages/security/EnterpriseTrust"));
 const APIPartners = lazy(() => import("./pages/business/APIPartners"));
 const BusinessDashboard = lazy(() => import("./pages/business/BusinessDashboard"));
 const BusinessLandingPage = lazy(() => import("./pages/business/BusinessLandingPage"));
+const BusinessSoftwarePortalPage = lazy(() => import("./pages/business/BusinessSoftwarePortalPage"));
 const BusinessAccountPage = lazy(() => import("./pages/business/BusinessAccountPage"));
 const PartnerAuditDocs = lazy(() => import("./pages/business/PartnerAuditDocs"));
 const EnterpriseReady = lazy(() => import("./pages/business/EnterpriseReady"));
@@ -1202,6 +1205,10 @@ function NativeDeepLinkHandler() {
   return null;
 }
 
+function isCurrentZivoSoftwareHost() {
+  return typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+}
+
 function RouteAwareGlobalUI() {
   const location = useLocation();
   const { user } = useAuth();
@@ -1209,6 +1216,7 @@ function RouteAwareGlobalUI() {
   const blockedRoutes = ["/login", "/signup", "/setup", "/forgot-password", "/reset-password", "/verify-email", "/verify-otp", "/verify-new-device", "/auth-callback"];
   const hideGlobalUI = blockedRoutes.some((route) => location.pathname.startsWith(route));
 
+  if (isCurrentZivoSoftwareHost()) return null;
   if (hideGlobalUI || !ready) return null;
 
   return (
@@ -1228,6 +1236,7 @@ function RouteAwareGlobalUI() {
 
 function DeferredPassiveChatOverlays() {
   const ready = useAfterFirstPaint(3200);
+  if (isCurrentZivoSoftwareHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1273,6 +1282,7 @@ function LazyP2PTransferSheetHost() {
 
 function DeferredGlobalSheets() {
   const ready = useAfterFirstPaint(2400);
+  if (isCurrentZivoSoftwareHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1289,6 +1299,7 @@ function DeferredGlobalSheets() {
 
 function DeferredCurrencyPicker() {
   const ready = useAfterFirstPaint(2400);
+  if (isCurrentZivoSoftwareHost()) return null;
   return ready ? <Suspense fallback={null}><CurrencyPickerSheet /></Suspense> : null;
 }
 
@@ -1324,6 +1335,7 @@ function DesktopNavBootstrap() {
   // auto-repair workspace and public shared documents (/d/:token), which are
   // customer-facing and must not be overlapped by the Feed/Reels/Chat bar.
   if (
+    isCurrentZivoSoftwareHost() ||
     location.pathname.startsWith("/desktop/auto-repair") ||
     location.pathname.startsWith("/d/")
   ) return null;
@@ -1370,7 +1382,7 @@ function DirectThreadRedirect() {
   return <Navigate to={`/chat${query ? `?${query}` : ""}${location.hash}`} replace />;
 }
 
-function AutoRepairSoftwareHostGate() {
+function ZivoSoftwareHostGate() {
   const location = useLocation();
 
   if (typeof window === "undefined" || !isAutoRepairSoftwareHost(window.location.hostname)) {
@@ -1380,18 +1392,31 @@ function AutoRepairSoftwareHostGate() {
   const pathname = location.pathname;
   const authPaths = [
     "/login",
+    "/signup",
     "/forgot-password",
     "/reset-password",
     "/verify-email",
     "/verify-otp",
     "/verify-new-device",
     "/auth-callback",
+    "/auth/meta/callback",
+    "/auth/google-ads/callback",
   ];
   const isAuthPath = authPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  const isLegalPath =
+    pathname === "/legal/terms" ||
+    pathname === "/legal/privacy" ||
+    pathname === "/terms-of-service" ||
+    pathname === "/privacy-policy";
+  const isSoftwareBusinessPath =
+    pathname === ZIVO_SOFTWARE_HOME_PATH ||
+    pathname === "/business/new" ||
+    pathname.startsWith("/business/software/");
   const isAutoRepairPath =
     pathname === AUTO_REPAIR_SOFTWARE_PATH ||
     pathname === `/admin/stores/${AUTO_REPAIR_STORE_ID}` ||
     pathname.startsWith(`/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}/`);
+  const isSoftwareDashboardPath = isZivoSoftwareDashboardPath(pathname);
   const isOperationalAsset =
     pathname.startsWith("/downloads/auto-repair/") ||
     pathname.startsWith("/assets/") ||
@@ -1401,14 +1426,14 @@ function AutoRepairSoftwareHostGate() {
     pathname === "/robots.txt";
 
   if (pathname === "/") {
-    return <Navigate to={AUTO_REPAIR_DASHBOARD_PATH} replace />;
+    return <Navigate to={ZIVO_SOFTWARE_HOME_PATH} replace />;
   }
 
-  if (isAuthPath || isAutoRepairPath || isOperationalAsset) {
+  if (isAuthPath || isLegalPath || isSoftwareBusinessPath || isAutoRepairPath || isSoftwareDashboardPath || isOperationalAsset) {
     return null;
   }
 
-  return <Navigate to={AUTO_REPAIR_DASHBOARD_PATH} replace />;
+  return <Navigate to={ZIVO_SOFTWARE_HOME_PATH} replace />;
 }
 
 const App = () => (
@@ -1434,7 +1459,7 @@ const App = () => (
 
                 <DeferredPageViewTracker />
                 <DeferredGeoDetector />
-                <AutoRepairSoftwareHostGate />
+                <ZivoSoftwareHostGate />
                 <RoutePerfTracker />
                 <NativeDeepLinkHandler />
                 <OTAUpdateBootstrap />
@@ -1463,6 +1488,8 @@ const App = () => (
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/unsubscribe" element={<Unsubscribe />} />
                             <Route path="/connect/callback" element={<ConnectCallback />} />
+                            <Route path="/auth/meta/callback" element={<OAuthForwarder />} />
+                            <Route path="/auth/google-ads/callback" element={<OAuthForwarder />} />
                             <Route path="/connect/chat" element={<ConnectChat />} />
                             <Route path="/d/:token" element={<PublicDocumentView />} />
 
@@ -2220,7 +2247,7 @@ const App = () => (
                 <Route path="/share/with-me" element={<ShareWatchlistPage />} />
                 <Route path="/partner-login" element={<PartnerLogin />} />
                 <Route path="/partners" element={<PartnerWithZivo />} />
-                <Route path="/business" element={<BusinessLandingPage />} />
+                <Route path="/business" element={isAutoRepairSoftwareHost(typeof window !== "undefined" ? window.location.hostname : "") ? <BusinessSoftwarePortalPage /> : <BusinessLandingPage />} />
                 <Route path="/api-partners" element={<APIPartners />} />
                 <Route path="/developers" element={<APIPartners />} />
                 <Route path="/business/dashboard" element={<AdminShellRoute vertical="business" title="Business Dashboard | ZIVO Admin"><BusinessDashboard /></AdminShellRoute>} />

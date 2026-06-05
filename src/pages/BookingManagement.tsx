@@ -177,7 +177,7 @@ const BookingManagement = () => {
       <SEOHead
         title={`Booking ${bookingId} | ZIVO`}
         description="Manage your booking, view ticket status, and access provider contact information."
-        canonical={`https://hizivo.com/bookings/${bookingId}`}
+        canonical={`https://zivosmedia.com/bookings/${bookingId}`}
       />
       <Header />
 

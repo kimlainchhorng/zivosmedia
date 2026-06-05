@@ -108,6 +108,7 @@ async function syncZivoPlusSubscription(
     planId: string;
     status: string;
     billingCycle: string;
+    planCode?: string;
     currentPeriodStart: string;
     currentPeriodEnd?: string;
     stripeSubscriptionId?: string | null;
@@ -142,6 +143,9 @@ async function syncZivoPlusSubscription(
     plan_id: input.planId,
     status: normalizedStatus,
     billing_cycle: input.billingCycle === "yearly" ? "yearly" : "monthly",
+    plan_code: ["monthly", "chat", "pro", "annual"].includes(String(input.planCode || ""))
+      ? String(input.planCode)
+      : input.billingCycle === "yearly" ? "annual" : "monthly",
     current_period_start: input.currentPeriodStart,
     current_period_end: currentPeriodEnd,
     stripe_subscription_id: input.stripeSubscriptionId ?? null,
@@ -2079,6 +2083,7 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
               planId: metadata.plan_id,
               status: subscription.status,
               billingCycle: metadata.billing_cycle || (metadata.plan === "annual" ? "yearly" : "monthly"),
+              planCode: metadata.plan || (metadata.billing_cycle === "yearly" ? "annual" : "monthly"),
               currentPeriodStart: new Date(currentPeriodStart * 1000).toISOString(),
               currentPeriodEnd: new Date(currentPeriodEnd * 1000).toISOString(),
               stripeSubscriptionId: subscription.id,

@@ -53,7 +53,7 @@ export default function AdminGoogleAdsPage() {
   const [dailyBudget, setDailyBudget] = useState("20");
   const [keywords, setKeywords] = useState("ride app cambodia, food delivery phnom penh, tuk tuk booking, zivo app");
   const [campaignType, setCampaignType] = useState("SEARCH");
-  const [finalUrl, setFinalUrl] = useState("https://hizivo.com");
+  const [finalUrl, setFinalUrl] = useState("https://zivosmedia.com");
   const [headline, setHeadline] = useState("ZIVO — Rides & Food in Cambodia");
   const [description, setDescription] = useState("Book rides, order food & explore deals on ZIVO. Download now!");
   const [creating, setCreating] = useState(false);
@@ -379,7 +379,7 @@ export default function AdminGoogleAdsPage() {
 
                 <div className="space-y-1.5">
                   <Label>Final URL</Label>
-                  <Input value={finalUrl} onChange={(e) => setFinalUrl(e.target.value)} placeholder="https://hizivo.com" />
+                  <Input value={finalUrl} onChange={(e) => setFinalUrl(e.target.value)} placeholder="https://zivosmedia.com" />
                 </div>
 
                 <div className="flex gap-2">
@@ -485,7 +485,7 @@ export default function AdminGoogleAdsPage() {
                   <p className="text-sm font-semibold" style={{ color: GOOGLE_BLUE }}>How to set up Google Ads Conversion Tracking</p>
                   <ol className="text-sm text-muted-foreground space-y-2 pl-5 list-decimal">
                     <li>Go to <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" className="underline font-medium" style={{ color: GOOGLE_BLUE }}>Google Ads</a> → <strong>Goals</strong> → <strong>Conversions</strong> → <strong>New conversion action</strong></li>
-                    <li>Select <strong>Website</strong> → enter <code className="text-xs bg-muted px-1 rounded">hizivo.com</code> → choose an action (e.g. <em>Purchase</em>)</li>
+                    <li>Select <strong>Website</strong> → enter <code className="text-xs bg-muted px-1 rounded">zivosmedia.com</code> → choose an action (e.g. <em>Purchase</em>)</li>
                     <li>Copy the <strong>Conversion ID</strong> (format: <code className="text-xs bg-muted px-1 rounded">AW-XXXXXXXXXX</code>) and <strong>Conversion Label</strong></li>
                     <li>Paste them in <strong>Edit</strong> (top right) → save — then click <strong>Fire Test Conversion</strong> below</li>
                     <li>Check Google Ads → <strong>Goals → Diagnostics</strong> to confirm it arrived</li>

@@ -101,7 +101,7 @@ const Careers = () => {
       <SEOHead
         title="Careers | ZIVO"
         description="Join ZIVO and help build the future of travel. Remote-first, global-minded, innovation-driven."
-        canonical="https://hizivo.com/careers"
+        canonical="https://zivosmedia.com/careers"
       />
       <Header />
 
@@ -209,7 +209,7 @@ const Careers = () => {
                     notified when new opportunities become available.
                   </p>
                   <Button variant="outline" className="gap-2" asChild>
-                    <a href="mailto:careers@hizivo.com">
+                    <a href="mailto:careers@zivosmedia.com">
                       <Mail className="w-4 h-4" />
                       Get Notified
                     </a>
@@ -396,9 +396,9 @@ const Careers = () => {
               talent. Send us your resume and tell us how you'd contribute.
             </p>
             <Button size="lg" className="gap-2" asChild>
-              <a href="mailto:careers@hizivo.com">
+              <a href="mailto:careers@zivosmedia.com">
                 <Mail className="w-4 h-4" />
-                careers@hizivo.com
+                careers@zivosmedia.com
               </a>
             </Button>
           </section>

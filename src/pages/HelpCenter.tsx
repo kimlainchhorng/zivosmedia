@@ -618,7 +618,7 @@ const HelpCenter = () => {
                     "Never share your password or OTP with anyone — ZIVO will never ask for it",
                     "Enable two-factor authentication for extra account security",
                     "Verify driver identity and license plate before entering a ride",
-                    "Report suspicious emails claiming to be from ZIVO to security@hizivo.com",
+                    "Report suspicious emails claiming to be from ZIVO to security@zivosmedia.com",
                   ].map((tip, i) => (
                     <div key={i} className="flex items-start gap-2 text-[11px] text-muted-foreground">
                       <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />

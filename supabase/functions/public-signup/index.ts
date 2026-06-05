@@ -16,6 +16,7 @@ const Body = v.object({
   password: v.minLength(8),
   fullName: v.nonEmptyString,
   phone: v.optionalString,
+  signupSource: v.optionalString,
   // Accepted as ISO date string "YYYY-MM-DD". Required for the 18+ gate
   // (enforced below). Optional in the validator so older clients without DOB
   // surface a precise error message rather than a generic schema rejection.
@@ -49,23 +50,27 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
   const normalizedPassword = body.password as string;
   const normalizedFullName = (body.fullName as string).trim().replace(/\s+/g, " ");
   const normalizedPhone = body.phone ? (body.phone as string).trim() : undefined;
+  const signupSource = body.signupSource ? (body.signupSource as string).trim() : "";
+  const isZivoSoftwareSignup = signupSource === "zivo_software";
   const rawDob = body.dateOfBirth ? (body.dateOfBirth as string).trim() : "";
 
   // 18+ enforcement — server side so a malicious client can't bypass.
-  if (!rawDob) {
+  if (!rawDob && !isZivoSoftwareSignup) {
     throw new HttpError(400, "Date of birth is required.");
   }
-  const age = calculateAge(rawDob);
-  if (age === null) {
-    throw new HttpError(400, "Invalid date of birth. Use YYYY-MM-DD.");
+  if (rawDob) {
+    const age = calculateAge(rawDob);
+    if (age === null) {
+      throw new HttpError(400, "Invalid date of birth. Use YYYY-MM-DD.");
+    }
+    if (age < 18) {
+      throw new HttpError(403, "You must be 18 or older to sign up.");
+    }
+    if (age > 120) {
+      throw new HttpError(400, "Invalid date of birth.");
+    }
   }
-  if (age < 18) {
-    throw new HttpError(403, "You must be 18 or older to sign up.");
-  }
-  if (age > 120) {
-    throw new HttpError(400, "Invalid date of birth.");
-  }
-  const normalizedDob = rawDob;
+  const normalizedDob = rawDob || null;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -84,8 +89,9 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
     user_metadata: {
       full_name: normalizedFullName,
       ...(normalizedPhone ? { phone: normalizedPhone } : {}),
-      date_of_birth: normalizedDob,
+      ...(normalizedDob ? { date_of_birth: normalizedDob } : {}),
       created_via: "email_signup_otp",
+      ...(signupSource ? { signup_source: signupSource } : {}),
     },
   });
 

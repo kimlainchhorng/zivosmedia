@@ -361,7 +361,7 @@ export default function CreateCampaignWizard({
               <Input
                 value={form.destination_url}
                 onChange={(e) => setForm({ ...form, destination_url: e.target.value })}
-                placeholder="https://hizivo.com/store/..."
+                placeholder="https://zivosmedia.com/store/..."
                 className={!isValidUrl(form.destination_url) ? "border-red-500" : ""}
               />
               {!isValidUrl(form.destination_url) && (

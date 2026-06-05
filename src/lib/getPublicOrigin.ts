@@ -1,4 +1,4 @@
-const DEFAULT_PUBLIC_ORIGIN = "https://zivollc.com";
+const DEFAULT_PUBLIC_ORIGIN = "https://zivosmedia.com";
 const SUPABASE_FUNCTIONS_BASE = `${import.meta.env.VITE_SUPABASE_URL || ""}/functions/v1`;
 
 // Edge function URL that serves profile OG tags and redirects humans.
@@ -8,7 +8,7 @@ const CHANNEL_OG_FUNCTION = `${SUPABASE_FUNCTIONS_BASE}/channel-og`;
 
 /**
  * Returns the public-facing origin for shareable URLs.
- * Always returns the production zivollc.com domain so links shared from
+ * Always returns the production zivosmedia.com domain so links shared from
  * preview/staging environments never leak temporary hosts (netlify.app,
  * lovable.app, localhost, etc.) to social networks.
  */
@@ -33,7 +33,7 @@ export function getPostShareUrl(postId: string): string {
 
 /**
  * Returns the profile share URL for social networks.
- * Uses the branded zivollc.com domain (routes through /p/:code which redirects
+ * Uses the branded zivosmedia.com domain (routes through /p/:code which redirects
  * to the OG edge function for crawlers and to the in-app profile for humans).
  */
 export function getProfileShareUrl(shareCode: string): string {

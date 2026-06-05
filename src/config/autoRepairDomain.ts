@@ -5,6 +5,15 @@ export const AUTO_REPAIR_SOFTWARE_HOSTS = new Set([
   "www.zivosoftware.com",
 ]);
 
+export const ZIVO_SOFTWARE_HOME_PATH = "/business";
+
+export const ZIVO_SOFTWARE_SUPABASE_URL = "https://ydxztoresbdeoeijhxww.supabase.co";
+
+export const ZIVO_SOFTWARE_SUPABASE_PROJECT_ID = "ydxztoresbdeoeijhxww";
+
+export const ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_uZ-GdApCM_hzdmOGiwokDg_G7MxTf41";
+
 export const AUTO_REPAIR_SOFTWARE_PATH = `/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}`;
 
 export const AUTO_REPAIR_DASHBOARD_PATH =
@@ -12,3 +21,17 @@ export const AUTO_REPAIR_DASHBOARD_PATH =
 
 export const isAutoRepairSoftwareHost = (hostname?: string | null) =>
   AUTO_REPAIR_SOFTWARE_HOSTS.has((hostname || "").toLowerCase());
+
+export const isZivoSoftwareHost = isAutoRepairSoftwareHost;
+
+export const isZivoSoftwareDashboardPath = (pathname?: string | null) => {
+  const path = pathname || "";
+  return (
+    path === "/admin/stores" ||
+    path.startsWith("/admin/stores/") ||
+    path === "/business/dashboard" ||
+    path === "/bus/operator" ||
+    path === "/eats/restaurant-dashboard" ||
+    path === "/hotel-admin"
+  );
+};

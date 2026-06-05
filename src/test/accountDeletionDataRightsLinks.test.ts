@@ -12,12 +12,12 @@ describe("account deletion and data rights links", () => {
 
     expect(app).toContain('path="/delete-account"');
     expect(app).toContain('path="/account-deletion"');
-    expect(deletionInfo).toContain('canonical="https://hizivo.com/delete-account"');
-    expect(deletionInfo).toContain('href="mailto:privacy@hizivo.com?subject=Delete%20my%20ZIVO%20account"');
-    expect(deletionInfo).toContain('href="mailto:support@hizivo.com?subject=Delete%20my%20ZIVO%20account"');
+    expect(deletionInfo).toContain('canonical="https://zivosmedia.com/delete-account"');
+    expect(deletionInfo).toContain('href="mailto:privacy@zivosmedia.com?subject=Delete%20my%20ZIVO%20account"');
+    expect(deletionInfo).toContain('href="mailto:support@zivosmedia.com?subject=Delete%20my%20ZIVO%20account"');
     expect(deletionInfo).toContain('to="/legal/privacy"');
     expect(deletionInfo).toContain('to="/legal/data-retention"');
-    expect(deletionInfo).not.toContain("www.zivollc.com/account-deletion");
+    expect(deletionInfo).not.toContain("www.zivosmedia.com/account-deletion");
     expect(deletionInfo).not.toContain('to="/privacy-policy"');
   });
 

@@ -11,6 +11,7 @@ interface ImportMetaEnv {
 	readonly VITE_KHQR_STATIC_MERCHANT_QR?: string;
 	readonly VITE_GOOGLE_ANALYTICS_ID?: string;
 	readonly VITE_GOOGLE_ADS_ID?: string;
+	readonly VITE_GOOGLE_ADS_OAUTH_READY?: string;
 	readonly VITE_GOOGLE_ADSENSE_CLIENT?: string;
 	readonly VITE_ADSENSE_SLOT_HOME_FEED?: string;
 	readonly VITE_ADSENSE_SLOT_SEARCH_RESULTS?: string;

@@ -51,7 +51,7 @@ export default function AdminMetaAdsPage() {
   const [dailyBudget, setDailyBudget] = useState("20");
   const [headline, setHeadline] = useState("ZIVO — Rides, Eats, Travel");
   const [adBody, setAdBody] = useState("Book rides, order food, and explore deals on ZIVO.");
-  const [adLink, setAdLink] = useState("https://hizivo.com");
+  const [adLink, setAdLink] = useState("https://zivosmedia.com");
   const [adImageUrl, setAdImageUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -842,7 +842,7 @@ export default function AdminMetaAdsPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5"><Link2 className="h-3.5 w-3.5" />Link (optional)</Label>
-                        <Input value={postLink} onChange={(e) => setPostLink(e.target.value)} placeholder="https://hizivo.com" />
+                        <Input value={postLink} onChange={(e) => setPostLink(e.target.value)} placeholder="https://zivosmedia.com" />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" />Photo URL (optional)</Label>

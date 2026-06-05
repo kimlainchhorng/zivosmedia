@@ -6,12 +6,127 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink } from "lucide-react";
+import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink, ShieldCheck, Wrench, CalendarCheck, BadgeCheck } from "lucide-react";
 import { supabase, setRememberMePreference } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
+import serviceCars from "@/assets/service-cars.jpg";
+import serviceShopping from "@/assets/service-shopping.png";
+
+function ZivoSoftwareAuthLogo() {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative mb-2 flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[#101412] shadow-[0_16px_34px_rgba(17,20,18,0.18)]">
+        <span className="absolute -right-1 -top-1 h-4 w-4 rounded-md bg-[#48e7af] shadow-[0_10px_20px_rgba(72,231,175,0.38)]" />
+        <span className="absolute bottom-2 left-2 h-2 w-2 rounded-sm bg-[#35a8ff]/85" />
+        <svg viewBox="0 0 44 44" aria-hidden="true" className="relative h-7 w-7">
+          <defs>
+            <linearGradient id="zivoAuthMark" x1="8" y1="8" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="#ffffff" />
+              <stop offset="0.5" stopColor="#48e7af" />
+              <stop offset="1" stopColor="#35a8ff" />
+            </linearGradient>
+          </defs>
+          <path d="M10 8h26v7.2H22.4L36 15.3 16.1 36H8l20-20.8H10V8Z" fill="url(#zivoAuthMark)" />
+          <path d="M13.2 28.8h20.9V36H6.8l6.4-7.2Z" fill="#f8fffc" />
+        </svg>
+      </div>
+      <h1 className="text-center text-xl font-black tracking-[0.22em] text-[#101412]">ZIVO</h1>
+      <p className="mt-1 text-center text-[9px] font-black uppercase tracking-[0.22em] text-[#138f68]">Software</p>
+    </div>
+  );
+}
+
+function ZivoSoftwareMiniScene({ mode }: { mode: "login" | "signup" }) {
+  return (
+    <div className="relative mx-auto my-3 h-[5.8rem] w-full max-w-[18rem] [perspective:900px]" aria-hidden="true">
+      <div className="absolute inset-x-8 bottom-0 h-8 rounded-full bg-[#101412]/15 blur-2xl" />
+      <img src={serviceCars} alt="" className="absolute right-5 top-5 h-12 w-20 rounded-xl object-cover shadow-[0_16px_30px_rgba(17,20,18,0.22)] [transform:rotateX(42deg)_rotateZ(10deg)]" />
+      <img src={serviceShopping} alt="" className="absolute left-5 bottom-1 h-10 w-16 rounded-xl object-cover shadow-[0_16px_28px_rgba(17,20,18,0.16)] [transform:rotateX(42deg)_rotateZ(-12deg)]" />
+      <div className="absolute left-12 top-2 h-16 w-28 rounded-2xl bg-[#101412] p-3 text-white shadow-[0_22px_48px_rgba(17,20,18,0.3)] [transform:rotateX(58deg)_rotateZ(-16deg)]">
+        <div className="flex items-center justify-between">
+          <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/50">Board</span>
+          <BadgeCheck className="h-3.5 w-3.5 text-[#48e7af]" />
+        </div>
+        <div className="mt-3 text-xl font-black">{mode === "login" ? "$18.4k" : "30+"}</div>
+        <div className="text-[9px] font-semibold text-white/55">{mode === "login" ? "weekly revenue" : "business types"}</div>
+      </div>
+      <div className="absolute right-10 top-0 h-14 w-20 rounded-2xl bg-[#48e7af] p-2 text-[#102018] shadow-[0_18px_34px_rgba(25,183,127,0.32)] [transform:rotateX(54deg)_rotateZ(13deg)]">
+        <CalendarCheck className="h-3.5 w-3.5" />
+        <div className="mt-2 text-lg font-black">{mode === "login" ? "42" : "7"}</div>
+        <div className="text-[8px] font-bold">{mode === "login" ? "bookings" : "groups"}</div>
+      </div>
+      <div className="absolute bottom-1 left-[45%] h-14 w-24 rounded-2xl border border-black/5 bg-white p-2 text-[#101412] shadow-[0_20px_42px_rgba(17,20,18,0.18)] [transform:rotateX(55deg)_rotateZ(4deg)]">
+        <Wrench className="h-3.5 w-3.5" />
+        <div className="mt-2 text-[10px] font-black">{mode === "login" ? "Work orders" : "Setup"}</div>
+        <div className="text-[8px] font-bold text-[#64706a]">ready</div>
+      </div>
+    </div>
+  );
+}
+
+function ZivoSoftwareAuthGraphic({ mode }: { mode: "login" | "signup" }) {
+  return (
+    <section className="relative hidden min-h-[520px] overflow-hidden rounded-[1.25rem] bg-[#101412] p-7 text-white shadow-[0_30px_74px_rgba(17,20,18,0.2)] lg:block">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(72,231,175,0.28),transparent_30%),radial-gradient(circle_at_92%_18%,rgba(53,168,255,0.22),transparent_32%)]" />
+      <div className="relative z-10 flex h-full flex-col justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/70">
+            <ShieldCheck className="h-4 w-4 text-[#48e7af]" />
+            Secure business access
+          </div>
+          <h2 className="mt-7 max-w-md text-3xl font-black leading-[0.98] tracking-normal">
+            {mode === "login" ? "Open the workspace that runs the day." : "Create the workspace your team comes back to."}
+          </h2>
+          <p className="mt-5 max-w-sm text-base leading-7 text-white/62">
+            ZIVO Software keeps bookings, work orders, payments, customers, and reports connected for local operators.
+          </p>
+        </div>
+
+        <div className="relative min-h-[260px] [perspective:1100px]">
+          <div className="absolute left-4 top-4 w-[78%] rounded-[1.25rem] border border-white/14 bg-white/10 p-4 shadow-[0_30px_70px_rgba(0,0,0,0.24)] backdrop-blur [transform:rotateX(54deg)_rotateZ(-18deg)]">
+            <div className="rounded-xl bg-white p-4 text-[#101412]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-[0.16em] text-[#64706a]">Dashboard</span>
+                <BadgeCheck className="h-5 w-5 text-[#19b77f]" />
+              </div>
+              <div className="mt-7 text-4xl font-black">$18.4k</div>
+              <div className="mt-1 text-sm font-semibold text-[#64706a]">weekly revenue</div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-[#48e7af] p-4 text-[#102018]">
+                <CalendarCheck className="h-5 w-5" />
+                <div className="mt-7 text-2xl font-black">42</div>
+                <div className="text-xs font-bold">bookings</div>
+              </div>
+              <div className="rounded-xl bg-white/90 p-4 text-[#101412]">
+                <Wrench className="h-5 w-5" />
+                <div className="mt-7 text-2xl font-black">16</div>
+                <div className="text-xs font-bold text-[#64706a]">open jobs</div>
+              </div>
+            </div>
+          </div>
+          <img src={serviceCars} alt="Auto repair dashboard preview" className="absolute bottom-5 right-0 h-32 w-48 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.3)] [transform:rotate(7deg)]" />
+          <img src={serviceShopping} alt="Business software checkout preview" className="absolute bottom-0 left-0 h-24 w-36 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.24)] [transform:rotate(-8deg)]" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ZivoSoftwareLegalLinks() {
+  return (
+    <p className="mt-3 text-center text-xs font-medium text-[#66736d]">
+      By continuing, you agree to the{" "}
+      <Link to="/legal/terms" className="font-black text-[#101412] underline-offset-4 hover:underline">ZIVO Software Terms</Link>
+      {" "}and{" "}
+      <Link to="/legal/privacy" className="font-black text-[#101412] underline-offset-4 hover:underline">Privacy Policy</Link>.
+    </p>
+  );
+}
 
 // ── Saved account avatar card ────────────────────────────────────────────────
 // In `editing` mode the X delete button is shown on each avatar. In normal
@@ -22,11 +137,13 @@ function AccountCard({
   onSelect,
   onRemove,
   editing = false,
+  softwareStyle = false,
 }: {
   account: SavedAccount;
   onSelect: (account: SavedAccount) => void;
   onRemove: (email: string) => void;
   editing?: boolean;
+  softwareStyle?: boolean;
 }) {
   const initials = account.fullName
     ? account.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -73,7 +190,9 @@ function AccountCard({
         {/* Avatar — Instagram-style circular ring with brand gradient. The
             gentle wiggle in edit mode hints "tap the X to remove" without
             requiring any extra label. */}
-        <div className={`w-16 h-16 rounded-full p-[2px] bg-ig-gradient shadow-md transition ${editing ? "animate-pulse opacity-90" : "group-hover:scale-105 group-active:scale-95"}`}>
+        <div className={`w-16 h-16 rounded-full p-[2px] shadow-md transition ${
+          softwareStyle ? "bg-gradient-to-br from-[#48e7af] via-[#101412] to-[#35a8ff]" : "bg-ig-gradient"
+        } ${editing ? "animate-pulse opacity-90" : "group-hover:scale-105 group-active:scale-95"}`}>
           <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center">
             {account.avatarUrl ? (
               <img
@@ -84,12 +203,16 @@ function AccountCard({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="bg-ig-gradient bg-clip-text text-transparent font-bold text-lg">{initials}</span>
+              <span className={`font-bold text-lg ${
+                softwareStyle ? "text-[#101412]" : "bg-ig-gradient bg-clip-text text-transparent"
+              }`}>{initials}</span>
             )}
           </div>
         </div>
 
-        <span className="text-xs text-zinc-700 dark:text-zinc-300 font-medium text-center max-w-[72px] truncate">
+        <span className={`text-xs font-medium text-center max-w-[72px] truncate ${
+          softwareStyle ? "text-[#3f4742]" : "text-zinc-700 dark:text-zinc-300"
+        }`}>
           {account.fullName || account.email.split("@")[0]}
         </span>
       </button>
@@ -142,6 +265,8 @@ const Login = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const redirect = params.get("redirect") || "/";
+  const isZivoSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
   const { signIn, user, isLoading: authLoading } = useAuth();
   const { accounts, remove, refresh } = useSavedAccounts();
 
@@ -439,20 +564,39 @@ const Login = () => {
   };
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-hidden flex items-center justify-center px-5 py-8 bg-white dark:bg-black">
-      <SEOHead title="Sign in to ZIVO" description="Sign in to your ZIVO account" />
+    <div className={`relative min-h-[100dvh] w-full overflow-hidden flex items-center justify-center px-4 py-3 ${
+      isZivoSoftwareDomain ? "bg-[#f4f8f6] text-[#101412]" : "bg-white dark:bg-black"
+    }`}>
+      <SEOHead
+        title={isZivoSoftwareDomain ? "Sign in to ZIVO Software" : "Sign in to ZIVO"}
+        description={isZivoSoftwareDomain ? "Sign in to your ZIVO Software business workspace." : "Sign in to your ZIVO account"}
+      />
 
-      {/* Subtle gradient backdrop — IG keeps it minimal but ZIVO has a colorful brand */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full bg-gradient-to-br from-fuchsia-300/30 via-orange-200/30 to-rose-200/30 blur-3xl dark:from-fuchsia-600/20 dark:via-orange-600/20 dark:to-rose-600/20" />
-        <div className="absolute -bottom-32 -left-32 w-[420px] h-[420px] rounded-full bg-gradient-to-tr from-amber-200/30 via-pink-200/30 to-purple-200/30 blur-3xl dark:from-amber-600/15 dark:via-pink-600/15 dark:to-purple-600/15" />
-      </div>
+      {isZivoSoftwareDomain ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(72,231,175,0.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(53,168,255,0.2),transparent_30%),linear-gradient(180deg,#f4f8f6_0%,#ffffff_100%)]" />
+      ) : (
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full bg-gradient-to-br from-fuchsia-300/30 via-orange-200/30 to-rose-200/30 blur-3xl dark:from-fuchsia-600/20 dark:via-orange-600/20 dark:to-rose-600/20" />
+          <div className="absolute -bottom-32 -left-32 w-[420px] h-[420px] rounded-full bg-gradient-to-tr from-amber-200/30 via-pink-200/30 to-purple-200/30 blur-3xl dark:from-amber-600/15 dark:via-pink-600/15 dark:to-purple-600/15" />
+        </div>
+      )}
 
-      <div className="relative w-full max-w-sm flex flex-col items-stretch">
+      <div className={`relative grid w-full items-center gap-6 ${
+        isZivoSoftwareDomain ? "max-w-[23.5rem] lg:max-w-5xl lg:grid-cols-[1.05fr_0.82fr]" : "max-w-sm"
+      }`}>
+        {isZivoSoftwareDomain && <ZivoSoftwareAuthGraphic mode="login" />}
+        <div className="mx-auto flex w-full max-w-[23.5rem] flex-col items-stretch">
         {/* IG-style stack: card → "OR" → footer card */}
 
         {/* Main card */}
-        <div className="relative bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/10 rounded-xl px-8 pt-10 pb-6 shadow-sm">
+        <div className={`relative ${
+          isZivoSoftwareDomain
+            ? "overflow-hidden rounded-[1.15rem] border border-black/10 bg-white/92 px-4 pt-4 pb-4 shadow-[0_18px_50px_rgba(17,20,18,0.1)] backdrop-blur sm:px-5"
+            : "bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/10 rounded-xl px-8 pt-10 pb-6 shadow-sm"
+        }`}>
+          {isZivoSoftwareDomain && (
+            <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(72,231,175,0.08),transparent_38%),radial-gradient(circle_at_88%_12%,rgba(53,168,255,0.1),transparent_28%)]" />
+          )}
           {/* "..." More menu in picker mode — toggles edit mode for removing
               saved accounts. Hidden when there are no saved accounts. */}
           {mode === "picker" && accounts.length > 0 && (
@@ -464,7 +608,7 @@ const Login = () => {
               className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
               {editingAccounts ? (
-                <span className="text-xs font-semibold text-rose-500">Done</span>
+                <span className={`text-xs font-semibold ${isZivoSoftwareDomain ? "text-[#138f68]" : "text-rose-500"}`}>Done</span>
               ) : (
                 <MoreHorizontal className="w-5 h-5" />
               )}
@@ -472,13 +616,23 @@ const Login = () => {
           )}
 
           {/* Brand wordmark — IG-style script logo */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="relative w-16 h-16 rounded-2xl bg-ig-gradient flex items-center justify-center mb-5 shadow-lg shadow-rose-500/20">
-              <span className="brand-script-mark text-white font-black text-3xl tracking-tight italic">Z</span>
-            </div>
-            <h1 className="brand-script-wordmark text-4xl font-light tracking-wider text-zinc-900 dark:text-white">
-              Zivo
-            </h1>
+          <div className={`relative flex flex-col items-center ${isZivoSoftwareDomain ? "mb-3" : "mb-8"}`}>
+            {isZivoSoftwareDomain ? (
+              <ZivoSoftwareAuthLogo />
+            ) : (
+              <>
+                <div className="relative w-16 h-16 rounded-2xl bg-ig-gradient flex items-center justify-center mb-5 shadow-lg shadow-rose-500/20">
+                  <span className="brand-script-mark text-white font-black text-3xl tracking-tight italic">Z</span>
+                </div>
+                <h1 className="text-center text-3xl font-black tracking-[0.12em] text-zinc-900 dark:text-white">Zivo</h1>
+              </>
+            )}
+            {isZivoSoftwareDomain && (
+              <p className="mt-2 max-w-[14rem] text-center text-xs font-semibold leading-5 text-zinc-500 dark:text-zinc-400">
+                Sign in to manage your business workspace.
+              </p>
+            )}
+            {isZivoSoftwareDomain && <ZivoSoftwareMiniScene mode="login" />}
           </div>
 
           {/* ── MODE: saved account picker ── */}
@@ -488,14 +642,16 @@ const Login = () => {
                   flight (setSession or signInWithOtp). Avatars stay visible
                   but unclickable so the user gets visual feedback. */}
               {submitting && !editingAccounts && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm rounded-lg pointer-events-auto">
+                <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-sm pointer-events-auto dark:bg-zinc-900/70">
                   <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-rose-500" />
+                    <Loader2 className={`w-6 h-6 animate-spin ${isZivoSoftwareDomain ? "text-[#138f68]" : "text-rose-500"}`} />
                     <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">{quickSignInLabel}</span>
                   </div>
                 </div>
               )}
-              <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+              <p className={`text-center text-sm ${
+                isZivoSoftwareDomain ? "font-semibold text-[#66736d]" : "text-zinc-500 dark:text-zinc-400"
+              }`}>
                 {editingAccounts ? "Tap × to remove an account" : "Log in as"}
               </p>
 
@@ -505,6 +661,7 @@ const Login = () => {
                     key={acc.email}
                     editing={editingAccounts}
                     account={acc}
+                    softwareStyle={isZivoSoftwareDomain}
                     onSelect={handleSelectAccount}
                     onRemove={(email) => { remove(email); }}
                   />
@@ -515,17 +672,27 @@ const Login = () => {
                   className="flex flex-col items-center gap-2 cursor-pointer group"
                   onClick={handleAddAccount}
                 >
-                  <div className="w-16 h-16 rounded-full border-2 border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/40 flex items-center justify-center group-hover:border-rose-400 group-hover:bg-rose-50/50 dark:group-hover:border-rose-500 dark:group-hover:bg-rose-950/30 transition">
-                    <UserPlus className="w-6 h-6 text-zinc-400 group-hover:text-rose-500 transition" />
+                  <div className={`w-16 h-16 rounded-full border-2 border-dashed bg-zinc-50 dark:bg-zinc-800/40 flex items-center justify-center transition ${
+                    isZivoSoftwareDomain
+                      ? "border-[#101412]/20 group-hover:border-[#48e7af] group-hover:bg-[#eefdf7]"
+                      : "border-zinc-300 dark:border-zinc-700 group-hover:border-rose-400 group-hover:bg-rose-50/50 dark:group-hover:border-rose-500 dark:group-hover:bg-rose-950/30"
+                  }`}>
+                    <UserPlus className={`w-6 h-6 transition ${
+                      isZivoSoftwareDomain ? "text-[#66736d] group-hover:text-[#138f68]" : "text-zinc-400 group-hover:text-rose-500"
+                    }`} />
                   </div>
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Add account</span>
+                  <span className={`text-xs font-medium ${
+                    isZivoSoftwareDomain ? "text-[#66736d] group-hover:text-[#138f68]" : "text-zinc-500 dark:text-zinc-400"
+                  }`}>Add account</span>
                 </button>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddAccount}
-                className="w-full text-center text-sm font-semibold text-rose-500 hover:text-rose-600 pt-2"
+                className={`w-full text-center text-sm font-semibold pt-2 ${
+                  isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"
+                }`}
               >
                 Log into another account
               </button>
@@ -539,7 +706,7 @@ const Login = () => {
               taps "Log in". Hidden username field hints autofill which account
               to fill for. */}
           {mode === "password" && selectedAccount && (
-            <form onSubmit={onSubmit} className="space-y-3">
+            <form onSubmit={onSubmit} className="relative space-y-2">
               <button
                 type="button"
                 onClick={handleBack}
@@ -548,8 +715,10 @@ const Login = () => {
                 <ChevronLeft className="w-3.5 h-3.5" /> Back
               </button>
 
-              <div className="flex flex-col items-center gap-2 pb-2">
-                <div className="w-20 h-20 rounded-full p-[2px] bg-ig-gradient shadow-md">
+              <div className="flex flex-col items-center gap-1 pb-1">
+                <div className={`h-12 w-12 rounded-full p-[2px] shadow-md ${
+                  isZivoSoftwareDomain ? "bg-gradient-to-br from-[#48e7af] via-[#101412] to-[#35a8ff]" : "bg-ig-gradient"
+                }`}>
                   <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center">
                     {selectedAccount.avatarUrl ? (
                       <img
@@ -560,14 +729,16 @@ const Login = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="bg-ig-gradient bg-clip-text text-transparent font-bold text-2xl">
+                      <span className={`font-bold text-xl ${
+                        isZivoSoftwareDomain ? "text-[#101412]" : "bg-ig-gradient bg-clip-text text-transparent"
+                      }`}>
                         {selectedAccount.fullName ? selectedAccount.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : selectedAccount.email[0].toUpperCase()}
                       </span>
                     )}
                   </div>
                 </div>
-                <p className="text-base font-semibold text-zinc-900 dark:text-white truncate max-w-full">{selectedAccount.fullName || selectedAccount.email.split("@")[0]}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-full">{selectedAccount.email}</p>
+                <p className="text-sm font-bold text-zinc-900 dark:text-white truncate max-w-full">{selectedAccount.fullName || selectedAccount.email.split("@")[0]}</p>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate max-w-full">{selectedAccount.email}</p>
               </div>
 
               {/* Hidden email — tells the browser's password manager which
@@ -596,7 +767,7 @@ const Login = () => {
                   {...passwordKeyHandlers}
                   placeholder="Password"
                   disabled={submitting}
-                  className="w-full h-11 px-3 pr-12 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
+                  className="w-full h-10 px-3 pr-12 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
                 />
                 <button
                   type="button"
@@ -612,7 +783,11 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="w-full h-11 rounded-lg text-sm font-bold text-white bg-ig-gradient hover:opacity-95 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-md shadow-rose-500/20"
+                className={`w-full h-10 rounded-lg text-sm font-bold text-white active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 ${
+                  isZivoSoftwareDomain
+                    ? "bg-[#101412] shadow-[0_14px_30px_rgba(17,20,18,0.18)] hover:bg-black"
+                    : "bg-ig-gradient hover:opacity-95 shadow-md shadow-rose-500/20"
+                }`}
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
               </button>
@@ -635,7 +810,7 @@ const Login = () => {
                         await sendEmailCode(selectedAccount.email);
                       }}
                       disabled={submitting}
-                      className="w-full h-11 rounded-lg text-sm font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
+                      className="w-full h-10 rounded-lg text-xs font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
                     >
                       <ExternalLink className="w-4 h-4" />
                       {provider ? `Email me a sign-in link for ${provider.name}` : "Email me a sign-in link"}
@@ -666,7 +841,7 @@ const Login = () => {
                       cancel: { label: "Cancel", onClick: () => {} },
                     });
                   }}
-                  className="font-medium text-rose-500 hover:text-rose-600"
+                  className={`font-medium ${isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"}`}
                 >
                   Remove this account
                 </button>
@@ -730,7 +905,11 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="w-full h-11 mt-2 rounded-lg text-sm font-bold text-white bg-ig-gradient hover:opacity-95 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-md shadow-rose-500/20"
+                className={`w-full h-11 mt-2 rounded-lg text-sm font-bold text-white active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 ${
+                  isZivoSoftwareDomain
+                    ? "bg-[#101412] shadow-[0_14px_30px_rgba(17,20,18,0.18)] hover:bg-black"
+                    : "bg-ig-gradient hover:opacity-95 shadow-md shadow-rose-500/20"
+                }`}
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
               </button>
@@ -770,21 +949,30 @@ const Login = () => {
         </div>
 
         {/* Footer card — IG-style "Don't have an account?" */}
-        <div className="mt-3 bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/10 rounded-xl px-6 py-5 text-center shadow-sm">
+        <div className={`mt-2 ${
+          isZivoSoftwareDomain
+            ? "rounded-[1rem] border border-black/10 bg-white/82 px-5 py-3 text-center shadow-sm backdrop-blur"
+            : "bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/10 rounded-xl px-6 py-5 text-center shadow-sm"
+        }`}>
           <p className="text-sm text-zinc-700 dark:text-zinc-300">
             Don't have an account?{" "}
             <Link
               to={`/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
-              className="inline-flex min-h-[40px] items-center font-semibold text-rose-500 hover:text-rose-600"
+              className={`inline-flex min-h-[40px] items-center font-semibold ${
+                isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"
+              }`}
             >
               Sign up
             </Link>
           </p>
         </div>
 
-        <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-500 mt-6">
+        {isZivoSoftwareDomain && <ZivoSoftwareLegalLinks />}
+
+        <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-500 mt-3">
           Protected by enterprise-grade security
         </p>
+        </div>
       </div>
     </div>
   );

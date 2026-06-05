@@ -61,7 +61,7 @@ export default function DealsPage() {
       <SEOHead 
         title="Today's Best Travel Deals - Flights, Hotels & Cars | ZIVO"
         description="Find the best travel deals on flights, hotels, and car rentals. Compare prices from 500+ travel partners and book with confidence. No booking fees on ZIVO."
-        canonical="https://hizivo.com/deals"
+        canonical="https://zivosmedia.com/deals"
       />
       <OrganizationSchema />
       

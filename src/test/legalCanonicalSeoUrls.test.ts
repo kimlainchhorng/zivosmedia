@@ -12,26 +12,26 @@ describe("legal canonical SEO URLs", () => {
     const refunds = read("src/pages/Refunds.tsx");
     const cookies = read("src/pages/legal/CookiePolicy.tsx");
 
-    expect(terms).toContain('canonical="https://hizivo.com/legal/terms"');
-    expect(privacy).toContain('canonical="https://hizivo.com/legal/privacy"');
-    expect(refunds).toContain('canonical="https://hizivo.com/legal/refunds"');
-    expect(cookies).toContain('canonical="https://hizivo.com/legal/cookies"');
+    expect(terms).toContain('canonical="https://zivosmedia.com/legal/terms"');
+    expect(privacy).toContain('canonical="https://zivosmedia.com/legal/privacy"');
+    expect(refunds).toContain('canonical="https://zivosmedia.com/legal/refunds"');
+    expect(cookies).toContain('canonical="https://zivosmedia.com/legal/cookies"');
 
     for (const source of [terms, privacy, refunds, cookies]) {
-      expect(source).not.toContain("https://hizivo.com/terms");
-      expect(source).not.toContain("https://hizivo.com/privacy");
-      expect(source).not.toContain("https://hizivo.com/refunds");
-      expect(source).not.toContain("https://hizivo.com/cookies");
+      expect(source).not.toContain("https://zivosmedia.com/terms");
+      expect(source).not.toContain("https://zivosmedia.com/privacy");
+      expect(source).not.toContain("https://zivosmedia.com/refunds");
+      expect(source).not.toContain("https://zivosmedia.com/cookies");
     }
   });
 
-  it("keeps marketing share URLs on hizivo.com and legal links canonical", () => {
+  it("keeps marketing share URLs on zivosmedia.com and legal links canonical", () => {
     const storeMarketing = read("src/components/admin/StoreMarketingSection.tsx");
     const damagePolicy = read("src/pages/legal/DamagePolicy.tsx");
 
-    expect(storeMarketing).toContain("https://hizivo.com/store/");
-    expect(storeMarketing).toContain("https://hizivo.com/book/");
-    expect(storeMarketing).not.toContain("https://www.zivollc.com");
+    expect(storeMarketing).toContain("https://zivosmedia.com/store/");
+    expect(storeMarketing).toContain("https://zivosmedia.com/book/");
+    expect(storeMarketing).not.toContain("https://www.zivosmedia.com");
     expect(damagePolicy).toContain('to="/legal/cancellation"');
     expect(damagePolicy).not.toContain('to="/cancellation-policy"');
   });

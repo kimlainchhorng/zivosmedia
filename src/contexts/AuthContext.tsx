@@ -15,7 +15,7 @@ type AuthContextType = {
   isAdmin: boolean;
   /** When true, the user is signed in at AAL1 and must complete the MFA challenge */
   mfaPending: MfaState | null;
-  signUp: (email: string, password: string, fullName: string, dateOfBirth: string, phone?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, dateOfBirth?: string, phone?: string, signupSource?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   /** Verify a 6-digit TOTP code; clears `mfaPending` on success */
   verifyMfa: (code: string) => Promise<{ error: Error | null }>;
@@ -203,15 +203,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, dateOfBirth: string, phone?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, dateOfBirth?: string, phone?: string, signupSource?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("public-signup", {
         body: {
           email,
           password,
           fullName,
-          dateOfBirth,
+          ...(dateOfBirth ? { dateOfBirth } : {}),
           ...(phone ? { phone } : {}),
+          ...(signupSource ? { signupSource } : {}),
         },
       });
 

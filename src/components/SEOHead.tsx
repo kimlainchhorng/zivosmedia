@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const SITE_URL = 'https://hizivo.com';
+const SITE_URL = 'https://zivosmedia.com';
 
 interface SEOHeadProps {
   title: string;

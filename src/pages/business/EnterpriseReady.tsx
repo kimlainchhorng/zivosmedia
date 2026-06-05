@@ -101,7 +101,7 @@ export default function EnterpriseReady() {
             Contact our business team for custom agreements and documentation.
           </p>
           <Button size="lg" className="gap-2" asChild>
-            <a href="mailto:enterprise@hizivo.com">
+            <a href="mailto:enterprise@zivosmedia.com">
               <Mail className="w-4 h-4" />
               Contact Enterprise Sales
             </a>
@@ -186,9 +186,9 @@ export default function EnterpriseReady() {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button size="lg" className="gap-2" asChild>
-                <a href="mailto:enterprise@hizivo.com">
+                <a href="mailto:enterprise@zivosmedia.com">
                   <Mail className="w-4 h-4" />
-                  enterprise@hizivo.com
+                  enterprise@zivosmedia.com
                 </a>
               </Button>
               <Link to="/security/enterprise">

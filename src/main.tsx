@@ -40,6 +40,22 @@ window.addEventListener("error", onBootError);
 window.addEventListener("unhandledrejection", onBootRejection);
 installMarketingRuntimeConfig();
 
+const LEGACY_CANONICAL_HOSTS = new Set([
+  "hizivo.com",
+  "www.hizivo.com",
+  "zivollc.com",
+  "www.zivollc.com",
+]);
+
+if (
+  typeof window !== "undefined" &&
+  LEGACY_CANONICAL_HOSTS.has(window.location.hostname.toLowerCase())
+) {
+  window.location.replace(
+    `https://zivosmedia.com${window.location.pathname}${window.location.search}${window.location.hash}`,
+  );
+}
+
 try {
   createRoot(document.getElementById("root")!).render(<App />);
   booted = true;

@@ -166,7 +166,7 @@ serve(withSecurity("salon-send-campaign", async (req: Request, ctx) => {
   const subject = c.subject ?? "A message from your salon";
   const salonName = c.sender_name_override || (store as any).name || "your salon";
   const salonPhone = (store as any).phone;
-  const appUrl = Deno.env.get("PUBLIC_APP_URL") || "https://hizivo.com";
+  const appUrl = Deno.env.get("PUBLIC_APP_URL") || "https://zivosmedia.com";
   const bookingUrl = (store as any).slug ? `${appUrl}/salon/${(store as any).slug}` : appUrl;
 
   const BATCH = 50;

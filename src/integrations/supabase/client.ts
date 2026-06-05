@@ -3,25 +3,38 @@ import { createClient, processLock } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import type { Database } from './types';
+import {
+  ZIVO_SOFTWARE_SUPABASE_PROJECT_ID,
+  ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY,
+  ZIVO_SOFTWARE_SUPABASE_URL,
+  isZivoSoftwareHost,
+} from '@/config/autoRepairDomain';
 
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+const runtimeHostname = typeof window !== "undefined" ? window.location.hostname : "";
+const useZivoSoftwareBackend = isZivoSoftwareHost(runtimeHostname);
+
+export const SUPABASE_URL = useZivoSoftwareBackend
+  ? ZIVO_SOFTWARE_SUPABASE_URL
+  : import.meta.env.VITE_SUPABASE_URL || "";
+export const SUPABASE_PUBLISHABLE_KEY = useZivoSoftwareBackend
+  ? ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY
+  : import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
 const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
 const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
 const REMEMBER_ME_KEY = "zivo_remember_me";
 const EFFECTIVE_SUPABASE_URL = SUPABASE_URL || FALLBACK_SUPABASE_URL;
 const EFFECTIVE_SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
 const SUPABASE_PROJECT_REF =
+  (useZivoSoftwareBackend ? ZIVO_SOFTWARE_SUPABASE_PROJECT_ID : "") ||
   import.meta.env.VITE_SUPABASE_PROJECT_ID ||
   (EFFECTIVE_SUPABASE_URL ? new URL(EFFECTIVE_SUPABASE_URL).hostname.split(".")[0] : "");
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
   // Don't throw at module load — that crashes the whole React tree and leaves
-  // visitors with a blank white page (seen on zivollc.com when the production
+  // visitors with a blank white page (seen on zivosmedia.com when the production
   // build was published without the VITE_SUPABASE_* env vars baked in).
   // Log loudly so the issue is still obvious in DevTools, but let the app boot.
-  // eslint-disable-next-line no-console
   console.error(
     "[supabase/client] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY — " +
     "using bundled public fallback until the site is re-published with env vars."

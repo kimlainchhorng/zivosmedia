@@ -4,10 +4,142 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ADVANCED_LEGAL_CLAUSES, COMPANY_INFO } from "@/config/legalContent";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+
+function ZivoSoftwareLegalMark() {
+  return (
+    <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] bg-[#101412] shadow-[0_16px_34px_rgba(17,20,18,0.2)]">
+      <span className="absolute -right-1 -top-1 h-4 w-4 rounded-md bg-[#48e7af]" />
+      <span className="absolute bottom-2 left-2 h-2 w-2 rounded-sm bg-[#35a8ff]/80" />
+      <svg viewBox="0 0 44 44" aria-hidden="true" className="relative h-8 w-8">
+        <defs>
+          <linearGradient id="zivoSoftwareLegalTermsMark" x1="8" y1="8" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="0.5" stopColor="#48e7af" />
+            <stop offset="1" stopColor="#35a8ff" />
+          </linearGradient>
+        </defs>
+        <path d="M10 8h26v7.2H22.4L36 15.3 16.1 36H8l20-20.8H10V8Z" fill="url(#zivoSoftwareLegalTermsMark)" />
+        <path d="M13.2 28.8h20.9V36H6.8l6.4-7.2Z" fill="#f8fffc" />
+      </svg>
+    </span>
+  );
+}
+
+function ZivoSoftwareTerms() {
+  const lastUpdated = "June 4, 2026";
+  const terms = [
+    {
+      icon: Users,
+      title: "Accounts and Workspace Access",
+      copy: "ZIVO Software accounts are for business owners, operators, managers, employees, and authorized team members. You are responsible for keeping account credentials secure, assigning access only to authorized staff, and removing users who no longer work with your business.",
+    },
+    {
+      icon: Scale,
+      title: "Business Responsibilities",
+      copy: "You are responsible for the information, services, pricing, bookings, invoices, work orders, customer records, employee activity, and business content entered into your workspace. You must use the software in compliance with applicable laws, licensing rules, tax obligations, and customer privacy requirements.",
+    },
+    {
+      icon: Lock,
+      title: "Security and Acceptable Use",
+      copy: "Do not use ZIVO Software to upload malicious code, scrape the platform, bypass permissions, misuse customer information, or interfere with other users. We may restrict or suspend access to protect customers, businesses, ZIVO LLC, or the integrity of the service.",
+    },
+    {
+      icon: DollarSign,
+      title: "Payments and Billing",
+      copy: "If paid software, payments, subscriptions, invoices, or processing tools are enabled, fees may apply. Payment providers may have their own terms. You are responsible for reviewing charges, taxes, refunds, and settlement records connected to your business workspace.",
+    },
+    {
+      icon: Shield,
+      title: "Data and Customer Records",
+      copy: "Your workspace may contain customer, employee, vehicle, booking, invoice, inventory, and service records. You must only collect and use that information for legitimate business purposes and must protect it according to applicable law and your own customer commitments.",
+    },
+    {
+      icon: Gavel,
+      title: "Changes, Suspension, and Termination",
+      copy: "We may update these terms, improve or change features, or limit access when needed for security, compliance, non-payment, abuse prevention, or operational integrity. Continued use after an update means you accept the updated terms.",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#f7f8f6] text-[#101412]">
+      <header className="sticky top-0 z-50 border-b border-black/10 bg-[#f7f8f6]/92 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+          <Link to="/business" className="flex items-center gap-3">
+            <ZivoSoftwareLegalMark />
+            <span>
+              <span className="block text-base font-black uppercase tracking-[0.2em]">ZIVO</span>
+              <span className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#138f68]">Software</span>
+            </span>
+          </Link>
+          <Button asChild variant="outline" className="rounded-lg border-black/15 bg-white text-[#101412]">
+            <Link to="/business">Back to software</Link>
+          </Button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-5 py-10">
+        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#138f68]">Legal</p>
+            <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-normal sm:text-5xl">ZIVO Software Terms</h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5f6b65]">
+              These terms apply to using ZIVO Software business workspaces on zivosmedia.com, including setup, dashboards, team access, customer records, work orders, bookings, invoices, payments, inventory, and reports.
+            </p>
+            <p className="mt-4 text-sm font-semibold text-[#5f6b65]">Last updated: {lastUpdated}</p>
+          </div>
+          <div className="rounded-[1.2rem] border border-black/10 bg-[#101412] p-6 text-white shadow-[0_24px_70px_rgba(17,20,18,0.18)]">
+            <FileText className="h-8 w-8 text-[#48e7af]" />
+            <h2 className="mt-6 text-2xl font-black">Business software only</h2>
+            <p className="mt-3 text-sm leading-6 text-white/65">
+              This page is scoped for operators using the ZIVO Software domain. General ZIVO marketplace, travel, rides, food, and consumer services may have additional or separate terms.
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-10 grid gap-4 md:grid-cols-2">
+          {terms.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title} className="rounded-xl border border-black/10 bg-white p-5 shadow-sm">
+                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#101412] text-white">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h2 className="mt-5 text-xl font-black">{item.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-[#5f6b65]">{item.copy}</p>
+              </article>
+            );
+          })}
+        </section>
+
+        <section className="mt-10 rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black">Important Notice</h2>
+          <p className="mt-3 text-sm leading-7 text-[#5f6b65]">
+            ZIVO Software is a business operations platform. It does not replace professional legal, tax, insurance, accounting, HR, safety, or compliance advice. Each business is responsible for how it configures and uses its workspace.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button asChild className="rounded-lg bg-[#101412] text-white hover:bg-black">
+              <Link to="/signup?redirect=%2Fbusiness%2Fnew">Create workspace</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-lg border-black/15 bg-white">
+              <Link to="/legal/privacy">Privacy Policy</Link>
+            </Button>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
 
 const TermsOfService = () => {
   const lastUpdated = "March 13, 2026";
   const companyName = "ZIVO LLC";
+  const isZivoSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+
+  if (isZivoSoftwareDomain) {
+    return <ZivoSoftwareTerms />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

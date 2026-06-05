@@ -115,11 +115,11 @@ const CookiePolicy = () => {
       <SEOHead
         title="Cookie Policy - ZIVO | Travel Search Platform"
         description="Learn how ZIVO uses cookies and similar technologies. Manage your cookie preferences and opt-in/out of non-essential tracking."
-        canonical="https://hizivo.com/legal/cookies"
+        canonical="https://zivosmedia.com/legal/cookies"
       />
-      
+
       <Header />
-      
+
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Back Button */}
         <Link to="/">
@@ -247,8 +247,8 @@ const CookiePolicy = () => {
               <div>
                 <h3 className="font-semibold text-amber-600 mb-2">EU Users Notice</h3>
                 <p className="text-foreground leading-relaxed">
-                  For users in the European Union: We do not set non-essential cookies until you 
-                  provide explicit consent. You can manage your preferences at any time using the 
+                  For users in the European Union: We do not set non-essential cookies until you
+                  provide explicit consent. You can manage your preferences at any time using the
                   controls above or through your browser settings.
                 </p>
               </div>
@@ -260,8 +260,8 @@ const CookiePolicy = () => {
             <h2 className="text-2xl font-bold text-foreground mb-4">What Are Cookies?</h2>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Cookies are small text files stored on your device when you visit websites. 
-                They help websites remember your preferences and provide a better experience. 
+                Cookies are small text files stored on your device when you visit websites.
+                They help websites remember your preferences and provide a better experience.
                 Similar technologies include local storage, session storage, and pixel tags.
               </p>
             </div>
@@ -341,12 +341,12 @@ const CookiePolicy = () => {
               <p className="text-foreground mb-4">
                 Questions about our cookie policy?
               </p>
-              <a 
-                href="mailto:privacy@hizivo.com" 
+              <a
+                href="mailto:privacy@zivosmedia.com"
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="w-4 h-4" />
-                privacy@hizivo.com
+                privacy@zivosmedia.com
               </a>
             </div>
           </section>

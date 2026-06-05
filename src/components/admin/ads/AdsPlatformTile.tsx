@@ -2,14 +2,14 @@
  * AdsPlatformTile — compact, status-aware platform connector tile.
  * 2-line layout on mobile (icon+name / status+action), single-row on desktop.
  */
-import { type LucideIcon } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 import { cn } from "@/lib/utils";
 import type { AdAccount, AdPlatform } from "@/hooks/useStoreAdsOverview";
 
 interface Props {
   platform: AdPlatform;
   label: string;
-  icon: LucideIcon;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
   color: string;
   account?: AdAccount;
   onClick: () => void;
@@ -90,8 +90,8 @@ export default function AdsPlatformTile({
       data-platform={platform}
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-muted/40 shrink-0">
-          <Icon className={cn("w-4 h-4 sm:w-4.5 sm:h-4.5", color)} />
+        <span className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white shadow-sm ring-1 ring-border/70 shrink-0">
+          <Icon className={cn("w-5 h-5 sm:w-5.5 sm:h-5.5", color)} />
         </span>
         <span className="text-xs sm:text-sm font-semibold truncate">{label}</span>
       </div>

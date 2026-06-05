@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-const EMAIL = "kimlain@hizivo.com";
+const EMAIL = "kimlain@zivosmedia.com";
 const PASSWORD = "Chhorng@1903";
 
 export async function login(page: Page) {

@@ -304,8 +304,8 @@ export default function BusinessInvoicesPage() {
             <p className="text-xs text-muted-foreground">
               Invoices are generated for orders billed to your company account. 
               For billing questions, contact your company administrator or{" "}
-              <a href="mailto:support@hizivo.com" className="text-primary">
-                support@hizivo.com
+              <a href="mailto:support@zivosmedia.com" className="text-primary">
+                support@zivosmedia.com
               </a>.
             </p>
           </div>

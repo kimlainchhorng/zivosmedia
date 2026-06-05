@@ -146,7 +146,7 @@ Deno.serve(withSecurity("aba-payway-checkout", async (req, ctx) => {
 }, { rateLimit: "payment", strictCors: true, allowedMethods: ["POST"], trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
 
 function safeReturnUrl(req: Request, value: unknown) {
-  const origin = req.headers.get("origin") || "https://hizivo.com";
+  const origin = req.headers.get("origin") || "https://zivosmedia.com";
   if (typeof value !== "string" || !value) return origin;
   try {
     const url = new URL(value, origin);
