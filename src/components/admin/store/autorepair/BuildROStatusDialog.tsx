@@ -11,6 +11,7 @@
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { toast } from "sonner";
 import { X, Printer, ChevronDown, Clock, Wrench, PauseCircle, CheckCircle2, PackageCheck, User, Activity, Timer } from "lucide-react";
 
@@ -53,6 +54,12 @@ export default function BuildROStatusDialog({
 }: Props) {
   const [techMode, setTechMode] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const isAutoRepairSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const statusHelpText = isAutoRepairSoftwareDomain
+    ? "Set service-floor status & assign your technician"
+    : "Set shop-floor status & assign your technician";
+  const statusLabel = isAutoRepairSoftwareDomain ? "Service-Floor Status" : "Shop-Floor Status";
 
   const eta = useMemo(() => {
     if (!soldHours) return "—";
@@ -92,7 +99,7 @@ export default function BuildROStatusDialog({
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-bold leading-tight text-white">Repair Order Status</h2>
-            <p className="text-xs text-white/80">{roNumber ? `RO ${roNumber} · ` : ""}Set shop-floor status &amp; assign your technician</p>
+            <p className="text-xs text-white/80">{roNumber ? `RO ${roNumber} · ` : ""}{statusHelpText}</p>
           </div>
           <button onClick={() => onOpenChange(false)} className="rounded-lg bg-black/15 p-1.5 text-white transition hover:bg-black/25" aria-label="Close">
             <X className="h-4 w-4" />
@@ -102,7 +109,7 @@ export default function BuildROStatusDialog({
         <div className="flex-1 space-y-5 overflow-y-auto bg-white px-6 py-5">
           {/* Status selector */}
           <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Shop-Floor Status</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{statusLabel}</p>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {STATUSES.map((s) => {
                 const active = status === s.value;

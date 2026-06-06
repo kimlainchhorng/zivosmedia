@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Wallet, Plus, Trash2, ScanLine, Paperclip, Loader2, X, ChevronDown, ChevronRight, Copy, AlertCircle, CheckCircle2, Upload, FileText, Image } from "lucide-react";
 import { toast } from "sonner";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
 // ---------- Receipt-upload diagnostics ----------
 const PRIMARY_BUCKET = "ar-receipts";
@@ -217,6 +218,12 @@ type ScanSummary = { vendor: string | null; invoice_number: string | null; total
 
 export default function FinanceExpensesSection({ storeId }: Props) {
   const qc = useQueryClient();
+  const isAutoRepairSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const expensesPermissionMessage = isAutoRepairSoftwareDomain
+    ? "You don't have permission to save expenses for this business."
+    : "You don't have permission to save expenses for this store.";
+  const diagnosticsStoreIdLabel = isAutoRepairSoftwareDomain ? "Business ID" : "Store ID";
   const [open, setOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanStage, setScanStage] = useState<ScanStage>("idle");
@@ -303,7 +310,7 @@ export default function FinanceExpensesSection({ storeId }: Props) {
       if (isPerm) {
         toast.error(stage === "items"
           ? "You don't have permission to save line items for this expense."
-          : "You don't have permission to save expenses for this store.");
+          : expensesPermissionMessage);
       } else {
         toast.error(`${stage === "items" ? "Saving line items failed" : "Saving expense failed"}: ${msg}`);
       }
@@ -1169,7 +1176,7 @@ function UploadDiagnosticsPanel({
             <DiagRow label="URL" value={diag.url || "—"} />
             <DiagRow label="Method" value={diag.method} />
             <DiagRow label="User ID" value={diag.user_id || "—"} />
-            <DiagRow label="Store ID" value={diag.store_id} />
+            <DiagRow label={diagnosticsStoreIdLabel} value={diag.store_id} />
             <DiagRow
               label="Used fallback"
               value={diag.used_fallback ? "yes" : "no"}

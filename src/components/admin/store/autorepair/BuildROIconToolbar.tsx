@@ -28,10 +28,13 @@ interface Props {
   group?: "all" | "nav" | "docs";
   /** Client-side navigate the main window to a tab (used to open the Settings page + scroll). */
   onNavigateMain?: (tab: string) => void;
+  isSoftwareDomain?: boolean;
 }
 
-export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, onProfit, onNewIntake, group = "all", onNavigateMain }: Props) {
+export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, onProfit, onNewIntake, group = "all", onNavigateMain, isSoftwareDomain = false }: Props) {
   const nav = (tab: string) => () => onNavigate?.(tab);
+  const settingsInfoLabel = isSoftwareDomain ? "Business Page Information" : "Store Information";
+  const settingsVisibilityLabel = isSoftwareDomain ? "Business Page Visibility" : "Store Visibility";
   type Item = { icon: typeof Plus; label: string; onClick: () => void; accent?: string; submenu?: { label: string; tab: string; section?: string }[] };
   const items: Item[] = [
     { icon: Plus, label: "New R.O.", onClick: onNew, accent: "text-emerald-600" },
@@ -82,8 +85,8 @@ export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, 
     {
       icon: Settings, label: "Settings", onClick: nav("settings"),
       submenu: [
-        { label: "Store Information", tab: "settings", section: "store-information" },
-        { label: "Store Visibility", tab: "settings", section: "store-visibility" },
+        { label: settingsInfoLabel, tab: "settings", section: "store-information" },
+        { label: settingsVisibilityLabel, tab: "settings", section: "store-visibility" },
         { label: "SEO & Discoverability", tab: "settings", section: "seo" },
         { label: "Notifications", tab: "settings", section: "notifications" },
         { label: "Account Information", tab: "settings", section: "account-information" },

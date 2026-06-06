@@ -538,6 +538,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                   onNavigate={(tab) => onTabChange?.(tab)}
                   onNavigateMain={(tab) => onTabChange?.(tab)}
                   onNewIntake={() => onTabChange?.("ar-build-ro")}
+                  isSoftwareDomain={isAutoRepairSoftwareWorkspace}
                 />
               )}
               <div id="store-owner-header-actions" className="flex items-center gap-1 min-w-0 overflow-x-auto" />

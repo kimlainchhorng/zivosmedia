@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { toast } from "sonner";
 import { X, Printer, Loader2, History, Receipt, Wrench, DollarSign, Calendar, Gauge, FileSearch } from "lucide-react";
 
@@ -62,6 +63,20 @@ export default function BuildROCarfaxDialog({ open, onOpenChange, storeId, vehic
   const vin = vehicle?.vin?.trim() || "";
   const vehicleLabel = labelOf(vehicle);
   const enabled = open && (!!vin || !!vehicleLabel);
+  const isAutoRepairSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const compiledRecordsTitle = isAutoRepairSoftwareDomain
+    ? "Compiled from this business's service records"
+    : "Compiled from this shop's records";
+  const emptyPrintedRecordsText = isAutoRepairSoftwareDomain
+    ? "No service records found for this vehicle in your business."
+    : "No service records found for this vehicle in your shop.";
+  const emptyHistoryHelpText = isAutoRepairSoftwareDomain
+    ? "Once this business invoices or completes a work order for this vehicle, the visits will appear here."
+    : "Once this shop invoices or completes a work order for this vehicle, the visits will appear here.";
+  const footerRecordsText = isAutoRepairSoftwareDomain
+    ? "Compiled from this business's service records · recall lookup not connected"
+    : "Compiled from this shop's records · recall lookup not connected";
 
   const { data: invoices = [], isLoading: loadingInv } = useQuery({
     queryKey: ["carfax-invoices", storeId, vin, vehicleLabel],
@@ -151,7 +166,7 @@ export default function BuildROCarfaxDialog({ open, onOpenChange, storeId, vehic
       <body><h1>Vehicle Service History</h1>
       <div class="muted">${vehicleLabel || "—"}${vin ? ` &middot; VIN ${vin}` : ""}</div><hr/>
       <div>Visits: <b>${summary.visits}</b> &nbsp;&nbsp; Total: <b>${money(summary.totalSpent)}</b> &nbsp;&nbsp; Last service: <b>${fmtDate(summary.lastDate)}</b></div><hr/>
-      ${rows || "<p>No service records found for this vehicle in your shop.</p>"}</body></html>`;
+      ${rows || `<p>${emptyPrintedRecordsText}</p>`}</body></html>`;
     const w = window.open("", "_blank");
     if (!w) { toast.error("Pop-up blocked"); return; }
     w.document.write(html); w.document.close(); w.focus();
@@ -179,7 +194,7 @@ export default function BuildROCarfaxDialog({ open, onOpenChange, storeId, vehic
             <h2 className="text-base font-bold leading-tight text-white">Vehicle Service History</h2>
             <p className="truncate text-xs text-white/80">{vehicleLabel || "—"}{vin ? ` · VIN ${vin}` : ""}</p>
           </div>
-          <span className="hidden shrink-0 rounded-md bg-white px-2 py-1 leading-none sm:block" title="Compiled from this shop's records">
+          <span className="hidden shrink-0 rounded-md bg-white px-2 py-1 leading-none sm:block" title={compiledRecordsTitle}>
             <span className="text-sm font-black tracking-tight text-[#0b3a6f]">CARFA<span className="text-[#1577e0]">X</span></span>
           </span>
           <button onClick={() => onOpenChange(false)} className="rounded-lg bg-black/15 p-1.5 text-white transition hover:bg-black/25" aria-label="Close">
@@ -219,7 +234,7 @@ export default function BuildROCarfaxDialog({ open, onOpenChange, storeId, vehic
               </div>
               <p className="text-sm font-medium text-slate-700">No service history yet</p>
               <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500">
-                Once this shop invoices or completes a work order for this vehicle, the visits will appear here.
+                {emptyHistoryHelpText}
               </p>
             </div>
           ) : (
@@ -259,7 +274,7 @@ export default function BuildROCarfaxDialog({ open, onOpenChange, storeId, vehic
 
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-3.5">
-          <p className="hidden text-[11px] text-slate-400 sm:block">Compiled from this shop's records · recall lookup not connected</p>
+          <p className="hidden text-[11px] text-slate-400 sm:block">{footerRecordsText}</p>
           <div className="flex flex-1 justify-end gap-2 sm:flex-none">
             <button
               onClick={print}

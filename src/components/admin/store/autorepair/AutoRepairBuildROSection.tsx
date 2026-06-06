@@ -83,6 +83,7 @@ interface Props {
   storeId: string;
   /** Jump to another AR tab (Service History, Inspections, Payments…). */
   onNavigate?: (tab: string) => void;
+  isSoftwareDomain?: boolean;
 }
 
 type LineKind = "labor" | "part" | "tire" | "fee" | "sublet" | "note" | "diagnosis" | "concern";
@@ -330,7 +331,7 @@ const tidyNote = (raw: string): string => {
   return s;
 };
 
-export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props) {
+export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwareDomain = false }: Props) {
   const qc = useQueryClient();
   const [editId, setEditId] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
@@ -1424,8 +1425,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate }: Props)
   // the Build R.O. content.
   const headerToolbar = (
     <>
-      {headerSlot && createPortal(<BuildROIconToolbar group="nav" {...toolbarHandlers} />, headerSlot)}
-      <BuildROIconToolbar group="docs" {...toolbarHandlers} />
+      {headerSlot && createPortal(<BuildROIconToolbar group="nav" isSoftwareDomain={isSoftwareDomain} {...toolbarHandlers} />, headerSlot)}
+      <BuildROIconToolbar group="docs" isSoftwareDomain={isSoftwareDomain} {...toolbarHandlers} />
       <BuildROSectionDialog storeId={storeId} tab={sectionTab} onOpenChange={(o) => { if (!o) setSectionTab(null); }} />
     </>
   );

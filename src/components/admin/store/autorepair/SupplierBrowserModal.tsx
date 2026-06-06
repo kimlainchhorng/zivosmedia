@@ -40,6 +40,7 @@ import PlusCircle from "lucide-react/dist/esm/icons/plus-circle";
 import PartsSupplierLogo from "./PartsSupplierLogo";
 import { type PartsSupplier, getSupplierSearchUrl } from "@/config/partsSuppliers";
 import { SUPABASE_URL, supabase } from "@/integrations/supabase/client";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
 /** A part the user captured from a supplier portal, to drop onto the R.O. as a line. */
 export type CapturedPart = { description: string; sku: string; brand: string; price: number; qty: number };
@@ -307,6 +308,10 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
 
   const consumerUrl = supplier.consumerDomain ? `https://${supplier.consumerDomain}` : null;
   const displayName = supplier.shortName ?? supplier.name;
+  const isAutoRepairSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const accountSavedMessage = isAutoRepairSoftwareDomain ? "Account saved for the business" : "Account saved for the shop";
+  const accountRemovedMessage = isAutoRepairSoftwareDomain ? "Account removed for the business" : "Account removed for the shop";
 
   const handleSaveCreds = () => {
     if (!email.trim()) { toast.error("Email is required"); return; }
@@ -315,7 +320,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     void saveCredsRemote(storeId, supplier.id, c);
     setSaved(c);
     setEditCreds(false);
-    toast.success("Account saved for the shop");
+    toast.success(accountSavedMessage);
     const win = iframeRef.current?.contentWindow;
     if (win && loadState === "ready") {
       setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, "*"), 200);
@@ -327,7 +332,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     void clearCredsRemote(storeId, supplier.id);
     setSaved(null); setEmail(""); setPassword("");
     setEditCreds(true);
-    toast.success("Account removed for the shop");
+    toast.success(accountRemovedMessage);
   };
 
   const copyToClipboard = async (value: string, kind: "email" | "password") => {

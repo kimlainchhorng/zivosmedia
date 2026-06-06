@@ -892,7 +892,7 @@ export default function AdminStoreEditPage() {
       // Normalize the handle to the slug format the DB/edge function enforce so
       // owners get a valid URL instead of a server rejection.
       const slug = normalizeSlug(profileData.slug);
-      if (!slug) throw new Error("Store handle (URL) can't be empty");
+      if (!slug) throw new Error(profileHandleRequiredMessage);
       // Persist through the gated store-profile-manage edge function (server-side
       // whitelist + validation), the same path images/gallery already use.
       await saveStoreProfilePatch({ ...profileData, slug });
@@ -900,9 +900,9 @@ export default function AdminStoreEditPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-store", storeId] });
       queryClient.invalidateQueries({ queryKey: ["admin-stores"] });
-      toast.success("Store profile updated");
+      toast.success(profileUpdatedMessage);
     },
-    onError: (e: any) => toast.error(e?.message || "Could not save store profile"),
+    onError: (e: any) => toast.error(e?.message || profileSaveErrorMessage),
   });
 
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
@@ -2142,14 +2142,14 @@ export default function AdminStoreEditPage() {
           .update(profile as any)
           .eq("id", storeId!);
         if (directErr) {
-          if ((directErr as any).code === "23505") throw new Error("That handle (store URL) is already taken");
-          throw new Error(directErr.message || "Failed to save store profile");
+          if ((directErr as any).code === "23505") throw new Error(profileHandleTakenMessage);
+          throw new Error(directErr.message || profileSaveFailedMessage);
         }
         return null;
       }
-      throw new Error(await edgeErrorMessage(error, data, "Failed to save store profile"));
+      throw new Error(await edgeErrorMessage(error, data, profileSaveFailedMessage));
     }
-    if (!data?.ok) throw new Error(data?.error || "Failed to save store profile");
+    if (!data?.ok) throw new Error(data?.error || profileSaveFailedMessage);
     return data.store;
   };
 
@@ -2332,6 +2332,38 @@ export default function AdminStoreEditPage() {
     isAutoRepair && publicStoreOrigin === ZIVO_SOFTWARE_ORIGIN
       ? `${form.name} — ZIVO Software Business Page`
       : `${form.name} — ZIVO Store`;
+  const isAutoRepairSoftwarePage = isAutoRepair && publicStoreOrigin === ZIVO_SOFTWARE_ORIGIN;
+  const profileInfoTitle = isAutoRepairSoftwarePage ? "Business Page Information" : t("admin.store.store_info");
+  const slugPlaceholder = isAutoRepairSoftwarePage ? "your-business-page" : "my-store";
+  const languageLabel = isAutoRepairSoftwarePage ? "Business Page Language" : "Store Language";
+  const visibilityTitle = isAutoRepairSoftwarePage ? "Business Page Visibility" : "Store Visibility";
+  const activeLabel = isAutoRepairSoftwarePage ? "Business Page Active" : "Store Active";
+  const activeHelpText = isAutoRepairSoftwarePage
+    ? "When off, your business page is hidden from customers"
+    : "When off, your store is hidden from customers";
+  const metaDescriptionPlaceholder = isAutoRepairSoftwarePage
+    ? form.description || "Describe your business page for search engines..."
+    : form.description || "Describe your store for search engines...";
+  const recordIdLabel = isAutoRepairSoftwarePage ? "Business ID" : "Store ID";
+  const galleryBannerHelpText = isAutoRepairSoftwarePage
+    ? "These images appear as a scrolling banner on your business page."
+    : "These images appear as a scrolling banner on your store page.";
+  const feedPostsHelpText = isAutoRepairSoftwarePage
+    ? "Create business updates with photos and service videos for your business page"
+    : "Create posts like Facebook & TikTok — photos, videos, and reels for your store";
+  const profileHandleRequiredMessage = isAutoRepairSoftwarePage
+    ? "Business page handle (URL) can't be empty"
+    : "Store handle (URL) can't be empty";
+  const profileHandleTakenMessage = isAutoRepairSoftwarePage
+    ? "That handle (business page URL) is already taken"
+    : "That handle (store URL) is already taken";
+  const profileUpdatedMessage = isAutoRepairSoftwarePage ? "Business page updated" : "Store profile updated";
+  const profileSaveErrorMessage = isAutoRepairSoftwarePage
+    ? "Could not save business page"
+    : "Could not save store profile";
+  const profileSaveFailedMessage = isAutoRepairSoftwarePage
+    ? "Failed to save business page"
+    : "Failed to save store profile";
   const autoRepairTitles: Record<string, string> = {
     "customer-bookings": "Customer Bookings",
     "ar-invoices": "Invoices & Estimates",
@@ -2820,7 +2852,7 @@ export default function AdminStoreEditPage() {
                 e.target.value = "";
               }}
             />
-            <p className="text-[11px] text-muted-foreground mt-2">These images appear as a scrolling banner on your store page.</p>
+            <p className="text-[11px] text-muted-foreground mt-2">{galleryBannerHelpText}</p>
           </CardContent>
         </Card>
 
@@ -2831,7 +2863,7 @@ export default function AdminStoreEditPage() {
               <Camera className="h-4 w-4" /> Feed Posts
               <Badge variant="secondary" className="text-[10px]">{posts.length}</Badge>
             </CardTitle>
-            <p className="text-xs text-muted-foreground">Create posts like Facebook & TikTok — photos, videos, and reels for your store</p>
+            <p className="text-xs text-muted-foreground">{feedPostsHelpText}</p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
@@ -3216,7 +3248,7 @@ export default function AdminStoreEditPage() {
                     e.target.value = "";
                   }}
                 />
-                <p className="text-[11px] text-muted-foreground mt-2">These images appear as a scrolling banner on your store page.</p>
+                <p className="text-[11px] text-muted-foreground mt-2">{galleryBannerHelpText}</p>
               </CardContent>
             </Card>
 
@@ -3227,7 +3259,7 @@ export default function AdminStoreEditPage() {
                   <Camera className="h-4 w-4" /> Feed Posts
                   <Badge variant="secondary" className="text-[10px]">{posts.length}</Badge>
                 </CardTitle>
-                <p className="text-xs text-muted-foreground">Create posts like Facebook & TikTok — photos, videos, and reels for your store</p>
+                <p className="text-xs text-muted-foreground">{feedPostsHelpText}</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 {posts.length > 0 && (
@@ -3384,7 +3416,7 @@ export default function AdminStoreEditPage() {
             <div className="space-y-4">
             <Card id="settings-store-information" className="scroll-mt-20">
               <CardHeader>
-                <CardTitle className="text-base">{t("admin.store.store_info")}</CardTitle>
+                <CardTitle className="text-base">{profileInfoTitle}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {form.market === "KH" && (
@@ -3414,7 +3446,7 @@ export default function AdminStoreEditPage() {
                       value={form.slug}
                       onChange={e => updateField("slug", e.target.value)}
                       onBlur={e => updateField("slug", normalizeSlug(e.target.value))}
-                      placeholder="my-store"
+                      placeholder={slugPlaceholder}
                     />
                   </div>
                 </div>
@@ -3451,7 +3483,7 @@ export default function AdminStoreEditPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Store Language</Label>
+                    <Label>{languageLabel}</Label>
                     <select
                       value={form.default_language}
                       onChange={e => updateField("default_language", e.target.value)}
@@ -3864,14 +3896,14 @@ export default function AdminStoreEditPage() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Eye className="h-4 w-4 text-primary" />
-                  Store Visibility
+                  {visibilityTitle}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-muted/40">
                   <div>
-                    <p className="text-sm font-medium">Store Active</p>
-                    <p className="text-[11px] text-muted-foreground">When off, your store is hidden from customers</p>
+                    <p className="text-sm font-medium">{activeLabel}</p>
+                    <p className="text-[11px] text-muted-foreground">{activeHelpText}</p>
                   </div>
                   <Switch
                     checked={form.is_active}
@@ -3931,7 +3963,7 @@ export default function AdminStoreEditPage() {
                   <Textarea
                     value={(form as any).seo_description || ""}
                     onChange={e => updateField("seo_description" as any, e.target.value)}
-                    placeholder={form.description || "Describe your store for search engines..."}
+                    placeholder={metaDescriptionPlaceholder}
                     rows={2}
                     maxLength={160}
                   />
@@ -3980,12 +4012,12 @@ export default function AdminStoreEditPage() {
               <CardContent className="space-y-2">
                 <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-muted/40">
                   <div>
-                    <p className="text-[11px] text-muted-foreground">Store ID</p>
+                    <p className="text-[11px] text-muted-foreground">{recordIdLabel}</p>
                     <p className="text-xs font-mono">{storeId}</p>
                   </div>
                   <Button variant="ghost" size="sm" className="text-xs" onClick={() => {
                     navigator.clipboard.writeText(storeId || "");
-                    toast.success("Store ID copied");
+                    toast.success(`${recordIdLabel} copied`);
                   }}>
                     <Copy className="h-3 w-3" />
                   </Button>
@@ -5050,7 +5082,7 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-fin-tax"><div><FinanceTaxPayoutsSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-parts-suppliers"><div><AutoRepairPartSuppliersSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-dashboard"><AutoRepairDashboardSection storeId={storeId!} onNavigate={handleTabChange} /></TabsContent>
-              <TabsContent value="ar-build-ro"><div><AutoRepairBuildROSection storeId={storeId!} onNavigate={handleTabChange} /></div></TabsContent>
+              <TabsContent value="ar-build-ro"><div><AutoRepairBuildROSection storeId={storeId!} onNavigate={handleTabChange} isSoftwareDomain={isAutoRepairSoftwarePage} /></div></TabsContent>
               <TabsContent value="ar-service-catalog"><AutoRepairServiceCatalogSection storeId={storeId!} /></TabsContent>
             </>
           )}

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
 interface Props {
   storeId: string;
@@ -24,6 +25,12 @@ export default function ArQuickSettingsPanel({ storeId, onClose }: Props) {
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const isAutoRepairSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const invoiceHeaderHelpText = isAutoRepairSoftwareDomain
+    ? "Printed on estimates & invoices alongside your business name, address, phone & logo."
+    : "Printed on estimates & invoices alongside your shop name, address, phone & logo.";
+  const invoiceEmailPlaceholder = isAutoRepairSoftwareDomain ? "service@example.com" : "shop@example.com";
 
   useEffect(() => {
     let cancelled = false;
@@ -92,11 +99,11 @@ export default function ArQuickSettingsPanel({ storeId, onClose }: Props) {
 
       <section className="space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Invoice header</h3>
-        <p className="text-[11px] text-muted-foreground -mt-1">Printed on estimates &amp; invoices alongside your shop name, address, phone &amp; logo.</p>
+        <p className="text-[11px] text-muted-foreground -mt-1">{invoiceHeaderHelpText}</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Invoice email</Label>
-            <Input type="email" placeholder="shop@example.com"
+            <Input type="email" placeholder={invoiceEmailPlaceholder}
               value={settings.invoice_email ?? ""}
               onChange={(e) => set("invoice_email", e.target.value)} />
           </div>
