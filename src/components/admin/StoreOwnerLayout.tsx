@@ -149,8 +149,14 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   const isCarRental = normalizedStoreCategory === "car-rental" || normalizedStoreCategory === "car rental" || isCarRentalTab(activeTab);
   const isCarDealership = normalizedStoreCategory === "car-dealership" || normalizedStoreCategory === "car dealership" || isCarDealershipTab(activeTab);
   const isBus = normalizedStoreCategory === "bus" || normalizedStoreCategory === "van" || normalizedStoreCategory.includes("bus");
+  const isAutoRepairSoftwareWorkspace = isAutoRepair && isAutoRepairSoftwareDomain;
   const productsLabel = isAutoRepair ? "Services" : isLodging ? "Rooms" : isCarRental ? "Fleet" : isCarDealership ? "Inventory" : "Products";
   const paymentLabel = isAutoRepair ? "Bookings" : "Payment & Payouts";
+  const pageTitleFallback = isAutoRepairSoftwareWorkspace ? "ZIVO Software" : "ZIVO Store";
+  const sidebarNavigationLabel = isAutoRepairSoftwareWorkspace ? "Software navigation" : "Store navigation";
+  const sidebarSectionsLabel = isAutoRepairSoftwareWorkspace ? "Software sections" : "Store sections";
+  const sidebarFallbackName = isAutoRepairSoftwareWorkspace ? "My Software" : "My Store";
+  const profileNavLabel = isAutoRepairSoftwareWorkspace ? "Business Page" : "Profile";
 
   // Restore per-tab scroll position when sidebar opens, but Auto Repair should
   // always open at the top so the shop tools are immediately visible.
@@ -213,7 +219,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   };
 
   const navItems = [
-    ...(!isBus ? [{ id: "profile", label: "Profile", icon: Store }] : []),
+    ...(!isBus ? [{ id: "profile", label: profileNavLabel, icon: Store }] : []),
     // Salon / Cafe / Car Rental / Car Dealership / Auto Repair replace "Orders" with their own views.
     ...(!isSalon && !isCafe && !isCarRental && !isCarDealership && !isBus && !isAutoRepair ? [
       { id: "orders", label: `Orders${orderCount ? ` (${orderCount})` : ""}`, icon: ClipboardList },
@@ -436,7 +442,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   return (
     <>
       <Helmet>
-        <title>{title} — {storeName || "ZIVO Store"}</title>
+        <title>{title} — {storeName || pageTitleFallback}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
@@ -458,7 +464,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
               ref={asideRef}
               role="dialog"
               aria-modal="true"
-              aria-label="Store navigation"
+              aria-label={sidebarNavigationLabel}
               aria-hidden={!sidebarOpen}
               tabIndex={-1}
               className={cn(
@@ -569,7 +575,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <span className="text-[13px] font-bold text-foreground truncate block leading-tight">{storeName || "My Store"}</span>
+              <span className="text-[13px] font-bold text-foreground truncate block leading-tight">{storeName || sidebarFallbackName}</span>
               {storeId && (
                 <span className="text-[10px] text-muted-foreground font-mono tracking-wider">CBD{storeId.replace(/-/g, '').slice(0, 8).toUpperCase()}</span>
               )}
@@ -592,7 +598,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
         <nav
           ref={isMobile ? navRef : undefined}
           onScroll={isMobile ? handleNavScroll : undefined}
-          aria-label="Store sections"
+          aria-label={sidebarSectionsLabel}
           className="flex-1 min-h-0 px-2 py-2 overflow-y-scroll scroll-momentum overscroll-contain touch-pan-y"
           style={{ WebkitOverflowScrolling: "touch" }}
         >

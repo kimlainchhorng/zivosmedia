@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { isLodgingStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -232,7 +233,20 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   const isHotel = isLodgingStoreCategory(storeCategory);
   const audience: Audience = isHotel ? "hotel" : "shop";
   const isAutoRepair = (storeCategory || "").toLowerCase().trim() === "auto-repair";
+  const isAutoRepairSoftwareDomain =
+    isAutoRepair && typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
   const softwareName = isAutoRepair ? "ZIVO Auto Repair Software" : "ZIVO Business App";
+  const supportEmail = isAutoRepairSoftwareDomain ? "support@zivosoftware.com" : "partners@zivosmedia.com";
+  const copyDashboardLabel = isAutoRepair ? "Copy Software Link" : "Copy Shop Link";
+  const softwareWorkspaceLabel = isAutoRepairSoftwareDomain ? "software workspace" : "shop";
+  const softwareToolsLabel = isAutoRepairSoftwareDomain ? "software tools" : "shop tools";
+  const softwareScopeValue = isAutoRepairSoftwareDomain ? "Software" : "Shop";
+  const offlineScreensLabel = isAutoRepairSoftwareDomain ? "software screens" : "shop screens";
+  const androidPackageLabel = isAutoRepairSoftwareDomain ? "Android Software Package" : "Android Shop Package";
+  const androidDeviceName = isAutoRepairSoftwareDomain ? "Service Phone" : "Shop Phone";
+  const accessAuditLabel = isAutoRepairSoftwareDomain ? "Software access" : "Shop access";
+  const downloadLinkLabel = isAutoRepairSoftwareDomain ? "Software download link" : "Store download link";
+  const serviceFloorLabel = isAutoRepairSoftwareDomain ? "service floor" : "shop floor";
   const storageKey = `zivo-software-access:${storeId || storeCategory || "default"}`;
   const userDownloadPath = storeId ? `/business/software/${storeId}?category=${encodeURIComponent(storeCategory || "business")}` : "";
   const userDownloadUrl = typeof window === "undefined" || !userDownloadPath ? "" : `${window.location.origin}${userDownloadPath}`;
@@ -316,14 +330,14 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   const platformDownloads = [
     { label: "Windows access", file: "ZIVO Auto Repair Windows Access.html", icon: Monitor, note: "front desk and office PCs" },
     { label: "macOS backup", file: "ZIVO Auto Repair macOS Access.html", icon: Laptop, note: "MacBook and iMac" },
-    { label: "Android access", file: "ZIVO Auto Repair Android Access.html", icon: Smartphone, note: "shop tablets and phones" },
+    { label: "Android access", file: "ZIVO Auto Repair Android Access.html", icon: Smartphone, note: isAutoRepairSoftwareDomain ? "service tablets and phones" : "shop tablets and phones" },
     { label: "iPad access", file: "ZIVO Auto Repair iPad Access.html", icon: Apple, note: "service advisor tablet" },
   ];
 
   const installerPackages = [
     { label: "Windows Access Package", file: "ZIVO Auto Repair Windows Access.html", icon: Monitor, tag: "Office PC" },
     { label: "macOS Desktop Package", file: "ZIVO Auto Repair macOS Access.html", icon: Laptop, tag: "Mac" },
-    { label: "Android Shop Package", file: "ZIVO Auto Repair Android Access.html", icon: Smartphone, tag: "Tablet" },
+    { label: androidPackageLabel, file: "ZIVO Auto Repair Android Access.html", icon: Smartphone, tag: "Tablet" },
     { label: "iPad Service Package", file: "ZIVO Auto Repair iPad Access.html", icon: Apple, tag: "iPadOS" },
   ];
 
@@ -360,7 +374,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   const starterDevices: DeviceAccessRecord[] = [
     { id: "front-desk-pc", name: "Front Desk PC", platform: "Windows", user: "Manager", lastDownloaded: "Today", status: "Active" },
     { id: "service-tablet", name: "Service Tablet", platform: "iPad", user: "Service advisor", lastDownloaded: "Today", status: "Active" },
-    { id: "shop-phone", name: "Shop Phone", platform: "Android", user: "Technician", lastDownloaded: "May 23", status: "Ready" },
+    { id: "shop-phone", name: androidDeviceName, platform: "Android", user: "Technician", lastDownloaded: "May 23", status: "Ready" },
   ];
   const assignedDevices = deviceRecords.length ? deviceRecords : starterDevices;
   const activeDeviceCount = assignedDevices.filter((device) => device.status !== "Revoked").length;
@@ -369,7 +383,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   const downloadAudit = [
     { label: "Last downloaded", value: latestDownload ? `${latestDownload.fileName} • ${formatAuditTime(latestDownload.downloadedAt)}` : "No file downloaded yet" },
     { label: "Downloaded by", value: latestDownload?.downloadedBy || user?.email || "Business owner" },
-    { label: "Shop access", value: "Auto Repair only" },
+    { label: accessAuditLabel, value: "Auto Repair only" },
     { label: "Device seats", value: `${activeDeviceCount}/${DEVICE_LIMIT} active` },
   ];
 
@@ -382,8 +396,8 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   };
 
   const releaseNotes = [
-    "Auto Repair v1.1 desktop software for this shop",
-    "Front desk, shop floor, inventory, customer care, marketing, digital, finance, insights, and team modules",
+    `Auto Repair v1.1 desktop software for this ${softwareWorkspaceLabel}`,
+    `Front desk, ${serviceFloorLabel}, inventory, customer care, marketing, digital, finance, insights, and team modules`,
     "Feed, Reels, Chat, Rides, and other ZIVO platform apps are hidden from the desktop software",
     "Offline-ready app shell with reconnect sync",
   ];
@@ -510,7 +524,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
     if (!user) {
       setDownloadStatus({
         title: "Business login required",
-        detail: "Sign in with an approved business account before downloading this shop software.",
+        detail: `Sign in with an approved business account before downloading this ${softwareWorkspaceLabel} software.`,
       });
       toast.error("Business login required before download.");
       return;
@@ -522,7 +536,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
     if (!existingDevice && activeRecords.length >= DEVICE_LIMIT) {
       setDownloadStatus({
         title: "Device limit reached",
-        detail: `This shop already has ${DEVICE_LIMIT} active devices. Revoke an old device before downloading on a new one.`,
+        detail: `This ${softwareWorkspaceLabel} already has ${DEVICE_LIMIT} active devices. Revoke an old device before downloading on a new one.`,
       });
       toast.error("Device limit reached.");
       return;
@@ -576,7 +590,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
     setDownloadStatus({
       title: `${platformLabel} download ready`,
       detail: savedWithPicker
-        ? `${fileName} was saved for ${device.name}. Open it to reach this shop's Auto Repair workspace.`
+        ? `${fileName} was saved for ${device.name}. Open it to reach this ${softwareWorkspaceLabel}'s Auto Repair workspace.`
         : `${fileName} is ready for ${device.name}. If it is not in Downloads, tap Save File below.`,
     });
     toast.success(savedWithPicker ? `${fileName} saved.` : `${fileName} ready. Tap Save File if needed.`);
@@ -657,7 +671,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
 
   const handleCopyUserDownloadLink = async () => {
     if (!userDownloadUrl) {
-      toast.error("Store download link is not ready.");
+      toast.error(`${downloadLinkLabel} is not ready.`);
       return;
     }
     try {
@@ -670,7 +684,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
 
   const handleOpenUserDownloadLink = () => {
     if (!userDownloadPath) {
-      toast.error("Store download link is not ready.");
+      toast.error(`${downloadLinkLabel} is not ready.`);
       return;
     }
     window.open(userDownloadPath, "_blank", "noopener,noreferrer");
@@ -725,7 +739,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
               </div>
               <p className="text-[12px] md:text-[13px] text-muted-foreground mt-1 max-w-3xl leading-relaxed">
                 {isAutoRepair
-                  ? "Business-only install center for this auto repair shop. Download the desktop app, send staff access, and keep shop tools available when the device goes offline."
+                  ? `Business-only install center for this auto repair ${softwareWorkspaceLabel}. Download the desktop app, send staff access, and keep ${softwareToolsLabel} available when the device goes offline.`
                   : "New business-only install center for owners and staff. Install the app and keep core tools available when the device goes offline."}
               </p>
             </div>
@@ -734,7 +748,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
             {[
               { label: isAutoRepair ? "Latest" : "Install", value: isAutoRepair ? AUTO_REPAIR_DESKTOP_VERSION : isInstalled ? "Ready" : "App" },
               { label: "Mode", value: isOnline ? "Online" : "Offline" },
-              { label: isAutoRepair ? "Scope" : "Sync", value: isAutoRepair ? "Shop" : "Auto" },
+              { label: isAutoRepair ? "Scope" : "Sync", value: isAutoRepair ? softwareScopeValue : "Auto" },
             ].map((item) => (
               <div key={item.label} className="rounded-2xl border border-border/50 bg-muted/30 px-3 py-2 text-center">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{item.label}</p>
@@ -746,7 +760,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
         <div className="grid grid-cols-1 border-t border-border/40 md:grid-cols-3">
           {[
             { icon: Download, label: "Desktop installer", text: "Save the Auto Repair computer app on this device." },
-            { icon: WifiOff, label: "Offline-ready app", text: "Cached shop screens open without a connection." },
+            { icon: WifiOff, label: "Offline-ready app", text: `Cached ${offlineScreensLabel} open without a connection.` },
             { icon: RefreshCw, label: "Reconnect sync", text: "Updates resume when the device is back online." },
           ].map((item) => {
             const Icon = item.icon;
@@ -780,7 +794,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
               </div>
               <p className="text-[12px] text-muted-foreground mt-1 leading-snug">
                 {isAutoRepair
-                  ? "Download the Auto Repair desktop software for this shop. It opens bookings, work orders, invoices, technicians, parts, inventory, finance, reports, and upgrades."
+                  ? `Download the Auto Repair desktop software for this ${softwareWorkspaceLabel}. It opens bookings, work orders, invoices, technicians, parts, inventory, finance, reports, and upgrades.`
                   : "Opens this business dashboard as an installed app. Cached screens load offline; updates, payments, messages, bookings, and sync resume when the device reconnects."}
               </p>
             </div>
@@ -966,8 +980,8 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
               ? [
                   "Auto Repair desktop app for business users",
                   "Auto Repair workspace opens offline",
-                  "Work orders, invoices, and shop screens stay available",
-                  "Live shop data syncs again when online",
+                  `Work orders, invoices, and ${offlineScreensLabel} stay available`,
+                  `Live ${softwareWorkspaceLabel} data syncs again when online`,
                 ]
               : [
                   "Installable for business users",
@@ -1144,7 +1158,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
                     </Badge>
                   </div>
                   <p className="mt-1 text-[12px] text-muted-foreground">
-                    When ZIVO releases an upgrade, users download the newest installer, open it, and replace the old app. Shop data stays synced to their business account.
+                    When ZIVO releases an upgrade, users download the newest installer, open it, and replace the old app. {softwareScopeValue} data stays synced to their business account.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1196,7 +1210,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
                     <h3 className="text-sm font-semibold text-foreground">License / Activation Key</h3>
                   </div>
                   <p className="mt-1 text-[12px] text-muted-foreground">
-                    Use this key to activate downloaded auto repair software for this shop only.
+                    Use this key to activate downloaded auto repair software for this {softwareWorkspaceLabel} only.
                   </p>
                 </div>
                 <Badge variant="secondary" className="w-fit text-[10px]">Business only</Badge>
@@ -1268,12 +1282,12 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
                     <h3 className="text-sm font-semibold text-foreground">Assigned Devices</h3>
                   </div>
                   <p className="mt-1 text-[12px] text-muted-foreground">
-                    See which computers, tablets, and phones can use this shop software.
+                    See which computers, tablets, and phones can use this {softwareWorkspaceLabel} software.
                   </p>
                 </div>
                 <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-[12px]" onClick={handleCopyDashboardLink}>
                   <Copy className="h-3.5 w-3.5" />
-                  Copy Shop Link
+                  {copyDashboardLabel}
                 </Button>
               </div>
               <div className="mt-3 grid gap-2">
@@ -1316,7 +1330,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
                 <h3 className="text-sm font-semibold text-foreground">Test Offline Mode</h3>
               </div>
               <p className="mt-1 text-[12px] text-muted-foreground">
-                Check that the Auto Repair app, cached shop screens, and reconnect sync are ready before staff use it.
+                Check that the Auto Repair app, cached {offlineScreensLabel}, and reconnect sync are ready before staff use it.
               </p>
               <Button type="button" size="sm" className="mt-3 h-9 w-full gap-1.5 text-[12px]" onClick={handleTestOfflineMode}>
                 <WifiOff className="h-3.5 w-3.5" />
@@ -1446,10 +1460,10 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
           <p className="text-[11px] text-muted-foreground text-center pt-2">
             Need something else? Email{" "}
             <a
-              href="mailto:partners@zivosmedia.com"
+              href={`mailto:${supportEmail}`}
               className="text-emerald-600 hover:underline"
             >
-              partners@zivosmedia.com
+              {supportEmail}
             </a>{" "}
             — we ship custom integrations for enterprise partners.
           </p>

@@ -4,18 +4,21 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import type { Database } from './types';
 import {
-  ZIVO_SOFTWARE_SUPABASE_PROJECT_ID,
   ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY,
   ZIVO_SOFTWARE_SUPABASE_URL,
   isZivoSoftwareHost,
 } from '@/config/autoRepairDomain';
 import {
-  ZIVO_TRAVEL_SUPABASE_PROJECT_ID,
   ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY,
   ZIVO_TRAVEL_SUPABASE_URL,
   ZIVO_TRAVEL_USE_DEDICATED_BACKEND,
   isZivoTravelHost,
 } from '@/config/zivoTravelDomain';
+import {
+  ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY,
+  ZIVO_DRIVER_SUPABASE_URL,
+  isZivoDriverHost,
+} from '@/config/zivoDriverDomain';
 
 const runtimeHostname = typeof window !== "undefined" ? window.location.hostname : "";
 const useZivoSoftwareBackend = isZivoSoftwareHost(runtimeHostname);
@@ -23,30 +26,49 @@ const useZivoTravelBackend =
   isZivoTravelHost(runtimeHostname) &&
   ZIVO_TRAVEL_USE_DEDICATED_BACKEND &&
   Boolean(ZIVO_TRAVEL_SUPABASE_URL && ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY);
+const useZivoDriverBackend =
+  isZivoDriverHost(runtimeHostname) &&
+  Boolean(ZIVO_DRIVER_SUPABASE_URL && ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY);
 
-export const SUPABASE_URL = useZivoSoftwareBackend
+const MAIN_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+const MAIN_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
+
+export const AUTH_SUPABASE_URL = MAIN_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+export const AUTH_SUPABASE_PUBLISHABLE_KEY =
+  MAIN_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+
+export const DATA_SUPABASE_URL = useZivoSoftwareBackend
   ? ZIVO_SOFTWARE_SUPABASE_URL
   : useZivoTravelBackend
   ? ZIVO_TRAVEL_SUPABASE_URL
-  : import.meta.env.VITE_SUPABASE_URL || "";
-export const SUPABASE_PUBLISHABLE_KEY = useZivoSoftwareBackend
+  : useZivoDriverBackend
+  ? ZIVO_DRIVER_SUPABASE_URL
+  : AUTH_SUPABASE_URL;
+export const DATA_SUPABASE_PUBLISHABLE_KEY = useZivoSoftwareBackend
   ? ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY
   : useZivoTravelBackend
   ? ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY
-  : import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
-const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
+  : useZivoDriverBackend
+  ? ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY
+  : AUTH_SUPABASE_PUBLISHABLE_KEY;
+
+// Backward-compatible data endpoint exports. New auth-sensitive code should use
+// AUTH_SUPABASE_URL/AUTH_SUPABASE_PUBLISHABLE_KEY or authSupabase explicitly.
+export const SUPABASE_URL = DATA_SUPABASE_URL;
+export const SUPABASE_PUBLISHABLE_KEY = DATA_SUPABASE_PUBLISHABLE_KEY;
 const REMEMBER_ME_KEY = "zivo_remember_me";
-const EFFECTIVE_SUPABASE_URL = SUPABASE_URL || FALLBACK_SUPABASE_URL;
-const EFFECTIVE_SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+const EFFECTIVE_AUTH_SUPABASE_URL = AUTH_SUPABASE_URL;
+const EFFECTIVE_AUTH_SUPABASE_KEY = AUTH_SUPABASE_PUBLISHABLE_KEY;
+const EFFECTIVE_DATA_SUPABASE_URL = DATA_SUPABASE_URL || EFFECTIVE_AUTH_SUPABASE_URL;
+const EFFECTIVE_DATA_SUPABASE_KEY = DATA_SUPABASE_PUBLISHABLE_KEY || EFFECTIVE_AUTH_SUPABASE_KEY;
 const SUPABASE_PROJECT_REF =
-  (useZivoSoftwareBackend ? ZIVO_SOFTWARE_SUPABASE_PROJECT_ID : "") ||
-  (useZivoTravelBackend ? ZIVO_TRAVEL_SUPABASE_PROJECT_ID : "") ||
   import.meta.env.VITE_SUPABASE_PROJECT_ID ||
-  (EFFECTIVE_SUPABASE_URL ? new URL(EFFECTIVE_SUPABASE_URL).hostname.split(".")[0] : "");
+  (EFFECTIVE_AUTH_SUPABASE_URL ? new URL(EFFECTIVE_AUTH_SUPABASE_URL).hostname.split(".")[0] : "");
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+if (!MAIN_SUPABASE_URL || !MAIN_SUPABASE_PUBLISHABLE_KEY) {
   // Don't throw at module load — that crashes the whole React tree and leaves
   // visitors with a blank white page (seen on zivosmedia.com when the production
   // build was published without the VITE_SUPABASE_* env vars baked in).
@@ -71,8 +93,12 @@ function isSupabaseSecretKey(key: string): boolean {
   }
 }
 
-if (isSupabaseSecretKey(SUPABASE_PUBLISHABLE_KEY)) {
+if (isSupabaseSecretKey(AUTH_SUPABASE_PUBLISHABLE_KEY)) {
   throw new Error("VITE_SUPABASE_PUBLISHABLE_KEY must be a publishable/anon key, not a secret or service-role key.");
+}
+
+if (isSupabaseSecretKey(DATA_SUPABASE_PUBLISHABLE_KEY)) {
+  throw new Error("Dedicated domain Supabase publishable key must be a publishable/anon key, not a secret or service-role key.");
 }
 
 const isNativePlatform = Capacitor.isNativePlatform();
@@ -177,10 +203,7 @@ export function setRememberMePreference(remember: boolean) {
 // remember-me-aware web store in the browser.
 const authStorage = isNativePlatform ? nativeAuthStorage : webAuthStorage;
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
-export const supabase = createClient<Database>(EFFECTIVE_SUPABASE_URL, EFFECTIVE_SUPABASE_KEY, {
+const sharedClientOptions = {
   db: {
     schema: "public",
   },
@@ -212,4 +235,35 @@ export const supabase = createClient<Database>(EFFECTIVE_SUPABASE_URL, EFFECTIVE
     },
     timeout: 30_000,
   },
+} as const;
+
+export const authSupabase = createClient<Database>(
+  EFFECTIVE_AUTH_SUPABASE_URL,
+  EFFECTIVE_AUTH_SUPABASE_KEY,
+  sharedClientOptions,
+);
+
+export const dataSupabase = createClient<Database>(EFFECTIVE_DATA_SUPABASE_URL, EFFECTIVE_DATA_SUPABASE_KEY, {
+  ...sharedClientOptions,
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+  accessToken: async () => {
+    const { data } = await authSupabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  },
 });
+
+// Import the routed client like this:
+// import { supabase } from "@/integrations/supabase/client";
+//
+// Compatibility note: existing code keeps using `supabase.from`,
+// `supabase.functions`, `supabase.storage`, and `supabase.channel` against the
+// active data project. `supabase.auth` is deliberately routed to the main
+// ZivosMedia auth project so one ZIVO account can work across domains.
+export const supabase = dataSupabase as typeof dataSupabase & {
+  auth: typeof authSupabase.auth;
+};
+(supabase as unknown as { auth: typeof authSupabase.auth }).auth = authSupabase.auth;

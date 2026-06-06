@@ -20,6 +20,21 @@ Date: 2026-06-06 · Owner decisions **LOCKED**.
 | zivobusiness.com | TBD (main for now) | Business |
 | zivoemployee.com | TBD (main for now) | Employee |
 
+## Current repo status
+- `zivosmedia` is the current all-in-one app and already contains travel, business/software, driver, chat, and admin surfaces.
+- `zivosmedia` now has a generated ownership audit (`docs/zivosmedia-domain-ownership-audit.md`) and an aggregator boundary contract (`docs/zivosmedia-aggregator-boundary.md`) for deciding what stays in the all-in-one platform.
+- `zivodriver` is a real app and now targets the dedicated Driver Supabase URL by default; live Driver foundation migrations and compatibility migrations are applied. It still needs the Driver publishable key and Edge Function secrets in env.
+- `zivostravel` is a small Vite app with Travel backend inventory/cutover docs and live foundation tables on the Travel project.
+- `zivosoftware` has Software/business inventory/cutover docs and a live Software project with business/store and auto-repair tables.
+- `Zivo-Admin` has an admin migration inventory and control-plane implementation doc; it should become the server-backed staff dashboard for all products.
+- `ZIVO-CHAT` is a real app and still targets the main/shared Zivo backend unless separately split later.
+
+## Verified Supabase status on 2026-06-06
+- `slirphzzwcogdbkeicff` / `zivo`: active healthy. Table listing timed out from the connector because the project is large; migrations and many active Edge Functions confirm it is the current live authority for mixed travel, driver, business, chat, payment, maps, restaurant/order, hotel, salon, car-rental, bot, and platform workflows.
+- `xbllvmpomorawkcrtbcq` / `Zivo Travel`: active healthy. Contains Travel foundation tables: backend links, service catalog, search events, partner workflows, and sync runs. No Travel Edge Functions are active yet.
+- `ydxztoresbdeoeijhxww` / `Zivo software`: active healthy. Contains business/software tables including store, booking, and auto-repair structures. Active functions include `csp-report`, `geo-detect`, `exchange-rates`, and `software-media-handoff`.
+- `yiedlgoxwjmansszdypf` / `Zivo Driver`: active healthy. Driver foundation and compatibility migrations are applied. Active functions include `driver-me`, `driver-go-online`, `driver-go-offline`, `location-heartbeat`, `register-push-token`, `driver-onboard`, `driver-signup`, `verify-otp`, and `generate-otp`.
+
 ## Centralized identity pattern (the hard part — do this FIRST per domain)
 - **Auth client = always the main project** (`slirph`): login / session / refresh happen there. One account, one `auth.users`.
 - **Data client = the per-domain project**, created with supabase-js v2 `accessToken: () => <main session access_token>` so it sends the main-project JWT. RLS on the per-domain project then sees the same user.
@@ -33,6 +48,10 @@ Date: 2026-06-06 · Owner decisions **LOCKED**.
 
 ## Aggregation (zivosmedia "share from all")
 - zivosmedia reads from each per-domain project. Options: **(a)** edge functions on `slirph` that call each project's REST/RPC with a read key and aggregate (recommended — flexible, isolated); **(b)** Postgres FDW (read-only foreign tables) for heavy joins; **(c)** scheduled CDC/sync into a `slirph` aggregate schema.
+- First bridge added: `supabase/functions/zivo-domain-summary`, with frontend helper `src/lib/zivoDomainSummary.ts`. Driver, Travel, and Software summary RPC migrations are applied on their dedicated projects.
+- Live status: `zivo-domain-summary` is deployed to `slirphzzwcogdbkeicff` as version 3 with `verify_jwt=false`; the function validates the main Zivo Bearer token inside the handler. Anonymous smoke test returns `401 Unauthorized`, confirming the route is reachable without exposing data.
+- Live secrets: `ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY`, `ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY`, and `ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY` are configured on the main ZivosMedia project. Values are intentionally not committed or documented.
+- RPC verification: Driver, Travel, and Software each expose the expected security-invoker summary RPC signature `p_user_id uuid, p_limit integer default 10`; none of the bridge RPCs are `security definer`.
 
 ## Phased plan (safe order — nothing destructive until its project is ready)
 1. **PILOT — Zivo Driver** (`yiedl`, empty/new = lowest risk): set shared JWT secret → provision driver schema → build the dual-client (auth=main, data=yiedl, claims-RLS) → wire `zivodriver.com` host-switch (data only) → migrate driver data **after backup** → verify one-account login + driver flows + aggregation to zivosmedia.
@@ -48,5 +67,14 @@ Date: 2026-06-06 · Owner decisions **LOCKED**.
 - `pk_live` Stripe key is wired — never run live payment tests casually.
 
 ## Code touch-points
-- `src/integrations/supabase/client.ts` — refactor to dual client (auth on main; data per host). Currently switches the whole client (software live; travel gated; no driver).
-- `src/config/` — add `zivoDriverDomain.ts` (+ later business/employee/chat) mirroring `zivoTravelDomain.ts` / `autoRepairDomain.ts`.
+- `src/integrations/supabase/client.ts` — now exposes `authSupabase` for main-project auth, `dataSupabase` for active domain data, and a compatibility `supabase` export whose `.auth` routes to main while `.from()` / `.functions` / `.storage` route to active domain data.
+- `src/config/zivoDriverDomain.ts` — added for `zivodriver.com`; data routing to `yiedlgoxwjmansszdypf` is gated by `VITE_ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY` so the browser bundle does not flip before the key is configured.
+- `src/config/` — later business/employee/chat dedicated-project configs can mirror `zivoTravelDomain.ts`, `zivoDriverDomain.ts`, and `autoRepairDomain.ts`.
+
+## Immediate next migration work
+1. Add the missing Driver publishable key and Edge Function secrets, then verify the Driver app against `yiedlgoxwjmansszdypf`.
+2. Move new ZivosMedia code to explicit `authSupabase` / `dataSupabase` imports, then gradually replace ambiguous `supabase` imports in Travel, Software, Driver, and Admin surfaces.
+3. Run an authenticated `zivo-domain-summary` smoke test with a test user token and verify Driver, Travel, and Software return domain statuses.
+4. Scaffold `Zivo-Admin` as a server-backed control plane and move Driver staff/admin screens first.
+5. Move Travel workflows in order: bus booking, rental car customer booking, hotels/resorts customer booking, flights, then checkout/wallet/refunds/payouts.
+6. Move Software workflows starting with auto repair because `ydxztoresbdeoeijhxww` already has `ar_*` structures, then broaden into store/business verticals.

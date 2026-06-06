@@ -65,6 +65,15 @@ The app should keep using the shared live engine until the target project has:
   - bus: `/bus?from&to&date`
 - Kept telemetry isolated through `recordZivoTravelSearchEvent`; live bookings/payments remain on the shared engine.
 
+## Standalone repo bridge
+
+- Added the standalone `zivostravel` ownership repo bridge contract in `/Users/kimlain/Documents/GitHub/zivostravel/zivo-travel-bridge.json`.
+- Added `/Users/kimlain/Documents/GitHub/zivostravel/docs/bridge-to-zivosmedia.md` so Claude, Codex, Cloudflare, and Supabase work use the same migration model.
+- `zivostravel.com` should own the dedicated customer travel product.
+- `zivosmedia.com` should still show Travel inside the all-in-one platform through shared route links or API-backed surfaces.
+- Keep Zivos Media as auth, checkout, wallet, payout, and live booking authority until the travel Supabase project has verified schema, RLS, Edge Functions, secrets, and sandbox smoke tests.
+- Use the travel Supabase project `xbllvmpomorawkcrtbcq` for telemetry, config, previews, and staged migrations until cutover is approved.
+
 ## Safe next work
 
 1. Keep improving `/zivo-travel`, `/flights`, `/hotels`, `/cars`, and `/bus` UX without changing the live payment provider behavior.

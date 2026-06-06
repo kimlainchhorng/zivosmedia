@@ -65,6 +65,33 @@ describe("auth redirect safety", () => {
     ).toBe("https://zivoschat.com/chat");
   });
 
+  it("keeps zivodriver.com auth redirects on the driver surface", () => {
+    expect(
+      getSafeRedirectTargetForHost(
+        null,
+        "zivodriver.com",
+      ),
+    ).toBe("/");
+    expect(
+      getSafeRedirectTargetForHost(
+        "/login?redirect=/driver",
+        "zivodriver.com",
+      ),
+    ).toBe("/");
+    expect(
+      getSafeRedirectTargetForHost(
+        "https://zivosmedia.com/login?redirect=https%3A%2F%2Fzivodriver.com%2Fdriver",
+        "zivodriver.com",
+      ),
+    ).toBe("/");
+    expect(
+      getSafeRedirectTargetForHost(
+        "https://zivodriver.com/driver",
+        "zivosmedia.com",
+      ),
+    ).toBe("https://zivodriver.com/driver");
+  });
+
   it("blocks non-ZIVO external redirects", () => {
     expect(
       getSafeRedirectTargetForHost("https://example.com/phish", "zivosmedia.com"),

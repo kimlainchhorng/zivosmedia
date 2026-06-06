@@ -72,6 +72,7 @@ import { SALON_TAB_META, SALON_TAB_IDS } from "@/components/admin/store/salon/sa
 import { CAR_RENTAL_TAB_META, CAR_RENTAL_TAB_IDS } from "@/components/admin/store/car-rental/carRentalTabConfig";
 import { CAR_DEALERSHIP_TAB_META, CAR_DEALERSHIP_TAB_IDS } from "@/components/admin/store/car-dealership/carDealershipTabConfig";
 import { CAFE_TAB_META, CAFE_TAB_IDS } from "@/components/admin/store/cafe/cafeTabConfig";
+import { isAutoRepairSoftwareHost, ZIVO_MEDIA_ORIGIN, ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
 import { toast } from "sonner";
 
 const SalonComingSoonSection = React.lazy(() => import("@/components/admin/store/salon/SalonComingSoonSection"));
@@ -2319,6 +2320,18 @@ export default function AdminStoreEditPage() {
   const isCarRental = normalizedCategory === "car-rental" || requestedCategory === "car-rental" || isCarRentalTab(activeTab);
   const isCarDealership = normalizedCategory === "car-dealership" || requestedCategory === "car-dealership" || isCarDealershipTab(activeTab);
   const effectiveStoreCategory = isAutoRepair ? "auto-repair" : isCafe ? "cafe" : isCarRental ? "car-rental" : isCarDealership ? "car-dealership" : form.category;
+  const publicStoreOrigin =
+    isAutoRepair && typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname)
+      ? ZIVO_SOFTWARE_ORIGIN
+      : ZIVO_MEDIA_ORIGIN;
+  const publicStorePreviewUrl = `${publicStoreOrigin}/store/${form.slug || "your-store"}`;
+  const publicStoreCopyUrl = `${publicStoreOrigin}/store/${form.slug || "your-store"}`;
+  const publicStorePreviewLabel =
+    isAutoRepair && publicStoreOrigin === ZIVO_SOFTWARE_ORIGIN ? "Business Page Preview" : "Store URL Preview";
+  const seoTitlePlaceholder =
+    isAutoRepair && publicStoreOrigin === ZIVO_SOFTWARE_ORIGIN
+      ? `${form.name} — ZIVO Software Business Page`
+      : `${form.name} — ZIVO Store`;
   const autoRepairTitles: Record<string, string> = {
     "customer-bookings": "Customer Bookings",
     "ar-invoices": "Invoices & Estimates",
@@ -2340,7 +2353,7 @@ export default function AdminStoreEditPage() {
     "ar-fin-pnl": "Finance — Profit & Loss",
     "ar-fin-tax": "Finance — Tax & Payouts",
     "ar-parts-suppliers": "Parts Suppliers",
-    "ar-dashboard": "Shop Dashboard",
+    "ar-dashboard": "Auto Repair Dashboard",
     "ar-build-ro": "Build R.O.",
     "ar-service-catalog": "Service Catalog",
     "ar-labor-time": "Labor Time Tracking",
@@ -3888,14 +3901,14 @@ export default function AdminStoreEditPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="p-3 rounded-xl bg-muted/40 space-y-2">
-                  <p className="text-xs font-medium">Store URL Preview</p>
+                  <p className="text-xs font-medium">{publicStorePreviewLabel}</p>
                   <div className="flex items-center gap-2">
                     <code className="text-xs font-mono bg-background px-2 py-1 rounded border border-border flex-1 truncate">
-                      zivosmedia.com/store/{form.slug || "your-store"}
+                      {publicStorePreviewUrl.replace(/^https:\/\//, "")}
                     </code>
                     <Button variant="outline" size="sm" className="shrink-0 gap-1 text-xs"
                       onClick={() => {
-                        navigator.clipboard.writeText(`https://zivosmedia.com/store/${form.slug}`);
+                        navigator.clipboard.writeText(publicStoreCopyUrl);
                         toast.success("URL copied");
                       }}
                     >
@@ -3908,7 +3921,7 @@ export default function AdminStoreEditPage() {
                   <Input
                     value={(form as any).seo_title || ""}
                     onChange={e => updateField("seo_title" as any, e.target.value)}
-                    placeholder={`${form.name} — ZIVO Store`}
+                    placeholder={seoTitlePlaceholder}
                     maxLength={60}
                   />
                   <p className="text-[10px] text-muted-foreground">{((form as any).seo_title || "").length}/60 characters</p>

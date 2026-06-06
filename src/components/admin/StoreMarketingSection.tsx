@@ -43,6 +43,7 @@ import UnifiedPerformancePanel from "./marketing/UnifiedPerformancePanel";
 import PromoCodesManager from "./marketing/PromoCodesManager";
 import MarketingOverviewHeader from "./marketing/MarketingOverviewHeader";
 import { useStoreMarketingOverview } from "@/hooks/useStoreMarketingOverview";
+import { isAutoRepairSoftwareHost, ZIVO_MEDIA_ORIGIN, ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
 
 interface Props {
   storeId: string;
@@ -128,14 +129,14 @@ function parseHashtags(value: string): string[] {
     .slice(0, 12);
 }
 
-function servicePostTemplates(category: string | undefined, name: string): PostTemplate[] {
+function servicePostTemplates(category: string | undefined, name: string, pageLabel = "store page", localAutoHashtag = "localshop"): PostTemplate[] {
   if (category === "auto-repair") {
     return [
       {
         id: "oil-change",
         label: "Oil change special",
         caption: `${name} has oil change appointments open this week. Keep your engine protected with fresh oil, filter check, and a quick courtesy inspection. Book your spot today.`,
-        hashtags: "oilchange, autorepair, carcare, localshop",
+        hashtags: `oilchange, autorepair, carcare, ${localAutoHashtag}`,
         objective: "traffic",
         audience: "local",
         daily_budget: 8,
@@ -198,7 +199,7 @@ function servicePostTemplates(category: string | undefined, name: string): PostT
     {
       id: "customer-reminder",
       label: "Customer reminder",
-      caption: `Need help this week? ${name} is ready. Message us, book a time, or visit our store page to get started.`,
+      caption: `Need help this week? ${name} is ready. Message us, book a time, or visit our ${pageLabel} to get started.`,
       hashtags: "customercare, booking, localservice",
       objective: "messages",
       audience: "followers",
@@ -372,9 +373,41 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
   const slug = storeSlug || storeProfile?.slug || "";
   const name = storeName || storeProfile?.name || "Store";
   const isAutoRepair = storeCategory === "auto-repair";
-  const storeUrl = slug ? `https://zivosmedia.com/store/${slug}` : "";
-  const bookingUrl = slug ? `https://zivosmedia.com/book/${slug}` : "";
-  const postTemplates = useMemo(() => servicePostTemplates(storeCategory, name), [storeCategory, name]);
+  const publicOrigin =
+    isAutoRepair && typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname)
+      ? ZIVO_SOFTWARE_ORIGIN
+      : ZIVO_MEDIA_ORIGIN;
+  const isAutoRepairSoftwareDomain = isAutoRepair && publicOrigin === ZIVO_SOFTWARE_ORIGIN;
+  const storeUrl = slug ? `${publicOrigin}/store/${slug}` : "";
+  const bookingUrl = slug ? `${publicOrigin}/book/${slug}` : "";
+  const businessPageLabel = isAutoRepairSoftwareDomain ? "Business Page URL" : "Store URL";
+  const qrVisitLabel = isAutoRepairSoftwareDomain ? "Scan to visit business page" : "Scan to visit store";
+  const shareCardTitle = isAutoRepairSoftwareDomain ? "Share Business Page" : "Share Your Store";
+  const embedHelpText = isAutoRepairSoftwareDomain
+    ? "Add this HTML to your website to link to your ZIVO business page:"
+    : "Add this HTML to your website to link to your ZIVO store:";
+  const embedLinkText = isAutoRepairSoftwareDomain ? "View our ZIVO business page" : "Visit us on ZIVO";
+  const qrDialogTitle = isAutoRepairSoftwareDomain ? "Business Page QR Code" : "Store QR Code";
+  const qrDownloadSlug = slug || (isAutoRepairSoftwareDomain ? "business-page" : "store");
+  const copyBusinessPageActionLabel = isAutoRepairSoftwareDomain ? "Copy Business Page" : "Copy Store Link";
+  const postsTitle = isAutoRepairSoftwareDomain ? "Business Page Posts" : "Store Posts";
+  const postQueueDescription = isAutoRepairSoftwareDomain
+    ? "Auto-post and boost every business page post from one queue."
+    : "Auto-post and boost every store post from one queue.";
+  const trafficObjectiveLabel = isAutoRepairSoftwareDomain ? "Traffic to my business page" : "Traffic to my store";
+  const localAudienceLabel = isAutoRepairSoftwareDomain ? "Local — near my business" : "Local — near my store";
+  const automationWorkflowText = isAutoRepairSoftwareDomain
+    ? "Service post automation is prepared around the software workflow."
+    : "Service post automation is prepared around the shop workflow.";
+  const postTemplatePageLabel = isAutoRepairSoftwareDomain ? "business page" : "store page";
+  const autoRepairLocalHashtag = isAutoRepairSoftwareDomain ? "localauto" : "localshop";
+  const shareMessage = isAutoRepairSoftwareDomain
+    ? `${name} business page: ${storeUrl}`
+    : `Check out ${name} on ZIVO!`;
+  const postTemplates = useMemo(
+    () => servicePostTemplates(storeCategory, name, postTemplatePageLabel, autoRepairLocalHashtag),
+    [storeCategory, name, postTemplatePageLabel, autoRepairLocalHashtag],
+  );
   const serviceWorkflowLabel = isAutoRepair ? "Auto repair workflow" : "Service workflow";
 
   /* ───── Analytics computed from posts ───── */
@@ -692,9 +725,9 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   <QrCode className="w-5 h-5 text-primary" />
                   Get QR Code
                 </Button>
-                <Button variant="outline" className="h-auto py-3 flex-col gap-1.5 text-xs" onClick={() => storeUrl && copyToClipboard(storeUrl, "Store link")}>
+                <Button variant="outline" className="h-auto py-3 flex-col gap-1.5 text-xs" onClick={() => storeUrl && copyToClipboard(storeUrl, businessPageLabel)}>
                   <Link2 className="w-5 h-5 text-primary" />
-                  Copy Store Link
+                  {copyBusinessPageActionLabel}
                 </Button>
                 <Button variant="outline" className="h-auto py-3 flex-col gap-1.5 text-xs" onClick={() => setActiveSubTab("posts")}>
                   <ImageIcon className="w-5 h-5 text-primary" />
@@ -918,7 +951,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         <TabsContent value="posts" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold">Store Posts</h3>
+              <h3 className="text-sm font-semibold">{postsTitle}</h3>
               <p className="text-xs text-muted-foreground">{posts.length} posts</p>
             </div>
             <Button size="sm" onClick={openCreatePost} className="gap-1.5">
@@ -933,7 +966,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   <h4 className="text-sm font-semibold flex items-center gap-2">
                     <Rocket className="w-4 h-4 text-primary" /> {serviceWorkflowLabel}
                   </h4>
-                  <p className="text-xs text-muted-foreground">Auto-post and boost every store post from one queue.</p>
+                  <p className="text-xs text-muted-foreground">{postQueueDescription}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="rounded-lg border px-3 py-2">
@@ -1045,7 +1078,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   <h4 className="text-sm font-semibold flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" /> Automation setup
                   </h4>
-                  <p className="text-xs text-muted-foreground">Service post automation is prepared around the shop workflow.</p>
+                  <p className="text-xs text-muted-foreground">{automationWorkflowText}</p>
                 </div>
                 <Badge variant="secondary" className="text-[10px] shrink-0">
                   {[
@@ -1212,7 +1245,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         <TabsContent value="share" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2"><Share2 className="w-4 h-4 text-primary" /> Share Your Store</CardTitle>
+              <CardTitle className="text-sm flex items-center gap-2"><Share2 className="w-4 h-4 text-primary" /> {shareCardTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Booking Link (auto-repair) */}
@@ -1236,12 +1269,12 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                 </div>
               )}
 
-              {/* Store URL */}
+              {/* Public URL */}
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Store URL</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">{businessPageLabel}</Label>
                 <div className="flex gap-2">
                   <Input value={storeUrl || "Loading..."} readOnly className="text-xs font-mono bg-muted" />
-                  <Button variant="outline" size="sm" onClick={() => storeUrl && copyToClipboard(storeUrl, "Store URL")} className="shrink-0 gap-1.5">
+                  <Button variant="outline" size="sm" onClick={() => storeUrl && copyToClipboard(storeUrl, businessPageLabel)} className="shrink-0 gap-1.5">
                     <Copy className="w-3.5 h-3.5" /> Copy
                   </Button>
                   {storeUrl && (
@@ -1254,7 +1287,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
               {/* QR Code */}
               <div className="flex flex-col items-center py-6 border rounded-xl bg-muted/30">
-                <p className="text-xs font-medium text-muted-foreground mb-3">Scan to visit store</p>
+                <p className="text-xs font-medium text-muted-foreground mb-3">{qrVisitLabel}</p>
                 {storeUrl ? (
                   <div className="bg-white p-4 rounded-xl shadow-sm">
                     <QRCodeCanvas value={storeUrl} size={180} level="H" includeMargin={false} />
@@ -1269,7 +1302,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   const canvas = document.querySelector("canvas");
                   if (canvas) {
                     const link = document.createElement("a");
-                    link.download = `${slug || "store"}-qr.png`;
+                    link.download = `${qrDownloadSlug}-qr.png`;
                     link.href = canvas.toDataURL();
                     link.click();
                     toast.success("QR code downloaded");
@@ -1285,8 +1318,8 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                 <div className="grid grid-cols-4 gap-2">
                   {[
                     { label: "Facebook", url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(storeUrl)}`, bg: "bg-blue-600 hover:bg-blue-700 text-white" },
-                    { label: "Twitter/X", url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(storeUrl)}&text=${encodeURIComponent(`Check out ${name} on ZIVO!`)}`, bg: "bg-foreground hover:bg-foreground/90 text-background" },
-                    { label: "WhatsApp", url: `https://wa.me/?text=${encodeURIComponent(`${name}: ${storeUrl}`)}`, bg: "bg-emerald-600 hover:bg-emerald-700 text-white" },
+                    { label: "Twitter/X", url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(storeUrl)}&text=${encodeURIComponent(shareMessage)}`, bg: "bg-foreground hover:bg-foreground/90 text-background" },
+                    { label: "WhatsApp", url: `https://wa.me/?text=${encodeURIComponent(shareMessage)}`, bg: "bg-emerald-600 hover:bg-emerald-700 text-white" },
                     { label: "Telegram", url: `https://t.me/share/url?url=${encodeURIComponent(storeUrl)}&text=${encodeURIComponent(name)}`, bg: "bg-sky-500 hover:bg-sky-600 text-white" },
                   ].map(s => (
                     <Button key={s.label} className={`text-xs h-9 ${s.bg}`} onClick={() => window.open(s.url, "_blank", "width=600,height=400")}>
@@ -1304,14 +1337,14 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               <CardTitle className="text-sm flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Embed on Your Website</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground mb-2">Add this HTML to your website to link to your ZIVO store:</p>
+              <p className="text-xs text-muted-foreground mb-2">{embedHelpText}</p>
               <div className="relative">
                 <pre className="text-[11px] bg-muted rounded-lg p-3 overflow-x-auto font-mono text-foreground">
 {`<a href="${storeUrl}" target="_blank" rel="noopener">
-  Visit us on ZIVO
+  ${embedLinkText}
 </a>`}
                 </pre>
-                <Button size="icon" variant="ghost" className="absolute top-1.5 right-1.5 h-7 w-7" onClick={() => copyToClipboard(`<a href="${storeUrl}" target="_blank" rel="noopener">Visit us on ZIVO</a>`, "Embed code")}>
+                <Button size="icon" variant="ghost" className="absolute top-1.5 right-1.5 h-7 w-7" onClick={() => copyToClipboard(`<a href="${storeUrl}" target="_blank" rel="noopener">${embedLinkText}</a>`, "Embed code")}>
                   <Copy className="w-3 h-3" />
                 </Button>
               </div>
@@ -1440,7 +1473,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
       <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
         <DialogContent className="max-w-sm text-center">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-center gap-2"><QrCode className="w-5 h-5 text-primary" /> Store QR Code</DialogTitle>
+            <DialogTitle className="flex items-center justify-center gap-2"><QrCode className="w-5 h-5 text-primary" /> {qrDialogTitle}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center py-4">
             {storeUrl ? (
@@ -1455,14 +1488,14 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
             <p className="text-sm font-semibold mt-3">{name}</p>
             <p className="text-[11px] text-muted-foreground">{storeUrl}</p>
             <div className="flex gap-2 mt-4">
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => storeUrl && copyToClipboard(storeUrl, "URL")}>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => storeUrl && copyToClipboard(storeUrl, businessPageLabel)}>
                 <Copy className="w-3.5 h-3.5" /> Copy Link
               </Button>
               <Button size="sm" className="gap-1.5" onClick={() => {
                 const canvas = document.querySelector("canvas");
                 if (canvas) {
                   const link = document.createElement("a");
-                  link.download = `${slug || "store"}-qr.png`;
+                  link.download = `${qrDownloadSlug}-qr.png`;
                   link.href = canvas.toDataURL();
                   link.click();
                   toast.success("QR downloaded");
@@ -1686,7 +1719,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   <SelectContent>
                     <SelectItem value="reach">More views & reach</SelectItem>
                     <SelectItem value="engagement">More likes & comments</SelectItem>
-                    <SelectItem value="traffic">Traffic to my store</SelectItem>
+                    <SelectItem value="traffic">{trafficObjectiveLabel}</SelectItem>
                     <SelectItem value="messages">More messages</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1699,7 +1732,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                   <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="broad">Broad — anyone interested</SelectItem>
-                    <SelectItem value="local">Local — near my store</SelectItem>
+                    <SelectItem value="local">{localAudienceLabel}</SelectItem>
                     <SelectItem value="followers">My followers & similar</SelectItem>
                   </SelectContent>
                 </Select>

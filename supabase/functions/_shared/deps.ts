@@ -12,7 +12,7 @@
  * 4. For Stripe, import separately to avoid bundling it in non-Stripe functions:
  *      import Stripe from "../_shared/stripe.ts";
  * 5. Local verification before deploy:
- *      deno check supabase/functions/**\/*.ts
+ *      deno check the Edge Function TypeScript files before deploy.
  *    See supabase/functions/_shared/README.md.
  */
 

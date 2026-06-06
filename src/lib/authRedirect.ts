@@ -1,4 +1,5 @@
 import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
+import { ZIVO_DRIVER_HOME_PATH, isZivoDriverHost } from "@/config/zivoDriverDomain";
 import {
   AUTO_REPAIR_DASHBOARD_PATH,
   AUTO_REPAIR_STORE_ID,
@@ -20,6 +21,8 @@ const TRUSTED_ZIVO_AUTH_HOSTS = new Set([
   "www.zivoschat.com",
   "zivosoftware.com",
   "www.zivosoftware.com",
+  "zivodriver.com",
+  "www.zivodriver.com",
 ]);
 
 const WORKSPACE_REDIRECTS: Record<string, string> = {
@@ -45,7 +48,7 @@ const isTrustedZivoAuthHost = (hostname: string) =>
   TRUSTED_ZIVO_AUTH_HOSTS.has(hostname.toLowerCase());
 
 const authFallbackForHost = (hostname: string) =>
-  isZivoChatHost(hostname) ? ZIVO_CHAT_HOME_PATH : "/";
+  isZivoChatHost(hostname) ? ZIVO_CHAT_HOME_PATH : isZivoDriverHost(hostname) ? ZIVO_DRIVER_HOME_PATH : "/";
 
 export const getSafeRedirectTargetForHost = (
   value?: string | null,
@@ -86,6 +89,10 @@ export const getSafeRedirectTargetForHost = (
       if (isTrustedZivoBridge) {
         if (isZivoChatHost(currentHost)) {
           return ZIVO_CHAT_HOME_PATH;
+        }
+
+        if (isZivoDriverHost(currentHost)) {
+          return ZIVO_DRIVER_HOME_PATH;
         }
 
         if (isAutoRepairSoftwareHost(currentHost) && isLegacySoftwareMediaDashboardUrl(url)) {

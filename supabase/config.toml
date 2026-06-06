@@ -1,4 +1,4 @@
-project_id = "ydxztoresbdeoeijhxww"
+project_id = "slirphzzwcogdbkeicff"
 
 [functions]
   [functions.notify-dispatch]
@@ -166,4 +166,6 @@ project_id = "ydxztoresbdeoeijhxww"
   [functions.capture-bus-payment]
     verify_jwt = true
   [functions.software-media-handoff]
+    verify_jwt = false
+  [functions.zivo-domain-summary]
     verify_jwt = false

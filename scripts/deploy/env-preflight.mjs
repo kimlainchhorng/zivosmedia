@@ -165,6 +165,15 @@ const publishableKey = validatePublishableKey("VITE_SUPABASE_PUBLISHABLE_KEY", {
 const zivoSoftwarePublishableKey = validatePublishableKey("VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY", {
   required: requireSoftwareDomain,
 });
+const zivoDriverBridgePublishableKey = validatePublishableKey("ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY", {
+  required: strict,
+});
+const zivoTravelBridgePublishableKey = validatePublishableKey("ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY", {
+  required: strict,
+});
+const zivoSoftwareBridgePublishableKey = validatePublishableKey("ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY", {
+  required: strict,
+});
 
 for (const [name, value] of Object.entries(process.env)) {
   if (!name.startsWith("VITE_")) continue;
@@ -224,6 +233,11 @@ const summary = {
     viteSupabaseUrl: Boolean(viteSupabaseUrl),
     zivoSoftwareSupabaseUrl: Boolean(zivoSoftwareSupabaseUrl),
     zivoSoftwarePublishableKey: Boolean(zivoSoftwarePublishableKey),
+    zivoDomainSummaryBridgeKeys: Boolean(
+      zivoDriverBridgePublishableKey &&
+      zivoTravelBridgePublishableKey &&
+      zivoSoftwareBridgePublishableKey,
+    ),
     zivoSoftwareDomainRequired: requireSoftwareDomain,
     backendSupabaseUrl: Boolean(backendSupabaseUrl),
     publishableKey: Boolean(publishableKey),

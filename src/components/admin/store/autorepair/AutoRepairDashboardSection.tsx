@@ -153,7 +153,7 @@ export default function AutoRepairDashboardSection({ storeId, onNavigate }: Prop
         <div className="flex items-center gap-2">
           <LayoutDashboard className="w-5 h-5 text-primary" />
           <div>
-            <h2 className="text-base font-semibold">Shop Dashboard</h2>
+            <h2 className="text-base font-semibold">Auto Repair Dashboard</h2>
             <p className="text-xs text-muted-foreground">{format(new Date(), "EEEE, MMMM d, yyyy")}</p>
           </div>
         </div>
