@@ -19,6 +19,10 @@ Brief for AI coding agents (Codex, Claude Code, etc.) working in this repo. Read
 - `xbllvmpomorawkcrtbcq` ("Zivo Travel") — travel-site **telemetry/config only** (auth disabled). Accessed via `src/integrations/supabase/travelClient.ts`.
 - `ydxztoresbdeoeijhxww` ("Zivo software") — zivosoftware.com backend.
 - Live DB has **drifted** from repo migrations — read live objects (via Supabase MCP) before schema changes.
+- `yiedlgoxwjmansszdypf` ("Zivo Driver") — zivodriver.com backend (new).
+
+## Multi-domain federation (LOCKED architecture — read `docs/zivo-multidomain-architecture.md`)
+7 domains, each owns its vertical on its OWN Supabase project; **zivosmedia.com = all-in-one aggregator + identity authority**. Owner-locked: **(1) ONE ZIVO account across all domains** — auth ALWAYS on the main project; per-domain projects trust it via the SAME JWT secret + **claims-based RLS** (`auth.uid()`, not local `auth.users`); client becomes a **dual client** (auth=main, data=per-domain via supabase-js `accessToken`). **(2) per-domain data, federated** to zivosmedia. Map: travel→`xbllv`, software→`ydxz`, driver→`yiedl`, main→`slirph`. **Pilot order: Driver → Travel → Software → aggregation.** Guardrail: do NOT flip a domain's data routing until its project has schema + data + the shared JWT secret; back up before any data move; keep payments central on `slirph` initially. This supersedes the earlier "travel stays on shared backend" stance.
 
 ## Guardrails (important)
 - **Live data + live Stripe key.** `src/lib/stripe.ts` holds a `pk_live` key; checkout charges are real. Don't run end-to-end payment tests casually; never expose secrets.
@@ -87,6 +91,6 @@ Coordinate here; re-check `git status` before editing a shared page.
 
 **Site-wide travel shell (make ALL pages look travel on zivostravel.com):** the generic zivosmedia shell currently leaks onto travel pages. Progress/TODO:
 - ✅ `GlobalDesktopNav` now returns null on the travel host (no Feed/Reels/Chat social nav on zivostravel.com; travel pages render their own header).
-- **TODO (Codex / App.tsx lane): mount `<ZivoTravel3DProvider>` at the app root** so the `.zivo-travel-3d` scope activates on EVERY travel page (it's currently mounted nowhere, so the theme scope never turns on site-wide). It's a no-op off the travel host, so safe to wrap the whole app.
+- ✅ DONE: `<ZivoTravel3DProvider />` is mounted at the app root (`src/App.tsx`, beside the host gates). On the travel host it adds the `.zivo-travel-3d` scope to `<html>` site-wide AND runs a **title guard** (rewrites "ZIVO …" → "Zivo Travel …" in document titles, so utility pages like Wallet/My Trips get travel tab/SEO titles). No-op off the travel host. Also `Header.tsx`, `home/NavBar.tsx`, and `Footer.tsx` are now travel-host-aware (ZIVO TRAVEL / Zivo Travel branding).
 - TODO: hide/replace the mobile zivosmedia nav (`AppLayout`/bottom nav) on the travel host too.
 - TODO: travel-style shared utility pages (My Trips, Wallet, Payment Methods) via `.zivo-travel-3d`-scoped CSS once the provider is mounted.

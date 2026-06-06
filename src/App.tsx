@@ -136,6 +136,7 @@ import {
   isZivoTravelPath,
   ZIVO_TRAVEL_HOME_PATH,
 } from "@/config/zivoTravelDomain";
+import { ZivoTravel3DProvider } from "@/components/zivo-travel/ZivoTravel3DProvider";
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
@@ -1570,6 +1571,7 @@ const App = () => (
                 <ZivoChatHostGate />
                 <ZivoSoftwareHostGate />
                 <ZivoTravelHostGate />
+                <ZivoTravel3DProvider />
                 <RoutePerfTracker />
                 <NativeDeepLinkHandler />
                 <OTAUpdateBootstrap />

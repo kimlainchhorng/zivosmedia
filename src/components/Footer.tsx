@@ -14,6 +14,7 @@ import {
   MapPin,
 } from "lucide-react";
 import ZivoLogo from "./ZivoLogo";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Capacitor } from "@capacitor/core";
@@ -90,10 +91,22 @@ const Footer = ({ className }: { className?: string }) => {
   // are nonsensical — so render nothing on native.
   if (Capacitor.isNativePlatform()) return null;
 
+  // On the Zivo Travel host, rebrand the footer and drop non-travel sub-brands.
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const brand = isTravel ? "Zivo Travel" : "ZIVO";
+  const sections = isTravel
+    ? footerSections.map((s) => ({
+        ...s,
+        links: s.links
+          .filter((l) => !["ZIVO Rides", "ZIVO Eats", "Become a Driver"].includes(l.name))
+          .map((l) => (l.name === "About ZIVO" ? { ...l, name: "About Zivo Travel" } : l)),
+      }))
+    : footerSections;
+
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   const handleAppStore = (store: string) => {
-    toast("Coming soon!", { description: `The ZIVO ${store} app is launching soon.`, duration: 3000 });
+    toast("Coming soon!", { description: `The ${brand} ${store} app is launching soon.`, duration: 3000 });
   };
 
   return (
@@ -111,7 +124,17 @@ const Footer = ({ className }: { className?: string }) => {
           {/* Brand column */}
           <div className="lg:col-span-4 space-y-5">
             <Link to="/" className="inline-flex min-h-[40px] items-center touch-manipulation">
-              <ZivoLogo size="md" />
+              {isTravel ? (
+                <span className="flex items-center gap-2">
+                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-xl font-black text-white">Z</span>
+                  <span className="text-xl font-black tracking-tight">
+                    <span className="text-primary-foreground">ZIVO </span>
+                    <span className="bg-gradient-to-r from-emerald-300 to-sky-300 bg-clip-text text-transparent">TRAVEL</span>
+                  </span>
+                </span>
+              ) : (
+                <ZivoLogo size="md" />
+              )}
             </Link>
             <p className="text-sm text-primary-foreground/40 max-w-xs leading-relaxed">
               Book flights, hotels, and car rentals with transparent pricing and secure checkout. Your next adventure starts here.
@@ -153,7 +176,7 @@ const Footer = ({ className }: { className?: string }) => {
 
           {/* Link columns */}
           <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-8">
-            {footerSections.map((section) => (
+            {sections.map((section) => (
               <div key={section.title}>
                 <h4 className="font-semibold text-sm mb-4 text-primary-foreground/80 flex items-center gap-2">
                   <section.icon className="w-3.5 h-3.5 text-primary/70" />
@@ -195,7 +218,7 @@ const Footer = ({ className }: { className?: string }) => {
         <div className="py-8 border-t border-primary-foreground/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-primary-foreground/40 flex items-center gap-1.5">
-              © {new Date().getFullYear()} ZIVO LLC. Made with{" "}
+              © {new Date().getFullYear()} {isTravel ? "Zivo Travel — a ZIVO LLC company" : "ZIVO LLC"}. Made with{" "}
               <Heart className="w-3.5 h-3.5 text-primary fill-primary" /> for travelers.
             </p>
 
@@ -211,7 +234,7 @@ const Footer = ({ className }: { className?: string }) => {
           {/* OTA Disclosure */}
           <div className="mt-6 pt-6 border-t border-primary-foreground/5 text-center space-y-2">
             <p className="text-xs text-primary-foreground/25 max-w-2xl mx-auto">
-              ZIVO is an online travel agency. ZIVO processes payments and issues travel services using authorized suppliers.
+              {brand} is an online travel agency. {brand} processes payments and issues travel services using authorized suppliers.
             </p>
             <p className="text-xs text-primary-foreground/20 max-w-2xl mx-auto flex items-center justify-center gap-1.5">
               <CheckCircle2 className="w-3 h-3 text-primary/60" /> Registered Seller of Travel where required. CA SOT: pending · FL SOT: pending

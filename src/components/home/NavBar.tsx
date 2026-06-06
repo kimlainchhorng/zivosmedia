@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ZivoLogo from "@/components/ZivoLogo";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { cn } from "@/lib/utils";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,6 +61,7 @@ import { resolvePublicBusinessPageRoute } from "@/lib/business/dashboardRoute";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Bell from "lucide-react/dist/esm/icons/bell";
+import Bus from "lucide-react/dist/esm/icons/bus";
 import { useNotifications } from "@/hooks/useNotifications";
 
 const serviceNavItems = [
@@ -72,6 +74,14 @@ const directNavItems = [
   { label: "Feed", href: "/feed", icon: Newspaper, cssVar: "var(--flights)" },
   { label: "Reels", href: "/reels", icon: Film, cssVar: "var(--eats)" },
   { label: "Chat", href: "/chat", icon: MessageCircle, cssVar: "var(--rides)" },
+];
+
+// On zivostravel.com the top nav shows travel services instead of the social pills.
+const travelNavItems = [
+  { label: "Flights", href: "/flights", icon: Plane, cssVar: "var(--flights)" },
+  { label: "Hotels", href: "/hotels", icon: Hotel, cssVar: "var(--hotels)" },
+  { label: "Cars", href: "/cars", icon: CarFront, cssVar: "var(--cars)" },
+  { label: "Bus", href: "/bus", icon: Bus, cssVar: "var(--rides)" },
 ];
 
 const communityNavItems = [
@@ -99,6 +109,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
   const { isActive: isMember } = useMembership();
   const { data: ownerStores = [] } = useOwnerStores();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -238,7 +249,17 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                 whileTap={{ scale: 0.95 }}
                 style={{ transformStyle: "preserve-3d" }}
               >
-                <ZivoLogo size="sm" />
+                {isTravel ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-base font-black text-white">Z</span>
+                    <span className="text-base font-black tracking-tight">
+                      <span className="text-foreground">ZIVO</span>{" "}
+                      <span className="bg-gradient-to-r from-emerald-400 to-sky-500 bg-clip-text text-transparent">TRAVEL</span>
+                    </span>
+                  </span>
+                ) : (
+                  <ZivoLogo size="sm" />
+                )}
               </motion.div>
 
               {/* Center: Page title + nav pills */}
@@ -249,7 +270,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
               >
 
                 {/* Direct nav pills: Feed, Reels */}
-                {directNavItems.map((item) => {
+                {(isTravel ? travelNavItems : directNavItems).map((item) => {
                   const isActive = location.pathname.startsWith(item.href);
                   const targetPath = item.label === "Chat" && !user ? withRedirectParam("/login", "/chat") : item.href;
                   return (

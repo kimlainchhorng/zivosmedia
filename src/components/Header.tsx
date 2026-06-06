@@ -13,6 +13,7 @@ import {
 import MobileNavMenu from "./navigation/MobileNavMenu";
 import { cn } from "@/lib/utils";
 import ZivoLogo from "./ZivoLogo";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import CurrencySelector from "./shared/CurrencySelector";
 import BetaBadge from "./shared/BetaBadge";
 
@@ -54,6 +55,7 @@ const Header = () => {
   const { data: supportedLanguages } = useSupportedLanguages(true);
   const activeLanguages = (supportedLanguages || []).filter(l => l.is_active);
   const currentLangData = activeLanguages.find(l => l.code === currentLanguage);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
 
   return (
     <>
@@ -68,7 +70,17 @@ const Header = () => {
                 className="cursor-pointer transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]" 
                 onClick={() => navigate("/")}
               >
-                <ZivoLogo size="sm" />
+                {isTravel ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-base font-black text-white">Z</span>
+                    <span className="text-base font-black tracking-tight">
+                      <span className="text-foreground">ZIVO</span>{" "}
+                      <span className="bg-gradient-to-r from-emerald-400 to-sky-500 bg-clip-text text-transparent">TRAVEL</span>
+                    </span>
+                  </span>
+                ) : (
+                  <ZivoLogo size="sm" />
+                )}
               </div>
               <BetaBadge variant="compact" className="hidden sm:flex" />
             </div>
