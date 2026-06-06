@@ -427,6 +427,13 @@ const launchLayers = [
   { label: "Bus", icon: Bus, color: "text-orange-600", bg: "bg-orange-100/80" },
 ];
 
+const appHandoffSteps = [
+  { label: "Web booking", value: "Search and reserve on zivostravel.com", icon: Globe2, tone: "from-sky-400/30 to-cyan-300/10" },
+  { label: "App trip sync", value: "Trips stay ready for mobile check-in", icon: Luggage, tone: "from-violet-400/30 to-fuchsia-300/10" },
+  { label: "Wallet receipt", value: "Payment, refunds, and credits stay attached", icon: WalletCards, tone: "from-emerald-400/30 to-lime-300/10" },
+  { label: "Partner payout", value: "Operators can track settlement and cash-out", icon: Landmark, tone: "from-orange-400/30 to-rose-300/10" },
+];
+
 function getTravelSessionId() {
   const key = "zivo_travel_session_id";
   try {
@@ -1161,6 +1168,62 @@ function TravelConfidenceBand() {
             );
           })}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function AppHandoffPanel() {
+  return (
+    <section className="relative overflow-hidden border-t border-white/10 bg-[#06111e] px-4 py-16 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 bg-cover bg-center opacity-[0.18]" style={{ backgroundImage: `url(${ambientImage})` }} aria-hidden />
+      <div className="absolute inset-0 bg-[#06111e]/88" aria-hidden />
+      <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+        <Reveal>
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-xs font-black uppercase tracking-wide text-emerald-200">
+            <ShieldCheck className="h-4 w-4" />
+            Web + app handoff
+          </span>
+          <h2 className="mt-5 text-4xl font-black leading-none text-white sm:text-5xl">Book on web. Continue in the app.</h2>
+          <p className="mt-5 max-w-xl text-lg leading-8 text-zinc-300">
+            Zivo Travel keeps the customer trip connected across website, app, wallet, support, and partner payout so the booking does not feel split across systems.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to="/my-trips" className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_18px_38px_rgba(16,185,129,0.28)] transition hover:bg-emerald-400">
+              Open trips
+            </Link>
+            <Link to="/wallet" className="rounded-full border border-white/20 px-6 py-3 text-sm font-black text-white transition hover:border-white">
+              Wallet & cash-out
+            </Link>
+          </div>
+        </Reveal>
+
+        <Reveal delay={0.08}>
+          <div className="relative zt-perspective">
+            <div className="absolute left-8 right-8 top-1/2 h-px bg-gradient-to-r from-transparent via-emerald-300/60 to-transparent" aria-hidden />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {appHandoffSteps.map((step, i) => {
+                const Icon = step.icon;
+                return (
+                  <ScrollTurn key={step.label} rotate={i % 2 === 0 ? 7 : -7} lift={28}>
+                    <div className="relative h-full overflow-hidden rounded-[1.7rem] border border-white/12 bg-white/[0.07] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.34)] backdrop-blur-xl">
+                      <div className={cn("absolute inset-0 bg-gradient-to-br", step.tone)} aria-hidden />
+                      <div className="relative flex h-full min-h-44 flex-col justify-between">
+                        <span className="grid h-14 w-14 place-items-center rounded-2xl border border-white/15 bg-white/[0.14] text-white">
+                          <Icon className="h-6 w-6" />
+                        </span>
+                        <span className="mt-7 block">
+                          <span className="block text-xs font-black uppercase tracking-wide text-emerald-200">{step.label}</span>
+                          <span className="mt-2 block text-xl font-black leading-tight text-white">{step.value}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </ScrollTurn>
+                );
+              })}
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -1909,6 +1972,8 @@ export default function ZivoTravelHome() {
       </section>
 
       <JourneyCommandDeck />
+
+      <AppHandoffPanel />
 
       <TravelConfidenceBand />
 
