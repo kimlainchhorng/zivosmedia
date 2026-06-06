@@ -22,7 +22,6 @@ import {
   ChevronRight,
   Code2,
   CreditCard,
-  Database,
   Globe2,
   Headphones,
   Hotel,
@@ -31,13 +30,10 @@ import {
   LockKeyhole,
   Luggage,
   MapPin,
-  MousePointer2,
   Plane,
   ReceiptText,
-  RefreshCw,
   Route,
   Search,
-  ServerCog,
   ShieldCheck,
   TrendingUp,
   Users,
@@ -63,7 +59,6 @@ import { ZIVO_MEDIA_ORIGIN } from "@/config/autoRepairDomain";
 import { cn } from "@/lib/utils";
 import {
   HorizontalRail,
-  Parallax,
   ScrollTurn,
   TiltCard as TravelTiltCard,
 } from "@/components/zivo-travel/scroll3d";
@@ -210,6 +205,37 @@ const quickActions = [
   { title: "Support", body: "Help before, during, and after travel.", icon: Headphones, href: "/support", tone: "bg-orange-100 text-orange-700" },
 ];
 
+const travelAssurance = [
+  {
+    title: "Clear tickets",
+    body: "Every booking keeps the route, traveler, payment status, and receipt in one place.",
+    icon: ReceiptText,
+    href: "/my-trips",
+    tone: "from-sky-100 to-cyan-50 text-sky-700",
+  },
+  {
+    title: "Secure checkout",
+    body: "Pay with a familiar checkout path and keep receipts ready for changes or refunds.",
+    icon: ShieldCheck,
+    href: "/travel/checkout",
+    tone: "from-emerald-100 to-lime-50 text-emerald-700",
+  },
+  {
+    title: "Trip wallet",
+    body: "Cards, credits, receipts, and partner cash-out stay easy to find after checkout.",
+    icon: WalletCards,
+    href: "/wallet",
+    tone: "from-violet-100 to-fuchsia-50 text-violet-700",
+  },
+  {
+    title: "Real support",
+    body: "Help is visible before booking, during travel, and after the trip is complete.",
+    icon: Headphones,
+    href: "/support",
+    tone: "from-orange-100 to-amber-50 text-orange-700",
+  },
+];
+
 const serviceShowcase = [
   {
     service: "Flights",
@@ -244,21 +270,13 @@ const serviceShowcase = [
   {
     service: "Booking bus",
     title: "Seat-first bus flow",
-    body: "Routes, trip seats, promos, payment intent, capture, tickets, and reviews are mapped for cutover.",
+    body: "Routes, seats, promos, tickets, receipts, and reviews stay simple from search to arrival.",
     image: busImage,
     icon: Bus,
     tone: "from-orange-400/30 to-rose-300/10",
     href: "/bus",
-    bullets: ["Bus SQL draft ready", "RLS and RPC checklist", "Payment functions staged"],
+    bullets: ["Pick routes fast", "Choose seats clearly", "Keep tickets in wallet"],
   },
-];
-
-const backendWorkflow = [
-  { label: "Search UI", body: "Zivo Travel form emits the right deep-link keys.", icon: MousePointer2 },
-  { label: "Telemetry", body: "Travel project records search intent only.", icon: Database },
-  { label: "Shared engine", body: "Live booking/payment stays on main backend until cutover.", icon: ServerCog },
-  { label: "Pay + payout", body: "Checkout, wallet, partner cash-out stay connected.", icon: ReceiptText },
-  { label: "Claude + Codex", body: "Docs and scripts keep both agents on the same migration order.", icon: RefreshCw },
 ];
 
 const tripStack = [
@@ -289,6 +307,45 @@ const tripStack = [
     detail: "Seat hold · QR ticket · Promo ready",
     price: "$9",
     layer: "Bus layer",
+  },
+];
+
+const itineraryPreview = [
+  {
+    service: services[0],
+    title: "Air",
+    route: "JFK -> Paris CDG",
+    detail: "Jul 10, round trip",
+    status: "Offer held",
+    price: "$189",
+    href: "/flights?from=JFK&to=CDG&start=2026-07-10&end=2026-07-17&travelers=1",
+  },
+  {
+    service: services[1],
+    title: "Stay",
+    route: "Paris center hotel",
+    detail: "7 nights, flexible",
+    status: "Rooms ready",
+    price: "$518",
+    href: "/hotels?city=Paris&ci=2026-07-10&co=2026-07-17&adults=1",
+  },
+  {
+    service: services[2],
+    title: "Drive",
+    route: "Paris pickup",
+    detail: "EV sedan, insured",
+    status: "Deposit ready",
+    price: "$29/day",
+    href: "/cars?city=Paris&pickup_date=2026-07-10&return_date=2026-07-17",
+  },
+  {
+    service: services[3],
+    title: "Bus",
+    route: "Phnom Penh -> Siem Reap",
+    detail: "Seat hold, QR ticket",
+    status: "Ticket ready",
+    price: "$9",
+    href: "/bus?from=Phnom%20Penh&to=Siem%20Reap&date=2026-07-10",
   },
 ];
 
@@ -323,7 +380,7 @@ const journeyCommand = [
   {
     title: "Partner payout",
     body: "Operators can settle revenue, cash out, and keep booking records tied to the customer trip.",
-    detail: "Backend cutover remains staged behind readiness checks before any dedicated travel project switch.",
+    detail: "Partners can track bookings, see settlement status, and keep service records tied to each trip.",
     icon: Landmark,
     href: "/wallet",
     signal: "Partner",
@@ -621,7 +678,7 @@ function ServiceLayerShowcase() {
         <Reveal className="max-w-3xl">
           <h2 className="text-4xl font-black leading-none sm:text-5xl">Four booking products, one 3D travel layer.</h2>
           <p className="mt-5 text-lg leading-8 text-zinc-400">
-            Each surface keeps its own workflow, pictures, search contract, payment path, and backend readiness notes so Zivo Travel can grow without breaking the shared platform.
+            Each surface keeps its own workflow, pictures, search path, checkout route, and wallet record so Zivo Travel feels simple from the first tap.
           </p>
         </Reveal>
 
@@ -641,7 +698,7 @@ function ServiceLayerShowcase() {
                           <Icon className="h-7 w-7 text-white" />
                         </span>
                         <span className="rounded-full border border-white/15 bg-black/30 px-3 py-1 text-xs font-black uppercase tracking-wide text-white/80 backdrop-blur">
-                          Live layer
+                          Ready to book
                         </span>
                       </div>
                       <div>
@@ -697,6 +754,130 @@ function QuickActionDock() {
           })}
         </div>
       </Reveal>
+    </section>
+  );
+}
+
+function LiveItineraryBoard({ onSelectService }: { onSelectService: (next: number) => void }) {
+  const [active, setActive] = useState(0);
+  const current = itineraryPreview[active] || itineraryPreview[0];
+  const CurrentIcon = current.service.icon;
+
+  const selectLayer = (next: number) => {
+    setActive(next);
+    onSelectService(next);
+  };
+
+  return (
+    <section className="relative overflow-hidden border-y border-slate-900/10 bg-[#f6fbff] px-4 py-14 text-slate-950 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: `url(${beachImage})`, backgroundSize: "cover", backgroundPosition: "center" }} aria-hidden />
+      <div className="absolute inset-0 bg-white/82" aria-hidden />
+      <div className="relative mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+        <Reveal className="max-w-xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-white/78 px-4 py-2 text-xs font-black uppercase tracking-wide text-emerald-700 shadow-sm backdrop-blur">
+            <Layers3 className="h-4 w-4" />
+            Live itinerary
+          </span>
+          <h2 className="mt-5 text-4xl font-black leading-none sm:text-5xl">See the whole booking before checkout.</h2>
+          <p className="mt-5 text-base leading-7 text-slate-600">
+            Zivo Travel keeps each service leg connected so customers can move from search into payment, tickets, wallet, and support without losing the trip context.
+          </p>
+          <div className="mt-7 grid max-w-lg grid-cols-3 gap-3">
+            {[
+              { label: "Services", value: "4" },
+              { label: "Preview total", value: "$745" },
+              { label: "Checkout", value: "Ready" },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-slate-900/10 bg-white/78 p-4 shadow-sm backdrop-blur">
+                <p className="text-2xl font-black">{stat.value}</p>
+                <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-slate-500">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to="/travel/checkout" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-black text-slate-950 shadow-[0_18px_40px_rgba(16,185,129,0.24)] transition hover:-translate-y-0.5 hover:bg-emerald-400">
+              Continue checkout
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link to="/my-trips" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-slate-900/12 bg-white/78 px-5 text-sm font-black text-slate-950 transition hover:-translate-y-0.5">
+              View trips
+              <Luggage className="h-4 w-4" />
+            </Link>
+          </div>
+        </Reveal>
+
+        <Reveal className="relative z-10" delay={0.08}>
+          <div className="grid gap-4 lg:grid-cols-[0.88fr_1.12fr] lg:items-stretch">
+            <div className="grid gap-3">
+              {itineraryPreview.map((item, i) => {
+                const ItemIcon = item.service.icon;
+                const selected = active === i;
+                return (
+                  <button
+                    key={item.title}
+                    type="button"
+                    onClick={() => selectLayer(i)}
+                    className={cn(
+                      "group flex items-center justify-between gap-3 rounded-[1.35rem] border p-4 text-left shadow-sm transition hover:-translate-y-0.5",
+                      selected ? "border-emerald-400/50 bg-white shadow-[0_18px_45px_rgba(16,185,129,0.12)]" : "border-slate-900/10 bg-white/70 hover:bg-white",
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-2xl", selected ? item.service.chip : "bg-slate-100 text-slate-700")}>
+                        <ItemIcon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-black uppercase tracking-wide text-slate-500">{item.title}</span>
+                        <span className="block truncate text-sm font-black text-slate-950">{item.route}</span>
+                      </span>
+                    </span>
+                    <span className="whitespace-nowrap text-sm font-black text-emerald-700">{item.price}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <TravelTiltCard className="relative min-h-[31rem] overflow-hidden rounded-[2rem] border border-white/70 bg-white/76 p-5 shadow-[0_34px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+              <img src={current.service.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-28" loading="lazy" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white via-white/90 to-white/58" aria-hidden />
+              <div className="relative flex min-h-[28rem] flex-col justify-between">
+                <div className="flex items-center justify-between gap-3">
+                  <span className={cn("grid h-14 w-14 place-items-center rounded-2xl text-white shadow-lg", current.service.chip)}>
+                    <CurrentIcon className="h-7 w-7" />
+                  </span>
+                  <span className="rounded-full border border-emerald-500/18 bg-emerald-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-emerald-700">
+                    {current.status}
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-sm font-black uppercase tracking-wide text-emerald-700">{current.title} layer</p>
+                  <h3 className="mt-2 text-4xl font-black leading-none sm:text-5xl">{current.route}</h3>
+                  <p className="mt-3 text-base font-semibold text-slate-600">{current.detail}</p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div className="rounded-[1.35rem] border border-slate-900/10 bg-white/76 p-4">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Wallet record</p>
+                    <div className="mt-3 grid gap-2">
+                      {["Search saved", "Payment ready", "Receipt after checkout"].map((item, i) => (
+                        <div key={item} className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                          <span className={cn("h-2.5 w-2.5 rounded-full", i <= active ? "bg-emerald-500" : "bg-slate-300")} />
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <Link to={current.href} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-black text-slate-950 shadow-[0_18px_36px_rgba(16,185,129,0.28)] transition hover:bg-emerald-400">
+                    Open layer
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            </TravelTiltCard>
+          </div>
+        </Reveal>
+      </div>
     </section>
   );
 }
@@ -804,50 +985,6 @@ function TripStackBuilder({ onSelectService }: { onSelectService: (next: number)
   );
 }
 
-function BackendWorkflowSpine() {
-  return (
-    <section className="relative overflow-hidden border-t border-white/10 bg-[#07111e] px-4 py-16 sm:px-6 lg:px-8">
-      <div className="absolute inset-0 opacity-40" style={{ backgroundImage: `url(${ambientImage})`, backgroundSize: "cover", backgroundPosition: "center" }} aria-hidden />
-      <div className="absolute inset-0 bg-[#07111e]/86" aria-hidden />
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-        <Reveal className="relative z-10">
-          <h2 className="text-4xl font-black leading-none sm:text-5xl">Workflow and backend move together.</h2>
-          <p className="mt-5 text-lg leading-8 text-slate-300">
-            The front door now shows the same operational story we are building in Supabase: search, telemetry, shared live engine, payments, payouts, SEO, and agent handoff.
-          </p>
-          <div className="mt-7 rounded-[1.5rem] border border-emerald-300/20 bg-emerald-300/10 p-4 text-sm font-bold leading-6 text-emerald-100">
-            Dedicated Zivo Travel backend mode stays off until schema, RLS, Edge Functions, secrets, and sandbox smoke tests pass in the target project.
-          </div>
-        </Reveal>
-
-        <div className="relative z-10 zt-perspective">
-          <Parallax distance={55}>
-            <div className="relative rounded-[2rem] border border-white/12 bg-white/[0.06] p-4 shadow-[0_42px_100px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-              <div className="absolute left-8 right-8 top-1/2 h-px bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent" aria-hidden />
-              <div className="grid gap-4 md:grid-cols-5">
-                {backendWorkflow.map((item, i) => {
-                  const Icon = item.icon;
-                  return (
-                    <ScrollTurn key={item.label} rotate={8 - i * 2} lift={30} className="relative">
-                      <div className="relative h-full rounded-[1.4rem] border border-white/10 bg-zinc-950/72 p-4 shadow-xl">
-                        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-emerald-300 to-sky-300 text-zinc-950 shadow-lg">
-                          <Icon className="h-5 w-5" />
-                        </span>
-                        <p className="mt-4 text-sm font-black">{item.label}</p>
-                        <p className="mt-2 text-xs leading-5 text-slate-400">{item.body}</p>
-                      </div>
-                    </ScrollTurn>
-                  );
-                })}
-              </div>
-            </div>
-          </Parallax>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function JourneyCommandDeck() {
   const [active, setActive] = useState(0);
   const current = journeyCommand[active] || journeyCommand[0];
@@ -944,6 +1081,54 @@ function JourneyCommandDeck() {
             </div>
           </div>
         </TravelTiltCard>
+      </div>
+    </section>
+  );
+}
+
+function TravelConfidenceBand() {
+  return (
+    <section className="relative overflow-hidden border-t border-slate-900/10 bg-gradient-to-b from-white to-sky-50/70 px-4 py-16 sm:px-6 lg:px-8">
+      <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-emerald-200/35 blur-3xl" aria-hidden />
+      <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-sky-200/45 blur-3xl" aria-hidden />
+      <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
+        <Reveal>
+          <h2 className="text-4xl font-black leading-none text-slate-950 sm:text-5xl">Book with confidence.</h2>
+          <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+            Zivo Travel should feel easy after the search too: tickets, payment, wallet records, and support stay close to the customer.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to="/my-trips" className="rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-[0_18px_38px_rgba(15,23,42,0.18)] transition hover:bg-slate-800">
+              View my trips
+            </Link>
+            <Link to="/support" className="rounded-full border border-slate-900/15 bg-white px-6 py-3 text-sm font-black text-slate-950 transition hover:border-emerald-400">
+              Get support
+            </Link>
+          </div>
+        </Reveal>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {travelAssurance.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <Reveal key={item.title} delay={i * 0.05}>
+                <Link
+                  to={item.href}
+                  className="group block h-full rounded-[1.7rem] border border-slate-900/10 bg-white/82 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/55"
+                >
+                  <span className={cn("grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br shadow-inner", item.tone)}>
+                    <Icon className="h-6 w-6" />
+                  </span>
+                  <p className="mt-5 flex items-center justify-between gap-3 text-lg font-black text-slate-950">
+                    {item.title}
+                    <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-emerald-600" />
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
+                </Link>
+              </Reveal>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
@@ -1523,6 +1708,8 @@ export default function ZivoTravelHome() {
 
       <QuickActionDock />
 
+      <LiveItineraryBoard onSelectService={selectService} />
+
       <ServiceLayerShowcase />
 
       <TripStackBuilder onSelectService={selectService} />
@@ -1635,7 +1822,7 @@ export default function ZivoTravelHome() {
 
       <JourneyCommandDeck />
 
-      <BackendWorkflowSpine />
+      <TravelConfidenceBand />
 
       {/* Under Zivos Media */}
       <section className="relative overflow-hidden border-t border-white/10 px-4 py-20 sm:px-6 lg:px-8">
