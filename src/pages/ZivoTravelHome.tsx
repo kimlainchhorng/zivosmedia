@@ -448,6 +448,19 @@ const connectionRail = [
   { label: "Payout", value: "Partner settlement + cash-out", icon: Landmark },
 ];
 
+const moneyFlowSteps = [
+  { label: "Customer checkout", value: "Secure payment starts the booking record.", icon: CreditCard, tone: "linear-gradient(135deg, rgba(110,231,183,0.34), rgba(190,242,100,0.10))" },
+  { label: "Trip receipt", value: "Tickets, invoices, and support details stay in wallet.", icon: ReceiptText, tone: "linear-gradient(135deg, rgba(125,211,252,0.32), rgba(103,232,249,0.10))" },
+  { label: "Refund ready", value: "Changes and credits can stay tied to the same trip.", icon: ShieldCheck, tone: "linear-gradient(135deg, rgba(196,181,253,0.32), rgba(232,121,249,0.10))" },
+  { label: "Partner cash-out", value: "Operators can track settlement and payout status.", icon: Landmark, tone: "linear-gradient(135deg, rgba(253,186,116,0.32), rgba(251,113,133,0.10))" },
+];
+
+const payoutLedgerRows = [
+  { label: "Booking total", value: "$745.00", color: "#ffffff" },
+  { label: "Platform fee", value: "$22.35", color: "#bae6fd" },
+  { label: "Partner payout", value: "$722.65", color: "#a7f3d0" },
+];
+
 function getTravelSessionId() {
   const key = "zivo_travel_session_id";
   try {
@@ -1331,6 +1344,103 @@ function TravelConnectionHub() {
   );
 }
 
+function PaymentPayoutFlow() {
+  return (
+    <section
+      className="relative overflow-hidden border-t px-4 py-16 sm:px-6 lg:px-8"
+      style={{ backgroundColor: "#050914", borderColor: "rgba(255,255,255,0.1)", color: "#f8fafc" }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "radial-gradient(circle at 18% 20%, rgba(16,185,129,0.22), transparent 32%), radial-gradient(circle at 82% 70%, rgba(14,165,233,0.18), transparent 34%), linear-gradient(180deg, rgba(15,23,42,0.45), rgba(2,6,23,0.95))",
+        }}
+        aria-hidden
+      />
+      <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
+        <Reveal className="relative z-10">
+          <h2 className="max-w-3xl text-4xl font-black leading-none sm:text-5xl" style={{ color: "#ffffff" }}>Payments, refunds, and cash-out in one travel ledger.</h2>
+          <p className="mt-5 max-w-2xl text-lg leading-8" style={{ color: "#cbd5e1" }}>
+            The travel flow shows customers where their payment goes and gives operators a clean path from booking revenue to partner payout.
+          </p>
+          <div className="mt-7 grid gap-4 sm:grid-cols-2">
+            {moneyFlowSteps.map((step, i) => {
+              const Icon = step.icon;
+              return (
+                <ScrollTurn key={step.label} rotate={i % 2 === 0 ? 6 : -6} lift={24}>
+                  <div
+                    className="relative h-full overflow-hidden rounded-[1.7rem] border p-5 shadow-[0_26px_80px_rgba(0,0,0,0.34)] backdrop-blur-xl"
+                    style={{ backgroundColor: "rgba(255,255,255,0.075)", borderColor: "rgba(255,255,255,0.12)" }}
+                  >
+                    <div className="absolute inset-0" style={{ background: step.tone }} aria-hidden />
+                    <div className="relative">
+                      <span className="grid h-14 w-14 place-items-center rounded-2xl border" style={{ backgroundColor: "rgba(255,255,255,0.14)", borderColor: "rgba(255,255,255,0.15)", color: "#ffffff" }}>
+                        <Icon className="h-6 w-6" />
+                      </span>
+                      <p className="mt-6 text-xs font-black uppercase tracking-wide" style={{ color: "#a7f3d0" }}>{step.label}</p>
+                      <p className="mt-2 text-xl font-black leading-tight" style={{ color: "#ffffff" }}>{step.value}</p>
+                    </div>
+                  </div>
+                </ScrollTurn>
+              );
+            })}
+          </div>
+        </Reveal>
+
+        <Reveal delay={0.08}>
+          <TravelTiltCard
+            className="relative z-10 overflow-hidden rounded-[2.2rem] border p-5 shadow-[0_44px_120px_rgba(0,0,0,0.48)] backdrop-blur-2xl"
+            style={{ backgroundColor: "rgba(255,255,255,0.075)", borderColor: "rgba(255,255,255,0.12)" }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.12), transparent 40%), radial-gradient(circle at 75% 18%, rgba(16,185,129,0.24), transparent 36%)" }}
+              aria-hidden
+            />
+            <div className="relative">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wide" style={{ backgroundColor: "rgba(110,231,183,0.12)", borderColor: "rgba(110,231,183,0.25)", color: "#d1fae5" }}>
+                  <WalletCards className="h-4 w-4" />
+                  Live travel ledger
+                </span>
+                <span className="rounded-full border px-4 py-2 text-xs font-black" style={{ backgroundColor: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.8)" }}>
+                  Ready
+                </span>
+              </div>
+
+              <div className="mt-8 rounded-[1.7rem] border p-5" style={{ backgroundColor: "rgba(2,6,23,0.72)", borderColor: "rgba(255,255,255,0.12)" }}>
+                <p className="text-sm font-black uppercase tracking-wide" style={{ color: "#94a3b8" }}>Trip ZT-2026-0710</p>
+                <h3 className="mt-2 text-4xl font-black leading-none" style={{ color: "#ffffff" }}>JFK + hotel + car + bus</h3>
+                <div className="mt-6 space-y-3">
+                  {payoutLedgerRows.map((row) => (
+                    <div key={row.label} className="flex items-center justify-between rounded-2xl border px-4 py-3" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}>
+                      <span className="text-sm font-bold" style={{ color: "#d4d4d8" }}>{row.label}</span>
+                      <span className="text-lg font-black" style={{ color: row.color }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Link to="/travel/checkout" className="group rounded-2xl border p-4 transition" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}>
+                  <CreditCard className="h-5 w-5 text-emerald-300" />
+                  <p className="mt-3 text-sm font-black" style={{ color: "#ffffff" }}>Open checkout</p>
+                  <p className="mt-1 text-xs leading-5" style={{ color: "#a1a1aa" }}>Continue payment flow</p>
+                </Link>
+                <Link to="/wallet" className="group rounded-2xl border p-4 transition" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}>
+                  <Landmark className="h-5 w-5 text-orange-300" />
+                  <p className="mt-3 text-sm font-black" style={{ color: "#ffffff" }}>Wallet & cash-out</p>
+                  <p className="mt-1 text-xs leading-5" style={{ color: "#a1a1aa" }}>Receipts and payout status</p>
+                </Link>
+              </div>
+            </div>
+          </TravelTiltCard>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 function PopularSearchesPanel() {
   return (
     <section className="border-t border-slate-900/10 bg-white px-4 py-14 sm:px-6 lg:px-8">
@@ -2078,6 +2188,8 @@ export default function ZivoTravelHome() {
       <AppHandoffPanel />
 
       <TravelConnectionHub />
+
+      <PaymentPayoutFlow />
 
       <TravelConfidenceBand />
 

@@ -48,6 +48,7 @@ import { UTMProvider } from "@/contexts/UTMContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CustomerCityProvider } from "@/contexts/CustomerCityContext";
 import { BrandProvider } from "@/contexts/BrandContext";
+import { TravelCartProvider } from "@/contexts/TravelCartContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import GuestOrUser from "@/components/auth/GuestOrUser";
 import PhoneRequiredGate from "@/components/auth/PhoneRequiredGate";
@@ -2004,8 +2005,8 @@ const App = () => (
                 <Route path="/how-to-rent" element={<RouteErrorBoundary section="Cars"><HowToRent /></RouteErrorBoundary>} />
 
                 {/* Travel Checkout */}
-                <Route path="/travel/checkout" element={<RouteErrorBoundary section="Checkout"><PhoneRequiredGate><TravelCheckoutPage /></PhoneRequiredGate></RouteErrorBoundary>} />
-                <Route path="/confirmation/:orderNumber" element={<RouteErrorBoundary section="Checkout"><TravelConfirmationPage /></RouteErrorBoundary>} />
+                <Route path="/travel/checkout" element={<RouteErrorBoundary section="Checkout"><TravelCartProvider><PhoneRequiredGate><TravelCheckoutPage /></PhoneRequiredGate></TravelCartProvider></RouteErrorBoundary>} />
+                <Route path="/confirmation/:orderNumber" element={<RouteErrorBoundary section="Checkout"><TravelCartProvider><TravelConfirmationPage /></TravelCartProvider></RouteErrorBoundary>} />
                 <Route path="/my-trips/lodging/:reservationId" element={<ProtectedRoute><RouteErrorBoundary section="Lodging"><MyLodgingTripPage /></RouteErrorBoundary></ProtectedRoute>} />
                 <Route path="/my-trips/cars/:bookingId" element={<ProtectedRoute><RouteErrorBoundary section="Cars"><MyCarTripPage /></RouteErrorBoundary></ProtectedRoute>} />
                 <Route path="/my-trips/flights/:bookingId" element={<ProtectedRoute><RouteErrorBoundary section="Flights"><MyFlightTripPage /></RouteErrorBoundary></ProtectedRoute>} />
