@@ -434,6 +434,20 @@ const appHandoffSteps = [
   { label: "Partner payout", value: "Operators can track settlement and cash-out", icon: Landmark, tone: "from-orange-400/30 to-rose-300/10" },
 ];
 
+const connectionPillars = [
+  { label: "Travel domain", value: "zivostravel.com", body: "Customer search, booking, and trip pages stay travel-first.", icon: Globe2, tone: "from-sky-100 to-cyan-50 text-sky-700" },
+  { label: "Media network", value: "Zivos Media", body: "Accounts, support, wallet records, and partner rails stay connected.", icon: Layers3, tone: "from-violet-100 to-fuchsia-50 text-violet-700" },
+  { label: "Secure sign-in", value: "SSO-ready", body: "Customers can return to protected trips, wallet, checkout, and support.", icon: LockKeyhole, tone: "from-emerald-100 to-lime-50 text-emerald-700" },
+  { label: "Growth pages", value: "SEO + API", body: "City, route, service, and partner paths can keep expanding safely.", icon: Code2, tone: "from-orange-100 to-amber-50 text-orange-700" },
+];
+
+const connectionRail = [
+  { label: "Search", value: "Flights · Hotels · Cars · Bus", icon: Search },
+  { label: "Pay", value: "Checkout + refund records", icon: CreditCard },
+  { label: "Wallet", value: "Receipts, cards, credits", icon: WalletCards },
+  { label: "Payout", value: "Partner settlement + cash-out", icon: Landmark },
+];
+
 function getTravelSessionId() {
   const key = "zivo_travel_session_id";
   try {
@@ -1229,6 +1243,94 @@ function AppHandoffPanel() {
   );
 }
 
+function TravelConnectionHub() {
+  return (
+    <section className="relative overflow-hidden border-t border-slate-900/10 bg-white px-4 py-16 text-slate-950 sm:px-6 lg:px-8">
+      <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-sky-200/60 blur-3xl" aria-hidden />
+      <div className="absolute -right-24 bottom-4 h-80 w-80 rounded-full bg-emerald-200/55 blur-3xl" aria-hidden />
+      <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+        <Reveal>
+          <h2 className="text-4xl font-black leading-none sm:text-5xl">One connection hub for every booking.</h2>
+          <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+            Zivo Travel can run as its own travel website while the account, checkout, wallet, support, and partner payout workflow stay connected to the larger Zivos Media network.
+          </p>
+          <div className="mt-7 grid max-w-xl gap-3">
+            {connectionRail.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <ScrollTurn key={item.label} rotate={i % 2 === 0 ? -4 : 4} lift={18}>
+                  <div className="flex items-center gap-4 rounded-[1.45rem] border border-slate-900/10 bg-white/82 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-slate-950 text-white shadow-[0_16px_34px_rgba(15,23,42,0.18)]">
+                      <Icon className="h-5 w-5" style={{ color: "#ffffff" }} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-xs font-black uppercase tracking-wide text-emerald-700">{item.label}</span>
+                      <span className="mt-1 block text-base font-black leading-tight text-slate-950">{item.value}</span>
+                    </span>
+                  </div>
+                </ScrollTurn>
+              );
+            })}
+          </div>
+        </Reveal>
+
+        <Reveal delay={0.08}>
+          <TravelTiltCard className="relative overflow-hidden rounded-[2.2rem] border border-slate-900/10 bg-[#f7fbff] p-4 shadow-[0_34px_95px_rgba(15,23,42,0.14)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(14,165,233,0.18),transparent_34%),radial-gradient(circle_at_82%_70%,rgba(16,185,129,0.2),transparent_36%)]" aria-hidden />
+            <div className="relative grid gap-4">
+              <div className="grid gap-3 rounded-[1.8rem] border border-white/70 bg-white/82 p-4 shadow-sm backdrop-blur sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                <div className="rounded-[1.35rem] border border-slate-900/10 bg-white p-4">
+                  <p className="text-xs font-black uppercase tracking-wide text-slate-500">Customer front door</p>
+                  <p className="mt-2 text-2xl font-black">zivostravel.com</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">Flights, hotels, cars, bus</p>
+                </div>
+                <div className="hidden h-px w-20 bg-gradient-to-r from-sky-300 via-emerald-300 to-violet-300 sm:block" aria-hidden />
+                <div className="rounded-[1.35rem] border border-slate-900/10 bg-slate-950 p-4 text-white shadow-[0_22px_55px_rgba(15,23,42,0.24)]">
+                  <p className="text-xs font-black uppercase tracking-wide text-emerald-200">Shared network</p>
+                  <p className="mt-2 text-2xl font-black" style={{ color: "#ffffff" }}>Zivos Media</p>
+                  <p className="mt-1 text-sm font-semibold" style={{ color: "rgba(255,255,255,0.72)" }}>Auth, wallet, support, payout</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {connectionPillars.map((item, i) => {
+                  const Icon = item.icon;
+                  const card = (
+                    <>
+                      <span className={cn("grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br shadow-inner", item.tone)}>
+                        <Icon className="h-6 w-6" />
+                      </span>
+                      <p className="mt-5 text-xs font-black uppercase tracking-wide text-slate-500">{item.label}</p>
+                      <p className="mt-1 flex items-center justify-between gap-3 text-xl font-black text-slate-950">
+                        {item.value}
+                        <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-emerald-600" />
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{item.body}</p>
+                    </>
+                  );
+                  return (
+                    <ScrollTurn key={item.label} rotate={i % 2 === 0 ? 6 : -6} lift={24}>
+                      {i === 0 || i === 1 ? (
+                        <a href="#booking" className="group block h-full rounded-[1.65rem] border border-slate-900/10 bg-white/76 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/60">
+                          {card}
+                        </a>
+                      ) : (
+                        <Link to={i === 2 ? "/login" : "/connect-website"} className="group block h-full rounded-[1.65rem] border border-slate-900/10 bg-white/76 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/60">
+                          {card}
+                        </Link>
+                      )}
+                    </ScrollTurn>
+                  );
+                })}
+              </div>
+            </div>
+          </TravelTiltCard>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 function PopularSearchesPanel() {
   return (
     <section className="border-t border-slate-900/10 bg-white px-4 py-14 sm:px-6 lg:px-8">
@@ -1974,6 +2076,8 @@ export default function ZivoTravelHome() {
       <JourneyCommandDeck />
 
       <AppHandoffPanel />
+
+      <TravelConnectionHub />
 
       <TravelConfidenceBand />
 
