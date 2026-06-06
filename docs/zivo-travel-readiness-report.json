@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-05T22:43:23.075Z",
+  "generated": "2026-06-06T00:20:14.452Z",
   "status": "hold_for_target_project_verification",
   "backendFlag": {
     "sourceConfig": "present",
@@ -515,6 +515,7 @@
           "supabase/migrations/20260605202600_zivo_travel_backend_foundation.sql",
           "supabase/migrations/20260605221600_software_auto_repair_core_schema.sql",
           "supabase/migrations/20260605223000_software_auto_repair_extended_schema.sql",
+          "supabase/migrations/20260605230529_software_auto_repair_deep_tab_compat_columns.sql",
           "supabase/migrations/20260606000000_direct_paid_media_bundles.sql",
           "supabase/migrations/20260612000300_ar_invoices_estimates_vsm_fields.sql"
         ]

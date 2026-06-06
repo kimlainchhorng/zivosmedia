@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-06-05T19:59:52.183Z",
+  "generated": "2026-06-05T23:06:00.168Z",
   "mode": "soft",
   "options": {
     "strict": false,
@@ -11,7 +11,7 @@
   "readyForProductionGate": false,
   "counts": {
     "apiCritical": 0,
-    "apiWarnings": 14,
+    "apiWarnings": 19,
     "environmentCritical": 0,
     "environmentWarnings": 0,
     "databaseBlockers": 1,
@@ -39,7 +39,7 @@
     "candidates": 0,
     "highConfidenceCandidates": 0,
     "mediumConfidenceCandidates": 0,
-    "unmatchedLocalAfterCandidates": 1097,
+    "unmatchedLocalAfterCandidates": 1102,
     "unmatchedRemoteAfterCandidates": 0,
     "unmatchedLocalAfterRemoteRange": 0,
     "reviewOrder": [
@@ -63,7 +63,7 @@
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-        "count": 1097
+        "count": 1102
       },
       {
         "order": 4,
@@ -107,7 +107,7 @@
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
       "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
-      "API readiness has 14 warning(s).",
+      "API readiness has 19 warning(s).",
       "Database readiness has 1 blocker(s).",
       "Database readiness has 1 warning(s).",
       "Supabase remote migration history is unavailable (access_token_missing).",
@@ -190,7 +190,7 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 18659
+      "bytes": 18877
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
@@ -205,12 +205,12 @@
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
       "exists": true,
-      "bytes": 13739
+      "bytes": 14108
     },
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 4675
+      "bytes": 5576
     },
     "reconciliationPlan": {
       "path": "docs/supabase-migration-reconciliation-plan.md",
@@ -235,7 +235,7 @@
     "unmatchedLocal": {
       "path": "docs/supabase-migration-unmatched-local.csv",
       "exists": true,
-      "bytes": 118328
+      "bytes": 118888
     },
     "unmatchedRemote": {
       "path": "docs/supabase-migration-unmatched-remote.csv",
@@ -247,6 +247,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 179636
+    "bytes": 181684
   }
 }

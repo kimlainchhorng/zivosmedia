@@ -1,6 +1,6 @@
 # Zivo Travel readiness report
 
-Generated: 2026-06-05T22:43:23.075Z
+Generated: 2026-06-06T00:20:14.452Z
 
 ## Summary
 
@@ -42,7 +42,7 @@ Generated: 2026-06-05T22:43:23.075Z
 - hotels: 64 local migration files mention matching table names.
 - cars: 36 local migration files mention matching table names.
 - bus: 6 local migration files mention matching table names.
-- payouts: 206 local migration files mention matching table names.
+- payouts: 207 local migration files mention matching table names.
 
 ## Manual target-project checks
 

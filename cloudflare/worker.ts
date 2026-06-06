@@ -72,6 +72,10 @@ const SOFTWARE_HOSTS = new Set([
   "www.zivosoftware.com",
 ]);
 
+const AUTO_REPAIR_STORE_ID = "a914b90d-c249-4794-ba5e-3fdac0deed44";
+const AUTO_REPAIR_DASHBOARD_PATH =
+  `/admin/stores/${AUTO_REPAIR_STORE_ID}?tab=ar-dashboard&category=auto-repair`;
+
 const TRAVEL_HOSTS = new Set([
   "zivostravel.com",
   "www.zivostravel.com",
@@ -295,6 +299,45 @@ function chatHomeRedirect(request: Request, url: URL) {
   });
 }
 
+function softwareDashboardRedirect(request: Request, url: URL) {
+  if ((request.method !== "GET" && request.method !== "HEAD") || !SOFTWARE_HOSTS.has(url.hostname)) {
+    return null;
+  }
+
+  if (url.pathname === "/login" || url.pathname === "/signup") {
+    const redirect = url.searchParams.get("redirect");
+    if (redirect !== "/business" && redirect !== "/business/dashboard") {
+      return null;
+    }
+
+    const target = new URL(url.toString());
+    target.searchParams.set("redirect", AUTO_REPAIR_DASHBOARD_PATH);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        "cache-control": "no-store",
+        "location": target.toString(),
+      },
+    });
+  }
+
+  if (url.pathname !== "/business/dashboard") {
+    return null;
+  }
+
+  const target = new URL(url.toString());
+  const dashboard = new URL(AUTO_REPAIR_DASHBOARD_PATH, url.origin);
+  target.pathname = dashboard.pathname;
+  target.search = dashboard.search;
+  return new Response(null, {
+    status: 302,
+    headers: {
+      "cache-control": "no-store",
+      "location": target.toString(),
+    },
+  });
+}
+
 function safeObjectKey(raw: string) {
   try {
     const decoded = decodeURIComponent(raw);
@@ -475,6 +518,11 @@ export default {
     const chatRedirect = chatHomeRedirect(request, url);
     if (chatRedirect) {
       return withSecurityHeaders(chatRedirect, request, env);
+    }
+
+    const softwareRedirect = softwareDashboardRedirect(request, url);
+    if (softwareRedirect) {
+      return withSecurityHeaders(softwareRedirect, request, env);
     }
 
     if (url.pathname === "/media" || url.pathname.startsWith("/media/")) {

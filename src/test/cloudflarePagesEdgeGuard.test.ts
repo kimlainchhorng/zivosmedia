@@ -108,6 +108,49 @@ describe("Cloudflare Pages edge guard", () => {
     );
   });
 
+  it("redirects the legacy Software business dashboard route to the auto repair dashboard", async () => {
+    const pagesResponse = await worker.fetch(
+      request("/business/dashboard", { headers: { host: "zivosoftware.com" } }),
+      env,
+    );
+    const cloudflareResponse = await cloudflareWorker.fetch(
+      request("/business/dashboard", { headers: { host: "zivosoftware.com" } }),
+      cloudflareEnv as any,
+    );
+
+    expect(pagesResponse.status).toBe(302);
+    expect(pagesResponse.headers.get("location")).toBe(
+      "https://zivosoftware.com/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+    );
+    expect(cloudflareResponse.status).toBe(302);
+    expect(cloudflareResponse.headers.get("location")).toBe(
+      "https://zivosoftware.com/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+    );
+  });
+
+  it("normalizes Software auth redirects to the auto repair dashboard before app login", async () => {
+    const login = await worker.fetch(
+      request("/login?redirect=%2Fbusiness", { headers: { host: "zivosoftware.com" } }),
+      env,
+    );
+    const loginDashboard = await cloudflareWorker.fetch(
+      request("/login?redirect=%2Fbusiness%2Fdashboard", { headers: { host: "zivosoftware.com" } }),
+      cloudflareEnv as any,
+    );
+    const accountLogin = await worker.fetch(
+      request("/login?redirect=%2Faccount", { headers: { host: "zivosoftware.com" } }),
+      env,
+    );
+
+    const expected =
+      "https://zivosoftware.com/login?redirect=%2Fadmin%2Fstores%2Fa914b90d-c249-4794-ba5e-3fdac0deed44%3Ftab%3Dar-dashboard%26category%3Dauto-repair";
+    expect(login.status).toBe(302);
+    expect(login.headers.get("location")).toBe(expected);
+    expect(loginDashboard.status).toBe(302);
+    expect(loginDashboard.headers.get("location")).toBe(expected);
+    expect(accountLogin.status).toBe(200);
+  });
+
   it("blocks common secret and scanner paths before hitting static assets", async () => {
     const response = await worker.fetch(request("/.env"), env);
 

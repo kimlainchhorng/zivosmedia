@@ -138,6 +138,10 @@ describe("shop owner workflow", () => {
     ]) {
       expect(layout).toContain(tab);
     }
+
+    expect(layout).toContain('isAutoRepairSoftwareHost(window.location.hostname)');
+    expect(layout).toContain('navigate("/business")');
+    expect(layout).toContain("{!isAutoRepairSoftwareDomain && (");
   });
 
   it("scopes owner-facing reads and writes by owner or store id", () => {

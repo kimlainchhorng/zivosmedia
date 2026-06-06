@@ -1,26 +1,26 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-05T19:59:43.083Z
+Generated: 2026-06-05T23:05:00.284Z
 
 ## Summary
 
 - Supabase CLI: 2.105.0
-- Local migrations: 1097
+- Local migrations: 1102
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 6
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1097, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1097, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-06-05T19:59:42.731Z
+- Last linked drift report: local=1102, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1102, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-06-05T23:04:58.617Z
 - Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 908
+- Public tables created in migrations: 914
 - Public tables needing RLS review: 0
-- Recent public tables needing Data API grant review: 9
+- Recent public tables needing Data API grant review: 10
 - Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
-- Hardcoded Supabase URLs in migrations: 34
+- Hardcoded Supabase URLs in migrations: 36
 - Hardcoded scheduled/function endpoint URLs: 18
 - Cron function URL remediation migration present: yes
 - Hardcoded legacy anon JWTs in migrations: 14
@@ -34,7 +34,7 @@ Generated: 2026-06-05T19:59:43.083Z
 
 ## Warnings
 
-- 9 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
+- 10 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
 
 ## Duplicate Versions
 
@@ -64,6 +64,7 @@ Generated: 2026-06-05T19:59:43.083Z
 - bus_drivers: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
 - bus_route_stops: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
 - bus_promos: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
+- ar_supplier_credentials: supabase/migrations/20260605223000_software_auto_repair_extended_schema.sql
 
 ## View Review Candidates
 
@@ -105,6 +106,8 @@ Generated: 2026-06-05T19:59:43.083Z
 - project-url: supabase/migrations/20260509200000_grouped_social_notifications.sql:75 (https://slirphzzwcogdbkeicff.supabase.co)
 - project-url: supabase/migrations/20260509210000_notifications_snooze.sql:42 (https://slirphzzwcogdbkeicff.supabase.co)
 - scheduled-function-endpoint: supabase/migrations/20260527144000_ar_reminders_dispatch_cron.sql:11 (https://slirphzzwcogdbkeicff.supabase.co/functions/v1/ar-reminders-dispatch)
+- project-url: supabase/migrations/20260605202600_zivo_travel_backend_foundation.sql:184 (https://slirphzzwcogdbkeicff.supabase.co)
+- project-url: supabase/migrations/20260605202600_zivo_travel_backend_foundation.sql:192 (https://xbllvmpomorawkcrtbcq.supabase.co)
 
 For new cron/function SQL, prefer `current_setting('app.settings.supabase_url', true)` with a deploy-time setting instead of embedding a project URL.
 

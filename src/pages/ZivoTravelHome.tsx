@@ -672,7 +672,7 @@ function FloatingTravelStack({ activeService }: { activeService: ServiceConfig }
       >
         <div className="flex items-center gap-2">
           <Layers3 className="h-4 w-4 text-emerald-300" />
-          <span className="text-xs font-black uppercase tracking-wide text-white/80">3D layers</span>
+          <span className="text-xs font-black uppercase tracking-wide text-white/80">One trip</span>
         </div>
         <div className="mt-4 grid gap-2">
           {["Flight", "Hotel", "Car", "Bus"].map((item, i) => (

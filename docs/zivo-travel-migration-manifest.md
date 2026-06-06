@@ -1,6 +1,6 @@
 # Zivo Travel migration manifest
 
-Generated: 2026-06-05T22:43:30.333Z
+Generated: 2026-06-05T22:51:47.178Z
 
 This manifest is local and non-destructive. It groups the live travel engine into cutover batches for Claude/Codex collaboration.
 

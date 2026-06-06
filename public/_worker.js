@@ -22,6 +22,10 @@ const SOFTWARE_HOSTS = new Set([
   "www.zivosoftware.com",
 ]);
 
+const AUTO_REPAIR_STORE_ID = "a914b90d-c249-4794-ba5e-3fdac0deed44";
+const AUTO_REPAIR_DASHBOARD_PATH =
+  `/admin/stores/${AUTO_REPAIR_STORE_ID}?tab=ar-dashboard&category=auto-repair`;
+
 const CSP_BASE =
   "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://static.cloudflareinsights.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
 const CSP_REPORT_BY_HOST = new Map([
@@ -72,6 +76,45 @@ function chatHomeRedirect(request, url) {
 
   const target = new URL(url.toString());
   target.pathname = "/chat";
+  return new Response(null, {
+    status: 302,
+    headers: {
+      "cache-control": "no-store",
+      "location": target.toString(),
+    },
+  });
+}
+
+function softwareDashboardRedirect(request, url) {
+  if ((request.method !== "GET" && request.method !== "HEAD") || !SOFTWARE_HOSTS.has(url.hostname)) {
+    return null;
+  }
+
+  if (url.pathname === "/login" || url.pathname === "/signup") {
+    const redirect = url.searchParams.get("redirect");
+    if (redirect !== "/business" && redirect !== "/business/dashboard") {
+      return null;
+    }
+
+    const target = new URL(url.toString());
+    target.searchParams.set("redirect", AUTO_REPAIR_DASHBOARD_PATH);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        "cache-control": "no-store",
+        "location": target.toString(),
+      },
+    });
+  }
+
+  if (url.pathname !== "/business/dashboard") {
+    return null;
+  }
+
+  const target = new URL(url.toString());
+  const dashboard = new URL(AUTO_REPAIR_DASHBOARD_PATH, url.origin);
+  target.pathname = dashboard.pathname;
+  target.search = dashboard.search;
   return new Response(null, {
     status: 302,
     headers: {
@@ -145,6 +188,11 @@ export default {
     const chatRedirect = chatHomeRedirect(request, url);
     if (chatRedirect) {
       return withSecurityHeaders(chatRedirect, request, url);
+    }
+
+    const softwareRedirect = softwareDashboardRedirect(request, url);
+    if (softwareRedirect) {
+      return withSecurityHeaders(softwareRedirect, request, url);
     }
 
     const response = await env.ASSETS.fetch(request);

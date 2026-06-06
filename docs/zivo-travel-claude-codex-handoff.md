@@ -49,10 +49,15 @@ The app should keep using the shared live engine until the target project has:
 
 - Wired `src/styles/zivo-travel-3d.css` into the app entry.
 - Scoped the Zivo Travel homepage root with `zivo-travel-3d`.
-- Added a floating hero layer stack, a horizontal 3D service-layer rail, and a backend workflow spine.
+- Added a floating hero layer stack and a horizontal 3D service-layer rail.
 - Added a short Zivo Travel launch/loading layer with service cards and reduced-motion fallback.
 - Added a customer-facing 3D trip stack builder that ties flight, hotel, car, and bus into one itinerary while keeping each engine route separate.
 - Added a live journey command deck that walks from search to checkout, wallet receipt, support, and partner payout without changing live backend routing.
+- Switched the Zivo Travel surface to a scoped light theme, including the launch/loading layer and mobile `theme-color`.
+- Added a light quick-action dock for My trips, Wallet, Checkout, and Support near the top of the travel homepage.
+- Removed the internal backend workflow spine from the customer homepage and replaced internal backend wording with customer-safe travel copy.
+- Added a customer confidence band for tickets, secure checkout, trip wallet, and support.
+- Added a popular searches panel with ready-made deep links for flight, hotel, car, and bus searches.
 - Kept the booking form route contracts unchanged:
   - flights: `/flights?from&to&start&end&travelers`
   - hotels: `/hotels?city&ci&co&adults`

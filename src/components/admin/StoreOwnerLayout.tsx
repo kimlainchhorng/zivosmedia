@@ -502,6 +502,8 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                   // which can land on a blank/unrelated page.
                   if (isAutoRepair && onTabChange && activeTab && activeTab !== "ar-dashboard") {
                     onTabChange("ar-dashboard");
+                  } else if (isAutoRepairSoftwareDomain) {
+                    navigate("/business");
                   } else {
                     navigate(-1);
                   }
