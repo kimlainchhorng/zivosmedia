@@ -67,6 +67,8 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
   const [employeesOpen, setEmployeesOpen] = useState(employeeIds.includes(activeTab || ""));
   const isAutoRepairSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const backButtonLabel = isAutoRepairSoftwareDomain ? "Business Home" : "Back";
+  const backButtonTitle = isAutoRepairSoftwareDomain ? "Go to ZIVO Software business home" : "Go back";
 
   const tabKey = activeTab || "_default";
 
@@ -508,10 +510,10 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                     navigate(-1);
                   }
                 }}
-                aria-label="Go back"
-                title="Go back"
+                aria-label={backButtonTitle}
+                title={backButtonTitle}
               >
-                <ChevronLeft className="w-4 h-4" /> Back
+                <ChevronLeft className="w-4 h-4" /> {backButtonLabel}
               </Button>
               <h1 className="text-lg font-bold text-foreground">{title}</h1>
             </div>

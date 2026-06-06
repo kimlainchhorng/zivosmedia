@@ -72,8 +72,28 @@ const ZIVO_TRAVEL_ALLOWED_FILES = new Set([
   "/sitemap.xml",
 ]);
 
+// Dev/preview override: lets ANY host (e.g. localhost) render the travel surface
+// when `?zt=1` (or `?travel=1`) is in the URL. The flag persists for the browser
+// session so navigation keeps travel mode; `?zt=0` clears it. Real travel hosts
+// always match regardless. Does NOT switch the backend (that stays gated by
+// VITE_ZIVO_TRAVEL_USE_DEDICATED_BACKEND), so auth/data are unaffected.
+const hasTravelPreviewFlag = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("zt") === "1" || params.get("travel") === "1") {
+      sessionStorage.setItem("zivo_force_travel", "1");
+    } else if (params.get("zt") === "0" || params.get("travel") === "0") {
+      sessionStorage.removeItem("zivo_force_travel");
+    }
+    return sessionStorage.getItem("zivo_force_travel") === "1";
+  } catch {
+    return false;
+  }
+};
+
 export const isZivoTravelHost = (hostname?: string | null) =>
-  ZIVO_TRAVEL_HOSTS.has((hostname || "").toLowerCase());
+  ZIVO_TRAVEL_HOSTS.has((hostname || "").toLowerCase()) || hasTravelPreviewFlag();
 
 export const isZivoTravelPath = (pathname?: string | null) => {
   const path = pathname || "";

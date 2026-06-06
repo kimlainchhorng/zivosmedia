@@ -141,6 +141,8 @@ describe("shop owner workflow", () => {
 
     expect(layout).toContain('isAutoRepairSoftwareHost(window.location.hostname)');
     expect(layout).toContain('navigate("/business")');
+    expect(layout).toContain('const backButtonLabel = isAutoRepairSoftwareDomain ? "Business Home" : "Back"');
+    expect(layout).toContain('const backButtonTitle = isAutoRepairSoftwareDomain ? "Go to ZIVO Software business home" : "Go back"');
     expect(layout).toContain("{!isAutoRepairSoftwareDomain && (");
   });
 

@@ -55,7 +55,7 @@ export function resolveBusinessDashboardRoute(
 
   // Auto repair → full store admin dashboard with repair-specific sections.
   if (normalizedCategory === "auto repair" && storeId) {
-    return { path: `/admin/stores/${storeId}?tab=ar-dashboard`, fallback: false };
+    return { path: `/admin/stores/${storeId}?tab=ar-dashboard&category=auto-repair`, fallback: false };
   }
 
   // Car rental → store admin dashboard with car-rental sections.

@@ -63,6 +63,7 @@ import {
   TiltCard as TravelTiltCard,
 } from "@/components/zivo-travel/scroll3d";
 import { PageTransition } from "@/components/zivo-travel/PageTransition";
+import { TravelPullToRefresh } from "@/components/zivo-travel/TravelPullToRefresh";
 
 type TravelService = "flight" | "hotel" | "rental_car" | "bus";
 
@@ -1466,6 +1467,12 @@ export default function ZivoTravelHome() {
     railRef.current?.scrollBy({ left: dir * 360, behavior: "smooth" });
   };
 
+  const handleRefresh = async () => {
+    // Brief beat so the pull indicator is visible, then reload latest content.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    window.location.reload();
+  };
+
   return (
     <main className="zivo-travel-3d zivo-travel-light min-h-screen bg-white text-slate-950">
       <AnimatePresence>{booting && <ZivoTravelLaunchLoader />}</AnimatePresence>
@@ -1614,6 +1621,7 @@ export default function ZivoTravelHome() {
         )}
       </header>
 
+      <TravelPullToRefresh onRefresh={handleRefresh}>
       <PageTransition className="relative">
       {/* Hero */}
       <section ref={heroRef} className="relative overflow-hidden">
@@ -1966,6 +1974,7 @@ export default function ZivoTravelHome() {
         </div>
       </footer>
       </PageTransition>
+      </TravelPullToRefresh>
     </main>
   );
 }

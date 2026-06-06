@@ -74,6 +74,7 @@ Owner wants a full 3D redesign for the travel domain: new imagery, layered scrol
   - `Coverflow3D` — generic drag/swipe/turn card carousel (N items, render prop, arrows/dots, optional hover-paused autoplay, `onLaunch`/`onIndexChange`). Use for flight/hotel/car/bus result decks.
   - `LoadingScene3D` — 3D loading screen (uses the `.zt-loader-*` keyframes). Good as a Suspense/route fallback.
   - `PageTransition` — wrap a page root for a 3D enter (fade + lift + turn); no router change needed.
+  - `TravelPullToRefresh` — pull-down-to-refresh (touch gesture) with a gradient-ring + Z indicator. IMPORTANT: wrap the page **body below any sticky header** — its `y` transform breaks `position: sticky` if it wraps the header.
   - `ZivoTravel3DProvider` — adds the `.zivo-travel-3d` class to `<html>` on the travel host only (`force` to preview on localhost).
   - All reduced-motion safe.
 
@@ -83,3 +84,9 @@ Owner wants a full 3D redesign for the travel domain: new imagery, layered scrol
 - **Claude:** the 3D kit/theme (above) + the `ZivoTravelHome` redesign.
 - **Codex:** apply the theme + kit to `/flights`, `/hotels`, `/cars`, `/bus` and the booking funnel (pages it already owns), plus backend readiness.
 Coordinate here; re-check `git status` before editing a shared page.
+
+**Site-wide travel shell (make ALL pages look travel on zivostravel.com):** the generic zivosmedia shell currently leaks onto travel pages. Progress/TODO:
+- ✅ `GlobalDesktopNav` now returns null on the travel host (no Feed/Reels/Chat social nav on zivostravel.com; travel pages render their own header).
+- **TODO (Codex / App.tsx lane): mount `<ZivoTravel3DProvider>` at the app root** so the `.zivo-travel-3d` scope activates on EVERY travel page (it's currently mounted nowhere, so the theme scope never turns on site-wide). It's a no-op off the travel host, so safe to wrap the whole app.
+- TODO: hide/replace the mobile zivosmedia nav (`AppLayout`/bottom nav) on the travel host too.
+- TODO: travel-style shared utility pages (My Trips, Wallet, Payment Methods) via `.zivo-travel-3d`-scoped CSS once the provider is mounted.
