@@ -203,6 +203,13 @@ const ops: { title: string; body: string; icon: typeof Code2; color: string; hre
   { title: "Real-time ops", body: "Live status, alerts, and support.", icon: Headphones, color: "bg-sky-500", href: "/support" },
 ];
 
+const quickActions = [
+  { title: "My trips", body: "Tickets, bookings, and saved plans.", icon: Luggage, href: "/my-trips", tone: "bg-sky-100 text-sky-700" },
+  { title: "Wallet", body: "Receipts, cards, credits, and cash-out.", icon: WalletCards, href: "/wallet", tone: "bg-emerald-100 text-emerald-700" },
+  { title: "Checkout", body: "Continue secure payment flow.", icon: CreditCard, href: "/travel/checkout", tone: "bg-violet-100 text-violet-700" },
+  { title: "Support", body: "Help before, during, and after travel.", icon: Headphones, href: "/support", tone: "bg-orange-100 text-orange-700" },
+];
+
 const serviceShowcase = [
   {
     service: "Flights",
@@ -658,6 +665,38 @@ function ServiceLayerShowcase() {
           })}
         </HorizontalRail>
       </div>
+    </section>
+  );
+}
+
+function QuickActionDock() {
+  return (
+    <section className="relative z-20 px-4 pb-12 sm:px-6 lg:px-8">
+      <Reveal>
+        <div className="mx-auto -mt-8 grid max-w-7xl gap-3 rounded-[2rem] border border-slate-900/10 bg-white/82 p-3 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.title}
+                to={item.href}
+                className="group flex min-h-28 items-center gap-4 rounded-[1.4rem] border border-slate-900/8 bg-white/72 p-4 text-left transition hover:-translate-y-1 hover:border-emerald-300/50 hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+              >
+                <span className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-2xl", item.tone)}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2 text-sm font-black text-slate-950">
+                    {item.title}
+                    <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-emerald-600" />
+                  </span>
+                  <span className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{item.body}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </Reveal>
     </section>
   );
 }
@@ -1481,6 +1520,8 @@ export default function ZivoTravelHome() {
           </div>
         </div>
       </section>
+
+      <QuickActionDock />
 
       <ServiceLayerShowcase />
 

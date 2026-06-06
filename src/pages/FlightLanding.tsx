@@ -8,7 +8,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plane, Shield, Star, TrendingUp, Sparkles,
-  Globe, Clock, Headphones, Loader2, Zap, ArrowRight, MapPin,
+  Globe, Clock, Headphones, Loader2, Zap, ArrowRight,
   Ticket, Radar, ChevronRight, RefreshCw, Heart, Share2, Check
 } from "lucide-react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
@@ -627,39 +627,7 @@ function DesktopCinematicHero() {
           className="absolute top-[40%] left-[10%] w-64 h-64 rounded-full bg-primary/5 blur-[100px]"
         />
 
-        {/* 3D floating service icons */}
-        {[
-          { icon: Plane, x: "8%", y: "25%", delay: 0, color: "sky" },
-          { icon: Globe, x: "88%", y: "30%", delay: 1.5, color: "cyan" },
-          { icon: Star, x: "85%", y: "55%", delay: 3, color: "amber" },
-          { icon: MapPin, x: "12%", y: "60%", delay: 2, color: "emerald" },
-        ].map((item, i) => (
-          <motion.div
-            key={i}
-            className={cn(
-              "absolute w-11 h-11 rounded-2xl backdrop-blur-xl border flex items-center justify-center shadow-xl",
-              item.color === "sky" && "bg-sky-500/15 border-sky-500/25 shadow-sky-500/20",
-              item.color === "cyan" && "bg-cyan-500/15 border-cyan-500/25 shadow-cyan-500/20",
-              item.color === "amber" && "bg-amber-500/15 border-amber-500/25 shadow-amber-500/20",
-              item.color === "emerald" && "bg-emerald-500/15 border-emerald-500/25 shadow-emerald-500/20",
-            )}
-            style={{ left: item.x, top: item.y }}
-            animate={{
-              y: [0, -8, 0],
-              rotateY: [0, 10, 0],
-              rotateX: [0, -5, 0],
-            }}
-            transition={{ duration: 5 + i, repeat: Infinity, ease: "easeInOut", delay: item.delay }}
-          >
-            <item.icon className={cn(
-              "w-5 h-5",
-              item.color === "sky" && "text-sky-400",
-              item.color === "cyan" && "text-cyan-400",
-              item.color === "amber" && "text-amber-400",
-              item.color === "emerald" && "text-emerald-400",
-            )} />
-          </motion.div>
-        ))}
+        {/* Decorative floating service icons removed per design feedback */}
       </div>
 
       {/* ── Content ── */}
