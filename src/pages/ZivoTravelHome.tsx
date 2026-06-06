@@ -182,6 +182,37 @@ const destinations = [
   { name: "Barcelona", country: "Spain", image: destBarcelona, tag: "Sun + tapas" },
 ];
 
+const popularSearches = [
+  {
+    title: "New York to Paris",
+    body: "Flights with flexible travel dates.",
+    icon: Plane,
+    href: "/flights?from=New%20York%2C%20JFK&to=Paris%2C%20CDG&start=2026-07-10&end=2026-07-17&travelers=1",
+    tone: "bg-sky-100 text-sky-700",
+  },
+  {
+    title: "Santorini stays",
+    body: "Hotels near the ocean view.",
+    icon: Hotel,
+    href: "/hotels?city=Santorini&ci=2026-07-10&co=2026-07-17&adults=2",
+    tone: "bg-fuchsia-100 text-fuchsia-700",
+  },
+  {
+    title: "LAX rental car",
+    body: "Pickup and return at the airport.",
+    icon: CarFront,
+    href: "/cars?city=Los%20Angeles&pickup_date=2026-07-10&return_date=2026-07-17",
+    tone: "bg-emerald-100 text-emerald-700",
+  },
+  {
+    title: "Bangkok to Chiang Mai",
+    body: "Bus route with easy seat booking.",
+    icon: Bus,
+    href: "/bus?from=Bangkok&to=Chiang%20Mai&date=2026-07-10",
+    tone: "bg-orange-100 text-orange-700",
+  },
+];
+
 const workflow: { title: string; body: string; icon: typeof Search; color: string; href: string }[] = [
   { title: "Search", body: "Flights, hotels, cars, and bus seats.", icon: Search, color: "text-teal-300", href: "#booking" },
   { title: "Compare", body: "Prices, policies, timing, and routes.", icon: TrendingUp, color: "text-sky-300", href: "#booking" },
@@ -1134,6 +1165,53 @@ function TravelConfidenceBand() {
   );
 }
 
+function PopularSearchesPanel() {
+  return (
+    <section className="border-t border-slate-900/10 bg-white px-4 py-14 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <Reveal className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <h2 className="text-3xl font-black leading-none text-slate-950 sm:text-4xl">Start with a popular search.</h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+              Open a ready-made route, then adjust city, date, traveler, or vehicle details on the booking page.
+            </p>
+          </div>
+          <a href="#booking" className="inline-flex items-center gap-2 text-sm font-black text-emerald-700">
+            Build my own search
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </Reveal>
+
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {popularSearches.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <Reveal key={item.title} delay={i * 0.05}>
+                <Link
+                  to={item.href}
+                  className="group flex h-full flex-col justify-between rounded-[1.6rem] border border-slate-900/10 bg-gradient-to-br from-white to-sky-50/70 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.09)] transition hover:-translate-y-1 hover:border-emerald-300/60"
+                >
+                  <span className={cn("grid h-12 w-12 place-items-center rounded-2xl", item.tone)}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="mt-7 block">
+                    <span className="block text-lg font-black text-slate-950">{item.title}</span>
+                    <span className="mt-2 block text-sm leading-6 text-slate-600">{item.body}</span>
+                  </span>
+                  <span className="mt-6 inline-flex items-center gap-2 text-sm font-black text-slate-950">
+                    Search now
+                    <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-1 group-hover:text-emerald-600" />
+                  </span>
+                </Link>
+              </Reveal>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ZivoTravelLaunchLoader() {
   return (
     <motion.div
@@ -1760,6 +1838,8 @@ export default function ZivoTravelHome() {
           </div>
         </div>
       </section>
+
+      <PopularSearchesPanel />
 
       {/* Workflow */}
       <section className="border-t border-white/10 bg-zinc-950 px-4 py-16 sm:px-6 lg:px-8">
