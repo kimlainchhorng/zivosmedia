@@ -20,7 +20,7 @@ async function login(page: Page) {
   await page.waitForLoadState("domcontentloaded");
   if (!page.url().includes("/login")) return;
   await page.locator("#login-email").fill(EMAIL);
-  await page.locator("#login-password").fill(PASSWORD);
+  await page.locator("#login-password-full, #login-password").first().fill(PASSWORD);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL(url => !url.pathname.includes("/login"), { timeout: 25_000 });
 }
