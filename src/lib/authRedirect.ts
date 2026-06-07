@@ -23,6 +23,14 @@ const TRUSTED_ZIVO_AUTH_HOSTS = new Set([
   "www.zivosoftware.com",
   "zivodriver.com",
   "www.zivodriver.com",
+  "zivostravel.com",
+  "www.zivostravel.com",
+  "zivochat.com",
+  "www.zivochat.com",
+  "zivopay.com",
+  "www.zivopay.com",
+  "zivomarket.com",
+  "www.zivomarket.com",
 ]);
 
 const WORKSPACE_REDIRECTS: Record<string, string> = {
@@ -150,4 +158,44 @@ export const withRedirectParam = (path: string, redirectTo?: string | null) => {
 
   const separator = path.includes("?") ? "&" : "?";
   return `${path}${separator}redirect=${encodeURIComponent(safeRedirect)}`;
+};
+
+// Preserve the optional `product` / `intent` / handoff-id context hints that a
+// product app or Zivo-Admin attaches to a ZIVO ID login link, carrying them onto
+// the post-auth redirect so the destination app receives them. The handoff id is
+// written under both `handoff_id` (product apps) and `handoff` (this app's return
+// bar). Existing params are never overwritten.
+export const withProductContext = (
+  target: string,
+  product?: string | null,
+  intent?: string | null,
+  handoffId?: string | null,
+) => {
+  if (!product && !intent && !handoffId) {
+    return target;
+  }
+
+  try {
+    const isAbsolute = /^https?:\/\//i.test(target);
+    const url = new URL(target, isAbsolute ? undefined : "https://placeholder.local");
+
+    if (product && !url.searchParams.has("product")) {
+      url.searchParams.set("product", product);
+    }
+    if (intent && !url.searchParams.has("intent")) {
+      url.searchParams.set("intent", intent);
+    }
+    if (handoffId) {
+      if (!url.searchParams.has("handoff_id")) {
+        url.searchParams.set("handoff_id", handoffId);
+      }
+      if (!url.searchParams.has("handoff")) {
+        url.searchParams.set("handoff", handoffId);
+      }
+    }
+
+    return isAbsolute ? url.toString() : `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return target;
+  }
 };

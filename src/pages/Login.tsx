@@ -18,7 +18,7 @@ import {
 } from "@/config/autoRepairDomain";
 import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
-import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
+import { getSafeRedirectTarget, isExternalRedirectTarget, withProductContext } from "@/lib/authRedirect";
 import {
   buildSoftwareMediaConnectHref,
   createSoftwareMediaConnectState,
@@ -306,13 +306,22 @@ const Login = () => {
   const isZivoSoftwareHost = isAutoRepairSoftwareHost(currentHostname);
   const isZivoChatDomain = isZivoChatHost(currentHostname);
   const rawRedirect = params.get("redirect");
-  const redirect = getSafeRedirectTarget(
-    rawRedirect ||
-      (isZivoSoftwareHost || mediaConnected
-        ? ZIVO_SOFTWARE_AUTH_REDIRECT_PATH
-        : isZivoChatDomain
-          ? ZIVO_CHAT_HOME_PATH
-          : undefined),
+  const handoffSource = params.get("source");
+  const handoffProduct = params.get("product");
+  const handoffIntent = params.get("intent");
+  const isConnectedHandoff = handoffSource === "zivosmedia" || handoffSource === "zivo-admin";
+  const redirect = withProductContext(
+    getSafeRedirectTarget(
+      rawRedirect ||
+        (isZivoSoftwareHost || mediaConnected
+          ? ZIVO_SOFTWARE_AUTH_REDIRECT_PATH
+          : isZivoChatDomain
+            ? ZIVO_CHAT_HOME_PATH
+            : undefined),
+    ),
+    params.get("product"),
+    params.get("intent"),
+    params.get("handoff_id") || params.get("handoff"),
   );
   const isZivoSoftwareDomain =
     isZivoSoftwareHost ||
@@ -710,6 +719,12 @@ const Login = () => {
             )}
             {isZivoSoftwareDomain && <ZivoSoftwareMiniScene mode="login" />}
           </div>
+
+          {isConnectedHandoff && (
+            <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50/80 px-3 py-2 text-center text-xs font-medium text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200">
+              Connected workflow{handoffProduct ? ` · ${handoffProduct}` : ""}{handoffIntent ? ` · ${handoffIntent}` : ""}. Sign in to continue.
+            </div>
+          )}
 
           {/* ── MODE: saved account picker ── */}
           {mode === "picker" && (
