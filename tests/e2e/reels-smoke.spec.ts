@@ -13,7 +13,7 @@ test("reels page loads after login and we can capture state", async ({ page }) =
 
   await page.goto("/login");
   await page.fill("#login-email", EMAIL);
-  await page.fill("#login-password", PASSWORD);
+  await page.locator("#login-password-full, #login-password").first().fill(PASSWORD);
   await page.click('button[type="submit"]');
 
   // Wait for nav away from /login (success) or for an error toast.
