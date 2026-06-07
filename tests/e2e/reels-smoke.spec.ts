@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-const EMAIL = "klainkonkat@gmail.com";
-const PASSWORD = "Chhorng@1998";
+const EMAIL = process.env.QA_TEST_EMAIL || process.env.E2E_EMAIL || "klainkonkat@gmail.com";
+const PASSWORD = process.env.QA_TEST_PASSWORD || process.env.E2E_PASSWORD || "Chhorng@1998";
 
 test("reels page loads after login and we can capture state", async ({ page }) => {
   const consoleErrors: string[] = [];
