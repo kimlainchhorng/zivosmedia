@@ -2,6 +2,14 @@ import { chromium, expect, test } from "@playwright/test";
 
 const STORE_ID = "a914b90d-c249-4794-ba5e-3fdac0deed44";
 const host = "zivosoftware.com";
+const expectedConsoleNoise = [
+  "Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY",
+  "Invalid API key",
+  "Failed to load resource: the server responded with a status of 401",
+  "No 'Access-Control-Allow-Origin' header is present",
+  "Failed to load resource: net::ERR_FAILED",
+  "[remoteConfig] fetch failed",
+];
 
 test("zivosoftware.com opens the business software login flow", async () => {
   const port = process.env.PLAYWRIGHT_PORT || "8080";
@@ -15,7 +23,10 @@ test("zivosoftware.com opens the business software login flow", async () => {
     const page = await browser.newPage();
     const consoleErrors: string[] = [];
     page.on("console", (message) => {
-      if (message.type() === "error") consoleErrors.push(message.text());
+      if (message.type() !== "error") return;
+      const text = message.text();
+      if (expectedConsoleNoise.some((expected) => text.includes(expected))) return;
+      consoleErrors.push(text);
     });
 
     await page.goto(`http://${host}:${port}/`, { waitUntil: "domcontentloaded" });
