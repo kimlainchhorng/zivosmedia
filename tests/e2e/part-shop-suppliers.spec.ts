@@ -1,7 +1,7 @@
 import { test, expect, Page } from "@playwright/test";
 
-const EMAIL = "kimlain@zivosmedia.com";
-const PASSWORD = "Chhorng@1903";
+const EMAIL = process.env.QA_TEST_EMAIL || process.env.E2E_EMAIL || "kimlain@zivosmedia.com";
+const PASSWORD = process.env.QA_TEST_PASSWORD || process.env.E2E_PASSWORD || "Chhorng@1903";
 // "AB Complete Car Care" — the only auto-repair store
 const STORE_ID = "a914b90d-c249-4794-ba5e-3fdac0deed44";
 
