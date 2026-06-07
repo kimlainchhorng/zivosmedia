@@ -20,7 +20,7 @@ test("zivosoftware.com opens the business software login flow", async () => {
 
     await page.goto(`http://${host}:${port}/`, { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(new RegExp(`^http://${host}:${port}/business`));
-    await expect(page.getByRole("heading", { name: "Business software for every local operator" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ZIVO Software for local businesses" })).toBeVisible();
     await expect(page.locator("header").getByRole("link", { name: "Log in" })).toBeVisible();
     await expect(page.locator("header").getByRole("link", { name: "Sign up" })).toBeVisible();
     await expect(page.getByText("Hotels & Resorts")).toBeVisible();
