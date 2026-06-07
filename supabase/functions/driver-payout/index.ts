@@ -2,6 +2,7 @@ import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
+import { recordDriverTransferPayout } from "../_shared/zivopayDriver.ts";
 
 // Transfers the driver's share to their Stripe Connect account.
 // Bakong/KHR earnings are paid manually from the admin driver payout queue.
@@ -115,6 +116,28 @@ Deno.serve(withSecurity("driver-payout", async (req, ctx) => {
       idempotencyKey,
     });
 
+    const { data: driverProfile } = await admin
+      .from("drivers")
+      .select("id, user_id")
+      .or(`id.eq.${ride.assigned_driver_id},user_id.eq.${ride.assigned_driver_id}`)
+      .limit(1)
+      .maybeSingle();
+
+    const sharedPayoutId = await recordDriverTransferPayout(admin, {
+      driverId: driverProfile?.id ?? ride.assigned_driver_id,
+      zivosmediaUserId: driverProfile?.user_id ?? ride.assigned_driver_id,
+      driverJobId: ride_request_id,
+      connectedAccountId: account.stripe_account_id,
+      providerPayoutId: transfer.id,
+      grossAmount: captured,
+      platformFee,
+      driverEarning: driverAmount,
+      currency: "usd",
+    }).catch((error) => {
+      console.warn("[driver-payout] shared driver_payouts sync failed", error instanceof Error ? error.message : String(error));
+      return null;
+    });
+
     if ((earning as any)?.id) {
       await admin
         .from("driver_earnings")
@@ -131,6 +154,7 @@ Deno.serve(withSecurity("driver-payout", async (req, ctx) => {
       metadata: {
         ride_request_id,
         transfer_id: transfer.id,
+        shared_payout_id: sharedPayoutId,
         idempotency_key: idempotencyKey,
         amount_cents: driverAmount,
         platform_fee_cents: platformFee,
@@ -138,7 +162,7 @@ Deno.serve(withSecurity("driver-payout", async (req, ctx) => {
     } as any).then(() => null);
 
     console.log(`[driver-payout] ride ${ride_request_id} to driver ${ride.assigned_driver_id} ${driverAmount}c (fee ${platformFee}c)`);
-    return new Response(JSON.stringify({ ok: true, transfer_id: transfer.id, amount: driverAmount, platform_fee: platformFee }), {
+    return new Response(JSON.stringify({ ok: true, transfer_id: transfer.id, shared_payout_id: sharedPayoutId, amount: driverAmount, platform_fee: platformFee }), {
       headers: { ...cors, "Content-Type": "application/json" },
     });
   } catch (e) {
