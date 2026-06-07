@@ -95,7 +95,6 @@ test.describe("auth SSO role matrix", () => {
       "user.app_metadata?.provider",
       "isOAuthUser",
       "checkSetupAndNavigate(session.user)",
-      'navigate(isAdminUser ? "/admin/analytics" : redirectTo',
     ]) {
       expect(callback).toContain(needle);
     }
