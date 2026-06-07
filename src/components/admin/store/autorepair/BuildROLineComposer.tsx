@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Package, Wrench, CircleDot, Receipt, Truck, Search } from "lucide-react";
 import { listConnectedVendors, AR_SUPPLIER_NAMES } from "./AutoRepairPartSuppliersSection";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { sellFromCostCents, type MatrixTier } from "@/lib/admin/partsMatrix";
 
 export type ComposerKind = "part" | "labor" | "tire" | "fee" | "sublet" | "diagnosis";
@@ -74,7 +75,12 @@ export default function BuildROLineComposer({ laborRateCents, partsMatrix, store
 
   const isLabor = kind === "labor" || kind === "diagnosis";
   const isPartLike = kind === "part" || kind === "tire";
-  const selectedKind = KIND_OPTIONS.find((o) => o.value === kind) ?? KIND_OPTIONS[0];
+  const isAutoRepairSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const selectedKindBase = KIND_OPTIONS.find((o) => o.value === kind) ?? KIND_OPTIONS[0];
+  const selectedKind = selectedKindBase.value === "fee" && isAutoRepairSoftwareDomain
+    ? { ...selectedKindBase, hint: "Business charge" }
+    : selectedKindBase;
   const SelectedIcon = selectedKind.icon;
 
   const vendors = useMemo(() => {

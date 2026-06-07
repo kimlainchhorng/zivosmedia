@@ -55,6 +55,33 @@ beforeEach(() => {
 });
 
 describe("BusinessSoftwarePortalPage account header", () => {
+  it("shows the software-focused hero and workflow labels", () => {
+    renderPage();
+
+    expect(
+      screen.getByRole("heading", { name: "ZIVO Software for local businesses" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View Software Page" })).toHaveAttribute(
+      "href",
+      "#industries",
+    );
+    expect(screen.getByText("software page")).toBeInTheDocument();
+    expect(screen.getByText("Service desk")).toBeInTheDocument();
+    expect(screen.getByText(/customer intake, approvals/i)).toBeInTheDocument();
+    expect(screen.getByText("A launch board for your software workspace")).toBeInTheDocument();
+    expect(screen.getByText("ZIVO Software workspace ready to launch")).toBeInTheDocument();
+    expect(screen.getByText(/software-only workspace category/i)).toBeInTheDocument();
+    expect(screen.getByText("Configure software")).toBeInTheDocument();
+    expect(screen.getByText("Activate workspace")).toBeInTheDocument();
+    expect(screen.getAllByText("Customer intake").length).toBeGreaterThan(1);
+    expect(screen.getByText("Invoice workflow")).toBeInTheDocument();
+    expect(screen.getByText("Team access")).toBeInTheDocument();
+    expect(screen.getByText("Workspace dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Invoice command")).toBeInTheDocument();
+    expect(screen.getByText("Service workflow")).toBeInTheDocument();
+    expect(screen.getByText(/ZIVO Software keeps teams focused/i)).toBeInTheDocument();
+  });
+
   it("keeps guest login and signup actions in the header", () => {
     renderPage();
 
@@ -90,7 +117,7 @@ describe("BusinessSoftwarePortalPage account header", () => {
     expect(header.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
     expect(header.getByRole("link", { name: /dashboard/i })).toHaveAttribute(
       "href",
-      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard",
+      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
     );
   });
 

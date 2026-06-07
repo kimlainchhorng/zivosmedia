@@ -56,6 +56,7 @@ import destCancun from "@/assets/hero-city-cancun.jpg";
 import { recordZivoTravelSearchEvent } from "@/integrations/supabase/travelClient";
 import { goCrossDomain } from "@/lib/crossDomainSSO";
 import { ZIVO_MEDIA_ORIGIN } from "@/config/autoRepairDomain";
+import CrossAppReturnBar from "@/components/cross-app/CrossAppReturnBar";
 import { cn } from "@/lib/utils";
 import {
   HorizontalRail,
@@ -2227,6 +2228,12 @@ export default function ZivoTravelHome() {
         </div>
       </section>
 
+      {/* Cross-app return + staff-only admin queue */}
+      <div className="border-t border-white/10 bg-zinc-950 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl justify-center sm:justify-end">
+          <CrossAppReturnBar adminHref="#travel-ops" />
+        </div>
+      </div>
       {/* Footer */}
       <footer className="border-t border-white/10 bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 text-center sm:flex-row sm:text-left">

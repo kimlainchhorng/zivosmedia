@@ -128,11 +128,13 @@ interface Props {
   storeStateReg?: string;
   storeLogo?: string;
   storeTermsPolicy?: string;
+  isSoftwareDomain?: boolean;
 }
 
 export default function AutoRepairDocPreviewDialog({
   open, onOpenChange, doc,
   storeName, storeAddress, storePhone, storePhone2, storeEmail, storeStateReg, storeLogo, storeTermsPolicy,
+  isSoftwareDomain = false,
 }: Props) {
   const buildBlob = () => generateDocumentPdf({
     doc: toPdfDoc(doc as PreviewDoc),
@@ -152,6 +154,7 @@ export default function AutoRepairDocPreviewDialog({
   if (!doc) return null;
 
   const docTypeLabel = doc.type === "estimate" ? "ESTIMATE" : "INVOICE";
+  const shareSenderName = storeName || (isSoftwareDomain ? "Your business" : "Your shop");
   const totals = computeDocTotals(doc.items, doc.taxRate);
   const grandTotal = totals.total + sumExtraChargeCents({
     subletCents: dollarsToCents(doc.sublet), feesCents: dollarsToCents(doc.fees),
@@ -195,7 +198,7 @@ export default function AutoRepairDocPreviewDialog({
   const handleSms = () => {
     if (!doc.phone) { toast.error("No customer phone on file"); return; }
     const body = encodeURIComponent(
-      `${storeName || "Your shop"}: ${docTypeLabel.toLowerCase()} ${doc.number} for ${doc.vehicle || "your vehicle"} — Total ${fmt(grandTotal)}.`
+      `${shareSenderName}: ${docTypeLabel.toLowerCase()} ${doc.number} for ${doc.vehicle || "your vehicle"} — Total ${fmt(grandTotal)}.`
     );
     const tel = doc.phone.replace(/[^\d+]/g, "");
     openSystemUrl(`sms:${tel}?body=${body}`);

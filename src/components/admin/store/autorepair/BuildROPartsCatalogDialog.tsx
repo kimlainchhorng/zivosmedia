@@ -25,6 +25,7 @@ interface Props {
   vehicleLabel?: string;
   vin?: string;
   plate?: string;
+  isSoftwareDomain?: boolean;
   /** Captured part from a supplier portal → dropped onto the open R.O. as a line. */
   onAddPart?: (p: CapturedPart) => void;
 }
@@ -37,7 +38,8 @@ const REFERENCE_LINKS: { label: string; url: string }[] = [
   { label: "Gmail", url: "https://mail.google.com" },
 ];
 
-export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId, vehicleLabel, vin, plate, onAddPart }: Props) {
+export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId, vehicleLabel, vin, plate, isSoftwareDomain = false, onAddPart }: Props) {
+  const browseWithoutVehicleLabel = isSoftwareDomain ? "Browse Without Vehicle" : "Shop Without Vehicle";
   const [supplier, setSupplier] = useState<PartsSupplier | null>(null);
   const [query, setQuery] = useState("");
   const filtered = PARTS_SUPPLIERS.filter((s) =>
@@ -83,7 +85,7 @@ export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId,
                   )}
                 </div>
                 <p className="mt-1.5 text-[11px] text-amber-200/70">
-                  Supplier portals (AutoZone, etc.) ask you to set a vehicle first. Copy the VIN or plate above and paste it into their vehicle box — or use their “Shop Without Vehicle” option.
+                  Supplier portals (AutoZone, etc.) ask you to set a vehicle first. Copy the VIN or plate above and paste it into their vehicle box — or use their “{browseWithoutVehicleLabel}” option.
                 </p>
               </div>
             )}

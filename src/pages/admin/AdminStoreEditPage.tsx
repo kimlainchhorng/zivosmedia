@@ -2351,6 +2351,16 @@ export default function AdminStoreEditPage() {
   const feedPostsHelpText = isAutoRepairSoftwarePage
     ? "Create business updates with photos and service videos for your business page"
     : "Create posts like Facebook & TikTok — photos, videos, and reels for your store";
+  const invoiceHeaderSettingsHelpText = isAutoRepairSoftwarePage
+    ? "Printed on the header of estimates & invoices (alongside your business name, address, phone & logo)."
+    : "Printed on the header of estimates & invoices (alongside your shop name, address, phone & logo).";
+  const invoiceEmailPlaceholder = isAutoRepairSoftwarePage ? "service@example.com" : "shop@example.com";
+  const gmailAccountLabel = isAutoRepairSoftwarePage ? "Business Gmail Account" : "Shop Gmail Account";
+  const gmailAccountHelpText = isAutoRepairSoftwarePage
+    ? "Used to forward invoice notifications and send emails directly from your business address."
+    : "Used to forward invoice notifications and send emails directly from your shop address.";
+  const gmailAddressPlaceholder = isAutoRepairSoftwarePage ? "service@gmail.com" : "yourshop@gmail.com";
+  const suppliesSettingsLabel = isAutoRepairSoftwarePage ? "Supply Charge" : "Shop Supplies";
   const profileHandleRequiredMessage = isAutoRepairSoftwarePage
     ? "Business page handle (URL) can't be empty"
     : "Store handle (URL) can't be empty";
@@ -2368,7 +2378,7 @@ export default function AdminStoreEditPage() {
     "customer-bookings": "Customer Bookings",
     "ar-invoices": "Invoices & Estimates",
     "ar-autocheck": "Auto Check (VIN)",
-    "ar-parts": "Part Shop",
+    "ar-parts": isAutoRepairSoftwarePage ? "Parts Catalog" : "Part Shop",
     "ar-inspections": "Digital Inspections",
     "ar-vehicles": "Customer Vehicles",
     "ar-estimates": "Estimates & Quotes",
@@ -4182,7 +4192,7 @@ export default function AdminStoreEditPage() {
                           { key: "fees", label: "Fees" },
                           { key: "discount", label: "Discount" },
                           { key: "epa", label: "EPA" },
-                          { key: "shop_supplies", label: "Shop Supplies" },
+                          { key: "shop_supplies", label: suppliesSettingsLabel },
                         ] as const).map(({ key, label }) => (
                           <div key={key} className="grid grid-cols-2 px-3 py-1.5 border-t items-center">
                             <span>{label}</span>
@@ -4208,14 +4218,14 @@ export default function AdminStoreEditPage() {
                   </div>
                   <div className="space-y-1.5 pt-2 border-t">
                     <Label className="text-xs font-semibold">Invoice header details</Label>
-                    <p className="text-[11px] text-muted-foreground">Printed on the header of estimates &amp; invoices (alongside your shop name, address, phone &amp; logo).</p>
+                    <p className="text-[11px] text-muted-foreground">{invoiceHeaderSettingsHelpText}</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs">Invoice email</Label>
                       <Input
                         type="email"
-                        placeholder="shop@example.com"
+                        placeholder={invoiceEmailPlaceholder}
                         value={form.ar_settings?.invoice_email ?? ""}
                         onChange={(e) => updateArSettings("invoice_email", e.target.value)}
                       />
@@ -4337,10 +4347,10 @@ export default function AdminStoreEditPage() {
                   <div className="space-y-3 pt-2 border-t">
                     <Label className="text-xs font-semibold">Fees &amp; Setup</Label>
 
-                    {/* Shop Supplies */}
+                    {/* Supply charge / shop supplies */}
                     <div className="rounded-lg border p-3 space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium">Shop Supplies</Label>
+                        <Label className="text-xs font-medium">{suppliesSettingsLabel}</Label>
                         <Switch
                           checked={form.ar_settings?.shop_supplies_enabled ?? false}
                           onCheckedChange={(v) => updateArSettings("shop_supplies_enabled", v)}
@@ -4377,7 +4387,7 @@ export default function AdminStoreEditPage() {
                             </label>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Label className="text-xs w-28">Shop Supplies</Label>
+                            <Label className="text-xs w-28">{suppliesSettingsLabel}</Label>
                             <Input type="number" min={0} step={0.01} placeholder="0"
                               className="w-24"
                               value={form.ar_settings?.shop_supplies_value ?? ""}
@@ -4640,14 +4650,14 @@ export default function AdminStoreEditPage() {
 
                   {/* ── Gmail Setup ── */}
                   <div className="space-y-3 pt-2 border-t">
-                    <Label className="text-xs font-semibold">Shop Gmail Account</Label>
-                    <p className="text-[11px] text-muted-foreground">Used to forward invoice notifications and send emails directly from your shop address.</p>
+                    <Label className="text-xs font-semibold">{gmailAccountLabel}</Label>
+                    <p className="text-[11px] text-muted-foreground">{gmailAccountHelpText}</p>
                     <div className="space-y-1.5">
                       <Label className="text-xs">Company Gmail Address</Label>
                       <div className="flex gap-2">
                         <Input
                           type="email"
-                          placeholder="yourshop@gmail.com"
+                          placeholder={gmailAddressPlaceholder}
                           value={form.ar_settings?.shop_gmail ?? ""}
                           onChange={(e) => updateArSettings("shop_gmail", e.target.value)}
                         />
@@ -5029,9 +5039,9 @@ export default function AdminStoreEditPage() {
 
           {form.category === "auto-repair" && (
             <>
-              <TabsContent value="ar-invoices"><div><AutoRepairInvoicesSection storeId={storeId!} /></div></TabsContent>
+              <TabsContent value="ar-invoices"><div><AutoRepairInvoicesSection storeId={storeId!} isSoftwareDomain={isAutoRepairSoftwarePage} /></div></TabsContent>
               <TabsContent value="ar-autocheck"><div><AutoRepairAutoCheckSection storeId={storeId!} /></div></TabsContent>
-              <TabsContent value="ar-parts"><div><AutoRepairPartShopSection storeId={storeId!} /></div></TabsContent>
+              <TabsContent value="ar-parts"><div><AutoRepairPartShopSection storeId={storeId!} isSoftwareDomain={isAutoRepairSoftwarePage} /></div></TabsContent>
               <TabsContent value="ar-inspections"><div><AutoRepairInspectionsSection storeId={storeId!} onCreateEstimate={(data) => { sessionStorage.setItem("ar_estimate_prefill", JSON.stringify(data)); handleTabChange("ar-estimates"); toast.success("Estimate prefilled from inspection"); }} /></div></TabsContent>
               <TabsContent value="ar-vehicles"><div><AutoRepairVehiclesSection
                 storeId={storeId!}
@@ -5080,7 +5090,7 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-fin-payments"><div><FinancePaymentsSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-fin-pnl"><div><FinanceProfitLossSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-fin-tax"><div><FinanceTaxPayoutsSection storeId={storeId!} /></div></TabsContent>
-              <TabsContent value="ar-parts-suppliers"><div><AutoRepairPartSuppliersSection storeId={storeId!} /></div></TabsContent>
+              <TabsContent value="ar-parts-suppliers"><div><AutoRepairPartSuppliersSection storeId={storeId!} isSoftwareDomain={isAutoRepairSoftwarePage} /></div></TabsContent>
               <TabsContent value="ar-dashboard"><AutoRepairDashboardSection storeId={storeId!} onNavigate={handleTabChange} /></TabsContent>
               <TabsContent value="ar-build-ro"><div><AutoRepairBuildROSection storeId={storeId!} onNavigate={handleTabChange} isSoftwareDomain={isAutoRepairSoftwarePage} /></div></TabsContent>
               <TabsContent value="ar-service-catalog"><AutoRepairServiceCatalogSection storeId={storeId!} /></TabsContent>

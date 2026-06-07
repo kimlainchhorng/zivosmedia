@@ -294,9 +294,14 @@ function parseSupplierPartText(text: string): PickedPart | null {
   };
 }
 
-interface Props { storeId: string }
+interface Props {
+  storeId: string;
+  isSoftwareDomain?: boolean;
+}
 
-export default function AutoRepairInvoicesSection({ storeId }: Props) {
+export default function AutoRepairInvoicesSection({ storeId, isSoftwareDomain = false }: Props) {
+  const suppliesLabel = isSoftwareDomain ? "Supply charge" : "Shop supplies";
+  const inServiceIntakeLabel = isSoftwareDomain ? "In Service" : "In Shop";
   const [docs, setDocs] = useState<Doc[]>([]);
   // Authoritative DB rows for invoices and estimates (drives KPIs + status badges).
   const [dbInvoices, setDbInvoices] = useState<any[]>([]);
@@ -1416,7 +1421,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
               {([
                 { id: "drop-off", label: "Drop Off", icon: KeyRound },
                 { id: "towing", label: "Towing", icon: Truck },
-                { id: "in-shop", label: "In Shop", icon: Car },
+                { id: "in-shop", label: inServiceIntakeLabel, icon: Car },
                 { id: "pickup", label: "Pickup", icon: LogOut },
               ] as const).map(opt => {
                 const Icon = opt.icon;
@@ -1787,7 +1792,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-border">
-              {([["sublet", "Sublet"], ["fees", "Fees"], ["epa", "EPA"], ["shopSupplies", "Shop supplies"]] as const).map(([key, label]) => (
+              {([["sublet", "Sublet"], ["fees", "Fees"], ["epa", "EPA"], ["shopSupplies", suppliesLabel]] as const).map(([key, label]) => (
                 <div key={key} className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">{label} ($)</label>
                   <Input
@@ -1833,7 +1838,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
                   )}
                   {fees > 0 && catRow("Fees", fees)}
                   {epa > 0 && catRow("EPA", epa)}
-                  {supplies > 0 && catRow("Shop supplies", supplies)}
+                  {supplies > 0 && catRow(suppliesLabel, supplies)}
                   <div className="flex items-center justify-end gap-3 text-sm">
                     <span className="text-muted-foreground flex items-center gap-1.5">
                       Tax
@@ -1877,7 +1882,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
             </div>
           </CardContent>
         </Card>
-        <AutoRepairDocPreviewDialog open={!!previewDoc} onOpenChange={(v) => !v && setPreviewDoc(null)} doc={previewDoc} storeName={storeInfo.name} storeAddress={storeInfo.address} storePhone={storeInfo.phone} storePhone2={storeInfo.phone2} storeEmail={storeInfo.email} storeStateReg={storeInfo.stateReg} storeLogo={storeLogoData} storeTermsPolicy={storeInfo.termsPolicy} />
+        <AutoRepairDocPreviewDialog open={!!previewDoc} onOpenChange={(v) => !v && setPreviewDoc(null)} doc={previewDoc} storeName={storeInfo.name} storeAddress={storeInfo.address} storePhone={storeInfo.phone} storePhone2={storeInfo.phone2} storeEmail={storeInfo.email} storeStateReg={storeInfo.stateReg} storeLogo={storeLogoData} storeTermsPolicy={storeInfo.termsPolicy} isSoftwareDomain={isSoftwareDomain} />
         <PartPickerDialog
           open={showPartPicker}
           onOpenChange={setShowPartPicker}
@@ -2059,7 +2064,7 @@ export default function AutoRepairInvoicesSection({ storeId }: Props) {
         </Tabs>
       </CardContent>
 
-      <AutoRepairDocPreviewDialog open={!!previewDoc} onOpenChange={(v) => !v && setPreviewDoc(null)} doc={previewDoc} storeName={storeInfo.name} storeAddress={storeInfo.address} storePhone={storeInfo.phone} storeTermsPolicy={storeInfo.termsPolicy} />
+      <AutoRepairDocPreviewDialog open={!!previewDoc} onOpenChange={(v) => !v && setPreviewDoc(null)} doc={previewDoc} storeName={storeInfo.name} storeAddress={storeInfo.address} storePhone={storeInfo.phone} storeTermsPolicy={storeInfo.termsPolicy} isSoftwareDomain={isSoftwareDomain} />
 
       <RecordInvoicePaymentDialog
         open={!!paymentDoc}

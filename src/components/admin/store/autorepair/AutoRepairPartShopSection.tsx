@@ -39,7 +39,10 @@ import ImagePlus from "lucide-react/dist/esm/icons/image-plus";
 import PackagePlus from "lucide-react/dist/esm/icons/package-plus";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 
-interface Props { storeId: string }
+interface Props {
+  storeId: string;
+  isSoftwareDomain?: boolean;
+}
 
 type Part = {
   id: string;
@@ -132,7 +135,8 @@ function conditionBadge(condition?: string | null) {
   return <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${colors[condition] ?? "bg-muted"}`}>{condition}</span>;
 }
 
-export default function AutoRepairPartShopSection({ storeId }: Props) {
+export default function AutoRepairPartShopSection({ storeId, isSoftwareDomain = false }: Props) {
+  const vehicleSearchLabel = isSoftwareDomain ? "Search by Vehicle" : "Shop by Vehicle";
   const qc = useQueryClient();
 
   // Catalog state
@@ -521,7 +525,7 @@ export default function AutoRepairPartShopSection({ storeId }: Props) {
         >
           <div className="flex items-center gap-2">
             <Car className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">Shop by Vehicle</span>
+            <span className="text-sm font-semibold">{vehicleSearchLabel}</span>
             {vehicleActive && (
               <Badge variant="secondary" className="text-[10px]">
                 {[vehicleYear, vehicleMake, vehicleModel].filter(Boolean).join(" ")}

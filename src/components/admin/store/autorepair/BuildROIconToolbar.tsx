@@ -35,6 +35,7 @@ export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, 
   const nav = (tab: string) => () => onNavigate?.(tab);
   const settingsInfoLabel = isSoftwareDomain ? "Business Page Information" : "Store Information";
   const settingsVisibilityLabel = isSoftwareDomain ? "Business Page Visibility" : "Store Visibility";
+  const partsCatalogLabel = isSoftwareDomain ? "Parts Catalog" : "Part Shop";
   type Item = { icon: typeof Plus; label: string; onClick: () => void; accent?: string; submenu?: { label: string; tab: string; section?: string }[] };
   const items: Item[] = [
     { icon: Plus, label: "New R.O.", onClick: onNew, accent: "text-emerald-600" },
@@ -52,7 +53,7 @@ export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, 
     {
       icon: Package, label: "Inventory", onClick: nav("ar-parts"),
       submenu: [
-        { label: "Part Shop", tab: "ar-parts" },
+        { label: partsCatalogLabel, tab: "ar-parts" },
         { label: "Tire Inventory", tab: "ar-tires" },
         { label: "Parts Suppliers", tab: "ar-parts-suppliers" },
       ],

@@ -243,8 +243,20 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   const softwareScopeValue = isAutoRepairSoftwareDomain ? "Software" : "Shop";
   const offlineScreensLabel = isAutoRepairSoftwareDomain ? "software screens" : "shop screens";
   const androidPackageLabel = isAutoRepairSoftwareDomain ? "Android Software Package" : "Android Shop Package";
-  const androidDeviceName = isAutoRepairSoftwareDomain ? "Service Phone" : "Shop Phone";
+  const androidDeviceName = isAutoRepairSoftwareDomain ? "Mobile Device" : "Shop Phone";
+  const androidDeviceNote = isAutoRepairSoftwareDomain ? "mobile tablets and phones" : "shop tablets and phones";
+  const ipadPackageLabel = isAutoRepairSoftwareDomain ? "iPad Access Package" : "iPad Service Package";
+  const starterPcName = isAutoRepairSoftwareDomain ? "Office PC" : "Front Desk PC";
+  const starterTabletName = isAutoRepairSoftwareDomain ? "Advisor Tablet" : "Service Tablet";
+  const starterTabletUser = isAutoRepairSoftwareDomain ? "Advisor" : "Service advisor";
+  const windowsAccessNote = isAutoRepairSoftwareDomain ? "office and service-desk PCs" : "front desk and office PCs";
+  const ipadAccessNote = isAutoRepairSoftwareDomain ? "advisor tablet" : "service advisor tablet";
+  const staffDeskRole = isAutoRepairSoftwareDomain ? "Service desk" : "Front desk";
+  const dailyModulesIntro = isAutoRepairSoftwareDomain ? "Service desk" : "Front desk";
   const accessAuditLabel = isAutoRepairSoftwareDomain ? "Software access" : "Shop access";
+  const accessAuditValue = isAutoRepairSoftwareDomain ? "Auto Repair software only" : "Auto Repair only";
+  const deviceSeatsLabel = isAutoRepairSoftwareDomain ? "Software seats" : "Device seats";
+  const activationBadgeLabel = isAutoRepairSoftwareDomain ? "Software only" : "Business only";
   const downloadLinkLabel = isAutoRepairSoftwareDomain ? "Software download link" : "Store download link";
   const serviceFloorLabel = isAutoRepairSoftwareDomain ? "service floor" : "shop floor";
   const storageKey = `zivo-software-access:${storeId || storeCategory || "default"}`;
@@ -287,6 +299,16 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
     if (isAutoRepair && AUTO_REPAIR_HIDDEN_APP_IDS.has(app.id)) return false;
     return app.audience === "all" || app.audience === audience;
   });
+  const appDescription = (app: SoftwareApp) => {
+    if (!isAutoRepairSoftwareDomain) return app.description;
+    if (app.id === "zivo-manager") {
+      return "Run your software workspace from your phone — customers, inbox, invoices, and analytics in one place.";
+    }
+    if (app.id === "zivo-pos") {
+      return "Service-counter checkout, receipt printing, and split payments for auto repair teams.";
+    }
+    return app.description;
+  };
 
   const launcherFileName = isAutoRepair
     ? "ZIVO Auto Repair Software.html"
@@ -328,17 +350,17 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   };
 
   const platformDownloads = [
-    { label: "Windows access", file: "ZIVO Auto Repair Windows Access.html", icon: Monitor, note: "front desk and office PCs" },
+    { label: "Windows access", file: "ZIVO Auto Repair Windows Access.html", icon: Monitor, note: windowsAccessNote },
     { label: "macOS backup", file: "ZIVO Auto Repair macOS Access.html", icon: Laptop, note: "MacBook and iMac" },
-    { label: "Android access", file: "ZIVO Auto Repair Android Access.html", icon: Smartphone, note: isAutoRepairSoftwareDomain ? "service tablets and phones" : "shop tablets and phones" },
-    { label: "iPad access", file: "ZIVO Auto Repair iPad Access.html", icon: Apple, note: "service advisor tablet" },
+    { label: "Android access", file: "ZIVO Auto Repair Android Access.html", icon: Smartphone, note: androidDeviceNote },
+    { label: "iPad access", file: "ZIVO Auto Repair iPad Access.html", icon: Apple, note: ipadAccessNote },
   ];
 
   const installerPackages = [
     { label: "Windows Access Package", file: "ZIVO Auto Repair Windows Access.html", icon: Monitor, tag: "Office PC" },
     { label: "macOS Desktop Package", file: "ZIVO Auto Repair macOS Access.html", icon: Laptop, tag: "Mac" },
     { label: androidPackageLabel, file: "ZIVO Auto Repair Android Access.html", icon: Smartphone, tag: "Tablet" },
-    { label: "iPad Service Package", file: "ZIVO Auto Repair iPad Access.html", icon: Apple, tag: "iPadOS" },
+    { label: ipadPackageLabel, file: "ZIVO Auto Repair iPad Access.html", icon: Apple, tag: "iPadOS" },
   ];
 
   const deviceSetup = [
@@ -350,7 +372,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
 
   const staffAccess = [
     { role: "Manager", file: "ZIVO Auto Repair Manager Access.html", icon: UserCog, access: "dashboard, reports, invoices" },
-    { role: "Front desk", file: "ZIVO Auto Repair Front Desk Access.html", icon: Briefcase, access: "bookings, estimates, customer inbox" },
+    { role: staffDeskRole, file: "ZIVO Auto Repair Front Desk Access.html", icon: Briefcase, access: "bookings, estimates, customer inbox" },
     { role: "Technician", file: "ZIVO Auto Repair Technician Access.html", icon: Wrench, access: "work orders, inspections, job photos" },
     { role: "Parts desk", file: "ZIVO Auto Repair Parts Access.html", icon: PackageCheck, access: "parts, tires, suppliers, inventory" },
   ];
@@ -372,8 +394,8 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   const activationKey = "ZIVO-AR-A914-2026";
 
   const starterDevices: DeviceAccessRecord[] = [
-    { id: "front-desk-pc", name: "Front Desk PC", platform: "Windows", user: "Manager", lastDownloaded: "Today", status: "Active" },
-    { id: "service-tablet", name: "Service Tablet", platform: "iPad", user: "Service advisor", lastDownloaded: "Today", status: "Active" },
+    { id: "front-desk-pc", name: starterPcName, platform: "Windows", user: "Manager", lastDownloaded: "Today", status: "Active" },
+    { id: "service-tablet", name: starterTabletName, platform: "iPad", user: starterTabletUser, lastDownloaded: "Today", status: "Active" },
     { id: "shop-phone", name: androidDeviceName, platform: "Android", user: "Technician", lastDownloaded: "May 23", status: "Ready" },
   ];
   const assignedDevices = deviceRecords.length ? deviceRecords : starterDevices;
@@ -383,8 +405,8 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
   const downloadAudit = [
     { label: "Last downloaded", value: latestDownload ? `${latestDownload.fileName} • ${formatAuditTime(latestDownload.downloadedAt)}` : "No file downloaded yet" },
     { label: "Downloaded by", value: latestDownload?.downloadedBy || user?.email || "Business owner" },
-    { label: accessAuditLabel, value: "Auto Repair only" },
-    { label: "Device seats", value: `${activeDeviceCount}/${DEVICE_LIMIT} active` },
+    { label: accessAuditLabel, value: accessAuditValue },
+    { label: deviceSeatsLabel, value: `${activeDeviceCount}/${DEVICE_LIMIT} active` },
   ];
 
   const getDeviceIcon = (platform: string) => {
@@ -397,7 +419,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
 
   const releaseNotes = [
     `Auto Repair v1.1 desktop software for this ${softwareWorkspaceLabel}`,
-    `Front desk, ${serviceFloorLabel}, inventory, customer care, marketing, digital, finance, insights, and team modules`,
+    `${dailyModulesIntro}, ${serviceFloorLabel}, inventory, customer care, marketing, digital, finance, insights, and team modules`,
     "Feed, Reels, Chat, Rides, and other ZIVO platform apps are hidden from the desktop software",
     "Offline-ready app shell with reconnect sync",
   ];
@@ -1213,7 +1235,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
                     Use this key to activate downloaded auto repair software for this {softwareWorkspaceLabel} only.
                   </p>
                 </div>
-                <Badge variant="secondary" className="w-fit text-[10px]">Business only</Badge>
+                <Badge variant="secondary" className="w-fit text-[10px]">{activationBadgeLabel}</Badge>
               </div>
               <div className="mt-3 rounded-2xl border border-border/60 bg-muted/20 p-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Activation key</p>
@@ -1399,7 +1421,7 @@ export default function SoftwareDownloadsSection({ storeCategory, storeId }: Pro
                         )}
                       </div>
                       <p className="text-[12px] text-muted-foreground mt-1 leading-snug">
-                        {app.description}
+                        {appDescription(app)}
                       </p>
                     </div>
                   </div>

@@ -27,7 +27,10 @@ import Eye from "lucide-react/dist/esm/icons/eye";
 import EyeOff from "lucide-react/dist/esm/icons/eye-off";
 import { toast } from "sonner";
 
-interface Props { storeId: string }
+interface Props {
+  storeId: string;
+  isSoftwareDomain?: boolean;
+}
 
 type Cat = "All" | "Retail Chain" | "OE / Dealer" | "Wholesale Distributor" | "Online Marketplace" | "Specialty";
 
@@ -142,7 +145,8 @@ export function listConnectedVendors(storeId: string): ConnectedVendor[] {
 /** All known supplier names, for free-pick fallback in vendor dropdowns. */
 export const AR_SUPPLIER_NAMES: string[] = SUPPLIERS.map((s) => s.name);
 
-export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
+export default function AutoRepairPartSuppliersSection({ storeId, isSoftwareDomain = false }: Props) {
+  const browseWithoutVehicleLabel = isSoftwareDomain ? "Browse Without Vehicle" : "Shop Without Vehicle";
   const [catFilter, setCatFilter] = useState<Cat>("All");
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<Supplier | null>(null);
@@ -162,6 +166,8 @@ export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
       (!q || s.name.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q))
     );
   }, [catFilter, search]);
+  const supplierDescription = (supplier: Supplier) =>
+    isSoftwareDomain ? supplier.desc.replace("Shop / trade orders", "Business / trade orders") : supplier.desc;
 
   const connectedCount = Object.values(savedMap).filter(Boolean).length;
 
@@ -270,7 +276,7 @@ export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate leading-tight">{s.name}</p>
                     <p className="text-[11px] text-muted-foreground truncate">
-                      {cred ? "Account saved" : s.desc}
+                      {cred ? "Account saved" : supplierDescription(s)}
                     </p>
                   </div>
 
@@ -376,7 +382,7 @@ export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
                         vehicle screen, or type the Year / Make / Model on their page.
                       </p>
                     </div>
-                    {/* One-click Shop Without Vehicle */}
+                    {/* One-click supplier browse without vehicle */}
                     <button type="button"
                       onClick={() => {
                         const url = setup.shopUrl || target?.url;
@@ -385,7 +391,7 @@ export default function AutoRepairPartSuppliersSection({ storeId }: Props) {
                         if (!w) toast.error("Pop-up blocked — allow pop-ups to open the portal");
                       }}
                       className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
-                      <Store className="h-4 w-4" /> Shop Without Vehicle →
+                      <Store className="h-4 w-4" /> {browseWithoutVehicleLabel} →
                     </button>
                   </div>
                 );

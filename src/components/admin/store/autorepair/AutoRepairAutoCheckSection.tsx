@@ -24,6 +24,7 @@ import TriangleAlert from "lucide-react/dist/esm/icons/triangle-alert";
 import Mail from "lucide-react/dist/esm/icons/mail";
 import MessageSquare from "lucide-react/dist/esm/icons/message-square";
 import { toast } from "sonner";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
 interface VinResult {
   vin: string;
@@ -238,6 +239,9 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
 
   // Compose a customer-facing recall summary suitable for email body / SMS text.
   const buildRecallMessage = () => {
+    const signOff = typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname)
+      ? "Your business"
+      : "Your shop";
     const ownerFirstName = (vehicleOwner?.owner_name ?? "").trim().split(/\s+/)[0] || "there";
     const vehicle = [result?.year, result?.make, result?.model].filter(Boolean).join(" ") || "your vehicle";
     const lines = [
@@ -248,7 +252,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
       ``,
       `These are typically repaired free of charge by a franchised dealer. Reply or call us to discuss next steps.`,
       ``,
-      `— Your shop`,
+      `— ${signOff}`,
     ];
     return lines.join("\n");
   };

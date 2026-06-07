@@ -798,6 +798,7 @@ export default function FinanceExpensesSection({ storeId }: Props) {
             open={diagOpen}
             onToggle={() => setDiagOpen((o) => !o)}
             onClear={() => setDiagnostics(null)}
+            diagnosticsStoreIdLabel={diagnosticsStoreIdLabel}
           />
         </CardContent>
       </Card>
@@ -1117,11 +1118,13 @@ function UploadDiagnosticsPanel({
   open,
   onToggle,
   onClear,
+  diagnosticsStoreIdLabel,
 }: {
   diag: DiagnosticsRecord | null;
   open: boolean;
   onToggle: () => void;
   onClear: () => void;
+  diagnosticsStoreIdLabel: string;
 }) {
   if (!diag) return null;
   const lastAttempt = diag.attempts[diag.attempts.length - 1];

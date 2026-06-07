@@ -59,8 +59,15 @@ export const DATA_SUPABASE_PUBLISHABLE_KEY = useZivoSoftwareBackend
 export const SUPABASE_URL = DATA_SUPABASE_URL;
 export const SUPABASE_PUBLISHABLE_KEY = DATA_SUPABASE_PUBLISHABLE_KEY;
 const REMEMBER_ME_KEY = "zivo_remember_me";
-const EFFECTIVE_AUTH_SUPABASE_URL = AUTH_SUPABASE_URL;
-const EFFECTIVE_AUTH_SUPABASE_KEY = AUTH_SUPABASE_PUBLISHABLE_KEY;
+const useDedicatedSoftwareAuth =
+  useZivoSoftwareBackend &&
+  Boolean(ZIVO_SOFTWARE_SUPABASE_URL && ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY);
+const EFFECTIVE_AUTH_SUPABASE_URL = useDedicatedSoftwareAuth
+  ? ZIVO_SOFTWARE_SUPABASE_URL
+  : AUTH_SUPABASE_URL;
+const EFFECTIVE_AUTH_SUPABASE_KEY = useDedicatedSoftwareAuth
+  ? ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY
+  : AUTH_SUPABASE_PUBLISHABLE_KEY;
 const EFFECTIVE_DATA_SUPABASE_URL = DATA_SUPABASE_URL || EFFECTIVE_AUTH_SUPABASE_URL;
 const EFFECTIVE_DATA_SUPABASE_KEY = DATA_SUPABASE_PUBLISHABLE_KEY || EFFECTIVE_AUTH_SUPABASE_KEY;
 const SUPABASE_PROJECT_REF =
@@ -261,8 +268,9 @@ export const dataSupabase = createClient<Database>(EFFECTIVE_DATA_SUPABASE_URL, 
 //
 // Compatibility note: existing code keeps using `supabase.from`,
 // `supabase.functions`, `supabase.storage`, and `supabase.channel` against the
-// active data project. `supabase.auth` is deliberately routed to the main
-// ZivosMedia auth project so one ZIVO account can work across domains.
+// active data project. `supabase.auth` follows the matching auth project on
+// dedicated software domains so owner checks compare user IDs from the same
+// Supabase project as the workspace data.
 export const supabase = dataSupabase as typeof dataSupabase & {
   auth: typeof authSupabase.auth;
 };

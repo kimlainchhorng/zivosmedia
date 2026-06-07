@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStores";
 import { useAuth } from "@/contexts/AuthContext";
+import CrossAppReturnBar from "@/components/cross-app/CrossAppReturnBar";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 import {
@@ -116,12 +117,12 @@ const forceNavigate = (path: string) => (event: MouseEvent<HTMLAnchorElement>) =
 
 const workflowSteps = [
   {
-    title: "Choose software page",
-    description: "Start with the Software Business Page category.",
+    title: "Configure software",
+    description: "Start with the ZIVO Software workspace and business profile.",
     icon: ClipboardList,
   },
   {
-    title: "Launch workspace",
+    title: "Activate workspace",
     description: "Create the software hub, roles, services, and customer flow.",
     icon: Sparkles,
   },
@@ -147,16 +148,16 @@ const operatingModules = [
 ];
 
 const pictureRail = [
-  { src: hotelBusiness, label: "Business dashboard" },
-  { src: svcEatsPremium, label: "Customer workflow" },
-  { src: serviceShopping, label: "Sales and invoices" },
-  { src: serviceTire, label: "Service operations" },
+  { src: hotelBusiness, label: "Workspace dashboard" },
+  { src: svcEatsPremium, label: "Customer intake" },
+  { src: serviceShopping, label: "Invoice command" },
+  { src: serviceTire, label: "Service workflow" },
 ];
 
 const suiteModules = [
   {
-    title: "Front desk",
-    copy: "Appointments, reservations, customer intake, and service timing stay organized in one queue.",
+    title: "Service desk",
+    copy: "Appointments, customer intake, approvals, and service timing stay organized in one queue.",
     icon: CalendarCheck,
     image: hotelBusiness,
   },
@@ -175,9 +176,9 @@ const suiteModules = [
 ];
 
 const commandRows = [
-  { label: "Customer request", status: "Captured", icon: ClipboardList },
-  { label: "Quote and invoice", status: "Ready", icon: FileText },
-  { label: "Team assignment", status: "Scheduled", icon: Users },
+  { label: "Customer intake", status: "Captured", icon: ClipboardList },
+  { label: "Invoice workflow", status: "Ready", icon: FileText },
+  { label: "Team access", status: "Assigned", icon: Users },
   { label: "Payment record", status: "Synced", icon: CreditCard },
   { label: "Daily report", status: "Live", icon: Gauge },
 ];
@@ -243,6 +244,9 @@ export default function BusinessSoftwarePortalPage() {
       </Helmet>
 
       <main className="min-h-screen overflow-hidden bg-[#f7f8f6] text-[#111412]">
+        <div className="mx-auto flex w-full max-w-7xl justify-end px-5 pt-3 sm:px-6 lg:px-8">
+          <CrossAppReturnBar adminHref="#software-businesses" returnPath="/business" />
+        </div>
         <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f8f6]/90 backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
             <Link to="/business" className="flex items-center gap-3" aria-label="ZIVO Software">
@@ -305,7 +309,7 @@ export default function BusinessSoftwarePortalPage() {
           <div className="relative mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-8 px-5 py-10 sm:px-6 md:grid-cols-[0.92fr_1.08fr] lg:gap-12 lg:px-8 lg:py-16">
             <div className="max-w-2xl">
               <h1 className="max-w-4xl text-4xl font-black leading-[0.96] tracking-normal text-[#111412] sm:text-5xl lg:text-7xl">
-                Software Business Page for local operators
+                ZIVO Software for local businesses
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-8 text-[#58625d]">
                 Launch one software-only business workspace for setup, customers, invoices, operations, reports, and secure team access.
@@ -319,13 +323,13 @@ export default function BusinessSoftwarePortalPage() {
                   </a>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="h-12 rounded-lg border-black/15 bg-white/80 px-6 text-[#111412] hover:bg-white">
-                  <a href="#industries">View Business Page</a>
+                  <a href="#industries">View Software Page</a>
                 </Button>
               </div>
 
               <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
                 {[
-                  ["1", "business page"],
+                  ["1", "software page"],
                   ["1", "software setup"],
                   ["1", "software domain"],
                 ].map(([value, label]) => (
@@ -471,7 +475,7 @@ export default function BusinessSoftwarePortalPage() {
         <section className="bg-[#e8f0ec] px-5 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto grid w-full max-w-7xl gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div>
-              <h2 className="text-3xl font-black tracking-normal text-[#111412] sm:text-4xl">A launch board for your Software Business Page</h2>
+              <h2 className="text-3xl font-black tracking-normal text-[#111412] sm:text-4xl">A launch board for your software workspace</h2>
               <p className="mt-4 max-w-xl text-base leading-7 text-[#58625d]">
                 The setup flow creates one software business record, then opens the command center for services, team roles, customer records, and finance tracking.
               </p>
@@ -540,9 +544,9 @@ export default function BusinessSoftwarePortalPage() {
           <div className="mx-auto w-full max-w-7xl">
             <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-3xl font-black tracking-normal sm:text-4xl">Software Business Page ready to launch</h2>
+                <h2 className="text-3xl font-black tracking-normal sm:text-4xl">ZIVO Software workspace ready to launch</h2>
                 <p className="mt-3 max-w-2xl text-base leading-7 text-[#58625d]">
-                  Start with the software-only business page category and keep the dashboard focused on business operations.
+                  Start with the software-only workspace category and keep the dashboard focused on business operations.
                 </p>
               </div>
               <Button asChild variant="outline" className="rounded-lg border-black/15 bg-white text-[#111412] hover:bg-black/5">
@@ -594,7 +598,7 @@ export default function BusinessSoftwarePortalPage() {
             <div>
               <h2 className="text-3xl font-black tracking-normal sm:text-4xl">Operations, payments, and teams in one secure workspace</h2>
               <p className="mt-4 max-w-xl text-base leading-7 text-[#58625d]">
-                The software domain keeps operators focused on business work: staff access, customer records, revenue, work orders, and daily activity.
+                ZIVO Software keeps teams focused on business work: staff access, customer records, revenue, work orders, and daily activity.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="h-12 rounded-lg bg-[#111412] px-6 text-white hover:bg-black">
@@ -635,7 +639,7 @@ export default function BusinessSoftwarePortalPage() {
             <div>
               <h2 className="max-w-3xl text-3xl font-black tracking-normal sm:text-4xl">Start with the right business software today</h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-white/62">
-                Create the software business page, then sign in from the software domain whenever the team comes back.
+                Create the software workspace, then sign in from the software domain whenever the team comes back.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">

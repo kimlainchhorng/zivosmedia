@@ -333,6 +333,7 @@ const tidyNote = (raw: string): string => {
 
 export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwareDomain = false }: Props) {
   const qc = useQueryClient();
+  const suppliesLabel = isSoftwareDomain ? "Supply Charge" : "Shop Supplies";
   const [editId, setEditId] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [header, setHeader] = useState<HeaderForm>(() => ({ ...blankHeader, estimate_date: todayStr() }));
@@ -2017,7 +2018,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               {([
                 ["Fees", feesC, setFeesC],
                 ["EPA", epaC, (n: number) => { setEpaTouched(true); setEpaC(n); }],
-                ["Shop Supplies", suppliesC, (n: number) => { setSuppliesTouched(true); setSuppliesC(n); }],
+                [suppliesLabel, suppliesC, (n: number) => { setSuppliesTouched(true); setSuppliesC(n); }],
                 ["Discount", discountC, setDiscountC],
               ] as [string, number, (n: number) => void][]).map(([label, val, setter]) => (
                 <div key={label as string} className="flex items-center justify-between gap-2">
@@ -2204,6 +2205,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         vehicleLabel={header.vehicle_label || undefined}
         vin={boundVehicle?.vin || undefined}
         plate={header.license_plate || undefined}
+        isSoftwareDomain={isSoftwareDomain}
         onAddPart={addPartFromCatalogAndPersist}
       />
       <BuildROExistingCustomerDialog
@@ -2288,6 +2290,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         storeStateReg={storeInfo.stateReg}
         storeLogo={storeLogoData}
         storeTermsPolicy={storeInfo.termsPolicy}
+        isSoftwareDomain={isSoftwareDomain}
       />
 
       {/* ── Print / Review modal ── */}

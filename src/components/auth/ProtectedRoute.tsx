@@ -194,7 +194,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
       if (isAutoRepairSoftwareRoute) {
         return (
           <AccessDenied
-            message="You don't have permission to access this auto repair workspace. Contact the shop owner or ZIVO support to request access."
+            message="You don't have permission to access this auto repair workspace. Contact the business owner or ZIVO Software support to request access."
           />
         );
       }
