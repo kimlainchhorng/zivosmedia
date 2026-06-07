@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 
-const EMAIL = "kimlain@zivosmedia.com";
-const PASSWORD = "Chhorng@1903";
+const EMAIL = process.env.QA_TEST_EMAIL || process.env.E2E_EMAIL || "kimlain@zivosmedia.com";
+const PASSWORD = process.env.QA_TEST_PASSWORD || process.env.E2E_PASSWORD || "Chhorng@1903";
 
 export async function login(page: Page) {
   // Pre-accept cookies so the consent banner (fixed bottom-0, z-[60]) never
