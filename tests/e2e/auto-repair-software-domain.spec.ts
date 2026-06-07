@@ -23,9 +23,9 @@ test("zivosoftware.com opens the business software login flow", async () => {
     await expect(page.getByRole("heading", { name: "ZIVO Software for local businesses" })).toBeVisible();
     await expect(page.locator("header").getByRole("link", { name: "Log in" })).toBeVisible();
     await expect(page.locator("header").getByRole("link", { name: "Sign up" })).toBeVisible();
-    await expect(page.getByText("Hotels & Resorts")).toBeVisible();
-    await expect(page.getByText("Auto Repair")).toBeVisible();
-    await expect(page.getByText("Laundry & Dry Clean")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Service desk" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sales counter" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Service bay" })).toBeVisible();
     await expect(page.getByText("Home", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Reels", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Chat", { exact: true })).toHaveCount(0);
