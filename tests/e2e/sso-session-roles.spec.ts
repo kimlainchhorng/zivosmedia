@@ -22,7 +22,7 @@ test.describe("SSO, sessions, and role routing contract", () => {
     expect(callback).toContain("user.app_metadata?.provider");
     expect(callback).toContain("isOAuthUser");
     expect(callback).toContain("saveAccount");
-    expect(callback).toContain('navigate(isAdminUser ? "/admin/analytics" : redirectTo');
+    expect(callback).toContain("checkSetupAndNavigate(session.user)");
 
     expect(sw).toContain("Skip OAuth callback routes");
     expect(sw).toContain("url.pathname.startsWith('/~oauth')");
