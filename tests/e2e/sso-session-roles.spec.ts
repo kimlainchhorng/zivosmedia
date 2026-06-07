@@ -15,7 +15,7 @@ test.describe("SSO, sessions, and role routing contract", () => {
     expect(login).toContain("signIn(trimmedEmail, password)");
     expect(login).toContain("supabase.auth.signInWithOtp");
     expect(login).toContain("refreshSession({");
-    expect(login).toContain("redirectTo: getEmailRedirectTo()");
+    expect(login).toContain("emailRedirectTo: getEmailRedirectTo()");
     expect(login).toContain("Forgot password?");
 
     expect(callback).toContain("exchangeCodeForSession(code)");
