@@ -52,6 +52,7 @@ import { TravelCartProvider } from "@/contexts/TravelCartContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import GuestOrUser from "@/components/auth/GuestOrUser";
 import PhoneRequiredGate from "@/components/auth/PhoneRequiredGate";
+import CheckoutAuthGate from "@/components/auth/CheckoutAuthGate";
 import CambodiaOnlyGate from "@/components/auth/CambodiaOnlyGate";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { RouteErrorBoundary } from "./components/shared/RouteErrorBoundary";
@@ -2095,7 +2096,7 @@ const App = () => (
                 <Route path="/how-to-rent" element={<RouteErrorBoundary section="Cars"><HowToRent /></RouteErrorBoundary>} />
 
                 {/* Travel Checkout */}
-                <Route path="/travel/checkout" element={<RouteErrorBoundary section="Checkout"><TravelCartProvider><PhoneRequiredGate><TravelCheckoutPage /></PhoneRequiredGate></TravelCartProvider></RouteErrorBoundary>} />
+                <Route path="/travel/checkout" element={<RouteErrorBoundary section="Checkout"><TravelCartProvider><CheckoutAuthGate><PhoneRequiredGate><TravelCheckoutPage /></PhoneRequiredGate></CheckoutAuthGate></TravelCartProvider></RouteErrorBoundary>} />
                 <Route path="/confirmation/:orderNumber" element={<RouteErrorBoundary section="Checkout"><TravelCartProvider><TravelConfirmationPage /></TravelCartProvider></RouteErrorBoundary>} />
                 <Route path="/my-trips/lodging/:reservationId" element={<ProtectedRoute><RouteErrorBoundary section="Lodging"><MyLodgingTripPage /></RouteErrorBoundary></ProtectedRoute>} />
                 <Route path="/my-trips/cars/:bookingId" element={<ProtectedRoute><RouteErrorBoundary section="Cars"><MyCarTripPage /></RouteErrorBoundary></ProtectedRoute>} />
