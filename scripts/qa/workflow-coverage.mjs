@@ -31,7 +31,9 @@ function rel(file) {
 }
 
 function readText(file) {
-  return readFileSync(file, "utf8");
+  // Normalize CRLF -> LF so multiline assertions are line-ending agnostic
+  // (Windows/OneDrive checkouts with core.autocrlf=true yield CRLF files).
+  return readFileSync(file, "utf8").replace(/\r\n/g, "\n");
 }
 
 function readJson(file) {
