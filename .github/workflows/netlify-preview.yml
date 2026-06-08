@@ -58,7 +58,7 @@ jobs:
       - name: Deploy preview to Netlify
         if: steps.netlify-secrets.outputs.available == 'true'
         id: netlify
-        uses: nwtgck/actions-netlify@v3.0
+        uses: nwtgck/actions-netlify@v4.0
         with:
           publish-dir: ./dist
           deploy-message: "PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}"

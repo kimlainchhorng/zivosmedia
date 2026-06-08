@@ -128,7 +128,7 @@ jobs:
 
       - name: Deploy production to Netlify
         if: steps.changes.outputs.relevant == 'true' && steps.netlify-secrets.outputs.available == 'true'
-        uses: nwtgck/actions-netlify@v3
+        uses: nwtgck/actions-netlify@v4.0
         with:
           publish-dir: ./dist
           production-branch: main

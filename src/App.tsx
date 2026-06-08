@@ -513,6 +513,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AuthHandoff = lazy(() => import("./pages/AuthHandoff"));
+const ZivosmediaAuthorize = lazy(() => import("./pages/ZivosmediaAuthorize"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const VerifyOTP = lazy(() => lazyRetry(() => import("./pages/VerifyOTP")));
@@ -1273,9 +1274,13 @@ function isCurrentZivoMediaHost() {
 // ZIVO Media hub (it is listed under SERVICES in the media nav), so it must
 // render on either host. CambodiaOnlyGate is a rides-only restriction and must
 // NOT gate lodging — it is kept only as a fallback for unexpected hosts.
+// Hotels/resorts is a travel product, not the Cambodia-only rides product.
+// Previously this gate wrapped hotel routes in <CambodiaOnlyGate> on non-travel
+// hosts, which rendered the "Rides available in Cambodia" screen instead of hotel
+// content (UI audit P0). Hotel routes now always render their hotel content;
+// CambodiaOnlyGate stays reserved for ride/drive routes.
 function ZivoTravelHotelGate({ children }: { children: ReactNode }) {
-  if (isCurrentZivoTravelHost() || isCurrentZivoMediaHost()) return <>{children}</>;
-  return <CambodiaOnlyGate>{children}</CambodiaOnlyGate>;
+  return <>{children}</>;
 }
 
 function RouteAwareGlobalUI() {
@@ -2112,6 +2117,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/auth-callback" element={<AuthCallback />} />
                 <Route path="/auth/handoff" element={<AuthHandoff />} />
+                <Route path="/auth/zivosmedia/authorize" element={<ZivosmediaAuthorize />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 
                 <Route path="/verify-otp" element={<VerifyOTP />} />
