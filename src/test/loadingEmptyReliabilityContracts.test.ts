@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 
 const source = (relativePath: string) =>
-  readFileSync(path.join(root, relativePath), "utf8");
+  readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("loading, empty, and reliability visual contracts", () => {
   it("keeps reusable empty and degraded-state components animated, actionable, and trackable", () => {

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 
 const source = (relativePath: string) =>
-  readFileSync(path.join(root, relativePath), "utf8");
+  readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("role workflow matrix", () => {
   it("keeps every major role reachable from protected app routes and hub links", () => {

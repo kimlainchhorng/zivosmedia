@@ -7,7 +7,7 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const SQUARE_BASE = (Deno.env.get("SQUARE_MODE") ?? "production") === "sandbox"
+const SQUARE_BASE = (Deno.env.get("SQUARE_MODE") ?? "sandbox") === "sandbox"
   ? "https://connect.squareupsandbox.com"
   : "https://connect.squareup.com";
 

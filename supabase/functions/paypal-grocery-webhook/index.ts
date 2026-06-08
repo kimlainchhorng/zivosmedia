@@ -9,7 +9,7 @@ import { createClient } from "../_shared/deps.ts";
 import { notifyGroceryOrderConfirmed } from "../_shared/grocery-notifications.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "live") === "sandbox"
+const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "sandbox") === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
   : "https://api-m.paypal.com";
 

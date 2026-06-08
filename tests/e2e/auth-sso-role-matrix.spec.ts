@@ -75,7 +75,7 @@ test.describe("auth SSO role matrix", () => {
     expect(userAccess).toContain('roles.includes("operations")');
   });
 
-  test("keeps auth callback, saved-session restore, and role redirect logic aligned", () => {
+  test("keeps SSO callback, saved-session restore, and role redirect logic aligned", () => {
     const login = source("src/pages/Login.tsx");
     const callback = source("src/pages/AuthCallback.tsx");
     const authContext = source("src/contexts/AuthContext.tsx");

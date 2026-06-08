@@ -19,7 +19,7 @@ const requiredArtifactKeys = [
 ] as const;
 
 function source(relativePath: string) {
-  return readFileSync(path.join(root, relativePath), "utf8");
+  return readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 }
 
 function json(relativePath: string) {

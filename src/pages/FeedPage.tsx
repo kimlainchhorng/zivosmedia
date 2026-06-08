@@ -108,7 +108,7 @@ const REEL_RENDER_WINDOW_BEFORE = 2;
 const REEL_RENDER_WINDOW_AFTER = 2;
 const firstMediaLogged = { value: false };
 const FEED_USER_REELS_SELECT =
-  "id, user_id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, audio_name, location, shared_from_post_id, shared_from_user_id, is_sensitive, sensitive_reason";
+  "id, user_id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, audio_name, location, shared_from_post_id, shared_from_user_id";
 const FEED_USER_REELS_SELECT_FALLBACK =
   "id, user_id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, audio_name, location, shared_from_post_id, shared_from_user_id";
 type ReelSourceFilter = "all" | "people" | "shops";
@@ -2797,7 +2797,7 @@ function CommentSheet({
   const rawPostId   = getFeedPostRawId(postId);
   const postSource = isUserPost ? "user" : "store";
   const targetTable = isUserPost ? "post_comments" : "store_post_comments";
-  const commentLikeTargetTable = isUserPost ? "user_post_comments" : "store_post_comments";
+  const commentLikeTargetTable = isUserPost ? "post_comments" : "store_post_comments";
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Check if user has a verified account (phone_verified)
@@ -2857,7 +2857,7 @@ function CommentSheet({
       }
       const likedByUser = new Set((userLikeRows ?? []).map((r: any) => r.comment_id));
 
-      // Normalize text column — store_post_comments uses `content`, user_post_comments may use `comment`
+      // Normalize text column — both post_comments and store_post_comments use `content`
       return rawComments.map((c: any) => ({
         ...c,
         content: c.content ?? c.comment ?? c.text ?? c.body ?? "",

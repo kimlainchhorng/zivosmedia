@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy";
 
@@ -51,6 +52,11 @@ export default function CreateSupportTicketPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Get Help – Support – ZIVO"
+        description="Submit a support ticket to the ZIVO team. Describe your issue and we'll get back to you as soon as possible."
+        canonical="/support/new"
+      />
       <Header />
       <main className="pt-24 pb-24 container mx-auto px-4 max-w-md">
         <h1 className="text-2xl font-bold mb-1 inline-flex items-center gap-2"><LifeBuoy className="w-6 h-6 text-primary" />Get help</h1>
