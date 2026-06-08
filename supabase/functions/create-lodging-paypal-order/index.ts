@@ -12,7 +12,7 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const PAYPAL_MODE = Deno.env.get("PAYPAL_MODE") ?? "live";
+const PAYPAL_MODE = Deno.env.get("PAYPAL_MODE") ?? "sandbox";
 const PAYPAL_BASE = PAYPAL_MODE === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
   : "https://api-m.paypal.com";
