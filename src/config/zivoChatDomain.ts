@@ -3,6 +3,8 @@ export const ZIVO_CHAT_HOSTS = new Set([
   "www.zivoschat.com",
 ]);
 
+export const ZIVO_CHAT_ORIGIN = "https://zivoschat.com";
+
 export const ZIVO_CHAT_HOME_PATH = "/chat";
 
 const ZIVO_CHAT_STANDALONE_PATHS = new Set([

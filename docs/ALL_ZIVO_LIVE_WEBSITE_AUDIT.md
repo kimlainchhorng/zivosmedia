@@ -180,3 +180,19 @@ Screenshot path convention: `docs/live-audit-screenshots/<viewport>/<domain>__<s
 9. **Recommended next PR:** see `docs/LIVE_WEBSITE_FIX_ROADMAP.md` §"Recommended next PR".
 
 See also: `DOMAIN_STATUS_MATRIX.md`, `CROSS_DOMAIN_NAVIGATION_STATUS.md`, `LIVE_WEBSITE_P0_ISSUES.md`, `LIVE_WEBSITE_FIX_ROADMAP.md`.
+
+---
+
+## 6. Independent live re-verification (2026-06-08, second pass)
+
+The findings above were independently re-checked live this session via `curl` (DNS/HTTP + served-HTML inspection). Results matched the original audit:
+
+| Check | Method | Result |
+|-------|--------|--------|
+| 7/8 domains reachable | `curl -sI` each host | ✅ HTTP **200** via Cloudflare on media/business/driver/employee/chat/software/travel |
+| zivoadmin.com down | `curl` + `nslookup` | ✅ HTTP **000** — host does not serve; no working A record / not reachable |
+| `/chat`, `/business` redirects | `-L` final URL | ✅ zivoschat→`/chat`, zivosoftware→`/business` confirmed |
+| **Domain↔product mismatch is host-routing** | md5 of root HTML per host | ✅ zivosmedia / zivobusiness / zivodriver / zivoemployee all serve a **byte-identical** root document (`md5 e7248906…`). They are the **same deployment** behind 4 hostnames — confirming the mismatch is a host-routing/deploy issue, not 4 separate broken apps. |
+| **`emrld.ltd` injected script — escalated** | grep live HTML + repo source | ⚠️ The loader `script.src = 'https://emrld.ltd/NDkzNzQ1.js?t=493745'` is present in the **live-served** `zivosmedia.com` HTML but is **NOT in the committed repo source** (not in `index.html` or `src/`). It is therefore injected **downstream of the repo** — at the build/host/edge layer. This raises it from a blocked console error to a **hosting/supply-chain security item**: identify what injects it (Cloudflare worker/snippet, build step, or compromised host config) and remove it. |
+
+**Net:** the audit is accurate and current. The single most security-relevant addition from this pass is that `emrld.ltd` is an **edge/deploy-layer injection**, not application code — investigate the hosting layer, not just the bundle.
