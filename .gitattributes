@@ -1,0 +1,40 @@
+# Enforce LF line endings repo-wide.
+#
+# Without this, a Windows checkout with core.autocrlf=true rewrites LF->CRLF in
+# the working tree. The QA contract scripts (scripts/qa/*.mjs) do plain string
+# `.includes()` with LF needles and no newline normalization, so multi-line
+# checks (e.g. `withSecurity(\n    "...")`) false-fail locally while passing in
+# CI on LF. Pinning eol=lf keeps the working tree aligned with the already-LF
+# index for everyone.
+* text=auto eol=lf
+
+# Windows-only scripts must stay CRLF to run correctly.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binary assets — never normalize.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.avif  binary
+*.ico   binary
+*.icns  binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+*.mp4   binary
+*.webm  binary
+*.mov   binary
+*.mp3   binary
+*.wav   binary
+*.zip   binary
+*.gz    binary
+*.jar   binary
+*.keystore binary
+*.jks   binary
