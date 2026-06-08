@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 
 const read = (relativePath: string) =>
-  readFileSync(path.join(root, relativePath), "utf8");
+  readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("email marketing, consent, and suppression workflow", () => {
   it("keeps the standalone email marketing contract gate wired into platform audit", () => {

@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 
 const read = (relativePath: string) =>
-  readFileSync(path.join(root, relativePath), "utf8");
+  readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("storage bucket policy guard", () => {
   it("keeps public user media owner-prefixed for write, update, and delete", () => {

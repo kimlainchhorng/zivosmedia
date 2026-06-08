@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
-const read = (relativePath: string) => readFileSync(path.join(root, relativePath), "utf8");
+const read = (relativePath: string) => readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("account deletion lifecycle", () => {
   it("keeps the in-app deletion request on a 30-day cancellable schedule", () => {
