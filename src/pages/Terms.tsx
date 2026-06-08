@@ -12,7 +12,7 @@ const Terms = () => {
       <SEOHead
         title="Terms of Service - ZIVO | Travel Platform"
         description="Read the terms of service for using ZIVO. Understand how we handle Hotels, Car Rentals (direct sale), and Flights (partner ticketing)."
-        canonical="https://zivosmedia.com/legal/terms"
+        canonical="https://hizivo.com/legal/terms"
       />
 
       <Header />

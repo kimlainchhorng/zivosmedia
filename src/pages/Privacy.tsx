@@ -12,7 +12,7 @@ const Privacy = () => {
       <SEOHead
         title="Privacy Policy - ZIVO | Travel Platform"
         description="Learn how ZIVO handles your data for Hotels, Car Rentals (direct sale), and Flights (partner referral). We protect your information."
-        canonical="https://zivosmedia.com/legal/privacy"
+        canonical="https://hizivo.com/legal/privacy"
       />
 
       <Header />
