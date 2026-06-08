@@ -9,6 +9,15 @@ function source(relativePath: string) {
 }
 
 describe("payments, refunds, and webhook workflow", () => {
+  it("keeps the connected payment workflow landing route available", () => {
+    const app = source("src/App.tsx");
+
+    expect(app).toContain('path="/payments"');
+    expect(app).toContain('PreserveQueryRedirect to="/wallet"');
+    expect(app).toContain('path="/wallet"');
+    expect(app).toContain("AccountWalletPage");
+  });
+
   it("keeps the standalone payments refunds contract gate wired into platform audit", () => {
     const contractScript = source("scripts/qa/payments-refunds-contracts.mjs");
     const coverageScript = source("scripts/qa/workflow-coverage.mjs");
