@@ -30,3 +30,4 @@ Scope: `https://zivosmedia.com` and local Zivosmedia routes.
 - ZivoPay is not visible as a shared payment layer.
 - ZivoChat is present as a product route, but not consistently exposed as support.
 - Protected routes preserve redirect URLs, which is good, but the login UI does not explain the requested module.
+
