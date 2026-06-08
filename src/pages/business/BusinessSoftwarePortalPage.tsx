@@ -210,9 +210,6 @@ export default function BusinessSoftwarePortalPage() {
       </Helmet>
 
       <main className="min-h-screen overflow-hidden bg-[#f7f8f6] text-[#111412]">
-        <div className="mx-auto flex w-full max-w-7xl justify-end px-5 pt-3 sm:px-6 lg:px-8">
-          <CrossAppReturnBar adminHref="#software-businesses" returnPath="/business" />
-        </div>
         <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f8f6]/90 backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
             <Link to="/business" className="flex items-center gap-3" aria-label="ZIVO Software">
@@ -231,6 +228,7 @@ export default function BusinessSoftwarePortalPage() {
             </nav>
 
             <div className="flex items-center gap-2">
+              <CrossAppReturnBar adminHref="#software-businesses" returnPath="/business" />
               <AppSwitcher className="h-11 w-11" />
               {user ? (
                 <>
