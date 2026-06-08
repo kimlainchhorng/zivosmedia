@@ -494,6 +494,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AuthHandoff = lazy(() => import("./pages/AuthHandoff"));
+const ZivosmediaAuthorize = lazy(() => import("./pages/ZivosmediaAuthorize"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const VerifyOTP = lazy(() => lazyRetry(() => import("./pages/VerifyOTP")));
@@ -2032,6 +2033,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/auth-callback" element={<AuthCallback />} />
                 <Route path="/auth/handoff" element={<AuthHandoff />} />
+                <Route path="/auth/zivosmedia/authorize" element={<ZivosmediaAuthorize />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 
                 <Route path="/verify-otp" element={<VerifyOTP />} />
