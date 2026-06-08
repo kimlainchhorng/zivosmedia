@@ -61,11 +61,18 @@ export default function ZivoEmployeeHome() {
           content="Zivo Employee is the staff-facing side of ZIVO: view your schedule, clock in and out, see pay and records, and complete onboarding — signed in with your Zivosmedia account."
         />
         <meta property="og:site_name" content="Zivo Employee" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://zivoemployee.com/" />
         <meta property="og:title" content="Zivo Employee | Your work, schedule, and pay on ZIVO" />
         <meta
           property="og:description"
           content="Schedules, shifts, pay, and onboarding for staff across the ZIVO network."
         />
+        <meta property="og:image" content="https://zivoemployee.com/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Zivo Employee | Your work, schedule, and pay on ZIVO" />
+        <meta name="twitter:description" content="Schedules, shifts, pay, and onboarding for staff across the ZIVO network." />
+        <meta name="twitter:image" content="https://zivoemployee.com/og-image.png" />
         <link rel="canonical" href="https://zivoemployee.com/" />
       </Helmet>
 

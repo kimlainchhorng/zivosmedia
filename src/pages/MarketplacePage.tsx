@@ -760,8 +760,17 @@ export default function MarketplacePage() {
       <Helmet>
         <title>Marketplace · ZIVO</title>
         <meta name="description" content="Buy and sell items on ZIVO Marketplace — electronics, fashion, home, and more." />
+        <link rel="canonical" href="https://zivosmedia.com/marketplace" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://zivosmedia.com/marketplace" />
+        <meta property="og:site_name" content="ZIVO" />
         <meta property="og:title" content="ZIVO Marketplace" />
-        <meta property="og:description" content="Browse local listings and find great deals." />
+        <meta property="og:description" content="Buy and sell items on ZIVO Marketplace — electronics, fashion, home, and more." />
+        <meta property="og:image" content="https://zivosmedia.com/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="ZIVO Marketplace" />
+        <meta name="twitter:description" content="Buy and sell items on ZIVO Marketplace — electronics, fashion, home, and more." />
+        <meta name="twitter:image" content="https://zivosmedia.com/og-image.png" />
       </Helmet>
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-gradient-to-b from-background via-background/95 to-background/85 backdrop-blur-xl border-b border-border/30 shadow-sm">

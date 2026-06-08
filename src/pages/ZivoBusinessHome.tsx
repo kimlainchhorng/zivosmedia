@@ -79,11 +79,18 @@ export default function ZivoBusinessHome() {
           content="Zivo Business owns your business profile and billing: subscribe to ZIVO Software, manage invoices and subscriptions, and give your team access — all on one connected account."
         />
         <meta property="og:site_name" content="Zivo Business" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://zivobusiness.com/" />
         <meta property="og:title" content="Zivo Business | Run your business on ZIVO" />
         <meta
           property="og:description"
           content="Your business profile, software subscriptions, invoices, and team — managed in one place on the ZIVO network."
         />
+        <meta property="og:image" content="https://zivobusiness.com/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Zivo Business | Run your business on ZIVO" />
+        <meta name="twitter:description" content="Your business profile, software subscriptions, invoices, and team — managed in one place on the ZIVO network." />
+        <meta name="twitter:image" content="https://zivobusiness.com/og-image.png" />
         <link rel="canonical" href="https://zivobusiness.com/" />
       </Helmet>
 
