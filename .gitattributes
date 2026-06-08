@@ -1,7 +1,7 @@
-# Normalize all text files to LF on commit; checkout as LF everywhere.
-# This prevents CRLF drift on Windows/OneDrive and keeps test assertions
-# using \n from breaking on Windows checkouts.
-* text=auto eol=lf
+# Force LF line endings for all text files.
+# This beats core.autocrlf=true so Windows/OneDrive checkouts stay on LF
+# and test assertions using \n don't break on Windows.
+* text eol=lf
 
 # Binaries — never touch line endings
 *.png  binary
