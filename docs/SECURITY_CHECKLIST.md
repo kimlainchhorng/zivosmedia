@@ -1,46 +1,45 @@
-# Zivo Identity Security Checklist
+# Security Checklist
 
-Generated: 2026-06-07
+## Repository Safety
 
-## Secrets
-
+- Do not push directly to main.
+- Use feature branches.
+- Create pull requests.
 - Do not commit `.env` files.
-- Do not expose Supabase service-role keys in browser code.
-- Do not expose product app client secrets in browser code.
-- Store product app client secrets only in server-side Edge Function, Cloudflare, or backend secret managers.
-- Store only hashes in `app_integrations.client_secret_hash`.
+- Do not commit secrets.
+- Do not commit Supabase service-role keys.
+- Do not commit Stripe, PayPal, or Square secret keys.
 
-## Database
+## Payment Safety
 
-- Enable RLS on all sensitive tables.
-- Revoke `anon` and `authenticated` access for server-only integration tables.
-- Grant only required privileges to `service_role`.
-- Do not use user-editable metadata for authorization.
-- Do not put `SECURITY DEFINER` helpers in exposed schemas unless grants are locked down.
+- Do not store card numbers.
+- Do not store CVV.
+- Do not build custom card processing.
+- Use provider-hosted checkout or approved provider SDK flows.
+- Use sandbox/test mode first.
+- No live payment without owner approval.
+- Verify webhooks.
+- Process webhooks idempotently.
+- Audit every payment state change.
 
-## Auth Exchange
+## Supabase Safety
 
-- Use short-lived one-time codes.
-- Store only code hashes.
-- Validate redirect URI against the app registry.
-- Require S256 PKCE on every issued authorization code.
-- Validate `code_verifier` before marking a code used.
-- Validate the app secret server-side.
-- Mark codes as used immediately after validation.
-- Record audit logs for issue and validation failures.
+- Use RLS for user-visible records.
+- Use server-side functions for privileged operations.
+- Keep service-role keys server-side only.
+- Do not run destructive migrations without owner approval.
+- Do not delete production data.
+- Review migration rollback plans.
 
-## Webhooks
+## Auth Safety
 
-- Sign every webhook with HMAC.
-- Include timestamp and nonce.
-- Reject replayed nonces.
-- Store event payload hashes.
-- Retry failed events with capped backoff.
+- Use `zivosmedia_user_id` for cross-platform identity.
+- Audit account linking and role changes.
+- Use short-lived handoff codes for Continue with Zivosmedia.
+- Do not trust browser redirects for sensitive state changes.
 
-## Deployment
+## PR Safety
 
-- Deploy to staging first.
-- Verify CORS on every app domain.
-- Verify all Edge Functions with `deno check` or equivalent before deployment.
-- Run secret scanners and build checks before opening a PR.
-- Do not change production Auth/DNS/deployment settings without explicit owner approval.
+- Run lint, build, type checks, and tests before implementation PRs.
+- For docs-only PRs, verify changed files are documentation only.
+- Report inaccessible repos exactly; do not guess alternate names.
