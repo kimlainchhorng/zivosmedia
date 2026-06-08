@@ -1684,6 +1684,15 @@ export default function ReelsFeedPage() {
     });
   }, [reelsStartIndex]);
 
+  useEffect(() => {
+    if (reelsStartIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setReelsStartIndex(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [reelsStartIndex]);
+
   const handlePullRefresh = useCallback(async () => {
     setPageSize(INITIAL_REELS_PAGE_SIZE);
     setNewPostsCount(0);

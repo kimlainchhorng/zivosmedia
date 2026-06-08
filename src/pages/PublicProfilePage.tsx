@@ -888,9 +888,9 @@ export default function PublicProfilePage() {
 
     if (urls.length === 1) {
       return (
-        <div className="relative w-full aspect-square cursor-pointer max-h-[70vh] mx-auto" onClick={() => openViewer(0)}>
+        <button type="button" className="relative w-full aspect-square max-h-[70vh] mx-auto block" onClick={() => openViewer(0)} aria-label="View image">
           <img src={urls[0]} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-        </div>
+        </button>
       );
     }
 
@@ -898,9 +898,9 @@ export default function PublicProfilePage() {
       return (
         <div className="grid grid-cols-2 gap-0.5 w-full aspect-[2/1] max-h-[60vh] mx-auto">
           {urls.map((u, i) => (
-            <div key={i} className="relative bg-black overflow-hidden cursor-pointer" onClick={() => openViewer(i)}>
+            <button key={i} type="button" className="relative bg-black overflow-hidden" onClick={() => openViewer(i)} aria-label={`View image ${i + 1}`}>
               <img src={u} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-            </div>
+            </button>
           ))}
         </div>
       );
@@ -909,15 +909,15 @@ export default function PublicProfilePage() {
     if (urls.length === 3) {
       return (
         <div className="grid grid-cols-2 grid-rows-2 gap-0.5 w-full aspect-square md:aspect-[3/2]">
-          <div className="relative row-span-2 bg-black overflow-hidden cursor-pointer" onClick={() => openViewer(0)}>
+          <button type="button" className="relative row-span-2 bg-black overflow-hidden" onClick={() => openViewer(0)} aria-label="View image 1">
             <img src={urls[0]} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-          </div>
-          <div className="relative bg-black overflow-hidden cursor-pointer" onClick={() => openViewer(1)}>
+          </button>
+          <button type="button" className="relative bg-black overflow-hidden" onClick={() => openViewer(1)} aria-label="View image 2">
             <img src={urls[1]} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-          </div>
-          <div className="relative bg-black overflow-hidden cursor-pointer" onClick={() => openViewer(2)}>
+          </button>
+          <button type="button" className="relative bg-black overflow-hidden" onClick={() => openViewer(2)} aria-label="View image 3">
             <img src={urls[2]} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-          </div>
+          </button>
         </div>
       );
     }
@@ -925,14 +925,14 @@ export default function PublicProfilePage() {
     return (
       <div className="grid grid-cols-2 gap-[3px] w-full aspect-square overflow-hidden rounded-lg">
         {urls.slice(0, 4).map((u, i) => (
-          <div key={i} className="relative bg-muted overflow-hidden cursor-pointer" onClick={() => openViewer(i)}>
+          <button key={i} type="button" className="relative bg-muted overflow-hidden" onClick={() => openViewer(i)} aria-label={i === 3 && urls.length > 4 ? `View ${urls.length - 4} more images` : `View image ${i + 1}`}>
             <img src={u} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
             {i === 3 && urls.length > 4 && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                 <span className="text-white text-2xl font-bold">+{urls.length - 4}</span>
               </div>
             )}
-          </div>
+          </button>
         ))}
       </div>
     );
@@ -1396,11 +1396,11 @@ export default function PublicProfilePage() {
                             if (!urls.length) return null;
                             if (post.media_type === "video") {
                               return (
-                                <div className="relative w-full flex justify-center bg-muted overflow-hidden" onClick={() => navigate(`/reels/${post.id}`)}>
+                                <button type="button" className="relative w-full flex justify-center bg-muted overflow-hidden" onClick={() => navigate(`/reels/${post.id}`)} aria-label="Watch video">
                                   <div className="relative w-full max-w-md mx-auto aspect-[9/16] max-h-[500px] rounded-xl overflow-hidden bg-black">
                                     <ReelThumbnail url={urls[0]} />
                                   </div>
-                                </div>
+                                </button>
                               );
                             }
                             return (
