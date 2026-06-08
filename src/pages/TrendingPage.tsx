@@ -253,7 +253,6 @@ export default function TrendingPage() {
   const trendingPeople = peopleQuery.data ?? EMPTY_PEOPLE;
   const communities = communityQuery.data ?? EMPTY_COMMUNITIES;
   const score = trendScore(trendingPosts, hashtagCounts);
-  const totalPeople = trendingPeople.reduce((sum, person) => sum + Number(person.follower_count || 0), 0);
   const activityStats = useMemo(() => {
     const postCount = trendingPosts.length;
     const viewCount = trendingPosts.reduce((sum, post) => sum + post.views_count, 0);
