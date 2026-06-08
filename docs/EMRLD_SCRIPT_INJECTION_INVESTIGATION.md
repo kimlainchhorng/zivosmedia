@@ -83,6 +83,29 @@ Root cause is in-source and already removed, but verify there is **no second inj
 
 ---
 
+## 6. Provenance review result — no other unvetted scripts (DONE)
+
+Per recommendation #4, every external script origin currently committed in `origin/main:index.html` was inventoried and cross-checked. **All are recognized, named vendors; `emrld.ltd` was the lone anomaly and is removed.** No other unrecognized/obfuscated third-party loader remains.
+
+| Loader origin | Vendor | Verdict |
+|---------------|--------|---------|
+| `www.googletagmanager.com` (gtag) | Google Tag Manager | ✅ known |
+| `connect.facebook.net` | Meta / Facebook Pixel | ✅ known |
+| `analytics.tiktok.com` | TikTok Pixel | ✅ known |
+| `static.ads-twitter.com` | X / Twitter Pixel | ✅ known |
+| `pagead2.googlesyndication.com` | Google AdSense | ✅ known |
+| `js.stripe.com` | Stripe | ✅ known |
+| `maps.googleapis.com` / `maps.gstatic.com` | Google Maps | ✅ known |
+| `*.supabase.co` | Supabase | ✅ known |
+| `api.duffel.com` | Duffel (flights) | ✅ known |
+| `fonts.googleapis.com` / `fonts.gstatic.com` | Google Fonts | ✅ known |
+| `images.unsplash.com` | Unsplash (images) | ✅ known |
+| `~~emrld.ltd~~` | unknown / unvetted | ❌ **removed (this finding)** |
+
+**Note (separate from this security finding):** the page ships several ad/marketing pixels (GTM, Meta, TikTok, X, AdSense). That is a **privacy/consent** matter (cookie-consent gating, privacy-policy disclosure), not a script-injection/supply-chain issue — out of scope here but worth a consent-compliance pass.
+
+---
+
 ### Evidence appendix (commands)
 
 - `git grep -i emrld origin/main` → matches only in `docs/`, `docs/screenshots/*.html`, `scripts/tmp-audit-results.json` (records); **none in `origin/main:index.html`**.
