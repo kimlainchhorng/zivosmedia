@@ -21,4 +21,8 @@ ZivoSoftware has a clearer software direction than Zivo Business, but both need 
 
 ## Recommended Fix
 
+<<<<<<< HEAD
 Build a clearer business/software information architecture before visual polish: business profile owns subscriptions, ZivoSoftware lists products, ZivoChat supports setup, and ZivoPay handles billing.
+=======
+Build a clearer business/software information architecture before visual polish: business profile owns subscriptions, ZivoSoftware lists products, ZivoChat supports setup, and ZivoPay handles billing.
+>>>>>>> e5eb0df1c9ab58220c69248c352bc542585c1eca

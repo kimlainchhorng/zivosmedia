@@ -22,4 +22,8 @@ Zivo Travel has the strongest dedicated product direction among the audited app 
 
 ## Recommended Travel Fix
 
+<<<<<<< HEAD
 Fix `/hotels` content mapping first, then add shared identity, payment, and driver-status placeholders across booking/checkout routes.
+=======
+Fix `/hotels` content mapping first, then add shared identity, payment, and driver-status placeholders across booking/checkout routes.
+>>>>>>> e5eb0df1c9ab58220c69248c352bc542585c1eca

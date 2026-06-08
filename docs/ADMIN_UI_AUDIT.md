@@ -21,4 +21,8 @@
 
 ## Recommended Admin Fix
 
+<<<<<<< HEAD
 After repo access is fixed, start with Zivo Admin platform registry and health dashboard foundation.
+=======
+After repo access is fixed, start with Zivo Admin platform registry and health dashboard foundation.
+>>>>>>> e5eb0df1c9ab58220c69248c352bc542585c1eca

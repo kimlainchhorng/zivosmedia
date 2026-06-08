@@ -21,4 +21,8 @@ Zivosmedia loads as the broad all-in-one surface, but the first-view message sho
 
 ## Recommended First Zivosmedia UI Fix
 
+<<<<<<< HEAD
 After owner approval, update the identity/auth surfaces to make Continue with Zivosmedia the primary cross-app sign-in and account-linking path.
+=======
+After owner approval, update the identity/auth surfaces to make Continue with Zivosmedia the primary cross-app sign-in and account-linking path.
+>>>>>>> e5eb0df1c9ab58220c69248c352bc542585c1eca

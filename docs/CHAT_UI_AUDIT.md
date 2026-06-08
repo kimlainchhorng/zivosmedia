@@ -21,4 +21,8 @@ ZivoChat exists as a visible surface, but the audit shows it should be positione
 
 ## Recommended Chat Fix
 
+<<<<<<< HEAD
 After identity foundation, create a support thread intake pattern that pre-fills source platform and related IDs for payment, travel, driver, business, and software issues.
+=======
+After identity foundation, create a support thread intake pattern that pre-fills source platform and related IDs for payment, travel, driver, business, and software issues.
+>>>>>>> e5eb0df1c9ab58220c69248c352bc542585c1eca
