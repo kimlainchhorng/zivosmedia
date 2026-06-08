@@ -21,12 +21,14 @@ export function usePostProducts(postId: string | null) {
     queryKey: KEY(postId),
     enabled: !!postId,
     queryFn: async () => {
+      // post_products.post_id is uuid — strip any u- prefix used by the feed layer
+      const rawId = postId!.replace(/^u-/, "");
       const { data, error } = await (supabase as any)
         .from("post_products")
         .select(
           "id, store_product_id, sort_order, store_products(id, name, price, image_url, store_id, in_stock)"
         )
-        .eq("post_id", postId)
+        .eq("post_id", rawId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return (data ?? [])
