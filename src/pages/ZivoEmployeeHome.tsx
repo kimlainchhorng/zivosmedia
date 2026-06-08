@@ -25,6 +25,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import ContinueWithZivosmediaButton from "@/components/cross-app/ContinueWithZivosmediaButton";
+import AppSwitcher from "@/components/cross-app/AppSwitcher";
 import { ZIVO_CHAT_ORIGIN } from "@/config/zivoChatDomain";
 
 const features = [
@@ -82,6 +83,7 @@ export default function ZivoEmployeeHome() {
               </span>
             </Link>
             <div className="ml-auto flex items-center gap-2">
+              <AppSwitcher className="h-11 w-11" />
               <Button asChild className="h-12 rounded-full bg-zinc-950 px-6 font-bold text-white hover:bg-zinc-800">
                 <Link to="/login">Employee sign in</Link>
               </Button>

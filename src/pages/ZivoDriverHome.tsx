@@ -25,6 +25,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import ContinueWithZivosmediaButton from "@/components/cross-app/ContinueWithZivosmediaButton";
+import AppSwitcher from "@/components/cross-app/AppSwitcher";
 import { ZIVO_CHAT_ORIGIN } from "@/config/zivoChatDomain";
 
 const steps = [
@@ -101,6 +102,7 @@ export default function ZivoDriverHome() {
               </span>
             </Link>
             <div className="ml-auto flex items-center gap-2">
+              <AppSwitcher className="h-11 w-11" />
               <Button asChild variant="ghost" className="hidden h-11 rounded-full px-5 font-bold sm:inline-flex">
                 <Link to="/login">Driver sign in</Link>
               </Button>
