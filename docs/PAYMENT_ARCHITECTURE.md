@@ -1,91 +1,221 @@
-# ZivoPay / Zivosmedia Payments Architecture
+# ZIVO Payment Architecture
 
-Generated: 2026-06-07
+Status: Draft for owner review
+Date: 2026-06-07
 
-ZivoPay is the shared payment layer for Zivosmedia, Zivo Travel, Zivo Driver, ZivoSoftware, Zivo Business, ZivoChat, and Zivo Admin. Zivosmedia stays the central identity and payment hub: every payment record links to `zivosmedia_user_id`, `source_platform`, the platform record that created the payment, provider customer IDs, provider payment IDs, local status, webhook history, and audit logs.
+## Purpose
 
-## Provider Decision
+Define ZivoPay / Zivosmedia Payments before implementation.
 
-Stripe is the default provider.
+Confirmed payment provider support:
 
-- Use Stripe Checkout for one-time customer payments.
-- Use Stripe Billing for software/business subscriptions, renewals, invoices, trials, coupons, and plan changes.
-- Use Stripe Connect if Zivo operates as a marketplace where drivers or businesses receive payouts.
-- Keep provider fields generic enough for a future owner-approved provider change.
+1. Stripe
+2. PayPal
+3. Square
 
-Zivo must not store card numbers, CVV, magnetic stripe data, or raw payment method payloads in Supabase. Only store provider references such as customer IDs, checkout session IDs, payment intent IDs, subscription IDs, invoice IDs, refund IDs, charge IDs, connected account IDs, payout IDs, and status snapshots.
+Implement Stripe first. Use one common ZivoPay / Zivosmedia Payments abstraction with provider adapters, then add PayPal and Square after the database model and Admin payment dashboard are stable.
 
-## System Roles
+## Current Ownership
 
-| Platform | Payment Role |
-| --- | --- |
-| Zivosmedia | Central identity, payment customer profile, payment history, billing dashboard, saved provider customer reference |
-| Zivo Travel | Booking payments, deposits, full travel package payments, add-ons, cancellation fees, refunds |
-| Zivo Driver | Driver job earnings, commission, payout eligibility, payout status |
-| ZivoSoftware | Software products, setup fees, subscriptions, invoices, trials, renewals, plan changes |
-| Zivo Business | Business billing owner, billing profile, tax/billing details, software subscriptions and invoices |
-| ZivoChat | Support conversations linked to payments, refunds, subscriptions, invoices, driver jobs, and business records |
-| Zivo Admin | Payment control plane for transactions, refunds, disputes, subscriptions, invoices, payouts, webhooks, and audit logs |
+ZivoPay is the shared Zivosmedia Payments layer:
 
-## Data Ownership
+- Central payment identity hub: Zivosmedia
+- Payment control dashboard: Zivo Admin
+- Current route: `https://zivosmedia.com/payments`
+- Payment database location: still needs confirmation
+- First provider implementation: Stripe
 
-- Zivosmedia owns canonical payment records in the main Supabase project.
-- Product apps create payment requests through server-side API routes or Supabase Edge Functions.
-- Product apps keep their local booking/job/business/software records, but payment state is reconciled through ZivoPay.
-- Zivo Admin reads and mutates payments only through server-side admin APIs.
-- Users can read their own visible payment history through RLS-filtered records or secure server endpoints.
+Each app can create a payment request, but payment logic must not be built differently in every app. Apps should call the common payment layer.
 
-## Core Tables
+## Provider Adapters
 
-- `payment_customers`
-- `business_billing_profiles`
-- `payment_orders`
-- `payment_transactions`
-- `payment_subscriptions`
-- `payment_invoices`
-- `payment_refunds`
-- `driver_payouts`
-- `payment_webhook_events`
-- `payment_audit_logs`
-- `payment_support_threads`
+Provider adapters:
 
-Amounts are stored in the smallest currency unit, such as cents. Currency is lowercase ISO 4217 text.
+- `stripe_adapter`
+- `paypal_adapter`
+- `square_adapter`
 
-## Seller vs Marketplace Decision
+### Stripe
 
-Phase 1 assumes Zivo is the seller of record for customer charges unless the owner explicitly approves marketplace operation. If drivers or businesses receive money through the platform, the implementation must add Stripe Connect or an equivalent marketplace payout system before live payouts.
+Stripe is the first provider to implement because it supports online checkout, subscriptions, and marketplace-style driver/business payouts through Stripe Connect.
 
-## Required Links
+### PayPal
 
-Every payment order must include:
+PayPal should be added as an additional checkout and payout option. PayPal Payouts can send money to multiple recipients using emails, phone numbers, or PayPal IDs.
 
+### Square
+
+Square should be added through the same provider-adapter pattern for business payments, in-person/terminal payments, Square-supported online payments, refunds, webhooks, and related payment workflows.
+
+## Payment Types
+
+### One-Time Payments
+
+Use for:
+
+- Travel booking checkout
+- One-off software setup fees
+- Support or service payments
+- Manual invoices
+
+Recommended Stripe object:
+
+- Checkout Session or Payment Intent
+
+### Subscriptions
+
+Use for:
+
+- Business software subscriptions
+- Premium business tools
+- Recurring service plans
+
+Recommended Stripe objects:
+
+- Customer
+- Product
+- Price
+- Subscription
+- Invoice
+
+### Invoices
+
+Use for:
+
+- Business billing
+- Manual service billing
+- Software renewal billing
+
+### Refunds
+
+Refund records should link to:
+
+- original payment
+- `zivosmedia_user_id`
+- source platform
+- related record ID
+- admin actor, if admin initiated
+
+### Disputes
+
+Dispute records should store:
+
+- provider dispute ID
+- payment ID
+- amount/currency
+- status
+- evidence status
+- related app/source record
+
+### Driver Payouts
+
+Driver payouts are required.
+
+Potential payout models:
+
+- Stripe Connect Express/Custom
+- PayPal Payouts as an additional payout option
+- Square-supported payout or business payment workflows where applicable
+
+No live payouts until test mode passes and owner approves.
+
+### Business Payouts
+
+Business payouts are required.
+
+Business payout records should link to business profile, owner identity, payment provider, payout status, invoices, and audit events.
+
+## Shared Payment Record Shape
+
+Every payment should include:
+
+- `id`
 - `zivosmedia_user_id`
 - `source_platform`
-- `order_type`
-- `related_table`
-- `related_id`
-- amount and currency
-- local payment status
-- provider metadata references once created
+- `source_record_type`
+- `source_record_id`
+- `provider`
+- `provider_customer_id`
+- `payment_order_id`
+- `transaction_id`
+- `subscription_id`
+- `payout_id`
+- `invoice_id`
+- `refund_id`
+- `amount`
+- `currency`
+- `status`
+- `metadata`
+- `created_at`
+- `updated_at`
 
-Platform-specific nullable fields connect the order to `travel_booking_id`, `driver_job_id`, `business_id`, and `software_product_id`.
+## Payment Webhooks
 
-## Implementation Phases
+Use backend routes or Supabase Edge Functions.
 
-1. Payment architecture, Stripe-first provider decision, seller vs marketplace decision, database design, security checklist.
-2. Zivosmedia/ZivoPay foundation: customers, orders, transactions, checkout, webhooks, provider IDs only.
-3. Zivo Travel payments and refunds, including optional driver job linkage through `travel-create-payment`, `travel-create-driver-payment`, and server-side travel payment webhook adapters.
-4. Zivo Driver earnings and payouts, including payout account onboarding, driver-visible earnings/payout history, payout eligibility, shared `driver_payouts`, and Connect IDs.
-5. ZivoSoftware subscriptions, invoices, trials, setup fees, plan changes, catalog plans, and `business_software_entitlements` activation.
-6. Zivo Business billing profiles, subscriptions, invoice history, and billing-info updates through `business-billing-profile`, `business-subscriptions`, `business-invoices`, and `business-update-billing-info`.
-7. Zivo Admin dashboard and payment operations through admin-only Edge Functions for payments, subscriptions, invoices, refunds, driver payouts, webhook events, audit logs, refund approval, and payout holds/releases.
-8. ZivoChat payment support thread linkage through `payment_support_threads`, customer support intake, admin assignment, and payment audit logs.
+Minimum Stripe events:
 
-## References
+- `checkout.session.completed`
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+- `invoice.created`
+- `invoice.paid`
+- `invoice.payment_failed`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+- `charge.refunded`
+- `charge.dispute.created`
+- `charge.dispute.updated`
 
-- [Stripe Checkout Sessions API](https://docs.stripe.com/api/checkout/sessions)
-- [Stripe subscriptions overview](https://docs.stripe.com/billing/subscriptions/creating)
-- [Stripe webhooks](https://docs.stripe.com/webhooks)
-- [Stripe Connect overview](https://docs.stripe.com/connect/how-connect-works)
-- [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
-- [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
+PayPal and Square webhook event lists should be added when those adapters are implemented. The shared processing requirements stay the same.
+
+Webhook rules:
+
+- Verify Stripe signature server-side.
+- Verify PayPal and Square webhook signatures when those providers are enabled.
+- Store event ID for idempotency.
+- Never trust browser-submitted payment status.
+- Do not log secret values.
+- Audit every processed event.
+
+## Admin Payment Dashboard
+
+Zivo Admin should show:
+
+- Payments
+- Refunds
+- Disputes
+- Driver payouts
+- Business payouts
+- Business/software invoices
+- Subscription status
+- Webhook events
+- Failed webhook processing
+- Payment audit logs
+
+## Test Mode Before Live Mode
+
+Required before live payment:
+
+- Stripe test mode configured first.
+- PayPal sandbox configured before PayPal launch.
+- Square sandbox configured before Square launch.
+- Webhook signature verified.
+- Test checkout succeeds.
+- Test subscription succeeds.
+- Test refund succeeds.
+- Test failed payment recorded.
+- Admin dashboard shows event trail.
+- No card numbers stored.
+- No Stripe, PayPal, or Square secret keys exposed.
+- No Supabase service-role keys exposed.
+
+## Security Rules
+
+- Do not store card numbers.
+- Do not expose Stripe, PayPal, or Square secret keys.
+- Do not expose Supabase service-role keys.
+- Do not commit `.env` files.
+- Use backend routes or Supabase Edge Functions.
+- Store provider IDs, not raw payment credentials.

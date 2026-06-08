@@ -46,6 +46,7 @@ Generated: 2026-06-07
 
 ## Required Zivosmedia APIs
 
+- `GET /payments` -> protected connected-workflow landing, currently redirects to `/wallet` while preserving query and handoff context.
 - `POST /api/payments/create-checkout-session` -> `zivopay-create-checkout-session`
 - `POST /api/payments/create-subscription-checkout` -> `zivopay-create-subscription-checkout`
 - `POST /api/payments/create-billing-portal` -> `zivopay-create-billing-portal`
