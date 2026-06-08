@@ -978,7 +978,7 @@ export default function HotelsLandingPage() {
             className="mt-2 w-full h-11 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg active:scale-[0.98] transition inline-flex items-center justify-center gap-2"
           >
             <Search className="w-4 h-4" />
-            Search
+            Search hotels
           </button>
         </div>
       </div>
