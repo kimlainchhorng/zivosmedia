@@ -115,7 +115,7 @@ const CookiePolicy = () => {
       <SEOHead
         title="Cookie Policy - ZIVO | Travel Search Platform"
         description="Learn how ZIVO uses cookies and similar technologies. Manage your cookie preferences and opt-in/out of non-essential tracking."
-        canonical="https://zivosmedia.com/legal/cookies"
+        canonical="https://hizivo.com/legal/cookies"
       />
 
       <Header />
