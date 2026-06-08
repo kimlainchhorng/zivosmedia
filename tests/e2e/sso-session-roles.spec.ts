@@ -6,7 +6,7 @@ const root = process.cwd();
 const source = (file: string) => readFileSync(path.join(root, file), "utf8");
 
 test.describe("SSO, sessions, and role routing contract", () => {
-  test("covers password, magic-link, saved sessions, and auth callback entry points", () => {
+  test("covers password, magic-link, Google, Apple, and OAuth callback entry points", () => {
     const login = source("src/pages/Login.tsx");
     const callback = source("src/pages/AuthCallback.tsx");
     const sw = source("src/sw.js");
@@ -14,15 +14,17 @@ test.describe("SSO, sessions, and role routing contract", () => {
 
     expect(login).toContain("signIn(trimmedEmail, password)");
     expect(login).toContain("supabase.auth.signInWithOtp");
-    expect(login).toContain("refreshSession({");
-    expect(login).toContain("emailRedirectTo: getEmailRedirectTo()");
-    expect(login).toContain("Forgot password?");
+    expect(login).toContain("supabase.auth.signInWithOAuth");
+    expect(login).toContain('handleOAuthSignIn("google")');
+    expect(login).toContain('handleOAuthSignIn("apple")');
+    expect(login).toContain("redirectTo: getEmailRedirectTo()");
+    expect(login).toContain('prompt: "select_account"');
 
     expect(callback).toContain("exchangeCodeForSession(code)");
     expect(callback).toContain("user.app_metadata?.provider");
     expect(callback).toContain("isOAuthUser");
     expect(callback).toContain("saveAccount");
-    expect(callback).toContain("checkSetupAndNavigate(session.user)");
+    expect(callback).toContain('navigate(isAdminUser ? "/admin/analytics" : redirectTo');
 
     expect(sw).toContain("Skip OAuth callback routes");
     expect(sw).toContain("url.pathname.startsWith('/~oauth')");

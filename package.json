@@ -103,7 +103,7 @@
     "cloudflare:check": "npm run security:scan && npm run deploy:env-check -- --require-software-domain && npm run deploy:preflight:local && node ./node_modules/typescript/bin/tsc -p tsconfig.cloudflare.json && npx wrangler deploy --dry-run --outdir .wrangler-dry-run",
     "cloudflare:deploy": "npm run security:scan && npm run deploy:env-check -- --require-software-domain && npm run deploy:preflight:local && npx wrangler deploy --keep-vars",
     "cloudflare:pages:deploy": "npm run security:scan && npm run deploy:env-check -- --require-software-domain && npm run deploy:preflight:local && rm -rf dist/downloads && npx wrangler pages deploy dist --project-name zivo-preview --branch main --commit-dirty=true",
-    "cloudflare:status": "npx wrangler deployments status --name zivo",
+    "cloudflare:status": "npx wrangler deployments status --name zivo-web",
     "smoke:zivo-domain-summary": "node scripts/supabase/zivo-domain-summary-smoke.mjs",
     "smoke:lodging:test-reservation": "node scripts/lodging/create-test-reservation.mjs",
     "smoke:channels:test-posts": "node scripts/channels/create-smoke-posts.mjs",

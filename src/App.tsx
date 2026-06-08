@@ -1616,7 +1616,6 @@ const App = () => (
                 <Route path="/hotel-admin" element={<ProtectedRoute><HotelAdminLaunchPage /></ProtectedRoute>} />
                 <Route path="/my-trips" element={<ProtectedRoute><MyTripsPage /></ProtectedRoute>} />
                 <Route path="/my-reviews" element={<ProtectedRoute><MyReviewsPage /></ProtectedRoute>} />
-                <Route path="/payments" element={<ProtectedRoute><PreserveQueryRedirect to="/wallet" /></ProtectedRoute>} />
                 <Route path="/wallet" element={<ProtectedRoute><AccountWalletPage /></ProtectedRoute>} />
                 <Route path="/wallet/coins/success" element={<ProtectedRoute><CoinPurchaseSuccess /></ProtectedRoute>} />
                 <Route path="/support" element={<ProtectedRoute><SupportCenterPage /></ProtectedRoute>} />

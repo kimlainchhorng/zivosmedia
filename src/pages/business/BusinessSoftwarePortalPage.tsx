@@ -30,8 +30,12 @@ import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStor
 import { useAuth } from "@/contexts/AuthContext";
 import CrossAppReturnBar from "@/components/cross-app/CrossAppReturnBar";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
-import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
-import { resolveSoftwarePortalAccountDashboardPath } from "@/lib/business/softwarePortal";
+import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
+import {
+  AUTO_REPAIR_DASHBOARD_PATH,
+  isAutoRepairSoftwareHost,
+  isZivoMediaHost,
+} from "@/config/autoRepairDomain";
 import bgOffice from "@/assets/bg-office.jpg";
 import hotelBusiness from "@/assets/hotel-business.jpg";
 import serviceCars from "@/assets/service-cars.jpg";
@@ -60,6 +64,37 @@ const groupedCategories = ALLOWED_GROUPS.map((group) => ({
 
 const startPath = (category?: StoreCategory) =>
   `/business/new${category ? `?category=${encodeURIComponent(category)}` : ""}`;
+
+export const resolveSoftwarePortalAccountDashboardPath = (
+  ownerStore?: { id?: string | null; category?: string | null } | null,
+  hostname?: string | null,
+  mediaDashboardUrl?: string | null,
+) => {
+  if (ownerStore?.id) {
+    return resolveBusinessDashboardRoute(ownerStore.category, ownerStore.id).path;
+  }
+
+  if (isAutoRepairSoftwareHost(hostname)) {
+    return AUTO_REPAIR_DASHBOARD_PATH;
+  }
+
+  const linkedMediaDashboardUrl = normalizeMediaDashboardUrl(mediaDashboardUrl);
+  return linkedMediaDashboardUrl ?? startPath();
+};
+
+const normalizeMediaDashboardUrl = (value?: string | null) => {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    if (!isZivoMediaHost(url.hostname) || !url.pathname.startsWith("/admin/stores/")) {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+};
 
 const authPath = (path: "/login" | "/signup") => {
   const redirect = path === "/login" ? "/business" : "/business/new";
