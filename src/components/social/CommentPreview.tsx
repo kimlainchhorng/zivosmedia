@@ -13,6 +13,14 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
+const isMissingTable = (e: { code?: string | null; message?: string | null } | null) =>
+  !!e &&
+  (["PGRST205", "42P01", "PGRST002"].includes(e.code ?? "") ||
+    /could not find the table|does not exist|schema cache/i.test(e.message ?? ""));
+
+// Module-level flags so all mounted instances share the same skip state
+const tableMissing: Record<string, boolean> = {};
+
 interface PreviewComment {
   authorName: string;
   text: string;
@@ -36,24 +44,25 @@ function CommentPreviewInner({ postId, source, totalCount, onOpen }: Props) {
     }
     let cancelled = false;
     (async () => {
-      // Pull the most recent comment for the right table. User posts use the
-      // unified `post_comments` table (discriminated by post_source); store
-      // posts keep their own `store_post_comments` table.
-      const table = source === "user" ? "post_comments" : "store_post_comments";
-      let previewQuery = (supabase as any)
+      // user posts live in the unified post_comments table (post_source='user');
+      // store posts keep their own store_post_comments table.
+      const isUser = source === "user";
+      const table = isUser ? "post_comments" : "store_post_comments";
+      if (tableMissing[table]) return;
+      let q = (supabase as any)
         .from(table)
         .select("user_id, content, created_at")
         .eq("post_id", postId);
-      if (source === "user") previewQuery = previewQuery.eq("post_source", source);
-      const { data } = await previewQuery
+      if (isUser) q = q.eq("post_source", "user");
+      const { data, error } = await q
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
+      if (isMissingTable(error)) { tableMissing[table] = true; return; }
       if (cancelled || !data) return;
 
-      // Comment column varies by table; pick whichever is non-null
-      const text = data.comment ?? data.content ?? data.text ?? data.body ?? "";
+      const text = data.content ?? data.comment ?? data.text ?? data.body ?? "";
       if (!text) return;
 
       let authorName = "User";
