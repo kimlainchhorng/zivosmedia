@@ -5,9 +5,9 @@
 | Domain | Live state | Root cause | Action | PR(s) |
 |--------|-----------|------------|--------|-------|
 | **zivosmedia.com** | Loads; `/hotels` fixed in repo (PR#66) but verify live; `/travel/checkout` fixed in HEAD, live stale | Deploy lag; missing cross-app UX | Deploy HEAD; add Continue-with-Zivosmedia, app switcher, ZivoChat entry | 1, 8, 9, 10 |
-| **zivobusiness.com** | Generic feed | `ZivoBusinessHome.tsx` is WIP/undeployed | Finish + commit + build + host-route + deploy business landing | 6 |
+| **zivobusiness.com** | Generic feed (live bundle stale) | Landing built, host-routed, and merged (`ZivoBusinessHome.tsx`, root host-switch `App.tsx:1688`, gate `ZivoBusinessHostGate`); live bundle predates the merge | **Code done** — redeploy zivosmedia main + verify live (`ZIVOSMEDIA_REDEPLOY_RUNBOOK.md`) | 6 |
 | **zivodriver.com** | Generic feed | Driver landing WIP/undeployed (`ZivoDriverHome.tsx`, routed `App.tsx:1682`) | Commit + build + deploy; verify host binding | 4 |
-| **zivoemployee.com** | Generic feed | `ZivoEmployeeHome.tsx` WIP/undeployed | Finish + deploy employee landing | 7 |
+| **zivoemployee.com** | Generic feed (live bundle stale) | Landing built, host-routed, and merged (`ZivoEmployeeHome.tsx`, root host-switch `App.tsx:1688`, gate `ZivoEmployeeHostGate`); live bundle predates the merge | **Code done** — redeploy zivosmedia main + verify live (`ZIVOSMEDIA_REDEPLOY_RUNBOOK.md`) | 7 |
 | **zivoschat.com** | Chat login, but env warning | Built without `VITE_SUPABASE_URL`/`_PUBLISHABLE_KEY` | Set env in host + re-publish; add Continue-with-Zivosmedia copy→CTA | 5, 10 |
 | **zivosoftware.com** | Correct software landing | Missing cross-app UX | Add Continue-with-Zivosmedia + ZivoChat + Business cross-link | 8, 10, 23 |
 | **zivostravel.com** | Best-built; `/hotels` correct | Missing literal Continue-with-Zivosmedia + ZivoChat button; Travel→Driver not surfaced | SSO pilot + ZivoChat entry + Travel→Driver flow | 12, 10, 24 |
