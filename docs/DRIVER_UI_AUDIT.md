@@ -23,8 +23,4 @@ The driver domain currently reads as too generic and does not clearly tell drive
 
 Repo target after access is confirmed: `kimlainchhorng/zivodriver`.
 
-<<<<<<< HEAD
 Goal: build a dedicated driver landing page for `zivodriver.com` with onboarding, job status, earnings, payout status, support, and Continue with Zivosmedia.
-=======
-Goal: build a dedicated driver landing page for `zivodriver.com` with onboarding, job status, earnings, payout status, support, and Continue with Zivosmedia.
->>>>>>> e5eb0df1c9ab58220c69248c352bc542585c1eca
