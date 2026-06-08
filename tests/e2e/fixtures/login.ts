@@ -1,16 +1,9 @@
-import { test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
-const EMAIL = process.env.QA_TEST_EMAIL || process.env.E2E_EMAIL || "";
-const PASSWORD = process.env.QA_TEST_PASSWORD || process.env.E2E_PASSWORD || "";
-
-function requireQaCredentials() {
-  test.skip(!EMAIL || !PASSWORD, "QA_TEST_EMAIL / QA_TEST_PASSWORD not set");
-  return { email: EMAIL, password: PASSWORD };
-}
+const EMAIL = "kimlain@zivosmedia.com";
+const PASSWORD = "Chhorng@1903";
 
 export async function login(page: Page) {
-  const { email, password } = requireQaCredentials();
-
   // Pre-accept cookies so the consent banner (fixed bottom-0, z-[60]) never
   // overlaps the submit button and blocks Playwright's click action.
   await page.addInitScript(() => {
@@ -38,14 +31,8 @@ export async function login(page: Page) {
     await addAccount.click();
   }
 
-  await page.locator("#login-email").fill(email);
-  await page.locator("#login-password-full, #login-password").first().fill(password);
+  await page.locator("#login-email").fill(EMAIL);
+  await page.locator("#login-password-full, #login-password").first().fill(PASSWORD);
   await page.locator('button[type="submit"]').click();
-
-  await Promise.race([
-    page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 25_000 }).catch(() => null),
-    page.getByText(/wrong password|incorrect|invalid|not confirmed|too many/i).first().waitFor({ timeout: 25_000 }).catch(() => null),
-  ]);
-
-  test.skip(page.url().includes("/login"), "Configured QA credentials did not authenticate");
+  await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 25_000 });
 }

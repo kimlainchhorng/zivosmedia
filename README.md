@@ -4,15 +4,6 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
-## ZIVO Master Build Plan
-
-Before implementing cross-app features, review the ZIVO ecosystem source of truth:
-
-- [docs/ZIVO_MASTER_BUILD_PLAN.md](./docs/ZIVO_MASTER_BUILD_PLAN.md)
-- [docs/DOMAINS_AND_REPOS.md](./docs/DOMAINS_AND_REPOS.md)
-
-PR 1 for the ZIVO ecosystem should stay documentation-only: no runtime code, migrations, production config, secrets, or deployment changes.
-
 ## How can I edit this code?
 
 There are several ways of editing your application.

@@ -1,58 +1,38 @@
-# ZIVO Domains and Repos
+# Domains and Repositories
 
-Status: Confirmed owner source of truth
-Date: 2026-06-07
-Owner: ZIVO LLC
+## Confirmed Domains
 
-## Confirmed 8 Domains
-
-| Platform | Confirmed domain | Repo status |
-| --- | --- | --- |
-| Zivosmedia | `zivosmedia.com` | Confirmed |
-| Zivo Business | `zivobusiness.com` | Repo needs confirmation or creation |
-| Zivo Driver | `zivodriver.com` | Confirmed |
-| Zivo Employee | `zivoemployee.com` | Repo needs confirmation or creation |
-| ZivosChat | `zivoschat.com` | Confirmed repo, domain should map to Chat app |
-| ZivoSoftware | `zivosoftware.com` | Confirmed |
-| Zivo Travel | `zivostravel.com` | Confirmed |
-| Zivo Admin | `zivoadmin.com` | Confirmed |
-
-## Confirmed GitHub Repos
-
-| Platform | Confirmed repo |
+| Domain | Platform |
 | --- | --- |
-| Zivosmedia | `kimlainchhorng/zivosmedia` |
-| Zivo Driver | `kimlainchhorng/zivodriver` |
-| ZivosChat | `kimlainchhorng/ZIVO-CHAT` |
-| Zivo Travel | `kimlainchhorng/zivostravel` |
-| Zivo Admin | `kimlainchhorng/Zivo-Admin` |
-| ZivoSoftware | `kimlainchhorng/zivosoftware` |
+| zivosmedia.com | Zivosmedia |
+| zivobusiness.com | Zivo Business |
+| zivodriver.com | Zivo Driver |
+| zivoemployee.com | Zivo Employee |
+| zivoschat.com | ZivoChat |
+| zivosoftware.com | ZivoSoftware |
+| zivostravel.com | Zivo Travel |
+| zivoadmin.com | Zivo Admin |
 
-## Repos Still Needed
+## Confirmed Repo Names and Access Check
 
-| Platform | Domain | Needed action |
-| --- | --- | --- |
-| Zivo Business | `zivobusiness.com` | Confirm existing repo or create one. |
-| Zivo Employee | `zivoemployee.com` | Confirm existing repo or create one. |
+| Repo | Accessible in this session | Default branch | Notes |
+| --- | --- | --- | --- |
+| kimlainchhorng/zivosmedia | yes | main | Public repo, admin/maintain/push access visible through GitHub connector. |
+| kimlainchhorng/zivodriver | no | unknown | GitHub connector returned 404 Not Found. |
+| kimlainchhorng/ZIVO-CHAT | no | unknown | GitHub connector returned 404 Not Found. |
+| kimlainchhorng/zivostravel | yes | main | Public repo, admin/maintain/push access visible through GitHub connector. |
+| kimlainchhorng/Zivo-Admin | no | unknown | GitHub connector returned 404 Not Found. |
+| kimlainchhorng/zivosoftware | no | unknown | GitHub connector returned 404 Not Found. |
 
-## Important GitHub Access Warning
+## Action for 404 Repos
 
-The owner confirmed these repos:
+Do not guess alternate names. Owner should connect GitHub app access, verify spelling/capitalization, or create the repo before implementation work starts there.
 
-- `kimlainchhorng/zivodriver`
-- `kimlainchhorng/ZIVO-CHAT`
-- `kimlainchhorng/Zivo-Admin`
-- `kimlainchhorng/zivosoftware`
+## Visible Deployment Hints
 
-Current GitHub tool access may not see all private repos. Before coding:
+- `kimlainchhorng/zivosmedia`: Vite/React app with `netlify.toml`, `wrangler.toml`, Cloudflare Worker assets, Supabase Edge Functions, and GitHub workflows.
+- `kimlainchhorng/zivostravel`: Vite/React app with `wrangler.toml`, Cloudflare Worker assets, travel docs, and Supabase migrations.
 
-1. Try `gh repo view` for each repo.
-2. Try `gh repo clone` for each repo.
-3. If `404` or a permission error occurs:
-   - check spelling and capitalization
-   - check if repo is private
-   - check if the GitHub app has access
-   - check if repo is under another owner/org
-   - check if repo still needs to be created
-4. Do not rename apps or guess alternate repos without owner approval.
+## Repo Inventory Summary
 
+Detailed inventory is reported in the PR summary and should be refreshed before each implementation PR.

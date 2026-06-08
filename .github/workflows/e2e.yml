@@ -54,15 +54,6 @@ jobs:
         env:
           CI: 'true'
           NODE_OPTIONS: "--max-old-space-size=4096"
-          QA_TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
-          QA_TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
-          E2E_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
-          E2E_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-          VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}
-          VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
         run: npx playwright test --project=${{ github.event.inputs.project || 'chromium' }}
 
       - name: Upload Playwright report

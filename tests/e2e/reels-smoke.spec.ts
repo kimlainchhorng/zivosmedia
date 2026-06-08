@@ -1,11 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-const EMAIL = process.env.QA_TEST_EMAIL || process.env.E2E_EMAIL || "";
-const PASSWORD = process.env.QA_TEST_PASSWORD || process.env.E2E_PASSWORD || "";
+const EMAIL = "klainkonkat@gmail.com";
+const PASSWORD = "Chhorng@1998";
 
 test("reels page loads after login and we can capture state", async ({ page }) => {
-  test.skip(!EMAIL || !PASSWORD, "QA_TEST_EMAIL / QA_TEST_PASSWORD not set");
-
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   page.on("console", (msg) => {
@@ -15,15 +13,14 @@ test("reels page loads after login and we can capture state", async ({ page }) =
 
   await page.goto("/login");
   await page.fill("#login-email", EMAIL);
-  await page.locator("#login-password-full, #login-password").first().fill(PASSWORD);
+  await page.fill("#login-password", PASSWORD);
   await page.click('button[type="submit"]');
 
   // Wait for nav away from /login (success) or for an error toast.
   await Promise.race([
     page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15_000 }).catch(() => null),
-    page.getByText(/wrong password|incorrect|invalid|not confirmed|too many/i).first().waitFor({ timeout: 15_000 }).catch(() => null),
+    page.waitForTimeout(8_000),
   ]);
-  test.skip(page.url().includes("/login"), "Configured QA credentials did not authenticate");
 
   await page.screenshot({ path: "tmp/reels-after-login.png", fullPage: false });
 
