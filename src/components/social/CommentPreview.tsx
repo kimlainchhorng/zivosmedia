@@ -36,15 +36,16 @@ function CommentPreviewInner({ postId, source, totalCount, onOpen }: Props) {
     }
     let cancelled = false;
     (async () => {
-      // Pull the most recent comment for the right table
-      const table = source === "user" ? "user_post_comments" : "store_post_comments";
-      const selectColumns = source === "user"
-        ? "user_id, comment, created_at"
-        : "user_id, content, created_at";
-      const { data } = await (supabase as any)
+      // Pull the most recent comment for the right table. User posts use the
+      // unified `post_comments` table (discriminated by post_source); store
+      // posts keep their own `store_post_comments` table.
+      const table = source === "user" ? "post_comments" : "store_post_comments";
+      let previewQuery = (supabase as any)
         .from(table)
-        .select(selectColumns)
-        .eq("post_id", postId)
+        .select("user_id, content, created_at")
+        .eq("post_id", postId);
+      if (source === "user") previewQuery = previewQuery.eq("post_source", source);
+      const { data } = await previewQuery
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

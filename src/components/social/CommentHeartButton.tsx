@@ -14,7 +14,7 @@ import { useHaptic } from "@/hooks/useHaptic";
 
 interface Props {
   commentId: string;
-  targetTable: "store_post_comments" | "user_post_comments";
+  targetTable: "store_post_comments" | "post_comments";
   userId: string | null;
   /** Initial like count from the API; component re-syncs on mount */
   initialCount?: number;
