@@ -1,0 +1,25 @@
+# Normalize all text files to LF on commit; checkout as LF everywhere.
+# This prevents CRLF drift on Windows/OneDrive and keeps test assertions
+# using \n from breaking on Windows checkouts.
+* text=auto eol=lf
+
+# Binaries — never touch line endings
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.svg  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.eot  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.mp4  binary
+*.mov  binary
+*.mp3  binary
+*.wav  binary
