@@ -125,7 +125,7 @@ Deno.serve(withSecurity("cancel-lodging-reservation", async (req, ctx) => {
         }
       } else if (provider === "paypal" && policy.refundCents > 0 && (r as any).paypal_capture_id) {
         // PayPal capture refund: POST /v2/payments/captures/{capture_id}/refund
-        const ppMode = Deno.env.get("PAYPAL_MODE") ?? "live";
+        const ppMode = Deno.env.get("PAYPAL_MODE") ?? "sandbox";
         const ppBase = ppMode === "sandbox" ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com";
         const ppId = Deno.env.get("PAYPAL_CLIENT_ID");
         const ppSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
@@ -158,7 +158,7 @@ Deno.serve(withSecurity("cancel-lodging-reservation", async (req, ctx) => {
         paymentStatus = refundJson.status === "COMPLETED" ? "refunded" : refundJson.status === "PENDING" ? "refund_pending" : "refund_pending";
       } else if (provider === "square" && policy.refundCents > 0 && (r as any).square_payment_id) {
         // Square refund: POST /v2/refunds
-        const sqMode = Deno.env.get("SQUARE_MODE") ?? "production";
+        const sqMode = Deno.env.get("SQUARE_MODE") ?? "sandbox";
         const sqBase = sqMode === "sandbox" ? "https://connect.squareupsandbox.com" : "https://connect.squareup.com";
         const sqToken = Deno.env.get("SQUARE_ACCESS_TOKEN");
         if (!sqToken) throw new Error("Square access token not configured");

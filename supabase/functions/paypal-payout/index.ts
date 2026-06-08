@@ -3,7 +3,7 @@ import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { getIdempotencyKey, withIdempotency } from "../_shared/idempotency.ts";
 
-const PAYPAL_MODE = Deno.env.get("PAYPAL_MODE") ?? "live"; // "live" | "sandbox"
+const PAYPAL_MODE = Deno.env.get("PAYPAL_MODE") ?? "sandbox"; // "live" | "sandbox"
 const PAYPAL_BASE = PAYPAL_MODE === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
   : "https://api-m.paypal.com";

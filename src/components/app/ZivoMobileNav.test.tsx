@@ -14,7 +14,7 @@ vi.mock("@/hooks/useUserProfile", () => ({
 }));
 
 vi.mock("@/hooks/useNotifications", () => ({
-  useNotifications: () => ({ unreadCount: 0 }),
+  useNotifications: () => ({ notifications: [], unreadCount: 0 }),
 }));
 
 vi.mock("@/hooks/useLiveActivityCount", () => ({

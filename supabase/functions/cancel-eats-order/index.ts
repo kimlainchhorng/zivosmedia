@@ -23,11 +23,11 @@ import { notifyEatsRefundIssued } from "../_shared/eats-notifications.ts";
 import { cascadeCancellationToDriver } from "../_shared/cancellation-cascade.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "live") === "sandbox"
+const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "sandbox") === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
   : "https://api-m.paypal.com";
 
-const SQUARE_BASE = (Deno.env.get("SQUARE_MODE") ?? "production") === "sandbox"
+const SQUARE_BASE = (Deno.env.get("SQUARE_MODE") ?? "sandbox") === "sandbox"
   ? "https://connect.squareupsandbox.com"
   : "https://connect.squareup.com";
 

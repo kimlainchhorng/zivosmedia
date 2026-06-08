@@ -524,6 +524,25 @@ const Login = () => {
   const getVerifyOtpPath = (targetEmail: string) =>
     `/verify-otp?email=${encodeURIComponent(targetEmail)}&mode=login&entry=link${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ""}`;
 
+  // Google / Apple SSO. signInWithOAuth redirects to the provider; on return,
+  // /auth-callback exchanges the code and AuthContext restores the session.
+  const handleOAuthSignIn = async (provider: "google" | "apple") => {
+    if (submitting) return;
+    setSubmitting(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: getEmailRedirectTo(),
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    // Only reached on error; on success the browser navigates to the provider.
+    if (error) {
+      setSubmitting(false);
+      toast.error(error.message || "Could not start sign-in. Please try again.");
+    }
+  };
+
   const requestSignInCode = async (targetEmail: string): Promise<
     { ok: true; email: string } | { ok: false; message: string }
   > => {
@@ -1010,6 +1029,36 @@ const Login = () => {
                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
                 <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">OR</span>
                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+              </div>
+
+              {/* Option 1: social SSO (Google / Apple) */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => handleOAuthSignIn("google")}
+                  disabled={submitting}
+                  className="w-full h-11 rounded-lg text-sm font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 18 18" aria-hidden="true">
+                    <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z" />
+                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A9 9 0 0 0 9 18z" />
+                    <path fill="#FBBC05" d="M3.98 10.72a5.4 5.4 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.02-2.34z" />
+                    <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.94L3.98 7.28C4.68 5.16 6.66 3.58 9 3.58z" />
+                  </svg>
+                  Continue with Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOAuthSignIn("apple")}
+                  disabled={submitting}
+                  className="w-full h-11 rounded-lg text-sm font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.02-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.9-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.46 7.84 1.3 10.41.86 1.26 1.89 2.68 3.23 2.63 1.3-.05 1.79-.84 3.36-.84 1.56 0 2 .84 3.37.81 1.39-.02 2.27-1.29 3.12-2.55.98-1.46 1.39-2.87 1.41-2.95-.03-.01-2.71-1.04-2.74-4.13z" />
+                    <path d="M14.5 4.5c.72-.87 1.2-2.08 1.07-3.29-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.08 3.18 1.15.09 2.32-.58 3.03-1.45z" />
+                  </svg>
+                  Continue with Apple
+                </button>
               </div>
 
               {/* Option 2: passwordless via email link/code */}

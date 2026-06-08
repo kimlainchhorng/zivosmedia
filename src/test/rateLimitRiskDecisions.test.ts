@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 
 const read = (relativePath: string) =>
-  readFileSync(path.join(root, relativePath), "utf8");
+  readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("rate-limit and network-risk decision guard", () => {
   it("keeps shared rate-limit categories aligned to auth, payment, upload, admin, and search risk", () => {
