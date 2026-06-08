@@ -23,6 +23,8 @@ export function usePostProducts(postId: string | null) {
     queryKey: KEY(rawId),
     enabled: !!rawId,
     queryFn: async () => {
+      // post_products.post_id is uuid — strip any u- prefix used by the feed layer
+      const rawId = postId!.replace(/^u-/, "");
       const { data, error } = await (supabase as any)
         .from("post_products")
         .select(
