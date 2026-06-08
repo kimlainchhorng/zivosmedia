@@ -1,50 +1,72 @@
 # Live Website UI Audit
 
-Audit date: 2026-06-07 local run
+Branch: `docs/live-ui-visual-audit`
+Type: documentation and screenshot audit only.
 
-Scope: public ZIVO domains plus local Zivosmedia routes. This is documentation only. No production UI, auth, payment, DNS, deployment, or secret changes were made.
+## Scope
 
-## Evidence Captured
+Captured screenshot artifacts exist locally under `docs/ui-audit-screenshots/`. The set contains 124 PNGs: 8 public domains and 23 local routes across 4 viewports.
 
-- Public domains: 8 domains x 4 viewports = 32 screenshots.
-- Local Zivosmedia routes: 23 routes x 4 viewports = 92 screenshots.
-- Viewports: `desktop-1440`, `iphone-13`, `iphone-15-pro`, `ipad`.
-- Screenshot root: `docs/ui-audit-screenshots/` in the local clean branch.
-- Result summary: 124 screenshots captured; 120 loaded with HTTP 200; 4 failed because `zivoadmin.com` did not resolve.
+Viewports:
 
-## Automated Checks
-
-| Command | Result | Notes |
-| --- | --- | --- |
-| `npm run qa:frontend-visual-contracts` | Pass | 6 contracts passed, 0 failures. |
-| `npm run perf:media-report` | Report-only issues | 37 media readiness issues across 7 files. Main issue: regular `img` usage missing lazy loading or async decoding. |
-| `npm run qa:safe-area:all` | Partial pass | Static safe-area check passed, 77 passed and 0 failed. Playwright safe-area suite skipped 10 tests. |
-| `npm run test:visual` | Failed | 28 failed, 56 skipped, 2 passed. The visual suite server at `127.0.0.1:8080` reset/refused connections after startup. |
-
-## Public Domain Findings
-
-| Screen | First Impression | Problems Found | Missing Connections | Recommended Fix | Priority |
-| --- | --- | --- | --- | --- | --- |
-| `https://zivosmedia.com` | Real ZIVO feed app loads and feels active. | Mobile first viewport is dominated by the cookie banner; desktop also has a large cookie banner blocking feed content. Console shows Permissions-Policy warning and a 401 resource on desktop. | No visible “Continue with Zivosmedia” CTA because this is the hub itself; no clear cross-app payment hub entry; chat appears as a nav item but not as support. | Reduce cookie banner footprint on mobile, add clearer hub-level links to travel, driver, software, chat, wallet, and support. | P1 |
-| `https://zivostravel.com` | Strong travel product page with booking modules and polished cards. | Dense desktop hero has several competing controls; mobile needs review for safe stacking and CTA priority. | Missing visible “Continue with Zivosmedia”; support is present but not clearly branded as ZivoChat; payment is suggested via wallet but not clearly connected to ZivoPay. | Add identity CTA, label support as ZivoChat support, and clarify checkout/payment ownership. | P1 |
-| `https://zivodriver.com` | Domain currently shows the ZIVO feed/super-app surface, not a driver landing page. | Brand mismatch for driver domain; no driver-specific hero, job workflow, earnings, support, or legal sections. Mobile is heavily blocked by cookie banner. | Missing “Continue with Zivosmedia”, ZivoChat support, driver payout/payment story, and Travel-to-Driver workflow. | Replace placeholder with real driver landing page as the first UI PR after this audit. | P1 |
-| `https://zivoschat.com` | Routes to a protected chat login page. | Console reports missing Supabase public env vars and fallback usage; login form does not name “Continue with Zivosmedia.” | Missing explicit Zivosmedia identity CTA and cross-app thread context messaging. Payment not relevant on first screen. | Add “Continue with Zivosmedia” and fix deployed env configuration before expanding chat. | P1 |
-| `https://zivosoftware.com` | Clear software landing page for local businesses. | Ecosystem navigation is limited. | Missing visible “Continue with Zivosmedia”; ZivoChat support is not obvious; billing/subscription connection exists in copy but not as a clear ZivoPay flow. | Add identity CTA, ZivoChat support entry, and subscription/billing pathway wording. | P1 |
-| `https://zivobusiness.com` | Domain shows the ZIVO feed/super-app surface, not a business product. | Brand/domain mismatch; cookie banner blocks first viewport on mobile and desktop. | Missing business identity CTA, ZivoChat support, software subscription ownership, billing, and admin links. | Create business-specific landing/workspace entry after repo and Supabase ownership are confirmed. | P1 |
-| `https://zivoemployee.com` | Domain shows the ZIVO feed/super-app surface, not an employee product. | Brand/domain mismatch; no employee-specific roles, onboarding, business/admin relationship, or support. | Missing Zivosmedia identity CTA, ZivoChat support, business/admin employee relationship, and payroll/payment story if applicable. | Keep as planned later-phase work, but create a holding page that accurately states employee status. | P2 |
-| `https://zivoadmin.com` | Public domain did not load. | `net::ERR_NAME_NOT_RESOLVED` in all four viewports; screenshot is blank because navigation never resolved. | Admin control center is not publicly reachable; no health, auth, or platform registry UI visible. | Confirm DNS/Cloudflare mapping and deployment target before any UI work. Requires owner approval before DNS changes. | P0 |
-
-## Highest Priority Problems
-
-| Priority | Problem | Evidence |
-| --- | --- | --- |
-| P0 | `zivoadmin.com` does not resolve. | Playwright captured `net::ERR_NAME_NOT_RESOLVED` in all four viewports. |
-| P0 | `/hotels` appears to show rides/Cambodia availability copy instead of a hotel page. | Local Playwright screenshot evidence captured. |
-| P1 | `zivodriver.com`, `zivobusiness.com`, and `zivoemployee.com` show the generic ZIVO feed instead of domain-specific landing pages. | Public screenshots for those domains. |
-| P1 | “Continue with Zivosmedia” is not visible in captured login/auth screens or satellite app domains. | Metadata found 0 of 124 screenshots with this text. |
-| P1 | Cookie/privacy banner blocks major first-viewport content on mobile and desktop. | Public and local feed/travel screenshots, especially iPhone captures. |
-| P1 | Visual test suite is unstable due local webserver reset/refused connections. | `npm run test:visual` failure. |
+- iPhone 13.
+- iPhone 15 Pro.
+- iPad/tablet.
+- Desktop 1440px.
 
 ## Screenshot Artifact Note
 
-The full local clean branch contains 124 PNG screenshots under `docs/ui-audit-screenshots/`. Local GitHub HTTPS and SSH credentials are not configured in this environment, so the binary artifact set could not be pushed by normal Git during this connector-created PR. The markdown reports preserve the audit findings and screenshot path references; the local branch `docs/live-ui-visual-audit-clean` contains the full screenshot set.
+The PNG screenshots were captured in the local Codex workspace. Binary Git push is not configured in this machine session: HTTPS push prompts for a username and SSH returns `Permission denied (publickey)`. The audit docs keep the screenshot paths so the owner can inspect them locally and so a follow-up artifact upload can attach the PNGs when Git credentials are available.
+
+## Public Domain Audit Matrix
+
+| Screen | Screenshot path | Mobile status | Desktop status | First impression and brand | UI findings | Missing platform links | Recommended fix | Priority |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| zivosmedia.com | `docs/ui-audit-screenshots/public/zivosmedia-com/{viewport}.png` | Loads | Loads | Main ZIVO surface is recognizable. | Cookie/banner and dense feed patterns compete with first-view messaging; navigation needs clearer app switcher. | Continue with Zivosmedia, app switcher, ZivoChat support, billing/payment entry. | Add unified first-viewport hub navigation and explicit cross-app CTAs. | P1 |
+| zivostravel.com | `docs/ui-audit-screenshots/public/zivostravel-com/{viewport}.png` | Loads | Loads | Travel brand is clearer than other app domains. | Travel CTAs exist, but cross-app identity/payment context is not obvious. | Continue with Zivosmedia, app switcher, payment/billing connection. | Add Zivosmedia account strip, chat support, and payment-status link near booking CTAs. | P1 |
+| zivodriver.com | `docs/ui-audit-screenshots/public/zivodriver-com/{viewport}.png` | Loads generic surface | Loads generic surface | Does not read as a dedicated driver landing page. | Copy, CTA, and navigation do not clearly target drivers. | Continue with Zivosmedia, ZivoChat support, app switcher, payout/payment link. | Build driver-specific landing page with driver onboarding, jobs, earnings, and payout status. | P0 |
+| zivoschat.com | `docs/ui-audit-screenshots/public/zivoschat-com/{viewport}.png` | Loads | Loads | Chat purpose is present but not clearly connected to all apps. | Needs clearer support-routing, related-record context, and admin handoff. | App switcher, payment/support linkage, Continue with Zivosmedia. | Add shared chat positioning and support thread entry points. | P1 |
+| zivosoftware.com | `docs/ui-audit-screenshots/public/zivosoftware-com/{viewport}.png` | Loads | Loads | Software direction is visible. | Product catalog and billing/subscription relation need stronger hierarchy. | Continue with Zivosmedia, app switcher, billing connection, ZivoChat setup support. | Clarify product categories, subscription path, setup chat, and business ownership. | P1 |
+| zivobusiness.com | `docs/ui-audit-screenshots/public/zivobusiness-com/{viewport}.png` | Loads generic surface | Loads generic surface | Does not yet feel like a dedicated business portal. | Business profile, subscriptions, invoices, and employee workflows are not first-view obvious. | Continue with Zivosmedia, app switcher, billing/payment link, ZivoChat support. | Create business landing/dashboard entry with profile, software, invoices, and team links. | P1 |
+| zivoemployee.com | `docs/ui-audit-screenshots/public/zivoemployee-com/{viewport}.png` | Loads generic surface | Loads generic surface | Employee purpose is not clear. | No strong employee onboarding, schedule, payroll, or staff navigation in first view. | Continue with Zivosmedia, app switcher, ZivoChat support. | Add employee-specific entry page and clarify repo/module ownership. | P2 |
+| zivoadmin.com | `docs/ui-audit-screenshots/public/zivoadmin-com/{viewport}.png` | Failed/unresolved in capture | Failed/unresolved in capture | Admin control center is not reachable. | Domain did not load consistently during audit. | All admin modules inaccessible. | Confirm DNS/deployment and create Zivo Admin shell/health page. | P0 |
+
+## Local Route Audit Matrix
+
+| Route | Screenshot path | Mobile status | Desktop status | First impression and UI findings | Missing items | Recommended fix | Priority |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/` | `docs/ui-audit-screenshots/local/home/{viewport}.png` | Loads | Loads | Main hub loads but needs stronger all-in-one value and app switcher. | Continue with Zivosmedia, support, payment hub. | Add app-switching and central identity/payment CTAs. | P1 |
+| `/login` | `docs/ui-audit-screenshots/local/login/{viewport}.png` | Loads | Loads | Auth page works but brand/account handoff language needs alignment. | Continue with Zivosmedia label. | Rename/position primary auth path as Continue with Zivosmedia. | P1 |
+| `/signup` | `docs/ui-audit-screenshots/local/signup/{viewport}.png` | Loads | Loads | Signup path visible. | Cross-app account linking explanation. | Explain single Zivosmedia account across apps. | P1 |
+| `/feed` | `docs/ui-audit-screenshots/local/feed/{viewport}.png` | Loads | Loads | Feed is dense and social-first. | App switcher, support, payment/wallet context. | Add compact hub rail or menu. | P2 |
+| `/business` | `docs/ui-audit-screenshots/local/business/{viewport}.png` | Loads | Loads | Business page visible. | Software/billing ownership link. | Surface business profile, software, invoices, setup chat. | P1 |
+| `/chat` | `docs/ui-audit-screenshots/local/chat/{viewport}.png` | Loads/needs auth context | Loads/needs auth context | Chat exists but shared-support role needs stronger positioning. | Related record/thread context, support link. | Add source platform and support intent entry points. | P1 |
+| `/travel` | `docs/ui-audit-screenshots/local/travel/{viewport}.png` | Loads | Loads | Travel surface reads well. | Driver handoff/payment status. | Add booking payment and driver status placeholders. | P1 |
+| `/flights` | `docs/ui-audit-screenshots/local/flights/{viewport}.png` | Loads | Loads | Flight search visible. | Chat/support and payment connection. | Add help and checkout continuity. | P2 |
+| `/hotels` | `docs/ui-audit-screenshots/local/hotels/{viewport}.png` | Loads but content mismatch | Loads but content mismatch | Appears to show rides/Cambodia availability copy instead of hotel content. | Correct hotel content. | Fix route content mapping before UI polish. | P0 |
+| `/cars` | `docs/ui-audit-screenshots/local/cars/{viewport}.png` | Loads | Loads | Car/rental flow visible. | Driver/job/payment linkage. | Clarify rental vs driver pickup flow. | P2 |
+| `/bus` | `docs/ui-audit-screenshots/local/bus/{viewport}.png` | Loads | Loads | Bus flow visible. | Support/payment continuity. | Add support and checkout status. | P2 |
+| `/travel/checkout` | `docs/ui-audit-screenshots/local/travel-checkout/{viewport}.png` | Loads/checkout context | Loads/checkout context | Checkout surface needs payment hub clarity. | ZivoPay/provider identity, chat support. | Add payment identity and support entry. | P1 |
+| `/wallet` | `docs/ui-audit-screenshots/local/wallet/{viewport}.png` | Loads/needs auth | Loads/needs auth | Wallet exists but shared payment hub role is not explicit. | ZivoPay identity and billing history. | Align wallet with ZivoPay architecture. | P1 |
+| `/driver/orders` | `docs/ui-audit-screenshots/local/driver-orders/{viewport}.png` | Loads/needs role | Loads/needs role | Driver orders route exists. | Driver onboarding/payout status. | Add driver landing and status empty states. | P1 |
+| `/shop-dashboard` | `docs/ui-audit-screenshots/local/shop-dashboard/{viewport}.png` | Loads/needs role | Loads/needs role | Shop dashboard route exists. | Business/software ownership link. | Align shop dashboard with Zivo Business. | P2 |
+| `/shop-dashboard/orders` | `docs/ui-audit-screenshots/local/shop-dashboard-orders/{viewport}.png` | Loads/needs role | Loads/needs role | Orders route visible. | Payment/status linkage. | Add order payment status and support path. | P2 |
+| `/shop-dashboard/employees` | `docs/ui-audit-screenshots/local/shop-dashboard-employees/{viewport}.png` | Loads/needs role | Loads/needs role | Employee management route exists. | Zivo Employee relation. | Add employee platform handoff. | P2 |
+| `/shop-dashboard/wallet` | `docs/ui-audit-screenshots/local/shop-dashboard-wallet/{viewport}.png` | Loads/needs role | Loads/needs role | Wallet route exists. | Business payouts/billing link. | Connect to shared business payment profile. | P1 |
+| `/admin/security` | `docs/ui-audit-screenshots/local/admin-security/{viewport}.png` | Loads/needs admin | Loads/needs admin | Security admin surface exists. | Platform registry and audit hub relation. | Align with Zivo Admin control center. | P1 |
+| `/admin/payments/webhook-status` | `docs/ui-audit-screenshots/local/admin-payments-webhook-status/{viewport}.png` | Loads/needs admin | Loads/needs admin | Payment webhook route exists. | Provider adapters and dashboard context. | Tie to ZivoPay dashboard docs. | P1 |
+| `/support/new` | `docs/ui-audit-screenshots/local/support-new/{viewport}.png` | Loads | Loads | Support intake is available. | ZivoChat thread metadata. | Add app/source/related-record support routing. | P1 |
+| `/legal/privacy` | `docs/ui-audit-screenshots/local/legal-privacy/{viewport}.png` | Loads | Loads | Legal content visible. | Cross-platform privacy context. | Clarify all-app identity/payment data use. | P2 |
+| `/settings` | `docs/ui-audit-screenshots/local/settings/{viewport}.png` | Loads/needs auth | Loads/needs auth | Settings route exists. | Account linking and app switcher. | Add linked apps and login audit entry points. | P1 |
+
+## Pages that Failed or Need Login
+
+- Failed to load: `zivoadmin.com`.
+- Needs login/admin/role context: `/chat`, `/wallet`, `/driver/orders`, shop dashboard routes, admin routes, `/settings`.
+
+## Validation
+
+- `npm run qa:frontend-visual-contracts`: passed.
+- `npm run qa:safe-area:all`: static checks passed; Playwright safe-area tests skipped.
+- `npm run perf:media-report`: completed as report-only with 37 media readiness issues.
+- `npm run test:visual`: failed with 6 account safe-area snapshot diffs, 24 passed, 56 skipped.
