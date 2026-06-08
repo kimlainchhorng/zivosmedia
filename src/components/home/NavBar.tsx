@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ZivoLogo from "@/components/ZivoLogo";
+import AppSwitcher from "@/components/cross-app/AppSwitcher";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { cn } from "@/lib/utils";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
@@ -350,6 +351,8 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                     )}
                   </button>
                 )}
+                {/* ZIVO app switcher — jump across the app network (one identity) */}
+                <AppSwitcher />
                 <Popover open={isLangOpen} onOpenChange={setIsLangOpen}>
                   <PopoverTrigger asChild>
                     <Button
