@@ -103,7 +103,7 @@ jobs:
       - name: Deploy preview to Netlify
         if: steps.netlify-secrets.outputs.available == 'true'
         id: deploy
-        uses: nwtgck/actions-netlify@v3
+        uses: nwtgck/actions-netlify@v4.0
         with:
           publish-dir: ./dist
           github-token: ${{ secrets.GITHUB_TOKEN }}
