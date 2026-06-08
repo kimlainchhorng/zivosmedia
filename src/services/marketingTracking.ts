@@ -114,6 +114,7 @@ function mirrorServerMarketingEvent(
   eventName: MarketingEventName,
   payload: MarketingEventPayload,
 ): void {
+  if (import.meta.env.DEV) return;
   try {
     void supabase.functions.invoke("marketing-event-track", {
       body: {
