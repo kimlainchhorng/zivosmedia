@@ -7,6 +7,7 @@ const expectedConsoleNoise = [
   "Invalid API key",
   "Failed to load resource: the server responded with a status of 401",
   "No 'Access-Control-Allow-Origin' header is present",
+  "The 'Access-Control-Allow-Origin' header has a value 'https://zivosoftware.com' that is not equal to the supplied origin",
   "Failed to load resource: net::ERR_FAILED",
   "[remoteConfig] fetch failed",
 ];
