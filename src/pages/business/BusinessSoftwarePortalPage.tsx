@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStores";
 import { useAuth } from "@/contexts/AuthContext";
+import AppSwitcher from "@/components/cross-app/AppSwitcher";
 import CrossAppReturnBar from "@/components/cross-app/CrossAppReturnBar";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
@@ -229,43 +230,46 @@ export default function BusinessSoftwarePortalPage() {
               <a href="#security" className="transition-colors hover:text-[#111412]">Security</a>
             </nav>
 
-            {user ? (
-              <div className="flex items-center gap-2">
-                {ownerStore?.name ? (
-                  <span className="hidden max-w-44 truncate rounded-lg border border-black/10 bg-white px-3 py-2 text-xs font-black text-[#3f4742] shadow-sm lg:inline-flex">
-                    {ownerStore.name}
-                  </span>
-                ) : null}
-                <Button asChild variant="ghost" className="hidden rounded-lg text-[#111412] hover:bg-black/5 sm:inline-flex">
-                  <a href={startPath()} onClick={forceNavigate(startPath())}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Setup
-                  </a>
-                </Button>
-                {accountLoading ? (
-                  <Button disabled className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)]">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Dashboard
-                  </Button>
-                ) : (
-                  <Button asChild className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)] hover:bg-black">
-                    <a href={accountDashboardPath} onClick={forceNavigate(accountDashboardPath)}>
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
+            <div className="flex items-center gap-2">
+              <AppSwitcher className="h-11 w-11" />
+              {user ? (
+                <>
+                  {ownerStore?.name ? (
+                    <span className="hidden max-w-44 truncate rounded-lg border border-black/10 bg-white px-3 py-2 text-xs font-black text-[#3f4742] shadow-sm lg:inline-flex">
+                      {ownerStore.name}
+                    </span>
+                  ) : null}
+                  <Button asChild variant="ghost" className="hidden rounded-lg text-[#111412] hover:bg-black/5 sm:inline-flex">
+                    <a href={startPath()} onClick={forceNavigate(startPath())}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Setup
                     </a>
                   </Button>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button asChild variant="ghost" className="hidden rounded-lg text-[#111412] hover:bg-black/5 sm:inline-flex">
-                  <a href={authPath("/login")} onClick={forceNavigate(authPath("/login"))}>Log in</a>
-                </Button>
-                <Button asChild className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)] hover:bg-black">
-                  <a href={authPath("/signup")} onClick={forceNavigate(authPath("/signup"))}>Sign up</a>
-                </Button>
-              </div>
-            )}
+                  {accountLoading ? (
+                    <Button disabled className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)]">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Dashboard
+                    </Button>
+                  ) : (
+                    <Button asChild className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)] hover:bg-black">
+                      <a href={accountDashboardPath} onClick={forceNavigate(accountDashboardPath)}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </a>
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Button asChild variant="ghost" className="hidden rounded-lg text-[#111412] hover:bg-black/5 sm:inline-flex">
+                    <a href={authPath("/login")} onClick={forceNavigate(authPath("/login"))}>Log in</a>
+                  </Button>
+                  <Button asChild className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)] hover:bg-black">
+                    <a href={authPath("/signup")} onClick={forceNavigate(authPath("/signup"))}>Sign up</a>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
