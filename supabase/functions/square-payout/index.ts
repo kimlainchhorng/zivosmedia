@@ -14,7 +14,7 @@ import { serve, createClient } from "../_shared/deps.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const SQUARE_MODE = Deno.env.get("SQUARE_MODE") ?? "production"; // "production" | "sandbox"
+const SQUARE_MODE = Deno.env.get("SQUARE_MODE") ?? "sandbox"; // "production" | "sandbox"
 const SQUARE_BASE = SQUARE_MODE === "sandbox"
   ? "https://connect.squareupsandbox.com"
   : "https://connect.squareup.com";

@@ -13,7 +13,7 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const SQUARE_MODE = Deno.env.get("SQUARE_MODE") ?? "production";
+const SQUARE_MODE = Deno.env.get("SQUARE_MODE") ?? "sandbox";
 const SQUARE_BASE = SQUARE_MODE === "sandbox"
   ? "https://connect.squareupsandbox.com"
   : "https://connect.squareup.com";
