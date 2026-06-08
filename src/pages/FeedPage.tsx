@@ -108,7 +108,7 @@ const REEL_RENDER_WINDOW_BEFORE = 2;
 const REEL_RENDER_WINDOW_AFTER = 2;
 const firstMediaLogged = { value: false };
 const FEED_USER_REELS_SELECT =
-  "id, user_id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, audio_name, location, shared_from_post_id, shared_from_user_id, is_sensitive, sensitive_reason";
+  "id, user_id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, audio_name, location, shared_from_post_id, shared_from_user_id";
 const FEED_USER_REELS_SELECT_FALLBACK =
   "id, user_id, media_url, media_urls, media_type, caption, likes_count, comments_count, shares_count, views_count, created_at, audio_name, location, shared_from_post_id, shared_from_user_id";
 type ReelSourceFilter = "all" | "people" | "shops";
