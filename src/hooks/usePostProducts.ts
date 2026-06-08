@@ -17,16 +17,18 @@ export interface TaggedProduct {
 const KEY = (postId: string | null) => ["post-products", postId];
 
 export function usePostProducts(postId: string | null) {
+  // Strip the "u-" prefix FeedPage adds to user-post IDs — post_products.post_id is a UUID column.
+  const rawId = postId?.replace(/^u-/, "") ?? null;
   return useQuery<TaggedProduct[]>({
-    queryKey: KEY(postId),
-    enabled: !!postId,
+    queryKey: KEY(rawId),
+    enabled: !!rawId,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("post_products")
         .select(
           "id, store_product_id, sort_order, store_products(id, name, price, image_url, store_id, in_stock)"
         )
-        .eq("post_id", postId)
+        .eq("post_id", rawId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return (data ?? [])
