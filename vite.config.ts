@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { rmSync } from "fs";
@@ -79,6 +79,28 @@ const pwaPrecacheGlobIgnores = [
   "**/destinations/**",
 ];
 
+// Build-time guard: warn (don't fail) when a production build is missing the
+// Supabase env vars and would silently fall back to the bundled public project.
+// The hard requirement is enforced in scripts/deploy/env-preflight.mjs.
+const supabaseEnvWarnPlugin: Plugin = {
+  name: "warn-missing-supabase-env",
+  config(_config, env) {
+    if (env.command === "build" && env.mode === "production") {
+      const supaEnv = loadEnv(env.mode, process.cwd(), "VITE_");
+      const missing = ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"].filter(
+        (key) => !supaEnv[key],
+      );
+      if (missing.length > 0) {
+        console.warn(
+          `\n⚠️  [zivosmedia] Production build is missing ${missing.join(", ")} — ` +
+            `the app will use the bundled public Supabase fallback at runtime. ` +
+            `Set these in the deploy pipeline (see scripts/deploy/env-preflight.mjs).\n`,
+        );
+      }
+    }
+  },
+};
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
@@ -124,6 +146,7 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'production' ? false : 'hidden',
   },
   plugins: [
+    supabaseEnvWarnPlugin,
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
