@@ -18,7 +18,10 @@ function source(relativePath) {
     failures.push(`missing file: ${relativePath}`);
     return "";
   }
-  return readFileSync(file, "utf8");
+  // Normalize CRLF -> LF so multiline string assertions are line-ending agnostic.
+  // Windows/OneDrive checkouts (core.autocrlf=true) yield CRLF working-tree files,
+  // which otherwise break the few \n-based needles (e.g. multiline withSecurity(...)).
+  return readFileSync(file, "utf8").replace(/\r\n/g, "\n");
 }
 
 function requireContains(id, text, needle, relativePath) {
