@@ -1,28 +1,25 @@
 # Desktop UI Audit
 
-## Scope
+Viewport captured: desktop `1440x1000`.
 
-Desktop screenshots were captured at 1440px for all public domains and local routes under `docs/ui-audit-screenshots/`.
+Screenshot folder: `docs/audits/screenshots/desktop`.
 
-## Desktop Status Summary
+## Summary
 
-- Most public domains load, but several read as generic ZIVO/feed pages rather than dedicated product sites.
-- Zivo Travel has the clearest product framing.
-- Zivo Admin domain is not reachable in the captured audit.
-- Desktop hub navigation needs a consistent app switcher and shared identity/payment entry.
-- Admin and payment routes exist locally but need clearer production admin dashboard framing.
+| Screen group | Screenshot evidence | Desktop status | Key UI/UX findings | Missing items | Recommended fix | Priority |
+| --- | --- | --- | --- | --- | --- | --- |
+| ZIVO/feed shell: `zivosmedia.com`, `/`, `/feed` | `docs/audits/screenshots/desktop/public-zivosmedia-com--desktop-1440.png`, `docs/audits/screenshots/desktop/local-home--desktop-1440.png`, `docs/audits/screenshots/desktop/local-feed--desktop-1440.png` | Loads feed. | Active app surface, but consent banner blocks lower content and nav blends feed, services, chat, and hub responsibilities. | `Continue with Zivosmedia`, app switcher/return links, payment/support hub. | Clarify ecosystem navigation and reduce banner obstruction. | P1 |
+| Driver/Business/Employee public domains | `docs/audits/screenshots/desktop/public-zivodriver-com--desktop-1440.png`, `docs/audits/screenshots/desktop/public-zivobusiness-com--desktop-1440.png`, `docs/audits/screenshots/desktop/public-zivoemployee-com--desktop-1440.png` | Load generic feed. | Domain names imply dedicated products, but first impression is social/feed content. | Driver/business/employee CTAs, identity, support, payment/role context. | Driver landing first; business/employee holding pages later. | P1/P2 |
+| Zivo Travel public and local travel modules | `docs/audits/screenshots/desktop/public-zivostravel-com--desktop-1440.png`, `docs/audits/screenshots/desktop/local-flights--desktop-1440.png`, `docs/audits/screenshots/desktop/local-cars--desktop-1440.png`, `docs/audits/screenshots/desktop/local-bus--desktop-1440.png` | Loads product surfaces. | Strongest product UI, but dense hero/search controls and unclear support/payment ownership. | `Continue with Zivosmedia`, ZivoChat support, ZivoPay/payment link. | Add cross-app labels and simplify primary CTA hierarchy. | P1 |
+| `/hotels` and `/travel/checkout` | `docs/audits/screenshots/desktop/local-hotels--desktop-1440.png`, `docs/audits/screenshots/desktop/local-travel-checkout--desktop-1440.png` | Loads. | `/hotels` shows rides/Cambodia availability; checkout empty state is generic and points only to hotels. | Hotel booking flow, checkout payment status, support path. | Fix `/hotels`; add checkout empty-state payment/support context. | P0/P1 |
+| Zivo Software and `/business` | `docs/audits/screenshots/desktop/public-zivosoftware-com--desktop-1440.png`, `docs/audits/screenshots/desktop/local-business--desktop-1440.png` | Loads polished software page. | Page quality is good; Business vs Software IA and billing/support ownership are unclear. | `Continue with Zivosmedia`, ZivoChat setup/support, billing connection. | Add identity/support/billing labels in follow-up PR. | P1 |
+| ZivoChat and support | `docs/audits/screenshots/desktop/public-zivoschat-com--desktop-1440.png`, `docs/audits/screenshots/desktop/local-chat--desktop-1440.png`, `docs/audits/screenshots/desktop/local-support-new--desktop-1440.png` | Chat login-gated; support form loads. | Chat login is readable; support form mixes feed/travel nav and does not clearly become ZivoChat support. | `Continue with Zivosmedia`, ZivoChat support entry, app context. | Add route-aware support/chat entry. | P1 |
+| Admin | `docs/audits/screenshots/desktop/public-zivoadmin-com--desktop-1440.png`, `docs/audits/screenshots/desktop/local-admin-security--desktop-1440.png`, `docs/audits/screenshots/desktop/local-admin-payments-webhook-status--desktop-1440.png` | Public domain fails; local routes login-gated. | `zivoadmin.com` DNS failure is blocking. Local admin routes cannot be visually audited unauthenticated and show generic sign-in. | Admin identity policy, webhook/payment context, support path. | Confirm DNS/deployment target; add admin-specific auth gates later. | P0/P1 |
+| Wallet/shop/settings protected routes | `docs/audits/screenshots/desktop/local-wallet--desktop-1440.png`, `docs/audits/screenshots/desktop/local-shop-dashboard-wallet--desktop-1440.png`, `docs/audits/screenshots/desktop/local-settings--desktop-1440.png` | Login-gated. | Generic sign-in is particularly weak for wallet/payment routes because safety context is absent. | Identity CTA, billing/wallet context, route labels. | Add route-aware auth-gate copy. | P1/P2 |
 
-## Priority Desktop Findings
+## Desktop Accessibility Issues
 
-| Finding | Affected screens | Recommended fix | Priority |
-| --- | --- | --- | --- |
-| `zivoadmin.com` unavailable | Admin domain | Publish admin shell and health check. | P0 |
-| `/hotels` route mismatch | Local hotel route | Correct content routing before visual polish. | P0 |
-| Dedicated domains are generic | Driver, Business, Employee | Build domain-specific landing pages. | P1 |
-| Payment/billing entry is not obvious | Wallet, checkout, business, software | Add ZivoPay/Zivosmedia Payments entry points. | P1 |
-| Support is not consistently visible | All app domains | Add ZivoChat support CTA and route metadata. | P1 |
-| App switching is inconsistent | All domains | Add unified app switcher component after identity plan approval. | P1 |
-
-## Desktop Design Notes
-
-Desktop screens should prioritize clear platform identity, scan-friendly navigation, and operational density for admin/business dashboards. Avoid making every app feel like the same social feed.
+- Large cookie/privacy banner can obscure content and interfere with task focus.
+- Dense travel desktop pages need stronger primary-action hierarchy.
+- Generic protected-route login does not announce destination context.
+- `zivoadmin.com` DNS failure is an availability issue, not desktop polish.

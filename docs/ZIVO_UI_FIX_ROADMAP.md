@@ -1,44 +1,57 @@
 # ZIVO UI Fix Roadmap
 
-## Top 10 UX/UI Problems
+This roadmap is based on the live screenshot audit. It is documentation-only and does not approve production UI, auth, payment, DNS, database, or Supabase migration changes.
 
-1. P0: `zivoadmin.com` did not load during capture.
-2. P0: `/hotels` appears to show non-hotel/rides availability content.
-3. P0: `zivodriver.com` does not read as a dedicated driver landing page.
-4. P1: Continue with Zivosmedia is not prominent across auth and app domains.
-5. P1: Unified app switcher is missing or inconsistent across domains.
-6. P1: ZivoChat support is not consistently visible from app workflows.
-7. P1: Payment/billing connection is not visible enough in checkout, wallet, business, software, driver, and admin routes.
-8. P1: Business and Employee domains read too generic for their intended platforms.
-9. P1: `npm run test:visual` shows account safe-area snapshot diffs on multiple mobile baselines.
-10. P2: Media readiness report lists 37 lazy-loading/decoding issues across high-traffic pages.
+## P0 Fixes
 
-## Recommended First UI Fix PR
+| Item | Evidence | Recommended next step |
+| --- | --- | --- |
+| Restore or confirm `zivoadmin.com` availability. | `docs/audits/screenshots/desktop/public-zivoadmin-com--desktop-1440.png`; all viewports failed with `net::ERR_NAME_NOT_RESOLVED`. | Confirm DNS/Cloudflare/deployment target with owner approval before touching UI. |
+| Fix `/hotels` route/content mismatch. | `docs/audits/screenshots/desktop/local-hotels--desktop-1440.png` shows rides/Cambodia availability copy. | Confirm route target and restore hotel-specific search/landing content in a later UI PR. |
 
-First UI fix after screenshot review should likely target `kimlainchhorng/zivodriver` once access is confirmed.
+## P1 Fixes
 
-Branch suggestion: `feature/driver-landing-page`.
+| Item | Evidence | Recommended PR |
+| --- | --- | --- |
+| Build a real `zivodriver.com` landing page. | `docs/audits/screenshots/desktop/public-zivodriver-com--desktop-1440.png` shows generic feed. | First UI fix PR after this audit. |
+| Add `Continue with Zivosmedia` to auth and satellite app surfaces. | 0 of 124 screenshots contained the phrase. | Identity UI PR after architecture approval. |
+| Add consistent ZivoChat support entries. | 0 of 124 screenshots contained `ZivoChat support`; `/support/new` mixes feed/travel nav. | ZivoChat support PR after source-app context is defined. |
+| Add payment/billing context to checkout, wallet, admin webhook, driver payouts, and business billing. | `/travel/checkout`, `/wallet`, `/shop-dashboard/wallet`, `/admin/payments/webhook-status`, `/driver/orders`. | Payment-context UI PR after payment ownership is confirmed. |
+| Give `zivobusiness.com` a domain-specific entry page. | `docs/audits/screenshots/desktop/public-zivobusiness-com--desktop-1440.png` shows generic feed. | Business holding/landing PR after repo/domain ownership confirmation. |
+| Add route-aware auth gates. | 48 auth/login screenshots show generic sign-in across auth and protected routes. | Auth UI PR that preserves module context without changing auth logic. |
+| Reduce first-viewport cookie/privacy banner obstruction. | Mobile and desktop feed/travel screenshots. | Consent UX PR with accessibility review. |
+| Stabilize visual QA snapshots. | `npm run test:visual` failed 6 account safe-area snapshots. | QA PR to review/update/fix account safe-area baselines or layout. |
 
-Goal:
+## P2 Fixes
 
-- Create a dedicated `zivodriver.com` landing page.
-- Add Continue with Zivosmedia.
-- Add driver onboarding and job/earning/payout explanation.
-- Add ZivoChat support link.
-- Add app switcher placeholder.
-- Do not implement payout logic in this UI fix.
+| Item | Evidence | Notes |
+| --- | --- | --- |
+| Add `zivoemployee.com` holding/landing page. | Generic feed surface. | Do after Business/Admin employee role definitions. |
+| Create a clearer legal-center shell. | `/legal/privacy` loads real content but uses generic app shell/title. | Polish after route/auth/payment fixes. |
+| Improve desktop density on Travel screens. | `zivostravel.com`, `/flights`, `/bus`. | Keep product-rich style, simplify hierarchy. |
+| Add context to `/settings` auth gate. | Generic login. | Lower priority than wallet/admin/auth core routes. |
 
-## Follow-Up Order
+## Driver Landing Page PR Requirements
 
-1. Review screenshots and audit docs.
-2. Fix `zivodriver.com` landing page.
-3. Build Zivosmedia identity foundation.
-4. Build Zivo Admin platform registry.
-5. Connect Travel and Driver.
+Required in a future UI PR:
 
-## Validation Status
+- Header: Zivo Driver logo/name, `Continue with Zivosmedia`, Sign in, Become a Driver.
+- Hero: Become/Apply CTA and shared identity CTA.
+- Driver benefits.
+- How it works: apply, verify documents, accept jobs, complete trips, get paid.
+- Requirements.
+- Earnings and payouts.
+- Travel-to-Driver connection explanation.
+- ZivoChat support link.
+- Real Privacy Policy and real Terms of Service.
 
-- `npm run qa:frontend-visual-contracts`: passed.
-- `npm run qa:safe-area:all`: static checks passed; Playwright safe-area tests skipped.
-- `npm run perf:media-report`: report-only with 37 issues.
-- `npm run test:visual`: failed with 6 account safe-area snapshot diffs, 24 passed, 56 skipped.
+## Recommended PR Order
+
+1. Docs PR: live UI audit and screenshots only.
+2. Admin availability/DNS confirmation task for `zivoadmin.com`.
+3. Routing PR: fix `/hotels` route/content mismatch.
+4. Driver landing PR: replace `zivodriver.com` generic feed with real driver page.
+5. Identity UI PR: add `Continue with Zivosmedia` and route-aware auth gates.
+6. ZivoChat support PR: consistent support entry and source-app context.
+7. Payment-context UI PR: checkout, wallet, webhook, driver payout, and business billing labels.
+8. QA PR: address `npm run test:visual` account safe-area snapshot failures.

@@ -26,3 +26,4 @@ The public Travel page and local driver orders route exist, but the UI does not 
 - Payment order and payout status connect to the travel booking and driver job.
 
 Recommended first fix: document and implement a Travel/Driver contract before UI polish. The visual UI should then expose driver request/status only where the backend contract exists.
+

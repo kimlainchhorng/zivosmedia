@@ -1,7 +1,17 @@
 # Zivo cross-app identity — decision record & reconciliation plan
 
-**Date:** 2026-06-07 · **Author:** Claude (architect) · **Status:** Proposed.
-D2–D4 confirm/enforce existing locked decisions; **D1 awaits owner ratification** (it
+**Date:** 2026-06-07 · **Author:** Claude (architect) · **Status:** Superseded in part by the owner ruling below.
+
+> **⚠️ OWNER RULING 2026-06-07 — supersedes D4.** The owner chose **all four first-party apps are
+> Path B** (per [`IDENTITY_EXCHANGE_SPEC.md`](../../docs/IDENTITY_EXCHANGE_SPEC.md)): build/keep the
+> per-app linking bridge (`linked_zivosmedia_users` + `auth_audit_logs` + server exchange) in
+> **Travel, Driver, and Software**; **Chat is Path B but short-circuits** on the shared hub project
+> (no separate `linked_zivosmedia_users` table). Therefore **D4 below is VOID**, and the
+> "remove Path-B plumbing" reconciliation steps for **Travel and Software are CANCELLED — keep +
+> finish + harden them instead**. (Chat's separate-linked-table removal still applies, since Chat
+> shares the hub.) **D1, D2, D3 stand.**
+
+D2–D4 originally confirmed/enforced existing locked decisions; **D1 awaits owner ratification** (it
 overrides the earlier "reuse `cross_app_tokens`" note).
 
 **Inputs:** locked [`zivo-multidomain-architecture.md`](./zivo-multidomain-architecture.md)
@@ -33,11 +43,12 @@ conflicts; this record resolves them.
   functions query it at runtime via service-role, so it must be co-located with them. Admin
   reads it (service-role, excluding `client_secret_hash`) and layers ops metadata keyed by
   `app_key`. Matches the latest `ADMIN_CONTROL_PLAN.md`.
-- **D4 — Path B (local linked accounts) = Driver only. Path A (shared identity) = Chat,
-  Travel, Software.** Enforces the locked "shared by default." Only Driver owns an independent
-  local auth system (`driver-signup`/`generate-otp`/`verify-otp` on `yiedl`), so only it needs
-  `linked_zivosmedia_users`. Chat shares `slirph` (a local link would be self-referential);
-  Travel and Software trust the main JWT + claims-RLS per the locked doc.
+- **D4 — ❌ VOID (overridden by the owner ruling 2026-06-07; see banner at top).** Original
+  proposal, kept for history: *Path B = Driver only; Path A = Chat, Travel, Software.* The owner
+  instead chose **all four = Path B** (Travel/Driver/Software keep the linking bridge; Chat
+  short-circuits on the shared hub). **Do not act on the Travel/Software "remove bridge" steps in
+  the reconciliation plan below** — keep and finish them per
+  [`IDENTITY_EXCHANGE_SPEC.md`](../../docs/IDENTITY_EXCHANGE_SPEC.md).
 
 ## Reconciliation plan
 
@@ -66,13 +77,15 @@ conflicts; this record resolves them.
 - [ ] Use the shared session / `/auth/handoff` hash bridge; remove the legacy `exchange-auth-token`
       hook in `useCrossAppAuth.ts` (D2).
 
-### Travel (Path A)
-- [ ] Remove the worker's `exchangeZivosmediaAuth` + `linked_zivosmedia_users` bridge; trust the
-      main JWT via the dual-client (auth=main, data=`xbll`) when `dedicatedBackendEnabled`; keep
-      `/api/health`.
+### Travel (Path B — keep & finish; D4 VOID)
+- [ ] ❌ **VOID per the owner ruling (top banner)** — do NOT remove the worker's
+      `exchangeZivosmediaAuth` + `linked_zivosmedia_users` bridge. Keep, finish, and harden it:
+      client PKCE wiring + session creation; the `authenticated` SELECT grant is already added.
+      Keep `/api/health`.
 
-### Software (Path A)
-- [ ] Remove the bridge edge functions; trust the main JWT + claims-RLS on `ydxz`.
+### Software (Path B — keep & finish; D4 VOID)
+- [ ] ❌ **VOID per the owner ruling (top banner)** — do NOT remove the bridge edge functions.
+      Keep, finish, and harden them: client PKCE wiring + session creation.
 
 ### Zivo-Admin
 - [ ] `GET /api/platform/registry` reads hub `app_integrations` (service-role, **exclude
