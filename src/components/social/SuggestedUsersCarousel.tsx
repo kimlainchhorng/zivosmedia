@@ -147,23 +147,28 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="zivo-social-module-tile group flex min-w-[200px] flex-shrink-0 items-center gap-2.5 rounded-2xl px-3 py-2.5 transition-all hover:-translate-y-0.5"
               >
-                <div onClick={() => navigate(`/user/${profile.id}`)} className="cursor-pointer">
-                  <Avatar className="zivo-social-avatar-ring h-11 w-11 transition-transform group-hover:scale-105">
+                <button
+                  type="button"
+                  className="flex flex-1 min-w-0 items-center gap-2.5"
+                  onClick={() => navigate(`/user/${profile.id}`)}
+                  aria-label={`View ${profile.full_name || "user"}'s profile`}
+                >
+                  <Avatar className="zivo-social-avatar-ring h-11 w-11 shrink-0 transition-transform group-hover:scale-105">
                     <AvatarImage src={optimizeAvatar(profile.avatar_url, 40)} loading="lazy" />
                     <AvatarFallback className="bg-transparent text-primary font-bold text-sm">
                       {profile.full_name?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
-                </div>
-                <div className="flex-1 min-w-0" onClick={() => navigate(`/user/${profile.id}`)}>
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs font-semibold text-foreground truncate">
-                      {profile.full_name || "User"}
-                    </p>
-                    {isBlueVerified(profile.is_verified) && <VerifiedBadge size={12} interactive={false} />}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs font-semibold text-foreground truncate">
+                        {profile.full_name || "User"}
+                      </p>
+                      {isBlueVerified(profile.is_verified) && <VerifiedBadge size={12} interactive={false} />}
+                    </div>
+                    <MutualFollowsBadge mutual={mutualMap?.get(profile.id)} className="mt-0.5" />
                   </div>
-                  <MutualFollowsBadge mutual={mutualMap?.get(profile.id)} className="mt-0.5" />
-                </div>
+                </button>
                 <button type="button"
                   onClick={() => handleFollow(profile.id)}
                   disabled={following.has(profile.id)}

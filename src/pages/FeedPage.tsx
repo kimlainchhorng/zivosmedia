@@ -4003,7 +4003,12 @@ function DiscoverPeopleOverlay({ onClose, onNavigate }: { onClose: () => void; o
                 animate={{ opacity: 1, y: 0 }}
                 className="zivo-social-module-tile p-4 text-center"
               >
-                <div onClick={() => { onClose(); onNavigate(`/user/${profile.id}`); }} className="cursor-pointer">
+                <button
+                  type="button"
+                  className="w-full cursor-pointer text-center"
+                  onClick={() => { onClose(); onNavigate(`/user/${profile.id}`); }}
+                  aria-label={`View ${profile.full_name || "user"}'s profile`}
+                >
                   <div className="zivo-social-avatar-ring mx-auto mb-3 h-16 w-16 overflow-hidden rounded-full p-0.5">
                     {profile.avatar_url ? (
                       <img src={profile.avatar_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
@@ -4019,7 +4024,7 @@ function DiscoverPeopleOverlay({ onClose, onNavigate }: { onClose: () => void; o
                   {profile.bio && (
                     <p className="mt-1 min-h-[2rem] text-[11px] font-semibold leading-4 text-muted-foreground line-clamp-2">{profile.bio}</p>
                   )}
-                </div>
+                </button>
                 <button type="button"
                   onClick={() => handleFollow(profile.id)}
                   disabled={followingIds.has(profile.id) || followingLoadingIds.has(profile.id)}
