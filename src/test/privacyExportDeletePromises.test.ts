@@ -121,7 +121,7 @@ describe("privacy export and account deletion promises", () => {
     expect(accountExportPage).toContain("Re-authenticate with TOTP");
 
     expect(accountDeletionInfo).toContain("Delete Your ZIVO Account");
-    expect(accountDeletionInfo).toContain("privacy@zivosmedia.com");
+    expect(accountDeletionInfo).toContain("privacy@hizivo.com");
     expect(accountDeletionInfo).toContain("30-day grace period");
     expect(accountDeletionInfo).toMatch(/legal, tax, fraud prevention, payment, dispute, or\s+regulatory obligations/);
     expect(accountDeletionInfo).toContain("/legal/data-retention");

@@ -47,7 +47,7 @@ describe("automated legal policy hub", () => {
     expect(genericLegal).toContain("Optional analytics and marketing collection");
     expect(genericLegal).toContain("Do Not Sell or Share controls");
     expect(genericLegal).toContain("aggregated, anonymized, or de-identified");
-    expect(genericLegal).toContain("privacy@zivosmedia.com");
+    expect(genericLegal).toContain("privacy@hizivo.com");
   });
 
   it("keeps specialized automated policies aligned with full legal disclosures", () => {

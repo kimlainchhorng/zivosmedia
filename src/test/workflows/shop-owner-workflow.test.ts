@@ -449,8 +449,8 @@ describe("shop owner workflow", () => {
     expect(setup).toContain('functions.invoke("store-profile-manage"');
     expect(setup).not.toMatch(/from\("store_profiles"\)[\s\S]{0,420}\.(insert|update|delete)\(/);
     expect(adminStores).toContain('functions.invoke("store-profile-manage"');
-    expect(adminStores).toContain('const PARTNER_LOGIN_BASE_URL = "https://zivosmedia.com/partner-login"');
-    expect(adminStores).toContain('const PARTNER_SUPPORT_URL = "https://zivosmedia.com/help"');
+    expect(adminStores).toContain('const PARTNER_LOGIN_BASE_URL = "https://hizivo.com/partner-login"');
+    expect(adminStores).toContain('const PARTNER_SUPPORT_URL = "https://hizivo.com/help"');
     expect(adminStores).toContain("getPartnerLoginUrl(storeAccountId)");
     expect(adminStores).not.toContain("https://zivosmedia.com/partner-login");
     expect(adminStores).not.toContain("https://zivosmedia.com/help");
@@ -470,8 +470,8 @@ describe("shop owner workflow", () => {
     expect(profileGate).toContain("Store profile updates require trusted server-side validation");
     expect(profileGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.store_profiles FROM authenticated");
     for (const template of [partnerInviteTemplate, partnerRecoveryTemplate]) {
-      expect(template).toContain("https://zivosmedia.com/partner-login");
-      expect(template).toContain("https://zivosmedia.com/help");
+      expect(template).toContain("https://hizivo.com/partner-login");
+      expect(template).toContain("https://hizivo.com/help");
       expect(template).not.toContain("https://zivosmedia.com/partner-login");
       expect(template).not.toContain("https://zivosmedia.com/help");
     }
