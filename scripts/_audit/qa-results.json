@@ -1,0 +1,212 @@
+[
+  {
+    "script": "qa:platform-readiness",
+    "code": 0,
+    "ms": 12966,
+    "ok": true,
+    "tail": "platform-readiness-matrix: wrote docs/platform-readiness-matrix.json and docs/platform-readiness-matrix.md"
+  },
+  {
+    "script": "qa:platform-readiness:check",
+    "code": 0,
+    "ms": 392,
+    "ok": true,
+    "tail": "platform-readiness-matrix: ok (11 lanes)"
+  },
+  {
+    "script": "qa:workflow-coverage",
+    "code": 0,
+    "ms": 9789,
+    "ok": true,
+    "tail": "workflow-coverage: wrote docs/workflow-coverage.json and docs/workflow-coverage.md"
+  },
+  {
+    "script": "qa:workflow-coverage:check",
+    "code": 0,
+    "ms": 526,
+    "ok": true,
+    "tail": "workflow-coverage: ok (15 workflows)"
+  },
+  {
+    "script": "qa:workflow-test-plan",
+    "code": 0,
+    "ms": 486,
+    "ok": true,
+    "tail": "workflow-test-plan: wrote docs\\workflow-test-plan.json and docs\\workflow-test-plan.md"
+  },
+  {
+    "script": "qa:workflow-test-plan:check",
+    "code": 0,
+    "ms": 488,
+    "ok": true,
+    "tail": "workflow-test-plan: ok"
+  },
+  {
+    "script": "qa:frontend-visual-contracts",
+    "code": 0,
+    "ms": 524,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"loading-error-empty-states\",\n      \"category\": \"states\"\n    },\n    {\n      \"id\": \"platform-visual-gate-wiring\",\n      \"category\": \"wiring\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:native-app-contracts",
+    "code": 0,
+    "ms": 735,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"native-version-release-alignment\",\n      \"category\": \"versioning\"\n    },\n    {\n      \"id\": \"native-release-checklist\",\n      \"category\": \"release\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:storage-media-contracts",
+    "code": 1,
+    "ms": 689,
+    "ok": false,
+    "tail": "      \"id\": \"client-staff-documents-and-cleanup\",\n      \"category\": \"client-staff\"\n    },\n    {\n      \"id\": \"receipts-and-share-links\",\n      \"category\": \"protected\"\n    }\n  ],\n  \"failures\": [\n    \"client-staff-documents-and-cleanup: supabase/functions/shop-ops-record-manage/index.ts missing \\\"withSecurity(\\\\n    \\\\\\\"shop-ops-record-manage\\\\\\\"\\\"\"\n  ]\n}"
+  },
+  {
+    "script": "qa:database-storage-contracts",
+    "code": 0,
+    "ms": 533,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"storage-policy-and-signed-media\",\n      \"category\": \"storage\"\n    },\n    {\n      \"id\": \"media-performance-and-platform-gates\",\n      \"category\": \"performance\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:security-anti-abuse-contracts",
+    "code": 0,
+    "ms": 604,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"money-booking-spam-abuse\",\n      \"category\": \"abuse-prevention\"\n    },\n    {\n      \"id\": \"audit-incidents-secret-leakage\",\n      \"category\": \"audit\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:legal-policy-contracts",
+    "code": 1,
+    "ms": 616,
+    "ok": false,
+    "tail": "    \"marketing-lead-privacy-intake: src/pages/business/BusinessLandingPage.tsx missing \\\"functions.invoke(\\\\\\\"marketing-interest-submit\\\\\\\"\\\"\",\n    \"marketing-lead-privacy-intake: src/pages/business/BusinessLandingPage.tsx missing \\\"to=\\\\\\\"/legal/privacy\\\\\\\"\\\"\",\n    \"marketing-lead-privacy-intake: src/pages/business/BusinessLandingPage.tsx missing \\\"to=\\\\\\\"/legal/terms\\\\\\\"\\\"\",\n    \"age-eligibility-safety-disclosure: src/pages/legal/PrivacyPolicy.tsx missing \\\"privacy@hizivo.com\\\"\",\n    \"automated-legal-policy-hub: src/pages/legal/GenericLegalPage.tsx missing \\\"privacy@hizivo.com\\\"\",\n    \"data-rights-legal-policy-hub: src/pages/legal/GenericLegalPage.tsx missing \\\"privacy@hizivo.com or support@hizivo.com\\\"\",\n    \"data-rights-legal-policy-hub: src/pages/legal/GenericLegalPage.tsx missing \\\"privacy@hizivo.com\\\"\",\n    \"data-rights-legal-policy-hub: supabase/functions/privacy-request-submit/index.ts missing \\\"withSecurity(\\\\n    \\\\\\\"privacy-request-submit\\\\\\\"\\\"\",\n    \"sensitive-data-legal-policy-hub: src/pages/legal/GenericLegalPage.tsx missing \\\"privacy@hizivo.com\\\"\",\n    \"sensitive-data-legal-policy-hub: src/pages/legal/GenericLegalPage.tsx missing \\\"privacy@hizivo.com\\\"\"\n  ]\n}"
+  },
+  {
+    "script": "qa:sso-auth-contracts",
+    "code": 1,
+    "ms": 560,
+    "ok": false,
+    "tail": "  ],\n  \"failures\": [\n    \"oauth-passwordless-login-entrypoints: src/pages/Login.tsx missing \\\"handleOAuthSignIn\\\"\",\n    \"oauth-passwordless-login-entrypoints: src/pages/Login.tsx missing \\\"signInWithOAuth\\\"\",\n    \"oauth-passwordless-login-entrypoints: src/pages/Login.tsx missing \\\"provider: \\\\\\\"google\\\\\\\"\\\"\",\n    \"oauth-passwordless-login-entrypoints: src/pages/Login.tsx missing \\\"handleOAuthSignIn(\\\\\\\"google\\\\\\\")\\\"\",\n    \"oauth-passwordless-login-entrypoints: src/pages/Login.tsx missing \\\"handleOAuthSignIn(\\\\\\\"apple\\\\\\\")\\\"\",\n    \"oauth-passwordless-login-entrypoints: src/pages/Login.tsx missing \\\"redirectTo: getEmailRedirectTo()\\\"\",\n    \"oauth-passwordless-login-entrypoints: src/pages/Login.tsx missing \\\"queryParams: { prompt: \\\\\\\"select_account\\\\\\\" }\\\"\",\n    \"role-aware-protected-routes: tests/e2e/auth-sso-role-matrix.spec.ts missing \\\"SSO callback, saved-session restore, and role redirect logic\\\"\"\n  ]\n}"
+  },
+  {
+    "script": "qa:api-operations-contracts",
+    "code": 0,
+    "ms": 595,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"webhook-and-payment-ops-surfaces\",\n      \"category\": \"payments\"\n    },\n    {\n      \"id\": \"cron-monitor-and-maintenance-routes\",\n      \"category\": \"cron\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:edge-function-deploy-contracts",
+    "code": 0,
+    "ms": 625,
+    "ok": true,
+    "tail": "      \"slug\": \"talent-invite-notification\",\n      \"verifyJwt\": true,\n      \"why\": \"job invite notification creation\"\n    },\n    {\n      \"slug\": \"admin-broadcast-notification\",\n      \"verifyJwt\": true,\n      \"why\": \"admin broadcast notification creation\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:edge-function-slot-readiness",
+    "code": 0,
+    "ms": 629,
+    "ok": true,
+    "tail": "    \"analytics-event-track\",\n    \"notification-manage\",\n    \"social-notification-manage\",\n    \"push-device-manage\",\n    \"talent-invite-notification\",\n    \"admin-broadcast-notification\"\n  ],\n  \"warnings\": [\n    \"using known live-gap artifact docs/qa/edge-function-live-gap-2026-06-03.json; replace with --live-snapshot after the next Supabase deploy\"\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:edge-function-browser-gates",
+    "code": 0,
+    "ms": 4753,
+    "ok": true,
+    "tail": "      \"wrapper\": \"src/lib/notifications/talentInviteNotification.ts\",\n      \"errorName\": \"TalentInviteNotificationUnavailableError\"\n    },\n    {\n      \"slug\": \"admin-broadcast-notification\",\n      \"flag\": \"VITE_ADMIN_BROADCAST_NOTIFICATION_ENABLED\",\n      \"wrapper\": \"src/lib/notifications/adminBroadcastNotification.ts\",\n      \"errorName\": \"AdminBroadcastNotificationUnavailableError\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:email-marketing-contracts",
+    "code": 0,
+    "ms": 579,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"salon-campaign-consent\",\n      \"category\": \"vertical-marketing\"\n    },\n    {\n      \"id\": \"consent-preferences-and-audit\",\n      \"category\": \"consent\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:push-notification-contracts",
+    "code": 0,
+    "ms": 559,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"opt-out-aware-dispatch\",\n      \"category\": \"dispatch\"\n    },\n    {\n      \"id\": \"service-worker-push-routing\",\n      \"category\": \"client-runtime\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:ads-monetization-contracts",
+    "code": 0,
+    "ms": 513,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"creator-monetization-and-affiliate-tracking\",\n      \"category\": \"creator\"\n    },\n    {\n      \"id\": \"provider-scale-up-roadmap\",\n      \"category\": \"docs\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:payouts-earnings-contracts",
+    "code": 0,
+    "ms": 522,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"idempotent-payout-retries\",\n      \"category\": \"idempotency\"\n    },\n    {\n      \"id\": \"auditable-balance-ledgers\",\n      \"category\": \"ledger\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:payments-refunds-contracts",
+    "code": 0,
+    "ms": 530,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"refund-state-ui-and-realtime\",\n      \"category\": \"frontend\"\n    },\n    {\n      \"id\": \"payment-rls-audit-ledgers\",\n      \"category\": \"database\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:customer-booking-contracts",
+    "code": 0,
+    "ms": 535,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"lodging-change-addon-security\",\n      \"category\": \"lodging\"\n    },\n    {\n      \"id\": \"shopping-orders-rls-and-grants\",\n      \"category\": \"database\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:shop-owner-contracts",
+    "code": 0,
+    "ms": 568,
+    "ok": true,
+    "tail": "Shop owner contracts passed: 4 checked"
+  },
+  {
+    "script": "qa:client-staff-contracts",
+    "code": 0,
+    "ms": 562,
+    "ok": true,
+    "tail": "    },\n    {\n      \"id\": \"training-rules-workspace-scoping\",\n      \"category\": \"training\"\n    },\n    {\n      \"id\": \"salon-client-owner-user-scoping\",\n      \"category\": \"clients\"\n    }\n  ],\n  \"failures\": []\n}"
+  },
+  {
+    "script": "qa:safe-area",
+    "code": 0,
+    "ms": 589,
+    "ok": true,
+    "tail": "iPad Pro 11\" portrait                --zivo-safe-top-overlay token   var         80     24     ✓   \niPad Pro 11\" landscape               --zivo-safe-top-overlay token   var         80     24     ✓   \niOS Dynamic Island (broken inset=0)  --zivo-safe-top-overlay token   var         80     80     ✓   \niPhone 15 Pro (notch)                --zivo-safe-top-sheet token     var         59     59     ✓   \niPhone SE (no notch)                 --zivo-safe-top-sheet token     var         44     20     ✓   \nPixel 8 (cutout)                     --zivo-safe-top-sheet token     var         44     32     ✓   \nGalaxy S24 (cutout)                  --zivo-safe-top-sheet token     var         44     36     ✓   \niPad Pro 11\" portrait                --zivo-safe-top-sheet token     var         44     24     ✓   \niPad Pro 11\" landscape               --zivo-safe-top-sheet token     var         44     24     ✓   \niOS Dynamic Island (broken inset=0)  --zivo-safe-top-sheet token     var         44     44     ✓   \n\nResult: 77 passed, 0 failed."
+  },
+  {
+    "script": "perf:media-report",
+    "code": 0,
+    "ms": 1029,
+    "ok": true,
+    "tail": "  497: img missing loading=\"lazy\"/SmartImage\n  497: img missing decoding=\"async\"/SmartImage\n  529: img missing loading=\"lazy\"/SmartImage\n  529: img missing decoding=\"async\"/SmartImage\n\nsrc\\pages\\channels\\ChannelPage.tsx\n  430: img missing loading=\"lazy\"/SmartImage\n  430: img missing decoding=\"async\"/SmartImage\n  459: img missing loading=\"lazy\"/SmartImage\n  459: img missing decoding=\"async\"/SmartImage\n\nThis command is report-only for now. Move high-traffic surfaces to SmartImage/LazyVideo first, then make it strict."
+  },
+  {
+    "script": "security:check-secrets",
+    "code": 0,
+    "ms": 4614,
+    "ok": true,
+    "tail": "✓ No leaked secrets detected."
+  },
+  {
+    "script": "security:check-supabase-token-fragments",
+    "code": 0,
+    "ms": 2691,
+    "ok": true,
+    "tail": "✓ No Supabase token fragments detected."
+  },
+  {
+    "script": "security:api-readiness:report",
+    "code": 0,
+    "ms": 1870,
+    "ok": true,
+    "tail": "    \"pendingLegacyAnonJwts\": 0,\n    \"sharedDays\": 0,\n    \"remoteError\": false,\n    \"currentLocal\": 1110\n  },\n  \"operations\": {\n    \"present\": true,\n    \"file\": \"docs/api-operations-runbook.md\",\n    \"missingTopics\": []\n  },\n  \"report\": \"docs/api-readiness-report.md\"\n}"
+  }
+]
