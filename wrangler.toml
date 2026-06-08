@@ -20,6 +20,34 @@ zone_name = "zivostravel.com"
 pattern = "www.zivostravel.com/*"
 zone_name = "zivostravel.com"
 
+# Super-app alias hosts served by the same build via in-app host detection
+# (src/config/zivo{Business,Driver,Employee}Domain.ts). Routing them to this
+# worker serves the current, env-baked ./dist instead of the stale Lovable
+# publish that otherwise renders the generic super-app feed.
+[[routes]]
+pattern = "zivobusiness.com/*"
+zone_name = "zivobusiness.com"
+
+[[routes]]
+pattern = "www.zivobusiness.com/*"
+zone_name = "zivobusiness.com"
+
+[[routes]]
+pattern = "zivodriver.com/*"
+zone_name = "zivodriver.com"
+
+[[routes]]
+pattern = "www.zivodriver.com/*"
+zone_name = "zivodriver.com"
+
+[[routes]]
+pattern = "zivoemployee.com/*"
+zone_name = "zivoemployee.com"
+
+[[routes]]
+pattern = "www.zivoemployee.com/*"
+zone_name = "zivoemployee.com"
+
 # When the built Vite app is deployed to Cloudflare Workers, unknown routes
 # are served from index.html so React Router deep links work.
 [assets]
