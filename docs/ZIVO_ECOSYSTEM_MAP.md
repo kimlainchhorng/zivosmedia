@@ -1,99 +1,35 @@
 # ZIVO Ecosystem Map
 
-Status: Draft for owner review
-Date: 2026-06-07
-Owner: ZIVO LLC
+ZIVO LLC operates a connected product ecosystem with Zivosmedia as the all-in-one platform, central identity hub, and central payment hub.
 
-## Purpose
+## Core Rule
 
-This document maps the full ZIVO LLC ecosystem before implementation. It is the first source of truth for how Zivosmedia, Zivo Admin, ZivoChat, Zivo Travel, Zivo Driver, ZivoSoftware, Zivo Business, Zivo Employees, and ZivoPay / Zivosmedia Payments should connect.
+Zivosmedia is the source of truth for shared identity and shared payment records. Product apps can own local workflow records, but cross-platform identity and payment references must resolve back to Zivosmedia.
 
-No production DNS, secrets, database schema, auth settings, or deployment settings should be changed from this document alone.
+## Platforms
 
-## Platform Roles
+| Platform | Primary role | Domain |
+| --- | --- | --- |
+| Zivosmedia | All-in-one platform, identity hub, payment hub | zivosmedia.com |
+| Zivo Business | Business profiles, billing owner, business operations | zivobusiness.com |
+| Zivo Driver | Driver jobs, earnings, payouts | zivodriver.com |
+| Zivo Employee | Employee/staff workflows | zivoemployee.com |
+| ZivoChat | Shared communication layer | zivoschat.com |
+| ZivoSoftware | Business software products and subscriptions | zivosoftware.com |
+| Zivo Travel | Travel search, booking, checkout, support | zivostravel.com |
+| Zivo Admin | Control center for all platforms | zivoadmin.com |
 
-| Platform | Role | Current owner/source of truth | Notes |
-| --- | --- | --- | --- |
-| Zivosmedia | Main all-in-one platform, central identity hub, central payment hub | `kimlainchhorng/zivosmedia`; `zivosmedia.com` | Canonical `zivosmedia_user_id`, central login, payments/wallet entry point, app switcher. |
-| Zivo Admin | Staff-only control center | `kimlainchhorng/Zivo-Admin`; `zivoadmin.com` | Platform registry, health, users, bookings, driver jobs, business/software, chat, payments, audit. |
-| ZivosChat | Shared communication layer | `kimlainchhorng/ZIVO-CHAT`; `zivoschat.com` | Cross-app chat threads tied to app keys, users, and related records. |
-| Zivo Travel | Travel booking platform | `kimlainchhorng/zivostravel`; `zivostravel.com` | Flights, hotels, cars, buses, booking support, travel checkout handoff. |
-| Zivo Driver | Driver platform | `kimlainchhorng/zivodriver`; `zivodriver.com` | Driver onboarding, driver jobs, status, payouts, customer pickup/delivery work. |
-| ZivoSoftware | Business software platform | `kimlainchhorng/zivosoftware`; `zivosoftware.com` | Business software products, subscriptions, tenant/category/compliance operations. |
-| Zivo Business | Business ownership layer | Repo needs confirmation/creation; `zivobusiness.com` | Business profiles, billing ownership, software activation, employee ownership. |
-| Zivo Employee | Employee/staff layer | Repo needs confirmation/creation; `zivoemployee.com` | Employee profiles, schedules, staff permissions, business/admin workflows. |
-| ZivoPay / Zivosmedia Payments | Shared payment system | Zivosmedia central payment hub | Stripe first, then PayPal and Square provider adapters; payments, subscriptions, invoices, refunds, disputes, driver/business payouts. |
+## Shared IDs
 
-## High-Level Connections
+Use `zivosmedia_user_id` as the standard cross-platform user identifier. Local apps may keep `local_user_id`, `driver_id`, `business_id`, `employee_id`, or customer IDs, but those records should map back to `zivosmedia_user_id` when user-owned.
 
-```mermaid
-flowchart TD
-  ZM["Zivosmedia\nIdentity hub + all-in-one platform"]
-  ZA["Zivo Admin\nControl center"]
-  CHAT["ZivoChat\nShared communication"]
-  TRAVEL["Zivo Travel\nBookings"]
-  DRIVER["Zivo Driver\nDriver jobs"]
-  SOFTWARE["ZivoSoftware\nSoftware products"]
-  BUSINESS["Zivo Business\nBusiness profiles"]
-  EMP["Zivo Employees\nStaff/employee layer"]
-  PAY["ZivoPay / Zivosmedia Payments\nPayments + billing"]
+## Shared Layers
 
-  ZM --> ZA
-  ZA --> ZM
-  ZM --> CHAT
-  CHAT --> ZM
-  ZM --> PAY
-  PAY --> ZM
+- Identity: Zivosmedia auth, account linking, Continue with Zivosmedia, auth audit logs.
+- Payments: ZivoPay/Zivosmedia Payments, provider adapters, payment audit logs.
+- Chat: ZivoChat shared thread model with platform context and related IDs.
+- Admin: Zivo Admin registry, health, dashboards, audit, support, refunds, payouts.
 
-  TRAVEL --> DRIVER
-  DRIVER --> TRAVEL
-  TRAVEL --> CHAT
-  DRIVER --> CHAT
-  TRAVEL --> PAY
-  DRIVER --> PAY
+## Current Implementation Posture
 
-  BUSINESS --> SOFTWARE
-  SOFTWARE --> BUSINESS
-  BUSINESS --> EMP
-  EMP --> BUSINESS
-  EMP --> ZA
-  SOFTWARE --> PAY
-  BUSINESS --> PAY
-  SOFTWARE --> CHAT
-  BUSINESS --> CHAT
-
-  ZA --> TRAVEL
-  ZA --> DRIVER
-  ZA --> SOFTWARE
-  ZA --> BUSINESS
-  ZA --> EMP
-  ZA --> CHAT
-  ZA --> PAY
-```
-
-## Identity Rule
-
-Every important user record should be linkable to `zivosmedia_user_id`.
-
-Apps may keep local users and app-specific profiles, but each app must support:
-
-- Continue with Zivosmedia.
-- Server-side auth code/token exchange.
-- Local profile linking.
-- User update/disabled webhooks from Zivosmedia.
-- Audit logs for auth and linking events.
-
-## Payment Rule
-
-All payment records should be traceable to:
-
-- `zivosmedia_user_id`
-- `source_platform`
-- source record ID, such as booking, driver job, business, software subscription, invoice, or chat ticket
-- payment provider object ID, such as Stripe checkout session, payment intent, invoice, refund, dispute, or transfer
-
-ZivoPay is the shared Zivosmedia Payments layer. It should use one common payment abstraction with provider adapters, not separate payment logic in each app.
-
-## Admin Rule
-
-Zivo Admin is the visibility and control layer. It should read or act through server-side APIs only. It must not expose service-role keys, Stripe secrets, Cloudflare tokens, or private database joins to browser code.
+This document is a planning inventory only. It does not create runtime behavior, database tables, migrations, routes, secrets, or payment processing.
