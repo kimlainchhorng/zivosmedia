@@ -44,6 +44,8 @@ function ZivoTravelHotelGate({ children }) {
 ```
 …plus a "Search" → "Search hotels" copy tweak in `HotelsLandingPage.tsx`, and before/after screenshots. The gate wraps all hotel routes (`/hotels`, `/hotels/:city`, `/hotel/:storeId`, `/hotels-list`), so the fix corrects every hotel surface, not just `/hotels`. **This is a clean, minimal, correct fix — it just hasn't been merged/deployed.**
 
+**Visually verified (2026-06-08):** extracted and viewed the fix branch's own after-screenshots (`docs/ui-audit-screenshots/hotels-fix/hotels-desktop-1440.png`, `hotels-mobile-iphone13.png`). Both render a proper **"Find your perfect stay — Hotels & Resorts"** landing — hotel/city search, Near-me/Beachfront/Pool/Breakfast filters, popular destinations (Phnom Penh, Siem Reap, Sihanoukville), featured properties with prices, and the "Search hotels" CTA. No "Rides available in Cambodia" gate; no mobile overflow. The merge is de-risked — review + merge + deploy.
+
 ### `/travel/checkout` — already fixed in HEAD
 `git show HEAD:src/App.tsx` line 2009:
 ```tsx
