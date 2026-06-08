@@ -8,7 +8,6 @@
  * generic super-app feed. Mirrors the host-landing pattern of ZivoDriverHome.
  */
 
-import { useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import {
@@ -25,8 +24,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { goCrossDomain } from "@/lib/crossDomainSSO";
-import { ZIVO_MEDIA_ORIGIN } from "@/config/autoRepairDomain";
+import ContinueWithZivosmediaButton from "@/components/cross-app/ContinueWithZivosmediaButton";
 import { ZIVO_CHAT_ORIGIN } from "@/config/zivoChatDomain";
 
 const steps = [
@@ -71,10 +69,6 @@ const features = [
 ];
 
 export default function ZivoBusinessHome() {
-  const continueWithZivosmedia = useCallback(() => {
-    void goCrossDomain(ZIVO_MEDIA_ORIGIN, "/");
-  }, []);
-
   return (
     <>
       <Helmet>
@@ -136,13 +130,7 @@ export default function ZivoBusinessHome() {
                     Create your business <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={continueWithZivosmedia}
-                  className="h-14 rounded-full border-zinc-300 px-8 text-lg font-bold"
-                >
-                  Continue with Zivosmedia
-                </Button>
+                <ContinueWithZivosmediaButton className="h-14 rounded-full border-zinc-300 px-8 text-lg font-bold" />
               </div>
               <p className="mt-4 text-sm font-semibold text-zinc-500">
                 Already use ZIVO? Your Zivosmedia account works here — no new sign-up needed.
