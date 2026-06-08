@@ -1234,9 +1234,13 @@ function isCurrentZivoTravelHost() {
   return typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
 }
 
+// Hotels/resorts is a travel product, not the Cambodia-only rides product.
+// Previously this gate wrapped hotel routes in <CambodiaOnlyGate> on non-travel
+// hosts, which rendered the "Rides available in Cambodia" screen instead of hotel
+// content (UI audit P0). Hotel routes now always render their hotel content;
+// CambodiaOnlyGate stays reserved for ride/drive routes.
 function ZivoTravelHotelGate({ children }: { children: ReactNode }) {
-  if (isCurrentZivoTravelHost()) return <>{children}</>;
-  return <CambodiaOnlyGate>{children}</CambodiaOnlyGate>;
+  return <>{children}</>;
 }
 
 function RouteAwareGlobalUI() {
