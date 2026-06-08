@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { withRedirectParam } from "@/lib/authRedirect";
-import { ChevronDown, ArrowRight, X, Car, Globe } from "lucide-react";
+import { ChevronDown, ArrowRight, X, Car, Globe, LayoutGrid, ArrowUpRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { megaMenuData, moreServicesData } from "./megaMenuData";
 import type { MegaMenuData } from "./megaMenuData";
 import ZivoLogo from "@/components/ZivoLogo";
 import CurrencySelector from "@/components/shared/CurrencySelector";
+import { ZIVO_APPS, getCurrentZivoApp } from "@/config/zivoApps";
+import ZivoChatSupportButton from "@/components/cross-app/ZivoChatSupportButton";
 
 interface MobileNavMenuProps {
   isOpen: boolean;
@@ -122,6 +124,7 @@ const MobileNavSection = ({
 const MobileNavMenu = ({ isOpen, onClose, user, signOut }: MobileNavMenuProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const currentZivoApp = getCurrentZivoApp();
 
   const handleNavigate = (href: string) => {
     navigate(href);
@@ -157,6 +160,49 @@ const MobileNavMenu = ({ isOpen, onClose, user, signOut }: MobileNavMenuProps) =
 
             {/* More Services */}
             <MobileNavSection data={moreServicesData} onNavigate={handleNavigate} />
+
+            {/* ZIVO apps — switch across the network (one shared identity) */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4" /> ZIVO apps
+              </h4>
+              <div className="space-y-1">
+                {ZIVO_APPS.map((app) =>
+                  currentZivoApp?.key === app.key ? (
+                    <div
+                      key={app.key}
+                      aria-current="page"
+                      className="w-full flex items-center gap-3 p-2 rounded-lg bg-primary/10 ring-1 ring-primary/20"
+                    >
+                      <span className="flex-1 text-sm font-medium text-foreground">{app.name}</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                        <Check className="w-3.5 h-3.5" /> Current
+                      </span>
+                    </div>
+                  ) : (
+                    <a
+                      key={app.key}
+                      href={app.origin}
+                      onClick={onClose}
+                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="flex-1 text-sm text-foreground">{app.name}</span>
+                      <ArrowUpRight className="w-4 h-4 text-muted-foreground/70" />
+                    </a>
+                  ),
+                )}
+              </div>
+              <div className="mt-2">
+                <ZivoChatSupportButton
+                  path="/"
+                  variant="outline"
+                  className="w-full justify-center gap-2"
+                  onClick={onClose}
+                >
+                  Support on ZivoChat
+                </ZivoChatSupportButton>
+              </div>
+            </div>
 
             {/* User Section */}
             {user && (
