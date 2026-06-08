@@ -77,11 +77,17 @@ serve(async (req: Request) => {
     const sigBody = await hmacSha256Hex(webhookSecret, rawBody);
     const sigV2 = await hmacSha256Hex(webhookSecret, `${ts}.${rawBody}`);
 
+    // Receivers are event-specific (e.g. driver edge fn ".../zivosmedia-user-disabled",
+    // travel worker ".../webhooks/zivosmedia/user-disabled"). Register webhook_url with an
+    // "{event}" placeholder so it resolves to the right per-event endpoint; if absent, POST
+    // as-is (single endpoint that branches on payload.event_type).
+    const targetUrl = (app.webhook_url as string).replace("{event}", eventType.replace(/_/g, "-"));
+
     let ok = false;
     let status: number | undefined;
     let errorMessage: string | null = null;
     try {
-      const res = await fetch(app.webhook_url as string, {
+      const res = await fetch(targetUrl, {
         method: "POST",
         headers: {
           "content-type": "application/json",
