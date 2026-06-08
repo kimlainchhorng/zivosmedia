@@ -13,6 +13,7 @@ import {
   ChevronRight,
   ClipboardList,
   CreditCard,
+  Headphones,
   LayoutDashboard,
   LockKeyhole,
   MessageCircle,
@@ -24,7 +25,17 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { STORE_CATEGORY_OPTIONS } from "@/config/groceryStores";
+import { goCrossDomain } from "@/lib/crossDomainSSO";
+import { ZIVO_MEDIA_ORIGIN } from "@/config/autoRepairDomain";
+import { ZIVO_CHAT_ORIGIN } from "@/config/zivoChatDomain";
 import bgOffice from "@/assets/bg-office.jpg";
+
+// Carry the active session back to the Zivosmedia identity hub. Software signs in
+// against its own Supabase project but shares the Zivosmedia account; this is the
+// branded cross-app entry the live audit flagged as missing on every domain.
+function continueWithZivosmedia() {
+  void goCrossDomain(ZIVO_MEDIA_ORIGIN, "/business");
+}
 
 const allowedGroups = ["Software"];
 
@@ -121,6 +132,13 @@ function BusinessHeader() {
       <div className="mx-auto flex h-[138px] w-full max-w-[1400px] items-center gap-6 px-10">
         <ZivoSoftwareLogo />
         <div className="ml-auto flex items-center gap-3">
+          <Button
+            variant="ghost"
+            onClick={continueWithZivosmedia}
+            className="hidden h-14 rounded-full px-7 text-[22px] font-bold lg:inline-flex"
+          >
+            Continue with Zivosmedia
+          </Button>
           <Button asChild variant="ghost" className="hidden h-14 rounded-full px-7 text-[22px] font-bold sm:inline-flex">
             <Link to={authPath("/login")}>Log in</Link>
           </Button>
@@ -343,6 +361,33 @@ export default function BusinessLandingPage() {
             </div>
           </section>
         </main>
+
+        <footer className="border-t border-zinc-200 bg-white">
+          <div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-12 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-600">One ZIVO identity</p>
+              <h2 className="mt-2 text-2xl font-black">Already on ZIVO? Keep your account.</h2>
+              <p className="mt-2 max-w-xl text-sm font-medium text-zinc-600">
+                Zivo Software uses your Zivosmedia identity. Continue with Zivosmedia, or reach support in ZivoChat.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={continueWithZivosmedia} className="h-12 rounded-full bg-zinc-950 px-7 font-bold text-white hover:bg-zinc-800">
+                Continue with Zivosmedia
+              </Button>
+              <Button asChild variant="outline" className="h-12 rounded-full border-zinc-300 px-7 font-bold">
+                <Link to="/support">
+                  <Headphones className="mr-2 h-5 w-5" /> Get support
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-12 rounded-full border-zinc-300 px-7 font-bold">
+                <a href={ZIVO_CHAT_ORIGIN} target="_blank" rel="noreferrer">
+                  <MessageCircle className="mr-2 h-5 w-5" /> Chat on ZivoChat
+                </a>
+              </Button>
+            </div>
+          </div>
+        </footer>
       </div>
     </>
   );

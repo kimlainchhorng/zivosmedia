@@ -1,26 +1,30 @@
 {
-  "generated": "2026-06-01T12:45:18.786Z",
+  "generated": "2026-06-08T16:40:19.057Z",
   "sourceCoverage": "docs/workflow-coverage.json",
   "currentGate": {
-    "mode": "strict",
+    "mode": "soft",
     "readyForProductionGate": false,
     "remoteMigrationHistoryStatus": "access_token_missing",
     "productionBlockers": [
-      "Environment readiness has 3 critical finding(s).",
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
       "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
-      "API readiness has 1 warning(s).",
-      "Supabase remote migration history is unavailable (access_token_missing)."
+      "API readiness has 19 warning(s).",
+      "Database readiness has 1 blocker(s).",
+      "Database readiness has 1 warning(s).",
+      "Supabase remote migration history is unavailable (access_token_missing).",
+      "Supabase migrations have 6 unresolved duplicate version(s)."
     ]
   },
   "productionBlockers": [
-    "Environment readiness has 3 critical finding(s).",
     "Missing SUPABASE_URL for production backend cron/runtime settings.",
     "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
     "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
-    "API readiness has 1 warning(s).",
-    "Supabase remote migration history is unavailable (access_token_missing)."
+    "API readiness has 19 warning(s).",
+    "Database readiness has 1 blocker(s).",
+    "Database readiness has 1 warning(s).",
+    "Supabase remote migration history is unavailable (access_token_missing).",
+    "Supabase migrations have 6 unresolved duplicate version(s)."
   ],
   "verificationCommands": [
     "npm run platform:audit",
@@ -34,7 +38,7 @@
       "id": "sso-auth-sessions",
       "label": "SSO, Auth, Sessions, Devices",
       "status": "covered",
-      "testCoverageRatio": 0.039,
+      "testCoverageRatio": 0.0435,
       "target": "tests/e2e/sso-session-roles.spec.ts, tests/e2e/auth-sso-role-matrix.spec.ts",
       "command": "npm run test:e2e -- tests/e2e/sso-session-roles.spec.ts tests/e2e/auth-sso-role-matrix.spec.ts",
       "acceptance": [
@@ -48,7 +52,7 @@
       "id": "customer-booking-order",
       "label": "Customer Booking, Order, Trip",
       "status": "covered",
-      "testCoverageRatio": 0.0258,
+      "testCoverageRatio": 0.0266,
       "target": "src/test/workflows/customer-booking-order.test.ts",
       "command": "npm run test -- src/test/workflows/customer-booking-order.test.ts",
       "acceptance": [
@@ -62,7 +66,7 @@
       "id": "shop-owner-admin",
       "label": "Shop Owner Setup and Operations",
       "status": "covered",
-      "testCoverageRatio": 0.0375,
+      "testCoverageRatio": 0.0413,
       "target": "src/test/workflows/shop-owner-workflow.test.ts",
       "command": "npm run test -- src/test/workflows/shop-owner-workflow.test.ts",
       "acceptance": [
@@ -76,7 +80,7 @@
       "id": "client-staff-workflows",
       "label": "Client, Staff, Employee Workflows",
       "status": "covered",
-      "testCoverageRatio": 0.0229,
+      "testCoverageRatio": 0.0256,
       "target": "src/test/workflows/client-staff-workflow.test.ts",
       "command": "npm run test -- src/test/workflows/client-staff-workflow.test.ts",
       "acceptance": [
@@ -90,7 +94,7 @@
       "id": "payments-refunds",
       "label": "Payments, Refunds, Webhooks",
       "status": "covered",
-      "testCoverageRatio": 0.0322,
+      "testCoverageRatio": 0.0351,
       "target": "src/test/workflows/payments-refunds-webhooks.test.ts",
       "command": "npm run test -- src/test/workflows/payments-refunds-webhooks.test.ts",
       "acceptance": [
@@ -104,7 +108,7 @@
       "id": "payouts-earnings",
       "label": "Payouts, Earnings, Balances",
       "status": "covered",
-      "testCoverageRatio": 0.0498,
+      "testCoverageRatio": 0.0502,
       "target": "src/test/workflows/payouts-earnings-workflow.test.ts",
       "command": "npm run test -- src/test/workflows/payouts-earnings-workflow.test.ts",
       "acceptance": [
@@ -118,7 +122,7 @@
       "id": "email-marketing-consent",
       "label": "Email Marketing, Consent, Suppression",
       "status": "covered",
-      "testCoverageRatio": 0.0642,
+      "testCoverageRatio": 0.0633,
       "target": "src/test/workflows/email-marketing-consent.test.ts",
       "command": "npm run test -- src/test/workflows/email-marketing-consent.test.ts",
       "acceptance": [
@@ -132,7 +136,7 @@
       "id": "ads-monetization-tracking",
       "label": "Ads, Monetization, Conversion Tracking",
       "status": "covered",
-      "testCoverageRatio": 0.0347,
+      "testCoverageRatio": 0.0372,
       "target": "src/test/workflows/ads-monetization-tracking.test.ts",
       "command": "npm run test -- src/test/workflows/ads-monetization-tracking.test.ts",
       "acceptance": [
@@ -146,7 +150,7 @@
       "id": "push-notifications",
       "label": "Push Notifications and Notification Center",
       "status": "covered",
-      "testCoverageRatio": 0.0338,
+      "testCoverageRatio": 0.0377,
       "target": "src/test/workflows/push-notifications-workflow.test.ts",
       "command": "npm run test -- src/test/workflows/push-notifications-workflow.test.ts",
       "acceptance": [
@@ -160,7 +164,7 @@
       "id": "storage-media-cdn",
       "label": "Storage, Media, CDN, Downloads",
       "status": "covered",
-      "testCoverageRatio": 0.0509,
+      "testCoverageRatio": 0.0542,
       "target": "src/test/fileUploadSecurity.test.ts, src/test/workflows/storage-media-workflow.test.ts",
       "command": "npm run platform:test:storage-media",
       "acceptance": [
@@ -175,7 +179,7 @@
       "id": "policy-legal-trust",
       "label": "Law, Policy, Compliance, Trust",
       "status": "covered",
-      "testCoverageRatio": 0.0502,
+      "testCoverageRatio": 0.0495,
       "target": "src/test/workflows/legal-policy-workflow.test.ts",
       "command": "npm run test -- src/test/workflows/legal-policy-workflow.test.ts",
       "acceptance": [
@@ -189,7 +193,7 @@
       "id": "api-speed-ops",
       "label": "API, Server Speed, Observability",
       "status": "covered",
-      "testCoverageRatio": 0.0288,
+      "testCoverageRatio": 0.0317,
       "target": "src/test/workflows/api-operations-readiness.test.ts",
       "command": "npm run test -- src/test/workflows/api-operations-readiness.test.ts",
       "acceptance": [
@@ -203,7 +207,7 @@
       "id": "security-anti-hack",
       "label": "Security, Anti-Abuse, Hacker Protection",
       "status": "covered",
-      "testCoverageRatio": 0.0444,
+      "testCoverageRatio": 0.0459,
       "target": "src/test/workflows/security-anti-abuse.test.ts",
       "command": "npm run test -- src/test/workflows/security-anti-abuse.test.ts",
       "acceptance": [
@@ -217,7 +221,7 @@
       "id": "graphics-design-speed",
       "label": "Graphics, Design, Frontend Speed",
       "status": "covered",
-      "testCoverageRatio": 0.0224,
+      "testCoverageRatio": 0.0238,
       "target": "tests/visual/workflow-visual-readiness.spec.ts, tests/visual/safe-area.spec.ts, tests/e2e/mobile-layout-no-overlap.spec.ts, src/test/loadingErrorStates.test.tsx",
       "command": "npm run qa:frontend-visual-contracts && npm run test:visual && npm run qa:safe-area:all && npm run test -- src/test/loadingErrorStates.test.tsx",
       "acceptance": [
@@ -232,7 +236,7 @@
       "id": "native-mobile-release",
       "label": "Native iOS, Android, OTA, Store Release",
       "status": "covered",
-      "testCoverageRatio": 0.028,
+      "testCoverageRatio": 0.0285,
       "target": "src/test/workflows/native-app-release.test.ts, src/test/otaDeployBypass.test.ts",
       "command": "npm run test -- src/test/workflows/native-app-release.test.ts src/test/otaDeployBypass.test.ts",
       "acceptance": [
