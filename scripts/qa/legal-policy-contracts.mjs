@@ -1012,10 +1012,19 @@ const contracts = [
       requireContains(this.id, html, "function readCookiePrefs()", htmlPath);
       requireContains(this.id, html, "var analyticsAllowed=prefs.analytics===true", htmlPath);
       requireContains(this.id, html, "var marketingAllowed=prefs.marketing===true", htmlPath);
-      requireContains(this.id, html, "if(analyticsAllowed)", htmlPath);
+      // Hard consent gate: nothing loads without analytics or marketing consent.
+      requireContains(this.id, html, "if(!analyticsAllowed&&!marketingAllowed)return;", htmlPath);
+      // GA/Ads ids are read from meta tags (injected at deploy), not hardcoded, and each
+      // gtag config call is gated on its matching consent category.
+      requireContains(this.id, html, "metaContent('zivo-google-analytics-id')", htmlPath);
+      requireContains(this.id, html, "metaContent('zivo-google-ads-id')", htmlPath);
+      requireContains(this.id, html, "if(analyticsAllowed&&gaId){", htmlPath);
+      requireContains(this.id, html, "gtag('config',gaId", htmlPath);
+      requireContains(this.id, html, "if(marketingAllowed&&googleAdsId){", htmlPath);
+      requireContains(this.id, html, "gtag('config',googleAdsId", htmlPath);
       requireContains(this.id, html, "if(marketingAllowed)", htmlPath);
-      requireContains(this.id, html, "gtag('config','G-VVH8W5PW3E'", htmlPath);
-      requireContains(this.id, html, "gtag('config','AW-18077605056')", htmlPath);
+      // Tracking ids must not be hardcoded in source (deploy-time meta injection only).
+      requireNotMatch(this.id, html, /gtag\('config','(G-|AW-)/, htmlPath);
       requireContains(this.id, html, "https://connect.facebook.net/en_US/fbevents.js", htmlPath);
       requireContains(this.id, html, "https://analytics.tiktok.com/i18n/pixel/events.js", htmlPath);
 
