@@ -3,6 +3,7 @@
  * /business
  */
 
+import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import {
@@ -16,18 +17,25 @@ import {
   Headphones,
   LayoutDashboard,
   LockKeyhole,
+  Mail,
   MessageCircle,
   PackageCheck,
   Plus,
+  Send,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { STORE_CATEGORY_OPTIONS } from "@/config/groceryStores";
 import { goCrossDomain } from "@/lib/crossDomainSSO";
 import { ZIVO_MEDIA_ORIGIN } from "@/config/autoRepairDomain";
 import { ZIVO_CHAT_ORIGIN } from "@/config/zivoChatDomain";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import bgOffice from "@/assets/bg-office.jpg";
 
 // Carry the active session back to the Zivosmedia identity hub. Software signs in
@@ -152,6 +160,41 @@ function BusinessHeader() {
 }
 
 export default function BusinessLandingPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Business lead capture. Routes through the shared, server-gated
+  // marketing-interest-submit edge function (no direct table writes from the
+  // client) — same trusted intake path the other business pages use.
+  const handleInquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const form = e.target as HTMLFormElement;
+    const data = new FormData(form);
+    const email = String(data.get("email") || "");
+    const company = String(data.get("company") || "");
+    const message = `Name: ${data.get("name") || ""}\nMessage: ${data.get("message") || ""}`;
+    try {
+      const { error } = await supabase.functions.invoke("marketing-interest-submit", {
+        body: {
+          category: "business_inquiry",
+          subject: "ZIVO Software business inquiry",
+          email,
+          company,
+          message,
+          context: "business_landing",
+          user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        },
+      });
+      if (error) throw error;
+      toast.success("Thanks! The ZIVO Software team will be in touch soon.");
+      form.reset();
+    } catch {
+      toast.error("Failed to submit. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -358,6 +401,73 @@ export default function BusinessLandingPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </section>
+          <section id="contact" className="border-t border-zinc-200 bg-[#fbfbfc] py-20">
+            <div className="mx-auto grid max-w-[1280px] gap-10 px-6 lg:grid-cols-[0.9fr_1.1fr]">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.24em] text-emerald-600">Talk to us</p>
+                <h2 className="mt-3 text-4xl font-black tracking-normal">Bring ZIVO Software to your business</h2>
+                <p className="mt-5 max-w-xl text-lg font-medium leading-8 text-zinc-600">
+                  Tell us about your business and what you want to run on ZIVO Software. The team will
+                  reach out to help you set up the right workspace.
+                </p>
+                <div className="mt-8 flex items-center gap-3 text-zinc-600">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-zinc-950 text-white">
+                    <Mail className="h-5 w-5" />
+                  </span>
+                  <span className="font-bold">We reply to every business inquiry.</span>
+                </div>
+              </div>
+
+              <form
+                onSubmit={handleInquiry}
+                className="rounded-[30px] border border-zinc-200 bg-white p-6 shadow-sm sm:p-8"
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="biz-name">Your name</Label>
+                    <Input id="biz-name" name="name" placeholder="Jane Owner" required className="mt-1.5" />
+                  </div>
+                  <div>
+                    <Label htmlFor="biz-company">Business name</Label>
+                    <Input id="biz-company" name="company" placeholder="Acme Co." required className="mt-1.5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="biz-email">Work email</Label>
+                  <Input id="biz-email" name="email" type="email" placeholder="jane@acme.com" required className="mt-1.5" />
+                </div>
+                <div className="mt-4">
+                  <Label htmlFor="biz-message">What do you want to run on ZIVO Software? (optional)</Label>
+                  <Textarea
+                    id="biz-message"
+                    name="message"
+                    rows={4}
+                    placeholder="Bookings, invoices, staff, reports…"
+                    className="mt-1.5"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="mt-6 h-12 w-full rounded-full bg-zinc-950 text-base font-bold text-white hover:bg-zinc-800"
+                >
+                  {isSubmitting ? (
+                    "Sending…"
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-5 w-5" /> Send business inquiry
+                    </>
+                  )}
+                </Button>
+                <p className="mt-4 text-center text-xs font-medium text-zinc-500">
+                  We'll only contact you about ZIVO Software. No spam. See our{" "}
+                  <Link to="/legal/privacy" className="underline underline-offset-2">Privacy Policy</Link>{" "}
+                  and{" "}
+                  <Link to="/legal/terms" className="underline underline-offset-2">Terms</Link>.
+                </p>
+              </form>
             </div>
           </section>
         </main>
