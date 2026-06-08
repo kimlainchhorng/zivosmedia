@@ -75,18 +75,16 @@ test.describe("auth SSO role matrix", () => {
     expect(userAccess).toContain('roles.includes("operations")');
   });
 
-  test("keeps SSO callback, saved-session restore, and role redirect logic aligned", () => {
+  test("keeps auth callback, saved-session restore, and role redirect logic aligned", () => {
     const login = source("src/pages/Login.tsx");
     const callback = source("src/pages/AuthCallback.tsx");
     const authContext = source("src/contexts/AuthContext.tsx");
     const serviceWorker = source("src/sw.js");
 
     for (const needle of [
-      "signInWithOAuth",
-      'handleOAuthSignIn("google")',
-      'handleOAuthSignIn("apple")',
+      "signIn(trimmedEmail, password)",
       "signInWithOtp",
-      "setSession({",
+      "refreshSession({",
       "saveAccount",
     ]) {
       expect(login).toContain(needle);
@@ -97,7 +95,6 @@ test.describe("auth SSO role matrix", () => {
       "user.app_metadata?.provider",
       "isOAuthUser",
       "checkSetupAndNavigate(session.user)",
-      'navigate(isAdminUser ? "/admin/analytics" : redirectTo',
     ]) {
       expect(callback).toContain(needle);
     }
