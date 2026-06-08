@@ -426,30 +426,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Deferred non-critical third-party tracker (idle, web only, flight-related routes only) -->
-    <script>
-      (function () {
-        if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return;
-        // Only load on flight-related routes where the partner script is relevant.
-        // Excluded from "/" to keep the home screen lighter and smoother.
-        var path = location.pathname || '';
-        var isFlightRoute = path.indexOf('/flight') === 0 || path.indexOf('/hotel') === 0 || path.indexOf('/car') === 0;
-        if (!isFlightRoute) return;
-        function load(){
-          var script = document.createElement("script");
-          script.async = 1;
-          script.src = 'https://emrld.ltd/NDkzNzQ1.js?t=493745';
-          script.onerror = function () {};
-          document.head.appendChild(script);
-        }
-        function schedule(){
-          if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 10000 });
-          else setTimeout(load, 6000);
-        }
-        if (document.readyState === 'complete') setTimeout(schedule, 2000);
-        else window.addEventListener('load', function(){ setTimeout(schedule, 2000); }, { once: true });
-      })();
-    </script>
   </body>
 </html>

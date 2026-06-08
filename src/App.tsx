@@ -124,6 +124,7 @@ import {
   AUTO_REPAIR_SOFTWARE_PATH,
   AUTO_REPAIR_STORE_ID,
   isAutoRepairSoftwareHost,
+  isZivoMediaHost,
   isZivoSoftwareDashboardPath,
   ZIVO_SOFTWARE_HOME_PATH,
 } from "@/config/autoRepairDomain";
@@ -137,6 +138,21 @@ import {
   isZivoTravelPath,
   ZIVO_TRAVEL_HOME_PATH,
 } from "@/config/zivoTravelDomain";
+import {
+  isZivoDriverHost,
+  isZivoDriverPath,
+  ZIVO_DRIVER_HOME_PATH,
+} from "@/config/zivoDriverDomain";
+import {
+  isZivoBusinessHost,
+  isZivoBusinessPath,
+  ZIVO_BUSINESS_HOME_PATH,
+} from "@/config/zivoBusinessDomain";
+import {
+  isZivoEmployeeHost,
+  isZivoEmployeePath,
+  ZIVO_EMPLOYEE_HOME_PATH,
+} from "@/config/zivoEmployeeDomain";
 import { ZivoTravel3DProvider } from "@/components/zivo-travel/ZivoTravel3DProvider";
 
 // Auth pages — lazy loaded (not always the entry point)
@@ -155,6 +171,9 @@ const InspectionViewPage = lazy(() => lazyRetry(() => import("./pages/Inspection
 
 const Index = lazy(() => lazyRetry(() => import("./pages/Index")));
 const ZivoTravelHome = lazy(() => import("./pages/ZivoTravelHome"));
+const ZivoDriverHome = lazy(() => import("./pages/ZivoDriverHome"));
+const ZivoBusinessHome = lazy(() => import("./pages/ZivoBusinessHome"));
+const ZivoEmployeeHome = lazy(() => import("./pages/ZivoEmployeeHome"));
 const AdminDriverModerationPage = lazy(() => import("./pages/admin/AdminDriverModerationPage"));
 const AdminTripHeatmapPage = lazy(() => import("./pages/admin/AdminTripHeatmapPage"));
 const AdminRefundsPage = lazy(() => import("./pages/admin/AdminRefundsPage"));
@@ -1234,8 +1253,28 @@ function isCurrentZivoTravelHost() {
   return typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
 }
 
+function isCurrentZivoDriverHost() {
+  return typeof window !== "undefined" && isZivoDriverHost(window.location.hostname);
+}
+
+function isCurrentZivoBusinessHost() {
+  return typeof window !== "undefined" && isZivoBusinessHost(window.location.hostname);
+}
+
+function isCurrentZivoEmployeeHost() {
+  return typeof window !== "undefined" && isZivoEmployeeHost(window.location.hostname);
+}
+
+function isCurrentZivoMediaHost() {
+  return typeof window !== "undefined" && isZivoMediaHost(window.location.hostname);
+}
+
+// Hotels/lodging is a first-class service on both the Travel platform and the
+// ZIVO Media hub (it is listed under SERVICES in the media nav), so it must
+// render on either host. CambodiaOnlyGate is a rides-only restriction and must
+// NOT gate lodging — it is kept only as a fallback for unexpected hosts.
 function ZivoTravelHotelGate({ children }: { children: ReactNode }) {
-  if (isCurrentZivoTravelHost()) return <>{children}</>;
+  if (isCurrentZivoTravelHost() || isCurrentZivoMediaHost()) return <>{children}</>;
   return <CambodiaOnlyGate>{children}</CambodiaOnlyGate>;
 }
 
@@ -1546,6 +1585,48 @@ function ZivoTravelHostGate() {
   return <Navigate to={ZIVO_TRAVEL_HOME_PATH} replace />;
 }
 
+function ZivoDriverHostGate() {
+  const location = useLocation();
+
+  if (typeof window === "undefined" || !isZivoDriverHost(window.location.hostname)) {
+    return null;
+  }
+
+  if (isZivoDriverPath(location.pathname)) {
+    return null;
+  }
+
+  return <Navigate to={ZIVO_DRIVER_HOME_PATH} replace />;
+}
+
+function ZivoBusinessHostGate() {
+  const location = useLocation();
+
+  if (typeof window === "undefined" || !isZivoBusinessHost(window.location.hostname)) {
+    return null;
+  }
+
+  if (isZivoBusinessPath(location.pathname)) {
+    return null;
+  }
+
+  return <Navigate to={ZIVO_BUSINESS_HOME_PATH} replace />;
+}
+
+function ZivoEmployeeHostGate() {
+  const location = useLocation();
+
+  if (typeof window === "undefined" || !isZivoEmployeeHost(window.location.hostname)) {
+    return null;
+  }
+
+  if (isZivoEmployeePath(location.pathname)) {
+    return null;
+  }
+
+  return <Navigate to={ZIVO_EMPLOYEE_HOME_PATH} replace />;
+}
+
 const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
@@ -1572,6 +1653,9 @@ const App = () => (
                 <ZivoChatHostGate />
                 <ZivoSoftwareHostGate />
                 <ZivoTravelHostGate />
+                <ZivoDriverHostGate />
+                <ZivoBusinessHostGate />
+                <ZivoEmployeeHostGate />
                 <ZivoTravel3DProvider />
                 <RoutePerfTracker />
                 <NativeDeepLinkHandler />
@@ -1595,7 +1679,7 @@ const App = () => (
                       <UTMProvider>
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
-                            <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : <Index />} />
+                            <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : isCurrentZivoDriverHost() ? <ZivoDriverHome /> : isCurrentZivoBusinessHost() ? <ZivoBusinessHome /> : isCurrentZivoEmployeeHost() ? <ZivoEmployeeHome /> : <Index />} />
                             <Route path="/zivo-travel" element={<ZivoTravelHome />} />
                             
                             <Route path="/login" element={<Login />} />
