@@ -63,7 +63,7 @@ Date: 2026-06-06 · Owner decisions **LOCKED**.
 ## Guardrails
 - **Do NOT flip a domain's dedicated-backend routing until** its project has schema + data + the shared JWT secret (else: empty data + auth failures).
 - **Back up before every data move.** Prototype on a Supabase branch first.
-- **Payments:** recommend keeping payments **central on `slirph`** initially (per-project Stripe = split payouts/reconciliation). Decide explicitly before moving payment tables.
+- **Payments:** keep ZivoPay / Zivosmedia Payments **central on `slirph`** initially. Stripe is the default provider; use Checkout for one-time payments, Billing for subscriptions/invoices, and Connect only after the owner approves marketplace payouts. Per-domain apps create payment requests, but canonical payment customers, orders, transactions, subscriptions, invoices, refunds, payouts, webhook logs, and audit logs stay central.
 - `pk_live` Stripe key is wired — never run live payment tests casually.
 
 ## Code touch-points

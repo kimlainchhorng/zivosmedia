@@ -173,7 +173,7 @@ test.describe("mobile layout no-overlap contracts", () => {
 
     expect(feedPage + socialFeedPage).toContain('data-testid="feed-sticky-header"');
     expect(feedPage + socialFeedPage).toContain("zivo-pt-safe-sticky");
-    expect(feedPage).toContain("min-h-10 w-full px-2 py-2 rounded-full");
+    expect(feedPage).toContain("zivo-social-search h-10 w-full pl-8 pr-7 rounded-full");
     expect(mobileNav).toContain("pb-safe");
     expect(mobileNav).toContain("data-zivo-mobile-nav");
     expect(visualContracts).toContain("mobile-layout-no-overlap");

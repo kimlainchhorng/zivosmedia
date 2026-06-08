@@ -12,8 +12,9 @@ Supabase remains the main backend for database, auth, RLS, realtime, and existin
 
 ## Current deployment
 
-- Worker: `zivo-web`
-- Public URL: `https://zivo-web.myzivo.workers.dev`
+- Worker: `zivo`
+- Public URL: `https://zivo.myzivo.workers.dev`
+- Legacy allowed Worker URL: `https://zivo-web.myzivo.workers.dev`
 - Pages project: `zivo-preview`
 - Pages preview URL: `https://zivo-preview.pages.dev`
 - Custom preview domain: `https://preview.zivosmedia.com`
@@ -90,7 +91,7 @@ Run the local release gate, then deploy the Worker:
 npm run cloudflare:deploy
 ```
 
-The account has the workers.dev subdomain `myzivo.workers.dev`, so deploys publish at `https://zivo-web.myzivo.workers.dev`.
+The account has the workers.dev subdomain `myzivo.workers.dev`, so deploys publish at `https://zivo.myzivo.workers.dev`. The old `zivo-web` workers.dev origin remains in the allowed-origin list for compatibility while DNS and callers settle.
 
 Deploy the static preview app to Cloudflare Pages:
 

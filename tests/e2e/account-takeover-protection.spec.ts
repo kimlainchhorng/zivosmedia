@@ -32,7 +32,7 @@ test.describe("account takeover protection contract", () => {
 
     expect(login).toContain("refreshSession({");
     expect(login).toContain("Forgot password?");
-    expect(login).toContain("handleOAuthSignIn");
+    expect(login).toContain("supabase.auth.signInWithOtp");
     expectAll(authContext, [
       "auth_precheck_login",
       "auth_record_login_attempt",
@@ -80,7 +80,8 @@ test.describe("account takeover protection contract", () => {
     const sendOtp = source("supabase/functions/send-otp-email/index.ts");
     expect(sendOtp).toContain("recentCount && recentCount >= 5");
     expect(sendOtp).toContain("Too many verification requests");
-    expect(sendOtp).toContain("expires in <strong");
+    expect(sendOtp).toContain("The code expires in 10 minutes");
+    expect(sendOtp).toContain("Expires at <strong");
   });
 
   test("keeps session revocation, trusted-device cleanup, and security center controls visible", () => {

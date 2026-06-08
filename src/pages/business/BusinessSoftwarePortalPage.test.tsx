@@ -38,7 +38,8 @@ vi.mock("@/hooks/useOwnerStoreProfile", () => ({
   useOwnerStoreProfile: () => ownerStoreState,
 }));
 
-import BusinessSoftwarePortalPage, { resolveSoftwarePortalAccountDashboardPath } from "./BusinessSoftwarePortalPage";
+import BusinessSoftwarePortalPage from "./BusinessSoftwarePortalPage";
+import { resolveSoftwarePortalAccountDashboardPath } from "@/lib/business/softwarePortal";
 
 const renderPage = () =>
   render(

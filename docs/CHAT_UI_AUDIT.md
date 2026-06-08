@@ -1,6 +1,5 @@
 # Chat UI Audit
 
-<<<<<<< Updated upstream
 ## Screens Reviewed
 
 - Public domain: `zivoschat.com`.
@@ -23,20 +22,3 @@ ZivoChat exists as a visible surface, but the audit shows it should be positione
 ## Recommended Chat Fix
 
 After identity foundation, create a support thread intake pattern that pre-fills source platform and related IDs for payment, travel, driver, business, and software issues.
-=======
-Screens reviewed: `https://zivoschat.com`, `/chat`, `/support/new`.
-
-## Findings
-
-| Screen | Screenshot evidence | Status | First impression and consistency | Missing items | Recommended fix | Priority |
-| --- | --- | --- | --- | --- | --- | --- |
-| `https://zivoschat.com` | `docs/audits/screenshots/mobile/public-zivoschat-com--iphone-15-pro.png`, `docs/audits/screenshots/desktop/public-zivoschat-com--desktop-1440.png` | Login-gated. | Clear sign-in page, but not enough context about shared ZIVO identity or support/chat purpose. | `Continue with Zivosmedia`, app/thread context, support escalation explanation. | Add shared identity CTA and route-aware chat copy later. | P1 |
-| `/chat` | `docs/audits/screenshots/mobile/local-chat--iphone-15-pro.png`, `docs/audits/screenshots/desktop/local-chat--desktop-1440.png` | Login-gated. | Generic ZIVO sign-in loses chat context. | `Continue with Zivosmedia`, chat-specific auth gate. | Add chat route context in auth UI. | P1 |
-| `/support/new` | `docs/audits/screenshots/mobile/local-support-new--iphone-15-pro.png`, `docs/audits/screenshots/desktop/local-support-new--desktop-1440.png` | Loads support form. | Form is usable, but navigation mixes feed and travel. It is not visibly a ZivoChat support entry. | `ZivoChat support`, shared identity, app-context handoff, clearer support categories. | Convert support entry into a ZivoChat-aware support request path. | P1 |
-
-## Chat Top Fixes
-
-1. Add consistent `ZivoChat support` entry across Travel, Driver, Software, Business, Admin, and Zivosmedia.
-2. Add `Continue with Zivosmedia` to chat login/auth gates.
-3. Preserve source app and record context when users open support.
->>>>>>> Stashed changes

@@ -11,13 +11,11 @@ The GitHub connector returned 404 Not Found for:
 
 Owner should connect GitHub app access, verify spelling/capitalization, or create the repos.
 
-<<<<<<< Updated upstream
-## Supabase Projects
-=======
 - **Identity Path A/B (owner ruling 2026-06-07):** **all four apps are Path B** — build/keep the linking bridge (`linked_zivosmedia_users` + `auth_audit_logs` + server exchange) in Travel, Driver, Software; Chat short-circuits on the shared hub (no separate linked table). The ADR's D4 (Driver-only) is **overridden** — do **not** remove the Travel/Software bridges.
 
 Still open below.
->>>>>>> Stashed changes
+
+## Supabase Projects
 
 Need confirmation:
 
@@ -55,9 +53,6 @@ Need confirmation:
 
 ## Implementation Rule
 
-<<<<<<< Updated upstream
-Do not start PR 2 until owner approves.
-=======
 1. ZivoChat → hub `slirphzzwcogdbkeicff` (shares the main project).
 2. Zivo Business → ZivoSoftware `ydxztoresbdeoeijhxww` backend + hub identity (module, not its own project).
 3. Zivo Employee → none yet; greenfield, decide at Step 7 (likely the hub).
@@ -120,4 +115,5 @@ Remaining implementation questions:
 
 1. Should Business <-> Software wait for a standalone Business repo?
 2. Should ZivoPay tables start in Zivosmedia or Zivo Admin?
->>>>>>> Stashed changes
+
+Do not start PR 2 until owner approves.
