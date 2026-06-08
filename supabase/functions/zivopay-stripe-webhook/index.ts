@@ -333,6 +333,7 @@ serve(withSecurity("zivopay-stripe-webhook", async (req, ctx) => {
 }, {
   strictCors: false,
   allowedMethods: ["POST"],
+  strictCors: true,
   skipBotDetection: true,
   skipWaf: true,
 }));

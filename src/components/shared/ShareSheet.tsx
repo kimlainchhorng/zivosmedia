@@ -311,7 +311,6 @@ export default function ShareSheet({
       zIndex={zIndex}
       positioning={positioning}
       safeAreaTop
-      hideCloseButton
     >
 
         <div className="px-5 pt-2">

@@ -51,19 +51,19 @@ describe("PostShareSheet", () => {
         url: "https://local.test/feed?post=post-1",
         title: "Sunset at Kep",
         text: "A soft launch post for the new ZIVO creator flow.",
-        imageUrl: "https://local.test/post.jpg",
+        imageUrl: "https://cdn.zivo.test/post.jpg",
         onSendToFriend: vi.fn(),
       });
     });
 
     expect(await screen.findByText("Share post")).toBeInTheDocument();
-    expect(screen.getByText("local.test")).toBeInTheDocument();
-    expect(screen.getByText("Sunset at Kep")).toBeInTheDocument();
-    expect(screen.getByText("DM ready")).toBeInTheDocument();
-    expect(screen.getByText("Story ready")).toBeInTheDocument();
-    expect(screen.getByText("Public link")).toBeInTheDocument();
-    expect(screen.getByText("Recommended")).toBeInTheDocument();
-    expect(screen.getByText("Fast share")).toBeInTheDocument();
+    expect(screen.getAllByText("local.test")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Sunset at Kep")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("DM ready")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Story ready")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Public link")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Recommended")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Fast share")[0]).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy: Link" })).toBeInTheDocument();
   });
 

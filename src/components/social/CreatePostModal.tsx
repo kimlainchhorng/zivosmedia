@@ -819,6 +819,7 @@ export default function CreatePostModal({
               </p>
             </div>
             <div className="min-w-0 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">ZIVO Studio</p>
               <h2 className="text-base font-black leading-tight text-foreground">{activeWorkflow.label}</h2>
             </div>
             <button
@@ -832,6 +833,14 @@ export default function CreatePostModal({
             </button>
           </div>
         </div>
+
+
+        {/* Remix source indicator */}
+        {remixCaptionSeed && (
+          <div className="mx-4 mb-2 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary">
+            {remixCaptionSeed}
+          </div>
+        )}
 
         {/* Caption with @mention autocomplete */}
         <div className="relative flex min-h-[360px] flex-1 flex-col px-4 pt-3 sm:min-h-[440px]">
@@ -914,6 +923,7 @@ export default function CreatePostModal({
               return (
                 <button
                   type="button"
+                  aria-label={workflow.label + " " + workflow.description.toLowerCase()}
                   key={workflow.mode}
                   onClick={() => selectWorkflowMode(workflow.mode)}
                   className={cn(

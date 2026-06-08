@@ -1,4 +1,5 @@
 import { createClient, serve } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 /**
  * Hub-side webhook emitter for Zivosmedia identity events.
@@ -24,7 +25,8 @@ type DispatchBody = {
 const ALLOWED_EVENTS = new Set(["user_updated", "user_disabled"]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-serve(async (req: Request) => {
+serve(
+  withSecurity("zivosmedia-user-event-dispatch", async (req, ctx) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   const url = Deno.env.get("SUPABASE_URL");
@@ -135,7 +137,12 @@ serve(async (req: Request) => {
     results,
     checkedAt: new Date().toISOString(),
   });
-});
+}, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+  skipBotDetection: true,
+  skipWaf: true,
+}));
 
 function json(bodyValue: unknown, status = 200) {
   return new Response(JSON.stringify(bodyValue), {

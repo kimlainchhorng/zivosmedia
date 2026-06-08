@@ -223,7 +223,7 @@ export default function BusinessSoftwarePortalPage() {
             <nav className="hidden items-center gap-8 text-sm font-semibold text-[#3f4742] md:flex" aria-label="ZIVO Software sections">
               <a href="#software" className="transition-colors hover:text-[#111412]">Software</a>
               <a href="#workflow" className="transition-colors hover:text-[#111412]">Workflow</a>
-              <a href="#business-page" className="transition-colors hover:text-[#111412]">Business Page</a>
+              <a href="#industries" className="transition-colors hover:text-[#111412]">Business Page</a>
               <a href="#security" className="transition-colors hover:text-[#111412]">Security</a>
             </nav>
 
@@ -290,7 +290,7 @@ export default function BusinessSoftwarePortalPage() {
                   </a>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="h-12 rounded-lg border-black/15 bg-white/80 px-6 text-[#111412] hover:bg-white">
-                  <a href="#business-page">View Software Page</a>
+                  <a href="#industries">View Software Page</a>
                 </Button>
               </div>
 
@@ -507,7 +507,7 @@ export default function BusinessSoftwarePortalPage() {
           </div>
         </section>
 
-        <section id="business-page" className="bg-white px-5 pb-16 sm:px-6 lg:px-8">
+        <section id="industries" className="bg-white px-5 pb-16 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-7xl">
             <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>

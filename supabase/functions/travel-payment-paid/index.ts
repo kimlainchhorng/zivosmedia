@@ -7,6 +7,7 @@ serve(withSecurity("travel-payment-paid", async (req, ctx) => {
   return applyTravelPaymentStatus(req, ctx, "paid");
 }, {
   allowedMethods: ["POST"],
+  strictCors: true,
   skipBotDetection: true,
   skipWaf: true,
 }));
