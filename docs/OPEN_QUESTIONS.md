@@ -3,6 +3,27 @@
 Status: Draft for owner review
 Date: 2026-06-07
 
+## Resolved 2026-06-07
+
+Confirmed this session (Supabase `list_projects` + local repos + owner rules):
+
+- **Supabase = exactly 5 projects.** No separate project for Chat, Business, Employee, or Pay.
+- **ZivoChat Supabase** → the hub `slirphzzwcogdbkeicff` (shares the main project).
+- **ZivoPay / payment DB** → the hub `slirphzzwcogdbkeicff` (zivosmedia is the central payment
+  hub; active `feature/zivopay-payments-foundation` branch confirms). Owner sign-off still
+  required before payment migrations run.
+- **Zivo Business** → a module, not its own repo/project: backend in ZivoSoftware
+  (`ydxztoresbdeoeijhxww`), owner UI in the zivosmedia build. Standalone repo only if it later
+  needs an independent runtime.
+- **Zivo Employee** → greenfield/not started (only a `ZIVO Employees/` folder in zivosmedia);
+  build last (Step 7), give it a repo + hub identity then.
+- **Repo access**: all 6 confirmed repos are cloned locally with valid `kimlainchhorng/*`
+  remotes and commits dated today. `gh` is not installed and no `GH_TOKEN` is set, so access
+  could not be re-verified headlessly — install `gh` / set `GH_TOKEN` for PR workflows. No
+  404/permission denial was observed.
+
+Still open below.
+
 ## Domains
 
 Confirmed 8 domains:
@@ -40,10 +61,14 @@ Remaining repo questions:
 
 ## Supabase
 
-1. What Supabase project owns ZivoChat long term?
-2. What Supabase project owns Zivo Business?
-3. What Supabase project owns Zivo Employee?
-4. Which app owns ZivoPay / payment database tables?
+Resolved 2026-06-07 (see the Resolved section above):
+
+1. ZivoChat → hub `slirphzzwcogdbkeicff` (shares the main project).
+2. Zivo Business → ZivoSoftware `ydxztoresbdeoeijhxww` backend + hub identity (module, not its own project).
+3. Zivo Employee → none yet; greenfield, decide at Step 7 (likely the hub).
+4. ZivoPay / payment tables → hub `slirphzzwcogdbkeicff` (owner sign-off required before migration).
+
+Still open: does ZIVO-AI need its own Supabase project?
 
 ## Payments
 

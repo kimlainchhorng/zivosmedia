@@ -17,15 +17,18 @@ Map every app to the correct Supabase project before coding. This document shoul
 | ZivoSoftware | `ydxztoresbdeoeijhxww` | Software platform | Software/business backend, subscriptions to be designed | Verified by owner and local config |
 | Zivo Travel | `xbllvmpomorawkcrtbcq` | Travel platform | Travel bookings, support, migration backend | Verified by owner and local config |
 
-## Needs Confirmation
+## Confirmed 2026-06-07 (resolved via Supabase `list_projects` + owner rules)
 
-| App/module | Candidate project | Decision needed |
+Exactly **5 Supabase projects exist** (org `eglbauvujelulzwyuqqt`). There is **no separate
+project** for Chat, Business, Employee, or Pay.
+
+| App/module | Resolved location | Decision |
 | --- | --- | --- |
-| ZivoChat | Currently appears to share `slirphzzwcogdbkeicff` | Confirm whether Chat remains in Zivosmedia project or gets a dedicated Supabase project. |
-| Zivo Business | Unknown | Confirm whether Business uses Zivosmedia, ZivoSoftware, or a new project. |
-| Zivo Employee | Unknown | Confirm whether Employee uses Zivosmedia, Zivo Admin, or a new project. |
-| ZivoPay / Zivosmedia Payments | Unknown | Confirm payment database location. Zivosmedia is confirmed as central payment identity hub. |
-| ZIVO-AI | Unknown | Confirm whether AI features use a separate project or Zivosmedia/Admin. |
+| ZivoChat | **Hub `slirphzzwcogdbkeicff`** | Confirmed: Chat runs on the hub project; no dedicated project. (Hub `mint-chat-handoff` works because of this.) |
+| Zivo Business | **ZivoSoftware `ydxztoresbdeoeijhxww` (backend) + hub (identity)** | Confirmed: Business is a module, not its own project. Owner UI served by the zivosmedia build. |
+| Zivo Employee | **None yet (greenfield)** | Confirmed: not started; only a `ZIVO Employees/` folder inside zivosmedia. Choose a project at Step 7 (likely the hub). |
+| ZivoPay / Zivosmedia Payments | **Hub `slirphzzwcogdbkeicff`** | Confirmed by owner rule (zivosmedia = central payment hub) + active `feature/zivopay-payments-foundation` branch in zivosmedia. Get explicit owner sign-off before any payment migration. |
+| ZIVO-AI | Unknown | **Still open**: confirm whether AI features use a separate project or the hub/Admin. |
 
 ## Security Baseline
 
@@ -49,7 +52,7 @@ Map every app to the correct Supabase project before coding. This document shoul
 | Business profiles | Zivo Business or Zivosmedia until confirmed | Must be decided before schema work. |
 | Software subscriptions | ZivoSoftware | Business owns subscription relationship; Software owns product catalog/activation. |
 | Chat threads | ZivoChat | Threads include source platform and related record IDs. |
-| Payments | Zivosmedia Payments / ZivoPay location still needs confirmation | Support Stripe, PayPal, and Square through common provider adapters. Use Stripe test mode first. |
+| Payments | Hub `slirphzzwcogdbkeicff` (ZivoPay / Zivosmedia Payments) | Support Stripe, PayPal, and Square through common provider adapters. Use Stripe test mode first. |
 
 ## Candidate Table Ownership
 
