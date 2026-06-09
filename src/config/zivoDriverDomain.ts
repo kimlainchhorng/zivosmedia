@@ -54,8 +54,23 @@ const ZIVO_DRIVER_ALLOWED_FILES = new Set([
   "/sitemap.xml",
 ]);
 
+const hasDriverPreviewFlag = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("zd") === "1" || params.get("driver") === "1") {
+      sessionStorage.setItem("zivo_force_driver", "1");
+    } else if (params.get("zd") === "0" || params.get("driver") === "0") {
+      sessionStorage.removeItem("zivo_force_driver");
+    }
+    return sessionStorage.getItem("zivo_force_driver") === "1";
+  } catch {
+    return false;
+  }
+};
+
 export const isZivoDriverHost = (hostname?: string | null) =>
-  ZIVO_DRIVER_HOSTS.has((hostname || "").toLowerCase());
+  ZIVO_DRIVER_HOSTS.has((hostname || "").toLowerCase()) || hasDriverPreviewFlag();
 
 export const isZivoDriverPath = (pathname?: string | null) => {
   const path = pathname || "";

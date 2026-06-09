@@ -133,9 +133,9 @@ const CookieConsent = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="pointer-events-none fixed left-0 right-0 z-[100] p-3 bottom-[calc(92px+var(--zivo-safe-bottom,0px))] md:bottom-0 md:p-6"
+          className="pointer-events-none fixed left-0 right-0 z-[100] p-3 bottom-[calc(12px+var(--zivo-safe-bottom,0px))] md:bottom-0 md:p-6"
         >
-          <Card className="pointer-events-auto max-w-xl mx-auto shadow-2xl border-0 bg-card/95 backdrop-blur-xl overflow-hidden max-h-[72vh] overflow-y-auto md:max-w-4xl md:max-h-none">
+          <Card className="pointer-events-auto max-w-xl mx-auto shadow-2xl border-0 bg-card/95 backdrop-blur-xl overflow-hidden max-h-[46vh] overflow-y-auto md:max-w-4xl md:max-h-none">
             {/* Top gradient line */}
             <div className="h-1 bg-gradient-to-r from-primary via-teal-400 to-eats" />
             
@@ -170,32 +170,32 @@ const CookieConsent = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3 md:gap-4">
                       <motion.div 
                         whileHover={{ scale: 1.1, rotate: 10 }}
-                        className="p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 shrink-0 shadow-lg"
+                        className="hidden sm:flex p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 shrink-0 shadow-lg"
                       >
                         <Cookie className="h-7 w-7 text-primary" />
                       </motion.div>
                       <div className="flex-1">
-                        <h3 className="font-display font-bold text-xl mb-2 flex items-center gap-2">We Value Your Privacy <Cookie className="w-5 h-5 text-amber-500" /></h3>
-                        <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                          We use cookies to enhance your experience, analyze site traffic, and for marketing purposes. 
-                          By clicking "Accept All", you consent to our use of cookies. 
+                        <h3 className="font-display font-bold text-base md:text-xl mb-1.5 md:mb-2 flex items-center gap-2">We Value Your Privacy <Cookie className="w-4 h-4 md:w-5 md:h-5 text-amber-500" /></h3>
+                        <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-5 leading-relaxed">
+                          We use cookies to enhance your experience, analyze site traffic, and for marketing purposes.{" "}
+                          <span className="hidden sm:inline">By clicking "Accept All", you consent to our use of cookies. </span>
                           Read our{" "}
                           <Link to="/legal/privacy" className="inline-flex min-h-[40px] items-center px-1 -my-2 text-primary font-medium hover:underline touch-manipulation">Privacy Policy</Link>.
                         </p>
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2 md:gap-3">
                           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <Button onClick={handleAcceptAll} className="bg-gradient-to-r from-primary to-teal-400 text-primary-foreground font-semibold shadow-lg shadow-primary/30 rounded-xl touch-manipulation active:scale-[0.97] transition-all duration-200 min-h-[44px]">
+                            <Button onClick={handleAcceptAll} className="bg-gradient-to-r from-primary to-teal-400 text-primary-foreground font-semibold shadow-lg shadow-primary/30 rounded-xl touch-manipulation active:scale-[0.97] transition-all duration-200 min-h-[40px] md:min-h-[44px] px-3 md:px-4 text-xs md:text-sm">
                               Accept All
                             </Button>
                           </motion.div>
-                          <Button variant="outline" onClick={handleRejectAll} className="font-semibold rounded-xl touch-manipulation active:scale-[0.97] transition-all duration-200 min-h-[44px]">
+                          <Button variant="outline" onClick={handleRejectAll} className="font-semibold rounded-xl touch-manipulation active:scale-[0.97] transition-all duration-200 min-h-[40px] md:min-h-[44px] px-3 md:px-4 text-xs md:text-sm">
                             Reject All
                           </Button>
-                          <Button variant="ghost" onClick={() => setShowDetails(true)} className="gap-2 font-semibold rounded-xl touch-manipulation active:scale-[0.97] transition-all duration-200 min-h-[44px]">
-                            <Settings className="h-4 w-4" />
+                          <Button variant="ghost" onClick={() => setShowDetails(true)} className="gap-1.5 md:gap-2 font-semibold rounded-xl touch-manipulation active:scale-[0.97] transition-all duration-200 min-h-[40px] md:min-h-[44px] px-3 md:px-4 text-xs md:text-sm">
+                            <Settings className="h-3.5 w-3.5 md:h-4 md:w-4" />
                             Customize
                           </Button>
                         </div>
