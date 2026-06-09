@@ -31,7 +31,7 @@ describe("feed responsive shell contracts", () => {
     const noOverlap = source("tests/e2e/mobile-layout-no-overlap.spec.ts");
     const mobileContract = source("src/test/feedMobileVisualContracts.test.ts");
 
-    expect(feed).toContain('(["For You", "Friends", "Following"] as const).map((label) => (');
+    expect(feed).toContain('FEED_TABS.map((label) => (');
     expect(feed.match(/aria-pressed=\{feedTab === label\}/g)?.length).toBeGreaterThanOrEqual(2);
     expect(feed).toContain('(["all", "photos", "videos", "text"] as const).map((f) => (');
     expect(feed).toContain("grid grid-cols-4 gap-1 px-2 pb-1.5 pt-1");

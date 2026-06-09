@@ -20,7 +20,7 @@ describe("feed mobile visual contracts", () => {
     expect(feed).toContain("zivo-feed-mobile-header-panel");
     expect(feed).toContain("zivo-feed-tabbar");
     expect(feed).toContain('aria-pressed={feedTab === label}');
-    expect(feed).toContain('(["For You", "Friends", "Following"] as const)');
+    expect(feed).toContain('["For You", "Friends", "Following", "Travel", "Eat"] as const');
     expect(feed).toContain('(["all", "photos", "videos", "text"] as const)');
     expect(feed).toContain("min-h-10 w-full px-2 py-2 rounded-full");
     expect(feed).toContain("grid grid-cols-4 gap-1 px-2 pb-1.5 pt-1");
