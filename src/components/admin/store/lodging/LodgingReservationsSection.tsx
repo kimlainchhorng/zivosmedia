@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Reservations list with status filter & quick actions.
  * Tapping a row opens the full reservation details page.
  */
@@ -125,7 +125,7 @@ export default function LodgingReservationsSection({ storeId }: { storeId: strin
         <div className="flex flex-wrap gap-2 items-center">
           {STATUSES.map(s => (
             <button type="button" key={s} onClick={() => updateFilter(s)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${status === s ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border text-muted-foreground"}`}>
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${status === s ? "bg-ig-gradient text-white border-primary" : "bg-background border-border text-muted-foreground"}`}>
               {STATUS_LABEL[s]}
             </button>
           ))}
@@ -137,7 +137,7 @@ export default function LodgingReservationsSection({ storeId }: { storeId: strin
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-2 text-xs">
           <span className="inline-flex items-center gap-1 font-semibold text-muted-foreground"><Clock className="h-3.5 w-3.5" /> Time</span>
           {(["all", "morning", "afternoon", "evening"] as TimeFilter[]).map((value) => (
-            <button type="button" key={value} onClick={() => { setTimeFilter(value); syncParams(status, q, value, sortMode); }} className={`rounded-full border px-2.5 py-1 font-medium transition ${timeFilter === value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground"}`}>{TIME_LABEL[value]}</button>
+            <button type="button" key={value} onClick={() => { setTimeFilter(value); syncParams(status, q, value, sortMode); }} className={`rounded-full border px-2.5 py-1 font-medium transition ${timeFilter === value ? "border-primary bg-ig-gradient text-white" : "border-border bg-background text-muted-foreground"}`}>{TIME_LABEL[value]}</button>
           ))}
           <select value={sortMode} onChange={(e) => { const next = e.target.value as SortMode; setSortMode(next); syncParams(status, q, timeFilter, next); }} className="ml-auto h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground">
             <option value="date_desc">Newest check-in</option>

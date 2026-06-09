@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PublicCarDealershipListingPage — customer-facing inventory storefront.
  *
  * Route: /car-dealership/:slug
@@ -532,7 +532,7 @@ export default function PublicCarDealershipListingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {promotions.map((p) => (
               <Card key={p.id} className="p-3 flex items-center gap-3 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ig-gradient text-white">
                   <Tag className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">

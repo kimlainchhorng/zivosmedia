@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CafeReportsSection — deeper analytics: top items, hour-of-day heatmap,
  * and a CSV export of completed orders for the chosen window.
  */
@@ -46,7 +46,7 @@ export default function CafeReportsSection({ storeId }: Props) {
             {([7, 30, 90] as const).map((d) => (
               <button key={d} type="button" onClick={() => setDays(d)} className={cn(
                 "px-3 py-1 text-xs",
-                days === d ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                days === d ? "bg-ig-gradient text-white" : "hover:bg-muted",
               )}>{d}d</button>
             ))}
           </div>

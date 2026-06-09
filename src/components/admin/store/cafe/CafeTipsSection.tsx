@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CafeTipsSection — show the tip pool collected in a window and split it
  * across baristas (equal / by hours / custom weight).
  *
@@ -59,7 +59,7 @@ export default function CafeTipsSection({ storeId }: Props) {
           {WINDOW_OPTIONS.map(({ days: d, label }) => (
             <button key={d} type="button" onClick={() => setDays(d)} className={cn(
               "px-3 py-1 text-xs",
-              days === d ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+              days === d ? "bg-ig-gradient text-white" : "hover:bg-muted",
             )}>{label}</button>
           ))}
         </div>
@@ -88,7 +88,7 @@ export default function CafeTipsSection({ storeId }: Props) {
               {(["equal", "by_hours", "weighted"] as const).map((m) => (
                 <button key={m} type="button" onClick={() => setMode(m)} className={cn(
                   "px-3 py-1 text-xs",
-                  mode === m ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                  mode === m ? "bg-ig-gradient text-white" : "hover:bg-muted",
                 )}>{MODE_LABEL[m]}</button>
               ))}
             </div>

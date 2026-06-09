@@ -344,9 +344,10 @@ const Login = () => {
   const { accounts, remove, refresh } = useSavedAccounts();
 
   // "picker" = show saved accounts, "password" = selected an account (email locked),
+  // "expired" = session expired, show one-tap link login (no password shown),
   // "full" = show email+password form for a new account
   type Mode = "picker" | "password" | "full";
-  const [mode, setMode] = useState<Mode>(() => (accounts.length > 0 ? "picker" : "full"));
+  const [mode, setMode] = useState<Mode>("picker");
   const [selectedAccount, setSelectedAccount] = useState<SavedAccount | null>(null);
 
   const [email, setEmail] = useState("");
@@ -403,9 +404,8 @@ const Login = () => {
   useEffect(() => {
     if (accounts.length === 0) {
       setEditingAccounts(false);
-      if (mode === "picker") setMode("full");
     }
-  }, [accounts.length, mode]);
+  }, [accounts.length]);
 
   const handleSelectAccount = async (account: SavedAccount) => {
     if (submitting) return;
@@ -438,7 +438,6 @@ const Login = () => {
         });
         refresh();
         setSubmitting(false);
-        toast.success(`Welcome back, ${account.fullName?.split(" ")[0] || ""}!`);
         finishAuthRedirect(redirect);
         return;
       }
@@ -472,7 +471,6 @@ const Login = () => {
           });
           refresh();
           setSubmitting(false);
-          toast.success(`Welcome back, ${account.fullName?.split(" ")[0] || ""}!`);
           finishAuthRedirect(redirect);
           return;
         }
@@ -481,12 +479,8 @@ const Login = () => {
       }
     }
 
-    // ── Step 3: password fallback ─────────────────────────────────────────
-    // If the saved token is missing or expired, the user can still continue
-    // with the password manager. The email sign-in link remains available from
-    // the password screen, but only when the user asks for it.
+    // ── Step 3: session fully expired — show password form ───────────────
     setSubmitting(false);
-    setQuickSignInLabel("Signing in...");
     setMode("password");
   };
 
@@ -501,7 +495,7 @@ const Login = () => {
   const handleBack = () => {
     setPassword("");
     setQuickSignInLabel("Signing in...");
-    setMode(accounts.length > 0 ? "picker" : "full");
+    setMode("picker");
   };
 
   // Webmail provider detection — used to label the secondary email-code option.
@@ -649,7 +643,6 @@ const Login = () => {
     } catch {}
 
     setSubmitting(false);
-    toast.success("Welcome back!");
     finishAuthRedirect(redirect);
   };
 
@@ -755,7 +748,11 @@ const Login = () => {
               <p className={`text-center text-sm ${
                 isZivoSoftwareDomain ? "font-semibold text-[#66736d]" : "text-zinc-500 dark:text-zinc-400"
               }`}>
-                {editingAccounts ? "Tap × to remove an account" : "Log in as"}
+                {editingAccounts
+                  ? "Tap × to remove an account"
+                  : accounts.length > 0
+                  ? "Log in as"
+                  : "Your account will be saved for quick sign-in next time"}
               </p>
 
               <div className="flex justify-center gap-5 flex-wrap">
@@ -797,7 +794,7 @@ const Login = () => {
                   isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"
                 }`}
               >
-                Log into another account
+                {accounts.length > 0 ? "Log into another account" : "Sign in with email"}
               </button>
 
             </div>
@@ -895,33 +892,6 @@ const Login = () => {
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
               </button>
 
-              {/* OR divider — separates the two clear sign-in options */}
-              <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-                <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">OR</span>
-                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-              </div>
-
-              {/* Option 2: passwordless via email link/code */}
-              {(() => {
-                const provider = detectMailProvider(selectedAccount.email);
-                return (
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await sendEmailCode(selectedAccount.email);
-                      }}
-                      disabled={submitting}
-                      className="w-full h-10 rounded-lg text-xs font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      {provider ? `Email me a sign-in link for ${provider.name}` : "Email me a sign-in link"}
-                    </button>
-                  </div>
-                );
-              })()}
-
               <div className="flex items-center justify-between text-xs pt-1">
                 <Link to={forgotPasswordHref} className="inline-flex min-h-[40px] items-center font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white">
                   Forgot password?
@@ -938,7 +908,7 @@ const Login = () => {
                           remove(selectedAccount.email);
                           setSelectedAccount(null);
                           setPassword("");
-                          setMode(accounts.length > 1 ? "picker" : "full");
+                          setMode("picker");
                         },
                       },
                       cancel: { label: "Cancel", onClick: () => {} },
@@ -955,15 +925,13 @@ const Login = () => {
           {/* ── MODE: full email + password form ── */}
           {mode === "full" && (
             <form onSubmit={onSubmit} className="space-y-2.5">
-              {accounts.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition mb-1"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" /> Saved accounts
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition mb-1"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> {accounts.length > 0 ? "Saved accounts" : "Back"}
+              </button>
 
               <input
                 id="login-email"

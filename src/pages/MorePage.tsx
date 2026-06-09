@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MorePage — ZIVO Signature Design (2026)
  * Full hub with real user profile, quick actions, 70+ links, and organic design.
  */
@@ -2178,7 +2178,7 @@ export default function MorePage() {
                   <Link
                     to="/login"
                     aria-label="Sign in to ZIVO"
-                    className="flex-1 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-[13px] text-center active:scale-95 transition-transform"
+                    className="flex-1 py-2.5 rounded-full bg-ig-gradient text-white font-bold text-[13px] text-center active:scale-95 transition-transform"
                   >
                     Sign in
                   </Link>

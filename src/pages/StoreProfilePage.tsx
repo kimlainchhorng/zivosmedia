@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoreProfilePage - Ultra-premium 3D/4D Spatial UI store profile
  * Immersive glassmorphic design with depth, perspective, holographic cards
  */
@@ -562,7 +562,7 @@ export default function StoreProfilePage() {
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center ring-2 ring-background shadow-lg shadow-primary/30"
+                        className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full bg-ig-gradient text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background shadow-lg shadow-primary/30"
                       >
                         {cart.itemCount}
                       </motion.span>
@@ -1239,7 +1239,7 @@ export default function StoreProfilePage() {
                                 onClick={() => {
                                   navigate(`/book/${slug}?service=${encodeURIComponent(service.name)}`);
                                 }}
-                                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold shadow-sm"
+                                className="px-3 py-1.5 rounded-lg bg-ig-gradient text-white text-[11px] font-bold shadow-sm"
                               >
                                 Book
                               </motion.button>

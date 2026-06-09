@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ServicesPage - Full directory of all ZIVO services
  * Premium super-app style with glassmorphism, layered banners, staggered animations
  */
@@ -179,7 +179,7 @@ function PromoBanner({
 
 /* ── Badge Variant Styles ── */
 const badgeStyles = {
-  discount: "bg-primary text-primary-foreground shadow-primary/30",
+  discount: "bg-ig-gradient text-white shadow-primary/30",
   promo: "bg-primary/90 text-primary-foreground shadow-primary/20",
   new: "bg-foreground text-background shadow-foreground/20",
   coming_soon: "bg-amber-500 text-white shadow-amber-500/30",

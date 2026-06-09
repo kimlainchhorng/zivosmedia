@@ -308,7 +308,7 @@ export default function ChatMediaGallery({
 
   return (
     <motion.div
-      className="zivo-chat-surface fixed inset-0 z-[9999] flex flex-col bg-background"
+      className="fixed inset-0 z-[9999] flex flex-col bg-background"
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
@@ -320,7 +320,7 @@ export default function ChatMediaGallery({
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Conversation vault</p>
+            <p className="text-ig-gradient text-[9.5px] font-black uppercase tracking-[0.22em]">Conversation vault</p>
             <p className="text-base font-black text-foreground">Shared Media</p>
             <p className="truncate text-[11px] font-semibold text-muted-foreground">{title}</p>
           </div>
@@ -333,15 +333,15 @@ export default function ChatMediaGallery({
               key={item.id}
               onClick={() => setTab(item.id)}
               aria-label={`${item.label} ${item.count}`}
-              className={`flex shrink-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-black transition-all ${
-                tab === item.id ? "zivo-chat-chip-active shadow-lg shadow-primary/15" : "zivo-chat-chip text-muted-foreground hover:text-foreground"
+              className={`flex shrink-0 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black transition-all ${
+                tab === item.id ? "bg-ig-gradient text-white shadow-[0_2px_8px_rgba(236,72,153,0.25)]" : "zivo-chat-chip text-muted-foreground hover:text-foreground"
               }`}
             >
               <item.icon className="h-3.5 w-3.5" />
               <span>{item.label}</span>
               {item.count > 0 && (
                 <span className={`flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-black ${
-                  tab === item.id ? "bg-background/20 text-primary-foreground" : "bg-background/50 text-muted-foreground"
+                  tab === item.id ? "bg-white/25 text-white" : "bg-muted/60 text-muted-foreground"
                 }`}>
                   {item.count}
                 </span>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+﻿import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
 import { Textarea } from "@/components/ui/textarea";
@@ -827,7 +827,7 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
             onClick={voice.isRecording ? stopAndAttachVoice : startVoice}
             disabled={voiceUploading}
             aria-label={voice.isRecording ? "Stop and attach" : "Start recording"}
-            className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm active:scale-95 transition disabled:opacity-50"
+            className="h-10 w-10 rounded-full bg-ig-gradient text-white flex items-center justify-center shadow-sm active:scale-95 transition disabled:opacity-50"
           >
             {voiceUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : voice.isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
           </button>

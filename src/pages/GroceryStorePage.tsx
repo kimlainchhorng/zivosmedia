@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryStorePage - 2026 Spatial UI product search (v4)
  * Added sort toggle, horizontal featured row, refined layout
  */
@@ -198,7 +198,7 @@ function FeaturedProductRow({ products, onAdd, cart }: {
                     onClick={() => onAdd(p)}
                     className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
                       inCart
-                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
+                        ? "bg-ig-gradient text-white shadow-md shadow-primary/30"
                         : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/15"
                     }`}
                   >
@@ -445,7 +445,7 @@ export default function GroceryStorePage() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-extrabold min-w-[22px] h-[22px] px-1 shadow-lg shadow-primary/40 ring-2 ring-background pointer-events-none"
+                className="absolute -top-1 -right-1 flex items-center justify-center rounded-full bg-ig-gradient text-white text-[10px] font-extrabold min-w-[22px] h-[22px] px-1 shadow-lg shadow-primary/40 ring-2 ring-background pointer-events-none"
               >
                 {cart.itemCount}
               </motion.span>
@@ -475,7 +475,7 @@ export default function GroceryStorePage() {
               onClick={() => handleQuickFilter(f)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0 transition-all duration-200 ${
                 activeFilter === f.label
-                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                  ? "bg-ig-gradient text-white shadow-sm shadow-primary/25"
                   : "bg-muted/30 text-muted-foreground hover:bg-muted/60 border border-border/20"
               }`}
             >
@@ -787,7 +787,7 @@ export default function GroceryStorePage() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => setShowCart(true)}
-              className="w-full flex items-center justify-between gap-3 p-3.5 pl-4 rounded-2xl bg-primary text-primary-foreground shadow-2xl shadow-primary/30 border border-primary/20"
+              className="w-full flex items-center justify-between gap-3 p-3.5 pl-4 rounded-2xl bg-ig-gradient text-white shadow-2xl shadow-primary/30 border border-primary/20"
             >
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-primary-foreground/20 backdrop-blur-sm">

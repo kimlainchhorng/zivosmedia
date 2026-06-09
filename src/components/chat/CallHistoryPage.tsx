@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CallHistoryPage — Premium 2026-style call log
  */
 import { useState, useEffect } from "react";
@@ -267,7 +267,7 @@ export default function CallHistoryPage({ onClose, onCallUser }: CallHistoryPage
               onClick={() => setTab(t.key)}
               className={`relative px-5 py-2 rounded-full text-xs font-semibold transition-all ${
                 tab === t.key
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                  ? "bg-ig-gradient text-white shadow-md shadow-primary/20"
                   : "bg-muted/40 text-muted-foreground hover:bg-muted/70"
               }`}
             >

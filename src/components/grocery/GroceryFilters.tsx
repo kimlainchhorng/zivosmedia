@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryFilters - Advanced filter bottom sheet
  * Price range, brand, rating, dietary filters
  */
@@ -182,7 +182,7 @@ export function GroceryFilters({ isOpen, onClose, filters, onApply, products }: 
                         onClick={() => setDraft((d) => ({ ...d, priceRange: active ? null : range }))}
                         className={`px-3 py-2 rounded-xl text-[11px] font-semibold transition-all border ${
                           active
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            ? "bg-ig-gradient text-white border-primary shadow-sm"
                             : "bg-muted/20 text-foreground/70 border-border/20 hover:bg-muted/40"
                         }`}
                       >
@@ -208,7 +208,7 @@ export function GroceryFilters({ isOpen, onClose, filters, onApply, products }: 
                         onClick={() => setDraft((d) => ({ ...d, minRating: active ? null : rf.min }))}
                         className={`px-3 py-2 rounded-xl text-[11px] font-semibold transition-all border ${
                           active
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            ? "bg-ig-gradient text-white border-primary shadow-sm"
                             : "bg-muted/20 text-foreground/70 border-border/20 hover:bg-muted/40"
                         }`}
                       >
@@ -234,7 +234,7 @@ export function GroceryFilters({ isOpen, onClose, filters, onApply, products }: 
                         onClick={() => toggleDietary(df.keyword)}
                         className={`flex items-center gap-1 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all border ${
                           active
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            ? "bg-ig-gradient text-white border-primary shadow-sm"
                             : "bg-muted/20 text-foreground/70 border-border/20 hover:bg-muted/40"
                         }`}
                       >
@@ -262,7 +262,7 @@ export function GroceryFilters({ isOpen, onClose, filters, onApply, products }: 
                           onClick={() => toggleBrand(brand)}
                           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-semibold transition-all border ${
                             active
-                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                              ? "bg-ig-gradient text-white border-primary shadow-sm"
                               : "bg-muted/20 text-foreground/70 border-border/20 hover:bg-muted/40"
                           }`}
                         >
@@ -310,7 +310,7 @@ export function GroceryFilterButton({
       <SlidersHorizontal className="h-3 w-3" />
       <span className="text-[10px] font-semibold">Filter</span>
       {activeCount > 0 && (
-        <span className="flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[8px] font-bold">
+        <span className="flex items-center justify-center h-4 w-4 rounded-full bg-ig-gradient text-white text-[8px] font-bold">
           {activeCount}
         </span>
       )}

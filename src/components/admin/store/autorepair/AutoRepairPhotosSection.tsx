@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+﻿import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -169,7 +169,7 @@ export default function AutoRepairPhotosSection({ storeId }: Props) {
                           onClick={() => setUploadType(t.value)}
                           className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                             uploadType === t.value
-                              ? "bg-primary text-primary-foreground border-primary"
+                              ? "bg-ig-gradient text-white border-primary"
                               : "border-border bg-muted/40 hover:bg-muted"
                           }`}
                         >

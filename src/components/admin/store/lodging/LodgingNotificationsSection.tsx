@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Guest Notification Templates.
  * Email/SMS templates for booking confirmation, pre-check-in, on-checkout, review request, etc.
  */
@@ -232,7 +232,7 @@ export default function LodgingNotificationsSection({ storeId }: { storeId: stri
         <div className="flex gap-1.5 flex-wrap">
           {(["all", "email", "sms", "whatsapp"] as const).map(c => (
             <button type="button" key={c} onClick={() => setFilterChannel(c as any)}
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterChannel === c ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterChannel === c ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
               {c}
             </button>
           ))}

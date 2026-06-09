@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HotelsLandingPage
  * Booking-style discovery: tighter hero, dates+guests, quick filters,
  * price/amenities/rating on cards, "Near me" sort.
@@ -6,6 +6,7 @@
  * Route: /hotels
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -747,6 +748,7 @@ export default function HotelsLandingPage() {
 
   return (
     <div className="min-h-dvh bg-background pb-24">
+      <ZivoMobileNav />
       <Helmet>
         <title>{seoTitle}</title>
         <meta name="description" content={seoDescription} />
@@ -975,7 +977,7 @@ export default function HotelsLandingPage() {
           <button
             type="button"
             onClick={submitSearch}
-            className="mt-2 w-full h-11 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg active:scale-[0.98] transition inline-flex items-center justify-center gap-2"
+            className="mt-2 w-full h-11 rounded-2xl bg-ig-gradient text-white font-bold text-sm shadow-lg active:scale-[0.98] transition inline-flex items-center justify-center gap-2"
           >
             <Search className="w-4 h-4" />
             Search hotels
@@ -991,7 +993,7 @@ export default function HotelsLandingPage() {
           showStickyBar ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden border-0",
         )}
       >
-        <div className="px-3 py-2 flex items-center gap-2 safe-area-top">
+        <div className="px-3 py-2 flex items-center gap-2">
           <button
             type="button"
             onClick={smartBack}
@@ -1102,7 +1104,7 @@ export default function HotelsLandingPage() {
             className={cn(
               "shrink-0 inline-flex min-h-[40px] items-center gap-1 rounded-full px-3.5 py-2 text-[11px] font-semibold transition border shadow-sm touch-manipulation",
               coords
-                ? "bg-primary text-primary-foreground border-primary"
+                ? "bg-ig-gradient text-white border-primary"
                 : "bg-card text-foreground border-border/80 hover:bg-muted active:bg-muted",
             )}
           >
@@ -1117,7 +1119,7 @@ export default function HotelsLandingPage() {
               className={cn(
                 "shrink-0 inline-flex min-h-[40px] items-center gap-1 rounded-full px-3.5 py-2 text-[11px] font-semibold transition border shadow-sm touch-manipulation",
                 savedOnly
-                  ? "bg-primary text-primary-foreground border-primary"
+                  ? "bg-ig-gradient text-white border-primary"
                   : "bg-card text-foreground border-border/80 hover:bg-muted active:bg-muted",
               )}
             >
@@ -1136,7 +1138,7 @@ export default function HotelsLandingPage() {
                 className={cn(
                   "shrink-0 inline-flex min-h-[40px] items-center gap-1 rounded-full px-3.5 py-2 text-[11px] font-semibold transition border shadow-sm touch-manipulation",
                   active
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-card text-foreground border-border/80 hover:bg-muted active:bg-muted",
                 )}
               >
@@ -1517,7 +1519,7 @@ export default function HotelsLandingPage() {
               className={
                 "shrink-0 min-h-[40px] rounded-full px-3.5 py-2 text-xs font-semibold transition touch-manipulation " +
                 (maxBudget === opt.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/70 text-muted-foreground active:bg-muted")
               }
             >
@@ -1537,7 +1539,7 @@ export default function HotelsLandingPage() {
                 className={
                   "shrink-0 min-h-[40px] rounded-full px-3.5 py-2 text-xs font-semibold transition touch-manipulation " +
                   (active
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted/70 text-muted-foreground active:bg-muted")
                 }
               >

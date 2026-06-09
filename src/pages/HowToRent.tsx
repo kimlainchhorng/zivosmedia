@@ -1,4 +1,4 @@
-/**
+﻿/**
  * How to Rent Page
  * Marketing page explaining the rental process for renters
  */
@@ -150,7 +150,7 @@ export default function HowToRent() {
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
                       <step.icon className="w-8 h-8 text-primary" />
                     </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-ig-gradient text-white text-sm font-bold flex items-center justify-center">
                       {i + 1}
                     </div>
                   </div>

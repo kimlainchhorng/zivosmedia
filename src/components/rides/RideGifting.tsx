@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideGifting — Ride gifting, vouchers, corporate gift cards, event packages
  */
 import { useState } from "react";
@@ -104,7 +104,7 @@ export default function RideGifting() {
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Amount</h3>
                 <div className="grid grid-cols-4 gap-2">
                   {giftAmounts.map(amt => (
-                    <button type="button" key={amt} onClick={() => { setGiftAmount(amt); setCustomAmount(""); }} className={cn("py-2.5 rounded-xl text-sm font-bold border transition-all", giftAmount === amt && !customAmount ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                    <button type="button" key={amt} onClick={() => { setGiftAmount(amt); setCustomAmount(""); }} className={cn("py-2.5 rounded-xl text-sm font-bold border transition-all", giftAmount === amt && !customAmount ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                       ${amt}
                     </button>
                   ))}

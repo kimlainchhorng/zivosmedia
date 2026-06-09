@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HistoryPage — Unified activity history across all ZIVO services
  * Tabs: All · Rides · Eats · Flights · Hotels
  */
@@ -199,7 +199,7 @@ export default function HistoryPage() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-6 text-center">
         <Clock className="h-12 w-12 text-muted-foreground/30" />
         <p className="text-base font-semibold text-foreground">Sign in to view your history</p>
-        <button type="button" onClick={() => navigate("/login")} className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold">
+        <button type="button" onClick={() => navigate("/login")} className="px-6 py-2 rounded-full bg-ig-gradient text-white text-sm font-semibold">
           Sign in
         </button>
       </div>
@@ -232,7 +232,7 @@ export default function HistoryPage() {
                 className={cn(
                   "shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all",
                   tab === id
-                    ? "bg-primary text-primary-foreground shadow-sm"
+                    ? "bg-ig-gradient text-white shadow-sm"
                     : "bg-muted/40 text-muted-foreground hover:bg-muted"
                 )}
               >
@@ -273,7 +273,7 @@ export default function HistoryPage() {
                     tab === "flights" ? "/flights" :
                     tab === "hotels" ? "/hotels" : "/"
                   )}
-                  className="px-6 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
+                  className="px-6 py-2 rounded-full bg-ig-gradient text-white text-sm font-semibold active:scale-95 transition-transform"
                 >
                   {tab === "all" ? "Explore ZIVO" : `Book ${tab === "eats" ? "food" : tab === "hotels" ? "a hotel" : `a ${tab.slice(0, -1)}`}`}
                 </button>

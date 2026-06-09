@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CurrencyPickerSheet — global currency switcher.
  *
  * Reuses CurrencyContext + SUPPORTED_CURRENCIES. Open via custom event so
@@ -45,7 +45,7 @@ export default function CurrencyPickerSheet() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={close}
-          className="fixed inset-0 z-[180] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-[1450] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
         >
@@ -94,7 +94,7 @@ export default function CurrencyPickerSheet() {
                       <p className="text-[11px] text-muted-foreground">{c.code}</p>
                     </div>
                     {selected && (
-                      <span className="h-6 w-6 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <span className="h-6 w-6 inline-flex items-center justify-center rounded-full bg-ig-gradient text-white">
                         <Check className="w-3.5 h-3.5" />
                       </span>
                     )}

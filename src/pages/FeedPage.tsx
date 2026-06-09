@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FeedPage — TikTok / Facebook Reels style full-screen vertical feed
  * Each post fills the entire viewport. Swipe up/down to navigate.
  * Videos auto-play when scrolled into view, pause when scrolled away.
@@ -339,7 +339,7 @@ function InfiniteScrollSentinel({
               <button
                 type="button"
                 onClick={onRefresh}
-                className="w-full py-3 rounded-full bg-primary text-primary-foreground text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-primary/30"
+                className="w-full py-3 rounded-full bg-ig-gradient text-white text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-primary/30"
               >
                 Check for new reels
               </button>
@@ -448,7 +448,7 @@ function ReelCard({
   onToggleLike: (postId: string, currentlyLiked: boolean) => void;
   onOpenComments: (target: CommentTarget) => void;
   onOpenShare: (postId: string) => void;
-  onOpenSound: (soundName: string) => void;
+  onOpenSound: (soundName: string, avatarUrl?: string | null) => void;
   onOpenActions?: () => void;
   onStartDuet?: (post: FeedPost) => void;
   onStartStitch?: (post: FeedPost) => void;
@@ -993,9 +993,7 @@ function ReelCard({
         ]);
         const error = modernBookmark.error || legacyBookmark.error;
         if (error && !String(error.message || "").toLowerCase().includes("duplicate")) throw error;
-        toast.success("Saved", {
-          action: { label: "View", onClick: () => navigate("/saved") },
-        });
+        toast.success("Saved");
       } else {
         const alternateIds = Array.from(new Set([post.id, rawPostId]));
         const [modernDelete, legacyDelete] = await Promise.all([
@@ -1893,20 +1891,8 @@ function ReelCard({
           );
         })()}
 
-        {/* Reaction summary + comment preview */}
-        <div className="mb-2 flex items-start justify-between gap-3">
-          <Suspense fallback={null}>
-            <CommentPreview
-              postId={rawPostId}
-              source={post.source ?? "store"}
-              totalCount={liveCommentsCount}
-              onOpen={() => onOpenComments({
-                postId: post.id,
-                source: getFeedPostSource(post),
-                initialCount: liveCommentsCount,
-              })}
-            />
-          </Suspense>
+        {/* Reaction summary */}
+        <div className="mb-2 flex items-start justify-end gap-3">
           <Suspense fallback={null}>
             <ReactionSummary postId={rawPostId} source={post.source ?? "store"} />
           </Suspense>
@@ -1940,16 +1926,6 @@ function ReelCard({
           </Suspense>
         )}
 
-        {/* Music ticker */}
-        <MusicTicker
-          name={post.audio_name || `Original Sound - ${post.source === "user" ? post.author_name || "ZIVO" : post.store_name || "ZIVO"}`}
-          avatarUrl={post.source === "user" ? post.author_avatar : post.store_logo}
-          isPlaying={isActive && isPlaying}
-          onClick={() => {
-            const soundLabel = post.audio_name || `Original Sound - ${post.source === "user" ? post.author_name || "ZIVO" : post.store_name || "ZIVO"}`;
-            onOpenSound(soundLabel);
-          }}
-        />
       </div>
 
       {/* Right-side action buttons (TikTok-style) — responsive scale.
@@ -2231,9 +2207,36 @@ function ReelCard({
           </div>
         </button>
 
-        {/* Sound disk moved inline into the MusicTicker (TikTok-style next to
-            the caption) — keeps the right rail lean and avoids overlap with
-            the music bar. */}
+        {/* Sound disc — spinning vinyl at bottom of rail (TikTok-style) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const soundLabel = post.audio_name || `Original Sound - ${post.source === "user" ? post.author_name || "ZIVO" : post.store_name || "ZIVO"}`;
+            const soundAvatar = post.source === "user" ? post.author_avatar : post.store_logo;
+            onOpenSound(soundLabel, soundAvatar);
+          }}
+          className="flex flex-col items-center gap-0.5 min-w-[44px] min-h-[44px] mt-1"
+          aria-label="Sound"
+          title="Sound"
+        >
+          <div className={cn(
+              "w-11 h-11 rounded-full overflow-hidden border-[3px] border-white/20 bg-gradient-to-br from-zinc-700 via-zinc-900 to-black flex items-center justify-center shadow-lg",
+              (isActive && isPlaying) ? "animate-[spin_5s_linear_infinite]" : "animate-none",
+            )}>
+            {(post.source === "user" ? post.author_avatar : post.store_logo) ? (
+              <img
+                src={post.source === "user" ? post.author_avatar! : post.store_logo!}
+                alt=""
+                className="w-7 h-7 rounded-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <Music className="w-4 h-4 text-white/70" />
+            )}
+          </div>
+        </button>
       </div>
 
       {/* Scrub timecode — appears in the center of the screen while dragging
@@ -2264,7 +2267,7 @@ function ReelCard({
       {isVideoPost && !hasPlaybackError && (
         <div
           ref={progressBarRef}
-          className="zivo-reel-no-callout absolute left-3 right-3 bottom-[calc(var(--zivo-safe-bottom,0px)+76px)] z-40 flex flex-col gap-1.5 touch-none select-none"
+          className="zivo-reel-no-callout absolute left-3 right-3 bottom-[calc(var(--zivo-safe-bottom,0px)+100px)] z-40 flex flex-col gap-1.5 touch-none select-none"
           onPointerDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -3493,22 +3496,20 @@ function FeedQuickLaunchButton({
 }) {
   const Icon = launch.icon;
   return (
-    <button
+    <motion.button
       type="button"
+      whileTap={{ scale: 0.88 }}
       onClick={() => {
         onNavigate(launch.href);
         onClose();
       }}
-      className="zivo-social-module-tile flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition-transform active:scale-[0.98]"
+      className="zivo-social-module-tile flex flex-col items-center gap-1.5 rounded-[1.25rem] px-1 py-3 touch-manipulation transition-colors"
     >
-      <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", launch.tone)}>
-        <Icon className="h-5 w-5" />
+      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl", launch.tone)}>
+        <Icon className="h-[17px] w-[17px]" />
       </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-foreground truncate">{launch.label}</span>
-        <span className="block text-[11px] text-muted-foreground truncate">{launch.description}</span>
-      </span>
-    </button>
+      <span className="w-full truncate text-center text-[11px] font-semibold leading-tight text-foreground">{launch.label}</span>
+    </motion.button>
   );
 }
 
@@ -3569,49 +3570,67 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
   }, [debouncedQuery]);
   const hasResults = quickLaunchResults.length > 0 || storeResults.length > 0 || profileResults.length > 0;
 
+  const swipeStartX = useRef<number | null>(null);
+
   return (
-    <div className="zivo-social-surface fixed inset-0 z-[1500] flex flex-col">
+    <div
+      className="zivo-social-surface fixed inset-0 z-[1500] flex flex-col"
+      onTouchStart={(e) => { swipeStartX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => {
+        if (swipeStartX.current === null) return;
+        const dx = e.changedTouches[0].clientX - swipeStartX.current;
+        swipeStartX.current = null;
+        if (dx > 80) onClose();
+      }}
+    >
       {/* Search header */}
-      <div className="zivo-social-header-glass safe-area-top flex items-center gap-2 px-3 pb-2.5 pt-2">
-        <button type="button" onClick={onClose} aria-label="Close search" title="Close search" className="zivo-social-icon-button">
-          <ArrowLeft className="w-5 h-5 text-foreground" />
-        </button>
+      <div className="zivo-social-header-glass safe-area-top flex items-center gap-2 px-3 pb-2 pt-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.88 }}
+          onClick={onClose}
+          aria-label="Close search"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full zivo-social-module-tile touch-manipulation"
+        >
+          <ArrowLeft className="w-4 h-4 text-foreground" />
+        </motion.button>
         <div className="zivo-social-search relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search apps, rides, food, hotels, people..."
-            className="h-11 w-full bg-transparent pl-9 pr-9 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="h-10 w-full bg-transparent pl-9 pr-9 text-[13px] font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           {query && (
-            <button type="button" onClick={() => setQuery("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-white/60">
-              <XIcon className="w-4 h-4 text-muted-foreground" />
+            <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 hover:bg-muted/60 touch-manipulation">
+              <XIcon className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           )}
         </div>
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto pb-nav">
+      <div className="flex-1 overflow-y-auto overscroll-contain pb-nav">
         {quickLaunchResults.length > 0 && (
-          <div className="px-4 pt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.18em]">
-                {hasQuery ? "ZIVO apps" : "Jump in"}
+          <div className="px-3 pt-3">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/70">
+                {hasQuery ? "Apps" : "Jump in"}
               </p>
               {!hasQuery && (
-                <button
+                <motion.button
                   type="button"
+                  whileTap={{ scale: 0.94 }}
                   onClick={() => { onNavigate("/services"); onClose(); }}
-                  className="rounded-full border border-white/45 bg-white/55 px-2.5 py-1 text-[11px] font-black text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
+                  className="rounded-full bg-ig-gradient px-2.5 py-1 text-[10px] font-black text-white shadow-[0_2px_8px_rgba(236,72,153,0.25)] touch-manipulation"
                 >
                   See all
-                </button>
+                </motion.button>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
               {quickLaunchResults.map((launch) => (
                 <FeedQuickLaunchButton
                   key={launch.href}
@@ -3624,85 +3643,72 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
           </div>
         )}
 
-        {!hasQuery && (
-          <div className="px-4 py-8">
-            <div className="zivo-social-module mx-auto flex max-w-sm flex-col items-center px-6 py-8 text-center">
-              <span className="zivo-social-share-orb mb-4 h-14 w-14">
-                <Search className="h-6 w-6" />
-              </span>
-              <p className="text-base font-black tracking-tight text-foreground">Search all of ZIVO</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">Find people, shops, restaurants, travel, rides, and apps in one place.</p>
-            </div>
-          </div>
-        )}
-
         {hasQuery && isLoading && (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-8">
             <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-sm font-black text-muted-foreground">Searching...</span>
+              <span className="text-[13px] font-black text-muted-foreground">Searching…</span>
             </div>
           </div>
         )}
 
         {hasQuery && !isLoading && !hasResults && (
-          <div className="px-4 py-12">
-            <div className="zivo-social-module mx-auto flex max-w-sm flex-col items-center gap-2 px-6 py-8 text-center">
-              <span className="zivo-social-share-orb h-14 w-14">
-                <Search className="h-6 w-6" />
-              </span>
-              <p className="text-sm font-black text-foreground">No results for "{debouncedQuery}"</p>
-              <p className="text-xs font-semibold text-muted-foreground">Try a person, shop, service, or app name.</p>
-            </div>
+          <div className="px-4 py-10 text-center">
+            <p className="text-sm font-black text-foreground">No results for "{debouncedQuery}"</p>
+            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">Try a person, shop, service, or app name.</p>
           </div>
         )}
 
         {storeResults.length > 0 && (
-          <div className="px-4 pt-3">
-            <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.18em] mb-2">Shops</p>
-            {storeResults.map((store: any) => (
-              <button type="button"
-                key={store.id}
-                onClick={() => { onNavigate(`/grocery/shop/${store.slug}`); onClose(); }}
-                className="zivo-social-module-tile mb-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 transition-transform active:scale-[0.99]"
-              >
-                <div className="zivo-social-avatar-ring w-11 h-11 rounded-full flex items-center justify-center overflow-hidden shrink-0 p-0.5">
-                  {store.logo_url ? (
-                    <img src={store.logo_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
-                  ) : (
-                    <Store className="w-5 h-5 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold truncate">{store.name}</p>
-                  {store.category && <p className="text-[11px] text-muted-foreground">{store.category}</p>}
-                </div>
-              </button>
-            ))}
+          <div className="px-3 pt-4">
+            <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/70">Shops</p>
+            <div className="space-y-1.5">
+              {storeResults.map((store: any) => (
+                <motion.button type="button"
+                  key={store.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => { onNavigate(`/grocery/shop/${store.slug}`); onClose(); }}
+                  className="zivo-social-module-tile flex w-full items-center gap-3 rounded-[1.25rem] px-3 py-2.5 text-left touch-manipulation transition-colors"
+                >
+                  <div className="zivo-social-avatar-ring h-9 w-9 shrink-0 overflow-hidden rounded-full p-0.5 flex items-center justify-center">
+                    {store.logo_url ? (
+                      <img src={store.logo_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
+                    ) : (
+                      <Store className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold text-foreground">{store.name}</p>
+                    {store.category && <p className="truncate text-[11px] text-muted-foreground">{store.category}</p>}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
           </div>
         )}
 
         {profileResults.length > 0 && (
-          <div className="px-4 pt-3">
-            <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.18em] mb-2">People</p>
-            {profileResults.map((person: any) => (
-              <button type="button"
-                key={person.id}
-                onClick={() => { onNavigate(`/user/${person.id}`); onClose(); }}
-                className="zivo-social-module-tile mb-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 transition-transform active:scale-[0.99]"
-              >
-                <div className="zivo-social-avatar-ring w-11 h-11 rounded-full flex items-center justify-center overflow-hidden shrink-0 p-0.5">
-                  {person.avatar_url ? (
-                    <img src={person.avatar_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
-                  ) : (
-                    <UserCircle className="w-6 h-6 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold truncate">{person.full_name || "User"}</p>
-                </div>
-              </button>
-            ))}
+          <div className="px-3 pt-4">
+            <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/70">People</p>
+            <div className="space-y-1.5">
+              {profileResults.map((person: any) => (
+                <motion.button type="button"
+                  key={person.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => { onNavigate(`/user/${person.id}`); onClose(); }}
+                  className="zivo-social-module-tile flex w-full items-center gap-3 rounded-[1.25rem] px-3 py-2.5 text-left touch-manipulation transition-colors"
+                >
+                  <div className="zivo-social-avatar-ring h-9 w-9 shrink-0 overflow-hidden rounded-full p-0.5 flex items-center justify-center">
+                    {person.avatar_url ? (
+                      <img src={person.avatar_url} alt="" className="h-full w-full rounded-full object-cover" loading="lazy" decoding="async" />
+                    ) : (
+                      <UserCircle className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">{person.full_name || "User"}</p>
+                </motion.button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -3713,12 +3719,14 @@ function FeedSearchOverlay({ onClose, onNavigate }: { onClose: () => void; onNav
 /* ── Sound Overlay (bottom sheet over reels) ─────────────────── */
 function SoundOverlay({
   soundName,
+  avatarUrl,
   onClose,
   onNavigateToReel,
   onUseSound,
   currentPosts,
 }: {
   soundName: string;
+  avatarUrl?: string | null;
   onClose: () => void;
   onNavigateToReel: (postId: string) => void;
   onUseSound: () => void;
@@ -3726,6 +3734,20 @@ function SoundOverlay({
 }) {
   // Check if this is a generated "Original Sound" name (not stored in DB)
   const isOriginalSound = soundName.startsWith("Original Sound - ");
+
+  // Resolve avatar from matching post in the feed if it wasn't passed directly
+  const resolvedAvatar = avatarUrl || (() => {
+    const match = currentPosts.find((p) => {
+      const label = p.audio_name || `Original Sound - ${p.source === "user" ? p.author_name || "ZIVO" : p.store_name || "ZIVO"}`;
+      return label === soundName;
+    });
+    return match ? (match.source === "user" ? match.author_avatar : match.store_logo) ?? null : null;
+  })();
+
+  const ownerInitial = (isOriginalSound
+    ? soundName.slice("Original Sound - ".length)
+    : soundName
+  ).charAt(0).toUpperCase() || "♪";
 
   const { data: dbReels = [], isLoading } = useQuery({
     queryKey: ["sound-overlay-reels", soundName],
@@ -3799,7 +3821,7 @@ function SoundOverlay({
         transition={{ type: "spring", damping: 28, stiffness: 320 }}
         className="fixed inset-0 z-[1501] flex items-center justify-center pointer-events-none p-4"
       >
-        <div className="zivo-social-sheet-panel pointer-events-auto flex max-h-[75vh] w-[94%] max-w-[480px] flex-col overflow-hidden rounded-[1.75rem]">
+        <div className="zivo-social-sheet-panel pointer-events-auto flex max-h-[82vh] w-[94%] max-w-[560px] flex-col overflow-hidden rounded-[1.75rem]">
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1">
             <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
@@ -3807,37 +3829,45 @@ function SoundOverlay({
 
           {/* Sound info header */}
           <div className="px-5 pt-2 pb-3 flex items-center gap-3.5">
-            <div className="zivo-social-share-orb h-14 w-14 shrink-0 rounded-2xl">
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
-                <svg viewBox="0 0 24 24" className="h-7 w-7 fill-current">
-                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                </svg>
-              </motion.div>
+            <div className="h-14 w-14 shrink-0 rounded-2xl overflow-hidden shadow-[0_4px_14px_rgba(236,72,153,0.3)]">
+              {resolvedAvatar ? (
+                <img
+                  src={resolvedAvatar}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <div className="bg-ig-gradient w-full h-full flex items-center justify-center">
+                  <span className="text-white text-2xl font-black leading-none">{ownerInitial}</span>
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Sound</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-ig-gradient">Sound</p>
               <p className="line-clamp-2 text-sm font-black leading-tight text-foreground">{soundName}</p>
               <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                 {reelCount} reel{reelCount !== 1 ? "s" : ""} • Tap to watch
               </p>
             </div>
-            <button type="button" onClick={onClose} aria-label="Close sound overlay" title="Close sound overlay" className="zivo-social-icon-button -mr-1">
+            <motion.button whileTap={{ scale: 0.88 }} type="button" onClick={onClose} aria-label="Close sound overlay" title="Close sound overlay" className="zivo-social-icon-button -mr-1">
               <XIcon className="h-5 w-5 text-muted-foreground" />
-            </button>
+            </motion.button>
           </div>
 
           {/* Use this sound button */}
           <div className="px-5 pb-3">
-            <button type="button"
+            <motion.button whileTap={{ scale: 0.97 }} type="button"
               onClick={() => {
                 onClose();
                 onUseSound();
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 via-primary to-fuchsia-500 py-2.5 text-sm font-black text-white shadow-[0_18px_38px_hsl(189_94%_43%/0.22)] transition-all hover:opacity-95 active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-ig-gradient py-3 text-sm font-black text-white shadow-[0_8px_20px_rgba(236,72,153,0.25)] transition-opacity hover:opacity-95"
             >
               <Music className="h-4 w-4" />
               Use this sound
-            </button>
+            </motion.button>
           </div>
 
           {/* Divider */}
@@ -3848,20 +3878,20 @@ function SoundOverlay({
             {isLoading && !isOriginalSound ? (
               <div className="flex justify-center py-10">
                 <div className="zivo-social-module-tile flex items-center gap-2 rounded-full px-4 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   <span className="text-sm font-black text-muted-foreground">Loading reels...</span>
                 </div>
               </div>
             ) : reelCount === 0 ? (
               <div className="zivo-social-module flex flex-col items-center justify-center gap-2 px-5 py-10 text-center">
-                <span className="zivo-social-share-orb h-14 w-14">
-                  <Play className="h-5 w-5" />
+                <span className="bg-ig-gradient h-14 w-14 flex items-center justify-center rounded-2xl shadow-[0_4px_14px_rgba(236,72,153,0.2)]">
+                  <Play className="h-5 w-5 text-white" />
                 </span>
                 <p className="text-sm font-black text-foreground">No reels with this sound yet</p>
                 <p className="text-xs font-semibold text-muted-foreground">Be the first to create with this audio.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 {reels.map((reel) => {
                   const thumb = (reel.media_urls || []).map((u: string) =>
                     normalizeSupabaseMediaUrl(
@@ -4256,6 +4286,7 @@ export default function FeedPage() {
   const [commentTarget, setCommentTarget] = useState<CommentTarget | null>(null);
   const [sharePostId, setSharePostId] = useState<string | null>(null);
   const [soundOverlayName, setSoundOverlayName] = useState<string | null>(null);
+  const [soundOverlayAvatar, setSoundOverlayAvatar] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showDiscover, setShowDiscover] = useState(false);
   const [reelComposerDraft, setReelComposerDraft] = useState<ReelComposerDraft | null>(null);
@@ -5867,7 +5898,7 @@ export default function FeedPage() {
                     onToggleLike={handleToggleLike}
                     onOpenComments={setCommentTarget}
                     onOpenShare={(id) => setSharePostId(id)}
-                    onOpenSound={(name) => setSoundOverlayName(name)}
+                    onOpenSound={(name, avatar) => { setSoundOverlayName(name); setSoundOverlayAvatar(avatar ?? null); }}
                     onStartDuet={startReelDuet}
                     onStartStitch={startReelStitch}
                     onShareToStory={shareReelToStory}
@@ -6012,7 +6043,6 @@ export default function FeedPage() {
             postSource={commentTarget.source}
             currentUserId={userId}
             commentsCount={commentTarget.initialCount}
-            dark
             onClose={() => {
               setCommentTarget(null);
               void queryClient.invalidateQueries({ queryKey: ["customer-feed"] });
@@ -6225,6 +6255,7 @@ export default function FeedPage() {
         {soundOverlayName && (
           <SoundOverlay
             soundName={soundOverlayName}
+            avatarUrl={soundOverlayAvatar}
             onClose={() => setSoundOverlayName(null)}
             onNavigateToReel={(postId) => {
               setSoundOverlayName(null);

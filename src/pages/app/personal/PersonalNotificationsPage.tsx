@@ -1,4 +1,4 @@
-import { ArrowLeft, Bell, BellOff, CheckCheck, Car, ShoppingBag, CreditCard, Tag, Info, Briefcase, ChevronDown, ChevronUp, Star, RotateCcw, Receipt, X } from "lucide-react";
+﻿import { ArrowLeft, Bell, BellOff, CheckCheck, Car, ShoppingBag, CreditCard, Tag, Info, Briefcase, ChevronDown, ChevronUp, Star, RotateCcw, Receipt, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -67,7 +67,7 @@ function PushOptInBanner() {
                 <button
                   type="button"
                   onClick={handleEnable}
-                  className="px-3.5 py-1.5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold active:scale-95 transition-transform"
+                  className="px-3.5 py-1.5 rounded-full bg-ig-gradient text-white text-[11px] font-bold active:scale-95 transition-transform"
                 >
                   Enable
                 </button>

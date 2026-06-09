@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ActivityLogPage — Full history of logins, actions, changes with filters,
  * search, CSV export, and pagination.
  */
@@ -479,7 +479,7 @@ export default function ActivityLogPage() {
             aria-pressed={filter === opt.value}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${
               filter === opt.value
-                ? "bg-primary text-primary-foreground"
+                ? "bg-ig-gradient text-white"
                 : "bg-muted/60 text-muted-foreground hover:bg-muted"
             }`}
           >

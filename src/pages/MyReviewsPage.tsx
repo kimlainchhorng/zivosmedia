@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
@@ -166,7 +166,7 @@ export default function MyReviewsPage() {
                 className={cn(
                   "px-3 py-1.5 rounded-full border text-[12px] font-semibold whitespace-nowrap transition-all",
                   filterType === type
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-muted/20 text-foreground border-border/20 hover:bg-muted/40"
                 )}
               >

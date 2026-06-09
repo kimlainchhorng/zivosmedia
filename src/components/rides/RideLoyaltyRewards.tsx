@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideLoyaltyRewards — Points system, tier progression, streak bonuses, partner perks
  */
 import { useState } from "react";
@@ -174,7 +174,7 @@ export default function RideLoyaltyRewards() {
                     const isToday = i === 4;
                     return (
                       <div key={i} className="flex flex-col items-center gap-1.5">
-                        <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors", completed ? "bg-primary text-primary-foreground" : isToday ? "bg-primary/20 text-primary border-2 border-primary" : "bg-muted/30 text-muted-foreground")}>
+                        <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors", completed ? "bg-ig-gradient text-white" : isToday ? "bg-primary/20 text-primary border-2 border-primary" : "bg-muted/30 text-muted-foreground")}>
                           {completed ? <CheckCircle className="w-4 h-4" /> : d}
                         </div>
                         <span className="text-[9px] font-bold text-muted-foreground">{d}</span>

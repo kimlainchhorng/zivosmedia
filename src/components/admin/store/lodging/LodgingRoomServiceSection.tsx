@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Room Service / In-Room Dining Orders.
  * Track F&B orders per room through a placed → preparing → on_the_way → delivered pipeline.
  */
@@ -213,7 +213,7 @@ export default function LodgingRoomServiceSection({ storeId }: { storeId: string
         <div className="flex gap-1.5 flex-wrap">
           {(["active", "all", "placed", "preparing", "on_the_way", "delivered", "cancelled"] as const).map(s => (
             <button type="button" key={s} onClick={() => setFilterStatus(s as any)}
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${filterStatus === s ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${filterStatus === s ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
               {s === "active" ? "Active" : s === "all" ? "All" : STATUS_LABEL[s as OrderStatus]}
             </button>
           ))}

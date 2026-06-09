@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Account Addresses Page
  * Manage saved delivery addresses
  */
@@ -192,7 +192,7 @@ export default function AddressesPage() {
         {/* Add New Button */}
         <Button
           onClick={() => handleOpenDialog()}
-          className="w-full h-14 rounded-xl bg-primary text-primary-foreground font-semibold gap-2"
+          className="w-full h-14 rounded-xl bg-ig-gradient text-white font-semibold gap-2"
         >
           <Plus className="w-5 h-5" />
           {t("address.add_new")}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Flight Search Page — /flights
  * Cinematic 3D/4D immersive flight search experience
  */
@@ -378,7 +378,7 @@ function PopularRoutesSection({ className }: { className?: string }) {
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition border",
                 active
-                  ? "bg-primary text-primary-foreground border-primary"
+                  ? "bg-ig-gradient text-white border-primary"
                   : "bg-background text-foreground border-border active:bg-muted",
               )}
             >
@@ -817,7 +817,7 @@ function TravelTipBar() {
   );
 }
 
-/* ─── Mobile Flight Search ─── */
+/* ─── Mobile / Tablet Flight Search ─── */
 function MobileFlightSearch() {
   const { fromCity, toCity } = useParams();
   const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
@@ -829,7 +829,6 @@ function MobileFlightSearch() {
     const onScroll = () => {
       const el = formRef.current;
       if (!el) return;
-      // Show once the form bottom has scrolled above the viewport top
       setShowBackToTop(el.getBoundingClientRect().bottom < -40);
     };
     onScroll();
@@ -837,9 +836,27 @@ function MobileFlightSearch() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const trustItems = [
+    { icon: Shield, title: "Free cancellation", sub: "On most flights", color: "emerald" },
+    { icon: Zap, title: "Instant confirmation", sub: "E-tickets in seconds", color: "amber" },
+    { icon: Star, title: "Transparent pricing", sub: "All fees shown upfront", color: "sky" },
+    { icon: Headphones, title: "24/7 support", sub: "Help anywhere, anytime", color: "purple" },
+  ] as const;
+  const colorMap: Record<string, string> = {
+    emerald: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    amber:   "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    sky:     "bg-sky-500/10 text-sky-600 border-sky-500/20",
+    purple:  "bg-purple-500/10 text-purple-600 border-purple-500/20",
+  };
+
   return (
-    <div className="flex flex-col gap-5 px-4 pb-10 pt-1" style={{ perspective: "1200px" }}>
+    <div
+      className="flex flex-col gap-5 px-4 md:px-6 pb-10 pt-1 md:max-w-2xl md:mx-auto"
+      style={{ perspective: "1200px" }}
+    >
       <GreetingHeader />
+
+      {/* Search form — 3D lifted card */}
       <motion.div
         ref={formRef}
         initial={{ opacity: 0, y: 40, rotateX: 12 }}
@@ -856,80 +873,62 @@ function MobileFlightSearch() {
           className="shadow-xl shadow-primary/10 rounded-2xl border border-border/30"
         />
       </motion.div>
-      {/* Rotating travel tip — replaces the previously redundant trust strip */}
+
+      {/* Rotating travel tip */}
       <TravelTipBar />
 
-      {/* Quick actions */}
+      {/* Quick actions — 2 cols on phone, 4 cols on tablet */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
-        className="grid grid-cols-2 gap-2"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2"
       >
-        <button
-          type="button"
-          onClick={() => navigate("/flights/bookings")}
-          aria-label="My bookings — manage trips and e-tickets"
-          className="text-left flex items-center gap-2 rounded-2xl border border-border/40 bg-card p-3 active:scale-[0.98] transition shadow-sm"
-        >
-          <span className="w-9 h-9 shrink-0 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-            <Ticket className="w-4 h-4 text-sky-600" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-bold text-foreground leading-tight">My bookings</p>
-            <p className="text-[10px] text-muted-foreground leading-tight truncate">Manage trips & e-tickets</p>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate("/flights/live")}
-          aria-label="Flight status — track live departures"
-          className="text-left flex items-center gap-2 rounded-2xl border border-border/40 bg-card p-3 active:scale-[0.98] transition shadow-sm"
-        >
-          <span className="w-9 h-9 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <Radar className="w-4 h-4 text-emerald-600" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-bold text-foreground leading-tight">Flight status</p>
-            <p className="text-[10px] text-muted-foreground leading-tight truncate">Track live departures</p>
-          </div>
-        </button>
+        {[
+          { path: "/flights/bookings", icon: Ticket, color: "sky", title: "My bookings", sub: "Manage trips & e-tickets" },
+          { path: "/flights/live",     icon: Radar,  color: "emerald", title: "Flight status", sub: "Track live departures" },
+          { path: "/flight-price-alerts", icon: TrendingUp, color: "amber", title: "Price alerts", sub: "Get notified on drops" },
+          { path: "/support/travel-bookings", icon: Headphones, color: "purple", title: "Support", sub: "Travel help 24/7" },
+        ].map(({ path, icon: Icon, color, title, sub }) => (
+          <button
+            key={path}
+            type="button"
+            onClick={() => navigate(path)}
+            aria-label={title}
+            className="text-left flex items-center gap-2 rounded-2xl border border-border/40 bg-card p-3 active:scale-[0.98] transition-all duration-150 shadow-sm hover:shadow-md hover:border-border/60"
+          >
+            <span className={cn("w-9 h-9 shrink-0 rounded-xl border flex items-center justify-center", colorMap[color])}>
+              <Icon className="w-4 h-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-bold text-foreground leading-tight">{title}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight truncate">{sub}</p>
+            </div>
+          </button>
+        ))}
       </motion.div>
 
-      {/* Trust badges — conversion confidence row */}
+      {/* Trust badges — 2-col phone, 4-col tablet */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="grid grid-cols-2 gap-2"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2"
       >
-        {[
-          { icon: Shield, title: "Free cancellation", sub: "On most flights", color: "emerald" },
-          { icon: Zap, title: "Instant confirmation", sub: "E-tickets in seconds", color: "amber" },
-          { icon: Star, title: "Transparent pricing", sub: "All fees shown upfront", color: "sky" },
-          { icon: Headphones, title: "24/7 support", sub: "Help anywhere, anytime", color: "purple" },
-        ].map((item) => {
-          const colorMap: Record<string, string> = {
-            emerald: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-            amber: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-            sky: "bg-sky-500/10 text-sky-600 border-sky-500/20",
-            purple: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-          };
-          return (
-            <div
-              key={item.title}
-              className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/60 backdrop-blur p-2.5"
-            >
-              <span className={cn("w-8 h-8 shrink-0 rounded-xl border flex items-center justify-center", colorMap[item.color])}>
-                <item.icon className="w-4 h-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[12px] font-bold text-foreground leading-tight truncate">{item.title}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight truncate">{item.sub}</p>
-              </div>
+        {trustItems.map((item) => (
+          <div
+            key={item.title}
+            className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/60 backdrop-blur p-2.5"
+          >
+            <span className={cn("w-8 h-8 shrink-0 rounded-xl border flex items-center justify-center", colorMap[item.color])}>
+              <item.icon className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] font-bold text-foreground leading-tight truncate">{item.title}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight truncate">{item.sub}</p>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </motion.div>
 
       <ScrollReveal3D><PopularRoutesSection /></ScrollReveal3D>
@@ -1078,7 +1077,7 @@ function MobileFlightSearch() {
         onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
         aria-label="Back to search"
         className={cn(
-          "fixed bottom-[calc(var(--zivo-safe-bottom,0px)+5rem)] right-4 z-40 h-12 px-4 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200",
+          "fixed bottom-[calc(var(--zivo-safe-bottom,0px)+5rem)] right-4 z-40 h-12 px-4 rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/30 inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200",
           showBackToTop
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-4 pointer-events-none",

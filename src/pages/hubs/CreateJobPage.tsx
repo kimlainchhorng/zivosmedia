@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreateJobPage — /jobs-hub/create
  */
 import { useState } from "react";
@@ -71,7 +71,7 @@ export default function CreateJobPage() {
             <input type="checkbox" checked={remote} onChange={(e) => setRemote(e.target.checked)} />
             Remote / online work
           </label>
-          <button type="button" onClick={() => void submit()} disabled={busy || !title} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
+          <button type="button" onClick={() => void submit()} disabled={busy || !title} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50">
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
           </button>
         </div>

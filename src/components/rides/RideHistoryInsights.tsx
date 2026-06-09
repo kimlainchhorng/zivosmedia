@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideHistoryInsights - Monthly stats from real ride_requests data
  */
 import { useState, useEffect } from "react";
@@ -97,7 +97,7 @@ export default function RideHistoryInsights() {
                 onClick={() => setPeriod(p)}
                 className={cn(
                   "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-                  period === p ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground"
+                  period === p ? "bg-ig-gradient text-white" : "bg-muted/30 text-muted-foreground"
                 )}
               >
                 {p === "week" ? "This Week" : "This Month"}

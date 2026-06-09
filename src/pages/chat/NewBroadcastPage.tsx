@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NewBroadcastPage — Create a broadcast list by picking contacts (followed users).
  */
 import { useEffect, useState } from "react";
@@ -150,7 +150,7 @@ export default function NewBroadcastPage() {
         <button type="button"
           onClick={create}
           disabled={creating}
-          className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+          className="w-full py-3 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50"
         >
           {creating ? "Creating…" : `Create list (${picked.size})`}
         </button>

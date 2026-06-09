@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StripeEmbeddedOnboarding — Stripe Connect Embedded Components.
  * Renders Stripe's onboarding flow INSIDE the app (no redirect).
  */
@@ -130,7 +130,7 @@ export default function StripeEmbeddedOnboarding({ open, onClose, onComplete, co
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex flex-col">
+    <div className="fixed inset-0 z-[1450] bg-background/95 backdrop-blur-sm flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-card">
         <div>

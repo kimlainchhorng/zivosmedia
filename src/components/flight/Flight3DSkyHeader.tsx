@@ -202,7 +202,7 @@ export default function Flight3DSkyHeader({ className }: { className?: string })
   return (
     <div
       className={cn(
-        "relative w-full h-28 overflow-hidden",
+        "relative w-full h-28 sm:h-36 md:h-44 overflow-hidden",
         className
       )}
     >

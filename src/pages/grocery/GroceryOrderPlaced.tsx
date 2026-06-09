@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryOrderPlaced - Premium order confirmation with animated stepper
  * Fetches real order data and shows live ETA
  */
@@ -237,7 +237,7 @@ export default function GroceryOrderPlaced() {
                   )}
                   <div className={`relative z-10 h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
+                      ? "bg-ig-gradient text-white shadow-md shadow-primary/30"
                       : "bg-muted/30 text-muted-foreground/40 border border-border/20"
                   }`}>
                     <StepIcon className="h-4 w-4" />

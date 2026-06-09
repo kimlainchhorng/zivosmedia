@@ -1,4 +1,4 @@
-/**
+﻿/**
  * JobsHubPage — /jobs-hub
  * Browse open gigs, apply with one tap.
  */
@@ -40,7 +40,7 @@ export default function JobsHubPage() {
             <h1 className="text-2xl font-bold">Gigs & jobs</h1>
             <p className="text-sm text-muted-foreground">Earn extra — drive, deliver, freelance, or full-time.</p>
           </div>
-          <button type="button" onClick={() => navigate("/jobs-hub/create")} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
+          <button type="button" onClick={() => navigate("/jobs-hub/create")} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-ig-gradient text-white text-sm font-bold">
             <Plus className="w-4 h-4" /> Post
           </button>
         </div>

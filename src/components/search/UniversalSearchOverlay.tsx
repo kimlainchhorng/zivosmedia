@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Universal Search Overlay
  * Full-screen cross-service search hub for the Super App
  * Searches: restaurants, food items, past orders, trips, saved addresses, help articles
@@ -448,7 +448,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="fixed inset-0 z-[100] bg-background flex flex-col"
+          className="fixed inset-0 z-[1450] bg-background flex flex-col"
         >
           {/* Header */}
           <div className="safe-area-top px-4 pt-4 pb-2 flex items-center gap-3 border-b border-border">
@@ -487,7 +487,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                     onClick={() => setActiveTab(tab.key)}
                     className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all touch-manipulation ${
                       isActive
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-ig-gradient text-white"
                         : "bg-muted text-muted-foreground hover:bg-accent"
                     }`}
                   >

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSmartBack } from "@/lib/smartBack";
 import { ArrowLeft, Shield, Star, Power, CheckCircle2, XCircle, Flag } from "lucide-react";
@@ -119,7 +119,7 @@ export default function BotAdminPage() {
               key={f || "all"}
               onClick={() => setFilter(f)}
               className={`px-3 py-1 rounded-full text-xs whitespace-nowrap border ${
-                filter === f ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-muted/40"
+                filter === f ? "bg-ig-gradient text-white border-primary" : "bg-card border-border hover:bg-muted/40"
               }`}
             >
               {f || "All"}

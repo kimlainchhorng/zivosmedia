@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DriverOrdersPage - Dashboard for drivers to see available and assigned shopping orders
  */
 import { useState, useCallback } from "react";
@@ -109,7 +109,7 @@ function OrderCard({
             <button type="button"
               onClick={(e) => { e.stopPropagation(); onAdvance?.(); }}
               disabled={isAdvancing}
-              className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold touch-manipulation active:scale-[0.98] transition-all disabled:opacity-50">
+              className="w-full py-2 rounded-xl bg-ig-gradient text-white text-xs font-bold touch-manipulation active:scale-[0.98] transition-all disabled:opacity-50">
               {isAdvancing ? "Updating…" : STATUS_ADVANCE_LABEL[order.status]}
             </button>
           )}

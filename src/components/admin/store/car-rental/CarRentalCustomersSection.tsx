@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalCustomersSection — manage renter book.
  */
 import { useMemo, useState } from "react";
@@ -235,7 +235,7 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
                     })}
                     className={cn(
                       "rounded-full px-2.5 py-0.5 text-[11px] font-semibold border transition-colors",
-                      active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                      active ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {t}
@@ -374,7 +374,7 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
                       }}
                       className={cn(
                         "rounded-full px-2.5 py-1 text-[11px] font-semibold border transition-colors",
-                        active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                        active ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {t}

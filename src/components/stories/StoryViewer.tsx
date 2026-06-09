@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoryViewer — Shared fullscreen story viewer (Facebook/TikTok-class).
  * Used by ChatStories, ProfileStories, and FeedStoryRing.
  *
@@ -989,7 +989,7 @@ export default function StoryViewer({
               <div className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center relative">
                 <MessageCircle className="w-5 h-5 text-white" />
                 {comments.length > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-ig-gradient text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                     {comments.length}
                   </span>
                 )}

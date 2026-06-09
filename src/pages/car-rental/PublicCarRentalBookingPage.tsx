@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PublicCarRentalBookingPage — customer-facing booking flow for a single
  * car-rental store. Mirrors the salon public booking flow.
  *
@@ -764,7 +764,7 @@ export default function PublicCarRentalBookingPage() {
               return (
                 <div key={s} className={cn(
                   "flex-1 min-w-[60px] rounded-full px-2 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider",
-                  isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                  isActive ? "bg-ig-gradient text-white" : isDone ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
                 )}>
                   {s}
                 </div>
@@ -1409,19 +1409,19 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
             <div className="mb-4 flex flex-wrap items-center gap-1.5">
               <button type="button" onClick={() => setCatFilter("all")} className={cn(
                 "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                catFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                catFilter === "all" ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
               )}>All</button>
               {allCategories.map((c) => (
                 <button key={c} type="button" onClick={() => setCatFilter(c)} className={cn(
                   "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors capitalize",
-                  catFilter === c ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                  catFilter === c ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
                 )}>{c}</button>
               ))}
               <span className="mx-1 text-muted-foreground/30">·</span>
               {(["all", "automatic", "manual"] as const).map((t) => (
                 <button key={t} type="button" onClick={() => setTransmissionFilter(t)} className={cn(
                   "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors capitalize",
-                  transmissionFilter === t ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                  transmissionFilter === t ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
                 )}>{t === "all" ? "Any transmission" : t}</button>
               ))}
             </div>

@@ -54,7 +54,52 @@ export type StoreCategory =
   | "other";
 
 export const STORE_CATEGORY_OPTIONS: { value: StoreCategory; label: string; group?: string }[] = [
-  { value: "software", label: "Software Business Page", group: "Software" },
+  // Food & Drink
+  { value: "restaurant",   label: "Restaurant",            group: "Food & Drink" },
+  { value: "cafe",         label: "Café",                  group: "Food & Drink" },
+  { value: "bakery",       label: "Bakery",                group: "Food & Drink" },
+  { value: "drink",        label: "Bar / Drink Shop",      group: "Food & Drink" },
+  { value: "food-market",  label: "Food Market",           group: "Food & Drink" },
+  // Retail
+  { value: "grocery",      label: "Grocery Store",         group: "Retail" },
+  { value: "supermarket",  label: "Supermarket",           group: "Retail" },
+  { value: "convenience",  label: "Convenience Store",     group: "Retail" },
+  { value: "pharmacy",     label: "Pharmacy",              group: "Retail" },
+  { value: "fashion",      label: "Fashion & Clothing",    group: "Retail" },
+  { value: "electronics",  label: "Electronics",           group: "Retail" },
+  { value: "hardware",     label: "Hardware Store",        group: "Retail" },
+  { value: "florist",      label: "Florist",               group: "Retail" },
+  { value: "bookstore",    label: "Bookstore",             group: "Retail" },
+  { value: "jewelry",      label: "Jewelry",               group: "Retail" },
+  { value: "pet-shop",     label: "Pet Shop",              group: "Retail" },
+  { value: "toys",         label: "Toys & Games",          group: "Retail" },
+  { value: "furniture",    label: "Furniture",             group: "Retail" },
+  { value: "home-decor",   label: "Home Decor",            group: "Retail" },
+  { value: "sporting-goods", label: "Sporting Goods",      group: "Retail" },
+  { value: "mall",         label: "Mall / Shopping Center", group: "Retail" },
+  // Automotive
+  { value: "auto-repair",  label: "Auto Repair Shop",      group: "Automotive" },
+  { value: "tire-shop",    label: "Tire Shop",             group: "Automotive" },
+  { value: "auto-parts",   label: "Auto Parts",            group: "Automotive" },
+  { value: "car-rental",   label: "Car Rental",            group: "Automotive" },
+  { value: "car-dealership", label: "Car Dealership",      group: "Automotive" },
+  { value: "gas-station",  label: "Gas Station",           group: "Automotive" },
+  // Transportation
+  { value: "bus",          label: "Bus Operator",          group: "Transportation" },
+  { value: "van",          label: "Van / Shuttle Service", group: "Transportation" },
+  // Beauty & Wellness
+  { value: "salon",        label: "Hair Salon",            group: "Beauty & Wellness" },
+  { value: "spa",          label: "Spa & Beauty",          group: "Beauty & Wellness" },
+  { value: "gym",          label: "Gym / Fitness",         group: "Beauty & Wellness" },
+  { value: "laundry",      label: "Laundry Service",       group: "Beauty & Wellness" },
+  // Hospitality
+  { value: "hotel",        label: "Hotel",                 group: "Hospitality" },
+  { value: "resort",       label: "Resort",                group: "Hospitality" },
+  { value: "guesthouse",   label: "Guesthouse",            group: "Hospitality" },
+  // Software (shown on zivosoftware.com; excluded when isSoftwareDomain filters "Other")
+  { value: "software",     label: "Software Business Page", group: "Software" },
+  // Other (excluded on zivosoftware.com by the isSoftwareDomain filter)
+  { value: "other",        label: "Other Business",        group: "Other" },
 ];
 
 export const GROCERY_MARKETPLACE_CATEGORIES: StoreCategory[] = [

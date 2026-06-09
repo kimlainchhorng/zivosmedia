@@ -1,4 +1,4 @@
-/**
+﻿/**
  * My Trips Page — 3D/4D Spatial UI
  */
 
@@ -290,7 +290,7 @@ export default function MyTripsPage() {
                       className={cn(
                         "shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-[11px] font-bold transition-all duration-300 touch-manipulation",
                         serviceFilter === filter.id
-                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                          ? "bg-ig-gradient text-white shadow-lg shadow-primary/30"
                           : "bg-transparent border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30"
                       )}
                     >
@@ -320,7 +320,7 @@ export default function MyTripsPage() {
                       className={cn(
                         "flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all duration-300 touch-manipulation",
                         statusFilter === filter.id
-                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                          ? "bg-ig-gradient text-white shadow-lg shadow-primary/25"
                           : "text-muted-foreground hover:text-foreground hover:bg-card/50"
                       )}
                     >

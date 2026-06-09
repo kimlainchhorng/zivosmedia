@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalReviewsSection — read and respond to renter reviews.
  */
 import { useMemo, useState } from "react";
@@ -367,7 +367,7 @@ function FilterChip({ active, onClick, children, tone }: {
     <button type="button" onClick={onClick} className={cn(
       "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
       active
-        ? "bg-primary text-primary-foreground border-primary"
+        ? "bg-ig-gradient text-white border-primary"
         : tone === "warn"
           ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
           : tone === "destructive"

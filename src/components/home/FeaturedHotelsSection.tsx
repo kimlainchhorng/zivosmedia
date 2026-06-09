@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FeaturedHotelsSection — Live hotel stores from Supabase.
  * Renders nothing if there are no real hotel stores yet — no placeholder
  * cards, so users never see fabricated properties.
@@ -114,7 +114,7 @@ export default function FeaturedHotelsSection() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/10 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                     {store.price_per_night != null && (
-                      <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1.5 rounded-xl text-sm font-bold shadow-lg">
+                      <div className="absolute top-3 right-3 bg-ig-gradient text-white px-3 py-1.5 rounded-xl text-sm font-bold shadow-lg">
                         ${store.price_per_night}<span className="text-xs font-normal opacity-80">/night</span>
                       </div>
                     )}

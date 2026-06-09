@@ -23,6 +23,7 @@ import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { detectSensitiveContent, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
 import ProductPickerSheet from "@/components/social/ProductPickerSheet";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
+import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
 
 interface CreatePostModalProps {
   userId: string;
@@ -247,6 +248,7 @@ export default function CreatePostModal({
   const [location, setLocation] = useState<string | null>(null);
   const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [locationQuery, setLocationQuery] = useState("");
+  const [geoLoading, setGeoLoading] = useState(false);
   const [taggedUsers, setTaggedUsers] = useState<{ id: string; name: string }[]>([]);
   const [showTagSearch, setShowTagSearch] = useState(false);
   const [tagQuery, setTagQuery] = useState("");
@@ -264,6 +266,9 @@ export default function CreatePostModal({
   // Shoppable: products selected to tag on this post.
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [taggedProductIds, setTaggedProductIds] = useState<string[]>([]);
+  // Resolve effective store: prefer the passed commerce link, fall back to the user's own first store.
+  const { data: ownedStores = [] } = useOwnerStores();
+  const effectiveStoreId = commerceLinkDraft?.storeId ?? ownedStores[0]?.id ?? null;
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const [unlockPrice, setUnlockPrice] = useState<string>("");
   const [showUnlockInput, setShowUnlockInput] = useState(false);
@@ -281,6 +286,26 @@ export default function CreatePostModal({
   const filteredLocations = locationQuery
     ? LOCATIONS.filter((l) => l.toLowerCase().includes(locationQuery.toLowerCase()))
     : LOCATIONS;
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.info("Your browser doesn't support geolocation");
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        setLocation("My location");
+        setShowLocationSearch(false);
+        setGeoLoading(false);
+      },
+      () => {
+        toast.info("Location access denied. Search for a city.");
+        setGeoLoading(false);
+      },
+      { timeout: 8000 },
+    );
+  };
 
   // Auto-save draft
   useEffect(() => {
@@ -716,14 +741,58 @@ export default function CreatePostModal({
 
       // Persist shoppable product tags (separate from single commerce link).
       if (taggedProductIds.length > 0 && insertedPost?.id) {
+        const storeIdForTags = commerceLinkDraft?.storeId ?? ownedStores[0]?.id ?? null;
         const rows = taggedProductIds.map((pid, i) => ({
           post_id: insertedPost.id,
           post_source: "user",
           store_product_id: pid,
+          store_id: storeIdForTags,
           sort_order: i,
         }));
         const { error: tagErr } = await (supabase as any).from("post_products").insert(rows);
         if (tagErr) console.warn("[CreatePost] product tag insert failed", tagErr);
+      }
+
+      // Persist album association (find-or-create album, then link post)
+      if (album && insertedPost?.id) {
+        try {
+          let albumId: string | null = null;
+          const { data: existingAlbum } = await (supabase as any)
+            .from("post_albums")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("name", album)
+            .maybeSingle();
+          if (existingAlbum?.id) {
+            albumId = existingAlbum.id;
+          } else {
+            const { data: createdAlbum } = await (supabase as any)
+              .from("post_albums")
+              .insert({ user_id: userId, name: album })
+              .select("id")
+              .single();
+            albumId = createdAlbum?.id ?? null;
+          }
+          if (albumId) {
+            await (supabase as any)
+              .from("post_album_items")
+              .insert({ album_id: albumId, post_id: insertedPost.id });
+          }
+        } catch (albumErr) {
+          console.warn("[CreatePost] album save failed", albumErr);
+        }
+      }
+
+      // Persist tagged people as post_mentions
+      if (taggedUsers.length > 0 && insertedPost?.id) {
+        const mentionRows = taggedUsers.map((u) => ({
+          post_id: insertedPost.id,
+          mentioned_user_id: u.id,
+        }));
+        const { error: mentionErr } = await (supabase as any)
+          .from("post_mentions")
+          .insert(mentionRows);
+        if (mentionErr) console.warn("[CreatePost] mentions save failed", mentionErr);
       }
 
       // Clear draft on successful post
@@ -952,100 +1021,127 @@ export default function CreatePostModal({
         )}
 
         {/* Privacy & extras row */}
-        <div className="px-4 pb-2 flex items-center gap-2 flex-nowrap overflow-x-auto scrollbar-hide">
+        <div className="px-4 pb-2 flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-hide">
 
-          {/* Album button — inline input instead of prompt() */}
-          <button type="button"
-            onClick={() => setMarkSensitive((value) => !value)}
+          {/* 18+ sensitivity chip */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.93 }}
+            onClick={() => setMarkSensitive((v) => !v)}
             className={cn(
-              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px]",
+              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold min-h-[34px] transition-colors",
               composerSensitive
-                ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
-                : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/50"
+                ? "bg-amber-500/12 text-amber-600 dark:text-amber-400 border-amber-400/30"
+                : "bg-muted/40 text-muted-foreground border-border/30",
             )}
             aria-pressed={composerSensitive}
-            title="Mark as 18+ sensitive media"
+            title="Mark as 18+ sensitive"
           >
-            <ShieldAlert className="h-3.5 w-3.5" />
+            {composerSensitive
+              ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+              : <ShieldAlert className="h-3.5 w-3.5 shrink-0" />}
             {composerSensitive ? "18+ on" : "18+"}
-          </button>
+          </motion.button>
 
+          {/* Album chip */}
           {!zivoOFMode && (
-          <div>
-            <button type="button"
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.93 }}
               onClick={() => {
-                if (album) {
-                  setAlbum(null);
-                  setShowAlbumInput(false);
-                } else {
-                  setShowAlbumInput(!showAlbumInput);
-                }
+                if (album) { setAlbum(null); setShowAlbumInput(false); setAlbumInput(""); }
+                else { setShowAlbumInput((v) => !v); }
               }}
               className={cn(
-                "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px]",
+                "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold min-h-[34px] transition-colors",
                 album
-                  ? "bg-primary/10 text-primary border-primary/30"
-                  : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/50"
+                  ? "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-400/30"
+                  : showAlbumInput
+                    ? "bg-muted/60 text-foreground border-border/50"
+                    : "bg-muted/40 text-muted-foreground border-border/30",
               )}
             >
-              <FolderPlus className="h-3.5 w-3.5" />
-              {album || "Album"}
-              {album && <XIcon className="h-3 w-3 ml-0.5" />}
-            </button>
-          </div>
+              <FolderPlus className="h-3.5 w-3.5 shrink-0" />
+              <span className="max-w-[80px] truncate">{album || "Album"}</span>
+              {album && <XIcon className="h-3 w-3 shrink-0 opacity-70" />}
+            </motion.button>
           )}
 
-          {/* Location tag */}
+          {/* Location chip */}
           {!zivoOFMode && (
-          <button type="button"
-            onClick={() => setShowLocationSearch(!showLocationSearch)}
-            className={cn(
-              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px]",
-              location
-                ? "bg-primary/10 text-primary border-primary/30"
-                : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/50"
-            )}
-          >
-            <MapPin className="h-3.5 w-3.5" />
-            {location || "Location"}
-          </button>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.93 }}
+              onClick={() => setShowLocationSearch((v) => !v)}
+              className={cn(
+                "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold min-h-[34px] transition-colors",
+                location
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-400/30"
+                  : showLocationSearch
+                    ? "bg-muted/60 text-foreground border-border/50"
+                    : "bg-muted/40 text-muted-foreground border-border/30",
+              )}
+            >
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span className="max-w-[80px] truncate">{location || "Location"}</span>
+            </motion.button>
           )}
 
-          {/* Tag people */}
+          {/* Tag people chip */}
           {!zivoOFMode && (
-          <button type="button"
-            onClick={() => { setShowTagSearch(true); setTagQuery(""); handleTagSearch(""); }}
-            className={cn(
-              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px]",
-              taggedUsers.length > 0
-                ? "bg-primary/10 text-primary border-primary/30"
-                : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/50"
-            )}
-          >
-            <Hash className="h-3.5 w-3.5" />
-            {taggedUsers.length > 0 ? `${taggedUsers.length} tagged` : "Tag"}
-          </button>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.93 }}
+              onClick={() => { setShowTagSearch(true); setTagQuery(""); handleTagSearch(""); }}
+              className={cn(
+                "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold min-h-[34px] transition-colors",
+                taggedUsers.length > 0
+                  ? "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-400/30"
+                  : showTagSearch
+                    ? "bg-muted/60 text-foreground border-border/50"
+                    : "bg-muted/40 text-muted-foreground border-border/30",
+              )}
+            >
+              <Users className="h-3.5 w-3.5 shrink-0" />
+              {taggedUsers.length > 0 ? `${taggedUsers.length} tagged` : "Tag people"}
+              {taggedUsers.length > 0 && (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-violet-500 text-[9px] font-black text-white">
+                  {taggedUsers.length}
+                </span>
+              )}
+            </motion.button>
           )}
 
-          {/* Tag products (shoppable) */}
-          <button type="button"
+          {/* Tag products chip */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.93 }}
             onClick={() => {
-              if (!commerceLinkDraft?.storeId) {
-                toast.info("Attach a store link first to tag products");
+              if (!effectiveStoreId) {
+                toast.info("Create a store first to tag products", {
+                  action: { label: "Create store", onClick: () => navigate("/app/shop") },
+                });
                 return;
               }
               setShowProductPicker(true);
             }}
             className={cn(
-              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium min-h-[36px]",
+              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold min-h-[34px] transition-colors",
               taggedProductIds.length > 0
-                ? "bg-primary/10 text-primary border-primary/30"
-                : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/50",
+                ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-400/30"
+                : "bg-muted/40 text-muted-foreground border-border/30",
             )}
           >
-            <ShoppingBag className="h-3.5 w-3.5" />
-            {taggedProductIds.length > 0 ? `${taggedProductIds.length} product${taggedProductIds.length === 1 ? "" : "s"}` : "Tag products"}
-          </button>
+            <ShoppingBag className="h-3.5 w-3.5 shrink-0" />
+            {taggedProductIds.length > 0
+              ? `${taggedProductIds.length} product${taggedProductIds.length !== 1 ? "s" : ""}`
+              : "Tag products"}
+            {taggedProductIds.length > 0 && (
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-orange-500 text-[9px] font-black text-white">
+                {taggedProductIds.length}
+              </span>
+            )}
+          </motion.button>
         </div>
 
         {/* Album input panel */}
@@ -1082,9 +1178,9 @@ export default function CreatePostModal({
                     }
                   }}
                   disabled={!albumInput.trim()}
-                  className="mt-2 w-full rounded-xl bg-primary py-2 text-sm font-bold text-primary-foreground disabled:opacity-40"
+                  className="mt-2 w-full rounded-xl bg-ig-gradient py-2 text-sm font-bold text-white disabled:opacity-40"
                 >
-                  Add
+                  Add to Album
                 </button>
               </div>
             </motion.div>
@@ -1115,6 +1211,17 @@ export default function CreatePostModal({
                     <button type="button" onClick={() => { setLocation(null); setShowLocationSearch(false); }} className="text-xs text-destructive">Clear</button>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={detectLocation}
+                  disabled={geoLoading}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 mb-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-primary/5 transition-colors border-b border-border/20 pb-2"
+                >
+                  {geoLoading
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                    : <MapPin className="h-3.5 w-3.5 shrink-0" />}
+                  {geoLoading ? "Detecting location…" : "Use my current location"}
+                </button>
                 <div className="max-h-[120px] overflow-y-auto space-y-0.5">
                   {filteredLocations.map((loc) => (
                     <button type="button"
@@ -1145,6 +1252,21 @@ export default function CreatePostModal({
               className="overflow-hidden mx-4 mb-2"
             >
               <div className="bg-muted/30 rounded-xl border border-border/20 p-2">
+                {taggedUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-border/20">
+                    {taggedUsers.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setTaggedUsers((prev) => prev.filter((u) => u.id !== t.id))}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 text-[11px] font-semibold"
+                      >
+                        @{t.name}
+                        <XIcon className="h-3 w-3 opacity-70" />
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mb-2">
                   <Search className="h-4 w-4 text-muted-foreground" />
                   <input
@@ -1758,7 +1880,7 @@ export default function CreatePostModal({
         <ProductPickerSheet
           open={showProductPicker}
           onOpenChange={setShowProductPicker}
-          storeId={commerceLinkDraft?.storeId ?? null}
+          storeId={effectiveStoreId}
           selectedIds={taggedProductIds}
           onChange={setTaggedProductIds}
         />

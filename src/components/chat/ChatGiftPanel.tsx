@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatGiftPanel - Telegram-style premium gift modal for 1:1 chat.
  * Shows premium gift plans first, then expands into the existing Z-Coin gift
  * catalog so the workflow remains send-ready.
@@ -567,7 +567,7 @@ export default function ChatGiftPanel({ open, onClose, onOpenWallet, recipientId
                             onClick={() => setTab(item.id)}
                             className={cn(
                               "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition",
-                              tab === item.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                              tab === item.id ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground",
                             )}
                           >
                             <item.icon className="h-3.5 w-3.5" />
@@ -628,7 +628,7 @@ export default function ChatGiftPanel({ open, onClose, onOpenWallet, recipientId
                             onClick={() => setCombo(count)}
                             className={cn(
                               "h-9 w-10 rounded-full text-[11px] font-bold transition",
-                              combo === count ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                              combo === count ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground",
                             )}
                           >
                             x{count}

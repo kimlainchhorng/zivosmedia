@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalReservationsSection — central reservation manager.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -120,12 +120,12 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
             <div className="flex items-center rounded-md border border-border overflow-hidden">
               <button type="button" onClick={() => setView("list")}
                 className={cn("h-8 px-2.5 inline-flex items-center gap-1 text-xs font-semibold",
-                  view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
+                  view === "list" ? "bg-ig-gradient text-white" : "text-muted-foreground hover:bg-muted")}>
                 <List className="h-3.5 w-3.5" /> List
               </button>
               <button type="button" onClick={() => setView("calendar")}
                 className={cn("h-8 px-2.5 inline-flex items-center gap-1 text-xs font-semibold border-l border-border",
-                  view === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
+                  view === "calendar" ? "bg-ig-gradient text-white" : "text-muted-foreground hover:bg-muted")}>
                 <LayoutGrid className="h-3.5 w-3.5" /> Calendar
               </button>
             </div>
@@ -216,7 +216,7 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
                   onClick={() => setSourceFilter(s)}
                   className={cn(
                     "rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                    sourceFilter === s ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                    sourceFilter === s ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {s === "all" ? "All" : s === "walk_in" ? "Walk-in" : s === "app" ? "Online" : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -240,7 +240,7 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
                       })}
                       className={cn(
                         "rounded-full px-2.5 py-0.5 text-[11px] font-semibold border transition-colors",
-                        active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                        active ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {t}

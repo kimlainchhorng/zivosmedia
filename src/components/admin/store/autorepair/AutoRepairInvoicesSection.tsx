@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Auto Repair — Invoices Section
  * Two views: Estimates and Invoices, with inline create flow.
  */
@@ -1639,13 +1639,13 @@ export default function AutoRepairInvoicesSection({ storeId, isSoftwareDomain = 
                             <button
                               type="button"
                               onClick={() => updateItem(it.id, { discountType: "pct" })}
-                              className={`px-1.5 text-[11px] font-semibold ${dType === "pct" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                              className={`px-1.5 text-[11px] font-semibold ${dType === "pct" ? "bg-ig-gradient text-white" : "bg-background text-muted-foreground hover:bg-muted"}`}
                               aria-label="Percent discount"
                             >%</button>
                             <button
                               type="button"
                               onClick={() => updateItem(it.id, { discountType: "amt" })}
-                              className={`px-1.5 text-[11px] font-semibold border-l border-input ${dType === "amt" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                              className={`px-1.5 text-[11px] font-semibold border-l border-input ${dType === "amt" ? "bg-ig-gradient text-white" : "bg-background text-muted-foreground hover:bg-muted"}`}
                               aria-label="Flat amount discount"
                             >$</button>
                           </div>

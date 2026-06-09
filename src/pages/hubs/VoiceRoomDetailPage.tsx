@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VoiceRoomDetailPage — /voice-rooms/:id
  *
  * Two phases:
@@ -278,7 +278,7 @@ export default function VoiceRoomDetailPage() {
                     onClick={() => joinMut.mutate()}
                     disabled={joinMut.isPending}
                     className={cn(
-                      "w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-primary-foreground font-extrabold text-sm transition-all active:scale-[0.98] disabled:opacity-60",
+                      "w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-ig-gradient text-white font-extrabold text-sm transition-all active:scale-[0.98] disabled:opacity-60",
                     )}
                   >
                     {joinMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
@@ -299,7 +299,7 @@ export default function VoiceRoomDetailPage() {
                   <button
                     type="button"
                     onClick={() => setCallActive(true)}
-                    className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-primary-foreground font-extrabold text-sm transition-all active:scale-[0.98]"
+                    className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-ig-gradient text-white font-extrabold text-sm transition-all active:scale-[0.98]"
                   >
                     <Mic className="w-4 h-4" />
                     Rejoin audio
@@ -319,7 +319,7 @@ export default function VoiceRoomDetailPage() {
                   type="button"
                   onClick={() => (user ? joinMut.mutate() : navigate(`/login?redirect=/voice-rooms/${id}`))}
                   disabled={joinMut.isPending}
-                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-primary-foreground font-extrabold text-sm transition-all active:scale-[0.98] disabled:opacity-60"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-ig-gradient text-white font-extrabold text-sm transition-all active:scale-[0.98] disabled:opacity-60"
                 >
                   {joinMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
                   {user ? "Join room" : "Sign in to join"}

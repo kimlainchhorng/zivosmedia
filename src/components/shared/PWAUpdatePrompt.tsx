@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PWA Update Prompt
  * Shows a toast when a new app version is available.
  * Auto-applies the update after 10 seconds if the user doesn't interact.
@@ -54,7 +54,7 @@ export function PWAUpdatePrompt() {
         </div>
         <button type="button"
           onClick={handleUpdate}
-          className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 flex-shrink-0 active:scale-[0.95] touch-manipulation"
+          className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-ig-gradient text-white hover:bg-primary/90 transition-all duration-200 flex-shrink-0 active:scale-[0.95] touch-manipulation"
         >
           Update
         </button>

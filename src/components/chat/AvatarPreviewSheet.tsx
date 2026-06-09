@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+﻿import { motion, AnimatePresence } from "framer-motion";
 import X from "lucide-react/dist/esm/icons/x";
 
 interface Props {
@@ -24,7 +24,7 @@ export default function AvatarPreviewSheet({ open, src, name, initials, onClose 
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           onClick={onClose}
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-md"
+          className="fixed inset-0 z-[1450] flex items-center justify-center bg-black/85 backdrop-blur-md"
           role="dialog"
           aria-modal="true"
           aria-label={`${name} profile photo`}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MarketplaceHubPage — /marketplace-hub
  * Browse peer-to-peer item listings.
  */
@@ -40,7 +40,7 @@ export default function MarketplaceHubPage() {
             <h1 className="text-2xl font-bold">Marketplace</h1>
             <p className="text-sm text-muted-foreground">Buy & sell with people in your area.</p>
           </div>
-          <button type="button" onClick={() => navigate("/marketplace-hub/create")} className="inline-flex min-h-[40px] items-center gap-1 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold touch-manipulation">
+          <button type="button" onClick={() => navigate("/marketplace-hub/create")} className="inline-flex min-h-[40px] items-center gap-1 px-3.5 py-2 rounded-xl bg-ig-gradient text-white text-sm font-bold touch-manipulation">
             <Plus className="w-4 h-4" /> Sell
           </button>
         </div>

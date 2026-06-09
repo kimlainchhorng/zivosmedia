@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideWallet — Enhanced payment management with split fare, top-up, transaction history
  */
 import { useState, useMemo } from "react";
@@ -146,7 +146,7 @@ function WalletTab() {
               </h3>
               <div className="grid grid-cols-4 gap-2">
                 {topUpPresets.map(amt => (
-                  <button type="button" key={amt} onClick={() => setTopUpAmount(String(amt))} className={cn("py-2.5 rounded-xl text-sm font-bold border transition-all", topUpAmount === String(amt) ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40 hover:border-primary/30")}>
+                  <button type="button" key={amt} onClick={() => setTopUpAmount(String(amt))} className={cn("py-2.5 rounded-xl text-sm font-bold border transition-all", topUpAmount === String(amt) ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40 hover:border-primary/30")}>
                     ${amt}
                   </button>
                 ))}

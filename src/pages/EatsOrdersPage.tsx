@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EatsOrdersPage — Customer order history with reorder + receipt view
  */
 import { useState, useCallback } from "react";
@@ -173,7 +173,7 @@ export default function EatsOrdersPage() {
           ]).map(f => (
             <button type="button" key={f.id} onClick={() => setFilter(f.id)}
               className={cn("px-3 py-1.5 rounded-full text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                filter === f.id ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                filter === f.id ? "bg-ig-gradient text-white shadow-sm" : "bg-muted/50 text-muted-foreground border border-border/40")}>
               {f.label}
             </button>
           ))}

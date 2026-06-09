@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NetworkPlacesPage — directory of places in the ZIVO network.
  * Shows partner restaurants (book table or order delivery) and partner
  * hotels (reserve a stay) on one screen with a search and category chips.
@@ -169,7 +169,7 @@ export default function NetworkPlacesPage() {
                 onClick={() => onTab(t)}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors ${
                   tab === t
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted text-foreground"
                 }`}
               >

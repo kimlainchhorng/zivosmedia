@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MessageRequestsPage — Facebook/Messenger-style message requests inbox.
  *
  * Lists chats from senders who aren't in the user's contacts AND whom the
@@ -442,7 +442,7 @@ export default function MessageRequestsPage() {
                 className={cn(
                   "px-3 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5",
                   selected
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted text-foreground hover:bg-muted/70"
                 )}
               >
@@ -597,7 +597,7 @@ export default function MessageRequestsPage() {
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-sm truncate flex-1">{r.name}</p>
                   {r.unread > 0 && (
-                    <span className="shrink-0 min-w-[18px] h-[18px] px-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                    <span className="shrink-0 min-w-[18px] h-[18px] px-1 bg-ig-gradient text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                       {r.unread > 9 ? "9+" : r.unread}
                     </span>
                   )}
@@ -612,7 +612,7 @@ export default function MessageRequestsPage() {
                   <button type="button"
                     onClick={(e) => { e.stopPropagation(); handleAccept(r); }}
                     aria-label={`Accept ${r.name}`}
-                    className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-90 transition-transform"
+                    className="h-8 w-8 rounded-full bg-ig-gradient text-white flex items-center justify-center active:scale-90 transition-transform"
                   >
                     <Check className="h-4 w-4" />
                   </button>

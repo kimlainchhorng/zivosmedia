@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FeaturedEatsSection — Live restaurant/food stores from Supabase
  * Falls back to curated cards if no stores exist yet
  */
@@ -131,7 +131,7 @@ export default function FeaturedEatsSection() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent opacity-50 group-hover:opacity-30 transition-opacity duration-500" />
                     {store.delivery_min === 0 && (
-                      <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-sm flex items-center gap-1">
+                      <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-ig-gradient text-white shadow-sm flex items-center gap-1">
                         <Truck className="w-3 h-3" /> Free Delivery
                       </span>
                     )}
@@ -192,7 +192,7 @@ export default function FeaturedEatsSection() {
 	                    <img src={food.image} alt={food.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent opacity-50 group-hover:opacity-30 transition-opacity duration-500" />
                     {food.freeDelivery && (
-                      <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-sm flex items-center gap-1">
+                      <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-ig-gradient text-white shadow-sm flex items-center gap-1">
                         <Truck className="w-3 h-3" /> Free Delivery
                       </span>
                     )}

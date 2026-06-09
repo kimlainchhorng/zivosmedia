@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -556,7 +556,7 @@ export default function AdminPartnerApplicationsPage() {
                   className={cn(
                     "inline-flex items-center justify-center rounded-full text-[10px] font-semibold px-1.5 min-w-[18px] h-[18px]",
                     activeTab === key
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-ig-gradient text-white"
                       : "bg-muted-foreground/20 text-muted-foreground"
                   )}
                 >

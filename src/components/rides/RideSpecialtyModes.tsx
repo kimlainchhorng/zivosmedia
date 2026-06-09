@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideSpecialtyModes — Pet-friendly, child seat, package delivery, special occasion rides
  */
 import { useState } from "react";
@@ -150,7 +150,7 @@ export default function RideSpecialtyModes() {
                           <h4 className="text-xs font-bold text-foreground mb-2">Seat Type</h4>
                           <div className="flex gap-2">
                             {(["rear", "forward", "booster"] as const).map(type => (
-                              <button type="button" key={type} onClick={() => setChildSeatType(type)} className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold border capitalize transition-all", childSeatType === type ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                              <button type="button" key={type} onClick={() => setChildSeatType(type)} className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold border capitalize transition-all", childSeatType === type ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                                 {type === "rear" ? "Rear-facing" : type === "forward" ? "Forward" : "Booster"}
                               </button>
                             ))}
@@ -170,7 +170,7 @@ export default function RideSpecialtyModes() {
                           <h4 className="text-xs font-bold text-foreground">Occasion Type</h4>
                           <div className="flex flex-wrap gap-1.5">
                             {["Birthday", "Anniversary", "Prom", "Wedding", "Date Night", "Other"].map(o => (
-                              <button type="button" key={o} onClick={() => setOccasionType(o)} className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all", occasionType === o ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                              <button type="button" key={o} onClick={() => setOccasionType(o)} className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all", occasionType === o ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                                 {o}
                               </button>
                             ))}

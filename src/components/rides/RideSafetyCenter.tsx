@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideSafetyCenter — Enhanced SOS, live trip sharing, ride PIN verification,
  * incident reporting, and emergency contacts
  */
@@ -240,7 +240,7 @@ export default function RideSafetyCenter() {
                     />
                     <button type="button" onClick={addContact}
                       disabled={!newContactName.trim() || !newContactPhone.trim()}
-                      className="w-full h-9 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
+                      className="w-full h-9 rounded-xl bg-ig-gradient text-white text-xs font-bold disabled:opacity-50">
                       Save Contact
                     </button>
                   </div>

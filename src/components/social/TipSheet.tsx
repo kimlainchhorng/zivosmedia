@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TipSheet — In-app Stripe-powered tip with embedded card form
  */
 import { useState } from "react";
@@ -475,7 +475,7 @@ export default function TipSheet({ open, onClose, creatorId, creatorName, creato
       {open && (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="zivo-social-sheet-backdrop fixed inset-0 z-[200] flex items-end justify-center"
+          className="zivo-social-sheet-backdrop fixed inset-0 z-[1450] flex items-end justify-center"
           onClick={onClose}
         >
           <motion.div

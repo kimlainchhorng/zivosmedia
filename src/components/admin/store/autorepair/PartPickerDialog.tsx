@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PartPickerDialog — Search the shop's ar_parts catalog and add parts
  * directly to an invoice/estimate line item.
  * Also surfaces supplier search links for parts not in inventory.
@@ -152,7 +152,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
                 key={c}
                 onClick={() => setCat(c)}
                 className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold transition-all border ${
-                  cat === c ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                  cat === c ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:border-primary/50"
                 }`}
               >
                 {c}
@@ -268,7 +268,7 @@ export default function PartPickerDialog({ open, onOpenChange, storeId, onPick }
                           className={`h-8 w-8 rounded-full flex items-center justify-center transition-colors ${
                             outOfStock
                               ? "bg-muted text-muted-foreground cursor-not-allowed"
-                              : "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "bg-ig-gradient text-white hover:bg-primary/90"
                           }`}
                           title={outOfStock ? "Out of stock" : "Add to invoice"}
                         >

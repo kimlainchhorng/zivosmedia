@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AIChatbotWidget — Real AI-powered support using Gemini via ai-support-chat edge function
  * Supports user order tracking and merchant Meta performance insights
  */
@@ -149,7 +149,7 @@ export default function AIChatbotWidget() {
             className="fixed right-4 z-50 w-[340px] max-w-[calc(100vw-2rem)]">
             <Card className="flex flex-col h-[480px] shadow-2xl border-border overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between p-3 bg-primary text-primary-foreground">
+              <div className="flex items-center justify-between p-3 bg-ig-gradient text-white">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
                     <Sparkles className="h-4 w-4" />
@@ -169,7 +169,7 @@ export default function AIChatbotWidget() {
                 {messages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-line ${
-                      msg.role === "user" ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted text-foreground rounded-bl-md"
+                      msg.role === "user" ? "bg-ig-gradient text-white rounded-br-md" : "bg-muted text-foreground rounded-bl-md"
                     }`}>
                       {msg.content || (isStreaming ? "..." : "")}
                     </div>
@@ -214,7 +214,7 @@ export default function AIChatbotWidget() {
       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
         style={{ bottom: "calc(var(--zivo-safe-bottom,0px) + 1rem)" }}
-        className="fixed right-4 z-50 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center">
+        className="fixed right-4 z-50 h-12 w-12 rounded-full bg-ig-gradient text-white shadow-lg flex items-center justify-center">
         {isOpen ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
       </motion.button>
     </>

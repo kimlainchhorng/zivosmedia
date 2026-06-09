@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo, Fragment } from "react";
+﻿import { useState, useRef, useCallback, useEffect, useMemo, Fragment } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -394,6 +394,8 @@ const Profile = () => {
   
   const [showLangPicker, setShowLangPicker] = useState(false);
   const profileCardRef = useRef<HTMLDivElement>(null);
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
 
   // Cover photo state
   const [coverUploading, setCoverUploading] = useState(false);
@@ -960,7 +962,7 @@ const Profile = () => {
             className={cn(
               "relative h-9 w-9 flex items-center justify-center rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               showNotifPanel
-                ? "bg-primary text-primary-foreground"
+                ? "bg-ig-gradient text-white"
                 : overCover
                   ? "hover:bg-muted/60 text-foreground"
                   : "hover:bg-muted/60 text-foreground"
@@ -1031,7 +1033,7 @@ const Profile = () => {
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
                         notifFilter === f
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-ig-gradient text-white"
                           : "bg-muted/50 text-muted-foreground hover:bg-muted"
                       )}
                     >
@@ -1191,8 +1193,24 @@ const Profile = () => {
 
 
       {/* ── Scrollable content ── */}
-      <div className="relative z-10 min-h-screen pb-24 scroll-smooth bg-background no-scrollbar">
-        <div className="px-3 lg:px-4 pt-14 lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
+      <div
+        className="relative z-10 min-h-screen pb-24 scroll-smooth bg-background no-scrollbar"
+        onTouchStart={(e) => {
+          swipeStartX.current = e.touches[0].clientX;
+          swipeStartY.current = e.touches[0].clientY;
+        }}
+        onTouchEnd={(e) => {
+          if (swipeStartX.current === null || swipeStartY.current === null) return;
+          const dx = e.changedTouches[0].clientX - swipeStartX.current;
+          const dy = Math.abs(e.changedTouches[0].clientY - swipeStartY.current);
+          if (dx > 70 && dy < 60 && (swipeStartX.current ?? 0) < 36 && !coverRepositioning) {
+            navigate(-1);
+          }
+          swipeStartX.current = null;
+          swipeStartY.current = null;
+        }}
+      >
+        <div className="px-2.5 lg:px-4 pt-12 lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
 
           {profileLoading ? (
             <div className="flex items-center justify-center py-20">
@@ -1211,7 +1229,7 @@ const Profile = () => {
               trackingContext="profile"
             />
           ) : (
-            <div className="space-y-3 pt-0 lg:pt-1">
+            <div className="space-y-2.5 pt-0 lg:pt-1">
               {hasProfileRefreshError && (
                 <DegradedDataBanner
                   className="px-4 lg:px-0 pt-2"
@@ -1234,10 +1252,10 @@ const Profile = () => {
                   style={{ perspective: "1200px", transformStyle: "preserve-3d" }}
                   className="group"
                 >
-                  <div className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_18px_60px_rgba(15,23,42,0.08)] lg:shadow-2xl lg:shadow-primary/[0.08]">
-                    <div className="hidden lg:block absolute inset-0 bg-card/70 backdrop-blur-2xl rounded-3xl" />
-                    <div className="hidden lg:block absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-primary/[0.02] rounded-3xl" />
-                    <div className="hidden lg:block pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]" />
+                  <div className="relative overflow-hidden rounded-[22px] border border-border/50 bg-card/95 shadow-[0_4px_24px_rgba(15,23,42,0.06)] lg:shadow-2xl lg:shadow-primary/[0.08]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-accent/[0.02] rounded-[22px]" />
+                    <div className="pointer-events-none absolute inset-0 rounded-[22px] ring-1 ring-inset ring-white/[0.06]" />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary/40 via-accent/30 to-transparent rounded-t-[22px]" />
                     <div className="relative z-10">
                     {/* Cover photo sits below the fixed mobile header so content never collides with the notch. */}
                     <div
@@ -1338,7 +1356,7 @@ const Profile = () => {
                           <div className="relative flex items-center gap-3 bg-background/90 backdrop-blur-xl rounded-full px-4 py-2 shadow-xl border border-border/50">
                             <MoveVertical className="h-4 w-4 text-muted-foreground" />
                             <span className="text-xs font-semibold text-foreground">Drag to reposition</span>
-                            <button type="button" onClick={saveCoverPosition} disabled={updateProfile.isPending} aria-label="Save cover position" className="p-1.5 rounded-full bg-primary text-primary-foreground transition active:scale-90 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
+                            <button type="button" onClick={saveCoverPosition} disabled={updateProfile.isPending} aria-label="Save cover position" className="p-1.5 rounded-full bg-ig-gradient text-white transition active:scale-90 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
                               {updateProfile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                             </button>
                             <button type="button" onClick={handleResetCover} aria-label="Reset cover position to center" className="p-1.5 rounded-full bg-muted/70 text-foreground hover:bg-muted transition active:scale-90 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
@@ -1355,7 +1373,7 @@ const Profile = () => {
 
 
                     {/* Avatar overlapping cover */}
-                    <div className="relative z-10 -mt-9 px-5 sm:-mt-11 sm:px-6">
+                    <div className="relative z-10 -mt-7 px-4 sm:-mt-8 sm:px-5">
                       <div className="flex justify-start">
                         <motion.div
                           className="relative group/avatar"
@@ -1370,7 +1388,7 @@ const Profile = () => {
                               ? "bg-gradient-to-tr from-[#0077B6] via-[#00AEEF] to-[#7CD6FF]"
                               : "bg-ig-gradient"
                           )} />
-                          <Avatar className="relative h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 ring-[5px] ring-card shadow-xl">
+                          <Avatar className="relative h-[56px] w-[56px] sm:h-[68px] sm:w-[68px] ring-[3px] ring-card shadow-lg">
                             <AvatarImage src={avatarPreview || profile?.avatar_url || undefined} alt="Profile" />
                             <AvatarFallback className="bg-muted text-foreground text-2xl font-bold">
                               {getInitials()}
@@ -1382,24 +1400,24 @@ const Profile = () => {
                             disabled={uploadAvatar.isPending}
                             aria-label="Change profile photo"
                             className={cn(
-                              "absolute bottom-0 right-0 p-1.5 sm:p-2 bg-primary text-primary-foreground rounded-full shadow-xl shadow-primary/40 ring-2 ring-card cursor-pointer active:scale-90 transition focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+                              "absolute bottom-0 right-0 p-1 sm:p-1.5 bg-ig-gradient text-white rounded-full shadow-lg shadow-primary/40 ring-[1.5px] ring-card cursor-pointer active:scale-90 transition focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
                               uploadAvatar.isPending && "opacity-50 pointer-events-none"
                             )}
                           >
-                            {uploadAvatar.isPending ? <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin" /> : <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                            {uploadAvatar.isPending ? <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" /> : <Camera className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
                           </button>
                         </motion.div>
                       </div>
                     </div>
 
                     {/* Name & status */}
-                    <div className="px-4 sm:px-6 pb-3 pt-1.5 text-left">
-                      <CardTitle translate="no" className="flex items-center justify-start gap-1.5 text-[22px] sm:text-2xl font-black leading-tight tracking-tight">
+                    <div className="px-3 sm:px-4 pb-2 pt-1 text-left">
+                      <CardTitle translate="no" className="flex items-center justify-start gap-1.5 text-[16px] sm:text-[18px] font-black leading-tight tracking-tight">
                         <span>{headerName || t("profile.set_name")}</span>
                         {profile?.is_verified && <VerifiedBadge size={22} />}
                       </CardTitle>
                       {/* @username line — link or "set" CTA. Email never shown publicly. */}
-                      <div className="mt-0.5 text-[13px] text-muted-foreground">
+                      <div className="mt-0.5 text-[11px] text-muted-foreground">
                         {claimedUsername ? (
                           <span>@{claimedUsername}</span>
                         ) : (
@@ -1413,9 +1431,9 @@ const Profile = () => {
                         )}
                       </div>
                       {/* Email hidden — only visible to account owner in settings */}
-                      <div className="mt-2 flex flex-wrap items-center justify-start gap-1.5">
+                      <div className="mt-1.5 flex flex-wrap items-center justify-start gap-1.5">
                         {isPlus && (
-                          <Badge translate="no" className="h-8 bg-ig-gradient text-white border-0 font-bold rounded-full px-2.5 shadow-sm">
+                          <Badge translate="no" className="h-6 bg-ig-gradient text-white border-0 font-bold rounded-full px-2 text-[10px] shadow-sm">
                             <Crown className="w-3 h-3 mr-1" /> ZIVO+ {plan === "annual" ? "Annual" : "Monthly"}
                           </Badge>
                         )}
@@ -1424,7 +1442,7 @@ const Profile = () => {
                             type="button"
                             onClick={() => navigate("/account/verification")}
                             className={cn(
-                              "group inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md hover:-translate-y-0.5",
+                              "group inline-flex h-6 items-center gap-1 rounded-full border px-2.5 text-[10px] font-bold shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md hover:-translate-y-0.5",
                               latestVerificationRequest?.status === "pending"
                                 ? "border-border bg-muted text-foreground"
                                 : latestVerificationRequest?.status === "rejected"
@@ -1450,10 +1468,10 @@ const Profile = () => {
                       </div>
 
                       {/* Bio */}
-                      <div className="mt-1.5 max-w-sm">
+                      <div className="mt-1 max-w-sm">
                         {profile?.bio && !bioEditing ? (
                           <div className="flex items-start gap-2">
-                            <p className="flex-1 text-xs text-foreground/85 whitespace-pre-wrap break-words">
+                            <p className="flex-1 text-[11px] text-foreground/85 whitespace-pre-wrap break-words">
                               <SafeCaption text={profile.bio} />
                             </p>
                             <button
@@ -1523,11 +1541,11 @@ const Profile = () => {
                       </div>
 
                       {/* ── Edit Profile / Share / Analytics row ── */}
-                      <div className="mt-3 grid grid-cols-[1fr_38px_38px_38px] items-center gap-2">
+                      <div className="mt-2 grid grid-cols-[1fr_32px_32px_32px] items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => { selectionChanged(); navigate("/account/profile-edit"); }}
-                          className="flex h-10 min-w-0 items-center justify-center gap-2 rounded-2xl border border-border/70 bg-background text-[13px] font-extrabold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-background/80 text-[12px] font-extrabold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <Pencil className="h-3.5 w-3.5 text-foreground" />
                           <span>Edit profile</span>
@@ -1537,7 +1555,7 @@ const Profile = () => {
                           whileTap={{ scale: 0.93 }}
                           onClick={() => { selectionChanged(); setShareOpen(true); }}
                           aria-label="Share profile"
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <Share2 className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1547,7 +1565,7 @@ const Profile = () => {
                           onClick={() => { if (user?.id) { selectionChanged(); navigate(`/user/${user.id}?from=profile&as=visitor`); } }}
                           aria-label="Preview public profile"
                           disabled={!user?.id}
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Eye className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1556,7 +1574,7 @@ const Profile = () => {
                           whileTap={{ scale: 0.93 }}
                           onClick={() => { selectionChanged(); navigate("/account/analytics"); }}
                           aria-label="Profile analytics"
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <BarChart3 className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1565,53 +1583,53 @@ const Profile = () => {
                       {/* Stats row — OF mode shows subscribers + posts only,
                           default mode shows the full social signals. */}
                       {zivoOFMode ? (
-                        <div className="mt-2.5 grid grid-cols-2 overflow-hidden rounded-[18px] border border-border/70 bg-card shadow-sm">
+                        <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-[12px] border border-border/50 bg-card/70 shadow-sm">
                           <button
                             type="button"
                             aria-label={`View ${ofSubscribersCount} subscribers`}
                             onClick={() => { selectionChanged(); navigate("/creator/subscribers"); }}
-                            className="border-r border-border/60 px-3 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
+                            className="border-r border-border/50 px-3 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
                           >
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Subscribers</span>
+                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">Subscribers</span>
                           </button>
-                          <span className="px-3 py-2.5 text-center">
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Posts</span>
+                          <span className="px-3 py-2 text-center">
+                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">Posts</span>
                           </span>
                         </div>
                       ) : (
-                        <div className="mt-2.5 grid grid-cols-4 overflow-hidden rounded-[18px] border border-border/70 bg-card shadow-sm">
+                        <div className="mt-2 grid grid-cols-4 overflow-hidden rounded-[12px] border border-border/50 bg-card/70 shadow-sm">
                           <button
                             type="button"
                             aria-label={`View ${followerCount} followers`}
                             onClick={() => setSocialModal({ open: true, tab: "followers" })}
-                            className="border-r border-border/60 px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="border-r border-border/50 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{followerCount === 1 ? "Follower" : "Followers"}</span>
+                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">{followerCount === 1 ? "Follower" : "Followers"}</span>
                           </button>
                           <button
                             type="button"
                             aria-label={`View ${followingCount} following`}
                             onClick={() => setSocialModal({ open: true, tab: "following" })}
-                            className="border-r border-border/60 px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="border-r border-border/50 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Following</span>
+                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">Following</span>
                           </button>
-                          <span className="border-r border-border/60 bg-muted/15 px-2 py-2.5 text-center">
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{postsCount === 1 ? "Post" : "Posts"}</span>
+                          <span className="border-r border-border/50 bg-muted/10 px-2 py-2 text-center">
+                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">{postsCount === 1 ? "Post" : "Posts"}</span>
                           </span>
                           <button
                             type="button"
                             aria-label={`View ${friendCount} friends`}
                             onClick={() => setSocialModal({ open: true, tab: "friends" })}
-                            className="px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
+                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
                           </button>
                         </div>
                       )}
@@ -1620,11 +1638,11 @@ const Profile = () => {
                           OF mode: single OnlyFans-style monetization CTA.
                           Default: business shortcuts (Shop, Employees, Mode, Monetization). */}
                       {zivoOFMode ? (
-                        <div className="lg:hidden mt-3 space-y-2">
+                        <div className="lg:hidden mt-2 space-y-1.5">
                           <button
                             type="button"
                             onClick={() => { selectionChanged(); navigate("/monetization"); }}
-                            className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-bold text-white shadow-lg shadow-[#00AEEF]/30 bg-gradient-to-r from-[#00AEEF] to-[#0099D9] hover:from-[#00B8F5] hover:to-[#00A3E5] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
+                            className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-bold text-white shadow-md shadow-[#00AEEF]/30 bg-gradient-to-r from-[#00AEEF] to-[#0099D9] hover:from-[#00B8F5] hover:to-[#00A3E5] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
                           >
                             <Lock className="h-4 w-4" />
                             <span>{zivoOFMode ? "ZIVO OF · Subscribe & Monetize" : "Subscribe & Monetize"}</span>
@@ -1649,7 +1667,7 @@ const Profile = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="lg:hidden mt-2.5 grid grid-cols-4 gap-2">
+                        <div className="lg:hidden mt-2 grid grid-cols-4 gap-1.5">
                           {[
                             { label: "Shop", icon: Store, tone: "from-emerald-500/18 to-teal-500/8", onClick: openShopDashboard },
                             { label: "Employees", icon: Users, tone: "from-sky-500/18 to-blue-500/8", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
@@ -1660,12 +1678,12 @@ const Profile = () => {
                               key={a.label}
                               onClick={a.onClick}
                               className={cn(
-                                "flex min-h-[56px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-border/60 bg-gradient-to-br px-1.5 py-1.5 text-[9.5px] font-extrabold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+                                "flex min-h-[46px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-border/50 bg-gradient-to-br px-1 py-1.5 text-[9px] font-extrabold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
                                 a.tone
                               )}
                             >
-                              <span className="grid h-7 w-7 place-items-center rounded-xl border border-border/50 bg-background/85 shadow-sm">
-                                <a.icon className="h-3.5 w-3.5 text-foreground" />
+                              <span className="grid h-6 w-6 place-items-center rounded-lg border border-border/50 bg-background/85 shadow-sm">
+                                <a.icon className="h-3 w-3 text-foreground" />
                               </span>
                               <span className="truncate">{a.label}</span>
                             </button>
@@ -1700,7 +1718,7 @@ const Profile = () => {
                         ].filter(s => (profile as any)?.[s.key]);
 
                         return socials.length > 0 ? (
-                          <div className="flex items-center justify-center gap-3 mt-4">
+                          <div className="flex items-center justify-center gap-2 mt-2.5">
                             {socials.map((social) => (
                               <motion.button
                                 key={social.name}
@@ -1719,7 +1737,7 @@ const Profile = () => {
                                   setSafeLinkPrompt(cleaned);
                                 }}
                                 title={social.name}
-                                className={`w-10 h-10 rounded-full ${social.color} flex items-center justify-center shadow-md hover:shadow-lg transition-shadow`}
+                                className={`w-8 h-8 rounded-full ${social.color} flex items-center justify-center shadow-sm hover:shadow-md transition-shadow`}
                               >
                                 {social.icon}
                               </motion.button>
@@ -1731,7 +1749,7 @@ const Profile = () => {
                       {/* Add Friend & Follow buttons — only shown when viewing other users' profiles */}
                     </div>
 
-                    <CardContent className="px-6 pb-4 pt-2">
+                    <CardContent className="px-4 pb-2 pt-0">
                     </CardContent>
                     </div>
                   </div>
@@ -1758,9 +1776,9 @@ const Profile = () => {
               {/* ── Recent Activity ── */}
               {user && recentActivity.length > 0 && (
                 <ParallaxSection index={1.3}>
-                  <div className="mx-3 lg:mx-0">
-                    <div className="flex items-center justify-between mb-2 px-1">
-                      <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
+                  <div className="mx-0 lg:mx-0">
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                      <h3 className="text-[13px] font-bold text-foreground">Recent Activity</h3>
                       <button type="button" className="text-xs font-medium text-primary"
                         onClick={() => { selectionChanged(); navigate("/trips"); }}>
                         See all
@@ -1772,16 +1790,16 @@ const Profile = () => {
                           type="button"
                           key={i}
                           onClick={() => { selectionChanged(); navigate(item.href); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-border/20 last:border-0 hover:bg-muted/30 active:bg-muted/40 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left border-b border-border/20 last:border-0 hover:bg-muted/30 active:bg-muted/40 transition-colors"
                         >
-                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
                             {item.iconType === "car"
                               ? <Car className="w-4 h-4 text-muted-foreground" />
                               : <Briefcase className="w-4 h-4 text-muted-foreground" />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{item.label}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[12px] font-medium text-foreground truncate">{item.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
                               {(() => { try { return formatDistanceToNowStrict(new Date(item.date), { addSuffix: true }); } catch { return ""; } })()}
                             </p>
                           </div>
@@ -1799,15 +1817,15 @@ const Profile = () => {
               {!profile?.phone?.trim() && (
                 <ParallaxSection index={1.5}>
                   <div
-                    className="mx-3 lg:mx-0 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform"
+                    className="rounded-[14px] border border-destructive/20 bg-destructive/5 p-3 flex items-center gap-2.5 cursor-pointer active:scale-[0.98] transition-transform"
                     onClick={() => navigate("/account/profile-edit?focus=phone")}
                   >
-                    <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                      <Phone className="w-5 h-5 text-destructive" />
+                    <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                      <Phone className="w-4 h-4 text-destructive" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-foreground">Phone number required</p>
-                      <p className="text-xs text-muted-foreground">Add your phone number to access rides, flights & more</p>
+                      <p className="font-semibold text-[12px] text-foreground">Phone number required</p>
+                      <p className="text-[11px] text-muted-foreground">Add your phone number to access rides, flights & more</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-destructive/50 shrink-0" />
                   </div>
@@ -1816,7 +1834,7 @@ const Profile = () => {
 
               {/* ── Stories Row ── */}
               <ParallaxSection index={2}>
-                <div className="rounded-[22px] border border-border/70 bg-card px-3 py-2 shadow-sm">
+                <div className="rounded-[18px] border border-border/50 bg-card/80 px-2.5 py-1.5 shadow-sm">
                   <ProfileStories />
                 </div>
               </ParallaxSection>

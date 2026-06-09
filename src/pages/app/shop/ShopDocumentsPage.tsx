@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ShopDocumentsPage — Contracts, policies, and staff files
  * Uploads to Supabase Storage (shop-documents bucket), metadata in feedback_submissions
  */
@@ -181,7 +181,7 @@ export default function ShopDocumentsPage() {
                   {CATEGORIES.map((c) => (
                     <button type="button" key={c} onClick={() => setCategory(c)}
                       className={cn("px-2.5 py-1 rounded-full text-xs font-medium border transition-colors",
-                        category === c ? "bg-primary text-primary-foreground border-primary" : "border-border bg-muted/40")}>
+                        category === c ? "bg-ig-gradient text-white border-primary" : "border-border bg-muted/40")}>
                       {CATEGORY_META[c].label}
                     </button>
                   ))}
@@ -189,7 +189,7 @@ export default function ShopDocumentsPage() {
                 <div className="flex gap-2">
                   <button type="button" onClick={resetForm} className="flex-1 py-2.5 rounded-xl border border-border/40 text-sm font-medium">Cancel</button>
                   <button type="button" onClick={handleUpload} disabled={uploading}
-                    className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+                    className="flex-1 py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
                     <Upload className="w-3.5 h-3.5" />
                     {uploading ? "Uploading…" : "Upload"}
                   </button>
@@ -203,7 +203,7 @@ export default function ShopDocumentsPage() {
             {(["all", ...CATEGORIES] as const).map((c) => (
               <button type="button" key={c} onClick={() => setFilterCat(c)}
                 className={cn("shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
-                  filterCat === c ? "bg-primary text-primary-foreground border-primary" : "border-border/50 bg-muted/30")}>
+                  filterCat === c ? "bg-ig-gradient text-white border-primary" : "border-border/50 bg-muted/30")}>
                 {c === "all" ? "All" : CATEGORY_META[c].label}
               </button>
             ))}

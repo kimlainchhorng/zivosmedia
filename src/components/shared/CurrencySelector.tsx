@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ZIVO Currency Selector
  * Global currency picker that syncs with CurrencyContext
  */
@@ -38,7 +38,7 @@ const CurrencySelector = ({ variant = "dropdown", className }: CurrencySelectorP
             className={cn(
               "px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150",
               currency === curr.code
-                ? "bg-primary text-primary-foreground shadow-md"
+                ? "bg-ig-gradient text-white shadow-md"
                 : "bg-muted hover:bg-muted/80"
             )}
           >

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatSearchAllPage — Unified global search across messages, people, media, links.
  * Uses `direct_messages` so results map to the main chat workflow.
  */
@@ -168,7 +168,7 @@ export default function ChatSearchAllPage() {
                 onClick={() => setTab(t.key)}
                 className={cn(
                   "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                  active ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                  active ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />

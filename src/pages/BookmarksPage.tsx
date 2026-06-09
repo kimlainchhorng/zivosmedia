@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BookmarksPage — Saved posts, flights, restaurants organized by collection
  */
 import { useState } from "react";
@@ -206,7 +206,7 @@ export default function BookmarksPage() {
               onClick={() => setActiveTab(t.id)}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                activeTab === t.id ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                activeTab === t.id ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
               )}
             >
               <t.icon className="h-3.5 w-3.5" />

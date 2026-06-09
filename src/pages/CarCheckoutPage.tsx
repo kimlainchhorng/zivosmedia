@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Car Rental Checkout Page
  * Embedded partner checkout with security messaging
  */
@@ -81,21 +81,21 @@ export default function CarCheckoutPage() {
           {/* Progress indicator */}
           <div className="flex items-center gap-2 mb-8">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+              <div className="w-8 h-8 rounded-full bg-ig-gradient text-white flex items-center justify-center text-sm font-medium">
                 <CheckCircle className="w-4 h-4" />
               </div>
               <span className="text-sm font-medium">Details</span>
             </div>
             <div className="flex-1 h-px bg-primary" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+              <div className="w-8 h-8 rounded-full bg-ig-gradient text-white flex items-center justify-center text-sm font-medium">
                 <CheckCircle className="w-4 h-4" />
               </div>
               <span className="text-sm font-medium">Traveler Info</span>
             </div>
             <div className="flex-1 h-px bg-primary" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+              <div className="w-8 h-8 rounded-full bg-ig-gradient text-white flex items-center justify-center text-sm font-medium">
                 3
               </div>
               <span className="text-sm font-medium">Payment</span>

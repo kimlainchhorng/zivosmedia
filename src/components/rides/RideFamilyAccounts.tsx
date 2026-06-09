@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideFamilyAccounts — Family profiles, child settings, parental controls, shared payment
  */
 import { useState } from "react";
@@ -117,7 +117,7 @@ export default function RideFamilyAccounts() {
                     className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40" />
                   <button type="button" disabled={!inviteName.trim() || !invitePhone.trim()}
                     onClick={() => { toast.success(`Invite sent to ${inviteName}!`); setInviteName(""); setInvitePhone(""); setShowInvite(false); }}
-                    className="px-3 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40">
+                    className="px-3 rounded-lg bg-ig-gradient text-white text-sm font-semibold disabled:opacity-40">
                     Send
                   </button>
                 </div>

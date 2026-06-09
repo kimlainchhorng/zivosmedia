@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Wake-up Calls.
  * Schedule, track, and manage wake-up call requests per room.
  */
@@ -187,7 +187,7 @@ export default function LodgingWakeupCallsSection({ storeId }: { storeId: string
           <div className="flex gap-1.5 flex-wrap">
             {(["all", "scheduled", "completed", "missed", "cancelled"] as const).map(s => (
               <button type="button" key={s} onClick={() => setFilterStatus(s as any)}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
                 {s}
               </button>
             ))}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AdminStoreEditPage - Full store management: edit profile, cover, logo, products
  */
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -2800,7 +2800,7 @@ export default function AdminStoreEditPage() {
                             toast.error(error.message);
                           }
                         }}
-                        className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg"
+                        className="h-6 w-6 rounded-full bg-ig-gradient text-white flex items-center justify-center shadow-lg"
                       >
                         <Check className="h-3 w-3" />
                       </button>
@@ -3196,7 +3196,7 @@ export default function AdminStoreEditPage() {
                                 toast.error(error.message);
                               }
                             }}
-                            className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg"
+                            className="h-6 w-6 rounded-full bg-ig-gradient text-white flex items-center justify-center shadow-lg"
                           >
                             <Check className="h-3 w-3" />
                           </button>
@@ -4769,7 +4769,7 @@ export default function AdminStoreEditPage() {
                             onClick={() => setProductCategoryFilter("")}
                             className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                               !productCategoryFilter
-                                ? "bg-primary text-primary-foreground border-primary"
+                                ? "bg-ig-gradient text-white border-primary"
                                 : "bg-muted/60 text-muted-foreground border-border hover:bg-muted"
                             }`}
                           >
@@ -4783,7 +4783,7 @@ export default function AdminStoreEditPage() {
                                 onClick={() => setProductCategoryFilter(productCategoryFilter === cat ? "" : cat)}
                                 className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                                   productCategoryFilter === cat
-                                    ? "bg-primary text-primary-foreground border-primary"
+                                    ? "bg-ig-gradient text-white border-primary"
                                     : "bg-muted/60 text-muted-foreground border-border hover:bg-muted"
                                 }`}
                               >
@@ -4796,7 +4796,7 @@ export default function AdminStoreEditPage() {
                               onClick={() => setProductCategoryFilter("__uncategorized__")}
                               className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                                 productCategoryFilter === "__uncategorized__"
-                                  ? "bg-primary text-primary-foreground border-primary"
+                                  ? "bg-ig-gradient text-white border-primary"
                                   : "bg-muted/60 text-muted-foreground border-border hover:bg-muted"
                               }`}
                             >
@@ -4885,7 +4885,7 @@ export default function AdminStoreEditPage() {
                               className={cn(
                                 "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
                                 (form.booking_days || []).includes(dayEn)
-                                  ? "bg-primary text-primary-foreground border-primary"
+                                  ? "bg-ig-gradient text-white border-primary"
                                   : "bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50"
                               )}
                             >
@@ -5050,7 +5050,6 @@ export default function AdminStoreEditPage() {
                   // Build estimates in the VSM "Build R.O." console, pre-bound to this vehicle.
                   sessionStorage.setItem("ar_buildro_prefill", JSON.stringify({ mode: "estimate", vehicle: v }));
                   handleTabChange("ar-build-ro");
-                  toast.success(`New estimate for ${vehicleLabel}`);
                 }}
                 onNewInvoice={(v) => {
                   const vehicleLabel = [v.year, v.make, v.model].filter(Boolean).join(" ");
@@ -5494,7 +5493,7 @@ export default function AdminStoreEditPage() {
                           ×
                         </button>
                         {idx === 0 && (
-                          <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-primary text-primary-foreground px-1 rounded">Main</span>
+                          <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-ig-gradient text-white px-1 rounded">Main</span>
                         )}
                       </div>
                     ))}
@@ -6187,7 +6186,7 @@ export default function AdminStoreEditPage() {
                         className={cn(
                           "px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors",
                           productForm.unit === u
-                            ? "bg-primary text-primary-foreground border-primary"
+                            ? "bg-ig-gradient text-white border-primary"
                             : "bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/50"
                         )}
                       >

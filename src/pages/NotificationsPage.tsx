@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+﻿import { useState, useMemo, useCallback, useEffect } from 'react';
 import SEOHead from '@/components/SEOHead';
 import { useNavigate } from 'react-router-dom';
 import { CheckCheck, Bell, Package, Gift, Headphones, Clock, ArrowLeft, UserPlus, Check, X, Heart, MessageCircle as MessageCircleIcon, Share2, AtSign, Flame, Settings2, Trash2, SlidersHorizontal } from 'lucide-react';
@@ -571,8 +571,8 @@ const NotificationsPage = () => {
                               tab.value === 'delays' 
                                 ? "bg-destructive text-destructive-foreground shadow-destructive/30" 
                                 : isActive
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-primary text-primary-foreground shadow-primary/30"
+                                  ? "bg-ig-gradient text-white"
+                                  : "bg-ig-gradient text-white shadow-primary/30"
                             )}
                           >
                             {categoryCounts[tab.value] > 9 ? '9+' : categoryCounts[tab.value]}

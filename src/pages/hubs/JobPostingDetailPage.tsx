@@ -1,4 +1,4 @@
-/**
+﻿/**
  * JobPostingDetailPage — /jobs-hub/:id
  *
  * Detail view for a gig-hub job_postings row. Three states:
@@ -245,7 +245,7 @@ export default function JobPostingDetailPage() {
                   myApplication
                     ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 cursor-default"
                     : user
-                      ? "bg-primary text-primary-foreground hover:opacity-90"
+                      ? "bg-ig-gradient text-white hover:opacity-90"
                       : "bg-muted/50 text-muted-foreground cursor-not-allowed",
                 )}
               >

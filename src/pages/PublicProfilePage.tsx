@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PublicProfilePage — View another user's public profile
  * Shows cover photo, avatar, name, posts/videos/reels, follow/friend/share actions
  * Respects profile_visibility privacy settings
@@ -28,13 +28,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useMemo, lazy, Suspense, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import CommentsSheet from "@/components/social/CommentsSheet";
 import SafeCaption from "@/components/social/SafeCaption";
+import CollapsibleCaption from "@/components/social/CollapsibleCaption";
 import ReelThumbnail from "@/components/social/ReelThumbnail";
 import { resolveSharedOrigins, type SharedOriginInfo } from "@/lib/social/resolveSharedOrigins";
 import { toUserPostInteractionId } from "@/lib/social/postInteraction";
@@ -256,6 +257,23 @@ export default function PublicProfilePage() {
   // OF creator age gate — persistent via useAdultGate (DB + localStorage)
   const adultGate = useAdultGate();
   const ofAgeConfirmed = adultGate.isConfirmed;
+
+  // ── Tab swipe gesture (horizontal) ─────────────────────────────────────
+  const swipeTouchStartX = useRef<number>(0);
+  const swipeTouchStartY = useRef<number>(0);
+  const handleTabSwipeStart = (e: React.TouchEvent) => {
+    swipeTouchStartX.current = e.touches[0].clientX;
+    swipeTouchStartY.current = e.touches[0].clientY;
+  };
+  const handleTabSwipeEnd = useCallback((e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - swipeTouchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - swipeTouchStartY.current);
+    if (Math.abs(dx) < 48 || dy > Math.abs(dx)) return;
+    const tabOrder: PostTab[] = ["all", "photos", "videos"];
+    const idx = tabOrder.indexOf(postTab);
+    if (dx < 0 && idx < tabOrder.length - 1) setPostTab(tabOrder[idx + 1]);
+    if (dx > 0 && idx > 0) setPostTab(tabOrder[idx - 1]);
+  }, [postTab]);
 
   const backTarget = useMemo(() => {
     if (source === "monetization") return "/monetization";
@@ -832,7 +850,6 @@ export default function PublicProfilePage() {
           user_id: user.id,
           item_id: interactionId,
           item_type: "post",
-          title: post.caption || `Post by ${resolvedProfile?.full_name || "User"}`,
           collection_name: "Posts",
         });
 
@@ -1044,9 +1061,12 @@ export default function PublicProfilePage() {
               </div>
             </div>
           )}
-          <div className="mx-auto max-w-3xl px-3 pt-3">
+          {/* ── 2026 Profile Card ─────────────────────────────── */}
+          <div className="mx-auto max-w-3xl lg:max-w-5xl px-3 pt-3">
             <section className="overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
-              <div className="relative h-44 overflow-hidden bg-[radial-gradient(circle_at_18%_15%,rgba(249,115,22,0.28),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(20,184,166,0.24),transparent_30%),linear-gradient(135deg,hsl(var(--muted)),hsl(var(--background)))] sm:h-56">
+
+              {/* Cover photo */}
+              <div className="relative h-32 overflow-hidden sm:h-40 lg:h-52 bg-[radial-gradient(circle_at_18%_15%,rgba(249,115,22,0.28),transparent_28%),radial-gradient(circle_at_85%_10%,rgba(20,184,166,0.24),transparent_30%),linear-gradient(135deg,hsl(var(--muted)),hsl(var(--background)))]">
                 {resolvedProfile.cover_url ? (
                   <img
                     src={resolvedProfile.cover_url}
@@ -1063,7 +1083,7 @@ export default function PublicProfilePage() {
                     </div>
                   </div>
                 )}
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/55 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 to-transparent" />
                 {isVisitorPreview && (
                   <div className="absolute left-3 top-3 rounded-full border border-white/30 bg-black/35 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
                     Visitor preview
@@ -1071,34 +1091,90 @@ export default function PublicProfilePage() {
                 )}
               </div>
 
-              <div className="relative px-4 pb-4 pt-0">
-                <Avatar className="-mt-14 h-28 w-28 border-[5px] border-card shadow-xl">
-                  <AvatarImage src={resolvedProfile.avatar_url || undefined} />
-                  <AvatarFallback className="bg-muted text-3xl font-extrabold text-muted-foreground">{initials}</AvatarFallback>
-                </Avatar>
+              {/* Profile info area */}
+              <div className="relative px-4 pb-3 pt-0">
 
-                <div className="mt-3">
-                  <div className="min-w-0">
-                    <h2 className="flex items-center gap-2 text-[30px] font-black leading-tight tracking-tight text-foreground sm:text-4xl">
-                      <span className="min-w-0 truncate">{resolvedProfile.full_name}</span>
-                      {isBlueVerified(resolvedProfile.is_verified) && <VerifiedBadge size={24} />}
-                    </h2>
-                    <p className="mt-1 text-sm font-medium text-muted-foreground">
-                      {resolvedProfile.bio ? (
-                        <span className="line-clamp-3 whitespace-pre-wrap break-words"><SafeCaption text={resolvedProfile.bio} /></span>
-                      ) : (
-                        `Public ${brand} profile`
-                      )}
-                    </p>
+                {/* Avatar + desktop action row */}
+                <div className="flex items-end gap-4">
+                  {/* Avatar with gradient story ring */}
+                  <div className="-mt-10 shrink-0 lg:-mt-12">
+                    <div className="h-20 w-20 lg:h-24 lg:w-24 rounded-full bg-ig-gradient p-[2.5px] shadow-[0_6px_20px_rgba(236,72,153,0.25)]">
+                      <Avatar className="h-full w-full border-2 border-card">
+                        <AvatarImage src={resolvedProfile.avatar_url || undefined} />
+                        <AvatarFallback className="bg-muted text-3xl font-extrabold text-muted-foreground">{initials}</AvatarFallback>
+                      </Avatar>
+                    </div>
                   </div>
+
+                  {/* Desktop: inline action buttons to the right of avatar */}
+                  {!isOwnProfile && user && (
+                    <div className="hidden lg:flex items-center gap-2 ml-auto pb-1">
+                      {!zivoOFMode && (
+                        <motion.button whileTap={{ scale: 0.96 }}
+                          onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }}
+                          disabled={followMutation.isPending}
+                          className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-extrabold shadow-sm transition", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
+                          {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isFollowing && "fill-primary text-primary")} />}
+                          {followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}
+                        </motion.button>
+                      )}
+                      {!zivoOFMode && (
+                        <motion.button whileTap={{ scale: 0.96 }}
+                          onClick={() => { if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" }); else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` }); else friendMutation.mutate(friendBtn.action); }}
+                          disabled={friendMutation.isPending}
+                          className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-extrabold transition",
+                            friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary" : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground" : friendshipStatus === "request_received" ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground"
+                          )}>
+                          {friendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <friendBtn.icon className="h-4 w-4" />}
+                          {friendMutation.isPending ? "Updating" : friendBtn.label}
+                        </motion.button>
+                      )}
+                      {canMessageProfile && (
+                        <motion.button whileTap={{ scale: 0.96 }}
+                          onClick={() => navigate(`/chat`, { state: { openChat: { recipientId: targetUserId, recipientName: resolvedProfile?.full_name || "User", recipientAvatar: resolvedProfile?.avatar_url } } })}
+                          className="flex h-10 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-extrabold text-foreground transition">
+                          <MessageCircle className="h-4 w-4" />
+                          Message
+                        </motion.button>
+                      )}
+                      <motion.button whileTap={{ scale: 0.96 }}
+                        onClick={() => { if (!user) { toast.error("Sign in to tip"); navigate("/auth"); return; } setTipOpen(true); }}
+                        aria-label="Send a tip"
+                        className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md">
+                        <Gift className="h-4 w-4" />
+                      </motion.button>
+                    </div>
+                  )}
+                  {isOwnProfile && (
+                    <div className="hidden lg:flex items-center gap-2 ml-auto pb-1">
+                      <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate("/account/profile-edit")} className="flex h-10 items-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-extrabold text-foreground">Edit Profile</motion.button>
+                      <motion.button whileTap={{ scale: 0.96 }} onClick={handleShare} className="grid h-10 w-10 place-items-center rounded-2xl border border-border bg-card text-foreground"><Share2 className="h-4 w-4" /></motion.button>
+                    </div>
+                  )}
                 </div>
 
+                {/* Name + bio */}
+                <div className="mt-2">
+                  <h2 className="flex flex-wrap items-center gap-2 text-[22px] font-black leading-tight tracking-tight text-foreground sm:text-[26px] lg:text-[30px]">
+                    <span className="min-w-0 truncate">{resolvedProfile.full_name}</span>
+                    {isBlueVerified(resolvedProfile.is_verified) && <VerifiedBadge size={24} />}
+                  </h2>
+                  <p className="mt-1.5 text-sm font-medium text-muted-foreground">
+                    {resolvedProfile.bio ? (
+                      <span className="line-clamp-3 whitespace-pre-wrap break-words"><SafeCaption text={resolvedProfile.bio} /></span>
+                    ) : (
+                      `Public ${brand} profile`
+                    )}
+                  </p>
+                </div>
+
+                {/* Stats bar */}
                 {!zivoOFMode && (
-                  <div className="mt-4 grid grid-cols-4 overflow-hidden rounded-2xl border border-border/70 bg-muted/25">
-                    {profileStats.map((stat) => (
-                      <div key={stat.label} className="border-r border-border/60 px-2 py-3 text-center last:border-r-0">
-                        <p className="text-[17px] font-black leading-none text-foreground">{stat.value}</p>
-                        <p className="mt-1 truncate text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{stat.label}</p>
+                  <div className="mt-4 flex overflow-hidden rounded-2xl border border-border/70 bg-muted/25">
+                    {profileStats.map((stat, i) => (
+                      <div key={stat.label} className={cn("flex-1 px-2 py-2 text-center", i > 0 && "border-l border-border/60")}>
+                        <p className="text-[15px] font-black leading-none text-foreground lg:text-[17px]">{stat.value}</p>
+                        <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{stat.label}</p>
                       </div>
                     ))}
                   </div>
@@ -1106,10 +1182,13 @@ export default function PublicProfilePage() {
 
                 <MutualFollowsBadge mutual={mutual} className="mt-2 text-left text-[11px]" />
 
+                {/* Mobile-only action buttons */}
                 {!isOwnProfile && user && (
-                  <div className="mt-4 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-2">
+                  <div className="mt-4 lg:hidden grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-2">
                     {!zivoOFMode && (
-                      <motion.button whileTap={{ scale: 0.96 }} onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }} disabled={followMutation.isPending}
+                      <motion.button whileTap={{ scale: 0.96 }}
+                        onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }}
+                        disabled={followMutation.isPending}
                         className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-extrabold shadow-sm transition", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
                         {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isFollowing && "fill-primary text-primary")} />}
                         <span className="truncate">{followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}</span>
@@ -1117,28 +1196,17 @@ export default function PublicProfilePage() {
                     )}
                     {!zivoOFMode && (
                       <motion.button whileTap={{ scale: 0.96 }}
-                        onClick={() => {
-                          if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" });
-                          else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` });
-                          else friendMutation.mutate(friendBtn.action);
-                        }}
+                        onClick={() => { if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" }); else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` }); else friendMutation.mutate(friendBtn.action); }}
                         disabled={friendMutation.isPending}
-                        className={cn(
-                          "flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl border px-2 text-sm font-extrabold transition",
-                          friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary"
-                            : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground"
-                            : friendshipStatus === "request_received" ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-card text-foreground"
+                        className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl border px-2 text-sm font-extrabold transition",
+                          friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary" : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground" : friendshipStatus === "request_received" ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground"
                         )}>
                         {friendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <friendBtn.icon className="h-4 w-4" />}
                         <span className="truncate">{friendMutation.isPending ? "Updating" : friendBtn.label}</span>
                       </motion.button>
                     )}
                     <motion.button whileTap={{ scale: 0.96 }}
-                      onClick={() => {
-                        if (!user) { toast.error("Sign in to tip"); navigate("/auth"); return; }
-                        setTipOpen(true);
-                      }}
+                      onClick={() => { if (!user) { toast.error("Sign in to tip"); navigate("/auth"); return; } setTipOpen(true); }}
                       aria-label={`Send a tip to ${resolvedProfile?.full_name || "this creator"}`}
                       className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md transition hover:opacity-95">
                       <Gift className="h-5 w-5" />
@@ -1148,23 +1216,15 @@ export default function PublicProfilePage() {
                 {!isOwnProfile && user && canMessageProfile && (
                   <motion.button
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate(`/chat`, {
-                      state: {
-                        openChat: {
-                          recipientId: targetUserId,
-                          recipientName: resolvedProfile?.full_name || "User",
-                          recipientAvatar: resolvedProfile?.avatar_url,
-                        },
-                      },
-                    })}
-                    className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm font-extrabold text-foreground"
+                    onClick={() => navigate(`/chat`, { state: { openChat: { recipientId: targetUserId, recipientName: resolvedProfile?.full_name || "User", recipientAvatar: resolvedProfile?.avatar_url } } })}
+                    className="lg:hidden mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm font-extrabold text-foreground"
                   >
                     <MessageCircle className="h-4 w-4" />
                     Message
                   </motion.button>
                 )}
                 {isOwnProfile && (
-                  <div className="mt-4 grid grid-cols-[1fr_48px] gap-2">
+                  <div className="mt-4 lg:hidden grid grid-cols-[1fr_48px] gap-2">
                     <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate("/account/profile-edit")} className="h-12 rounded-2xl border border-border bg-card text-sm font-extrabold text-foreground">Edit Profile</motion.button>
                     <motion.button whileTap={{ scale: 0.96 }} onClick={handleShare} className="grid h-12 w-12 place-items-center rounded-2xl border border-border bg-card text-foreground"><Share2 className="h-5 w-5" /></motion.button>
                   </div>
@@ -1192,7 +1252,7 @@ export default function PublicProfilePage() {
                   <p className="text-sm text-muted-foreground text-center leading-relaxed max-w-[260px]">{p.description}</p>
                   {p.showAddFriend && !isOwnProfile && user && (
                     <motion.button whileTap={{ scale: 0.95 }} onClick={() => friendMutation.mutate(friendshipStatus === "request_received" ? "accept" : "add")} disabled={friendMutation.isPending}
-                      className="mt-5 h-10 px-6 rounded-xl bg-primary text-primary-foreground text-sm font-semibold flex items-center gap-2">
+                      className="mt-5 h-10 px-6 rounded-xl bg-ig-gradient text-white text-sm font-semibold flex items-center gap-2">
                       <UserPlus className="h-4 w-4" />{friendshipStatus === "request_received" ? "Accept Friend Request" : "Send Friend Request"}
                     </motion.button>
                   )}
@@ -1217,30 +1277,52 @@ export default function PublicProfilePage() {
               {/* PPV strip — locked content a creator has published */}
               {targetUserId && <CreatorPPVStrip creatorUserId={targetUserId} />}
 
-              {/* Content Tabs */}
-              <div className="mx-auto mt-4 max-w-3xl px-3">
-                <div className="grid grid-cols-3 gap-1 rounded-[22px] border border-border/70 bg-card p-1 shadow-sm">
+              {/* Content Tabs — sticky, swipe-to-switch */}
+              <div className="sticky top-[56px] lg:top-[64px] z-30 mx-auto mt-4 max-w-3xl lg:max-w-5xl px-3 pb-2 bg-background/90 backdrop-blur-xl">
+                <div className="grid grid-cols-3 gap-1 rounded-[22px] border border-border/70 bg-card/95 p-1 shadow-[0_4px_24px_rgba(15,23,42,0.06)]">
                   {postTabs.map((tab) => (
-                    <button type="button" key={tab.key} onClick={() => setPostTab(tab.key)}
+                    <motion.button
+                      type="button"
+                      key={tab.key}
+                      onClick={() => setPostTab(tab.key)}
+                      whileTap={{ scale: 0.97 }}
                       className={cn(
-                        "relative flex h-12 items-center justify-center gap-1.5 rounded-2xl text-xs font-extrabold transition",
+                        "relative flex h-12 items-center justify-center gap-1.5 rounded-2xl text-xs font-extrabold transition-colors",
                         postTab === tab.key ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                      )}>
-                      {postTab === tab.key && <motion.div layoutId="profile-tab-indicator" className="absolute inset-0 rounded-2xl bg-muted shadow-inner" />}
+                      )}
+                    >
+                      {postTab === tab.key && (
+                        <motion.div
+                          layoutId="profile-tab-indicator"
+                          className="absolute inset-0 rounded-2xl bg-muted shadow-inner"
+                        />
+                      )}
                       <tab.icon className="relative z-10 h-4 w-4" />
                       <span className="relative z-10">{tab.label}</span>
-                      <span className={cn(
-                        "relative z-10 rounded-full px-1.5 py-0.5 text-[10px]",
-                        postTab === tab.key ? "bg-background text-foreground" : "bg-muted text-muted-foreground"
-                      )}>{tab.count}</span>
-                    </button>
+                      <AnimatePresence mode="wait">
+                        <motion.span
+                          key={`${tab.key}-${tab.count}`}
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.8, opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className={cn(
+                            "relative z-10 rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums",
+                            postTab === tab.key ? "bg-background text-foreground" : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {tab.count}
+                        </motion.span>
+                      </AnimatePresence>
+                    </motion.button>
                   ))}
                 </div>
               </div>
 
-              {/* Posts */}
+              {/* Posts — swipe left/right to switch tabs */}
+              <div onTouchStart={handleTabSwipeStart} onTouchEnd={handleTabSwipeEnd}>
               {filteredPosts.length === 0 ? (
-                <div className="mx-auto mb-8 mt-3 max-w-3xl px-3">
+                <div className="mx-auto mb-8 mt-3 max-w-3xl lg:max-w-5xl px-3">
                   <div className="overflow-hidden rounded-[28px] border border-border bg-card p-4 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
                     <div className="relative overflow-hidden rounded-[24px] bg-muted/45 px-4 py-5">
                       <div aria-hidden="true" className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-primary/10 blur-2xl" />
@@ -1266,7 +1348,7 @@ export default function PublicProfilePage() {
                 </div>
               ) : postTab === "all" ? (
                 /* Feed-style view for "All" tab */
-                <div className="divide-y divide-border/30 max-w-3xl mx-auto">
+                <div className="divide-y divide-border/30 max-w-3xl lg:max-w-5xl mx-auto">
                   {filteredPosts.map((post: any) => (
                     <motion.div key={post.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-card">
                       {post.sharedOrigin ? (
@@ -1291,7 +1373,13 @@ export default function PublicProfilePage() {
                           {/* Sharer's own caption */}
                           {post.caption && post.caption !== post.sharedOrigin.caption && (
                             <div className="px-3 pb-2">
-                              <p className="text-[13px] text-foreground"><SafeCaption text={post.caption} /></p>
+                              <CollapsibleCaption
+                                text={post.caption}
+                                className="text-[13px]"
+                                prefix={<span className="font-semibold mr-1">{resolvedProfile.full_name}</span>}
+                              >
+                                <SafeCaption text={post.caption} />
+                              </CollapsibleCaption>
                             </div>
                           )}
 
@@ -1379,10 +1467,13 @@ export default function PublicProfilePage() {
                           {/* Caption */}
                           {post.caption && (
                             <div className="px-3 pb-2">
-                              <p className="text-[13px] text-foreground">
-                                <span className="font-semibold mr-1">{resolvedProfile.full_name}</span>
-                                {post.caption}
-                              </p>
+                              <CollapsibleCaption
+                                text={post.caption}
+                                className="text-[13px]"
+                                prefix={<span className="font-semibold mr-1">{resolvedProfile.full_name}</span>}
+                              >
+                                <SafeCaption text={post.caption} />
+                              </CollapsibleCaption>
                             </div>
                           )}
 
@@ -1442,13 +1533,19 @@ export default function PublicProfilePage() {
                 </div>
               ) : (
                 /* Grid view for Photos/Videos tabs */
-                <div className={`grid gap-1 mt-0.5 px-1 max-w-3xl mx-auto ${postTab === "videos" ? "grid-cols-2" : "grid-cols-3"}`}>
+                <div className={cn(
+                  "grid gap-1 mt-0.5 px-1 mx-auto max-w-3xl lg:max-w-5xl",
+                  postTab === "videos"
+                    ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+                    : "grid-cols-3 sm:grid-cols-3 lg:grid-cols-4"
+                )}>
                   {filteredPosts.map((post: any) => (
                     <motion.button
                       key={post.id}
                       data-testid={`public-post-thumb-${post.id}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         if (post.media_type === "video") {
                           navigate(`/reels/${post.id}`);
@@ -1456,15 +1553,18 @@ export default function PublicProfilePage() {
                           setSelectedPost(post);
                         }
                       }}
-                      className={`relative overflow-hidden bg-muted group ${postTab === "videos" ? "aspect-[9/16] rounded-lg" : "aspect-square"}`}
+                      className={cn(
+                        "relative overflow-hidden bg-muted group rounded-lg",
+                        postTab === "videos" ? "aspect-[9/16]" : "aspect-square"
+                      )}
                     >
                       {post.media_type === "video" ? (
                         <ReelThumbnail url={post.media_url} />
                       ) : (
-                        <img src={(post.media_urls?.length ? post.media_urls[0] : post.media_url) || ""} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                        <img src={(post.media_urls?.length ? post.media_urls[0] : post.media_url) || ""} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" />
                       )}
                       {post.media_urls?.length > 1 && post.media_type !== "video" && (
-                        <div className="absolute top-1.5 right-1.5 bg-black/60 rounded px-1.5 py-0.5 z-10">
+                        <div className="absolute top-1.5 right-1.5 bg-black/60 rounded-lg px-1.5 py-0.5 z-10">
                           <span className="text-[10px] text-white font-semibold">{post.media_urls.length}</span>
                         </div>
                       )}
@@ -1478,6 +1578,7 @@ export default function PublicProfilePage() {
                   ))}
                 </div>
               )}
+              </div>{/* end swipe wrapper */}
 
               {/* Post detail overlay — Instagram-style */}
               <AnimatePresence>

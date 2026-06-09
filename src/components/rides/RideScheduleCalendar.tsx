@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideScheduleCalendar — Calendar view for scheduled rides with management
  */
 import { useState, useMemo } from "react";
@@ -111,7 +111,7 @@ export default function RideScheduleCalendar() {
                 onClick={() => setSelectedDate(day)}
                 className={cn(
                   "relative w-full aspect-square rounded-lg flex flex-col items-center justify-center text-xs transition-all min-h-[36px]",
-                  isSelected ? "bg-primary text-primary-foreground font-bold" :
+                  isSelected ? "bg-ig-gradient text-white font-bold" :
                     today ? "bg-primary/10 text-primary font-bold" :
                     "text-foreground hover:bg-muted/30"
                 )}
@@ -205,7 +205,7 @@ export default function RideScheduleCalendar() {
                         <p className="text-[9px] text-muted-foreground font-bold mb-1">VEHICLE</p>
                         <div className="flex gap-1">
                           {["Economy", "Premium", "SUV"].map(v => (
-                            <button type="button" key={v} onClick={() => setEditDraft(d => ({ ...d, vehicle: v }))} className={cn("flex-1 h-8 rounded-lg text-[9px] font-bold border transition-all", editDraft.vehicle === v ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 border-border/40")}>
+                            <button type="button" key={v} onClick={() => setEditDraft(d => ({ ...d, vehicle: v }))} className={cn("flex-1 h-8 rounded-lg text-[9px] font-bold border transition-all", editDraft.vehicle === v ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 border-border/40")}>
                               {v}
                             </button>
                           ))}

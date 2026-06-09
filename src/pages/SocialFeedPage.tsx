@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SocialFeedPage — Facebook-style social feed.
  *
  * Layout (top to bottom):
@@ -1217,7 +1217,7 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
       aria-pressed="false"
       className={cn(
         "shrink-0 inline-flex items-center gap-1 h-7 px-3 rounded-full text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-60",
-        "bg-primary text-primary-foreground hover:opacity-90",
+        "bg-ig-gradient text-white hover:opacity-90",
       )}
     >
       {followLabel}
@@ -1252,7 +1252,7 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
         "shrink-0 inline-flex items-center gap-1 h-7 px-3 rounded-full text-[12px] font-semibold transition-all active:scale-95 disabled:opacity-60",
         friendStatus === "pending_out"
           ? "bg-muted text-foreground/80 hover:bg-muted/80"
-          : "bg-primary text-primary-foreground hover:opacity-90",
+          : "bg-ig-gradient text-white hover:opacity-90",
       )}
     >
       {friendLabel}

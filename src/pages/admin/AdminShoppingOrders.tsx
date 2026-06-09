@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AdminShoppingOrders - Admin view to manage all shopping/grocery orders
  */
 import { useState, useEffect, useCallback } from "react";
@@ -114,7 +114,7 @@ export default function AdminShoppingOrders() {
               className={cn(
                 "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors",
                 filter === f
-                  ? "bg-primary text-primary-foreground border-primary"
+                  ? "bg-ig-gradient text-white border-primary"
                   : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted"
               )}
             >

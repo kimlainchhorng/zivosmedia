@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Public cafe order page at /cafe/:slug.
  * Optional ?t=qrToken pre-selects a table (from a printed QR card on the
  * table). Customers browse the menu, add to cart with modifiers, and submit
@@ -1004,12 +1004,12 @@ export default function PublicCafeOrderPage() {
           <div className="flex gap-2">
             <button onClick={() => setActiveCatId(null)} className={cn(
               "shrink-0 rounded-full px-3 py-1.5 text-sm border",
-              activeCatId === null ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"
+              activeCatId === null ? "bg-ig-gradient text-white border-primary" : "bg-card border-border"
             )}>All</button>
             {categories.map((c) => (
               <button key={c.id} onClick={() => setActiveCatId(c.id)} className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-sm border",
-                activeCatId === c.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"
+                activeCatId === c.id ? "bg-ig-gradient text-white border-primary" : "bg-card border-border"
               )}>{c.name}</button>
             ))}
           </div>

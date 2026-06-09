@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AdsOnboardingChecklist — collapsible 4-step "Get your first ad live" guide.
  * Auto-checks state from useStoreAdsOverview and auto-hides when complete (restorable).
  */
@@ -173,7 +173,7 @@ export default function AdsOnboardingChecklist(props: Props) {
                       done
                         ? "bg-emerald-500 text-white"
                         : isCurrent
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-ig-gradient text-white"
                         : "bg-muted text-muted-foreground"
                     )}
                   >

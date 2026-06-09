@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EventDetailPage — /events-hub/:id
  *
  * Single-event view with title / description / start time / location +
@@ -200,7 +200,7 @@ export default function EventDetailPage() {
               <button
                 type="button"
                 onClick={() => navigate(`/login?redirect=/events-hub/${id}`)}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+                className="w-full py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm"
               >
                 Sign in to RSVP
               </button>

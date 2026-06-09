@@ -1,4 +1,4 @@
-/**
+﻿/**
  * JobPostingCard — gig listing with Apply CTA.
  */
 import { motion } from "framer-motion";
@@ -76,7 +76,7 @@ export default function JobPostingCard({ job }: Props) {
       <button type="button"
         onClick={(e) => { e.stopPropagation(); void apply(); }}
         disabled={busy || applied}
-        className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold active:opacity-80 disabled:opacity-60"
+        className="w-full py-2 rounded-xl bg-ig-gradient text-white text-sm font-bold active:opacity-80 disabled:opacity-60"
       >
         {applied ? "Applied" : "Apply"}
       </button>

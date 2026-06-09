@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SalonCheckoutDialog — replaces a one-click "Complete" with a proper POS
  * flow: service total + retail line items + tip + sales tax → mark complete
  * with the captured tip_cents and tax_cents. The booking-completion trigger
@@ -444,7 +444,7 @@ export default function SalonCheckoutDialog({ storeId, booking, onClose, onCompl
                     <button type="button" key={p} onClick={() => pickPreset(p)}
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                        active ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/40"
+                        active ? "border-primary bg-ig-gradient text-white" : "border-border hover:border-primary/40"
                       )}>
                       {p}% <span className="opacity-70">· {formatPrice(ptCents)}</span>
                     </button>
@@ -453,7 +453,7 @@ export default function SalonCheckoutDialog({ storeId, booking, onClose, onCompl
                 <button type="button" onClick={pickCustom}
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                    tipPreset === "custom" ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/40"
+                    tipPreset === "custom" ? "border-primary bg-ig-gradient text-white" : "border-border hover:border-primary/40"
                   )}>Custom</button>
               </div>
               {tipPreset === "custom" && (

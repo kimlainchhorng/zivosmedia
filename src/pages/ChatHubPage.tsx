@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatHubPage — Unified messaging hub with category tabs:
  * Personal, Shop, Support, Ride + Group chats
  * 2026-style design with premium UI
@@ -159,7 +159,7 @@ function ChatRowAvatar({
         ? "w-10 h-10 rounded-xl bg-muted ring-2 ring-border/20"
         : [
             "rounded-full",
-            embedded ? "h-[44px] w-[44px]" : "w-[52px] h-[52px]",
+            embedded ? "h-[40px] w-[40px]" : "w-[46px] h-[46px]",
             collapsedRail && "lg:w-11 lg:h-11",
             isGroup ? "bg-primary/10" : "bg-muted",
           ],
@@ -2422,7 +2422,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         </div>
         <p className="text-xl font-bold text-foreground mb-2">Sign in to chat</p>
         <p className="text-sm text-muted-foreground mb-6 max-w-[260px]">Connect with friends, shops, and support — all in one place</p>
-        <button type="button" onClick={() => navigate(withRedirectParam("/login", "/chat"))} className="px-8 py-3 bg-primary text-primary-foreground rounded-full text-sm font-bold shadow-lg shadow-primary/25 active:scale-95 transition-transform">
+        <button type="button" onClick={() => navigate(withRedirectParam("/login", "/chat"))} className="px-8 py-3 bg-ig-gradient text-white rounded-full text-sm font-bold shadow-lg shadow-primary/25 active:scale-95 transition-transform">
           Sign In
         </button>
       </div>
@@ -2464,7 +2464,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           >
             {!embedded ? (
               <div className={cn(
-                "px-5 py-2 flex items-center gap-3",
+                "px-4 py-1.5 flex items-center gap-3",
                 desktopTwoColumn && sidebarCollapsed && "lg:px-2 lg:flex-col lg:items-stretch lg:gap-1"
               )}>
                 <div className={cn(
@@ -3903,7 +3903,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                             className={cn(
                               "px-3 py-1 text-[11px] font-semibold rounded-full whitespace-nowrap capitalize transition-all",
                               isActiveFilter
-                                ? "zivo-chat-chip-active"
+                                ? "bg-ig-gradient text-white shadow-[0_2px_10px_rgba(236,72,153,0.28)]"
                                 : enabled
                                   ? "zivo-chat-chip text-muted-foreground hover:text-foreground"
                                   : "bg-muted/30 text-muted-foreground/50 cursor-not-allowed"
@@ -3933,10 +3933,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         <button type="button"
                           key={c.id}
                           onClick={() => setOpenPersonalChat({ id: c.id, name: c.name, avatar: c.avatar, isVerified: c.isVerified === true })}
-                          className="flex w-[58px] shrink-0 flex-col items-center gap-1 rounded-xl outline-none transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/30"
+                          className="flex w-[52px] shrink-0 flex-col items-center gap-1 rounded-xl outline-none transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/30"
                         >
                           <div className="relative">
-                            <div className="zivo-chat-avatar-ring h-12 w-12 overflow-hidden rounded-full bg-muted">
+                            <div className="zivo-chat-avatar-ring h-10 w-10 overflow-hidden rounded-full bg-muted">
                               {c.avatar ? (
                                 <img src={c.avatar} alt={c.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                               ) : (
@@ -3981,7 +3981,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         className={cn(
                           "flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all whitespace-nowrap active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                           isActiveFolder
-                            ? "zivo-chat-chip-active"
+                            ? "bg-ig-gradient text-white shadow-[0_2px_10px_rgba(236,72,153,0.28)]"
                             : "zivo-chat-chip text-muted-foreground hover:text-foreground",
                           embedded && "px-3 py-1.5 text-[11px]"
                         )}
@@ -3990,7 +3990,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         {unread > 0 && (
                           <span className={cn(
                             "min-w-[16px] h-[16px] px-1 text-[9px] font-bold rounded-full flex items-center justify-center",
-                            isActiveFolder ? "bg-white text-primary" : "bg-primary text-primary-foreground"
+                            isActiveFolder ? "bg-white text-primary" : "bg-ig-gradient text-white"
                           )}>
                             {unread > 99 ? "99+" : unread}
                           </span>
@@ -4083,9 +4083,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     {!search && active === "personal" && pendingRequests.length > 0 && (
                       <button type="button"
                         onClick={() => navigate("/chat/contacts/requests")}
-                        className="zivo-chat-row flex w-full items-center gap-3 px-4 py-3 transition-all active:scale-[0.99]"
+                        className="zivo-chat-row flex w-full items-center gap-3 px-3 py-2.5 transition-all active:scale-[0.99]"
                       >
-                        <div className="zivo-chat-chip-active relative flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-full">
+                        <div className="bg-ig-gradient relative flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-full">
                           <UserPlus className="w-5 h-5 text-white" />
                           <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-background bg-red-500 px-1 text-[10px] font-bold text-white">
                             {pendingRequests.length > 9 ? "9+" : pendingRequests.length}
@@ -4109,9 +4109,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     {!search && archivedList.length > 0 && active === "personal" && (
                       <button type="button"
                         onClick={() => setShowArchived((v) => !v)}
-                        className="zivo-chat-row flex w-full items-center gap-3 px-4 py-3 transition-all active:scale-[0.99]"
+                        className="zivo-chat-row flex w-full items-center gap-3 px-3 py-2.5 transition-all active:scale-[0.99]"
                       >
-                        <div className="zivo-chat-icon-button flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-full">
+                        <div className="zivo-chat-icon-button flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-full">
                           <Archive className="w-4 h-4 text-muted-foreground" />
                         </div>
                         <div className="flex-1 text-left">
@@ -4230,7 +4230,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                 data-testid={(chat as any).isGroup ? "group-conversation-row" : "conversation-row"}
                                 className={cn(
                                   "zivo-chat-row w-full flex items-center gap-3 text-left transition-all",
-                                  embedded ? "px-3 py-2.5" : "px-4 py-3",
+                                  embedded ? "px-2 py-2" : "px-3 py-2.5",
                                   "cursor-pointer active:scale-[0.99]",
                                   chat.unread > 0 && !muted && "zivo-chat-row-unread",
                                   collapsedRail && "lg:px-2 lg:py-1.5 lg:justify-center lg:gap-0"
@@ -4264,7 +4264,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                       section. Only renders on lg+ when the
                                       sidebar is collapsed. */}
                                   {collapsedRail && chat.unread > 0 && !muted && (
-                                    <span className="hidden lg:flex absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold items-center justify-center border-2 border-background">
+                                    <span className="hidden lg:flex absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-ig-gradient text-white text-[10px] font-bold items-center justify-center border-2 border-background">
                                       {chat.unread > 99 ? "99+" : chat.unread}
                                     </span>
                                   )}

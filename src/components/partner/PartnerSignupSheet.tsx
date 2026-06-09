@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PartnerSignupSheet — quick onboarding for drivers, restaurants, hotels, etc.
  *
  * Captures business name + contact + description and inserts a row into
@@ -92,7 +92,7 @@ export default function PartnerSignupSheet() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={close}
-          className="fixed inset-0 z-[180] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-[1450] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
         >
@@ -145,7 +145,7 @@ export default function PartnerSignupSheet() {
 
                   <div className="flex gap-2 pt-1">
                     <button type="button" onClick={() => setKind(null)} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground font-semibold text-sm">Back</button>
-                    <button type="button" onClick={() => void submit()} disabled={submitting || !name} className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm active:opacity-80 disabled:opacity-50">
+                    <button type="button" onClick={() => void submit()} disabled={submitting || !name} className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl bg-ig-gradient text-white font-bold text-sm active:opacity-80 disabled:opacity-50">
                       {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit"}
                     </button>
                   </div>

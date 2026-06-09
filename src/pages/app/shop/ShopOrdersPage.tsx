@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -159,7 +159,7 @@ export default function ShopOrdersPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-bold text-sm">{order.customer_name || "Customer"}</p>
                       {newOrderIds.has(order.id) && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold animate-pulse">NEW</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-ig-gradient text-white text-[9px] font-bold animate-pulse">NEW</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">{format(new Date(order.created_at), "MMM d, h:mm a")}</p>

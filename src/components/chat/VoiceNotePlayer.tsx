@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VoiceNotePlayer — Bubble player with waveform + transcript toggle
  *
  * If `transcript` isn't provided up-front, the player exposes a "Transcribe"
@@ -93,7 +93,7 @@ export default function VoiceNotePlayer({ audioUrl, durationMs = 0, waveform = [
       <div className="flex items-center gap-2">
         <button type="button"
           onClick={toggle}
-          className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0"
+          className="w-9 h-9 rounded-full bg-ig-gradient text-white flex items-center justify-center shrink-0"
           aria-label={playing ? "Pause" : "Play"}
         >
           {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}

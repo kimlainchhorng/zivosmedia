@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SalonStylistsSection — manage the salon's team and the services each
  * stylist can perform. Bookings will use service_ids to filter which
  * stylists can take a given appointment.
@@ -436,7 +436,7 @@ export default function SalonStylistsSection({ storeId }: SalonStylistsSectionPr
                         className={cn(
                           "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                           active
-                            ? "border-primary bg-primary text-primary-foreground"
+                            ? "border-primary bg-ig-gradient text-white"
                             : "border-border bg-card text-foreground hover:border-primary/40"
                         )}
                       >

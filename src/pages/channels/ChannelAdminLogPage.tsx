@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useChannel } from "@/hooks/useChannel";
@@ -138,7 +138,7 @@ export default function ChannelAdminLogPage() {
               onClick={() => setFilter(f.value)}
               className={cn(
                 "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
-                filter === f.value ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:bg-muted/50",
+                filter === f.value ? "bg-ig-gradient text-white" : "border border-border bg-card text-muted-foreground hover:bg-muted/50",
               )}
             >
               {f.label}

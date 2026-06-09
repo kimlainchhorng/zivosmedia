@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RidePreferences — Personalization hub with ride settings, favorite drivers, ride notes
  */
 import { useState } from "react";
@@ -131,7 +131,7 @@ export default function RidePreferences() {
                 </div>
                 <div className="flex gap-2">
                   {[0, 10, 15, 20, 25].map(pct => (
-                    <button type="button" key={pct} onClick={() => setPrefs(p => ({ ...p, autoTip: pct }))} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border transition-all", prefs.autoTip === pct ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                    <button type="button" key={pct} onClick={() => setPrefs(p => ({ ...p, autoTip: pct }))} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border transition-all", prefs.autoTip === pct ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                       {pct === 0 ? "Off" : `${pct}%`}
                     </button>
                   ))}
@@ -247,7 +247,7 @@ function PreferenceSelector({ icon: Icon, label, options, selected, onSelect }: 
       </div>
       <div className="flex gap-2">
         {options.map(opt => (
-          <button type="button" key={opt.id} onClick={() => onSelect(opt.id)} className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold border transition-all", selected === opt.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40 hover:border-primary/20")}>
+          <button type="button" key={opt.id} onClick={() => onSelect(opt.id)} className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold border transition-all", selected === opt.id ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40 hover:border-primary/20")}>
             {opt.label}
           </button>
         ))}

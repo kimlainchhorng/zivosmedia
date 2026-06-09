@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CommunitiesPage — Topic-based groups & forums
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -145,7 +145,7 @@ export default function CommunitiesPage() {
           </button>
           <h1 className="text-lg font-bold flex-1">Communities</h1>
           {user && (
-            <button type="button" aria-label="Create community" title="Create community" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-primary text-primary-foreground">
+            <button type="button" aria-label="Create community" title="Create community" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-ig-gradient text-white">
               <Plus className="h-4 w-4" />
             </button>
           )}
@@ -158,7 +158,7 @@ export default function CommunitiesPage() {
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
-                tab === t ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+                tab === t ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
               }`}
             >
               {t === "discover" ? "Discover" : "My Communities"}
@@ -280,7 +280,7 @@ export default function CommunitiesPage() {
                     className={`w-full mt-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                       isMember
                         ? "bg-muted text-foreground"
-                        : "bg-primary text-primary-foreground"
+                        : "bg-ig-gradient text-white"
                     }`}
                   >
                     {isMember ? "Leave" : "Join Community"}
@@ -297,14 +297,14 @@ export default function CommunitiesPage() {
         {showCreate && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => setShowCreate(false)}
           >
             <motion.div
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md bg-background rounded-t-3xl pb-8"
+              className="w-full max-w-md bg-background rounded-t-3xl overflow-y-auto max-h-[85dvh] pb-[calc(env(safe-area-inset-bottom)+80px)]"
             >
               <div className="flex justify-center py-3">
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
@@ -331,7 +331,7 @@ export default function CommunitiesPage() {
                       onClick={() => setNewCommunity({ ...newCommunity, privacy: p })}
                       className={`flex-1 py-2.5 rounded-xl text-xs font-medium ${
                         newCommunity.privacy === p
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-ig-gradient text-white"
                           : "bg-muted/40 text-muted-foreground"
                       }`}
                     >
@@ -342,7 +342,7 @@ export default function CommunitiesPage() {
                 <button type="button"
                   onClick={() => createMutation.mutate()}
                   disabled={!newCommunity.name || createMutation.isPending}
-                  className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50"
                 >
                   {createMutation.isPending ? "Creating..." : "Create Community"}
                 </button>

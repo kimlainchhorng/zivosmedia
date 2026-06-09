@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ZIVO Wallet — Premium 2026 redesign
  * Real Supabase/Stripe data throughout
  */
@@ -1458,7 +1458,7 @@ export default function WalletPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-[1450] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
           onClick={closeTopup}
         >
           <motion.div
@@ -1505,7 +1505,7 @@ export default function WalletPage() {
                         onClick={() => setTopupAmount(String(amt))}
                         className={`py-2 rounded-lg text-sm font-bold border transition-colors ${
                           topupAmount === String(amt)
-                            ? "bg-primary text-primary-foreground border-primary"
+                            ? "bg-ig-gradient text-white border-primary"
                             : "bg-muted/40 border-border hover:bg-muted"
                         }`}
                       >

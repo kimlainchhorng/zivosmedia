@@ -1,4 +1,4 @@
-/**
+﻿/**
  * WellnessPage — ZIVO Health & Wellness hub
  * Single page with sub-sections routed via URL: /wellness, /wellness/activity,
  * /wellness/workouts, /wellness/vitals, /wellness/mindfulness, /wellness/telehealth,
@@ -529,7 +529,7 @@ function VitalsView() {
                   <button type="button"
                     key={v.type}
                     onClick={() => setForm({ type: v.type, value: "", unit: v.unit })}
-                    className={cn("text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors", form.type === v.type ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50")}
+                    className={cn("text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors", form.type === v.type ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:border-primary/50")}
                   >
                     {v.type}
                   </button>

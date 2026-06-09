@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ImportShopPage - Lazada/Taobao-style cross-border product browser.
  * Customers buy here; orders are sourced from China/Thailand and delivered
  * via the local Phnom Penh warehouse + ZIVO Driver dispatch.
@@ -40,7 +40,7 @@ export default function ImportShopPage() {
           <Button variant="ghost" size="icon" aria-label="View cart" className="relative" onClick={() => navigate("/shop/cart")}>
             <ShoppingCart className="h-5 w-5" />
             {itemCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 bg-ig-gradient text-white text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
                 {itemCount}
               </span>
             )}

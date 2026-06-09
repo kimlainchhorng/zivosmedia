@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoreAdsManager — Paid-ads dashboard for stores. Restructured with:
  *  - AdsStatStrip (4-tile aggregate w/ 7-day deltas)
  *  - Dense AdsPlatformTile grid + unified AdsConnectDialog
@@ -557,7 +557,7 @@ export default function StoreAdsManager({ storeId }: Props) {
                     className={cn(
                       "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border whitespace-nowrap transition shrink-0",
                       active
-                        ? "bg-primary text-primary-foreground border-primary"
+                        ? "bg-ig-gradient text-white border-primary"
                         : "bg-card text-muted-foreground border-border hover:border-primary/40"
                     )}
                   >
@@ -654,7 +654,7 @@ export default function StoreAdsManager({ storeId }: Props) {
         type="button"
         onClick={openCreate}
         aria-label="New campaign"
-        className="sm:hidden fixed right-4 z-40 flex items-center gap-1.5 h-12 px-4 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 active:scale-95 transition"
+        className="sm:hidden fixed right-4 z-40 flex items-center gap-1.5 h-12 px-4 rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/30 active:scale-95 transition"
         style={{ bottom: "calc(var(--zivo-safe-bottom,0px) + 80px)" }}
       >
         <Plus className="w-4 h-4" />

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalPromotionsSection — promo codes CRUD.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -213,7 +213,7 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
                       className={cn(
                         "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
                         active
-                          ? "bg-primary text-primary-foreground border-primary"
+                          ? "bg-ig-gradient text-white border-primary"
                           : s.tone === "ok"
                             ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                             : s.tone === "info"

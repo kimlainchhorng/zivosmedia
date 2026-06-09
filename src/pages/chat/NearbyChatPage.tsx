@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NearbyChatPage — opt-in People Nearby (geohash-matched).
  */
 import { useState } from "react";
@@ -70,7 +70,7 @@ export default function NearbyChatPage() {
             </div>
             <button type="button"
               onClick={() => nav("/chat", { state: { openChat: { recipientId: u.user_id, recipientName: u.profile?.full_name ?? u.profile?.username ?? "User", recipientAvatar: u.profile?.avatar_url ?? null } } })}
-              className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+              className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center"
               aria-label="Message"
             >
               <MessageCircle className="h-4 w-4" />

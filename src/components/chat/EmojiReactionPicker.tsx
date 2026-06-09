@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EmojiReactionPicker — full "react with any emoji" picker.
  *
  * Opened from the "+" in a message's quick-react row. Shows recently-used
@@ -24,7 +24,7 @@ export default function EmojiReactionPicker({ onPick, onClose }: Props) {
   }, [recents]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-[1450] flex items-end justify-center sm:items-center">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}

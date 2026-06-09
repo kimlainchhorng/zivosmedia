@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryPage - Scalable multi-store product search & shopping cart
  * Driven by GROCERY_STORES config — add a store in one place.
  */
@@ -108,7 +108,7 @@ export default function GroceryPage() {
           <button type="button" onClick={() => setShowCart(!showCart)} className="relative p-2 rounded-xl hover:bg-muted">
             <ShoppingCart className="h-5 w-5" />
             {cart.itemCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] px-1">
+              <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full bg-ig-gradient text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1">
                 {cart.itemCount}
               </span>
             )}
@@ -124,7 +124,7 @@ export default function GroceryPage() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all shrink-0",
                 selectedStore === store.name
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
               )}
             >

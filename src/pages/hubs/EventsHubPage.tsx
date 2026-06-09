@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EventsHubPage — /events-hub
  * Browse upcoming events with RSVP. Uses EventRSVPCard.
  */
@@ -58,7 +58,7 @@ export default function EventsHubPage() {
             <h1 className="text-2xl font-bold">Events</h1>
             <p className="text-sm text-muted-foreground">RSVP to local meetups, parties, and meetings.</p>
           </div>
-          <button type="button" onClick={() => navigate("/events-hub/create")} className="inline-flex min-h-[40px] items-center gap-1 px-3.5 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold touch-manipulation">
+          <button type="button" onClick={() => navigate("/events-hub/create")} className="inline-flex min-h-[40px] items-center gap-1 px-3.5 py-2 rounded-xl bg-ig-gradient text-white text-sm font-bold touch-manipulation">
             <Plus className="w-4 h-4" /> Create
           </button>
         </div>

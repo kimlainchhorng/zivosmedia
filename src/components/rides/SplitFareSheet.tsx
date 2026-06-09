@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SplitFareSheet - Fare splitting UI with contact picker & per-person breakdown
  * Inspired by Uber/Lyft's split fare flow
  */
@@ -94,7 +94,7 @@ export default function SplitFareSheet({ totalFare = 24.50, onClose, onSendReque
             onClick={() => setSplitType("equal")}
             className={cn(
               "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-              splitType === "equal" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+              splitType === "equal" ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
             )}
           >
             Split equally
@@ -103,7 +103,7 @@ export default function SplitFareSheet({ totalFare = 24.50, onClose, onSendReque
             onClick={() => setSplitType("custom")}
             className={cn(
               "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-              splitType === "custom" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+              splitType === "custom" ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
             )}
           >
             Custom amounts

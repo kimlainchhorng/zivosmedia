@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Public salon booking page at /salon/:slug.
  * Three steps: pick service → pick stylist → pick time → enter info → confirm.
  * Creates a salon_bookings row with status='pending', source='app'.
@@ -654,7 +654,7 @@ export default function PublicSalonBookingPage() {
                           onClick={() => setServiceCategoryFilter(cat)}
                           className={cn(
                             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                            active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground/75 hover:border-primary/40"
+                            active ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground/75 hover:border-primary/40"
                           )}
                         >
                           {cat === "all" ? "All" : cat}
@@ -706,7 +706,7 @@ export default function PublicSalonBookingPage() {
                     onClick={() => { setStylistId("__any"); setSelectedSlot(""); }}
                     className={cn(
                       "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                      stylistId === "__any" ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/40"
+                      stylistId === "__any" ? "border-primary bg-ig-gradient text-white" : "border-border hover:border-primary/40"
                     )}
                   >
                     <Sparkles className="h-3.5 w-3.5" /> Any stylist (earliest)
@@ -719,7 +719,7 @@ export default function PublicSalonBookingPage() {
                     onClick={() => { setStylistId(s.id); setSelectedSlot(""); }}
                     className={cn(
                       "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                      stylistId === s.id ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/40"
+                      stylistId === s.id ? "border-primary bg-ig-gradient text-white" : "border-border hover:border-primary/40"
                     )}
                   >
                     <UserCog className="h-3.5 w-3.5" /> {s.display_name}
@@ -764,7 +764,7 @@ export default function PublicSalonBookingPage() {
                       onClick={() => setSelectedSlot(iso)}
                       className={cn(
                         "rounded-lg border px-2 py-2 text-sm font-medium transition-colors",
-                        selectedSlot === iso ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/40"
+                        selectedSlot === iso ? "border-primary bg-ig-gradient text-white" : "border-border hover:border-primary/40"
                       )}
                     >
                       {formatTime(iso)}

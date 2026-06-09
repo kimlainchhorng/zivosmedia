@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Bell — header dropdown.
  * Reads from `notifications` (in_app channel). Realtime + optimistic mark-read
  * is handled inside useNotifications.
@@ -280,7 +280,7 @@ export function NotificationBell() {
                 className={cn(
                   'h-7 px-3 rounded-full text-[11px] font-medium transition-all',
                   filter === f.id
-                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    ? 'bg-ig-gradient text-white shadow-sm'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted',
                 )}
               >

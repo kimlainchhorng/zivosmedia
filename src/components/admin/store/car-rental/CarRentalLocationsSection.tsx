@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalLocationsSection — pickup / dropoff branches.
  */
 import { useState } from "react";
@@ -229,7 +229,7 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
                       onClick={() => setDraft({ ...draft, open_time: p.open, close_time: p.close })}
                       className={cn(
                         "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                        active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                        active ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
                       )}
                     >
                       {p.label}

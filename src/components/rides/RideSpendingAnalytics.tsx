@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideSpendingAnalytics — Spending breakdown, trip analytics, exportable reports
  */
 import { useState } from "react";
@@ -71,7 +71,7 @@ export default function RideSpendingAnalytics() {
       {/* Period selector */}
       <div className="flex gap-1 justify-center">
         {(["month", "quarter", "year"] as const).map(p => (
-          <button type="button" key={p} onClick={() => setPeriod(p)} className={cn("px-4 py-1.5 rounded-full text-[10px] font-bold transition-all capitalize", period === p ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground")}>
+          <button type="button" key={p} onClick={() => setPeriod(p)} className={cn("px-4 py-1.5 rounded-full text-[10px] font-bold transition-all capitalize", period === p ? "bg-ig-gradient text-white" : "bg-muted/30 text-muted-foreground")}>
             {p === "month" ? "This Month" : p === "quarter" ? "Quarter" : "Year"}
           </button>
         ))}

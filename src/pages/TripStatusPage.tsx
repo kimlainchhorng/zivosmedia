@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TripStatusPage - Real-time ride tracking page
  * Subscribes to job row updates via Supabase Realtime and renders
  * DriverEnRouteTracker once a driver is assigned.
@@ -145,7 +145,7 @@ function TripCompleteScreen({ onDone }: { onDone: () => void }) {
 
       <button type="button"
         onClick={onDone}
-        className="mt-2 w-full max-w-xs rounded-2xl bg-primary text-primary-foreground font-bold py-3.5 active:scale-95 transition-transform"
+        className="mt-2 w-full max-w-xs rounded-2xl bg-ig-gradient text-white font-bold py-3.5 active:scale-95 transition-transform"
       >
         Done
       </button>
@@ -444,7 +444,7 @@ export default function TripStatusPage() {
                 </div>
                 <button type="button"
                   onClick={() => navigate("/")}
-                  className="mt-2 rounded-2xl bg-primary text-primary-foreground font-bold py-3 px-8 active:scale-95 transition-transform"
+                  className="mt-2 rounded-2xl bg-ig-gradient text-white font-bold py-3 px-8 active:scale-95 transition-transform"
                 >
                   Go Home
                 </button>

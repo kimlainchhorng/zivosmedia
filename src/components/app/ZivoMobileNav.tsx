@@ -6,7 +6,7 @@
 import { forwardRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, MessageCircle, User, Film, Newspaper } from "lucide-react";
+import { Home, MessageCircle, User, Film, Newspaper, Car } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -105,6 +105,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     { id: "home",    labelKey: "nav.home",    icon: Home,          path: "/",                                   badge: liveActivity.total, fillable: true },
     { id: "feed",    labelKey: "nav.feed",    icon: Newspaper,     path: SOCIAL_ROUTE_PATHS.feed },
     { id: "reels",   labelKey: "nav.reel",    icon: Film,          path: SOCIAL_ROUTE_PATHS.reels },
+    { id: "ride",    labelKey: "nav.ride",    icon: Car,           path: "/rides/hub" },
     { id: "chat",    labelKey: "nav.chat",    icon: MessageCircle, path: gated(SOCIAL_ROUTE_PATHS.chat),        badge: chatUnread,         fillable: true },
     { id: "account", labelKey: "nav.account", icon: User,          path: gated(SOCIAL_ROUTE_PATHS.profile),    badge: accountUnread },
   ];
@@ -113,6 +114,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     const path = location.pathname;
     if (path === "/" || path === "") return "home";
     if (path.startsWith(SOCIAL_ROUTE_PATHS.reels)) return "reels";
+    if (path.startsWith("/rides")) return "ride";
     if (path.startsWith(SOCIAL_ROUTE_PATHS.feed)) return "feed";
     if (path.startsWith(SOCIAL_ROUTE_PATHS.chat)) return "chat";
     if (

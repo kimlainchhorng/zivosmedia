@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroupChat — Group conversation with multiple participants
  */
 import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from "react";
@@ -2998,7 +2998,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
         {actionTarget && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] bg-black/40" onClick={() => setActionTarget(null)} />
+              className="fixed inset-0 z-[1450] bg-black/40" onClick={() => setActionTarget(null)} />
             <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
               transition={{ type: "spring", damping: 26, stiffness: 400 }}
               className="zivo-chat-popover-glass fixed bottom-0 left-0 right-0 z-[201] mx-auto max-w-lg rounded-t-[1.75rem] px-4 pb-[calc(var(--zivo-safe-bottom,0px)+2rem)] pt-3"

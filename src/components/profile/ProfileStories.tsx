@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ProfileStories — Facebook-style horizontal ring carousel.
  * Shows "Your story" + every friend with active stories. Uses an isolated
  * profile cache key so it never collides with FeedStoryRing's data shape.
@@ -238,7 +238,7 @@ const ProfileStories = () => {
               </div>
               {/* Segment count badge */}
               {hasMyStory && myGroup!.stories.length > 1 && (
-                <div className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full border-2 border-background bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                <div className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full border-2 border-background bg-ig-gradient text-white text-[9px] font-bold flex items-center justify-center">
                   {myGroup!.stories.length}
                 </div>
               )}

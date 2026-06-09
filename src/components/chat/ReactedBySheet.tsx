@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReactedBySheet — "who reacted" detail view for a single message.
  *
  * Long-press a reaction chip on a bubble to see avatar + name + emoji for
@@ -104,7 +104,7 @@ export default function ReactedBySheet({ open, messageId, onClose }: Props) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-[180] flex items-end justify-center bg-black/55 px-2 backdrop-blur-md sm:items-center sm:px-4"
+          className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/55 px-2 backdrop-blur-md sm:items-center sm:px-4"
           role="dialog"
           aria-modal="true"
           aria-label="Reactions detail"

@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -287,9 +287,9 @@ export const FilterChip: React.FC<FilterChipProps> = ({
   const activeColors = {
     rides: "bg-rides text-primary-foreground shadow-lg shadow-rides/30",
     eats: "bg-eats text-primary-foreground shadow-lg shadow-eats/30",
-    sky: "bg-primary text-primary-foreground shadow-lg shadow-primary/30",
+    sky: "bg-ig-gradient text-white shadow-lg shadow-primary/30",
     amber: "bg-warning text-foreground shadow-lg shadow-warning/30",
-    default: "bg-primary text-primary-foreground shadow-lg shadow-primary/30",
+    default: "bg-ig-gradient text-white shadow-lg shadow-primary/30",
   };
 
   return (

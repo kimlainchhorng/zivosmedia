@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RidePaymentSection — Saved cards, add new card, Apple Pay for ride checkout
  * Cambodia: Cash, QR Payment, Card only
  */
@@ -540,7 +540,7 @@ export default function RidePaymentSection({
               Sign In
             </Button>
             <Button
-              className="flex-1 h-10 rounded-lg font-bold gap-1.5 text-sm bg-primary text-primary-foreground"
+              className="flex-1 h-10 rounded-lg font-bold gap-1.5 text-sm bg-ig-gradient text-white"
               onClick={() => navigate(withRedirectParam("/login?mode=signup", window.location.pathname + window.location.search))}
             >
               <UserPlus className="w-3.5 h-3.5" />
@@ -871,7 +871,7 @@ export default function RidePaymentSection({
               <Button
                 onClick={handleAddCard}
                 disabled={addingCard}
-                className="w-full h-12 rounded-xl font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 mt-1"
+                className="w-full h-12 rounded-xl font-bold gap-2 bg-ig-gradient text-white hover:bg-primary/90 mt-1"
               >
                 {addingCard ? (
                   <span className="flex items-center gap-2">

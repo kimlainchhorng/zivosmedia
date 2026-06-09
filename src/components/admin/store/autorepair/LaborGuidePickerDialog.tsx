@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -72,7 +72,7 @@ export default function LaborGuidePickerDialog({ open, onOpenChange, onSelect, t
                 className={cn(
                   "text-[11px] px-2.5 py-1 rounded-full whitespace-nowrap font-medium transition-colors border",
                   cat === c
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-muted/50 text-muted-foreground border-transparent hover:border-border"
                 )}
               >

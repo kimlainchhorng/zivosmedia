@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MessageEffects — Full-screen message send animations (iMessage-style)
  * Supports: confetti, fireworks, lasers, hearts, celebration
  */
@@ -184,7 +184,7 @@ export default function MessageEffects({ effect, onComplete }: MessageEffectsPro
     <AnimatePresence>
       {effect && (
         <motion.div
-          className="fixed inset-0 z-[100] pointer-events-none overflow-hidden"
+          className="fixed inset-0 z-[1450] pointer-events-none overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AIConciergeTrigger Component
  * Premium 2026-era floating AI concierge with context awareness
  */
@@ -71,7 +71,7 @@ export function AIConciergeTrigger() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
-          className="fixed right-4 sm:right-8 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_0_30px_hsl(var(--primary)/0.3)] flex items-center justify-center z-50 group"
+          className="fixed right-4 sm:right-8 w-14 h-14 bg-ig-gradient text-white rounded-full shadow-[0_0_30px_hsl(var(--primary)/0.3)] flex items-center justify-center z-50 group"
           style={{ bottom: "calc(var(--zivo-safe-bottom,0px) + 96px)" }}
         >
           {/* Notification Badge */}
@@ -140,7 +140,7 @@ export function AIConciergeTrigger() {
                     className={`max-w-[70%] p-3 rounded-2xl text-sm ${
                       msg.type === "bot"
                         ? "bg-muted rounded-tl-sm text-foreground"
-                        : "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-ig-gradient text-white rounded-tr-sm"
                     }`}
                   >
                     {msg.text}

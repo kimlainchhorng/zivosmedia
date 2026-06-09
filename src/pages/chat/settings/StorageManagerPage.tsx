@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StorageManagerPage - Telegram-style data and storage controls.
  * Preferences are device-local today and exposed through useChatStoragePrefs so
  * chat media surfaces can share one policy.
@@ -504,7 +504,7 @@ export default function StorageManagerPage() {
                 type="button"
                 onClick={() => setPrefs((current) => ({ ...current, keepMedia: option.value }))}
                 className={`min-h-[64px] rounded-[8px] border px-2 py-2 text-center transition ${
-                  prefs.keepMedia === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"
+                  prefs.keepMedia === option.value ? "border-primary bg-ig-gradient text-white" : "border-border bg-background"
                 }`}
               >
                 <span className="block text-xs font-bold">{option.label}</span>

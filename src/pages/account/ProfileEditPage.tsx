@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useI18n } from "@/hooks/useI18n";
 import { useForm } from "react-hook-form";
@@ -376,7 +376,7 @@ export default function ProfileEditPage() {
                     <AvatarImage src={avatarPreview || profile?.avatar_url || undefined} alt="Profile" />
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-2xl font-bold">{getInitials()}</AvatarFallback>
                   </Avatar>
-                  <button type="button" onClick={handleAvatarClick} disabled={uploadAvatar.isPending} aria-label="Change profile photo" title="Change profile photo" className="absolute bottom-0 right-0 p-2.5 bg-primary text-primary-foreground rounded-full shadow-xl ring-2 ring-background disabled:opacity-50">
+                  <button type="button" onClick={handleAvatarClick} disabled={uploadAvatar.isPending} aria-label="Change profile photo" title="Change profile photo" className="absolute bottom-0 right-0 p-2.5 bg-ig-gradient text-white rounded-full shadow-xl ring-2 ring-background disabled:opacity-50">
                     {uploadAvatar.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} aria-label="Upload profile photo" title="Upload profile photo" className="hidden" />

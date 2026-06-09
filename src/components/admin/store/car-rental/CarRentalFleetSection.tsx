@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalFleetSection — manage vehicles.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -263,7 +263,7 @@ export default function CarRentalFleetSection({ storeId }: Props) {
                 {(["all", "available", "rented", "maintenance", "retired"] as const).map((s) => (
                   <button key={s} type="button" onClick={() => setStatusFilter(s)} className={cn(
                     "rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                    statusFilter === s ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                    statusFilter === s ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground"
                   )}>
                     {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
                     {s !== "all" && (

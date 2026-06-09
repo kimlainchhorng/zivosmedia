@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AffiliateLinkSheet — generate a shareable affiliate link with click + earnings tracking.
  */
 import { useEffect, useState } from "react";
@@ -72,7 +72,7 @@ export default function AffiliateLinkSheet() {
       {open && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-[180] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm">
+          className="fixed inset-0 z-[1450] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm">
           <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
             className="w-full sm:max-w-md bg-background rounded-t-2xl sm:rounded-2xl pb-[max(1rem,var(--zivo-safe-bottom,0px))] flex flex-col overflow-hidden">
@@ -85,13 +85,13 @@ export default function AffiliateLinkSheet() {
             <div className="px-4 py-4 space-y-3">
               <p className="text-sm text-muted-foreground">Generate a personalized link — earn rewards when friends book through it.</p>
               {!shortUrl ? (
-                <button type="button" onClick={() => void generate()} disabled={busy} className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
+                <button type="button" onClick={() => void generate()} disabled={busy} className="w-full py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50">
                   {busy ? "Creating…" : "Generate my link"}
                 </button>
               ) : (
                 <>
                   <div className="rounded-xl bg-muted/40 p-3 break-all font-mono text-sm">{shortUrl}</div>
-                  <button type="button" onClick={() => void copy()} className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm">
+                  <button type="button" onClick={() => void copy()} className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm">
                     <Copy className="w-4 h-4" />Copy link
                   </button>
                 </>

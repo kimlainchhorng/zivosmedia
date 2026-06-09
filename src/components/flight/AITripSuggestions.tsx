@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -358,7 +358,7 @@ export const AITripSuggestions = ({
                   className={cn(
                     "flex-1 py-2 rounded-md text-sm font-medium transition-all",
                     budget === option.value
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-ig-gradient text-white"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >

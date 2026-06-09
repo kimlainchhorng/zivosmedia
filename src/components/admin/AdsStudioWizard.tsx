@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AdsStudioWizard — AI-powered ad creative generator for store owners.
  * 4 steps: Goal → Offer → Targeting+Budget → AI Generate → Export bundles.
  */
@@ -180,7 +180,7 @@ export default function AdsStudioWizard({ storeId, storeName, storeSlug }: Props
           <div key={s.n} className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0">
             <div className="flex flex-col items-center gap-1 shrink-0">
               <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-semibold transition ${
-                step >= s.n ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                step >= s.n ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground"
               }`}>{step > s.n ? <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : s.n}</div>
               <span className={`text-[9px] sm:text-[10px] font-medium hidden xs:block ${step >= s.n ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
             </div>

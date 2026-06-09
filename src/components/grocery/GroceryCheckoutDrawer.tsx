@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryCheckoutDrawer - 2026 Spatial UI Checkout (v4)
  * 2-step: Delivery Details → Review & Pay
  * Real-time ETA, substitution preferences, persistent profile
@@ -1360,7 +1360,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                               onClick={() => { setSelectedPayment("cash"); resetInlinePayment(); }}
                               className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
                                 selectedPayment === "cash"
-                                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                  ? "bg-ig-gradient text-white shadow-md shadow-primary/25"
                                   : "bg-muted/25 text-muted-foreground hover:bg-muted/40 border border-border/15"
                               }`}
                             >
@@ -1373,7 +1373,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                               onClick={() => { setSelectedPayment("card"); resetInlinePayment(); }}
                               className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
                                 selectedPayment === "card"
-                                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                  ? "bg-ig-gradient text-white shadow-md shadow-primary/25"
                                   : "bg-muted/25 text-muted-foreground hover:bg-muted/40 border border-border/15"
                               }`}
                             >
@@ -1386,7 +1386,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                               onClick={() => { setSelectedPayment("aba"); resetInlinePayment(); }}
                               className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
                                 selectedPayment === "aba"
-                                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                  ? "bg-ig-gradient text-white shadow-md shadow-primary/25"
                                   : "bg-muted/25 text-muted-foreground hover:bg-muted/40 border border-border/15"
                               }`}
                             >
@@ -1399,7 +1399,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                               onClick={() => { setSelectedPayment("paypal"); resetInlinePayment(); }}
                               className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
                                 selectedPayment === "paypal"
-                                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                  ? "bg-ig-gradient text-white shadow-md shadow-primary/25"
                                   : "bg-muted/25 text-muted-foreground hover:bg-muted/40 border border-border/15"
                               }`}
                             >
@@ -1412,7 +1412,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                               onClick={() => { setSelectedPayment("square"); resetInlinePayment(); }}
                               className={`flex-1 py-2.5 rounded-xl text-[12px] font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
                                 selectedPayment === "square"
-                                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                  ? "bg-ig-gradient text-white shadow-md shadow-primary/25"
                                   : "bg-muted/25 text-muted-foreground hover:bg-muted/40 border border-border/15"
                               }`}
                             >
@@ -1437,7 +1437,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
                             onClick={() => setTip(amount)}
                             className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-200 ${
                               tip === amount
-                                ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                ? "bg-ig-gradient text-white shadow-md shadow-primary/25"
                                 : "bg-muted/25 text-muted-foreground hover:bg-muted/40 border border-border/15"
                             }`}
                           >

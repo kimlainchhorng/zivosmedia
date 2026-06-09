@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideAdvancedSafety — Real-time sharing, panic button, trusted contacts, ride verification
  */
 import { useState } from "react";
@@ -258,7 +258,7 @@ export default function RideAdvancedSafety() {
                         onKeyDown={(e) => e.key === "Enter" && addContact()}
                       />
                       <button type="button" onClick={addContact} disabled={!newContact.name.trim() || !newContact.phone.trim()}
-                        className="px-3 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40">
+                        className="px-3 rounded-lg bg-ig-gradient text-white text-sm font-semibold disabled:opacity-40">
                         Add
                       </button>
                     </div>

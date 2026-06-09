@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoresListPage — Full list of nearby stores (See All from /store-map)
  * Features: skeletons + retry, GPS error banner, share toasts, favorites
  * filter + per-row heart, recenter button, shared store details drawer,
@@ -820,7 +820,7 @@ export default function StoresListPage() {
                       title={`Sort: ${sortMode}`}
                     >
                       <ArrowUpDown className="w-[18px] h-[18px]" />
-                      <span className="absolute -bottom-0.5 -right-0.5 text-[8px] font-bold bg-primary text-primary-foreground rounded-full px-1 leading-4">
+                      <span className="absolute -bottom-0.5 -right-0.5 text-[8px] font-bold bg-ig-gradient text-white rounded-full px-1 leading-4">
                         {sortMode === "distance" ? "↔" : sortMode === "rating" ? "★" : sortMode === "name" ? "A" : "○"}
                       </span>
                     </button>
@@ -859,7 +859,7 @@ export default function StoresListPage() {
                   onClick={() => { setShowFavorites(false); setActiveCategory("all"); setTrendingOnly(false); }}
                   className={`px-4 min-h-[40px] inline-flex items-center rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation ${
                     !showFavorites && !trendingOnly && activeCategory === "all"
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      ? "bg-ig-gradient text-white border-primary shadow-sm"
                       : "bg-card text-foreground/80 border-border/40"
                   }`}
                 >
@@ -913,7 +913,7 @@ export default function StoresListPage() {
                       onClick={() => { setShowFavorites(false); setActiveCategory(isActive ? "all" : cat.value); }}
                       className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation ${
                         isActive
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          ? "bg-ig-gradient text-white border-primary shadow-sm"
                           : "bg-card text-foreground/80 border-border/40"
                       }`}
                     >

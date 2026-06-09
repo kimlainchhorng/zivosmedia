@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryOrderTracking — Live order tracking with real-time status,
  * driver info, animated stepper, ETA countdown, and item details.
  * Uses Supabase Realtime for push updates.
@@ -384,9 +384,9 @@ export default function GroceryOrderTracking() {
                   )}
                   <div className={`relative z-10 h-8 w-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                     isComplete
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                      ? "bg-ig-gradient text-white shadow-md shadow-primary/20"
                       : isCurrent
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-2 ring-primary/20"
+                        ? "bg-ig-gradient text-white shadow-lg shadow-primary/30 ring-2 ring-primary/20"
                         : "bg-muted/30 text-muted-foreground/30 border border-border/20"
                   }`}>
                     {isComplete ? <CheckCircle className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}

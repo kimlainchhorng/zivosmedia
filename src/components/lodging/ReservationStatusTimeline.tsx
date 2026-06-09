@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReservationStatusTimeline - Horizontal stepper visualising reservation lifecycle.
  * Compact mode renders a small inline pill for trip lists.
  */
@@ -93,7 +93,7 @@ export function ReservationStatusTimeline({ status, compact, className }: Props)
                   className={cn(
                     "h-7 w-7 rounded-full flex items-center justify-center border-2 transition-colors",
                     reached
-                      ? "bg-primary text-primary-foreground border-primary"
+                      ? "bg-ig-gradient text-white border-primary"
                       : "bg-muted text-muted-foreground border-border",
                     isCurrent && "ring-2 ring-primary/30"
                   )}

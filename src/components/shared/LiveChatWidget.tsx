@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { MessageCircle, X, Send, Bot, User, Headphones, Loader2, Sparkles, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -368,7 +368,7 @@ const LiveChatWidget = () => {
                     className={`max-w-[78%] p-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${
                       msg.role === "assistant"
                         ? "bg-muted/60 rounded-tl-sm"
-                        : "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-ig-gradient text-white rounded-tr-sm"
                     }`}
                   >
                     {msg.content || (isStreaming && msg.role === "assistant" ? (
@@ -393,7 +393,7 @@ const LiveChatWidget = () => {
                       onClick={() => setEscalationCategory(cat.value)}
                       className={`px-2.5 py-1 text-xs rounded-full border transition-all duration-200 ${
                         escalationCategory === cat.value
-                          ? "bg-primary text-primary-foreground border-primary"
+                          ? "bg-ig-gradient text-white border-primary"
                           : "bg-muted border-border hover:bg-muted/80"
                       }`}
                     >

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChannelPostComments
  * -------------------
  * Telegram-style discussion thread under a channel post. Inline expandable
@@ -299,7 +299,7 @@ export default function ChannelPostComments({
             type="button"
             onClick={send}
             disabled={sending || draft.trim().length === 0}
-            className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50 active:scale-95 transition-transform"
+            className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center disabled:opacity-50 active:scale-95 transition-transform"
             aria-label="Send comment"
           >
             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

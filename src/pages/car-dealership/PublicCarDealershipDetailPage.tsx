@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PublicCarDealershipDetailPage — customer-facing vehicle detail view.
  *
  * Route: /car-dealership/:slug/v/:vehicleId
@@ -171,7 +171,7 @@ function PaymentCalculator({ vehiclePriceCents }: PaymentCalcProps) {
               className={cn(
                 "flex-1 rounded-md py-1 text-xs font-medium transition-colors",
                 termMonths === t
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/70",
               )}
             >

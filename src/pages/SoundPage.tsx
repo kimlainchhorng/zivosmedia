@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SoundPage — TikTok-style sound page showing all reels using a specific audio
  * Users can browse reels with this sound and "Use this sound" for their own posts
  */
@@ -173,7 +173,7 @@ export default function SoundPage() {
         {user && (
           <button type="button"
             onClick={() => setShowCreatePost(true)}
-            className="mt-4 w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="mt-4 w-full py-2.5 rounded-xl bg-ig-gradient text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <Music className="h-4 w-4" />
             Use this sound

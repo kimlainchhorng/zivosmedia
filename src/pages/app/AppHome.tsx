@@ -1,4 +1,4 @@
-/**
+﻿/**
  * App Home Screen - 2026 Travel Super-App Layout
  * Premium scrollable design with saved places, quick estimate, popular services,
  * quick actions, service navigation, and personalized content.
@@ -871,7 +871,7 @@ const AppHome = () => {
                     <div className={cn(
                       "absolute -top-2.5 -right-2 z-10 text-[8px] font-bold px-2 py-[2px] rounded-full shadow-md",
                       s.badgeVariant === "discount"
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-ig-gradient text-white"
                         : "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
                     )}>
                       {s.badge}
@@ -929,60 +929,6 @@ const AppHome = () => {
             <TodayPlanWidget />
           </Suspense>
 
-          {/* ─── QUICK PICKS + SAVED PLACES (unified pill rail) ─── */}
-          <div className="pb-3">
-            <div className="relative">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 snap-x overscroll-x-contain">
-              {/* User's saved places first — one-tap to ride home/work/etc */}
-              {user && savedLocations?.slice(0, 4).map((loc) => {
-                const Icon = savedPlaceIconMap[loc.icon] || MapPin;
-                return (
-                  <motion.button
-                    key={loc.id}
-                    whileTap={{ scale: 0.94 }}
-                    onPointerDown={() => prefetch("/rides/hub")}
-                    onClick={() => navigate(`/rides/hub?destination=${encodeURIComponent(loc.address)}`)}
-                    className="shrink-0 flex min-h-[44px] items-center gap-1.5 bg-card border border-primary/30 rounded-full pl-2 pr-3 py-2 touch-manipulation active:bg-muted/50 transition-colors shadow-sm"
-                  >
-                    <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Icon className="w-3.5 h-3.5 text-primary" strokeWidth={1.8} />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground whitespace-nowrap capitalize">{loc.label}</span>
-                  </motion.button>
-                );
-              })}
-              {/* Categorical shortcuts */}
-              {QUICK_PICKS.map((p) => {
-                const Icon = p.icon;
-                return (
-                  <motion.button
-                    key={p.label}
-                    whileTap={{ scale: 0.94 }}
-                    onPointerDown={() => prefetch(p.to.split("?")[0])}
-                    onClick={() => navigate(p.to)}
-                    className="shrink-0 flex min-h-[44px] items-center gap-1.5 bg-card border border-border rounded-full pl-2 pr-3 py-2 touch-manipulation active:bg-muted/50 transition-colors"
-                  >
-                    <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                      <Icon className="w-3.5 h-3.5 text-foreground" strokeWidth={1.8} />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground whitespace-nowrap">{p.label}</span>
-                  </motion.button>
-                );
-              })}
-              {/* Add place */}
-              <motion.button
-                whileTap={{ scale: 0.94 }}
-                onClick={() => navigate("/account/addresses")}
-                className="shrink-0 flex min-h-[44px] items-center gap-1.5 bg-muted/50 border border-dashed border-border/50 rounded-full px-3 py-2 touch-manipulation"
-                aria-label="Add a saved place"
-              >
-                <Plus className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Add place</span>
-              </motion.button>
-            </div>
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent" />
-            </div>
-          </div>
 
           {/* ─── LIVE TRIP TRACKER (moved up — surface active trip ASAP) ─── */}
           <div className="px-5 pb-3">
@@ -1090,158 +1036,10 @@ const AppHome = () => {
               ~250px of home-screen real estate. Wire to a real release-notes
               table later if a fresh-features rail is desired. */}
 
-          <div className="px-5 pb-4">
-            {ownerStoreLoading ? (
-              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                <div className="h-4 w-36 rounded-full bg-muted animate-pulse" />
-                <div className="mt-3 h-2 rounded-full bg-muted animate-pulse" />
-              </div>
-            ) : ownerStore?.isLodging ? (
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ type: "spring", stiffness: 260, damping: 26 }} className="overflow-hidden rounded-2xl border border-primary/20 bg-primary/8 shadow-md">
-                {/* Tappable preview area → public hotel detail page */}
-                <button
-                  type="button"
-                  onClick={() => navigate(`/hotel/${ownerStore.id}`)}
-                  aria-label={`Open ${ownerStore.name} hotel page`}
-                  className="block w-full text-left active:opacity-90 transition"
-                >
-                  <div className="relative h-24 w-full overflow-hidden bg-muted">
-                    {ownerStore.logo_url ? (
-                      <img
-                        src={ownerStore.logo_url}
-                        alt={`${ownerStore.name} cover`}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/15 to-transparent" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-card/95 via-card/30 to-transparent" />
-                    <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background/85 backdrop-blur text-primary"><Hotel className="h-4 w-4" /></div>
-                      <p className="truncate text-sm font-bold text-foreground drop-shadow-sm">{ownerStore.name}</p>
-                      <Badge variant="secondary" className="ml-auto shrink-0 text-[9px]">Tap to view</Badge>
-                    </div>
-                  </div>
-                </button>
-
-                <div className="p-4 pt-3">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-foreground">Hotel / Resort Admin</p>
-                    <Badge variant="secondary" className="shrink-0 text-[9px]">Ready</Badge>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {(lodgingRooms.data?.length ?? 0)} rooms · Setup {lodgingProgress?.percent || 0}%
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {["Rooms", "Rates", "Guest Requests"].map((label) => <span key={label} className="rounded-full bg-background px-2 py-0.5 text-[10px] font-semibold text-primary ring-1 ring-primary/15">{label}</span>)}
-                  </div>
-                  <div className="mt-3">
-                    <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-primary"><span>Setup progress</span><span>{lodgingProgress ? `${lodgingProgress.complete}/${lodgingProgress.total} ready` : "Loading"}</span></div>
-                    <Progress value={lodgingProgress?.percent || 0} className="h-1.5 bg-primary/15" />
-                  </div>
-                  {lodgingCompletion && lodgingCompletion.percent < 100 && lodgingCompletion.nextBestAction && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/admin/stores/${ownerStore.id}?tab=${lodgingCompletion.nextBestAction.tab}`); }}
-                      className="mt-2 flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-left transition-colors hover:bg-primary/12 active:scale-[0.99]"
-                    >
-                      <span className="min-w-0">
-                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-primary">Next best action</span>
-                        <span className="block truncate text-xs font-bold text-foreground">{lodgingCompletion.nextBestAction.actionLabel}</span>
-                        <span className="block truncate text-[10px] text-muted-foreground">{lodgingCompletion.nextBestAction.hint}</span>
-                      </span>
-                      <ArrowRight className="ml-2 h-4 w-4 shrink-0 text-primary" />
-                    </button>
-                  )}
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Button size="sm" className="h-9 px-2 text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); navigate(`/admin/stores/${ownerStore.id}?tab=lodge-overview`); }}>
-                      <span className="truncate">Open Ops</span>
-                      <ArrowRight className="ml-1 h-3.5 w-3.5 shrink-0" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-9 px-2 text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); navigate("/admin/lodging/qa-checklist"); }}>
-                      <span className="truncate">Run QA</span>
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-9 px-2 text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); navigate("/hotel-admin"); }}>
-                      <span className="truncate">Operations</span>
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-9 px-2 text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); navigate("/admin/lodging/completion-verification"); }}>
-                      <span className="truncate">QA Report</span>
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <button type="button" onClick={() => navigate("/business/new")} className="flex w-full items-center justify-between rounded-2xl border border-border bg-card p-4 text-left shadow-sm active:scale-[0.99]">
-                <span className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Briefcase className="h-5 w-5" /></span><span><span className="block text-sm font-bold text-foreground">Business Page</span><span className="block text-xs text-muted-foreground">Create your business page on Zivo</span></span></span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-            )}
-          </div>
 
 
 
 
-          {/* ─── DISCOVER (gradient cards) ─── */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ type: "spring", stiffness: 260, damping: 28 }}
-            className="pb-5"
-          >
-            <div className="flex items-center justify-between mb-3 px-5">
-              <h2 className="text-[17px] font-black text-ig-gradient">Discover</h2>
-              <button type="button" aria-label="View more services" onClick={() => navigate("/more")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
-                <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
-              </button>
-            </div>
-            <div className="relative">
-              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 px-5 snap-x snap-mandatory overscroll-x-contain">
-                {[
-                  { icon: Briefcase, label: "Workplace",   desc: "Clock in & gigs",      href: "/personal-dashboard",  gradient: "from-slate-600 via-slate-700 to-slate-800" },
-                  { icon: Tv,        label: "Live",         desc: "Watch live streams",   href: "/live",                gradient: "from-rose-500 via-pink-500 to-fuchsia-600" },
-                  { icon: Rocket,    label: "Creator Hub",  desc: "Grow & earn",          href: "/creator-dashboard",   gradient: "from-violet-500 via-purple-500 to-indigo-600" },
-                  { icon: Heart,     label: "Wellness",     desc: "Stay healthy",         href: "/wellness/activity",   gradient: "from-emerald-400 via-teal-500 to-cyan-600" },
-                  { icon: Crown,     label: "ZIVO Plus",    desc: "Premium perks",        href: "/zivo-plus",           gradient: "from-amber-400 via-yellow-400 to-orange-500" },
-                  { icon: Gem,       label: "Rewards",      desc: "Earn & redeem points", href: "/rewards",             gradient: "from-pink-500 via-rose-500 to-red-500" },
-                  { icon: Sparkles,  label: "Marketplace",  desc: "Buy & sell",           href: "/marketplace",         gradient: "from-sky-400 via-blue-500 to-indigo-600" },
-                  { icon: Dumbbell,  label: "Workouts",     desc: "Train daily",          href: "/wellness/workouts",   gradient: "from-lime-400 via-green-500 to-emerald-600" },
-                ].map((card, i) => (
-                  <motion.button
-                    key={card.label}
-                    initial={{ opacity: 0, scale: 0.88, y: 12 }}
-                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.05 }}
-                    whileTap={{ scale: 0.93 }}
-                    whileHover={{ y: -5, scale: 1.03 }}
-                    onClick={() => navigate(card.href)}
-                    className={cn(
-                      "shrink-0 snap-start w-[148px] h-[118px] rounded-[22px] bg-gradient-to-br p-4 flex flex-col justify-between shadow-xl touch-manipulation text-left",
-                      card.gradient
-                    )}
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <card.icon className="w-[18px] h-[18px] text-white" />
-                    </div>
-                    <div>
-                      <p className="text-white font-black text-[13px] leading-tight">{card.label}</p>
-                      <p className="text-white/70 text-[10px] mt-0.5 line-clamp-1">{card.desc}</p>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-              <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-10 bg-gradient-to-l from-background to-transparent" />
-            </div>
-          </motion.div>
-
-          {/* 3D Section Divider */}
-          <div className="h-3 relative overflow-hidden">
-            <div className="absolute inset-x-4 top-1/2 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-            <div className="absolute inset-x-0 top-0 h-full bg-muted/20" />
-          </div>
         </div>
 
         {/* ─── MAIN CONTENT ─── */}
@@ -1250,153 +1048,7 @@ const AppHome = () => {
           {/* ─── PRICE ALERTS WIDGET ─── */}
           <Suspense fallback={null}><PriceAlertsWidget /></Suspense>
 
-          {/* ─── LOYALTY & REWARDS CARD ─── */}
-          {user && points && (
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ type: "spring", stiffness: 260, damping: 26 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate("/rewards")}
-              className="w-full rounded-2xl bg-gradient-to-br from-amber-500/12 via-orange-500/6 to-amber-500/10 border border-amber-500/25 p-5 text-left shadow-md relative overflow-hidden touch-manipulation"
-            >
-              <div className="absolute -top-8 -right-8 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex items-center gap-3 relative z-10">
-                <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center shrink-0">
-                  <Crown className="w-5 h-5 text-amber-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-bold text-foreground">ZIVO Miles</p>
-                    {loyaltySummary?.tier && (
-                      <Badge variant="secondary" className="text-[9px] font-bold bg-amber-500/15 text-amber-600 border-0 px-1.5">
-                        {loyaltySummary.tier}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-bold text-foreground">{(loyaltySummary?.points_balance || 0).toLocaleString()}</span> pts · Earn more with every trip
-                  </p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-              </div>
-              {(loyaltySummary?.points_balance || 0) > 0 && (
-                <div className="mt-3 relative z-10">
-                  <Progress value={Math.min(((loyaltySummary?.points_balance || 0) / 5000) * 100, 100)} className="h-1.5 bg-amber-500/20" />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {Math.max(0, 5000 - (loyaltySummary?.points_balance || 0)).toLocaleString()} pts to next tier
-                  </p>
-                </div>
-              )}
-            </motion.button>
-          )}
 
-          {/* ─── REFERRAL WORKFLOW ─── */}
-          {user && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ type: "spring", stiffness: 260, damping: 26 }}
-              className="rounded-2xl border border-border/60 p-3.5 relative overflow-hidden shadow-md bg-card"
-            >
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-500 via-rose-500 to-fuchsia-600" />
-              <div className="relative z-10">
-                <div className="flex items-start justify-between gap-2.5">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Gift className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-foreground leading-tight">Invite friends, earn rewards</p>
-                      <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
-                        Friends get {REFERRAL_REWARDS.newUser.points.toLocaleString()} pts. You earn {REFERRAL_REWARDS.referrer.pointsPerReferral.toLocaleString()} pts after they book.
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary" className="rounded-full shrink-0 px-2 py-0.5 text-[10px]">
-                    {currentReferralTier?.tier_name || "Standard"}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-3 gap-1.5 mt-3">
-                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Users className="w-3.5 h-3.5 text-primary" />
-                      <span className="truncate text-[10px]">Joined</span>
-                    </div>
-                    <p className="mt-1 text-base font-black text-foreground">{totalReferralCount.toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Trophy className="w-3.5 h-3.5 text-amber-500" />
-                      <span className="truncate text-[10px]">Points</span>
-                    </div>
-                    <p className="mt-1 text-base font-black text-foreground">{referralPointsEarned.toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Clock className="w-3.5 h-3.5 text-blue-500" />
-                      <span className="truncate text-[10px]">Pending</span>
-                    </div>
-                    <p className="mt-1 text-base font-black text-foreground">{pendingReferralCount.toLocaleString()}</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {referralsLoading ? "Syncing invite" : `${completedReferralCount.toLocaleString()} qualified`}
-                    </p>
-                    <p className="truncate text-xs font-bold text-foreground select-all" title={referralShareUrl || undefined}>
-                      {referralCode?.code ? `Code ${referralCode.code}` : referralShareUrl || "Preparing your link"}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!referralShareUrl}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void copyReferralLink();
-                    }}
-                    className="h-8 rounded-lg px-2.5 text-xs font-bold shrink-0"
-                  >
-                    <Copy className="w-3.5 h-3.5 mr-1" />
-                    Copy
-                  </Button>
-                </div>
-
-                <div className="mt-2.5">
-                  <div className="flex items-center justify-between gap-3 text-[11px]">
-                    <span className="truncate font-bold text-foreground">
-                      {nextReferralTier ? `${referralsToNextTier.toLocaleString()} more to ${nextReferralTier.tier_name}` : "Top referral tier unlocked"}
-                    </span>
-                    <span className="shrink-0 text-muted-foreground">{Math.round(referralTierProgress)}%</span>
-                  </div>
-                  <Progress value={referralTierProgress} className="mt-1.5 h-1 bg-primary/15" />
-                </div>
-
-                <div className="mt-3">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={!referralShareUrl}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void shareReferral();
-                    }}
-                    className="h-9 w-full rounded-xl text-sm font-bold shadow-sm"
-                  >
-                    <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                    Share invite
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           {/* ─── GUEST SIGN-UP CTA ─── */}
           {!user && (

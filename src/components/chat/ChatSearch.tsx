@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatSearch — Search through chat history with highlighted results
  */
 import { useState, useEffect, useRef } from "react";
@@ -85,7 +85,7 @@ export default function ChatSearch({ messages, onClose, onScrollToMessage, curre
             <button type="button"
               key={f}
               onClick={() => setSenderFilter(f)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${senderFilter === f ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"}`}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${senderFilter === f ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"}`}
             >
               {f === "all" ? "All" : f === "me" ? "From me" : "From them"}
             </button>

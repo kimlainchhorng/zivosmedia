@@ -414,7 +414,7 @@ export default function ChatContactInfo({
 
   return (
     <motion.div
-      className="zivo-chat-surface fixed inset-0 z-[60] flex flex-col bg-background"
+      className="fixed inset-0 z-[60] flex flex-col bg-background"
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
@@ -432,8 +432,8 @@ export default function ChatContactInfo({
             <ArrowLeft className="h-[22px] w-[22px] text-foreground" />
           </button>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Profile room</p>
-            <p className="text-[17px] font-black text-foreground tracking-tight">Contact Info</p>
+            <p className="text-ig-gradient text-[9.5px] font-black uppercase tracking-[0.22em]">Profile room</p>
+            <p className="text-[16px] font-black text-foreground tracking-tight leading-tight">Contact Info</p>
           </div>
           <div className="flex-1" />
           <button type="button"
@@ -450,21 +450,21 @@ export default function ChatContactInfo({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto scrollbar-hide overscroll-contain">
         {/* Profile hero */}
-        <div className="mx-4 mt-4 flex flex-col items-center rounded-[1.75rem] border border-white/10 bg-background/45 px-4 pb-5 pt-8 shadow-xl backdrop-blur-2xl">
+        <div className="mx-4 mt-3 flex flex-col items-center rounded-[1.75rem] border border-white/10 bg-background/45 px-4 pb-3 pt-5 shadow-xl backdrop-blur-2xl">
           <div className="relative">
-            <div className="zivo-chat-avatar-ring rounded-full p-[4px]">
-              <Avatar className="h-[104px] w-[104px] ring-[3px] ring-background/80">
+            <div className="ring-ig-gradient rounded-full p-[3px] shadow-[0_2px_16px_rgba(236,72,153,0.22)]">
+              <Avatar className="h-[78px] w-[78px] ring-[2.5px] ring-background/80">
                 <AvatarImage src={recipientAvatar || undefined} className="object-cover" />
-                <AvatarFallback className="text-[28px] font-black bg-primary/10 text-primary">
+                <AvatarFallback className="text-[22px] font-black bg-primary/10 text-primary">
                   {initials}
                 </AvatarFallback>
               </Avatar>
             </div>
             {isOnline && (
-              <span className="absolute bottom-1.5 right-1.5 h-[18px] w-[18px] rounded-full bg-emerald-500 border-[3px] border-background shadow-sm" />
+              <span className="absolute bottom-1 right-1 h-[14px] w-[14px] rounded-full bg-emerald-500 border-[2px] border-background shadow-sm" />
             )}
           </div>
-          <h2 className="text-[23px] font-black text-foreground mt-4 text-center leading-tight">
+          <h2 className="text-[18px] font-black text-foreground mt-2.5 text-center leading-tight">
             {recipientName}
           </h2>
           {recipientProfile?.bio && (
@@ -472,56 +472,59 @@ export default function ChatContactInfo({
               <SafeCaption text={recipientProfile.bio} />
             </p>
           )}
-          <div className="flex items-center gap-1.5 mt-1.5">
+          <div className="flex items-center gap-1.5 mt-1">
             {isOnline ? (
               <>
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="text-[13px] font-bold text-emerald-600">Active now</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[12px] font-bold text-emerald-600">Active now</span>
               </>
             ) : lastSeen ? (
               <>
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="text-[13px] text-muted-foreground">Last seen {lastSeen}</span>
+                <Clock className="h-2.5 w-2.5 text-muted-foreground" />
+                <span className="text-[12px] text-muted-foreground">Last seen {lastSeen}</span>
               </>
             ) : (
               <>
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="text-[13px] text-muted-foreground">Offline</span>
+                <Clock className="h-2.5 w-2.5 text-muted-foreground" />
+                <span className="text-[12px] text-muted-foreground">Offline</span>
               </>
             )}
           </div>
           {recipientProfile?.city && (
-            <p className="text-[11px] text-muted-foreground/70 mt-1">
+            <p className="text-[10.5px] text-muted-foreground/70 mt-0.5">
               📍 {recipientProfile.city}{recipientProfile.country ? `, ${recipientProfile.country}` : ""}
             </p>
           )}
         </div>
 
         {/* Quick action buttons row */}
-        <div className="flex justify-start gap-3 overflow-x-auto px-4 py-5 sm:justify-center">
-          {[
-            { icon: Phone, label: "Audio", action: () => onStartCall?.("voice") },
-            { icon: Video, label: "Video", action: () => onStartCall?.("video") },
-            { icon: Gift, label: "Gift", action: onOpenGift },
-            { icon: Search, label: "Search", action: onOpenSearch },
-            { icon: UserRound, label: "Profile", action: handleViewProfile },
-            { icon: isFavorite ? StarOff : Star, label: isFavorite ? "Unfav" : "Favorite", action: toggleFavorite },
-          ].map(({ icon: Icon, label, action }) => (
-            <button type="button"
-              key={label}
-              onClick={action}
-              className="group flex min-w-[58px] flex-col items-center gap-1.5"
-              aria-label={label}
-              title={label}
-            >
-              <div className="zivo-chat-icon-button h-12 w-12 active:scale-90">
-                <Icon className="h-[18px] w-[18px] text-foreground/80" />
-              </div>
-              <span className="text-[10px] font-black text-muted-foreground tracking-wide">
-                {label}
-              </span>
-            </button>
-          ))}
+        <div className="mx-4 mt-2 mb-1 rounded-[1.75rem] border border-white/10 bg-background/40 px-3 py-3 shadow-sm backdrop-blur-xl">
+          <div className="flex justify-around">
+            {[
+              { icon: Phone, label: "Audio", action: () => onStartCall?.("voice") },
+              { icon: Video, label: "Video", action: () => onStartCall?.("video") },
+              { icon: Gift, label: "Gift", action: onOpenGift },
+              { icon: Search, label: "Search", action: onOpenSearch },
+              { icon: UserRound, label: "Profile", action: handleViewProfile },
+              { icon: isFavorite ? StarOff : Star, label: isFavorite ? "Unfav" : "Favorite", action: toggleFavorite },
+            ].map(({ icon: Icon, label, action }) => (
+              <motion.button type="button"
+                key={label}
+                whileTap={{ scale: 0.88 }}
+                onClick={action}
+                className="flex flex-col items-center gap-1.5"
+                aria-label={label}
+                title={label}
+              >
+                <div className="bg-muted/60 flex h-10 w-10 items-center justify-center rounded-2xl border border-border/30 shadow-sm">
+                  <Icon className="h-[16px] w-[16px] text-foreground/80" />
+                </div>
+                <span className="text-[9.5px] font-black text-muted-foreground tracking-wide">
+                  {label}
+                </span>
+              </motion.button>
+            ))}
+          </div>
         </div>
 
         <div className="mx-4 h-px bg-border/35" />
@@ -542,7 +545,7 @@ export default function ChatContactInfo({
                 </div>
                 <button type="button"
                   onClick={onOpenMediaGallery}
-                  className="zivo-chat-chip mt-3 w-full justify-center py-2.5 text-xs font-black text-primary active:opacity-70"
+                  className="bg-ig-gradient mt-3 w-full flex items-center justify-center rounded-full py-2 text-[11px] font-black text-white shadow-[0_2px_8px_rgba(236,72,153,0.25)] active:opacity-80 transition-opacity"
                 >
                   View All Media →
                 </button>
@@ -661,7 +664,7 @@ export default function ChatContactInfo({
             <SectionButton icon={FileText} label="Files" chevron onClick={onOpenFiles} />
             <SectionButton icon={Link2} label="Links" chevron onClick={onOpenLinks} />
           </Section>
-          <div className="mx-4 my-2 h-px bg-border/35" />
+          <div className="mx-4 my-1.5 h-px bg-border/35" />
 
           {/* Customize section */}
           <Section title="Customize Chat">
@@ -712,35 +715,35 @@ export default function ChatContactInfo({
 
           <ChatBackupExport open={showExport} onClose={() => setShowExport(false)} recipientId={recipientId} recipientName={recipientName} />
 
-          <div className="mx-4 my-2 h-px bg-border/35" />
+          <div className="mx-4 my-1.5 h-px bg-border/35" />
 
           {/* Notifications */}
           <Section title="Notifications">
             <button type="button"
               onClick={() => setShowMuteSheet(true)}
-              className="flex w-full items-center justify-between rounded-2xl px-4 py-3.5 transition-colors hover:bg-muted/20"
+              className="flex w-full items-center justify-between rounded-2xl px-3 py-2.5 transition-colors hover:bg-muted/20"
             >
-              <div className="flex items-center gap-3.5">
-                <div className="zivo-chat-avatar-ring h-10 w-10 rounded-full flex items-center justify-center">
+              <div className="flex items-center gap-2.5">
+                <div className="zivo-chat-avatar-ring h-8 w-8 shrink-0 rounded-full flex items-center justify-center">
                   {muted ? (
-                    <BellOff className="h-[16px] w-[16px] text-muted-foreground" />
+                    <BellOff className="h-[14px] w-[14px] text-muted-foreground" />
                   ) : (
-                    <Bell className="h-[16px] w-[16px] text-muted-foreground" />
+                    <Bell className="h-[14px] w-[14px] text-muted-foreground" />
                   )}
                 </div>
                 <div className="text-left">
-                  <p className="text-[14.5px] font-black text-foreground">
+                  <p className="text-[13px] font-black text-foreground">
                     {muted ? "Notifications muted" : "Mute Notifications"}
                   </p>
                   {muted && (() => {
                     const until = getThread(threadId).muted_until;
                     if (!until) return null;
-                    if (until.startsWith("2099")) return <p className="text-[11px] text-muted-foreground mt-0.5">Forever — tap to change</p>;
-                    return <p className="text-[11px] text-muted-foreground mt-0.5">Until {new Date(until).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>;
+                    if (until.startsWith("2099")) return <p className="text-[10.5px] text-muted-foreground mt-0.5">Forever — tap to change</p>;
+                    return <p className="text-[10.5px] text-muted-foreground mt-0.5">Until {new Date(until).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>;
                   })()}
                 </div>
               </div>
-              <ChevronRight className="h-[18px] w-[18px] text-muted-foreground/40" />
+              <ChevronRight className="h-[14px] w-[14px] text-muted-foreground/40" />
             </button>
             <MuteDurationSheet
               open={showMuteSheet}
@@ -759,8 +762,8 @@ export default function ChatContactInfo({
                 }
               }}
             />
-            <div className="px-4 py-3 flex items-center justify-between gap-3">
-              <span className="text-[12.5px] font-semibold text-muted-foreground uppercase tracking-wide">
+            <div className="px-3 py-2 flex items-center justify-between gap-3">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                 Notification Mode
               </span>
               <div className="zivo-chat-chip flex rounded-full p-0.5">
@@ -771,9 +774,9 @@ export default function ChatContactInfo({
                       await setMode(threadId, m);
                       toast.success(m === "all" ? "All messages" : m === "mentions" ? "Mentions only" : "Silenced");
                     }}
-                    className={`px-3 py-1.5 rounded-full text-[12px] font-black transition-colors ${
+                    className={`px-2.5 py-1 rounded-full text-[10.5px] font-black transition-all ${
                       notifMode === m
-                        ? "bg-background/80 text-foreground shadow-sm"
+                        ? "bg-ig-gradient text-white shadow-[0_2px_8px_rgba(236,72,153,0.25)]"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -790,7 +793,7 @@ export default function ChatContactInfo({
             />
           </Section>
 
-          <div className="mx-4 my-2 h-px bg-border/35" />
+          <div className="mx-4 my-1.5 h-px bg-border/35" />
 
           {/* Privacy & Safety */}
           <Section title="Privacy & Safety">
@@ -805,18 +808,18 @@ export default function ChatContactInfo({
             <SectionButton icon={Flag} label="Report" className="text-destructive" onClick={handleReport} />
           </Section>
 
-          <div className="mx-4 my-2 h-px bg-border/35" />
+          <div className="mx-4 my-1.5 h-px bg-border/35" />
 
           {/* Delete conversation */}
-          <div className="py-2">
+          <div className="py-1.5">
             <button type="button"
               onClick={handleDeleteConversation}
-              className="zivo-chat-row mx-4 w-[calc(100%-2rem)] flex items-center gap-3.5 px-4 py-3.5 text-destructive"
+              className="zivo-chat-row mx-4 w-[calc(100%-2rem)] flex items-center gap-2.5 px-3 py-2.5 text-destructive"
             >
-              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                <Trash2 className="h-[16px] w-[16px] text-destructive" />
+              <div className="h-8 w-8 shrink-0 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="h-[14px] w-[14px] text-destructive" />
               </div>
-              <span className="text-[14.5px] font-black text-destructive">
+              <span className="text-[13px] font-black text-destructive">
                 Delete Conversation
               </span>
             </button>
@@ -904,11 +907,11 @@ function SharedMediaTile({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="py-2">
-      <p className="px-4 pt-3 pb-2 text-[11.5px] font-black text-muted-foreground/70 uppercase tracking-[0.12em]">
+    <div className="py-1">
+      <p className="text-ig-gradient px-4 pt-2 pb-1 text-[10px] font-black uppercase tracking-[0.14em]">
         {title}
       </p>
-      <div className="mx-4 rounded-3xl border border-white/10 bg-background/40 py-1 shadow-sm backdrop-blur-xl">{children}</div>
+      <div className="mx-4 rounded-3xl border border-white/10 bg-background/40 py-0.5 shadow-sm backdrop-blur-xl">{children}</div>
     </div>
   );
 }
@@ -929,15 +932,15 @@ function SectionButton({
   return (
     <button type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3.5 rounded-2xl px-4 py-3.5 active:bg-muted/40 transition-colors hover:bg-muted/20"
+      className="w-full flex items-center gap-2.5 rounded-2xl px-3 py-2.5 active:bg-muted/40 transition-colors hover:bg-muted/20"
     >
-      <div className={`h-10 w-10 rounded-full flex items-center justify-center ${className ? "bg-destructive/10" : "zivo-chat-avatar-ring"}`}>
-        <Icon className={`h-[16px] w-[16px] ${className || "text-muted-foreground"}`} />
+      <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center ${className ? "bg-destructive/10" : "zivo-chat-avatar-ring"}`}>
+        <Icon className={`h-[14px] w-[14px] ${className || "text-muted-foreground"}`} />
       </div>
-      <span className={`text-[14.5px] font-bold flex-1 text-left ${className || "text-foreground"}`}>
+      <span className={`text-[13px] font-bold flex-1 text-left ${className || "text-foreground"}`}>
         {label}
       </span>
-      {chevron && <ChevronRight className="h-[18px] w-[18px] text-muted-foreground/40" />}
+      {chevron && <ChevronRight className="h-[14px] w-[14px] text-muted-foreground/40" />}
     </button>
   );
 }

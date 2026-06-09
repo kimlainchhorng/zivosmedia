@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CustomFoldersPage — Manage Telegram-style chat folders.
  * Reads/writes the existing `chat_folders` table (already used by ChatFolders).
  * Supports create, rename, reorder (move up/down), and delete.
@@ -206,7 +206,7 @@ export default function CustomFoldersPage() {
               autoFocus
               className="w-full px-3 py-2.5 rounded-xl bg-muted/30 border border-border/40 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
-            <button type="button" onClick={save} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium">
+            <button type="button" onClick={save} className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-medium">
               {editing.id ? "Save changes" : "Create folder"}
             </button>
           </div>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ProfileFeedCard from "./ProfileFeedCard";
 import UnifiedShareSheet from "@/components/shared/ShareSheet";
 import { openPostShareSheet } from "@/lib/social/postShareSheet";
@@ -1480,7 +1480,7 @@ export default function ProfileContentTabs({
                     />
                     <button type="button"
                       onClick={() => handleEditCaption(selectedPost.id, editCaptionValue)}
-                      className="px-3 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg"
+                      className="px-3 py-2 bg-ig-gradient text-white text-xs font-semibold rounded-lg"
                     >
                       Save
                     </button>
@@ -1946,7 +1946,7 @@ export default function ProfileContentTabs({
                         }
                         setReportStep("submitted");
                       }}
-                      className="w-full bg-primary text-primary-foreground rounded-xl py-3 min-h-[44px] text-sm font-semibold"
+                      className="w-full bg-ig-gradient text-white rounded-xl py-3 min-h-[44px] text-sm font-semibold"
                     >
                       Submit report
                     </button>
@@ -1977,7 +1977,7 @@ export default function ProfileContentTabs({
                     )}
                     <button type="button"
                       onClick={() => setShowReportSheet(false)}
-                      className="w-full bg-primary text-primary-foreground rounded-xl py-3 min-h-[44px] text-sm font-semibold"
+                      className="w-full bg-ig-gradient text-white rounded-xl py-3 min-h-[44px] text-sm font-semibold"
                     >
                       Done
                     </button>
@@ -2188,7 +2188,7 @@ function ComposerForm({
       <div className="flex items-center justify-between">
         <button type="button" onClick={onBack} className="text-sm text-primary font-medium">← Back</button>
         <h3 className="text-base font-bold text-foreground">New {label}</h3>
-        <motion.button whileTap={{ scale: 0.95 }} disabled={isPosting} onClick={handlePost} className="bg-primary text-primary-foreground text-sm font-bold px-4 py-1.5 rounded-full disabled:opacity-70">
+        <motion.button whileTap={{ scale: 0.95 }} disabled={isPosting} onClick={handlePost} className="bg-ig-gradient text-white text-sm font-bold px-4 py-1.5 rounded-full disabled:opacity-70">
           {isPosting ? "Posting..." : "Post"}
         </motion.button>
       </div>
@@ -5764,7 +5764,7 @@ function LiveBroadcast({
               onClick={toggleFilters}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium mb-1",
-                showFilters ? "bg-primary text-primary-foreground" : "bg-white/15 text-white/70"
+                showFilters ? "bg-ig-gradient text-white" : "bg-white/15 text-white/70"
               )}
             >
               <Sparkles className="w-3.5 h-3.5" /> Filters

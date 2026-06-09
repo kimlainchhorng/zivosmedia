@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AccountAnalyticsPage — Profile visits, engagement stats, growth trends,
  * and Top Posts (today / this week) by likes / comments / shares / saves.
  */
@@ -198,7 +198,7 @@ export default function AccountAnalyticsPage() {
               onClick={() => setPeriod(p)}
               className={cn(
                 "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                period === p ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                period === p ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
               )}
             >
               {p === "7d" ? "7 Days" : p === "30d" ? "30 Days" : "90 Days"}
@@ -241,7 +241,7 @@ export default function AccountAnalyticsPage() {
                   onClick={() => setTopBucket(b.id)}
                   className={cn(
                     "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                    topBucket === b.id ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                    topBucket === b.id ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
                   )}
                 >
                   {b.label}

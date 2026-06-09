@@ -1,4 +1,4 @@
-/**
+﻿/**
  * OnboardingTour — first-time user walkthrough.
  *
  * Driven by data-tour="step-id" attributes on target elements. Persists
@@ -85,7 +85,7 @@ export default function OnboardingTour() {
               <p className="text-sm text-muted-foreground">{step.body}</p>
               <button type="button"
                 onClick={() => isLast ? void finish() : setStepIdx(stepIdx + 1)}
-                className="mt-4 w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm active:opacity-80 transition"
+                className="mt-4 w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm active:opacity-80 transition"
               >
                 {isLast ? "Get started" : "Next"}<ChevronRight className="w-4 h-4" />
               </button>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MonetizationArticleDetailPage — Dynamic article viewer
  * Generates rich, unique content based on the article slug
  */
@@ -327,7 +327,7 @@ export default function MonetizationArticleDetailPage() {
         {/* Browse All */}
         <button type="button"
           onClick={() => navigate("/monetization/articles")}
-          className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold touch-manipulation active:scale-[0.98] transition-transform"
+          className="w-full py-3 rounded-xl bg-ig-gradient text-white text-sm font-bold touch-manipulation active:scale-[0.98] transition-transform"
         >
           Browse All Articles
         </button>

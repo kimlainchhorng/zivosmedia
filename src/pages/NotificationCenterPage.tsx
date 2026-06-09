@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment, lazy, Suspense } from "react";
+﻿import { useState, useEffect, useCallback, Fragment, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -407,14 +407,14 @@ export default function NotificationCenterPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-manipulation ${
                   isActive
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted/70"
                 }`}
               >
                 {tab.icon && <tab.icon className="h-3.5 w-3.5" />}
                 <span>{tab.label}</span>
                 {badge > 0 && (
-                  <span className={`text-[10px] font-bold rounded-full px-1.5 ${isActive ? "bg-primary-foreground/25 text-primary-foreground" : "bg-primary text-primary-foreground"}`}>
+                  <span className={`text-[10px] font-bold rounded-full px-1.5 ${isActive ? "bg-primary-foreground/25 text-primary-foreground" : "bg-ig-gradient text-white"}`}>
                     {badge}
                   </span>
                 )}
@@ -625,7 +625,7 @@ export default function NotificationCenterPage() {
                               onClick={() => void sendReply()}
                               disabled={!replyText.trim() || replySending}
                               aria-label="Send reply"
-                              className="shrink-0 h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all"
+                              className="shrink-0 h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all"
                             >
                               {replySending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                             </button>

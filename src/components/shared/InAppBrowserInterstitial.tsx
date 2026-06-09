@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Full-screen interstitial shown when users visit via in-app browsers
  * (Facebook, Instagram, TikTok, etc.) to prompt app download.
  * Shows once per session; can be dismissed.
@@ -117,7 +117,7 @@ export default function InAppBrowserInterstitial() {
             <div className="space-y-3 pt-1">
               <a
                 href={storeUrl}
-                className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-primary text-primary-foreground font-semibold text-[15px] shadow-lg active:scale-[0.97] transition-transform touch-manipulation"
+                className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-ig-gradient text-white font-semibold text-[15px] shadow-lg active:scale-[0.97] transition-transform touch-manipulation"
               >
                 <Smartphone className="w-5 h-5" />
                 Download on {storeName}

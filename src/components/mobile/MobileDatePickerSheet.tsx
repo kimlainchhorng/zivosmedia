@@ -318,7 +318,7 @@ export function MobileDateRangePickerSheet({
                     const level = disabled ? null : getLevel(date);
                     return (
                       <div
-                        className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-sm font-medium"
+                        className="flex items-center justify-center w-full h-full rounded-lg text-sm font-medium"
                         style={level ? { background: priceLevelConfig[level].bg } : undefined}
                       >
                         {date.getDate()}
@@ -356,30 +356,30 @@ export function MobileDateRangePickerSheet({
   );
 }
 
-/* ─── 3D-styled calendar classNames ─── */
+/* ─── 3D-styled calendar classNames — fluid 7-col grid ─── */
 const calendarClassNames3D = {
-  months: "flex flex-col space-y-4",
-  month: "space-y-3",
-  caption: "flex justify-center pt-1 relative items-center",
+  months: "flex flex-col space-y-4 w-full",
+  month: "space-y-3 w-full",
+  caption: "flex justify-center pt-1 relative items-center mb-2",
   caption_label: "text-sm font-bold text-foreground tracking-tight",
   nav: "space-x-1 flex items-center",
   nav_button:
-    "h-8 w-8 p-0 opacity-60 hover:opacity-100 inline-flex items-center justify-center rounded-xl hover:bg-muted/80 transition-all active:scale-95",
+    "h-9 w-9 p-0 opacity-60 hover:opacity-100 inline-flex items-center justify-center rounded-xl hover:bg-muted/80 transition-all active:scale-95",
   nav_button_previous: "absolute left-1",
   nav_button_next: "absolute right-1",
   table: "w-full border-collapse",
-  head_row: "flex",
+  head_row: "grid grid-cols-7 w-full",
   head_cell:
-    "text-muted-foreground/70 rounded-md w-10 font-semibold text-[11px] uppercase tracking-wider py-2 text-center",
-  row: "flex w-full mt-0.5",
-  cell: `h-10 w-10 text-center text-sm p-0 relative
+    "text-muted-foreground/70 rounded-md font-semibold text-[11px] uppercase tracking-wider py-2 text-center",
+  row: "grid grid-cols-7 w-full mt-0.5",
+  cell: `h-10 w-full text-center text-sm p-0 relative
     [&:has([aria-selected].day-range-end)]:rounded-r-xl
     [&:has([aria-selected].day-outside)]:bg-emerald-500/8
     [&:has([aria-selected])]:bg-emerald-500/8
     first:[&:has([aria-selected])]:rounded-l-xl
     last:[&:has([aria-selected])]:rounded-r-xl
     focus-within:relative focus-within:z-20`,
-  day: `h-10 w-10 p-0 font-medium rounded-xl
+  day: `h-10 w-full p-0 font-medium rounded-xl
     hover:bg-emerald-500/10 transition-all duration-150
     inline-flex items-center justify-center text-foreground
     aria-selected:opacity-100 active:scale-[0.92]`,
@@ -398,14 +398,14 @@ const calendarClassNames3D = {
 
 const calendarClassNames3DPricing = {
   ...calendarClassNames3D,
-  cell: `h-11 w-10 text-center text-sm p-0 relative
+  cell: `h-11 w-full text-center text-sm p-0 relative
     [&:has([aria-selected].day-range-end)]:rounded-r-xl
     [&:has([aria-selected].day-outside)]:bg-emerald-500/8
     [&:has([aria-selected])]:bg-emerald-500/8
     first:[&:has([aria-selected])]:rounded-l-xl
     last:[&:has([aria-selected])]:rounded-r-xl
     focus-within:relative focus-within:z-20`,
-  day: `h-11 w-10 p-0 font-medium rounded-xl
+  day: `h-11 w-full p-0 font-medium rounded-xl
     hover:bg-emerald-500/10 transition-all duration-150
     inline-flex items-center justify-center text-foreground
     aria-selected:opacity-100 active:scale-[0.92]`,

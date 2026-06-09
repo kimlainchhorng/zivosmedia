@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -54,5 +54,5 @@ export default function LodgingAddOnsSection({ storeId }: { storeId: string }) {
 }
 
 function FilterRow({ values, current, onChange }: { values: string[]; current: string; onChange: (value: string) => void }) {
-  return <div className="flex gap-1.5 overflow-x-auto pb-1">{values.map((value) => <button type="button" key={value} onClick={() => onChange(value)} className={cn("shrink-0 rounded-full border px-3 py-1 text-xs font-medium", current === value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground")}>{value}</button>)}</div>;
+  return <div className="flex gap-1.5 overflow-x-auto pb-1">{values.map((value) => <button type="button" key={value} onClick={() => onChange(value)} className={cn("shrink-0 rounded-full border px-3 py-1 text-xs font-medium", current === value ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground")}>{value}</button>)}</div>;
 }

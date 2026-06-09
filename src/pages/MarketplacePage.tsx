@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MarketplacePage — Buy & sell items between users
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -814,7 +814,7 @@ export default function MarketplacePage() {
                 {label}
                 {badge > 0 && (
                   <span className={`ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold ${
-                    tab === v ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                    tab === v ? "bg-primary-foreground text-primary" : "bg-ig-gradient text-white"
                   }`}>{badge > 99 ? "99+" : badge}</span>
                 )}
               </button>
@@ -883,7 +883,7 @@ export default function MarketplacePage() {
             type="button"
             onClick={() => setShowFilters(true)}
             className={`relative shrink-0 px-3 rounded-xl text-sm flex items-center gap-1.5 ${
-              activeFilterCount > 0 ? "bg-primary text-primary-foreground" : "bg-muted/40 text-foreground"
+              activeFilterCount > 0 ? "bg-ig-gradient text-white" : "bg-muted/40 text-foreground"
             }`}
           >
             <SlidersHorizontal className="h-4 w-4" />
@@ -1015,7 +1015,7 @@ export default function MarketplacePage() {
               onClick={() => setConditionFilter(c.value)}
               className={`min-h-[40px] rounded-full px-4 py-2 text-xs font-medium whitespace-nowrap transition-all touch-manipulation ${
                 conditionFilter === c.value
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -1194,7 +1194,7 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
-              className={`text-xs px-3 py-1 rounded-full font-semibold ${selectMode ? "bg-primary text-primary-foreground" : "bg-muted/40"}`}
+              className={`text-xs px-3 py-1 rounded-full font-semibold ${selectMode ? "bg-ig-gradient text-white" : "bg-muted/40"}`}
             >
               {selectMode ? "Done" : "Select"}
             </button>
@@ -1220,7 +1220,7 @@ export default function MarketplacePage() {
                 type="button"
                 onClick={() => setOfferStatusFilter(s)}
                 className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap capitalize ${
-                  offerStatusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+                  offerStatusFilter === s ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
                 }`}
               >
                 {s}
@@ -1326,7 +1326,7 @@ export default function MarketplacePage() {
           <button
             type="button"
             onClick={() => { setNewCount(0); refetch(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg flex items-center gap-1.5"
+            className="px-4 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold shadow-lg flex items-center gap-1.5"
           >
             <Sparkles className="h-3.5 w-3.5" /> {newCount} new {newCount === 1 ? "listing" : "listings"}
           </button>
@@ -1409,7 +1409,7 @@ export default function MarketplacePage() {
                 <button
                   type="button"
                   onClick={() => setShowCreate(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-ig-gradient text-white text-xs font-bold"
                 >
                   <Plus className="h-3.5 w-3.5" /> Sell your first item
                 </button>
@@ -1436,7 +1436,7 @@ export default function MarketplacePage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-ig-gradient text-white text-xs font-bold"
               >
                 <Plus className="h-3.5 w-3.5" /> Create listing
               </button>
@@ -1445,7 +1445,7 @@ export default function MarketplacePage() {
               <button
                 type="button"
                 onClick={() => setTab("browse")}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-ig-gradient text-white text-xs font-bold"
               >
                 Browse listings
               </button>
@@ -1493,7 +1493,7 @@ export default function MarketplacePage() {
                       type="button"
                       onClick={(e) => { e.stopPropagation(); toggleCompare(item.id); }}
                       className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold backdrop-blur-sm ${
-                        compareIds.includes(item.id) ? "bg-primary text-primary-foreground" : "bg-black/40 text-white"
+                        compareIds.includes(item.id) ? "bg-ig-gradient text-white" : "bg-black/40 text-white"
                       }`}
                       title="Compare"
                     >
@@ -1614,7 +1614,7 @@ export default function MarketplacePage() {
         {showFilters && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => setShowFilters(false)}
           >
             <motion.div
@@ -1705,7 +1705,7 @@ export default function MarketplacePage() {
         {showCreate && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => { setShowCreate(false); setEditingId(null); }}
           >
             <motion.div
@@ -1758,7 +1758,7 @@ export default function MarketplacePage() {
                       >
                         <img src={src} alt="" className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
                         {idx === 0 && (
-                          <span className="absolute bottom-0 left-0 right-0 bg-primary text-primary-foreground text-[9px] font-bold text-center py-0.5">COVER</span>
+                          <span className="absolute bottom-0 left-0 right-0 bg-ig-gradient text-white text-[9px] font-bold text-center py-0.5">COVER</span>
                         )}
                         <button type="button"
                           aria-label="Remove photo"
@@ -1971,7 +1971,7 @@ export default function MarketplacePage() {
         {showCompare && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => setShowCompare(false)}
           >
             <motion.div
@@ -2392,7 +2392,7 @@ function ListingDetail({
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[210] flex items-end justify-center bg-black/60"
+      className="fixed inset-0 z-[1455] flex items-end justify-center bg-black/60"
       onClick={onClose}
     >
       <motion.div
@@ -2652,7 +2652,7 @@ function ListingDetail({
                 <button
                   type="button"
                   onClick={handleMessage}
-                  className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm flex items-center justify-center gap-2"
                 >
                   <MessageCircle className="h-4 w-4" /> Message
                 </button>
@@ -2732,7 +2732,7 @@ function ListingDetail({
                   onClick={() => togglePromote.mutate()}
                   disabled={togglePromote.isPending}
                   className={`px-4 rounded-2xl font-semibold text-sm flex items-center gap-1 ${
-                    listing.is_featured ? "bg-primary text-primary-foreground" : "bg-muted/40"
+                    listing.is_featured ? "bg-ig-gradient text-white" : "bg-muted/40"
                   }`}
                   title={listing.is_featured ? "Remove from Featured" : "Promote to Featured"}
                 >
@@ -2837,7 +2837,7 @@ function ListingDetail({
                   aria-label="Send question"
                   disabled={!qText.trim() || askQuestion.isPending}
                   onClick={() => { askQuestion.mutate(qText.trim()); setQText(""); }}
-                  className="px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50"
+                  className="px-4 rounded-xl bg-ig-gradient text-white font-semibold text-sm disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                 </button>
@@ -2952,7 +2952,7 @@ function ListingDetail({
           {showReport && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[225] flex items-end justify-center bg-black/50"
+              className="fixed inset-0 z-[1470] flex items-end justify-center bg-black/50"
               onClick={() => setShowReport(false)}
             >
               <motion.div
@@ -3103,7 +3103,7 @@ function ListingDetail({
           {showOffer && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[220] flex items-end justify-center bg-black/50"
+              className="fixed inset-0 z-[1465] flex items-end justify-center bg-black/50"
               onClick={() => setShowOffer(false)}
             >
               <motion.div

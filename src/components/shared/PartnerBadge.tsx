@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PartnerBadge — visual marker for venues in the ZIVO network.
  * Restaurants & hotels that opted into our partner program get this badge so
  * users see which spots support in-app booking, ordering, and tracking.
@@ -27,7 +27,7 @@ export default function PartnerBadge({
   const s = SIZE_MAP[size];
   const tone =
     variant === "filled"
-      ? "bg-primary text-primary-foreground"
+      ? "bg-ig-gradient text-white"
       : "bg-primary/10 text-primary border border-primary/30";
   return (
     <span

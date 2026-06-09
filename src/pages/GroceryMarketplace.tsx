@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryMarketplace - Real nearby store detection with same-day delivery
  * Shows only stores within 15mi of customer's delivery address
  */
@@ -381,7 +381,7 @@ export default function GroceryMarketplace() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-extrabold min-w-[22px] h-[22px] px-1 shadow-lg shadow-primary/40 ring-2 ring-background"
+                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full bg-ig-gradient text-white text-[10px] font-extrabold min-w-[22px] h-[22px] px-1 shadow-lg shadow-primary/40 ring-2 ring-background"
                 >
                   {cart.itemCount}
                 </motion.span>

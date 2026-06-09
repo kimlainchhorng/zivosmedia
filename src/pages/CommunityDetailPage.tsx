@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CommunityDetailPage — View a community's posts and members
  * Route: /communities/:id
  */
@@ -151,7 +151,7 @@ export default function CommunityDetailPage() {
           </button>
           <h1 className="text-base font-bold flex-1 truncate">{community.name}</h1>
           {user && membership && (
-            <button type="button" onClick={() => setShowPostForm(!showPostForm)} className="p-2 rounded-full bg-primary text-primary-foreground">
+            <button type="button" onClick={() => setShowPostForm(!showPostForm)} className="p-2 rounded-full bg-ig-gradient text-white">
               <Plus className="h-4 w-4" />
             </button>
           )}
@@ -190,7 +190,7 @@ export default function CommunityDetailPage() {
               disabled={joinMutation.isPending}
               className={cn(
                 "w-full py-2.5 rounded-xl text-sm font-semibold transition-colors",
-                membership ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"
+                membership ? "bg-muted text-foreground" : "bg-ig-gradient text-white"
               )}
             >
               {membership ? "Leave Community" : "Join Community"}
@@ -224,7 +224,7 @@ export default function CommunityDetailPage() {
                 <button type="button"
                   onClick={handlePost}
                   disabled={!postText.trim() || submitting}
-                  className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-ig-gradient text-white text-sm font-semibold flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Send className="w-3.5 h-3.5" />
                   {submitting ? "Posting…" : "Post"}

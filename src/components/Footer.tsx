@@ -110,7 +110,7 @@ const Footer = ({ className }: { className?: string }) => {
   };
 
   return (
-    <footer className={cn("relative z-30 bg-[#0f1629] text-primary-foreground overflow-hidden", className)}>
+    <footer className={cn("relative z-30 bg-[#0f1629] text-primary-foreground overflow-hidden hidden lg:block", className)}>
       {/* Decorative orbs */}
       <div className="absolute -top-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-secondary rounded-full blur-[120px] pointer-events-none" />

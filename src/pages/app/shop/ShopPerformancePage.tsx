@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ShopPerformancePage — Employee performance reviews
  * Stores records in feedback_submissions (category: shop_performance)
  */
@@ -156,7 +156,7 @@ export default function ShopPerformancePage() {
                   {PERIODS.map((p) => (
                     <button type="button" key={p} onClick={() => setForm({ ...form, period: p })}
                       className={cn("px-3 py-1 rounded-full text-xs font-medium border",
-                        form.period === p ? "bg-primary text-primary-foreground border-primary" : "border-border bg-muted/40")}>
+                        form.period === p ? "bg-ig-gradient text-white border-primary" : "border-border bg-muted/40")}>
                       {p}
                     </button>
                   ))}
@@ -195,7 +195,7 @@ export default function ShopPerformancePage() {
                   onChange={(e) => setForm({ ...form, goals: e.target.value })}
                 />
                 <button type="button" onClick={handleSave} disabled={saving}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
+                  className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50">
                   {saving ? "Saving…" : "Save Review"}
                 </button>
               </motion.div>

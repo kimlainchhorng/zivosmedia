@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ShopAttendancePage — Employee attendance & leave management
  * Stores records in feedback_submissions (category: shop_attendance)
  */
@@ -159,7 +159,7 @@ export default function ShopAttendancePage() {
                       onClick={() => setForm({ ...form, status: s })}
                       className={cn(
                         "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
-                        form.status === s ? "bg-primary text-primary-foreground border-primary" : "border-border bg-muted/40"
+                        form.status === s ? "bg-ig-gradient text-white border-primary" : "border-border bg-muted/40"
                       )}
                     >
                       {STATUS_META[s].label}
@@ -175,7 +175,7 @@ export default function ShopAttendancePage() {
                 <button type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50"
                 >
                   {saving ? "Saving…" : "Save Record"}
                 </button>
@@ -191,7 +191,7 @@ export default function ShopAttendancePage() {
                 onClick={() => setFilterTab(tab)}
                 className={cn(
                   "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
-                  filterTab === tab ? "bg-primary text-primary-foreground border-primary" : "border-border/50 bg-muted/30"
+                  filterTab === tab ? "bg-ig-gradient text-white border-primary" : "border-border/50 bg-muted/30"
                 )}
               >
                 {tab}

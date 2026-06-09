@@ -1,4 +1,4 @@
-import { type ChangeEvent, type ComponentType, useEffect, useMemo, useRef, useState } from "react";
+﻿import { type ChangeEvent, type ComponentType, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import Bell from "lucide-react/dist/esm/icons/bell";
@@ -524,7 +524,7 @@ export default function GroupInfoSheet({
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
                       disabled={uploadingAvatar}
-                      className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 active:scale-95 disabled:opacity-50"
+                      className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/25 active:scale-95 disabled:opacity-50"
                       aria-label="Change group photo"
                       title="Change group photo"
                     >
@@ -744,7 +744,7 @@ export default function GroupInfoSheet({
                                 <AvatarFallback>{friend.name[0]}</AvatarFallback>
                               </Avatar>
                               <span className="min-w-0 flex-1 truncate text-sm font-bold">{friend.name}</span>
-                              <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border", selected ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
+                              <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border", selected ? "border-primary bg-ig-gradient text-white" : "border-border")}>
                                 {selected && <Check className="h-3 w-3" />}
                               </span>
                             </button>

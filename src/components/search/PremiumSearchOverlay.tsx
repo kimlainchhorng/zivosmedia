@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Premium Search Overlay
  * 
  * Immersive full-screen search overlay with glassmorphism effects,
@@ -256,7 +256,7 @@ export default function PremiumSearchOverlay({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-start pt-16 sm:justify-center sm:pt-0 p-4 sm:p-6"
+          className="fixed inset-0 z-[1450] flex flex-col items-center justify-start pt-16 sm:justify-center sm:pt-0 p-4 sm:p-6"
           initial="hidden"
           animate="visible"
           exit="exit"

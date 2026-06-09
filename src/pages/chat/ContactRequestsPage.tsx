@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ContactRequestsPage — incoming + outgoing contact requests with resend support.
  */
 import { useState } from "react";
@@ -90,7 +90,7 @@ export default function ContactRequestsPage() {
             </div>
             {tab === "in" && r.status === "pending" && (
               <div className="flex gap-1.5">
-                <button type="button" onClick={() => accept(r.id)} aria-label="Accept request" className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                <button type="button" onClick={() => accept(r.id)} aria-label="Accept request" className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center">
                   <Check className="h-4 w-4" />
                 </button>
                 <button type="button" onClick={() => decline(r.id)} aria-label="Decline request" className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">

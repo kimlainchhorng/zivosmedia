@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FeaturedCarsSection — Live car rental stores from Supabase.
  * Renders nothing if there are no real stores yet — no placeholder
  * vehicles, so users never see fabricated rental listings.
@@ -120,7 +120,7 @@ export default function FeaturedCarsSection() {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent opacity-50 group-hover:opacity-30 transition-opacity duration-500" />
                   {store.is_verified && (
-                    <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-sm">
+                    <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-ig-gradient text-white shadow-sm">
                       Verified
                     </span>
                   )}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LodgingRoomPhotoUploader — interactive cover hero + thumbnail grid for room photos.
  * Up to 8 photos. Tap ★ to set the cover photo (defaults to the first).
  *
@@ -120,7 +120,7 @@ export function LodgingRoomPhotoUploader({
           {/* Top gradient for legibility */}
           <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
           {/* Cover badge */}
-          <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shadow">
+          <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-ig-gradient text-white text-[10px] font-bold shadow">
             <Star className="h-2.5 w-2.5 fill-current" /> Cover
           </div>
           {/* Change cover button */}
@@ -195,7 +195,7 @@ export function LodgingRoomPhotoUploader({
 	              <img src={url} alt={`Room ${i + 1}`} className="h-full w-full object-cover" loading="lazy" decoding="async" />
 
               {isCover && (
-                <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center gap-0.5">
+                <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-full bg-ig-gradient text-white text-[9px] font-bold flex items-center gap-0.5">
                   <Star className="h-2 w-2 fill-current" /> Cover
                 </div>
               )}

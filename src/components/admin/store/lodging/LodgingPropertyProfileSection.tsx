@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LodgingPropertyProfileSection - Booking.com-grade property editor.
  * Sticky header with completeness meter · grouped accordion · search · sticky save.
  */
@@ -450,7 +450,7 @@ export default function LodgingPropertyProfileSection({ storeId }: { storeId: st
                             <button type="button"
                               key={k} onClick={() => setNearby(i, { mode: k as any })}
                               className={`flex-1 h-8 rounded-lg flex items-center justify-center transition ${
-                                (n.mode || "walk") === k ? "bg-primary text-primary-foreground" : "bg-background border border-border text-muted-foreground hover:border-primary/40"
+                                (n.mode || "walk") === k ? "bg-ig-gradient text-white" : "bg-background border border-border text-muted-foreground hover:border-primary/40"
                               }`}
                               aria-label={k}
                             ><I className="h-3.5 w-3.5" /></button>
@@ -511,7 +511,7 @@ function ChipGroup({ options, selected, onToggle, max, labelMap, withIcons }: {
             key={o} disabled={disabled} onClick={() => onToggle(o)}
             className={`px-2.5 py-1 rounded-full text-[11px] border transition inline-flex items-center gap-1 ${
               on
-                ? "bg-primary text-primary-foreground border-primary shadow-sm font-semibold"
+                ? "bg-ig-gradient text-white border-primary shadow-sm font-semibold"
                 : disabled
                 ? "bg-background border-border text-muted-foreground/40 cursor-not-allowed"
                 : "bg-background border-border text-foreground hover:border-primary/40 hover:bg-primary/5"

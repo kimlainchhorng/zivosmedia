@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BroadcastListsPage — Manage broadcast lists and send a broadcast message.
  */
 import { useState } from "react";
@@ -51,7 +51,7 @@ export default function BroadcastListsPage() {
           <Megaphone className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm font-semibold mb-1">No broadcast lists</p>
           <p className="text-xs text-muted-foreground mb-4">Create one to message many contacts at once.</p>
-          <button type="button" onClick={() => nav("/chat/broadcasts/new")} className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+          <button type="button" onClick={() => nav("/chat/broadcasts/new")} className="px-4 py-2 rounded-full bg-ig-gradient text-white text-sm font-medium">
             New broadcast list
           </button>
         </div>
@@ -68,7 +68,7 @@ export default function BroadcastListsPage() {
               </div>
               <button type="button"
                 onClick={() => setComposeFor(l.id)}
-                className="px-3 py-1.5 text-xs font-medium rounded-full bg-primary text-primary-foreground"
+                className="px-3 py-1.5 text-xs font-medium rounded-full bg-ig-gradient text-white"
               >
                 Send
               </button>
@@ -98,7 +98,7 @@ export default function BroadcastListsPage() {
             <button type="button"
               onClick={send}
               disabled={sending || !text.trim()}
-              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
               {sending ? "Sending…" : "Send broadcast"}

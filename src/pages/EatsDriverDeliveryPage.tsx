@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EatsDriverDeliveryPage - Driver view for accepting and managing food delivery jobs
  */
 import { useState, useEffect } from "react";
@@ -250,7 +250,7 @@ export default function EatsDriverDeliveryPage() {
             <TabsTrigger value="available" className="flex-1 text-xs relative">
               Available
               {offers.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-ig-gradient text-white text-[9px] font-bold flex items-center justify-center">
                   {offers.length}
                 </span>
               )}

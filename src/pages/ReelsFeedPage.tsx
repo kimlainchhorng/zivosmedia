@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReelsFeedPage — Instagram / Facebook style social feed
  * Full-width cards with author info, media, captions, and engagement
  * Everyone can post photos/videos that show up here
@@ -921,6 +921,8 @@ export default function ReelsFeedPage() {
   const feedPageTopRef = useRef<HTMLDivElement>(null);
   const feedTopRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const swipeTouchXRef = useRef<number | null>(null);
+  const swipeTouchYRef = useRef<number | null>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
   const isFeedRoute = location.pathname.startsWith("/feed");
@@ -952,6 +954,22 @@ export default function ReelsFeedPage() {
     closeFeedSearch();
     navigate(href);
   }, [closeFeedSearch, navigate]);
+
+  const handleFeedSwipeStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchXRef.current = e.touches[0].clientX;
+    swipeTouchYRef.current = e.touches[0].clientY;
+  }, []);
+  const handleFeedSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (swipeTouchXRef.current === null || swipeTouchYRef.current === null) return;
+    const dx = e.changedTouches[0].clientX - swipeTouchXRef.current;
+    const dy = e.changedTouches[0].clientY - swipeTouchYRef.current;
+    swipeTouchXRef.current = null;
+    swipeTouchYRef.current = null;
+    if (Math.abs(dx) < 52 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+    const idx = FEED_TABS.indexOf(feedTab as (typeof FEED_TABS)[number]);
+    if (dx < 0 && idx < FEED_TABS.length - 1) setFeedTab(FEED_TABS[idx + 1]);
+    if (dx > 0 && idx > 0) setFeedTab(FEED_TABS[idx - 1]);
+  }, [feedTab]);
 
   useEffect(() => {
     const markReady = () => setSidebarDataReady(true);
@@ -1788,6 +1806,8 @@ export default function ReelsFeedPage() {
           <div
             data-testid="feed-sticky-header"
             className="lg:hidden zivo-sticky-mobile-header px-2 pt-1 pb-1"
+            onTouchStart={handleFeedSwipeStart}
+            onTouchEnd={handleFeedSwipeEnd}
           >
             <div className="zivo-pt-safe-sticky zivo-feed-mobile-header-panel zivo-social-header-glass rounded-[1.5rem] overflow-hidden">
               <div
@@ -1966,7 +1986,7 @@ export default function ReelsFeedPage() {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <h1 className="text-base font-bold text-foreground shrink-0 drop-shadow-sm">Feed</h1>
+                  <h1 className="text-base font-extrabold shrink-0 bg-ig-gradient bg-clip-text text-transparent">Feed</h1>
                   <div className="flex-1 relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                     <input
@@ -2016,26 +2036,25 @@ export default function ReelsFeedPage() {
                     headerHidden ? "max-h-0 opacity-0" : "max-h-[124px] opacity-100"
                   )}
                 >
-                  {/* Tab strip — For You / Friends / Following (signed-in only) */}
+                  {/* Tab strip — pill-scroll 2026 */}
                   {userId && (
-                    <div className="zivo-feed-tabbar mx-2 mb-2.5 grid grid-cols-5 gap-1 rounded-[1.25rem] p-1">
+                    <div className="flex gap-1.5 overflow-x-auto scrollbar-none mx-2 mb-2 px-0.5">
                       {FEED_TABS.map((label) => (
-                        <button type="button"
+                        <motion.button
                           key={label}
+                          layout
+                          whileTap={{ scale: 0.94 }}
                           onClick={() => setFeedTab(label)}
                           aria-pressed={feedTab === label}
                           className={cn(
-                            "relative min-h-[36px] rounded-[1rem] px-1 text-[11px] font-black tracking-[-0.02em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                            "shrink-0 h-[34px] rounded-full px-3.5 text-[11px] font-black tracking-[-0.01em] whitespace-nowrap transition-colors duration-150 touch-manipulation focus-visible:outline-none",
                             feedTab === label
-                              ? "zivo-feed-tab-active"
-                              : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
+                              ? "bg-ig-gradient text-white shadow-[0_2px_10px_rgba(236,72,153,0.28)]"
+                              : "text-muted-foreground/80 bg-muted/40 hover:bg-muted hover:text-foreground"
                           )}
                         >
                           {label}
-                          {feedTab === label && (
-                            <span className="absolute left-1/2 top-full mt-1 h-1 w-7 -translate-x-1/2 rounded-full bg-gradient-to-r from-primary via-pink-500 to-amber-400 shadow-[0_0_14px_hsl(var(--primary)/0.4)]" />
-                          )}
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
                   )}
@@ -2197,9 +2216,9 @@ export default function ReelsFeedPage() {
           <div ref={feedPageTopRef} data-feed-page-top aria-hidden="true" />
 
           {userId && (
-            <div className="zivo-social-composer mx-2 mt-3 rounded-[1.25rem] px-3 pt-2.5 pb-2">
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="h-9 w-9 rounded-full overflow-hidden bg-muted border border-primary/20 shadow-[0_10px_22px_hsl(210_28%_18%/0.12)] shrink-0">
+            <div className="zivo-social-composer mx-2 mt-3 rounded-[1.5rem] px-3.5 pt-3 pb-2.5">
+              <div className="flex items-center gap-3 mb-2.5">
+                <div className="h-9 w-9 rounded-full overflow-hidden bg-muted border-2 border-primary/20 shadow-[0_0_0_3px_rgba(236,72,153,0.08)] shrink-0">
                   {userProfile?.avatar ? (
                     <img src={userProfile.avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
@@ -2218,27 +2237,29 @@ export default function ReelsFeedPage() {
                   })()}
                 </button>
               </div>
-              <div className="border-t border-border/15 pt-1.5 flex gap-1.5 overflow-x-auto scrollbar-hide lg:max-w-md lg:mx-auto lg:gap-2" role="toolbar" aria-label="Create post">
-                <button type="button" onClick={() => { setCreateMode("photo"); setShowCreate(true); }} aria-label="Share a photo" title="Share a photo" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Photo</span>
-                </button>
-                <button type="button" onClick={() => { setCreateMode("reel"); setShowCreate(true); }} aria-label="Create a Reel" title="Create a Reel" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <Film className="h-3.5 w-3.5 text-violet-500" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Reels</span>
-                </button>
-                <button type="button" onClick={() => { setCreateMode("poll"); setShowCreate(true); }} aria-label="Create a poll" title="Create a poll" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <TrendingUp className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Poll</span>
-                </button>
-                <button type="button" onClick={() => navigate("/check-in")} aria-label="Check in to a place" title="Check in to a place" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <MapPin className="h-3.5 w-3.5 text-red-500" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Check In</span>
-                </button>
-                <button type="button" onClick={() => navigate("/live")} aria-label="Go live" title="Go live" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <Radio className="h-3.5 w-3.5 text-rose-600" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Live</span>
-                </button>
+              <div className="border-t border-border/10 pt-2 flex gap-1.5 overflow-x-auto scrollbar-hide lg:max-w-md lg:mx-auto" role="toolbar" aria-label="Create post">
+                {[
+                  { mode: "photo" as const, label: "Photo", icon: ImageIcon, bg: "bg-emerald-500/10", fg: "text-emerald-600 dark:text-emerald-400", action: () => { setCreateMode("photo"); setShowCreate(true); } },
+                  { mode: "reel" as const,  label: "Reels",    icon: Film,      bg: "bg-violet-500/10",  fg: "text-violet-600 dark:text-violet-400",  action: () => { setCreateMode("reel");  setShowCreate(true); } },
+                  { mode: "poll" as const,  label: "Poll",     icon: TrendingUp,bg: "bg-amber-500/10",   fg: "text-amber-600 dark:text-amber-400",    action: () => { setCreateMode("poll");  setShowCreate(true); } },
+                  { mode: null,             label: "Check In", icon: MapPin,    bg: "bg-red-500/10",     fg: "text-red-600 dark:text-red-400",        action: () => navigate("/check-in") },
+                  { mode: null,             label: "Live",     icon: Radio,     bg: "bg-rose-500/10",    fg: "text-rose-600 dark:text-rose-400",      action: () => navigate("/live") },
+                ].map(({ label, icon: Icon, bg, fg, action }) => (
+                  <motion.button
+                    key={label}
+                    type="button"
+                    whileTap={{ scale: 0.93 }}
+                    onClick={action}
+                    aria-label={label}
+                    title={label}
+                    className="flex-1 shrink-0 flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-colors min-w-[52px] touch-manipulation active:opacity-80"
+                  >
+                    <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", bg)}>
+                      <Icon className={cn("h-3.5 w-3.5", fg)} />
+                    </span>
+                    <span className="text-[9px] leading-none font-semibold text-muted-foreground">{label}</span>
+                  </motion.button>
+                ))}
               </div>
             </div>
           )}
@@ -2331,8 +2352,6 @@ export default function ReelsFeedPage() {
           {/* On this day — Facebook-style memories */}
           {sidebarDataReady && <Suspense fallback={null}><OnThisDay /></Suspense>}
 
-          {/* Scroll-to-top FAB (renders portal-ish via fixed positioning) */}
-          <Suspense fallback={null}><ScrollToTopFab /></Suspense>
 
           {/* Story Rings */}
            <Suspense fallback={null}><FeedStoryRing /></Suspense>
@@ -2406,7 +2425,7 @@ export default function ReelsFeedPage() {
               {userId && (
                 <button type="button"
                   onClick={() => setShowCreate(true)}
-                  className="px-6 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-primary/20"
+                  className="px-6 py-2.5 bg-ig-gradient text-white rounded-full text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-primary/20"
                 >
                   Create Post
                 </button>
@@ -2444,7 +2463,7 @@ export default function ReelsFeedPage() {
                     </p>
                     <button type="button"
                       onClick={() => setSelectedHashtag(null)}
-                      className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                      className="rounded-full bg-ig-gradient text-white text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                     >
                       Clear filter
                     </button>
@@ -2465,7 +2484,7 @@ export default function ReelsFeedPage() {
                       </p>
                       <button type="button"
                         onClick={() => setFeedTab("For You")}
-                        className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                        className="rounded-full bg-ig-gradient text-white text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                       >
                         Back to For You
                       </button>
@@ -2489,7 +2508,7 @@ export default function ReelsFeedPage() {
                     </p>
                     <button type="button"
                       onClick={() => setFeedTab("For You")}
-                      className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                      className="rounded-full bg-ig-gradient text-white text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                     >
                       Back to For You
                     </button>
@@ -2718,7 +2737,7 @@ export default function ReelsFeedPage() {
                   </div>
                   <button type="button"
                     onClick={() => navigate("/explore")}
-                    className="mt-2 px-5 py-2 rounded-full bg-primary text-primary-foreground text-[12px] font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                    className="mt-2 px-5 py-2 rounded-full bg-ig-gradient text-white text-[12px] font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                   >
                     Discover more
                   </button>
@@ -3707,7 +3726,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
 
         {item.commerce_link && (
           <button type="button" onClick={handleBuyNow} className="flex flex-col items-center gap-1 min-h-[44px] min-w-[44px] justify-center" title="Buy now">
-            <div className="px-2.5 py-1.5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold shadow-lg">
+            <div className="px-2.5 py-1.5 rounded-full bg-ig-gradient text-white text-[11px] font-bold shadow-lg">
               Buy Now
             </div>
           </button>
@@ -4814,7 +4833,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   return (
     <div className={cn(
-      detailMode ? "bg-transparent" : "zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.25rem] transition-transform duration-200 hover:-translate-y-0.5"
+      detailMode ? "bg-transparent" : "zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.5rem] transition-transform duration-200 hover:-translate-y-0.5"
     )}>
       {isSharedPost ? (
         /* ── Facebook-style shared post layout ────────────────── */
@@ -5227,7 +5246,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   {item.commerce_link && (
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); handleBuyNow(); }}
-                      className="absolute bottom-3 left-3 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-lg min-h-[44px]"
+                      className="absolute bottom-3 left-3 px-3 py-2 rounded-full bg-ig-gradient text-white text-xs font-semibold shadow-lg min-h-[44px]"
                     >
                       Buy Now
                     </button>
@@ -5438,8 +5457,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
       )}
 
       {/* Action buttons — enhanced with counts */}
-      <div className="zivo-social-action-strip mx-3 mt-2 mb-2 flex items-center gap-2 rounded-2xl px-2 py-1.5">
-        <div className="flex items-center gap-1.5 flex-1">
+      <div className="zivo-social-action-strip mx-3 mt-1.5 mb-2 flex items-center gap-1.5 rounded-2xl px-1.5 py-1">
+        <div className="flex items-center gap-1 flex-1">
           <div className="relative">
             {/* FB-style reaction popover anchored above the Like button.
                 Opens on long-press (touch) or right-click (desktop). */}
@@ -5497,12 +5516,12 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               onContextMenu={(e) => { e.preventDefault(); setShowReactionPicker(!showReactionPicker); }}
               aria-label={liked ? `Unlike post${!item.hide_like_counts && formatCount(localLikes) ? `, ${formatCount(localLikes)} likes` : ""}` : `Like post${!item.hide_like_counts && formatCount(localLikes) ? `, ${formatCount(localLikes)} likes` : ""}`}
               title={liked ? "Unlike post" : "Like post"}
-              className="zivo-touch-no-callout zivo-social-icon-button min-h-[44px] min-w-[44px] px-2 rounded-full flex items-center justify-center gap-1 group"
+              className={cn("zivo-touch-no-callout min-h-[40px] px-3 rounded-full flex items-center justify-center gap-1.5 transition-colors touch-manipulation", liked || selectedReaction ? "bg-destructive/10 text-destructive" : "text-muted-foreground hover:bg-muted/60")}
             >
               {selectedReaction ? (
                 <span className="text-lg" aria-hidden>{selectedReaction}</span>
               ) : (
-                <Heart aria-hidden className={cn("h-[22px] w-[22px] transition-all", liked ? "text-destructive fill-destructive scale-110" : "text-foreground group-active:scale-125")} />
+                <Heart aria-hidden className={cn("h-[20px] w-[20px] transition-all", liked ? "fill-destructive scale-105" : "group-active:scale-125")} />
               )}
               {!item.hide_like_counts && formatCount(localLikes) && (
                 <span aria-hidden className={cn("text-[12px] font-semibold whitespace-nowrap", liked || selectedReaction ? "text-destructive" : "text-muted-foreground")}>
@@ -5515,9 +5534,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <button type="button"
               onClick={handleComment}
               aria-label={`Open comments${formatCount(localComments) ? `, ${formatCount(localComments)} comments` : ""}`}
-              className="zivo-social-icon-button min-h-[44px] min-w-[44px] px-2 rounded-full flex items-center justify-center text-foreground gap-1"
+              className="min-h-[40px] px-3 rounded-full flex items-center justify-center text-muted-foreground gap-1.5 hover:bg-muted/60 transition-colors touch-manipulation"
              title="Action">
-              <MessageCircle aria-hidden className="h-[22px] w-[22px]" />
+              <MessageCircle aria-hidden className="h-[20px] w-[20px]" />
               {formatCount(localComments) && (
                 <span aria-hidden className="text-[12px] text-muted-foreground font-semibold whitespace-nowrap">
                   {formatCount(localComments)}
@@ -5529,9 +5548,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <button type="button"
               onClick={handleShare}
               aria-label={`Share post${formatCount(item.shares_count) ? `, ${formatCount(item.shares_count)} shares` : ""}`}
-              className="zivo-social-icon-button min-h-[44px] min-w-[52px] px-2.5 rounded-full flex items-center justify-center text-foreground gap-1.5"
+              className="min-h-[40px] px-3 rounded-full flex items-center justify-center text-muted-foreground gap-1.5 hover:bg-muted/60 transition-colors touch-manipulation"
              title="Share">
-              <Send aria-hidden className="h-[22px] w-[22px] shrink-0" />
+              <Send aria-hidden className="h-[20px] w-[20px] shrink-0" />
               {formatCount(item.shares_count) && (
                 <span aria-hidden className="min-w-[1ch] text-[12px] leading-none text-muted-foreground font-semibold tabular-nums whitespace-nowrap">
                   {formatCount(item.shares_count)}
@@ -5544,9 +5563,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           onClick={handleSave}
           aria-label={saved ? "Remove bookmark" : "Save post"}
           title={saved ? "Remove bookmark" : "Save post"}
-          className="zivo-social-icon-button min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center"
+          className={cn("min-h-[40px] w-10 rounded-full flex items-center justify-center transition-colors touch-manipulation", saved ? "text-primary" : "text-muted-foreground hover:bg-muted/60")}
         >
-          <Bookmark aria-hidden className={cn("h-[22px] w-[22px] transition-all", saved ? "text-primary fill-primary" : "text-foreground")} />
+          <Bookmark aria-hidden className={cn("h-[20px] w-[20px] transition-all", saved ? "fill-primary" : "")} />
         </button>
       </div>
 
@@ -5568,7 +5587,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           </div>
           <button type="button"
             onClick={() => navigate("/admin/marketing/campaigns")}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold shrink-0 active:scale-95 transition-transform"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-ig-gradient text-white text-[11px] font-bold shrink-0 active:scale-95 transition-transform"
           >
             <Zap className="h-3 w-3" />
             Boost
@@ -5580,7 +5599,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         <div className="px-3 pb-2">
           <button type="button"
             onClick={handleBuyNow}
-            className="w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-semibold"
+            className="w-full rounded-xl bg-ig-gradient text-white py-2.5 text-sm font-semibold"
            title="Action">
             Buy Now
           </button>
@@ -5595,19 +5614,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           <MessageSquareOff aria-hidden className="h-3.5 w-3.5 text-muted-foreground/60" />
           <p className="text-[12px] text-muted-foreground/60">Comments are turned off</p>
         </div>
-      ) : localComments > 0 ? (
-        <>
-          <div className="px-3 pb-1">
-            <Suspense fallback={null}>
-              <CommentPreview
-                postId={interactionPostId}
-                source={item.source === "store" ? "store" : "user"}
-                totalCount={localComments}
-                onOpen={handleComment}
-              />
-            </Suspense>
-          </div>
-        </>
       ) : null}
 
       {/* Comments Sheet — only mount when open */}
@@ -5737,10 +5743,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <>
               <button type="button"
                 onClick={() => { setShowPostMenu(false); setEditCaptionText(item.caption || ""); setShowEditCaption(true); }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Pencil className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Edit caption</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400"><Pencil className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Edit caption</span>
               </button>
               <button type="button"
                 onClick={async () => {
@@ -5750,17 +5756,17 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   await (supabase as any).from(table).update({ is_pinned: true }).eq("id", realId);
                   toast.success("Post pinned to your profile");
                 }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Pin className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Pin to profile</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400"><Pin className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Pin to profile</span>
               </button>
               <button type="button"
                 onClick={() => { setShowPostMenu(false); setShowCommentSettings(true); }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Settings2 className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Comment settings</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-500/10 text-slate-600 dark:text-slate-400"><Settings2 className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Comment settings</span>
               </button>
               <button type="button"
                 onClick={async () => {
@@ -5776,34 +5782,36 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     queryClient.invalidateQueries({ queryKey: ["customer-feed"] });
                   }
                 }}
-                className="zivo-social-sheet-row zivo-social-sheet-row-danger flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row zivo-social-sheet-row-danger flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Trash2 className="h-5 w-5 text-destructive" />
-                <span className="text-sm font-medium text-destructive">Delete post</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-destructive"><Trash2 className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-destructive">Delete post</span>
               </button>
               <hr className="my-1 border-border/40" />
             </>
           )}
           <button type="button"
             onClick={() => { setShowPostMenu(false); setShowReportSheet(true); setReportStep("categories"); setReportCategory(""); }}
-            className="zivo-social-sheet-row zivo-social-sheet-row-danger flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row zivo-social-sheet-row-danger flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <Flag className="h-5 w-5 text-destructive" />
-            <span className="text-sm font-medium text-destructive">Report</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-destructive"><Flag className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-destructive">Report</span>
           </button>
           <button type="button"
             onClick={() => { setNotificationsOn(!notificationsOn); setShowPostMenu(false); toast.success(notificationsOn ? "Notifications turned off" : "Notifications turned on for this post"); }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            {notificationsOn ? <BellOff className="h-5 w-5 text-foreground" /> : <Bell className="h-5 w-5 text-foreground" />}
-            <span className="text-sm font-medium text-foreground">{notificationsOn ? "Turn off notifications" : "Turn on notifications"}</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              {notificationsOn ? <BellOff className="h-[18px] w-[18px]" /> : <Bell className="h-[18px] w-[18px]" />}
+            </span>
+            <span className="text-sm font-semibold text-foreground">{notificationsOn ? "Turn off notifications" : "Turn on notifications"}</span>
           </button>
           <button type="button"
             onClick={() => { setShowPostMenu(false); handleCopyLink(); }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <Link2 className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">Copy link</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400"><Link2 className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">Copy link</span>
           </button>
           <button type="button"
             onClick={() => {
@@ -5811,10 +5819,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               hiddenPosts.hide(item.id);
               toast.success("We'll show fewer like this");
             }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <EyeOff className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">Not interested</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"><EyeOff className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">Not interested</span>
           </button>
 
           {/* Sponsored-only: ad explanation */}
@@ -5825,35 +5833,35 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   setShowPostMenu(false);
                   toast.info("This is a sponsored post from a business on ZIVO. Ads are shown based on your activity and location.");
                 }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <HelpCircle className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Why am I seeing this?</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400"><HelpCircle className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Why am I seeing this?</span>
               </button>
               <button type="button"
                 onClick={() => { setShowPostMenu(false); toast.success("Ad hidden — you'll see fewer ads from this business"); }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Ban className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Hide this ad</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-500/10 text-slate-600 dark:text-slate-400"><Ban className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Hide this ad</span>
               </button>
             </>
           )}
           {!isOwner && item.author_name && (
             <button type="button"
               onClick={() => { setShowPostMenu(false); toast.success(`${item.author_name} snoozed for 30 days`); }}
-              className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+              className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
             >
-              <BellOff className="h-5 w-5 text-foreground" />
-              <span className="text-sm font-medium text-foreground">Snooze {item.author_name} for 30 days</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400"><BellOff className="h-[18px] w-[18px]" /></span>
+              <span className="text-sm font-semibold text-foreground">Snooze {item.author_name} for 30 days</span>
             </button>
           )}
           <button type="button"
             onClick={() => { setShowPostMenu(false); setShowShareSheet(true); }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <Share2 className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">Share</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400"><Share2 className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">Share</span>
           </button>
 
           {/* Save to device */}
@@ -5876,10 +5884,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   toast.error("Could not download — try saving from gallery");
                 }
               }}
-              className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+              className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
             >
-              <Download className="h-5 w-5 text-foreground" />
-              <span className="text-sm font-medium text-foreground">Save to device</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><Download className="h-[18px] w-[18px]" /></span>
+              <span className="text-sm font-semibold text-foreground">Save to device</span>
             </button>
           )}
 
@@ -5895,29 +5903,29 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 toast.info("Embed: " + embedCode.slice(0, 60) + "…");
               }
             }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <Code2 className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">Embed post</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"><Code2 className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">Embed post</span>
           </button>
 
           {/* QR code share */}
           <button type="button"
             onClick={() => { setShowPostMenu(false); setShowQrModal(true); }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <QrCode className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">QR code</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"><QrCode className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">QR code</span>
           </button>
 
           {/* Tip creator */}
           {!isOwner && item.author_id && (
             <button type="button"
               onClick={() => { setShowPostMenu(false); setTipTarget({ id: item.author_id!, name: item.author_name }); }}
-              className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+              className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
             >
-              <Gift className="h-5 w-5 text-amber-500" />
-              <span className="text-sm font-medium text-foreground">Send Tip</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400"><Gift className="h-[18px] w-[18px]" /></span>
+              <span className="text-sm font-semibold text-foreground">Send Tip</span>
             </button>
           )}
 
@@ -6044,7 +6052,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             </p>
             <button type="button"
               onClick={() => setShowReportSheet(false)}
-              className="mt-4 px-8 py-3 rounded-full bg-primary text-primary-foreground font-semibold text-sm min-h-[48px] shadow-lg shadow-primary/20"
+              className="mt-4 px-8 py-3 rounded-full bg-ig-gradient text-white font-semibold text-sm min-h-[48px] shadow-lg shadow-primary/20"
             >
               Done
             </button>

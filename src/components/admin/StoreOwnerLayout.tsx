@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Store Owner Layout — Simplified sidebar for store owners (non-admin).
  * Shows Profile, Products, Payment as sidebar navigation.
  */
@@ -618,7 +618,7 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                     : "border-primary/20 bg-primary/5 text-foreground hover:bg-primary/10"
                 )}
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-ig-gradient text-white">
                   <Wrench className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">

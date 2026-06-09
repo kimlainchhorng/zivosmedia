@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DatingPage — Interest-based profile matching & discovery
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -123,7 +123,7 @@ export default function DatingPage() {
             <p className="text-xs text-muted-foreground mt-1">Check back later for new people</p>
             <button type="button"
               onClick={() => { setCurrentIndex(0); queryClient.invalidateQueries({ queryKey: ["dating-profiles"] }); }}
-              className="mt-4 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
+              className="mt-4 px-6 py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-medium"
             >
               Refresh
             </button>

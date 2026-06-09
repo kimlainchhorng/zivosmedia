@@ -12,7 +12,7 @@
  * - Multi-city search support
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import tabFlightsBg from "@/assets/tab-flights-bg.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
@@ -82,6 +82,22 @@ export default function FlightSearchFormPro({
 
   // Trip type
   const [tripType, setTripType] = useState<TripType>(initialTripType);
+  const tripTypes: TripType[] = ["roundtrip", "oneway", "multicity"];
+
+  // Swipe left/right to cycle trip types
+  const swipeTouchStartX = useRef<number | null>(null);
+  const onTripSwipeStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchStartX.current = e.touches[0].clientX;
+  }, []);
+  const onTripSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (swipeTouchStartX.current === null) return;
+    const diff = e.changedTouches[0].clientX - swipeTouchStartX.current;
+    swipeTouchStartX.current = null;
+    if (Math.abs(diff) < 55) return;
+    const idx = tripTypes.indexOf(tripType);
+    if (diff < 0 && idx < tripTypes.length - 1) setTripType(tripTypes[idx + 1]);
+    else if (diff > 0 && idx > 0) setTripType(tripTypes[idx - 1]);
+  }, [tripType, tripTypes]);
 
   // Location state
   const [fromOption, setFromOption] = useState<LocationOption | null>(null);
@@ -215,12 +231,17 @@ export default function FlightSearchFormPro({
   ];
 
   return (
-    <div className={cn(
-      "relative bg-card/80 backdrop-blur-2xl border border-border/20 rounded-3xl p-5 sm:p-7 overflow-hidden",
-      "shadow-[0_8px_40px_-8px_hsl(var(--primary)/0.12),0_2px_12px_-4px_hsl(var(--primary)/0.08)]",
-      "before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent before:pointer-events-none",
-      className
-    )} style={{ transformStyle: "preserve-3d" }}>
+    <div
+      className={cn(
+        "relative bg-card/80 backdrop-blur-2xl border border-border/20 rounded-3xl p-5 sm:p-7 overflow-hidden",
+        "shadow-[0_8px_40px_-8px_hsl(var(--primary)/0.12),0_2px_12px_-4px_hsl(var(--primary)/0.08)]",
+        "before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent before:pointer-events-none",
+        className
+      )}
+      style={{ transformStyle: "preserve-3d" }}
+      onTouchStart={onTripSwipeStart}
+      onTouchEnd={onTripSwipeEnd}
+    >
       {/* Background image */}
       <img
         src={tabFlightsBg}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Car Rental Results Page - Production Ready
  * Premium, enterprise-grade travel booking UI
  * Always-visible pricing with clean card-based layout
@@ -392,7 +392,7 @@ export default function CarResultsPage() {
       <SlidersHorizontal className="w-4 h-4" />
       Filters
       {activeFilterCount > 0 && (
-        <span className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+        <span className="bg-ig-gradient text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
           {activeFilterCount}
         </span>
       )}

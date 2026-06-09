@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreatorWelcomePage — first stop for someone who just decided to become a creator.
  *
  * 1. Opens the CreatorTypePicker (can't skip — must pick).
@@ -94,7 +94,7 @@ export default function CreatorWelcomePage() {
           <button
             type="button"
             onClick={() => setShowPicker(true)}
-            className="mt-5 h-12 px-6 rounded-2xl bg-primary text-primary-foreground font-extrabold text-[14px] inline-flex items-center gap-2 active:scale-[0.98]"
+            className="mt-5 h-12 px-6 rounded-2xl bg-ig-gradient text-white font-extrabold text-[14px] inline-flex items-center gap-2 active:scale-[0.98]"
           >
             Choose your creator type
             <ArrowRight className="h-4 w-4" />

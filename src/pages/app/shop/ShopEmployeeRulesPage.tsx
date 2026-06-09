@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Shield, Plus, X, Check, ChevronRight, AlertCircle, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -226,7 +226,7 @@ export default function ShopEmployeeRulesPage() {
                     className={cn(
                       "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-all",
                       categoryFilter === c
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-ig-gradient text-white"
                         : "bg-muted/50 text-muted-foreground hover:bg-muted",
                     )}
                   >

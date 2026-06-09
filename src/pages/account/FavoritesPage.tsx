@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Account Favorites Page
  * View and manage favorites across all service types
  */
@@ -146,7 +146,7 @@ export default function FavoritesPage() {
                 className={cn(
                   "shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold border transition-all",
                   isActive
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-card text-muted-foreground border-border hover:border-primary/30"
                 )}
               >

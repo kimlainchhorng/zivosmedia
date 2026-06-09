@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PostShareSheet — bottom-sheet share menu used by every post in the feed.
  *
  * Replaces the old "silent clipboard copy" share with a proper grid of
@@ -334,7 +334,7 @@ export default function PostShareSheet() {
         </div>
         <div className="mt-2 grid grid-cols-4 gap-2.5">
           {onSendToFriend && (
-            <ShareTile color="bg-primary text-primary-foreground" label="Send" description="To chat" onClick={() => { onSendToFriend(); onShared?.("dm"); close(); }}>
+            <ShareTile color="bg-ig-gradient text-white" label="Send" description="To chat" onClick={() => { onSendToFriend(); onShared?.("dm"); close(); }}>
               <Send className="h-5 w-5" />
             </ShareTile>
           )}

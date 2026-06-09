@@ -4,6 +4,7 @@
  * own tab URL in an iframe (?embed=1 strips the page chrome). The user stays on
  * Build R.O.; closing the dialog returns to the in-progress R.O.
  */
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { buildStoreTabUrl } from "@/lib/admin/storeTabRouting";
 import ArQuickSettingsPanel from "./ArQuickSettingsPanel";
@@ -41,10 +42,23 @@ interface Props {
   /** Tab id to show; null closes the dialog. */
   tab: string | null;
   onOpenChange: (open: boolean) => void;
+  /** Called when the embedded section requests navigation to another tab (e.g. "New R.O." in Customers). */
+  onNavigate?: (tab: string) => void;
 }
 
-export default function BuildROSectionDialog({ storeId, tab, onOpenChange }: Props) {
+export default function BuildROSectionDialog({ storeId, tab, onOpenChange, onNavigate }: Props) {
   const open = !!tab;
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "ar_navigate" && e.data?.tab) {
+        onOpenChange(false);
+        onNavigate?.(e.data.tab);
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [onOpenChange, onNavigate]);
   const label = tab ? SECTION_LABELS[tab] || "Section" : "";
   const src = tab ? `${buildStoreTabUrl(storeId, tab)}&embed=1` : "about:blank";
 

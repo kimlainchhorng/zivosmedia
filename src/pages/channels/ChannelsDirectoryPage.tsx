@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -200,7 +200,7 @@ export default function ChannelsDirectoryPage() {
       <SwipeableRow
         key={c.id}
         leftActions={[{ key: "share", label: "Share", icon: <Share2 className="h-5 w-5" />, onPress: () => shareChannelRow(c), className: "bg-sky-500 text-white" }]}
-        rightActions={[{ key: "follow", label: isSubbed ? "Leave" : "Join", icon: isSubbed ? <UserMinus className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />, onPress: () => handleToggleFollow(c), className: isSubbed ? "bg-muted text-foreground" : "bg-primary text-primary-foreground" }]}
+        rightActions={[{ key: "follow", label: isSubbed ? "Leave" : "Join", icon: isSubbed ? <UserMinus className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />, onPress: () => handleToggleFollow(c), className: isSubbed ? "bg-muted text-foreground" : "bg-ig-gradient text-white" }]}
       >
       <div
         className="flex items-center gap-3 border border-transparent bg-card/60 p-3 transition-colors hover:border-border/60 hover:bg-card"

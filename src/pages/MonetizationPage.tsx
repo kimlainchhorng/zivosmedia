@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MonetizationPage — ZIVO Signature Design (2026)
  * Real wallet data, complete program hub, creator tools
  */
@@ -839,7 +839,7 @@ export default function MonetizationPage() {
                 disabled={!item.href || item.done}
               >
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                  item.done ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                  item.done ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
                 }`}>
                   {item.done ? <CheckCircle className="w-4 h-4" /> : i + 1}
                 </div>

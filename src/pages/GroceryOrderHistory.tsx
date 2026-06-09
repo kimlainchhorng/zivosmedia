@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryOrderHistory - Real-time order tracking with persistent ratings,
  * receipt viewing, spending analytics, support contact, and working reorder
  */
@@ -576,7 +576,7 @@ export default function GroceryOrderHistory() {
               onClick={() => setFilter(tab.key)}
               className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${
                 filter === tab.key
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-border/20"
               }`}
             >

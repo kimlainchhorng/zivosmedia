@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ExpenseSplitCard — render a Splitwise-style expense bubble inside a group.
  *
  * Shows total + payer + per-member share with settle/unsettled state.
@@ -102,7 +102,7 @@ export default function ExpenseSplitCard({ expense, currentUserId, onSettle }: P
       {myShare && !myShare.settled_at && !isPayer && (
         <button type="button"
           onClick={() => onSettle?.(expense.id)}
-          className="mt-2.5 w-full py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold active:opacity-80"
+          className="mt-2.5 w-full py-2 rounded-xl bg-ig-gradient text-white text-sm font-bold active:opacity-80"
         >
           Pay {fmt(myShare.share_cents)}
         </button>

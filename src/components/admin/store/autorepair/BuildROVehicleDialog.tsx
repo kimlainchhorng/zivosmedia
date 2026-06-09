@@ -24,7 +24,7 @@ interface Props {
   onSaved: (vehicle: any) => void;
 }
 
-const blank = { year: "", make: "", model: "", engine: "", vin: "", plate: "", plateState: "LA", color: "", mileage: "", oil_capacity: "", oil_viscosity: "", oil_filter: "" };
+const blank = { year: "", make: "", model: "", engine: "", transmission: "", vin: "", plate: "", plateState: "LA", mileage: "", oil_capacity: "", oil_viscosity: "", oil_filter: "" };
 
 const inp =
   "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[#1e90ff] focus:outline-none focus:ring-2 focus:ring-[#1e90ff]/20";
@@ -46,8 +46,8 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
     try {
       const { data, error } = await supabase.functions.invoke("vin-decode", { body: { vin: v } });
       if (error || !data?.ok) throw new Error(data?.error || "VIN decode failed");
-      setF((s) => ({ ...s, vin: v, make: data.make || s.make, model: data.model || s.model, year: data.year ? String(data.year) : s.year }));
-      toast.success("VIN decoded — year, make & model filled in");
+      setF((s) => ({ ...s, vin: v, make: data.make || s.make, model: data.model || s.model, year: data.year ? String(data.year) : s.year, engine: data.engine || s.engine, transmission: data.transmission || s.transmission }));
+      toast.success("VIN decoded — details filled in");
     } catch (e: any) {
       toast.error(`VIN decode failed: ${e.message}`);
     } finally {
@@ -58,7 +58,11 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
   const save = useMutation({
     mutationFn: async () => {
       if (!f.make.trim() || !f.model.trim()) throw new Error("Make and model are required");
-      const noteParts = [f.engine.trim() ? `Engine: ${f.engine.trim()}` : "", ownerMemo?.trim() || ""].filter(Boolean);
+      const noteParts = [
+        f.engine.trim() ? `Engine: ${f.engine.trim()}` : "",
+        f.transmission.trim() ? `Trans: ${f.transmission.trim()}` : "",
+        ownerMemo?.trim() || "",
+      ].filter(Boolean);
       const payload = {
         store_id: storeId,
         owner_name: owner.name.trim() || "Unknown",
@@ -69,7 +73,6 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
         model: f.model.trim(),
         vin: f.vin.trim() || null,
         plate: f.plate.trim() || null,
-        color: f.color.trim().toLowerCase() || null,
         mileage: f.mileage ? parseInt(f.mileage, 10) : 0,
         oil_capacity: f.oil_capacity.trim() || null,
         oil_viscosity: f.oil_viscosity.trim() || null,
@@ -148,16 +151,16 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
                 <input className={inp} placeholder="3.5L V6" value={f.engine} onChange={(e) => set({ engine: e.target.value })} />
               </div>
               <div className="space-y-1">
+                <label className={lbl}>Transmission</label>
+                <input className={inp} placeholder="e.g. 6-speed Automatic" value={f.transmission} onChange={(e) => set({ transmission: e.target.value })} />
+              </div>
+              <div className="space-y-1">
                 <label className={lbl}>VIN</label>
                 <input className={`${inp} font-mono`} value={f.vin} onChange={(e) => set({ vin: e.target.value.toUpperCase() })} />
               </div>
               <div className="space-y-1">
                 <label className={lbl}>Plate</label>
                 <input className={`${inp} font-mono uppercase`} value={f.plate} onChange={(e) => set({ plate: e.target.value.toUpperCase() })} />
-              </div>
-              <div className="space-y-1">
-                <label className={lbl}>Color</label>
-                <input className={inp} placeholder="e.g. white" value={f.color} onChange={(e) => set({ color: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className={lbl}>Mileage</label>

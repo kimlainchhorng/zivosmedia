@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoreScheduleSection v2 — Redesigned employee scheduling with modern UI.
  */
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -768,7 +768,7 @@ export default function StoreScheduleSection({ storeId }: Props) {
                   <button type="button" key={i} onClick={() => toggleWorkDay(i)}
                     className={cn("flex-1 h-9 rounded-lg text-[11px] font-bold border transition-all",
                       assignForm.workDays.includes(i)
-                        ? "bg-primary text-primary-foreground border-primary shadow-sm scale-105"
+                        ? "bg-ig-gradient text-white border-primary shadow-sm scale-105"
                         : "bg-muted/30 text-muted-foreground/60 border-transparent hover:bg-muted/50"
                     )}>{d.slice(0, 2)}</button>
                 ))}

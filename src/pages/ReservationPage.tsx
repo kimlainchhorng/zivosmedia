@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReservationPage — Restaurant table booking flow
  *
  * Funnel:
@@ -212,7 +212,7 @@ export default function ReservationPage() {
                     onClick={() => setParty(n)}
                     className={`min-w-[44px] h-11 px-4 rounded-xl border text-sm font-bold transition-all touch-manipulation ${
                       party === n
-                        ? "bg-primary text-primary-foreground border-primary shadow"
+                        ? "bg-ig-gradient text-white border-primary shadow"
                         : "bg-card border-border/60 text-foreground"
                     }`}
                   >
@@ -235,7 +235,7 @@ export default function ReservationPage() {
                     onClick={() => setTime(t)}
                     className={`h-11 rounded-xl border text-sm font-semibold transition-all touch-manipulation ${
                       time === t
-                        ? "bg-primary text-primary-foreground border-primary shadow"
+                        ? "bg-ig-gradient text-white border-primary shadow"
                         : "bg-card border-border/60 text-foreground"
                     }`}
                   >

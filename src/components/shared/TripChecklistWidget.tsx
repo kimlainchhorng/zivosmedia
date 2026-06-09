@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { 
   CheckSquare, 
   Square, 
@@ -142,7 +142,7 @@ const TripChecklistWidget = ({ destination = "Paris", className }: TripChecklist
               className={cn(
                 "px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200 active:scale-[0.95] touch-manipulation",
                 activeCategory === cat.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted hover:bg-muted/80 text-muted-foreground"
               )}
             >

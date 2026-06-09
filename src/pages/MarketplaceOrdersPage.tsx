@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MarketplaceOrdersPage — Track marketplace purchases and sales
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -101,7 +101,7 @@ export default function MarketplaceOrdersPage() {
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
-                tab === t ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+                tab === t ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
               }`}
             >
               {t === "purchases" ? `Purchases (${purchases.length})` : `Sales (${sales.length})`}

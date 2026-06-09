@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Auto Repair — Service Catalog / Price Book
  * Shop-defined standard services with labor + parts presets for quick estimate entry.
  */
@@ -270,7 +270,7 @@ export default function AutoRepairServiceCatalogSection({ storeId }: Props) {
                 onClick={() => setCatFilter(c.id)}
                 className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
                   catFilter === c.id
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "border-border text-muted-foreground hover:bg-muted"
                 }`}
               >

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ScheduleRideSheet - Schedule rides for future dates/times with recurring options
  */
 import { useState } from "react";
@@ -147,7 +147,7 @@ export default function ScheduleRideSheet({
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
                       selectedTime === time
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-ig-gradient text-white"
                         : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
                     )}
                   >
@@ -173,7 +173,7 @@ export default function ScheduleRideSheet({
               className={cn(
                 "px-3 py-1.5 rounded-full text-xs font-bold transition-all",
                 recurring === opt.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
               )}
             >
@@ -192,7 +192,7 @@ export default function ScheduleRideSheet({
                 className={cn(
                   "flex-1 py-2 rounded-lg text-[10px] font-bold transition-all",
                   customDays.includes(day)
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted/30 text-muted-foreground"
                 )}
               >

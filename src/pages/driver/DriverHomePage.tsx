@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DriverHomePage - Professional Driver Home Screen
  * iOS 2026 style dashboard with earnings hero, quick stats, quick actions
  * Ported from Zivo Driver Connect
@@ -176,7 +176,7 @@ export default function DriverHomePage() {
               className={`w-full rounded-2xl py-4 font-bold text-sm flex items-center justify-center gap-2 transition-all ${
                 isOnline
                   ? "bg-red-500/10 border border-red-500/30 text-red-500"
-                  : "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                  : "bg-ig-gradient text-white shadow-lg shadow-primary/20"
               }`}
             >
               {togglingOnline ? (
@@ -267,7 +267,7 @@ export default function DriverHomePage() {
                     whileTap={{ scale: 0.97 }}
                     onClick={acceptOffer}
                     disabled={accepting}
-                    className="flex-2 flex-[2] py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/25 active:scale-97 transition-transform disabled:opacity-70"
+                    className="flex-2 flex-[2] py-3 rounded-2xl bg-ig-gradient text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/25 active:scale-97 transition-transform disabled:opacity-70"
                   >
                     {accepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
                     Accept Ride

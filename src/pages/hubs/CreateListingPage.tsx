@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreateListingPage — /marketplace-hub/create
  */
 import { useState } from "react";
@@ -60,7 +60,7 @@ export default function CreateListingPage() {
             {CONDITIONS.map((c) => <option key={c} value={c}>{c.replace("_", " ")}</option>)}
           </select>
           <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)" className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          <button type="button" onClick={() => void submit()} disabled={busy || !title || !price} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
+          <button type="button" onClick={() => void submit()} disabled={busy || !title || !price} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50">
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post listing"}
           </button>
         </div>

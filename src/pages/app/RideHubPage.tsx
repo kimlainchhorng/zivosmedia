@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideHubPage - Central hub for all ride features
  */
 import { Suspense, useEffect, useState } from "react";
@@ -520,7 +520,7 @@ export default function RideHubPage() {
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0",
                     active
-                      ? "bg-primary text-primary-foreground shadow-md"
+                      ? "bg-ig-gradient text-white shadow-md"
                       : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   )}
                 >

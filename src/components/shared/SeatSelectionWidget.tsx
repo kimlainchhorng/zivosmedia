@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Armchair, Check, X, Info, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,7 @@ const SeatSelectionWidget = ({
       return "bg-muted/50 text-muted-foreground/30 cursor-not-allowed";
     }
     if (isSelected) {
-      return "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background";
+      return "bg-ig-gradient text-white ring-2 ring-primary ring-offset-2 ring-offset-background";
     }
     if (seat.status === "premium") {
       return "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 cursor-pointer";

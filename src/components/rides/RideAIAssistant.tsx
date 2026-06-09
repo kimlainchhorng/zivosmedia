@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideAIAssistant — Voice booking, smart suggestions, predictive destinations, NLP commands
  */
 import { useState } from "react";
@@ -73,7 +73,7 @@ export default function RideAIAssistant() {
             className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
               listening
                 ? "bg-destructive text-destructive-foreground shadow-lg shadow-destructive/30"
-                : "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                : "bg-ig-gradient text-white shadow-lg shadow-primary/30"
             }`}
           >
             {listening ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8" />}

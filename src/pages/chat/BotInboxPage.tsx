@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSmartBack } from "@/lib/smartBack";
 import { ArrowLeft, Bot as BotIcon, MessageCircle, Compass } from "lucide-react";
@@ -84,7 +84,7 @@ export default function BotInboxPage() {
                       {c.last_message || `@${c.username}`}
                     </div>
                     {c.unread_count > 0 && (
-                      <span className="text-[10px] bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 flex-shrink-0">
+                      <span className="text-[10px] bg-ig-gradient text-white rounded-full px-1.5 py-0.5 flex-shrink-0">
                         {c.unread_count}
                       </span>
                     )}

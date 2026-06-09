@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Auto Repair — "Build R.O." console (VSM-style repair-order / estimate builder).
  *
  * Phase 1: the full single-screen builder shell.
@@ -383,7 +383,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   const [historyOpen, setHistoryOpen] = useState(false);
   const [carfaxOpen, setCarfaxOpen] = useState(false);
   const [statusDlgOpen, setStatusDlgOpen] = useState(false);
-  const [custEdit, setCustEdit] = useState(false); // Customer card: form (adding/editing) vs summary/prompt
+  const [custEdit, setCustEdit] = useState(true); // Customer card: form always expanded by default
   const [vehEdit, setVehEdit] = useState(false); // Vehicle card: form (adding/editing) vs summary/prompt
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printCopies, setPrintCopies] = useState(1);
@@ -556,7 +556,6 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     }));
     setCustSearch("");
     setSearchOpen(false);
-    toast.success(`Linked ${[v.year, v.make, v.model].filter(Boolean).join(" ")}`);
   };
   const unbind = () => { setVehicleId(null); setBoundVehicle(null); };
 
@@ -789,7 +788,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     setTaxRate(shopDefaults?.taxPct ?? 0);
     setStatus("draft");
     setWorkflowStage("awaiting");
-    setCustEdit(false);
+    setCustEdit(true);
     setVehEdit(false);
     setCreatedAt(null);
     unbind();
@@ -852,7 +851,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     setTaxRate(e.tax_rate != null ? Number(e.tax_rate) : 0);
     setStatus(e.status ?? "draft");
     setWorkflowStage((e as any).workflow_stage ?? "awaiting");
-    setCustEdit(false);
+    setCustEdit(true);
     setVehEdit(false);
     setOpenLoad(false);
     // Re-bind the saved garage vehicle so History / linked features work on load.
@@ -915,7 +914,6 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       }
       if (p.vehicle) bindVehicle(p.vehicle as GarageVehicle);
       setView("builder");
-      if (p.mode === "invoice") toast.info("Add the work, then tap Invoice to bill this vehicle");
     } catch { /* ignore malformed prefill */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1428,7 +1426,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     <>
       {headerSlot && createPortal(<BuildROIconToolbar group="nav" isSoftwareDomain={isSoftwareDomain} {...toolbarHandlers} />, headerSlot)}
       <BuildROIconToolbar group="docs" isSoftwareDomain={isSoftwareDomain} {...toolbarHandlers} />
-      <BuildROSectionDialog storeId={storeId} tab={sectionTab} onOpenChange={(o) => { if (!o) setSectionTab(null); }} />
+      <BuildROSectionDialog storeId={storeId} tab={sectionTab} onOpenChange={(o) => { if (!o) setSectionTab(null); }} onNavigate={onNavigate} />
     </>
   );
 
@@ -1689,7 +1687,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
                 key={j}
                 type="button"
                 onClick={() => setActiveJob(j)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${activeJob === j ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${activeJob === j ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
               >
                 Job {j}
                 <span className="ml-1 opacity-70">({lines.filter((l) => l.job === j).length})</span>
@@ -1979,7 +1977,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
             <div className="mb-1.5 flex flex-wrap items-center gap-1">
               {NOTE_TABS.map((n) => (
                 <button key={n.key} type="button" onClick={() => setNoteTab(n.key)}
-                  className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${noteTab === n.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
+                  className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${noteTab === n.key ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
                   {n.label}
                 </button>
               ))}

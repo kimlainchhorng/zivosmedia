@@ -235,7 +235,7 @@ export default function SwipeableSheet({
             >
               {/* Animated grabber pill — pulses once on mount to hint draggability */}
               <div
-                className="flex justify-center pt-2.5 pb-2"
+                className="flex justify-center pt-1 pb-1.5"
                 role="presentation"
                 aria-hidden="true"
               >

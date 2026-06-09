@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSmartBack } from "@/lib/smartBack";
 import { ArrowLeft, Bot, Search, MessageCircle, Flag, Star, Sparkles, Briefcase, Smile, Newspaper, DollarSign, Users as UsersIcon, Wrench, MoreHorizontal, Ban, BellOff, Flame } from "lucide-react";
@@ -187,7 +187,7 @@ export default function BotDiscoverPage() {
                 type="button"
                 onClick={() => setCategory(c.id)}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs whitespace-nowrap border ${
-                  active ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-muted/40"
+                  active ? "bg-ig-gradient text-white border-primary" : "bg-card border-border hover:bg-muted/40"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />

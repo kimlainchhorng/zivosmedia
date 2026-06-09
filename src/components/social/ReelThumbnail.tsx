@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, memo } from "react";
-import { CheckCircle2, Clapperboard, Play, Sparkles, Video } from "lucide-react";
+import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ReelThumbnailProps {
@@ -104,21 +104,11 @@ function ReelThumbnailInner({
     };
   }, [url]);
 
-  const thumbnailSignal = poster && !useVideoFallback
-    ? { label: "Poster captured", detail: "Fast preview ready", width: "100%" }
-    : useVideoFallback
-      ? { label: "Video fallback", detail: "Playing native preview", width: "64%" }
-      : { label: "Building preview", detail: "Capturing reel frame", width: "34%" };
-
   return (
     <div className="absolute inset-0">
       {!poster && !useVideoFallback && (
         <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_30%_20%,rgba(34,211,238,0.2),transparent_32%),linear-gradient(135deg,rgba(15,23,42,0.92),rgba(3,7,18,0.98))]">
           <div className="absolute inset-0 zivo-reel-skeleton-shimmer opacity-25" />
-          <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/80 backdrop-blur-md">
-            <Clapperboard className="h-3 w-3 text-cyan-200" aria-hidden="true" />
-            Loading
-          </div>
         </div>
       )}
       {poster && !useVideoFallback ? (
@@ -143,48 +133,6 @@ function ReelThumbnailInner({
 
       {/* Gradient overlay for depth */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/52 via-black/8 to-transparent" />
-
-      <div className="pointer-events-none absolute left-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/30 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/82 backdrop-blur-md">
-        {poster && !useVideoFallback ? (
-          <>
-            <CheckCircle2 className="h-3 w-3 text-emerald-300" aria-hidden="true" />
-            Ready
-          </>
-        ) : useVideoFallback ? (
-          <>
-            <Video className="h-3 w-3 text-cyan-200" aria-hidden="true" />
-            Video
-          </>
-        ) : (
-          <>
-            <Clapperboard className="h-3 w-3 text-cyan-200" aria-hidden="true" />
-            Preview
-          </>
-        )}
-      </div>
-
-      <div className="pointer-events-none absolute bottom-2 left-2 right-2 z-10 rounded-2xl border border-white/10 bg-black/34 px-2.5 py-2 text-white shadow-[0_16px_34px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white/10 text-cyan-200">
-              <Sparkles className="h-3 w-3" aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-[10px] font-black uppercase tracking-[0.1em] text-white/80">{thumbnailSignal.label}</span>
-              <span className="block truncate text-[9px] font-bold text-white/52">{thumbnailSignal.detail}</span>
-            </span>
-          </span>
-          <span className="shrink-0 rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[9px] font-black text-cyan-100">
-            Reel
-          </span>
-        </div>
-        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-primary to-fuchsia-300 transition-[width] duration-300"
-            style={{ width: thumbnailSignal.width }}
-          />
-        </div>
-      </div>
 
       {/* Play button */}
       <div className={cn("absolute inset-0 flex items-center justify-center", overlayClassName)}>

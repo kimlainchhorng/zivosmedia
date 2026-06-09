@@ -1,40 +1,38 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import NativeBackButton from "@/components/shared/NativeBackButton";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StarRating } from "@/components/shared/StarRating";
-import SafeCaption from "@/components/social/SafeCaption";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { 
+import {
   Car,
   Search,
   CalendarDays,
   Clock,
   User,
   ShieldCheck,
-  Users,
   ArrowRight,
-  Sparkles,
   Star,
-  Heart,
   MapPin,
   Shield,
   CheckCircle,
   Crown,
   Zap,
   ChevronRight,
+  ChevronDown,
   DollarSign,
   Award,
-  Bell,
   Truck,
   Key,
   Fuel,
+  CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import { useP2PVehicleCount } from "@/hooks/useP2PBooking";
 import P2PDiscoveryBanner from "@/components/car/P2PDiscoveryBanner";
@@ -68,11 +66,6 @@ import type { CarCategory } from "@/config/photos";
 import type { Airport } from "@/data/airports";
 import { CAR_DISCLAIMERS } from "@/config/carCompliance";
 
-/**
- * ZIVO CAR RENTAL - Top-Tier Car Search
- * Uses IATA codes for location handling
- */
-
 const carCategories = [
   { name: "Economy", passengers: 4, bags: 2, priceFrom: 25, transmission: 'Automatic' as const, hasAC: true },
   { name: "Compact", passengers: 5, bags: 2, priceFrom: 30, transmission: 'Automatic' as const, hasAC: true },
@@ -82,13 +75,228 @@ const carCategories = [
   { name: "Luxury", passengers: 5, bags: 3, priceFrom: 95, transmission: 'Automatic' as const, hasAC: true },
 ];
 
+// ─── Road Trip Intelligence data ──────────────────────────────────────────────
+const fuelEstimates = [
+  { carType: "Economy (32 mpg)", distance: 300, cost: "$33", fuelType: "Regular" },
+  { carType: "Midsize (28 mpg)", distance: 300, cost: "$38", fuelType: "Regular" },
+  { carType: "SUV (22 mpg)", distance: 300, cost: "$48", fuelType: "Regular" },
+  { carType: "EV (3.5 mi/kWh)", distance: 300, cost: "$12", fuelType: "Electric" },
+];
+
+const tollEstimates = [
+  { route: "NYC → Boston", tolls: "$18.50", ezPass: "$13.20" },
+  { route: "LA → San Diego", tolls: "$6.00", ezPass: "$4.50" },
+  { route: "Chicago → Detroit", tolls: "$12.00", ezPass: "$8.80" },
+  { route: "Miami → Orlando", tolls: "$22.00", ezPass: "$16.50" },
+];
+
+const parkingOptions = [
+  { location: "Airport Terminal Lot", rate: "$18/day", type: "Covered", distance: "0 min walk", reservable: true },
+  { location: "Economy Lot A", rate: "$8/day", type: "Open air", distance: "5 min shuttle", reservable: true },
+  { location: "Off-site Park N Fly", rate: "$6/day", type: "Covered", distance: "8 min shuttle", reservable: true },
+  { location: "Hotel valet", rate: "$25/day", type: "Valet", distance: "At lobby", reservable: false },
+];
+
+const rentalTips = [
+  { tip: "Book 3-6 weeks ahead for best rates", icon: CalendarDays, category: "Timing", color: "violet" },
+  { tip: "Always photograph the car before driving off", icon: Shield, category: "Protection", color: "emerald" },
+  { tip: "Check credit card for included rental insurance", icon: CheckCircle2, category: "Savings", color: "sky" },
+  { tip: "Return with full tank to avoid $9+/gal refuel fees", icon: Fuel, category: "Savings", color: "amber" },
+  { tip: "Decline GPS — use your phone instead", icon: MapPin, category: "Savings", color: "rose" },
+  { tip: "Book at off-airport locations to save 20-30%", icon: DollarSign, category: "Savings", color: "emerald" },
+];
+
+const roadTripAccordion = [
+  {
+    id: "fuel",
+    label: "Fuel Cost Estimator",
+    icon: Fuel,
+    iconColor: "text-amber-500",
+    content: fuelEstimates.map(f => ({
+      primary: f.carType,
+      secondary: `${f.distance} mi · ${f.fuelType}`,
+      value: f.cost,
+      valueColor: "text-emerald-500",
+    })),
+  },
+  {
+    id: "tolls",
+    label: "Toll Estimates by Route",
+    icon: DollarSign,
+    iconColor: "text-violet-500",
+    content: tollEstimates.map(t => ({
+      primary: t.route,
+      secondary: `EZ-Pass: ${t.ezPass}`,
+      value: t.tolls,
+      valueColor: "text-foreground",
+    })),
+  },
+  {
+    id: "parking",
+    label: "Airport Parking Options",
+    icon: MapPin,
+    iconColor: "text-sky-500",
+    content: parkingOptions.map(p => ({
+      primary: p.location,
+      secondary: `${p.type} · ${p.distance}`,
+      value: p.rate,
+      valueColor: "text-foreground",
+      badge: p.reservable ? "Reservable" : undefined,
+    })),
+  },
+  {
+    id: "tips",
+    label: "Pro Rental Tips",
+    icon: Award,
+    iconColor: "text-amber-400",
+    isTips: true,
+  },
+];
+
+const inspectionItems = [
+  { id: "exterior", label: "Exterior body", icon: Car },
+  { id: "tires", label: "Tires & wheels", icon: CheckCircle2 },
+  { id: "interior", label: "Interior condition", icon: Star },
+  { id: "lights", label: "Lights & signals", icon: Zap },
+  { id: "windshield", label: "Windshield", icon: Shield },
+  { id: "fuel", label: "Fuel level", icon: Fuel },
+];
+
+const roadsideFeatures = [
+  { feature: "Flat tire change", included: true },
+  { feature: "Jump start", included: true },
+  { feature: "Lockout service", included: true },
+  { feature: "Fuel delivery", included: true },
+  { feature: "Towing (up to 50 mi)", included: true },
+  { feature: "Trip interruption coverage", included: false, premium: true },
+];
+
+const mileageOptions = [
+  { plan: "Standard", miles: "200 mi/day", extraCost: "$0.25/mi over", included: true },
+  { plan: "Extended", miles: "400 mi/day", extraCost: "$0.20/mi over", addOn: "+$8/day" },
+  { plan: "Unlimited", miles: "Unlimited", extraCost: "No extra charges", addOn: "+$15/day" },
+];
+
+// ─── Accordion component ────────────────────────────────────────────────────
+function AccordionItem({ label, icon: Icon, iconColor, open, onToggle, children }: {
+  label: string; icon: React.ElementType; iconColor: string;
+  open: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-border/30 last:border-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 py-4 text-left hover:opacity-80 transition-opacity touch-manipulation"
+      >
+        <Icon className={cn("w-4 h-4 shrink-0", iconColor)} />
+        <span className="flex-1 text-sm font-semibold text-foreground">{label}</span>
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground/50 transition-transform duration-200 shrink-0", open && "rotate-180")} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="pb-4">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Toggle pill component ─────────────────────────────────────────────────
+function TogglePill({ active, onToggle, icon: Icon, iconColor, label, sub }: {
+  active: boolean; onToggle: () => void;
+  icon: React.ElementType; iconColor: string;
+  label: string; sub: string;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onToggle}
+      whileTap={{ scale: 0.95 }}
+      className={cn(
+        "flex items-center gap-3 rounded-2xl border px-4 py-3 min-w-[160px] w-full text-left transition-all touch-manipulation",
+        active
+          ? "border-violet-500/50 bg-violet-500/10 shadow-[0_0_12px_rgba(139,92,246,0.15)]"
+          : "border-border/40 bg-card hover:border-border",
+      )}
+    >
+      <div className={cn(
+        "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all",
+        active ? "bg-violet-500/20" : "bg-muted/40",
+      )}>
+        <Icon className={cn("w-4 h-4", active ? iconColor : "text-muted-foreground")} />
+      </div>
+      <div className="min-w-0">
+        <p className={cn("text-xs font-bold truncate", active ? "text-foreground" : "text-muted-foreground")}>{label}</p>
+        <p className="text-[10px] text-muted-foreground truncate">{sub}</p>
+      </div>
+      <div className={cn(
+        "w-9 h-5 rounded-full relative shrink-0 ml-auto transition-all",
+        active ? "bg-violet-500" : "bg-muted/50",
+      )}>
+        <span className={cn(
+          "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all",
+          active ? "left-[18px]" : "left-0.5",
+        )} />
+      </div>
+    </motion.button>
+  );
+}
+
+// ─── Protection card ─────────────────────────────────────────────────────────
+const protectionTiers = [
+  {
+    id: "none" as const,
+    name: "Decline",
+    price: "$0",
+    priceLabel: "per day",
+    features: ["No coverage", "Responsible for all damage"],
+    color: "muted",
+  },
+  {
+    id: "basic" as const,
+    name: "Basic",
+    price: "$9",
+    priceLabel: "per day",
+    features: ["$2,500 deductible", "Liability coverage", "24/7 roadside"],
+    color: "sky",
+  },
+  {
+    id: "standard" as const,
+    name: "Standard",
+    price: "$19",
+    priceLabel: "per day",
+    features: ["$500 deductible", "Liability coverage", "24/7 roadside", "Lost key replacement"],
+    badge: "Popular",
+    color: "violet",
+  },
+  {
+    id: "premium" as const,
+    name: "Premium",
+    price: "$35",
+    priceLabel: "per day",
+    features: ["$0 deductible", "Full liability", "24/7 concierge", "Lost key", "Tire & windshield"],
+    badge: "Best Value",
+    color: "amber",
+    icon: Crown,
+  },
+];
+
+// ─── Main component ──────────────────────────────────────────────────────────
 const CarRentalBooking = () => {
   const navigate = useNavigate();
-  
-  // Location state with IATA code
+
   const [selectedAirport, setSelectedAirport] = useState<Airport | null>(null);
   const [pickupDisplayValue, setPickupDisplayValue] = useState("");
-  
   const [pickupDate, setPickupDate] = useState<Date>();
   const [returnDate, setReturnDate] = useState<Date>();
   const [pickupTime, setPickupTime] = useState("10:00");
@@ -97,153 +305,28 @@ const CarRentalBooking = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // === NEW: Turo-inspired features ===
   const [deliveryToYou, setDeliveryToYou] = useState(false);
   const [instantBook, setInstantBook] = useState(true);
-  const [longTermDiscount, setLongTermDiscount] = useState(false);
-  const [showTripProtection, setShowTripProtection] = useState(false);
-  const [selectedProtection, setSelectedProtection] = useState<"none" | "basic" | "standard" | "premium">("standard");
-  const [showHostProfile, setShowHostProfile] = useState(false);
-  const [savedCars, setSavedCars] = useState<string[]>([]);
-  const [showCarFeatureFilter, setShowCarFeatureFilter] = useState(false);
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
-  const [unlimitedMileage, setUnlimitedMileage] = useState(true);
   const [showElectricOnly, setShowElectricOnly] = useState(false);
-  const [freeDelivery] = useState(true);
-  const [hostRating] = useState(4.9);
-  const [hostTrips] = useState(342);
-  const [responseRate] = useState("99%");
-  const [responseTime] = useState("< 1 hour");
 
-  // Trip protection tiers (Turo)
-  const protectionTiers = [
-    { id: "none" as const, name: "Decline", price: "$0", features: ["No coverage", "You're responsible for all damage"] },
-    { id: "basic" as const, name: "Basic", price: "$9/day", features: ["$2,500 deductible", "Liability coverage", "24/7 roadside"] },
-    { id: "standard" as const, name: "Standard", price: "$19/day", features: ["$500 deductible", "Liability coverage", "24/7 roadside", "Lost key replacement"], badge: "Popular" },
-    { id: "premium" as const, name: "Premium", price: "$35/day", features: ["$0 deductible", "Full liability", "24/7 concierge", "Lost key", "Tire & windshield"], badge: "Best Value" },
-  ];
+  const [selectedProtection, setSelectedProtection] = useState<"none" | "basic" | "standard" | "premium">("standard");
 
-  // Car feature filters (Turo)
-  const carFeatures = [
-    { id: "bluetooth", label: "Bluetooth", icon: "📱" },
-    { id: "gps", label: "GPS", icon: "📍" },
-    { id: "backup-camera", label: "Backup Camera", icon: "📷" },
-    { id: "heated-seats", label: "Heated Seats", icon: "🔥" },
-    { id: "sunroof", label: "Sunroof", icon: "☀️" },
-    { id: "apple-carplay", label: "Apple CarPlay", icon: "🍎" },
-    { id: "smartphone-integration", label: "Smartphone Integration", icon: "📲" },
-    { id: "keyless", label: "Keyless Entry", icon: "🔑" },
-  ];
+  // Road Trip accordion state
+  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const toggleAccordion = (id: string) => setOpenAccordion(prev => prev === id ? null : id);
 
-  // Host profiles will be populated from real Turo-style listings; empty
-  // until that pipeline exists so we never display fabricated hosts.
-  const hostProfiles: Array<{
-    name: string; rating: number; trips: number;
-    responseTime: string; superhost: boolean; joined: string;
-  }> = [];
+  // Pre-pickup accordion
+  const [openPrePickup, setOpenPrePickup] = useState<string | null>(null);
+  const togglePrePickup = (id: string) => setOpenPrePickup(prev => prev === id ? null : id);
 
-  // === NEW Wave 2: More Turo features ===
-  const [showDamageInspection, setShowDamageInspection] = useState(false);
-  const [showMileageCalc, setShowMileageCalc] = useState(false);
-  const [showRoadsideDetails, setShowRoadsideDetails] = useState(false);
-  const [showCarReviews, setShowCarReviews] = useState(false);
-  const [showInsuranceComparison, setShowInsuranceComparison] = useState(false);
-
-  // === WAVE 4: Road Trip Intelligence ===
-  const [showFuelCalc, setShowFuelCalc] = useState(false);
-  const [showTollEstimator, setShowTollEstimator] = useState(false);
-  const [showParkingFinder, setShowParkingFinder] = useState(false);
-  const [showRoadTripPlanner, setShowRoadTripPlanner] = useState(false);
-  const [showVehicleCompare, setShowVehicleCompare] = useState(false);
-  const [showRentalTips, setShowRentalTips] = useState(false);
-
-  // Fuel cost calculator
-  const fuelEstimates = [
-    { carType: "Economy (32 mpg)", distance: 300, gallons: 9.4, cost: "$33", fuelType: "Regular" },
-    { carType: "Midsize (28 mpg)", distance: 300, gallons: 10.7, cost: "$38", fuelType: "Regular" },
-    { carType: "SUV (22 mpg)", distance: 300, gallons: 13.6, cost: "$48", fuelType: "Regular" },
-    { carType: "EV (3.5 mi/kWh)", distance: 300, gallons: 0, cost: "$12", fuelType: "Electric" },
-  ];
-
-  // Toll estimator
-  const tollEstimates = [
-    { route: "NYC → Boston", tolls: "$18.50", ezPass: "$13.20", bridges: 1, tunnels: 0 },
-    { route: "LA → San Diego", tolls: "$6.00", ezPass: "$4.50", bridges: 0, tunnels: 0 },
-    { route: "Chicago → Detroit", tolls: "$12.00", ezPass: "$8.80", bridges: 1, tunnels: 0 },
-    { route: "Miami → Orlando", tolls: "$22.00", ezPass: "$16.50", bridges: 0, tunnels: 0 },
-  ];
-
-  // Parking finder
-  const parkingOptions = [
-    { location: "Airport Terminal Lot", rate: "$18/day", type: "Covered", distance: "0 min walk", reservable: true },
-    { location: "Economy Lot A", rate: "$8/day", type: "Open air", distance: "5 min shuttle", reservable: true },
-    { location: "Off-site Park N Fly", rate: "$6/day", type: "Covered", distance: "8 min shuttle", reservable: true },
-    { location: "Hotel valet", rate: "$25/day", type: "Valet", distance: "At lobby", reservable: false },
-  ];
-
-  // Road trip planner
-  const roadTripStops = [
-    { stop: "Rest stop", interval: "Every 2 hrs", amenities: ["Restrooms", "Gas", "Snacks"], tip: "Stretch for 10 min" },
-    { stop: "Scenic overlook", interval: "Route-dependent", amenities: ["Photo ops", "Walking trails"], tip: "Check sunrise/sunset timing" },
-    { stop: "EV charging", interval: "Every 150 mi", amenities: ["Fast charge (30 min)", "Nearby dining"], tip: "Plan stops with PlugShare app" },
-  ];
-
-  // Rental tips
-  const rentalTips = [
-    { tip: "Book 3-6 weeks ahead for best rates", icon: "📅", category: "Timing" },
-    { tip: "Always photograph the car before driving off", icon: "📸", category: "Protection" },
-    { tip: "Check credit card for included rental insurance", icon: "💳", category: "Savings" },
-    { tip: "Return with full tank to avoid $9+/gal refuel fees", icon: "⛽", category: "Savings" },
-    { tip: "Decline GPS — use your phone instead", icon: "📱", category: "Savings" },
-    { tip: "Book at off-airport locations to save 20-30%", icon: "📍", category: "Savings" },
-  ];
-
-  // Damage inspection checklist
-  const inspectionItems = [
-    { id: "exterior", label: "Exterior body", icon: "🚗", checked: false },
-    { id: "tires", label: "Tires & wheels", icon: "🛞", checked: false },
-    { id: "interior", label: "Interior condition", icon: "💺", checked: false },
-    { id: "lights", label: "Lights & signals", icon: "💡", checked: false },
-    { id: "windshield", label: "Windshield", icon: "🪟", checked: false },
-    { id: "fuel", label: "Fuel level", icon: "⛽", checked: false },
-  ];
-
-  // Mileage calculator
-  const mileageOptions = [
-    { plan: "Standard", miles: "200 mi/day", extraCost: "$0.25/mi over", included: true },
-    { plan: "Extended", miles: "400 mi/day", extraCost: "$0.20/mi over", addOn: "+$8/day" },
-    { plan: "Unlimited", miles: "Unlimited", extraCost: "No extra charges", addOn: "+$15/day" },
-  ];
-
-  // Roadside assistance
-  const roadsideFeatures = [
-    { feature: "Flat tire change", icon: "🔧", included: true },
-    { feature: "Jump start", icon: "🔋", included: true },
-    { feature: "Lockout service", icon: "🔐", included: true },
-    { feature: "Fuel delivery", icon: "⛽", included: true },
-    { feature: "Towing (up to 50 mi)", icon: "🚛", included: true },
-    { feature: "Trip interruption", icon: "🏨", included: false, premium: true },
-  ];
-
-  // Real renter reviews will be sourced from a reviews table; empty until
-  // that data exists so we never show fabricated reviews/ratings.
-  const carReviews: Array<{
-    name: string; car: string; rating: number; text: string; date: string;
-  }> = [];
-
-  // Handle airport selection from autocomplete
   const handleAirportChange = (airport: Airport | null, displayValue: string) => {
     setSelectedAirport(airport);
     setPickupDisplayValue(displayValue);
   };
 
   const handleSearch = () => {
-    // Get pickup code - either from selected airport or extract from display value
     const pickupCode = selectedAirport?.code || pickupDisplayValue.match(/\(([A-Z]{3})\)/)?.[1];
-    
     if (!pickupCode || !pickupDate || !returnDate) return;
-    
-    // Navigate to results page with proper URL params
     const params = new URLSearchParams({
       pickup: pickupCode,
       pickup_date: format(pickupDate, 'yyyy-MM-dd'),
@@ -252,7 +335,6 @@ const CarRentalBooking = () => {
       dropoff_time: returnTime,
       age: driverAge,
     });
-    
     navigate(`/rent-car/results?${params.toString()}`);
   };
 
@@ -265,13 +347,8 @@ const CarRentalBooking = () => {
 
   const handleCategoryTileSelect = (category: CarCategory) => {
     const categoryMap: Record<CarCategory, string> = {
-      economy: "Economy",
-      compact: "Compact",
-      midsize: "Midsize",
-      suv: "SUV",
-      luxury: "Luxury",
-      van: "Full-size",
-      electric: "Electric",
+      economy: "Economy", compact: "Compact", midsize: "Midsize",
+      suv: "SUV", luxury: "Luxury", van: "Full-size", electric: "Electric",
     };
     setSelectedCategory(categoryMap[category] || category);
     setHasSearched(true);
@@ -279,32 +356,28 @@ const CarRentalBooking = () => {
 
   const handleRentCar = (categoryName: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    
     const partner = carAffiliatePartners[0];
     const pickupCode = selectedAirport?.code || pickupDisplayValue.match(/\(([A-Z]{3})\)/)?.[1] || '';
     const url = partner.urlTemplate({
       pickupLocation: pickupCode,
       pickupDate: pickupDate ? format(pickupDate, "yyyy-MM-dd") : undefined,
       returnDate: returnDate ? format(returnDate, "yyyy-MM-dd") : undefined,
-      pickupTime,
-      returnTime,
-      driverAge: parseInt(driverAge),
+      pickupTime, returnTime, driverAge: parseInt(driverAge),
     });
     import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(url));
   };
 
-  const handleLocationSelect = (city: string) => {
-    setPickupDisplayValue(city);
-  };
+  const handleLocationSelect = (city: string) => setPickupDisplayValue(city);
 
-  // Calculate days for pricing
-  const daysCount = pickupDate && returnDate 
+  const daysCount = pickupDate && returnDate
     ? Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24)))
     : undefined;
 
+  const timeOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ":00");
+
   return (
     <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
-      <SEOHead 
+      <SEOHead
         title="ZIVO Car Rentals – Compare & Rent Cars Worldwide"
         description="Compare car rental prices from top providers worldwide. Find the best deals on economy, SUV, luxury and more. Book with trusted partners."
       />
@@ -313,24 +386,23 @@ const CarRentalBooking = () => {
       <NativeBackButton />
 
       <main className="pb-32 lg:pb-20">
-        {/* Car Rental Disclaimer Banner - LOCKED TEXT */}
+        {/* Compliance banner */}
         <section className="border-b border-border py-2.5 bg-secondary">
           <div className="container mx-auto px-4">
             <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-foreground" />
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
               {CAR_DISCLAIMERS.partnerBooking}
             </p>
           </div>
         </section>
 
-        {/* Hero with Big Search */}
+        {/* ── Hero + Search ────────────────────────────────────────────── */}
         <ImageHero service="cars" icon={Car}>
           <BigSearchCard service="cars">
-            {/* Main Search Fields */}
             <div className="space-y-4">
-              {/* Row 1: Location - Airport Autocomplete */}
+              {/* Pickup location */}
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Pickup Location</label>
+                <label className="text-xs text-muted-foreground mb-1.5 block font-semibold">Pickup Location</label>
                 <AirportAutocomplete
                   value={pickupDisplayValue}
                   onChange={handleAirportChange}
@@ -338,120 +410,87 @@ const CarRentalBooking = () => {
                 />
               </div>
 
-              {/* Row 2: Dates */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {/* Pickup Date */}
+              {/* Dates row */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Pickup Date</label>
+                  <label className="text-xs text-muted-foreground mb-1.5 block font-semibold">Pickup Date</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 justify-start">
-                        <CalendarDays className="mr-2 h-4 w-4 text-foreground" />
+                      <Button variant="outline" className="w-full h-12 justify-start text-sm font-medium">
+                        <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
                         {pickupDate ? format(pickupDate, "MMM d") : "Select date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={pickupDate}
-                        onSelect={setPickupDate}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
+                      <Calendar mode="single" selected={pickupDate} onSelect={setPickupDate} initialFocus className="p-3 pointer-events-auto" />
                     </PopoverContent>
                   </Popover>
                 </div>
-
-                {/* Pickup Time */}
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Pickup Time</label>
-                  <Select value={pickupTime} onValueChange={setPickupTime}>
-                    <SelectTrigger className="h-12">
-                      <Clock className="w-4 h-4 mr-2 text-foreground" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 24 }, (_, i) => {
-                        const hour = i.toString().padStart(2, '0');
-                        return (
-                          <SelectItem key={hour} value={`${hour}:00`}>{hour}:00</SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Return Date */}
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Return Date</label>
+                  <label className="text-xs text-muted-foreground mb-1.5 block font-semibold">Return Date</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full h-12 justify-start">
-                        <CalendarDays className="mr-2 h-4 w-4 text-foreground" />
+                      <Button variant="outline" className="w-full h-12 justify-start text-sm font-medium">
+                        <CalendarDays className="mr-2 h-4 w-4 shrink-0" />
                         {returnDate ? format(returnDate, "MMM d") : "Select date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={returnDate}
-                        onSelect={setReturnDate}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
+                      <Calendar mode="single" selected={returnDate} onSelect={setReturnDate} initialFocus className="p-3 pointer-events-auto" />
                     </PopoverContent>
                   </Popover>
                 </div>
+              </div>
 
-                {/* Return Time */}
+              {/* Times + age row */}
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Return Time</label>
-                  <Select value={returnTime} onValueChange={setReturnTime}>
+                  <label className="text-xs text-muted-foreground mb-1.5 block font-semibold">Pickup Time</label>
+                  <Select value={pickupTime} onValueChange={setPickupTime}>
                     <SelectTrigger className="h-12">
-                      <Clock className="w-4 h-4 mr-2 text-foreground" />
+                      <Clock className="w-4 h-4 mr-1.5 shrink-0" />
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 24 }, (_, i) => {
-                        const hour = i.toString().padStart(2, '0');
-                        return (
-                          <SelectItem key={hour} value={`${hour}:00`}>{hour}:00</SelectItem>
-                        );
-                      })}
+                      {timeOptions.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              {/* Row 3: Driver Age */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="col-span-2 md:col-span-1">
-                  <label className="text-xs text-muted-foreground mb-1.5 block font-medium">Driver Age</label>
-                  <Select value={driverAge} onValueChange={setDriverAge}>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block font-semibold">Return Time</label>
+                  <Select value={returnTime} onValueChange={setReturnTime}>
                     <SelectTrigger className="h-12">
-                      <User className="w-4 h-4 mr-2 text-foreground" />
+                      <Clock className="w-4 h-4 mr-1.5 shrink-0" />
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="21">21-24 years</SelectItem>
-                      <SelectItem value="25">25-29 years</SelectItem>
-                      <SelectItem value="30">30-64 years</SelectItem>
-                      <SelectItem value="65">65+ years</SelectItem>
+                      {timeOptions.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1.5 block font-semibold">Driver Age</label>
+                  <Select value={driverAge} onValueChange={setDriverAge}>
+                    <SelectTrigger className="h-12">
+                      <User className="w-4 h-4 mr-1.5 shrink-0" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="21">21–24</SelectItem>
+                      <SelectItem value="25">25–29</SelectItem>
+                      <SelectItem value="30">30–64</SelectItem>
+                      <SelectItem value="65">65+</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </div>
 
-            {/* Search Button - Big & Prominent */}
-            <Button 
+            <Button
               onClick={handleSearch}
               disabled={!selectedAirport && !pickupDisplayValue.match(/\([A-Z]{3}\)/)}
               size="lg"
-              className={cn(
-                "w-full h-14 font-bold text-lg mt-6",
-                "transition-all duration-200 active:scale-[0.98]"
-              )}
+              className="w-full h-14 font-bold text-base mt-6 transition-all active:scale-[0.98]"
             >
               <Search className="w-5 h-5 mr-2" />
               Search Cars
@@ -459,7 +498,7 @@ const CarRentalBooking = () => {
           </BigSearchCard>
         </ImageHero>
 
-        {/* Search Results */}
+        {/* ── Search Results ─────────────────────────────────────────── */}
         {hasSearched && (
           <section className="container mx-auto px-4 py-8">
             <div className="mb-6">
@@ -467,7 +506,7 @@ const CarRentalBooking = () => {
                 Car Rentals in {selectedAirport?.city || pickupDisplayValue}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {carCategories.length} categories available • Compare prices across rental sites
+                {carCategories.length} categories • Compare across rental sites
               </p>
             </div>
 
@@ -518,13 +557,11 @@ const CarRentalBooking = () => {
                     />
                   </div>
                 )}
-
                 <AffiliateRedirectNotice variant="banner" />
               </div>
             </div>
 
-            {/* Price Disclaimer - LOCKED TEXT */}
-            <div className="mt-6 p-4 rounded-xl bg-secondary border border-border">
+            <div className="mt-6 p-4 rounded-2xl bg-secondary border border-border">
               <p className="text-xs text-muted-foreground text-center font-medium mb-1">
                 {CAR_DISCLAIMERS.partnerBooking}
               </p>
@@ -535,352 +572,283 @@ const CarRentalBooking = () => {
           </section>
         )}
 
-        {/* P2P Discovery Banner */}
+        {/* ── P2P Banner ─────────────────────────────────────────────── */}
         <P2PDiscoveryBanner city={selectedAirport?.city || pickupDisplayValue} />
 
-        {/* === TURO-INSPIRED FEATURES === */}
-
-        {/* Delivery & Instant Book Toggles */}
+        {/* ── Quick Filters ───────────────────────────────────────────── */}
         <section className="py-6 border-b border-border/30">
           <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-              <div className="rounded-2xl bg-card border border-border/40 p-4 flex items-center gap-3">
-                <button type="button" onClick={() => { setDeliveryToYou(!deliveryToYou); if (!deliveryToYou) toast.success("🚗 Car will be delivered to your location!"); }}
-                  className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", deliveryToYou ? "bg-emerald-500" : "bg-muted/60")}>
-                  <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", deliveryToYou ? "left-[18px]" : "left-0.5")} />
-                </button>
-                <div>
-                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> Delivery to You</p>
-                  <p className="text-[10px] text-muted-foreground">{freeDelivery ? "Free delivery!" : "From $15"}</p>
-                </div>
+            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 mb-4">Quick Filters</h3>
+            {/* Horizontal scroll on mobile, grid on md+ */}
+            <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3">
+              <div className="snap-start shrink-0 w-[200px] md:w-auto">
+                <TogglePill
+                  active={deliveryToYou}
+                  onToggle={() => {
+                    setDeliveryToYou(!deliveryToYou);
+                    if (!deliveryToYou) toast.success("Car will be delivered to your location!");
+                  }}
+                  icon={MapPin}
+                  iconColor="text-emerald-500"
+                  label="Delivery to You"
+                  sub="Free delivery available"
+                />
               </div>
-              <div className="rounded-2xl bg-card border border-border/40 p-4 flex items-center gap-3">
-                <button type="button" onClick={() => setInstantBook(!instantBook)}
-                  className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", instantBook ? "bg-primary" : "bg-muted/60")}>
-                  <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", instantBook ? "left-[18px]" : "left-0.5")} />
-                </button>
-                <div>
-                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-primary" /> Instant Book</p>
-                  <p className="text-[10px] text-muted-foreground">Skip approval, book instantly</p>
-                </div>
+              <div className="snap-start shrink-0 w-[200px] md:w-auto">
+                <TogglePill
+                  active={instantBook}
+                  onToggle={() => setInstantBook(!instantBook)}
+                  icon={Zap}
+                  iconColor="text-violet-400"
+                  label="Instant Book"
+                  sub="Skip approval, book now"
+                />
               </div>
-              <div className="rounded-2xl bg-card border border-border/40 p-4 flex items-center gap-3">
-                <button type="button" onClick={() => setShowElectricOnly(!showElectricOnly)}
-                  className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", showElectricOnly ? "bg-emerald-500" : "bg-muted/60")}>
-                  <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", showElectricOnly ? "left-[18px]" : "left-0.5")} />
-                </button>
-                <div>
-                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Fuel className="w-3.5 h-3.5 text-emerald-500" /> Electric Only</p>
-                  <p className="text-[10px] text-muted-foreground">Tesla, Rivian, Lucid & more</p>
-                </div>
+              <div className="snap-start shrink-0 w-[200px] md:w-auto">
+                <TogglePill
+                  active={showElectricOnly}
+                  onToggle={() => setShowElectricOnly(!showElectricOnly)}
+                  icon={Fuel}
+                  iconColor="text-emerald-400"
+                  label="Electric Only"
+                  sub="Tesla, Rivian, Lucid & more"
+                />
               </div>
             </div>
           </div>
         </section>
 
-        {/* Car Feature Filters (Turo) */}
-        <section className="py-6 border-b border-border/30 bg-muted/5">
+        {/* ── Long-Term Savings ────────────────────────────────────────── */}
+        <section className="py-5 border-b border-border/30">
           <div className="container mx-auto px-4">
-            <button type="button" onClick={() => setShowCarFeatureFilter(!showCarFeatureFilter)}
-              className="flex items-center gap-2 text-sm font-bold text-foreground hover:text-primary transition-all mb-4">
-              <Key className="w-4 h-4 text-foreground" /> Car Features
-              <ChevronRight className={cn("w-4 h-4 transition-transform", showCarFeatureFilter && "rotate-90")} />
-            </button>
-            {showCarFeatureFilter && (
-              <div className="flex gap-2 flex-wrap">
-                {carFeatures.map(f => (
-                  <button type="button" key={f.id} onClick={() => setSelectedFeatures(prev => prev.includes(f.id) ? prev.filter(x => x !== f.id) : [...prev, f.id])}
-                    className={cn("px-3 py-2 rounded-xl text-[10px] font-bold transition-all",
-                      selectedFeatures.includes(f.id) ? "bg-secondary text-foreground border border-border" : "bg-card text-muted-foreground border border-border/40")}>
-                    {f.icon} {f.label}
-                  </button>
+            <div className="rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">Long-Term Discounts</p>
+                  <p className="text-xs text-muted-foreground">Save up to 40% on extended rentals</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
+                {[["3+ days", "10% off"], ["7+ days", "25% off"], ["30+ days", "40% off"]].map(([days, off]) => (
+                  <span key={days} className="px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    {days} · {off}
+                  </span>
                 ))}
               </div>
-            )}
+            </div>
           </div>
         </section>
 
-        {/* Trip Protection Plans (Turo) */}
+        {/* ── Trip Protection Plans ─────────────────────────────────────── */}
+        <section className="py-10 border-b border-border/30">
+          <div className="container mx-auto px-4">
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-1">
+                <Shield className="w-5 h-5 text-violet-500" />
+                <h2 className="text-xl font-extrabold tracking-tight">Trip Protection</h2>
+              </div>
+              <p className="text-sm text-muted-foreground">Pick your coverage level — change anytime before pickup</p>
+            </div>
+
+            {/* Horizontal scroll on mobile, 4-col on md+ */}
+            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-4">
+              {protectionTiers.map((tier) => {
+                const isSelected = selectedProtection === tier.id;
+                const colorMap: Record<string, string> = {
+                  muted: "border-border/40 bg-card",
+                  sky: "border-sky-500/40 bg-sky-500/5",
+                  violet: "border-violet-500/50 bg-violet-500/8",
+                  amber: "border-amber-500/50 bg-amber-500/8",
+                };
+                const selectedBorder: Record<string, string> = {
+                  muted: "border-foreground shadow-lg",
+                  sky: "border-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.2)]",
+                  violet: "border-violet-500 shadow-[0_0_20px_rgba(139,92,246,0.2)]",
+                  amber: "border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]",
+                };
+
+                return (
+                  <motion.button
+                    type="button"
+                    key={tier.id}
+                    onClick={() => setSelectedProtection(tier.id)}
+                    whileTap={{ scale: 0.97 }}
+                    className={cn(
+                      "snap-start shrink-0 w-[148px] md:w-auto rounded-xl p-3 text-left relative border transition-all touch-manipulation",
+                      isSelected ? selectedBorder[tier.color] : colorMap[tier.color],
+                    )}
+                  >
+                    {tier.badge && (
+                      <span className={cn(
+                        "absolute -top-2 right-2 text-[8px] font-black px-2 py-0.5 rounded-full",
+                        tier.color === "amber" ? "bg-amber-500 text-white" : "bg-violet-500 text-white",
+                      )}>
+                        {tier.badge}
+                      </span>
+                    )}
+
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/60">{tier.name}</p>
+                        <p className="text-xl font-extrabold text-foreground leading-none mt-0.5">{tier.price}</p>
+                        <p className="text-[9px] text-muted-foreground">{tier.priceLabel}</p>
+                      </div>
+                      {tier.icon && <tier.icon className="w-4 h-4 text-amber-400 opacity-60 shrink-0" />}
+                    </div>
+
+                    <ul className="space-y-1">
+                      {tier.features.map((f) => (
+                        <li key={f} className="flex items-start gap-1 text-[10px] text-muted-foreground leading-tight">
+                          <CheckCircle className={cn("w-2.5 h-2.5 mt-0.5 shrink-0", tier.id === "none" ? "text-muted-foreground/30" : "text-emerald-500")} />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+
+                    {isSelected && (
+                      <motion.div
+                        layoutId="protection-check"
+                        className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-foreground flex items-center justify-center"
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      >
+                        <CheckCircle2 className="w-2.5 h-2.5 text-background" />
+                      </motion.div>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Pre-Pickup Checklist + Mileage + Roadside ─────────────── */}
         <section className="py-8 border-b border-border/30">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
-                <Shield className="w-5 h-5 text-foreground" /> Trip Protection Plans
-              </h2>
-              <p className="text-sm text-muted-foreground">Choose your coverage level</p>
-            </div>
-            <div className="grid md:grid-cols-4 gap-3 max-w-5xl mx-auto">
-              {protectionTiers.map(tier => (
-                <button type="button" key={tier.id} onClick={() => setSelectedProtection(tier.id)}
-                  className={cn("rounded-2xl p-4 text-left transition-all border relative",
-                    selectedProtection === tier.id ? "border-foreground bg-secondary" : "border-border bg-card hover:border-foreground/30")}>
-                  {"badge" in tier && tier.badge && (
-                    <span className="absolute -top-2 right-3 text-[8px] font-bold bg-foreground text-background px-2 py-0.5 rounded-full">{tier.badge}</span>
-                  )}
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-bold text-foreground">{tier.name}</h3>
-                    <span className="text-xs font-bold text-foreground">{tier.price}</span>
-                  </div>
-                  <ul className="space-y-1">
-                    {tier.features.map(f => (
-                      <li key={f} className="text-[10px] text-muted-foreground flex items-start gap-1">
-                        <CheckCircle className="w-3 h-3 text-emerald-500 mt-0.5 shrink-0" /> {f}
-                      </li>
-                    ))}
-                  </ul>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
+          <div className="container mx-auto px-4 max-w-2xl">
+            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 mb-2">Before You Drive</h3>
 
-        {/* Host Profiles (Turo) — hidden until real host data exists */}
-        {hostProfiles.length > 0 && (
-        <section className="py-8 border-b border-border/30 bg-muted/5">
-          <div className="container mx-auto px-4">
-            <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-6">
-              <Users className="w-5 h-5 text-foreground" /> Top-Rated Hosts
-            </h2>
-            <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-              {hostProfiles.map(host => (
-                <div key={host.name} className="rounded-2xl bg-card border border-border/40 p-5 text-center hover:border-border transition-all">
-                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-secondary border border-border flex items-center justify-center text-2xl font-bold text-foreground">
-                    {host.name.charAt(0)}
-                  </div>
-                  <p className="text-sm font-bold text-foreground flex items-center justify-center gap-1">
-                    {host.name}
-                    {host.superhost && <Badge className="bg-amber-500/10 text-amber-500 border-0 text-[8px] ml-1">⭐ Superhost</Badge>}
-                  </p>
-                  <div className="flex items-center justify-center gap-3 mt-2 text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-0.5"><Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {host.rating}</span>
-                    <span>{host.trips} trips</span>
-                    <span>Since {host.joined}</span>
-                  </div>
-                  <p className="text-[10px] text-emerald-500 font-bold mt-1">Responds {host.responseTime}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-        )}
-
-        {/* Long-Term Discount Banner (Turo) */}
-        <section className="py-6 border-b border-border bg-secondary">
-          <div className="container mx-auto px-4 text-center">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <DollarSign className="w-5 h-5 text-emerald-500" />
-              <h3 className="text-sm font-bold text-foreground">Long-Term Discounts Available</h3>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">Save up to 25% on weekly rentals and 40% on monthly rentals</p>
-            <div className="flex justify-center gap-3">
-              <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold">3+ days: 10% off</span>
-              <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold">7+ days: 25% off</span>
-              <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold">30+ days: 40% off</span>
-            </div>
-          </div>
-        </section>
-
-        {/* === WAVE 2: More Turo Features === */}
-
-        {/* Damage Inspection Checklist */}
-        <section className="py-8 border-b border-border/30">
-          <div className="container mx-auto px-4">
-            <button type="button" onClick={() => setShowDamageInspection(!showDamageInspection)}
-              className="flex items-center gap-2 text-sm font-bold text-foreground hover:text-primary transition-all mb-4">
-              <CheckCircle className="w-5 h-5 text-foreground" /> Pre-Pickup Inspection Checklist
-              <ChevronRight className={cn("w-4 h-4 transition-transform", showDamageInspection && "rotate-90")} />
-            </button>
-            {showDamageInspection && (
-              <div className="max-w-md mx-auto space-y-2">
-                {inspectionItems.map(item => (
-                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
-                    <span className="text-lg">{item.icon}</span>
-                    <span className="text-xs font-bold text-foreground flex-1">{item.label}</span>
-                    <div className="w-5 h-5 rounded border-2 border-border/40" />
+            <AccordionItem
+              label="Pre-Pickup Inspection Checklist"
+              icon={CheckCircle2}
+              iconColor="text-emerald-500"
+              open={openPrePickup === "inspection"}
+              onToggle={() => togglePrePickup("inspection")}
+            >
+              <div className="space-y-2">
+                {inspectionItems.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card border border-border/40">
+                    <item.icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-xs font-semibold text-foreground flex-1">{item.label}</span>
+                    <div className="w-5 h-5 rounded border-2 border-border/50" />
                   </div>
                 ))}
-                <p className="text-[10px] text-muted-foreground text-center mt-2">📸 Take photos before and after for damage protection</p>
+                <p className="text-[10px] text-muted-foreground text-center pt-1">Take photos before and after for damage protection</p>
               </div>
-            )}
-          </div>
-        </section>
+            </AccordionItem>
 
-        {/* Mileage Calculator */}
-        <section className="py-8 border-b border-border/30 bg-muted/10">
-          <div className="container mx-auto px-4">
-            <button type="button" onClick={() => setShowMileageCalc(!showMileageCalc)}
-              className="flex items-center gap-2 text-sm font-bold text-foreground hover:text-primary transition-all mb-4">
-              <Fuel className="w-5 h-5 text-emerald-500" /> Mileage Plans
-              <ChevronRight className={cn("w-4 h-4 transition-transform", showMileageCalc && "rotate-90")} />
-            </button>
-            {showMileageCalc && (
-              <div className="grid md:grid-cols-3 gap-3 max-w-4xl mx-auto">
-                {mileageOptions.map(opt => (
-                  <div key={opt.plan} className={cn("rounded-2xl p-4 border transition-all",
-                    opt.included ? "border-emerald-500 bg-emerald-500/5" : "border-border/40 bg-card")}>
-                    <h3 className="text-sm font-bold text-foreground mb-1">{opt.plan}</h3>
-                    <p className="text-lg font-bold text-primary">{opt.miles}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">{opt.extraCost}</p>
-                    {opt.addOn && <Badge className="mt-2 bg-secondary text-foreground border-0 text-[9px]">{opt.addOn}</Badge>}
-                    {opt.included && <Badge className="mt-2 bg-emerald-500/10 text-emerald-500 border-0 text-[9px]">Included</Badge>}
+            <AccordionItem
+              label="Mileage Plans"
+              icon={Car}
+              iconColor="text-violet-400"
+              open={openPrePickup === "mileage"}
+              onToggle={() => togglePrePickup("mileage")}
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {mileageOptions.map((opt) => (
+                  <div key={opt.plan} className={cn(
+                    "rounded-xl p-4 border",
+                    opt.included ? "border-emerald-500/40 bg-emerald-500/5" : "border-border/40 bg-card",
+                  )}>
+                    <p className="text-xs font-black uppercase tracking-wider text-muted-foreground/70">{opt.plan}</p>
+                    <p className="text-lg font-extrabold text-foreground mt-1">{opt.miles}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{opt.extraCost}</p>
+                    {opt.addOn && <span className="inline-block mt-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{opt.addOn}</span>}
+                    {opt.included && <span className="inline-block mt-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">Included</span>}
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </section>
+            </AccordionItem>
 
-        {/* Roadside Assistance */}
-        <section className="py-8 border-b border-border/30">
-          <div className="container mx-auto px-4">
-            <button type="button" onClick={() => setShowRoadsideDetails(!showRoadsideDetails)}
-              className="flex items-center gap-2 text-sm font-bold text-foreground hover:text-primary transition-all mb-4">
-              <Truck className="w-5 h-5 text-foreground" /> 24/7 Roadside Assistance
-              <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[9px]">Included</Badge>
-              <ChevronRight className={cn("w-4 h-4 transition-transform", showRoadsideDetails && "rotate-90")} />
-            </button>
-            {showRoadsideDetails && (
-              <div className="max-w-md mx-auto space-y-2">
-                {roadsideFeatures.map(f => (
-                  <div key={f.feature} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
-                    <span className="text-lg">{f.icon}</span>
-                    <span className="text-xs font-bold text-foreground flex-1">{f.feature}</span>
+            <AccordionItem
+              label="24/7 Roadside Assistance"
+              icon={Truck}
+              iconColor="text-sky-500"
+              open={openPrePickup === "roadside"}
+              onToggle={() => togglePrePickup("roadside")}
+            >
+              <div className="space-y-2">
+                {roadsideFeatures.map((f) => (
+                  <div key={f.feature} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card border border-border/40">
+                    <span className="text-xs font-semibold text-foreground flex-1">{f.feature}</span>
                     {f.included ? (
-                      <CheckCircle className="w-4 h-4 text-emerald-500" />
+                      <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
                     ) : (
-                      <Badge className="bg-secondary text-foreground border-0 text-[8px]">Premium only</Badge>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 shrink-0">Premium</span>
                     )}
                   </div>
                 ))}
               </div>
-            )}
+            </AccordionItem>
           </div>
         </section>
 
-        {/* Car Reviews — hidden until real reviews exist */}
-        {carReviews.length > 0 && (
-        <section className="py-8 border-b border-border/30 bg-muted/10">
-          <div className="container mx-auto px-4">
-            <button type="button" onClick={() => setShowCarReviews(!showCarReviews)}
-              className="flex items-center gap-2 text-sm font-bold text-foreground hover:text-primary transition-all mb-4">
-              <Star className="w-5 h-5 text-amber-500" /> Renter Reviews
-              <ChevronRight className={cn("w-4 h-4 transition-transform", showCarReviews && "rotate-90")} />
-            </button>
-            {showCarReviews && (
-              <div className="max-w-3xl mx-auto space-y-3">
-                {carReviews.map(review => (
-                  <div key={review.name} className="rounded-2xl bg-card border border-border/40 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground">
-                          {review.name.charAt(0)}
+        {/* ── Road Trip Intelligence ────────────────────────────────────── */}
+        <section className="py-10 bg-muted/20">
+          <div className="container mx-auto px-4 max-w-2xl">
+            <div className="flex items-center gap-2 mb-6">
+              <Sparkles className="w-5 h-5 text-violet-500" />
+              <h2 className="text-xl font-extrabold tracking-tight">Road Trip Intelligence</h2>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
+              {roadTripAccordion.map((item) => (
+                <AccordionItem
+                  key={item.id}
+                  label={item.label}
+                  icon={item.icon}
+                  iconColor={item.iconColor}
+                  open={openAccordion === item.id}
+                  onToggle={() => toggleAccordion(item.id)}
+                >
+                  {item.isTips ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-1">
+                      {rentalTips.map((t) => (
+                        <div key={t.tip} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/30">
+                          <div className="w-7 h-7 rounded-lg bg-card border border-border/50 flex items-center justify-center shrink-0">
+                            <t.icon className="w-3.5 h-3.5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-foreground leading-snug">{t.tip}</p>
+                            <p className="text-[10px] text-emerald-500 font-bold mt-0.5">{t.category}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-foreground">{review.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{review.car} · {review.date}</p>
-                        </div>
-                      </div>
-                      <StarRating value={review.rating} size="xs" />
+                      ))}
                     </div>
-                    <p className="text-xs text-muted-foreground"><SafeCaption text={review.text} /></p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-        )}
-
-        {/* === WAVE 4: Road Trip Intelligence === */}
-        <section className="py-12 bg-muted/20">
-          <div className="container mx-auto px-4 max-w-4xl space-y-4">
-            <h2 className="text-xl font-bold text-foreground mb-4">🚗 Road Trip Intelligence</h2>
-
-            {/* Fuel Calculator */}
-            <button type="button" onClick={() => setShowFuelCalc(!showFuelCalc)} className="w-full flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-all">
-              <Fuel className="w-4 h-4 text-amber-500" /> Fuel Cost Estimator
-              <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", showFuelCalc && "rotate-90")} />
-            </button>
-            {showFuelCalc && (
-              <div className="space-y-2 pt-2">
-                {fuelEstimates.map(f => (
-                  <div key={f.carType} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
-                    <div className="flex-1"><p className="text-xs font-bold text-foreground">{f.carType}</p><p className="text-[10px] text-muted-foreground">{f.distance} mi · {f.fuelType}</p></div>
-                    <span className="text-sm font-bold text-emerald-500">{f.cost}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Toll Estimator */}
-            <button type="button" onClick={() => setShowTollEstimator(!showTollEstimator)} className="w-full flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-all">
-              <DollarSign className="w-4 h-4 text-foreground" /> Toll Estimates
-              <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", showTollEstimator && "rotate-90")} />
-            </button>
-            {showTollEstimator && (
-              <div className="space-y-2 pt-2">
-                {tollEstimates.map(t => (
-                  <div key={t.route} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
-                    <div className="flex-1"><p className="text-xs font-bold text-foreground">{t.route}</p><p className="text-[10px] text-muted-foreground">{t.bridges} bridge(s) · EZ-Pass: {t.ezPass}</p></div>
-                    <span className="text-sm font-bold text-foreground">{t.tolls}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Parking Finder */}
-            <button type="button" onClick={() => setShowParkingFinder(!showParkingFinder)} className="w-full flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-all">
-              <MapPin className="w-4 h-4 text-foreground" /> Airport Parking Options
-              <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", showParkingFinder && "rotate-90")} />
-            </button>
-            {showParkingFinder && (
-              <div className="space-y-2 pt-2">
-                {parkingOptions.map(p => (
-                  <div key={p.location} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
-                    <div className="flex-1"><p className="text-xs font-bold text-foreground">{p.location}</p><p className="text-[10px] text-muted-foreground">{p.type} · {p.distance}</p></div>
-                    <div className="text-right"><p className="text-sm font-bold text-foreground">{p.rate}</p>{p.reservable && <p className="text-[9px] text-emerald-500">Reservable</p>}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Road Trip Stops */}
-            <button type="button" onClick={() => setShowRoadTripPlanner(!showRoadTripPlanner)} className="w-full flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-all">
-              <Car className="w-4 h-4 text-emerald-500" /> Road Trip Stop Guide
-              <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", showRoadTripPlanner && "rotate-90")} />
-            </button>
-            {showRoadTripPlanner && (
-              <div className="space-y-2 pt-2">
-                {roadTripStops.map(s => (
-                  <div key={s.stop} className="rounded-xl bg-card border border-border/40 p-4">
-                    <p className="text-xs font-bold text-foreground">{s.stop} <span className="text-muted-foreground font-normal">({s.interval})</span></p>
-                    <div className="flex flex-wrap gap-1 mt-2">{s.amenities.map(a => <span key={a} className="px-2 py-0.5 rounded-full bg-muted/50 text-[10px] text-muted-foreground">{a}</span>)}</div>
-                    <p className="text-xs text-amber-500 mt-2">💡 {s.tip}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Rental Tips */}
-            <button type="button" onClick={() => setShowRentalTips(!showRentalTips)} className="w-full flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-all">
-              <Award className="w-4 h-4 text-amber-500" /> Pro Rental Tips
-              <Badge className="bg-amber-500/10 text-amber-500 border-0 text-[10px] ml-auto">Expert</Badge>
-              <ChevronRight className={cn("w-4 h-4 transition-transform", showRentalTips && "rotate-90")} />
-            </button>
-            {showRentalTips && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                {rentalTips.map(t => (
-                  <div key={t.tip} className="flex items-start gap-2 p-3 rounded-xl bg-card border border-border/40">
-                    <span className="text-lg">{t.icon}</span>
-                    <div><p className="text-xs text-foreground">{t.tip}</p><p className="text-[10px] text-emerald-500 font-bold">{t.category}</p></div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ) : (
+                    <div className="space-y-2 px-1">
+                      {(item.content ?? []).map((row: any) => (
+                        <div key={row.primary} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/30 border border-border/30">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-foreground truncate">{row.primary}</p>
+                            <p className="text-[10px] text-muted-foreground">{row.secondary}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className={cn("text-sm font-extrabold", row.valueColor)}>{row.value}</p>
+                            {row.badge && <p className="text-[9px] text-emerald-500 font-bold">{row.badge}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </AccordionItem>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* Discovery Sections (shown when no search) */}
+        {/* ── Discovery Sections ────────────────────────────────────── */}
         {!hasSearched && (
           <>
             <CarCategoryTiles onSelect={handleCategoryTileSelect} selectedCategory={null} />
@@ -894,7 +862,7 @@ const CarRentalBooking = () => {
           </>
         )}
 
-        {/* Sticky CTA */}
+        {/* ── Sticky CTA ──────────────────────────────────────────────── */}
         {hasSearched && (
           <CarStickyBookingCTA
             pickupLocation={selectedAirport?.code || pickupDisplayValue}

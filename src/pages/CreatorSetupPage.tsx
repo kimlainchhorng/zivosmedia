@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreatorSetupPage — End-to-end monetization onboarding flow
  * Walks the creator through 6 setup steps with inline forms and real DB writes.
  */
@@ -380,7 +380,7 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (v: stri
                   onClick={() => { onChange(c); setOpen(false); }}
                   className={`text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition ${
                     active
-                      ? "bg-primary text-primary-foreground border-primary"
+                      ? "bg-ig-gradient text-white border-primary"
                       : "bg-background text-foreground border-border hover:bg-accent"
                   }`}
                 >
@@ -572,7 +572,7 @@ function TierStep({ tiers, userId, onSaved }: any) {
       onClick={onClick}
       className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
         active
-          ? "bg-primary text-primary-foreground border-primary"
+          ? "bg-ig-gradient text-white border-primary"
           : "bg-card text-muted-foreground border-border/60 hover:border-border"
       }`}
     >

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+﻿import { useEffect, useState, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1112,7 +1112,7 @@ function BookingsCalendar({
                 !inMonth && "text-muted-foreground/40",
                 inMonth && "text-foreground hover:bg-muted",
                 isToday(day) && !isSel && "bg-accent",
-                isSel && "bg-primary text-primary-foreground",
+                isSel && "bg-ig-gradient text-white",
                 isDragOver && "ring-2 ring-primary ring-offset-1 bg-primary/10",
               )}
             >

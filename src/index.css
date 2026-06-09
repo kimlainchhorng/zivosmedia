@@ -270,18 +270,18 @@
   }
 
   .zivo-profile-cover-height {
-    height: 8.6rem;
+    height: 7rem;
   }
 
   @media (min-width: 640px) {
     .zivo-profile-cover-height {
-      height: 9.5rem;
+      height: 8rem;
     }
   }
 
   @media (min-width: 1024px) {
     .zivo-profile-cover-height {
-      height: calc(10rem + var(--zivo-safe-top, 0px));
+      height: calc(8.5rem + var(--zivo-safe-top, 0px));
     }
   }
 

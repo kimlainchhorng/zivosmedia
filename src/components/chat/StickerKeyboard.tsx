@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StickerKeyboard — Version 2026 rich media panel
  * Tabs: Stickers, GIFs, Avatar, Music, Store, Memes, Future
  */
@@ -1126,7 +1126,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                 {(["All", ...GIF_CATEGORIES] as const).map((cat) => (
                   <button type="button" key={cat} onClick={() => setGifCategory(cat)}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                      gifCategory === cat ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+                      gifCategory === cat ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
                     }`}>{cat}</button>
                 ))}
               </div>
@@ -1293,7 +1293,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                           `Preview: ${track.previewUrl}`,
                         ];
                         quickSend(lines.join("\n"));
-                      }} className="h-8 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center gap-1">
+                      }} className="h-8 px-3 rounded-full bg-ig-gradient text-white text-xs font-semibold inline-flex items-center gap-1">
                         <Send className="w-3 h-3" /> Send
                       </button>
                     </div>

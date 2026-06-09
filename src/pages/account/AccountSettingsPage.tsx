@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+﻿import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SEOHead from "@/components/SEOHead";
 import {
@@ -1115,7 +1115,7 @@ export default function AccountSettingsPage() {
                   >
                     <div
                       className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
-                        step.done ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                        step.done ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
                       }`}
                     >
                       {step.done ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}

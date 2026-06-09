@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Calendar & Availability.
  * Month grid with booked + manual blocks + OTA-imported (channel) blocks.
  * Includes color legend and a "Block date range" dialog.
@@ -165,7 +165,7 @@ export default function LodgingCalendarSection({ storeId }: { storeId: string })
             <div className="flex flex-wrap gap-2">
               {rooms.map(r => (
                 <button type="button" key={r.id} onClick={() => setRoomId(r.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${activeRoomId === r.id ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border"}`}>
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${activeRoomId === r.id ? "bg-ig-gradient text-white border-primary" : "bg-background border-border"}`}>
                   {r.name}
                 </button>
               ))}

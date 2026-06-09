@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Partner Login Page — Sign-in for ZIVO Partners (shop owners, merchants, etc.)
  * After login, redirects to partner dashboard based on user role.
  */
@@ -376,7 +376,7 @@ export default function PartnerLogin() {
       {showLangMenu && createPortal(
         <>
           <div className="fixed inset-0 z-[90]" onClick={() => setShowLangMenu(false)} />
-          <div className="fixed inset-0 z-[100] flex items-start justify-center pt-20 px-6 pointer-events-none">
+          <div className="fixed inset-0 z-[1450] flex items-start justify-center pt-20 px-6 pointer-events-none">
             <div className="pointer-events-auto w-[260px] max-h-[60vh] bg-black/90 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 h-fit ml-auto">
               <div className="relative px-3 py-2 border-b border-white/10 overflow-hidden">
                 {currentLangItem?.flag && (

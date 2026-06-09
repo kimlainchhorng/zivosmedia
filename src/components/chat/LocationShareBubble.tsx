@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LocationShareBubble — Telegram-style shared-location card.
  * - OpenStreetMap static tile preview (no API key) with graceful fallback UI
  * - Persistent reverse-geocode cache (opt-in via Privacy settings)
@@ -143,7 +143,7 @@ export default function LocationShareBubble({ lat, lng, label, isMe, time }: Loc
           <div className="absolute inset-0 flex items-start justify-center pt-[44px] pointer-events-none">
             <div className="relative">
               <div className="absolute -inset-2 rounded-full bg-primary/25 blur-md animate-pulse" />
-              <div className="relative w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg ring-2 ring-background">
+              <div className="relative w-9 h-9 rounded-full bg-ig-gradient text-white flex items-center justify-center shadow-lg ring-2 ring-background">
                 <MapPin className="w-4 h-4" />
               </div>
             </div>
@@ -175,7 +175,7 @@ export default function LocationShareBubble({ lat, lng, label, isMe, time }: Loc
             <button
               type="button"
               onClick={() => navigate(mapUrl)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-[11.5px] font-semibold active:scale-95 transition-transform shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ig-gradient text-white text-[11.5px] font-semibold active:scale-95 transition-transform shadow-sm"
             >
               <Navigation className="w-3.5 h-3.5" />
               Open in ZIVO

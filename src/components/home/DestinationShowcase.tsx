@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link } from "react-router-dom";
 import Plane from "lucide-react/dist/esm/icons/plane";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
@@ -128,7 +128,7 @@ export default function DestinationShowcase() {
                 {/* Trending badge — 3D float */}
                 {dest.trending && (
                   <motion.span
-                    className="absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full bg-primary text-primary-foreground flex items-center gap-1"
+                    className="absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full bg-ig-gradient text-white flex items-center gap-1"
                     style={{
                       boxShadow: "0 4px 12px -2px hsl(var(--primary) / 0.4), inset 0 1px 1px hsl(var(--background) / 0.15)",
                       transform: "translateZ(20px)",

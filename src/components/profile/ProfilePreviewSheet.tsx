@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ProfilePreviewSheet — Quick-peek bottom sheet for any user profile.
  *
  * Used wherever we want to show "who is this person" without a full
@@ -174,7 +174,7 @@ export default function ProfilePreviewSheet({
               <button type="button"
                 onClick={handleMessage}
                 disabled={isSelf}
-                className="h-10 rounded-full bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40"
+                className="h-10 rounded-full bg-ig-gradient text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40"
               >
                 <MessageCircle className="h-4 w-4" />
                 Message

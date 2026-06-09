@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SalonRemindersSection — owner-facing config + activity log for the automated
  * reminder system. Adds three follow-up surfaces over the V1:
  *   - multi-interval booking reminders (pill-picker over `booking_reminder_lead_hours`)
@@ -202,7 +202,7 @@ export default function SalonRemindersSection({ storeId }: Props) {
                       className={cn(
                         "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                         active
-                          ? "border-primary bg-primary text-primary-foreground"
+                          ? "border-primary bg-ig-gradient text-white"
                           : "border-border bg-card text-foreground/75 hover:border-primary/40",
                       )}
                     >

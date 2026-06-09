@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideNotificationCenter — Real notifications from DB + preferences + smart alerts
  */
 import { useState, useEffect } from "react";
@@ -364,7 +364,7 @@ export default function RideNotificationCenter() {
                             toast.success(`Alert set for ${alertRoute} below ${alertThreshold}`);
                             setAlertRoute(""); setAlertThreshold(""); setShowAlertForm(false);
                           }}
-                          className="px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-40">
+                          className="px-3 rounded-lg bg-ig-gradient text-white text-xs font-semibold disabled:opacity-40">
                           Set
                         </button>
                       </div>

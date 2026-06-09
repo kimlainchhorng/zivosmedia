@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { 
   Bot, 
   Send, 
@@ -114,7 +114,7 @@ const AITravelAssistantWidget = ({
               className={cn(
                 "max-w-[85%] p-3 rounded-xl text-sm",
                 message.role === "user"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/50 border border-border/30"
               )}
             >

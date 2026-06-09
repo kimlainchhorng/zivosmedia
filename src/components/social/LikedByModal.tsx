@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LikedByModal
  * ------------
  * IG/FB-style "people who liked this" sheet. Tap from a post's engagement bar
@@ -315,7 +315,7 @@ export default function LikedByModal({ open, onOpenChange, postId, source, total
                         "min-w-[94px] rounded-full px-3 py-2 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50",
                         r.is_following
                           ? "zivo-social-chip text-foreground"
-                          : "bg-primary text-primary-foreground shadow-lg shadow-primary/20",
+                          : "bg-ig-gradient text-white shadow-lg shadow-primary/20",
                       )}
                     >
                       {busyId === r.user_id ? (

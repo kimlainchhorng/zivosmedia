@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Parking Management.
  * Assign parking slots to guests, track vehicles and expected departure dates.
  */
@@ -182,7 +182,7 @@ export default function LodgingParkingSection({ storeId }: { storeId: string }) 
           <div className="flex rounded-lg border border-border overflow-hidden">
             {(["grid", "list"] as const).map(m => (
               <button type="button" key={m} onClick={() => setViewMode(m)}
-                className={`px-2.5 py-1 text-[11px] font-medium capitalize ${viewMode === m ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}>
+                className={`px-2.5 py-1 text-[11px] font-medium capitalize ${viewMode === m ? "bg-ig-gradient text-white" : "bg-card text-muted-foreground"}`}>
                 {m}
               </button>
             ))}
@@ -230,7 +230,7 @@ export default function LodgingParkingSection({ storeId }: { storeId: string }) 
         <div className="flex gap-1.5 flex-wrap">
           {(["all", "available", "occupied", "reserved", "maintenance"] as const).map(s => (
             <button type="button" key={s} onClick={() => setFilterStatus(s as any)}
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
               {s}
             </button>
           ))}

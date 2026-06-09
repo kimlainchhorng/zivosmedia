@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+﻿import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -125,7 +125,7 @@ export default function WhiteboardPage() {
           <div className="flex gap-1">
             {SIZES.map((s) => (
               <button type="button" key={s} onClick={() => setSize(s)}
-                className={`h-8 w-8 rounded-lg flex items-center justify-center ${size === s ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                className={`h-8 w-8 rounded-lg flex items-center justify-center ${size === s ? "bg-ig-gradient text-white" : "bg-muted"}`}>
                 <div className="rounded-full bg-current" style={{ width: s + 2, height: s + 2 }} />
               </button>
             ))}

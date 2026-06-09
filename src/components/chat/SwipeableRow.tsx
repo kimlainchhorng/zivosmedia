@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SwipeableRow — Telegram-style swipe-to-reveal actions.
  * Swipe left → reveals right-side actions (Archive / Delete).
  * Swipe right → reveals left-side actions (Pin / Read).
@@ -67,7 +67,7 @@ export default function SwipeableRow({ leftActions = [], rightActions = [], chil
               }}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 text-[10px] font-semibold",
-                a.className || "bg-primary text-primary-foreground"
+                a.className || "bg-ig-gradient text-white"
               )}
               style={{ width: ACTION_WIDTH }}
             >

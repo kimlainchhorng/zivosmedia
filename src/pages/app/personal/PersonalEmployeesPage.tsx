@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { ArrowLeft, Users, Plus, X, Shield, Clock, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -102,7 +102,7 @@ export default function PersonalEmployeesPage() {
                 {ROLES.map(r => (
                   <button type="button" key={r} onClick={() => setNewRole(r)}
                     className={cn("px-3 py-1 rounded-full text-[11px] font-bold border transition-colors",
-                      newRole === r ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
+                      newRole === r ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:border-primary/40")}>
                     {r}
                   </button>
                 ))}

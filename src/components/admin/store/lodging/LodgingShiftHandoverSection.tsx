@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Shift Handover Notes.
  * Front desk staff leave notes, VIP alerts, and pending tasks for the incoming shift.
  */
@@ -209,7 +209,7 @@ export default function LodgingShiftHandoverSection({ storeId }: { storeId: stri
           <div className="flex flex-wrap gap-1.5">
             {(["all", "morning", "afternoon", "night"] as const).map(s => (
               <button type="button" key={s} onClick={() => setFilterShift(s as any)}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterShift === s ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterShift === s ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
                 {s}
               </button>
             ))}
@@ -217,7 +217,7 @@ export default function LodgingShiftHandoverSection({ storeId }: { storeId: stri
           <div className="flex gap-1.5">
             {(["open", "resolved", "all"] as const).map(s => (
               <button type="button" key={s} onClick={() => setFilterResolved(s)}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterResolved === s ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterResolved === s ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
                 {s}
               </button>
             ))}

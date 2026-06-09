@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EventsPage — Discover, create & RSVP to events
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -109,7 +109,7 @@ export default function EventsPage() {
           </button>
           <h1 className="text-lg font-bold flex-1">Events</h1>
           {user && (
-            <button type="button" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-primary text-primary-foreground">
+            <button type="button" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-ig-gradient text-white">
               <Plus className="h-4 w-4" />
             </button>
           )}
@@ -136,7 +136,7 @@ export default function EventsPage() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                 selectedCategory === cat
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -227,7 +227,7 @@ export default function EventsPage() {
                       className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
                         isRsvpd
                           ? "bg-muted text-foreground"
-                          : "bg-primary text-primary-foreground"
+                          : "bg-ig-gradient text-white"
                       }`}
                     >
                       {isRsvpd ? "Cancel RSVP" : "RSVP — I'm Going"}
@@ -245,7 +245,7 @@ export default function EventsPage() {
         {showCreate && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => setShowCreate(false)}
           >
             <motion.div
@@ -296,7 +296,7 @@ export default function EventsPage() {
                 <button type="button"
                   onClick={() => createMutation.mutate()}
                   disabled={!newEvent.title || !newEvent.start_time || createMutation.isPending}
-                  className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50"
                 >
                   {createMutation.isPending ? "Creating..." : "Create Event"}
                 </button>

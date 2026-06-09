@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ShopTrainingPage — Employee training & onboarding tracker
  * Stores records in feedback_submissions (category: shop_training)
  */
@@ -157,7 +157,7 @@ export default function ShopTrainingPage() {
                   {["completed", "in_progress", "not_started"].map((s) => (
                     <button type="button" key={s} onClick={() => setForm({ ...form, status: s })}
                       className={cn("px-3 py-1 rounded-full text-xs font-medium border",
-                        form.status === s ? "bg-primary text-primary-foreground border-primary" : "border-border bg-muted/40")}>
+                        form.status === s ? "bg-ig-gradient text-white border-primary" : "border-border bg-muted/40")}>
                       {s === "completed" ? "Completed" : s === "in_progress" ? "In Progress" : "Not Started"}
                     </button>
                   ))}
@@ -165,7 +165,7 @@ export default function ShopTrainingPage() {
                 <input type="date" className="w-full text-sm px-3 py-2 rounded-xl border border-border/40 bg-background outline-none focus:ring-1 focus:ring-primary/30"
                   value={form.completedAt} onChange={(e) => setForm({ ...form, completedAt: e.target.value })} />
                 <button type="button" onClick={handleSave} disabled={saving}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
+                  className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50">
                   {saving ? "Saving…" : "Save"}
                 </button>
               </motion.div>

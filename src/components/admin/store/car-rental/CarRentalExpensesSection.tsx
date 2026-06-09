@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalExpensesSection — categorized expense log.
  */
 import { useMemo, useState } from "react";
@@ -156,14 +156,14 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
             <div className="flex flex-wrap gap-1.5">
               <button type="button" onClick={() => setCategoryFilter("all")} className={cn(
                 "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                categoryFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                categoryFilter === "all" ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
               )}>
                 All · {formatMoney(expenses.reduce((s, e) => s + e.amount_cents, 0))}
               </button>
               {byCategory.map((c) => (
                 <button key={c.value} type="button" onClick={() => setCategoryFilter(c.value)} className={cn(
                   "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                  categoryFilter === c.value ? "bg-primary text-primary-foreground border-primary" : c.color,
+                  categoryFilter === c.value ? "bg-ig-gradient text-white border-primary" : c.color,
                 )}>
                   {c.label} · {formatMoney(c.cents)}
                 </button>

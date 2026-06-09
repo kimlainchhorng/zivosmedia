@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -154,7 +154,7 @@ export const AirlinePartnersHub = ({ className, zivoMiles = 45680 }: AirlinePart
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-all",
                   selectedAlliance === alliance
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted/50 text-muted-foreground hover:bg-muted"
                 )}
               >

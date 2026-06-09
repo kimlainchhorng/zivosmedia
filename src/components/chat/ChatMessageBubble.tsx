@@ -1528,7 +1528,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
             onClick={(e) => { e.stopPropagation(); onToggleSelect?.(id); }}
             className="absolute inset-0 z-20"
           />
-          <span className={`absolute top-1/2 z-30 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border-2 ${isMe ? "left-1.5" : "right-1.5"} ${selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40 bg-background"}`}>
+          <span className={`absolute top-1/2 z-30 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border-2 ${isMe ? "left-1.5" : "right-1.5"} ${selected ? "border-primary bg-ig-gradient text-white" : "border-muted-foreground/40 bg-background"}`}>
             {selected && <Check className="h-3 w-3" />}
           </span>
         </>
@@ -1755,7 +1755,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                       e.stopPropagation();
                       handleUnlockPayment();
                     }}
-                    className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-1.5"
+                    className="px-4 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-1.5"
                   >
                     {unlockLoading ? (
                       <span className="animate-spin h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full" />
@@ -1847,7 +1847,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                     e.stopPropagation();
                     handleUnlockPayment();
                   }}
-                  className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-1.5"
                 >
                   {unlockLoading ? (
                     <span className="animate-spin h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full" />
@@ -2650,7 +2650,7 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
               if (a.paused) { void a.play(); } else { a.pause(); }
             }}
             className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition active:scale-90 ${
-              isMe ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary text-primary-foreground"
+              isMe ? "bg-primary-foreground/20 text-primary-foreground" : "bg-ig-gradient text-white"
             }`}
           >
             {isPlaying

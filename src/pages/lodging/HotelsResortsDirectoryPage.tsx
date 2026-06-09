@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HotelsResortsDirectoryPage
  * Public-facing list of all Hotel & Resort properties on ZIVO.
  * Route: /hotels-list
@@ -131,7 +131,7 @@ export default function HotelsResortsDirectoryPage() {
                 className={
                   "shrink-0 min-h-[40px] min-w-[40px] rounded-full px-3 py-2 text-xs font-semibold transition touch-manipulation " +
                   (active
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted/70 text-muted-foreground active:bg-muted")
                 }
               >

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Maintenance / Work Orders board.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -206,7 +206,7 @@ export default function LodgingMaintenanceSection({ storeId }: { storeId: string
               onClick={() => setFilterStatus(s)}
               className={cn(
                 "px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors",
-                filterStatus === s ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-muted",
+                filterStatus === s ? "bg-ig-gradient text-white border-primary" : "bg-card border-border hover:bg-muted",
               )}
             >
               {s === "all" ? "All" : STATUS_LABEL[s]}

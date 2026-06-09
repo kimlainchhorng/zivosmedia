@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoriesRail — Instagram-style horizontal stories carousel for Home.
  *
  * Renders the user's "Your story" entry first (with a `+` add affordance)
@@ -63,7 +63,7 @@ export default function StoriesRail() {
               </Avatar>
               <span
                 aria-hidden
-                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center ring-2 ring-background"
+                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-ig-gradient text-white flex items-center justify-center ring-2 ring-background"
               >
                 <Plus className="w-3 h-3" strokeWidth={3} />
               </span>
