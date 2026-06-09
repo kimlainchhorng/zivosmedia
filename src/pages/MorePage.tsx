@@ -1595,23 +1595,23 @@ export default function MorePage() {
         transition={{ delay: 0.05 }}
         role="region"
         aria-labelledby="more-quick-actions-title"
-        className="mb-5 rounded-[1.5rem] border border-border/55 bg-card/70 p-3"
+        className="mb-4 rounded-2xl border border-border/50 bg-card/70 p-2.5"
       >
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 id="more-quick-actions-title" className="text-[14px] font-extrabold">Quick actions</h2>
-            <p className="text-[10px] font-semibold text-muted-foreground">Common account tasks.</p>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5">
+            <h2 id="more-quick-actions-title" className="text-[12px] font-extrabold">Quick actions</h2>
+            <p className="text-[10px] font-medium text-muted-foreground">Common tasks.</p>
           </div>
           <button
             type="button"
             onClick={focusDirectorySearch}
             aria-label="Search More tools"
-            className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-foreground active:scale-95 transition-transform"
+            className="rounded-full bg-muted/60 px-2.5 py-1 text-[10px] font-bold text-foreground active:scale-95 transition-transform"
           >
             Search tools
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
           {priorityActions.map((action, i) => {
             const badge = getActionBadge(action.href);
             return (
@@ -1620,10 +1620,10 @@ export default function MorePage() {
                 to={action.href}
                 aria-label={badge ? `Open ${action.label}, ${badge}` : `Open ${action.label}`}
                 onClick={() => trackRecent(action.href)}
-                className="group relative rounded-2xl bg-muted/35 p-3 active:scale-[0.97] transition-transform"
+                className="group relative rounded-xl bg-muted/35 p-2 active:scale-[0.97] transition-transform"
               >
                 {badge && (
-                  <span className="absolute right-2 top-2 max-w-[54px] truncate rounded-full bg-foreground px-1.5 py-0.5 text-center text-[9px] font-bold leading-none text-background">
+                  <span className="absolute right-1.5 top-1.5 max-w-[54px] truncate rounded-full bg-foreground px-1.5 py-0.5 text-center text-[9px] font-bold leading-none text-background">
                     {badge}
                   </span>
                 )}
@@ -1631,12 +1631,12 @@ export default function MorePage() {
                   initial={{ scale: 0.86, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: i * 0.03, type: "spring", stiffness: 300, damping: 22 }}
-                  className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl"
+                  className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-lg"
                   style={{ background: `${action.accent}14`, color: action.accent }}
                 >
-                  <action.icon className="h-[18px] w-[18px]" />
+                  <action.icon className="h-4 w-4" />
                 </motion.div>
-                <span className="block truncate text-[11px] font-extrabold leading-tight">{action.label}</span>
+                <span className="block truncate text-[10px] font-extrabold leading-tight">{action.label}</span>
               </Link>
             );
           })}
@@ -2132,7 +2132,7 @@ export default function MorePage() {
               animate={{ opacity: 1, y: 0 }}
               role="region"
               aria-labelledby="more-status-summary-title"
-              className="mb-4 grid grid-cols-3 gap-2"
+              className="mb-3 flex gap-2"
             >
               <h2 id="more-status-summary-title" className="sr-only">Account status summary</h2>
               {hubStatusItems.map((item) => (
@@ -2141,13 +2141,15 @@ export default function MorePage() {
                   to={item.href}
                   aria-label={`${item.ariaLabel}: ${item.value}`}
                   onClick={() => trackRecent(item.href)}
-                  className="min-w-0 rounded-[1.25rem] border border-border/55 bg-card/75 px-2.5 py-3 shadow-sm active:scale-[0.97] transition-transform hover:bg-card"
+                  className="flex flex-1 items-center gap-2 min-w-0 rounded-2xl border border-border/50 bg-card/70 px-2.5 py-2 active:scale-[0.97] transition-transform hover:bg-card"
                 >
-                  <div className={cn("mb-2 flex h-8 w-8 items-center justify-center rounded-xl", item.className)}>
-                    <item.icon className="h-4 w-4" />
+                  <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", item.className)}>
+                    <item.icon className="h-3.5 w-3.5" />
                   </div>
-                  <p className="truncate text-[12px] font-extrabold leading-tight">{item.value}</p>
-                  <p className="truncate text-[9px] font-semibold text-muted-foreground">{item.label}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-extrabold leading-tight">{item.value}</p>
+                    <p className="truncate text-[9px] font-medium text-muted-foreground">{item.label}</p>
+                  </div>
                 </Link>
               ))}
             </motion.div>
@@ -2207,15 +2209,15 @@ export default function MorePage() {
               animate={{ opacity: 1, y: 0 }}
               role="region"
               aria-labelledby="more-action-center-title"
-              className="mb-4 rounded-[1.5rem] border border-border/55 bg-card/70 p-3"
+              className="mb-3 rounded-2xl border border-border/50 bg-card/70 p-2.5"
             >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h2 id="more-action-center-title" className="text-[14px] font-extrabold">Action center</h2>
-                  <p className="text-[10px] font-semibold text-muted-foreground">What needs attention now.</p>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5">
+                  <h2 id="more-action-center-title" className="text-[12px] font-extrabold">Action center</h2>
+                  <p className="text-[10px] font-medium text-muted-foreground">What needs attention.</p>
                 </div>
                 {(upcomingFlightCount > 0 || activeOrdersCount > 0) && (
-                  <span className="rounded-full bg-muted/60 px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+                  <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
                     {upcomingFlightCount + activeOrdersCount} active
                   </span>
                 )}
