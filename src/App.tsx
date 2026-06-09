@@ -130,6 +130,11 @@ import {
   ZIVO_SOFTWARE_HOME_PATH,
 } from "@/config/autoRepairDomain";
 import {
+  isZivoDriverHost,
+  isZivoDriverPath,
+  ZIVO_DRIVER_HOME_PATH,
+} from "@/config/zivoDriverDomain";
+import {
   isZivoChatHost,
   isZivoChatPath,
   ZIVO_CHAT_HOME_PATH,
@@ -399,6 +404,7 @@ const GroceryReturns = lazy(() => import("./pages/grocery/GroceryReturns"));
 const GroceryFees = lazy(() => import("./pages/grocery/GroceryFees"));
 const ZivoPlusPage = lazy(() => import("./pages/ZivoPlusPage"));
 const DrivePage = lazy(() => import("./pages/DrivePage"));
+const ZivoDriverLandingPage = lazy(() => import("./pages/driver/ZivoDriverLandingPage"));
 const DriverShoppingList = lazy(() => import("./pages/DriverShoppingList"));
 const DriverOrdersPage = lazy(() => import("./pages/DriverOrdersPage"));
 const AdminShoppingOrders = lazy(() => import("./pages/admin/AdminShoppingOrders"));
@@ -1294,6 +1300,7 @@ function RouteAwareGlobalUI() {
 
   if (isCurrentZivoSoftwareHost()) return null;
   if (isCurrentZivoTravelHost()) return null;
+  if (isCurrentZivoDriverHost()) return null;
   if (isTravelPreview) return null;
   if (hideGlobalUI || !ready) return null;
 
@@ -1316,6 +1323,7 @@ function DeferredPassiveChatOverlays() {
   const ready = useAfterFirstPaint(3200);
   if (isCurrentZivoSoftwareHost()) return null;
   if (isCurrentZivoTravelHost()) return null;
+  if (isCurrentZivoDriverHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1361,7 +1369,7 @@ function LazyP2PTransferSheetHost() {
 
 function DeferredGlobalSheets() {
   const ready = useAfterFirstPaint(2400);
-  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost()) return null;
+  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost() || isCurrentZivoDriverHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1378,7 +1386,7 @@ function DeferredGlobalSheets() {
 
 function DeferredCurrencyPicker() {
   const ready = useAfterFirstPaint(2400);
-  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost()) return null;
+  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost() || isCurrentZivoDriverHost()) return null;
   return ready ? <Suspense fallback={null}><CurrencyPickerSheet /></Suspense> : null;
 }
 
@@ -1417,6 +1425,7 @@ function DesktopNavBootstrap() {
     isCurrentZivoSoftwareHost() ||
     isCurrentZivoChatHost() ||
     isCurrentZivoTravelHost() ||
+    isCurrentZivoDriverHost() ||
     location.pathname === "/zivo-travel" ||
     location.pathname.startsWith("/desktop/auto-repair") ||
     location.pathname.startsWith("/d/")
@@ -1633,6 +1642,7 @@ function ZivoEmployeeHostGate() {
   return <Navigate to={ZIVO_EMPLOYEE_HOME_PATH} replace />;
 }
 
+
 const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
@@ -1685,7 +1695,7 @@ const App = () => (
                       <UTMProvider>
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
-                            <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : isCurrentZivoDriverHost() ? <ZivoDriverHome /> : isCurrentZivoBusinessHost() ? <ZivoBusinessHome /> : isCurrentZivoEmployeeHost() ? <ZivoEmployeeHome /> : <Index />} />
+                            <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : isCurrentZivoDriverHost() ? <ZivoDriverLandingPage /> : isCurrentZivoBusinessHost() ? <ZivoBusinessHome /> : isCurrentZivoEmployeeHost() ? <ZivoEmployeeHome /> : <Index />} />
                             <Route path="/zivo-travel" element={<ZivoTravelHome />} />
                             
                             <Route path="/login" element={<Login />} />
@@ -1959,6 +1969,7 @@ const App = () => (
                 <Route path="/grocery/fees" element={<GroceryFees />} />
                 <Route path="/zivo-plus" element={<ZivoPlusPage />} />
                 <Route path="/drive" element={<CambodiaOnlyGate><DrivePage /></CambodiaOnlyGate>} />
+                <Route path="/driver" element={<ZivoDriverLandingPage />} />
                 <Route path="/driver/orders" element={<DriverOrdersPage />} />
                 <Route path="/driver/shopping/:orderId" element={<DriverShoppingList />} />
                 <Route path="/driver/shop/:orderId" element={<DriverShopPage />} />

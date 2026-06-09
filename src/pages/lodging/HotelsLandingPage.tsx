@@ -1234,10 +1234,18 @@ export default function HotelsLandingPage() {
               const isFav = favorites.has(store.id);
               const hasLeftMeta = typeof rating === "number" || ((store as any).created_at && (Date.now() - new Date((store as any).created_at).getTime()) < 30 * 24 * 60 * 60 * 1000);
               return (
-                <button type="button"
+                <div
                   key={store.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => openHotel(store.id)}
-                  className="shrink-0 w-[210px] rounded-2xl border border-border bg-card overflow-hidden text-left active:scale-[0.98] transition shadow-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openHotel(store.id);
+                    }
+                  }}
+                  className="shrink-0 w-[210px] rounded-2xl border border-border bg-card overflow-hidden text-left active:scale-[0.98] transition shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   aria-label={`Open ${store.name}`}
                 >
                   <div className="relative w-full h-28 bg-muted">
@@ -1298,7 +1306,7 @@ export default function HotelsLandingPage() {
                       ) : null}
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
