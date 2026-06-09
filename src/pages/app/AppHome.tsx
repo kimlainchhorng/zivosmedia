@@ -791,18 +791,25 @@ const AppHome = () => {
 
           {/* ─── GREETING HEADER ─── */}
           {user ? (
-            <div className="flex items-center justify-between px-5 pt-safe pb-3">
-              <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-2.5 touch-manipulation active:opacity-75 transition-opacity">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={userName} width={40} height={40} className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/25" loading="lazy" decoding="async" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/40 to-primary/15 flex items-center justify-center ring-2 ring-primary/20 shrink-0">
-                    <span className="text-sm font-bold text-primary">{initials}</span>
-                  </div>
-                )}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="flex items-center justify-between px-5 pt-safe pb-4"
+            >
+              <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-3 touch-manipulation active:opacity-75 transition-opacity">
+                <div className="shrink-0 p-[2px] rounded-full bg-ig-gradient shadow-md">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={userName} width={44} height={44} className="w-11 h-11 rounded-full object-cover block" loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/40 to-primary/15 flex items-center justify-center">
+                      <span className="text-base font-black text-primary">{initials}</span>
+                    </div>
+                  )}
+                </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground leading-none mb-0.5">{greeting()}</p>
-                  <p className="text-sm font-bold text-foreground leading-none">{userName}</p>
+                  <p className="text-[11px] font-semibold text-muted-foreground leading-none mb-1">{greeting()}</p>
+                  <p className="text-[17px] font-black text-foreground leading-none tracking-tight">{userName}</p>
                 </div>
               </button>
               <div className="flex items-center gap-2">
@@ -820,18 +827,23 @@ const AppHome = () => {
                   type="button"
                   aria-label="Activity"
                   onClick={() => navigate("/activity")}
-                  className="relative w-9 h-9 rounded-full bg-muted/50 flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
+                  className="relative w-10 h-10 rounded-full bg-muted/60 border border-border/30 flex items-center justify-center touch-manipulation active:scale-90 transition-transform shadow-sm"
                 >
-                  <Bell className="w-4 h-4 text-foreground" />
+                  <Bell className="w-[18px] h-[18px] text-foreground" strokeWidth={1.8} />
                 </button>
               </div>
-            </div>
+            </motion.div>
           ) : null}
 
           {/* ─── ALL SERVICES (moved to top) ─── */}
-          <div className={cn("pb-5", user ? "pt-1" : "pt-safe")}>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 280, damping: 28, delay: 0.1 }}
+            className={cn("pb-5", user ? "pt-1" : "pt-safe")}
+          >
             <div className="flex items-center justify-between mb-3 px-5">
-              <h2 className="text-base font-bold text-ig-gradient">{t("home.more_services")}</h2>
+              <h2 className="text-[17px] font-black text-ig-gradient">{t("home.more_services")}</h2>
               <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
                 <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
               </button>
@@ -843,10 +855,14 @@ const AppHome = () => {
                 { label: t("home.eats"), image: zivoEatsIcon, href: "/eats", badge: null, badgeVariant: "promo" as const },
                 { label: t("home.flights"), image: zivoFlightsIcon, href: "/flights", badge: null, badgeVariant: "discount" as const },
                 { label: t("home.hotels"), image: zivoHotelsIcon, href: hotelsPath, badge: null, badgeVariant: "promo" as const },
-              ].filter(Boolean) as Array<{ label: string; image: string; href: string; badge: string | null; badgeVariant: "promo" | "discount" }>).map((s) => (
+              ].filter(Boolean) as Array<{ label: string; image: string; href: string; badge: string | null; badgeVariant: "promo" | "discount" }>).map((s, i) => (
                 <motion.button
                   key={s.label}
-                  whileTap={{ scale: 0.94 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.12 + i * 0.06 }}
+                  whileTap={{ scale: 0.91 }}
+                  whileHover={{ y: -4 }}
                   onPointerDown={() => prefetch(s.href)}
                   onClick={() => navigate(s.href)}
                   className="flex flex-col items-center gap-2 touch-manipulation relative group"
@@ -861,8 +877,8 @@ const AppHome = () => {
                       {s.badge}
                     </div>
                   )}
-                  <div className="w-[60px] h-[60px] rounded-2xl bg-card border border-border/30 shadow-sm flex items-center justify-center icon-3d-pop group-active:scale-95 transition-all duration-200">
-                    <img src={s.image} alt={s.label} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 object-contain" />
+                  <div className="w-[64px] h-[64px] rounded-[20px] bg-gradient-to-b from-card to-card/90 border border-border/20 shadow-md flex items-center justify-center icon-3d-pop group-active:scale-95 group-hover:border-primary/20 group-hover:shadow-lg transition-all duration-200">
+                    <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
                   </div>
                   <span className="text-[11px] font-semibold text-muted-foreground text-center leading-tight group-hover:text-foreground transition-colors">{s.label}</span>
                 </motion.button>
@@ -875,12 +891,16 @@ const AppHome = () => {
                 { label: "Bus", image: null, icon: Bus, href: "/bus", badge: null },
                 { label: t("home.shopping"), image: zivoShoppingIcon, icon: null, href: "/grocery", badge: null },
                 { label: "Delivery", image: null, icon: Package, href: "/delivery", badge: null },
-              ].filter(Boolean)) as Array<{ label: string; image: string | null; icon: typeof Package | null; href: string; badge: string | null }>).map((s) => {
+              ].filter(Boolean)) as Array<{ label: string; image: string | null; icon: typeof Package | null; href: string; badge: string | null }>).map((s, idx2) => {
                 const SvcIcon = s.icon;
                 return (
                   <motion.button
                     key={s.label}
-                    whileTap={{ scale: 0.94 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.28 + (idx2 * 0.06) }}
+                    whileTap={{ scale: 0.91 }}
+                    whileHover={{ y: -4 }}
                     onPointerDown={() => prefetch(s.href)}
                     onClick={() => navigate(s.href)}
                     className="flex flex-col items-center gap-2 touch-manipulation relative group"
@@ -890,9 +910,9 @@ const AppHome = () => {
                         {s.badge}
                       </div>
                     )}
-                    <div className="w-[60px] h-[60px] rounded-2xl bg-card border border-border/30 shadow-sm flex items-center justify-center icon-3d-pop group-active:scale-95 transition-all duration-200">
+                    <div className="w-[64px] h-[64px] rounded-[20px] bg-gradient-to-b from-card to-card/90 border border-border/20 shadow-md flex items-center justify-center icon-3d-pop group-active:scale-95 group-hover:border-primary/20 group-hover:shadow-lg transition-all duration-200">
                       {s.image ? (
-                        <img src={s.image} alt={s.label} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 object-contain" />
+                        <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
                       ) : SvcIcon ? (
                         <SvcIcon className="w-7 h-7 text-primary" />
                       ) : null}
@@ -902,7 +922,7 @@ const AppHome = () => {
                 );
               })}
             </div>
-          </div>
+          </motion.div>
 
           {/* ─── TODAY'S PLAN ─── */}
           <Suspense fallback={null}>
@@ -910,8 +930,9 @@ const AppHome = () => {
           </Suspense>
 
           {/* ─── QUICK PICKS + SAVED PLACES (unified pill rail) ─── */}
-          <div className="px-4 pb-3">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <div className="pb-3">
+            <div className="relative">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 snap-x overscroll-x-contain">
               {/* User's saved places first — one-tap to ride home/work/etc */}
               {user && savedLocations?.slice(0, 4).map((loc) => {
                 const Icon = savedPlaceIconMap[loc.icon] || MapPin;
@@ -958,6 +979,8 @@ const AppHome = () => {
                 <Plus className="w-3 h-3 text-muted-foreground" />
                 <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Add place</span>
               </motion.button>
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent" />
             </div>
           </div>
 
@@ -1074,7 +1097,7 @@ const AppHome = () => {
                 <div className="mt-3 h-2 rounded-full bg-muted animate-pulse" />
               </div>
             ) : ownerStore?.isLodging ? (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-2xl border border-primary/20 bg-primary/8 shadow-sm">
+              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ type: "spring", stiffness: 260, damping: 26 }} className="overflow-hidden rounded-2xl border border-primary/20 bg-primary/8 shadow-md">
                 {/* Tappable preview area → public hotel detail page */}
                 <button
                   type="button"
@@ -1161,43 +1184,58 @@ const AppHome = () => {
 
 
           {/* ─── DISCOVER (gradient cards) ─── */}
-          <div className="pb-5">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ type: "spring", stiffness: 260, damping: 28 }}
+            className="pb-5"
+          >
             <div className="flex items-center justify-between mb-3 px-5">
-              <h2 className="text-base font-bold text-ig-gradient">Discover</h2>
+              <h2 className="text-[17px] font-black text-ig-gradient">Discover</h2>
               <button type="button" aria-label="View more services" onClick={() => navigate("/more")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
                 <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
               </button>
             </div>
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 px-5">
-              {[
-                { icon: Briefcase, label: "Workplace", desc: "Clock in, jobs & schedule", href: "/personal-dashboard", gradient: "from-foreground to-foreground/80" },
-                { icon: Tv, label: "Live", desc: "Watch live", href: "/live", gradient: "from-foreground to-foreground/80" },
-                { icon: Rocket, label: "Creator Hub", desc: "Grow & earn", href: "/creator-dashboard", gradient: "from-foreground to-foreground/80" },
-                { icon: Heart, label: "Wellness", desc: "Stay healthy", href: "/wellness/activity", gradient: "from-foreground to-foreground/80" },
-                { icon: Crown, label: "ZIVO Plus", desc: "Premium perks", href: "/zivo-plus", gradient: "from-amber-500 via-yellow-400 to-orange-400" },
-                { icon: Gem, label: "Rewards", desc: "Earn points", href: "/rewards", gradient: "from-foreground to-foreground/80" },
-                { icon: Sparkles, label: "Marketplace", desc: "Buy & sell", href: "/marketplace", gradient: "from-foreground to-foreground/80" },
-                { icon: Dumbbell, label: "Workouts", desc: "Train daily", href: "/wellness/workouts", gradient: "from-lime-500 via-green-500 to-emerald-500" },
-              ].map((card, i) => (
-                <motion.button
-                  key={card.label}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(card.href)}
-                  className={cn(
-                    "shrink-0 w-[128px] h-[96px] rounded-[20px] bg-gradient-to-br p-3 flex flex-col justify-between shadow-lg touch-manipulation text-left",
-                    card.gradient
-                  )}
-                  style={{ animationDelay: `${i * 60}ms` }}
-                >
-                  <card.icon className="w-5 h-5 text-white/90" />
-                  <div>
-                    <p className="text-white font-bold text-[12px] leading-tight">{card.label}</p>
-                    <p className="text-white/75 text-[10px] mt-0.5">{card.desc}</p>
-                  </div>
-                </motion.button>
-              ))}
+            <div className="relative">
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 px-5 snap-x snap-mandatory overscroll-x-contain">
+                {[
+                  { icon: Briefcase, label: "Workplace",   desc: "Clock in & gigs",      href: "/personal-dashboard",  gradient: "from-slate-600 via-slate-700 to-slate-800" },
+                  { icon: Tv,        label: "Live",         desc: "Watch live streams",   href: "/live",                gradient: "from-rose-500 via-pink-500 to-fuchsia-600" },
+                  { icon: Rocket,    label: "Creator Hub",  desc: "Grow & earn",          href: "/creator-dashboard",   gradient: "from-violet-500 via-purple-500 to-indigo-600" },
+                  { icon: Heart,     label: "Wellness",     desc: "Stay healthy",         href: "/wellness/activity",   gradient: "from-emerald-400 via-teal-500 to-cyan-600" },
+                  { icon: Crown,     label: "ZIVO Plus",    desc: "Premium perks",        href: "/zivo-plus",           gradient: "from-amber-400 via-yellow-400 to-orange-500" },
+                  { icon: Gem,       label: "Rewards",      desc: "Earn & redeem points", href: "/rewards",             gradient: "from-pink-500 via-rose-500 to-red-500" },
+                  { icon: Sparkles,  label: "Marketplace",  desc: "Buy & sell",           href: "/marketplace",         gradient: "from-sky-400 via-blue-500 to-indigo-600" },
+                  { icon: Dumbbell,  label: "Workouts",     desc: "Train daily",          href: "/wellness/workouts",   gradient: "from-lime-400 via-green-500 to-emerald-600" },
+                ].map((card, i) => (
+                  <motion.button
+                    key={card.label}
+                    initial={{ opacity: 0, scale: 0.88, y: 12 }}
+                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.05 }}
+                    whileTap={{ scale: 0.93 }}
+                    whileHover={{ y: -5, scale: 1.03 }}
+                    onClick={() => navigate(card.href)}
+                    className={cn(
+                      "shrink-0 snap-start w-[148px] h-[118px] rounded-[22px] bg-gradient-to-br p-4 flex flex-col justify-between shadow-xl touch-manipulation text-left",
+                      card.gradient
+                    )}
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                      <card.icon className="w-[18px] h-[18px] text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white font-black text-[13px] leading-tight">{card.label}</p>
+                      <p className="text-white/70 text-[10px] mt-0.5 line-clamp-1">{card.desc}</p>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+              <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-10 bg-gradient-to-l from-background to-transparent" />
             </div>
-          </div>
+          </motion.div>
 
           {/* 3D Section Divider */}
           <div className="h-3 relative overflow-hidden">
@@ -1215,11 +1253,13 @@ const AppHome = () => {
           {/* ─── LOYALTY & REWARDS CARD ─── */}
           {user && points && (
             <motion.button
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate("/rewards")}
-              className="w-full rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/8 border border-amber-500/20 p-5 text-left shadow-sm relative overflow-hidden touch-manipulation"
+              className="w-full rounded-2xl bg-gradient-to-br from-amber-500/12 via-orange-500/6 to-amber-500/10 border border-amber-500/25 p-5 text-left shadow-md relative overflow-hidden touch-manipulation"
             >
               <div className="absolute -top-8 -right-8 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
               <div className="flex items-center gap-3 relative z-10">
@@ -1255,9 +1295,11 @@ const AppHome = () => {
           {/* ─── REFERRAL WORKFLOW ─── */}
           {user && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-border/70 p-3.5 relative overflow-hidden shadow-sm bg-card"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              className="rounded-2xl border border-border/60 p-3.5 relative overflow-hidden shadow-md bg-card"
             >
               <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-500 via-rose-500 to-fuchsia-600" />
               <div className="relative z-10">
@@ -1359,9 +1401,11 @@ const AppHome = () => {
           {/* ─── GUEST SIGN-UP CTA ─── */}
           {!user && (
             <motion.div
-              initial={{ opacity: 0, y: 15, rotateX: -8 }}
-              animate={{ opacity: 1, y: 0, rotateX: 0 }}
-              whileHover={{ y: -4, rotateX: 2 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              whileHover={{ y: -4 }}
               className="rounded-2xl bg-gradient-to-br from-primary/12 to-primary/10 border border-primary/20 p-6 relative overflow-hidden shadow-sm card-3d"
               
             >

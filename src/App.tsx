@@ -145,11 +145,6 @@ import {
   ZIVO_TRAVEL_HOME_PATH,
 } from "@/config/zivoTravelDomain";
 import {
-  isZivoDriverHost,
-  isZivoDriverPath,
-  ZIVO_DRIVER_HOME_PATH,
-} from "@/config/zivoDriverDomain";
-import {
   isZivoBusinessHost,
   isZivoBusinessPath,
   ZIVO_BUSINESS_HOME_PATH,

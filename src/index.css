@@ -510,7 +510,7 @@
   :root {
     --zivo-safe-top: env(safe-area-inset-top, 0px);
     --zivo-safe-bottom: env(safe-area-inset-bottom, 0px);
-    --zivo-mobile-nav-h: 60px;
+    --zivo-mobile-nav-h: 68px;
     /* Derived variables chain through --zivo-safe-top so E2E tests can inject
        a simulated inset by overriding only the root variable. */
     /* Fullscreen overlays (post-detail header, ReelSlide close button,
