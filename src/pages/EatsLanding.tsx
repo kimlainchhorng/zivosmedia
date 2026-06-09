@@ -713,80 +713,122 @@ export default function EatsLanding() {
                 <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
               </motion.button>
             )}
-            <section className="safe-area-top relative pb-6 sm:pb-8 overflow-hidden">
-              <div className="pt-12 sm:pt-32 relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-primary/8 via-primary/3 to-transparent" />
-              <div className="container mx-auto px-4 relative z-10">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto text-center mb-4 sm:mb-8">
-                  <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mx-auto mb-2 sm:mb-6 shadow-lg shadow-orange-500/20">
-                    <UtensilsCrossed className="w-5 h-5 sm:w-8 sm:h-8 text-primary-foreground" />
-                  </div>
-                  <h1 className="text-2xl sm:text-5xl font-bold tracking-tight mb-1 sm:mb-3">ZIVO <span className="text-ig-gradient">Eats</span></h1>
-                  <p className="text-muted-foreground text-xs sm:text-lg">Delicious food from local restaurants, delivered fast.</p>
-                </motion.div>
+            <section className="safe-area-top relative pb-8 sm:pb-12 overflow-hidden">
+              {/* Background blobs */}
+              <div className="absolute inset-0 bg-gradient-to-b from-orange-500/8 via-primary/4 to-transparent" />
+              <div className="pointer-events-none absolute -top-20 -right-20 w-80 h-80 rounded-full bg-orange-500/10 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-10 -left-10 w-60 h-60 rounded-full bg-rose-500/8 blur-3xl" />
 
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="max-w-xl mx-auto space-y-3">
-                  {/* Delivery / Pickup toggle + currency */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 flex bg-muted/40 rounded-2xl p-1">
-                      <button type="button" onClick={() => setOrderMode("delivery")}
-                        className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                          orderMode === "delivery" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-                        <Truck className="w-3.5 h-3.5" /> Delivery
-                      </button>
-                      <button type="button" onClick={() => setOrderMode("pickup")}
-                        className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                          orderMode === "pickup" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-                        <Store className="w-3.5 h-3.5" /> Pickup
-                      </button>
-                    </div>
-                    <button type="button"
-                      onClick={() => setCurrency(c => c === "USD" ? "KHR" : "USD")}
-                      aria-label="Toggle currency"
-                      className="shrink-0 px-3 h-11 rounded-2xl bg-card border border-border/50 text-xs font-bold text-foreground touch-manipulation active:scale-95">
-                      {currency === "USD" ? "$ USD" : "៛ KHR"}
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input placeholder="Search restaurants or dishes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") persistSearch(searchQuery); }} onBlur={() => persistSearch(searchQuery)} className={cn("pl-10 h-12 rounded-xl bg-card border-border/50", searchQuery ? "pr-20" : "pr-12")} />
-                    {searchQuery && (
-                      <button type="button" onClick={() => setSearchQuery("")} aria-label="Clear search"
-                        className="absolute right-12 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center bg-muted/60 text-muted-foreground hover:text-foreground touch-manipulation active:scale-90">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    <button type="button" onClick={startVoiceSearch} aria-label="Voice search"
-                      className={cn("absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all touch-manipulation active:scale-90",
-                        voiceListening ? "bg-red-500 text-white animate-pulse" : "bg-muted/60 text-muted-foreground hover:text-foreground")}>
-                      <Mic className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {orderMode === "delivery" && (
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input placeholder="Enter your delivery address" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="pl-10 h-12 rounded-xl bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/40 transition-all" />
-                    </div>
-                  )}
-                  {!searchQuery && recentSearches.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 self-center">Recent:</span>
-                      {recentSearches.map(q => (
-                        <button type="button" key={q}
-                          onClick={() => setSearchQuery(q)}
-                          className="px-2.5 py-1 rounded-full bg-muted/40 text-[11px] font-medium text-muted-foreground hover:text-foreground touch-manipulation active:scale-95">
-                          {q}
+              <div className="pt-16 sm:pt-28 lg:pt-32 relative">
+                <div className="container mx-auto px-4 relative z-10 max-w-6xl">
+                  {/* Desktop: side-by-side. Mobile/tablet: stacked */}
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 lg:min-h-[260px]">
+
+                    {/* Brand column */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                      className="lg:flex-1 text-center lg:text-left mb-6 lg:mb-0"
+                    >
+                      <div className="w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-2xl lg:rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mx-auto lg:mx-0 mb-4 shadow-2xl shadow-orange-500/30">
+                        <UtensilsCrossed className="w-7 h-7 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" />
+                      </div>
+                      <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black tracking-tight mb-2 sm:mb-3 leading-[1.05]">
+                        ZIVO <span className="text-ig-gradient">Eats</span>
+                      </h1>
+                      <p className="text-muted-foreground text-sm sm:text-lg lg:text-xl max-w-xs mx-auto lg:mx-0">
+                        Delicious food from local restaurants, delivered fast.
+                      </p>
+                      {/* Desktop trust badges */}
+                      <div className="hidden lg:flex items-center gap-4 mt-5">
+                        {[
+                          { icon: Truck, label: "Fast delivery", sub: "25–45 min avg" },
+                          { icon: Percent, label: "Best prices", sub: "No hidden fees" },
+                          { icon: Flame, label: "Top picks", sub: "Curated daily" },
+                        ].map(b => (
+                          <div key={b.label} className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                              <b.icon className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold leading-tight">{b.label}</p>
+                              <p className="text-[10px] text-muted-foreground">{b.sub}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+
+                    {/* Search column */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.1 }}
+                      className="w-full lg:w-[420px] xl:w-[480px] space-y-3"
+                    >
+                      {/* Delivery / Pickup toggle + currency */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 flex bg-muted/40 rounded-2xl p-1">
+                          <button type="button" onClick={() => setOrderMode("delivery")}
+                            className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
+                              orderMode === "delivery" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+                            <Truck className="w-3.5 h-3.5" /> Delivery
+                          </button>
+                          <button type="button" onClick={() => setOrderMode("pickup")}
+                            className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
+                              orderMode === "pickup" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+                            <Store className="w-3.5 h-3.5" /> Pickup
+                          </button>
+                        </div>
+                        <button type="button"
+                          onClick={() => setCurrency(c => c === "USD" ? "KHR" : "USD")}
+                          aria-label="Toggle currency"
+                          className="shrink-0 px-3 h-11 rounded-2xl bg-card border border-border/50 text-xs font-bold text-foreground touch-manipulation active:scale-95">
+                          {currency === "USD" ? "$ USD" : "៛ KHR"}
                         </button>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              </div>
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input placeholder="Search restaurants or dishes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") persistSearch(searchQuery); }} onBlur={() => persistSearch(searchQuery)} className={cn("pl-10 h-12 rounded-xl bg-card border-border/50 shadow-sm", searchQuery ? "pr-20" : "pr-12")} />
+                        {searchQuery && (
+                          <button type="button" onClick={() => setSearchQuery("")} aria-label="Clear search"
+                            className="absolute right-12 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center bg-muted/60 text-muted-foreground hover:text-foreground touch-manipulation active:scale-90">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button type="button" onClick={startVoiceSearch} aria-label="Voice search"
+                          className={cn("absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all touch-manipulation active:scale-90",
+                            voiceListening ? "bg-red-500 text-white animate-pulse" : "bg-muted/60 text-muted-foreground hover:text-foreground")}>
+                          <Mic className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {orderMode === "delivery" && (
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input placeholder="Enter your delivery address" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="pl-10 h-12 rounded-xl bg-card border-border/50 shadow-sm focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/40 transition-all" />
+                        </div>
+                      )}
+                      {!searchQuery && recentSearches.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 self-center">Recent:</span>
+                          {recentSearches.map(q => (
+                            <button type="button" key={q}
+                              onClick={() => setSearchQuery(q)}
+                              className="px-2.5 py-1 rounded-full bg-muted/40 text-[11px] font-medium text-muted-foreground hover:text-foreground touch-manipulation active:scale-95">
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  </div>
+                </div>
               </div>
             </section>
 
             <section className="pt-2 pb-8">
-              <div className="container mx-auto px-4">
+              <div className="container mx-auto px-4 max-w-6xl">
                 {/* Order again strip */}
                 {recentOrders.length > 0 && (
                   <div className="mb-5">
@@ -847,22 +889,29 @@ export default function EatsLanding() {
 
                 {/* Trending now strip */}
                 {!loadingRestaurants && restaurants.length > 0 && (
-                  <div className="mb-5">
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                    className="mb-5"
+                  >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                        <Flame className="w-3 h-3 text-orange-500" /> Trending now
+                      <p className="text-sm font-extrabold flex items-center gap-1.5">
+                        <Flame className="w-3.5 h-3.5 text-orange-500" /> Trending now
                       </p>
                       <button type="button" onClick={() => setSortBy("rating")}
                         className="text-[10px] font-bold text-primary hover:underline">See all →</button>
                     </div>
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                    <div className="relative">
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 snap-x snap-mandatory overscroll-x-contain">
                       {[...restaurants]
                         .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
                         .slice(0, 6)
                         .map(r => (
                           <button type="button" key={r.id}
                             onClick={() => { trackRecentlyViewed(r.id); setSelectedRestaurantId(r.id); setStep("restaurant"); }}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/50 text-left shrink-0 active:scale-95 hover:scale-105 transition-all duration-200 touch-manipulation hover:border-primary/30 hover:shadow-md hover:shadow-primary/10">
+                            className="snap-start flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/50 text-left shrink-0 active:scale-95 hover:scale-105 transition-all duration-200 touch-manipulation hover:border-primary/30 hover:shadow-md hover:shadow-primary/10">
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/15 to-rose-500/10 flex items-center justify-center text-primary shrink-0">
                               <UtensilsCrossed className="w-4 h-4" />
                             </div>
@@ -880,7 +929,9 @@ export default function EatsLanding() {
                           </button>
                         ))}
                     </div>
-                  </div>
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-background to-transparent" />
+                    </div>
+                  </motion.div>
                 )}
 
                 {/* Recently viewed */}
@@ -915,10 +966,17 @@ export default function EatsLanding() {
                 })()}
 
                 {/* Promo banners */}
-                <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 mb-1 -mx-4 px-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                  className="relative -mx-4 px-4"
+                >
+                <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 mb-1 snap-x snap-mandatory overscroll-x-contain">
                   <button type="button"
                     onClick={() => { setPromoCode("ZIVO10"); toast.success("Code ZIVO10 ready — apply at checkout"); }}
-                    className="relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md hover:shadow-lg hover:shadow-emerald-500/30 flex items-center gap-3 active:scale-[0.98] transition-all duration-300 touch-manipulation text-left">
+                    className="snap-start relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md hover:shadow-lg hover:shadow-emerald-500/30 flex items-center gap-3 active:scale-[0.98] transition-all duration-300 touch-manipulation text-left">
                     <div className="pointer-events-none absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                       <Percent className="w-5 h-5" />
@@ -940,7 +998,7 @@ export default function EatsLanding() {
                     </div>
                   </button>
                   <button type="button" onClick={() => navigate("/plus")}
-                    className="relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:shadow-lg hover:shadow-violet-500/30 active:scale-[0.98] transition-all duration-300 flex items-center gap-3 text-left">
+                    className="snap-start relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:shadow-lg hover:shadow-violet-500/30 active:scale-[0.98] transition-all duration-300 flex items-center gap-3 text-left">
                     <div className="pointer-events-none absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10 blur-2xl" />
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                       <Sparkles className="w-5 h-5" />
@@ -951,6 +1009,8 @@ export default function EatsLanding() {
                     </div>
                   </button>
                 </div>
+                <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-background to-transparent" />
+                </motion.div>
                 <div className="flex justify-center gap-1.5 mb-4">
                   {[0, 1, 2].map(i => (
                     <span key={i} className={cn("h-1.5 rounded-full transition-all duration-500",
@@ -959,7 +1019,14 @@ export default function EatsLanding() {
                 </div>
 
                 {/* Categories */}
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 mb-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                  className="relative"
+                >
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 mb-3 snap-x overscroll-x-contain">
                   {categories.map(c => (
                     <button type="button" key={c}
                       onClick={() => { setActiveCategory(c); window.scrollTo({ top: 0, behavior: "smooth" }); }}
@@ -972,6 +1039,8 @@ export default function EatsLanding() {
                   ))}
                 </div>
 
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-background to-transparent" />
+                </motion.div>
                 {/* Dietary filters */}
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 mb-4">
                   <button type="button"
@@ -1074,7 +1143,7 @@ export default function EatsLanding() {
 
                 {/* Loading skeletons */}
                 {loadingRestaurants && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                     {Array.from({ length: 6 }).map((_, i) => (
                       <div key={i} className="rounded-2xl bg-card border border-border/40 overflow-hidden">
                         <div className="aspect-[16/10] bg-muted/40 animate-pulse" />
@@ -1142,10 +1211,10 @@ export default function EatsLanding() {
 
                 {/* Restaurant Grid */}
                 {viewMode === "list" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                   {filtered.map((restaurant, i) => (
-                    <motion.div key={restaurant.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.4, delay: i * 0.05 }}>
-                      <div className="group relative rounded-2xl bg-card border border-border/40 overflow-hidden hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/20 transition-all duration-300">
+                    <motion.div key={restaurant.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-60px" }} transition={{ type: "spring", stiffness: 300, damping: 26, delay: Math.min(i, 3) * 0.06 }}>
+                      <div className="group relative rounded-2xl bg-card border border-border/40 overflow-hidden hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1.5 hover:border-primary/20 transition-all duration-300">
                         <button type="button" onClick={() => { trackRecentlyViewed(restaurant.id); setSelectedRestaurantId(restaurant.id); setStep("restaurant"); }} className="block w-full text-left touch-manipulation active:scale-[0.99]">
                           <div className="relative aspect-[16/10] overflow-hidden bg-muted/20">
                             {restaurant.cover_image_url ? (
@@ -1242,7 +1311,13 @@ export default function EatsLanding() {
             {/* Become a partner CTA */}
             {!loadingRestaurants && filtered.length > 0 && (
               <section className="pb-12 pt-4">
-                <div className="container mx-auto px-4">
+                <div className="container mx-auto px-4 max-w-6xl">
+                  <motion.div
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-60px" }}
+                    transition={{ type: "spring", stiffness: 300, damping: 26 }}
+                  >
                   <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-rose-500 to-primary p-6 sm:p-10 text-white shadow-xl shadow-primary/20">
                     <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
                     <div className="absolute -bottom-16 -left-10 w-56 h-56 rounded-full bg-amber-300/20 blur-3xl" />
@@ -1265,6 +1340,7 @@ export default function EatsLanding() {
                       </button>
                     </div>
                   </div>
+                  </motion.div>
                 </div>
               </section>
             )}
