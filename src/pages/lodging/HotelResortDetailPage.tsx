@@ -1343,7 +1343,6 @@ export default function HotelResortDetailPage() {
                   </div>
                 );
               })}
-            </div>
           </div>
         )}
         {activeRooms.length > 8 && (

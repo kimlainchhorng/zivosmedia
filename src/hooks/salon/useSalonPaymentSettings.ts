@@ -73,6 +73,38 @@ interface UseSalonPaymentSettingsResult {
   refresh: () => Promise<void>;
 }
 
+/**
+ * Turn a supabase.functions.invoke() error into a user-facing message.
+ * supabase-js wraps non-2xx responses in FunctionsHttpError (the Response is on
+ * `context`) and network / unreachable failures in FunctionsFetchError. Without
+ * this, every failure collapsed into a generic "try again" with no signal about
+ * whether it was a validation error, a permission problem, or the function being
+ * unreachable.
+ */
+async function describeSaveError(err: unknown): Promise<string> {
+  const anyErr = err as any;
+  const ctx = anyErr?.context;
+  const status: number | undefined = typeof ctx?.status === "number" ? ctx.status : undefined;
+  if (ctx && typeof ctx.json === "function") {
+    try {
+      const res = typeof ctx.clone === "function" ? ctx.clone() : ctx;
+      const body = await res.json();
+      if (body && typeof body.error === "string" && body.error.trim()) return body.error;
+    } catch {
+      // Response body wasn't JSON — fall back to status-based messaging below.
+    }
+  }
+  if (status === 404) return "Payment settings service isn't available yet. Please try again later or contact support.";
+  if (status === 401 || status === 403) return "You don't have permission to change these settings.";
+  if (status !== undefined && status >= 500) return "The server had a problem saving. Please try again.";
+  const name: string = anyErr?.name ?? "";
+  const message: string = anyErr?.message ?? "";
+  if (name === "FunctionsFetchError" || /failed to (send|fetch)/i.test(message)) {
+    return "Couldn't reach the server. Check your connection and try again.";
+  }
+  return "Couldn't save changes — try again.";
+}
+
 export function useSalonPaymentSettings(storeId: string | undefined): UseSalonPaymentSettingsResult {
   const [settings, setSettings] = useState<SalonPaymentSettings>(DEFAULT_SALON_PAYMENT_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -129,7 +161,7 @@ export function useSalonPaymentSettings(storeId: string | undefined): UseSalonPa
     });
     if (err) {
       console.error("[useSalonPaymentSettings] save failed", err);
-      setError("Couldn't save changes — try again.");
+      setError(await describeSaveError(err));
       setSaving(false);
       return;
     }

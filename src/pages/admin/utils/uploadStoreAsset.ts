@@ -104,6 +104,26 @@ export async function uploadStoreAsset({
 }
 
 /**
+ * Delete a previously-uploaded object from the `store-assets` bucket given its
+ * public URL. Used when an owner removes a cover/logo so we don't leave orphaned
+ * files behind. Best-effort: a failed delete is logged, not thrown, because the
+ * profile URL has already been cleared by the caller.
+ */
+export async function deleteStoreAssetByUrl(publicUrl: string | null | undefined): Promise<void> {
+  if (!publicUrl) return;
+  // Public URLs look like: https://<ref>.supabase.co/storage/v1/object/public/store-assets/<path>
+  const marker = "/store-assets/";
+  const idx = publicUrl.indexOf(marker);
+  if (idx === -1) return; // Not one of our bucket URLs (e.g. external/CDN) — nothing to delete.
+  const path = decodeURIComponent(publicUrl.slice(idx + marker.length).split(/[?#]/)[0]);
+  if (!path) return;
+  const { error } = await supabase.storage.from("store-assets").remove([path]);
+  if (error) {
+    console.warn(`[deleteStoreAssetByUrl] remove(${path}) failed:`, error.message);
+  }
+}
+
+/**
  * Re-fetch a single column on `store_profiles` and confirm the URL was saved.
  * Returns true when the persisted value matches `expectedUrl`.
  */

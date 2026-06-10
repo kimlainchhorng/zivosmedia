@@ -41,7 +41,9 @@ let _FFmpegCtor: typeof import("@ffmpeg/ffmpeg")["FFmpeg"] | null = null;
 let _fetchFile: typeof import("@ffmpeg/util")["fetchFile"] | null = null;
 let _toBlobURL: typeof import("@ffmpeg/util")["toBlobURL"] | null = null;
 import { supabase } from "@/integrations/supabase/client";
-import { uploadStoreAsset, verifyStoreProfileUrl, verifyStoreProfileGallery } from "@/pages/admin/utils/uploadStoreAsset";
+import { uploadStoreAsset, verifyStoreProfileUrl, verifyStoreProfileGallery, deleteStoreAssetByUrl } from "@/pages/admin/utils/uploadStoreAsset";
+import { isVideoUrl, IMAGE_OR_VIDEO_ACCEPT } from "@/lib/mediaType";
+import { MediaCropDialog } from "@/components/admin/store/MediaCropDialog";
 import { normalizeStorePostMediaUrl } from "@/utils/normalizeStorePostMediaUrl";
 import { getStoreStatus } from "@/utils/storeStatus";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -615,7 +617,14 @@ function pickProductColumns(product: Record<string, any>): Record<string, any> {
  *  can't hit Functions). Production reaches the function, so the direct
  *  fallbacks these guard only run during local development. */
 function isEdgeUnreachable(error: any): boolean {
-  return error?.name === "FunctionsFetchError" || /failed to send a request/i.test(error?.message || "");
+  if (error?.name === "FunctionsFetchError") return true;
+  if (/failed to send a request/i.test(error?.message || "")) return true;
+  // A 404 means the edge function isn't deployed in this environment. Fall back
+  // to the RLS-gated direct write — store_profiles allows owner/admin updates,
+  // so the save still succeeds without the function. (Intentional 400/403/500
+  // rejections from a deployed function are NOT treated as unreachable.)
+  if (error?.context?.status === 404) return true;
+  return false;
 }
 
 /** Pull the friendly message out of an edge-function error/response. */
@@ -2157,6 +2166,10 @@ export default function AdminStoreEditPage() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [dragOverCover, setDragOverCover] = useState(false);
+  const [dragOverLogo, setDragOverLogo] = useState(false);
+  // When set, the crop dialog is open for the picked image + target surface.
+  const [cropState, setCropState] = useState<{ file: File; surface: "logo" | "cover" } | null>(null);
 
   const uploadGalleryImage = async (file: File) => {
     if (galleryImages.length >= 20) {
@@ -2302,13 +2315,80 @@ export default function AdminStoreEditPage() {
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["admin-store", storeId] });
-      toast.success(`${isLogo ? "Profile" : "Cover"} image updated`);
+      toast.success(isLogo ? "Profile image updated" : isVideoUrl(publicUrl) ? "Cover video updated" : "Cover updated");
     } catch (e: any) {
       updateField(field, prevUrl);
       toast.error(e?.message || `${isLogo ? "Profile" : "Cover"} image upload failed`);
     } finally {
       isLogo ? setUploadingLogo(false) : setUploadingCover(false);
     }
+  };
+
+  // Cover videos can't be cropped client-side; normalize (transcode to a
+  // browser-playable mp4) then run the shared upload/save/verify path.
+  const MAX_BANNER_VIDEO_BYTES = 50 * 1024 * 1024;
+  const uploadCoverVideo = async (file: File) => {
+    setUploadingCover(true);
+    try {
+      const normalized = await normalizeVideoUpload(file);
+      await uploadImage(normalized, "cover");
+    } catch (e: any) {
+      toast.error(e?.message || "Cover video upload failed");
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  // Entry point for any picked/dropped file. Images open the crop dialog;
+  // videos (cover only) skip cropping and go straight to the video pipeline.
+  const handlePickedFile = (file: File, surface: "logo" | "cover") => {
+    if (file.type.startsWith("video/")) {
+      if (surface !== "cover") { toast.error("Your profile image must be a photo, not a video"); return; }
+      if (file.size > MAX_BANNER_VIDEO_BYTES) { toast.error("That video is too large (max 50MB)"); return; }
+      void uploadCoverVideo(file);
+      return;
+    }
+    if (!file.type.startsWith("image/")) { toast.error("Unsupported file type"); return; }
+    setCropState({ file, surface });
+  };
+
+  const handleCropConfirm = async (blob: Blob) => {
+    const cs = cropState;
+    setCropState(null);
+    if (!cs) return;
+    const isLogo = cs.surface === "logo";
+    const ext = isLogo ? "png" : "jpg";
+    const type = blob.type || (isLogo ? "image/png" : "image/jpeg");
+    const cropped = new File([blob], `${cs.surface}-${Date.now()}.${ext}`, { type });
+    await uploadImage(cropped, cs.surface);
+  };
+
+  // Clear a cover/logo: null the column, then best-effort delete the stored object.
+  const removeImage = async (surface: "logo" | "cover") => {
+    const isLogo = surface === "logo";
+    const field = isLogo ? "logo_url" : "banner_url";
+    const prevUrl = (form as any)[field] as string;
+    if (!prevUrl) return;
+    if (isLogo) setUploadingLogo(true); else setUploadingCover(true);
+    try {
+      updateField(field, "");
+      await saveStoreProfilePatch({ [field]: null });
+      void deleteStoreAssetByUrl(prevUrl);
+      queryClient.invalidateQueries({ queryKey: ["admin-store", storeId] });
+      toast.success(isLogo ? "Profile image removed" : "Cover removed");
+    } catch (e: any) {
+      updateField(field, prevUrl);
+      toast.error(e?.message || "Failed to remove image");
+    } finally {
+      if (isLogo) setUploadingLogo(false); else setUploadingCover(false);
+    }
+  };
+
+  const onDropFile = (surface: "logo" | "cover") => (e: React.DragEvent) => {
+    e.preventDefault();
+    if (surface === "logo") setDragOverLogo(false); else setDragOverCover(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handlePickedFile(file, surface);
   };
 
   const employeeTitles: Record<string, string> = { employees: "Employees", payroll: "Payroll", "employee-schedule": "Employee Schedule", "time-clock": "Time Clock", "employee-rules": "Employee Rules", attendance: "Attendance & Leave", training: "Training & Onboarding", documents: "Documents & Files" };
@@ -2529,7 +2609,7 @@ export default function AdminStoreEditPage() {
         <Card className="overflow-hidden">
           <div
             ref={coverContainerRef}
-            className={cn("relative h-36 sm:h-52 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10", isRepositioning && "cursor-grab active:cursor-grabbing")}
+            className={cn("relative h-36 sm:h-52 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 transition-shadow", isRepositioning && "cursor-grab active:cursor-grabbing", dragOverCover && "ring-2 ring-inset ring-primary")}
             onMouseDown={isRepositioning ? (e) => { e.preventDefault(); setDragStartY(e.clientY); setDragStartPos(form.banner_position); } : undefined}
             onMouseMove={isRepositioning && dragStartY !== null ? (e) => {
               const containerH = coverContainerRef.current?.clientHeight || 208;
@@ -2550,17 +2630,33 @@ export default function AdminStoreEditPage() {
               updateField("banner_position", Math.round(newPos));
             } : undefined}
             onTouchEnd={isRepositioning ? () => setDragStartY(null) : undefined}
+            onDragOver={!isRepositioning ? (e) => { e.preventDefault(); setDragOverCover(true); } : undefined}
+            onDragLeave={!isRepositioning ? () => setDragOverCover(false) : undefined}
+            onDrop={!isRepositioning ? onDropFile("cover") : undefined}
           >
             {form.banner_url && (
-              <img
-                src={form.banner_url}
-                alt="Banner"
-                className="w-full h-full object-cover select-none"
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-                style={{ objectPosition: `center ${form.banner_position}%` }}
-              />
+              isVideoUrl(form.banner_url) ? (
+                <video
+                  src={form.banner_url}
+                  className="w-full h-full object-cover select-none"
+                  style={{ objectPosition: `center ${form.banner_position}%` }}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  src={form.banner_url}
+                  alt="Banner"
+                  className="w-full h-full object-cover select-none"
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  style={{ objectPosition: `center ${form.banner_position}%` }}
+                />
+              )
             )}
             {!isRepositioning && (
               <div className="absolute inset-0 bg-gradient-to-t from-background/45 via-transparent to-transparent" />
@@ -2601,37 +2697,70 @@ export default function AdminStoreEditPage() {
                       <Move className="h-3.5 w-3.5" /> <span className="hidden xs:inline">Reposition</span>
                     </Button>
                   )}
-                  <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, "cover"); e.target.value = ""; }} />
+                  <input ref={coverInputRef} type="file" accept={IMAGE_OR_VIDEO_ACCEPT} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePickedFile(f, "cover"); e.target.value = ""; }} />
                   <Button size="sm" variant="secondary" className="h-8 px-2.5 gap-1 bg-background/80 backdrop-blur-sm text-xs" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}>
                     {uploadingCover ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />} <span className="hidden xs:inline">{t("admin.store.change_cover")}</span>
                   </Button>
+                  {form.banner_url && (
+                    <Button size="sm" variant="secondary" className="h-8 px-2.5 gap-1 bg-background/80 backdrop-blur-sm text-xs text-destructive hover:text-destructive" onClick={() => removeImage("cover")} disabled={uploadingCover}>
+                      <Trash2 className="h-3.5 w-3.5" /> <span className="hidden xs:inline">Remove</span>
+                    </Button>
+                  )}
                 </>
               )}
             </div>
             {!isRepositioning && (
               <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-4 right-2 sm:right-4 flex items-end justify-between gap-3">
                 <div className="flex items-end gap-3 min-w-0">
-                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, "logo"); e.target.value = ""; }} />
-                  <button
-                    type="button"
-                    onClick={() => logoInputRef.current?.click()}
-                    disabled={uploadingLogo}
-                    className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-xl bg-background border-2 border-background shadow-lg overflow-hidden flex items-center justify-center shrink-0 group cursor-pointer hover:opacity-90 transition-opacity"
+                  <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePickedFile(f, "logo"); e.target.value = ""; }} />
+                  <div
+                    className={cn("relative shrink-0 rounded-xl transition-shadow", dragOverLogo && "ring-2 ring-primary ring-offset-1")}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverLogo(true); }}
+                    onDragLeave={() => setDragOverLogo(false)}
+                    onDrop={onDropFile("logo")}
                   >
-                    {form.logo_url ? (
-                      <img src={form.logo_url} alt="Logo" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                    ) : (
-                      <Store className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground/30" />
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      disabled={uploadingLogo}
+                      className="relative h-12 w-12 sm:h-16 sm:w-16 rounded-xl bg-background border-2 border-background shadow-lg overflow-hidden flex items-center justify-center group cursor-pointer hover:opacity-90 transition-opacity"
+                    >
+                      {form.logo_url ? (
+                        <img src={form.logo_url} alt="Logo" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                      ) : (
+                        <Store className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground/30" />
+                      )}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                        {uploadingLogo ? <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 text-white animate-spin" /> : <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
+                      </div>
+                    </button>
+                    {form.logo_url && !uploadingLogo && (
+                      <button
+                        type="button"
+                        aria-label="Remove profile image"
+                        onClick={() => removeImage("logo")}
+                        className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-background border border-border shadow flex items-center justify-center text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
-                      {uploadingLogo ? <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 text-white animate-spin" /> : <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-white" />}
-                    </div>
-                  </button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </Card>
+        <MediaCropDialog
+          open={!!cropState}
+          file={cropState?.file ?? null}
+          // Cover is 3:1 to match the wide store banner (full-width × ~300px); logo is square.
+          aspect={cropState?.surface === "logo" ? 1 : 3 / 1}
+          outputType={cropState?.surface === "logo" ? "image/png" : "image/jpeg"}
+          outputWidth={cropState?.surface === "logo" ? 512 : 1800}
+          title={cropState?.surface === "logo" ? "Adjust profile image" : "Adjust cover photo"}
+          onCancel={() => setCropState(null)}
+          onConfirm={handleCropConfirm}
+        />
         </>)}
 
         {(isAdmin || activeTab === "profile") && (

@@ -10,6 +10,7 @@ import { StarRating } from "@/components/shared/StarRating";
 import SafeCaption from "@/components/social/SafeCaption";
 import { track } from "@/lib/analytics";
 import { optimizeImage } from "@/lib/optimizeImage";
+import { isVideoUrl } from "@/lib/mediaType";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -512,22 +513,39 @@ export default function StoreProfilePage() {
         return (
           <div className="relative w-full h-[270px] sm:h-[300px] lg:h-[320px] overflow-hidden bg-muted">
             {coverUrl ? (
-              <img
-                src={optimizeImage(coverUrl, 1024)}
-                alt={`${store.name} cover`}
-                className="w-full h-full object-cover"
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-                style={{ objectPosition: `center ${bannerPosition}%` }}
-                onError={(e) => {
-                  // If the cover image fails to load (broken URL, SW cache
-                  // corruption, etc.) hide the broken-image icon and let the
-                  // gradient parent show through instead of rendering the
-                  // alt text + question-mark glyph.
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
+              isVideoUrl(coverUrl) ? (
+                <video
+                  src={coverUrl}
+                  className="w-full h-full object-cover"
+                  style={{ objectPosition: `center ${bannerPosition}%` }}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-label={`${store.name} cover video`}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLVideoElement).style.display = "none";
+                  }}
+                />
+              ) : (
+                <img
+                  src={optimizeImage(coverUrl, 1024)}
+                  alt={`${store.name} cover`}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                  style={{ objectPosition: `center ${bannerPosition}%` }}
+                  onError={(e) => {
+                    // If the cover image fails to load (broken URL, SW cache
+                    // corruption, etc.) hide the broken-image icon and let the
+                    // gradient parent show through instead of rendering the
+                    // alt text + question-mark glyph.
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              )
             ) : null}
             <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/25 via-black/5 to-transparent pointer-events-none z-[1]" />
             <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-background via-background/45 to-transparent pointer-events-none z-[1]" />
