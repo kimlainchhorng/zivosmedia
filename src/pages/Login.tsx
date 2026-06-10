@@ -988,30 +988,6 @@ const Login = () => {
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
               </button>
 
-              {/* OR divider — Instagram signature */}
-              <div className="flex items-center gap-4 py-3">
-                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-                <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">OR</span>
-                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-              </div>
-
-              {/* Option 2: passwordless via email link/code */}
-              {(() => {
-                const provider = detectMailProvider(email);
-                return (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await sendEmailCode(email);
-                    }}
-                    disabled={submitting || !email.trim()}
-                    className="w-full h-11 rounded-lg text-sm font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    {provider ? `Email me a sign-in link for ${provider.name}` : "Email me a sign-in link"}
-                  </button>
-                );
-              })()}
 
               <div className="text-center pt-2">
                 <Link to={forgotPasswordHref} className="inline-flex min-h-[40px] items-center px-1 text-xs font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white">

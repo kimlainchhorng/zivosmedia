@@ -1,7 +1,7 @@
 /**
  * Auto Repair — Estimates & Quotes
  */
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { copyText } from "@/lib/native/clipboard";
@@ -126,10 +126,20 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
 
   const openNew = () => { resetForm(); setOpen(true); };
 
-  // Hand off to the VSM "Build R.O." console: stash the target, then ask the page to switch tabs.
+  // Hand off to the VSM "Build R.O." console: stash the target, then ask the page to
+  // switch tabs. When opened inside the Build R.O. "Estimates" popup we run in an
+  // iframe (embed=1), so a local tab change would only move the iframe — hand off to
+  // the parent instead (forwarding the target so it survives the frame boundary).
   const openInBuildRO = (id: string) => {
-    sessionStorage.setItem("ar_buildro_open", id);
-    window.dispatchEvent(new CustomEvent("lodge-set-tab", { detail: { tab: "ar-build-ro" } }));
+    try { sessionStorage.setItem("ar_buildro_open", id); } catch { /* ignore */ }
+    if (typeof window !== "undefined" && window.parent !== window) {
+      window.parent.postMessage(
+        { type: "ar_navigate", tab: "ar-build-ro", prefill: { key: "ar_buildro_open", value: id } },
+        window.location.origin,
+      );
+    } else {
+      window.dispatchEvent(new CustomEvent("lodge-set-tab", { detail: { tab: "ar-build-ro" } }));
+    }
   };
 
   const openEdit = (e: any) => {
@@ -148,6 +158,21 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
     setItems((e.line_items as LineItem[]) ?? [blankItem()]);
     setOpen(true);
   };
+
+  // Hand-off ("open" a specific estimate by id, e.g. from a work order's
+  // Create Estimate): stash the id on mount, then open it once estimates load.
+  const estimateOpenRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = sessionStorage.getItem("ar_estimate_open");
+    if (id) { estimateOpenRef.current = id; sessionStorage.removeItem("ar_estimate_open"); }
+  }, []);
+  useEffect(() => {
+    if (!estimateOpenRef.current || estimates.length === 0) return;
+    const target = estimates.find((e: any) => e.id === estimateOpenRef.current);
+    estimateOpenRef.current = null;
+    if (target) openEdit(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estimates]);
 
   // Open the create form pre-filled from an existing estimate. Useful for repeat
   // customers / recurring services. Generates a new number, resets status to draft,
@@ -217,12 +242,17 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
 
   const removeEstimate = useMutation({
     mutationFn: async (id: string) => {
+      // Clear the link on any work order that points to this estimate so its
+      // badge/link doesn't dangle once the estimate is gone.
+      await supabase.from("ar_work_orders" as any).update({ estimate_id: null }).eq("estimate_id", id);
       const { error } = await supabase.from("ar_estimates" as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Estimate deleted");
       qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-estimates-min", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
     },
     onError: (e: any) => toast.error(e.message),
   });

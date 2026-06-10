@@ -244,6 +244,7 @@ const LodgingWakeupCallsSection = React.lazy(() => import("@/components/admin/st
 const LodgingLaundrySection = React.lazy(() => import("@/components/admin/store/lodging/LodgingLaundrySection"));
 const LodgingComplaintsSection = React.lazy(() => import("@/components/admin/store/lodging/LodgingComplaintsSection"));
 const SoftwareDownloadsSection = React.lazy(() => import("@/components/admin/store/SoftwareDownloadsSection"));
+const SoftwareSubscriptionSection = React.lazy(() => import("@/components/admin/SoftwareSubscriptionSection"));
 
 function LazyAdminSectionFallback() {
   return (
@@ -677,6 +678,44 @@ export default function AdminStoreEditPage() {
     window.addEventListener("lodge-set-tab", handler as EventListener);
     return () => window.removeEventListener("lodge-set-tab", handler as EventListener);
   }, [handleTabChange]);
+
+  // Ads-wallet top-up return: Stripe Checkout sends the owner back here with
+  // ?topup=success&session_id=...  Verify the session server-side (credits the
+  // wallet), refresh the ads overview, and clean the URL. Runs once per return.
+  const topupHandled = useRef(false);
+  useEffect(() => {
+    const topup = searchParams.get("topup");
+    if (!topup || topupHandled.current) return;
+    topupHandled.current = true;
+    const sessionId = searchParams.get("session_id");
+    const clearParams = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete("topup");
+      next.delete("session_id");
+      setSearchParams(next, { replace: true });
+    };
+    if (topup === "cancelled") {
+      toast.info("Top-up cancelled — no charge was made");
+      clearParams();
+      return;
+    }
+    if (topup === "success" && sessionId) {
+      (async () => {
+        const { data, error } = await supabase.functions.invoke("verify-ads-wallet-topup", {
+          body: { session_id: sessionId },
+        });
+        if (error || (data as any)?.error) {
+          toast.error("Couldn't confirm your top-up yet. If you were charged it will credit shortly.");
+        } else {
+          toast.success("Funds added to your ad wallet");
+          if (storeId) queryClient.invalidateQueries({ queryKey: ["store-ads-overview", storeId] });
+        }
+        clearParams();
+      })();
+    } else {
+      clearParams();
+    }
+  }, [searchParams, setSearchParams, storeId, queryClient]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -2540,7 +2579,7 @@ export default function AdminStoreEditPage() {
   const cafeTitle = CAFE_TAB_META[activeTab]?.title;
   const carRentalTitle = CAR_RENTAL_TAB_META[activeTab]?.title;
   const carDealershipTitle = CAR_DEALERSHIP_TAB_META[activeTab]?.title;
-  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || salonTitle || cafeTitle || carRentalTitle || carDealershipTitle || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
+  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || salonTitle || cafeTitle || carRentalTitle || carDealershipTitle || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "subscriptions" ? "Subscriptions" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
   // IMPORTANT: Do NOT define a component inside render — it creates a new component
   // type on every render, which forces React to unmount + remount the entire subtree
   // (including the Add Product dialog inputs) on every keystroke. Use a render helper instead.
@@ -5208,8 +5247,8 @@ export default function AdminStoreEditPage() {
               <TabsContent value="ar-reviews"><div><AutoRepairReviewsSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-inbox"><div><AutoRepairInboxSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-promos"><div><AutoRepairPromosSection storeId={storeId!} /></div></TabsContent>
-              <TabsContent value="ar-campaigns"><div><StoreMarketingSection storeId={storeId!} /></div></TabsContent>
-              <TabsContent value="ar-gift-cards"><div><StoreMarketingSection storeId={storeId!} /></div></TabsContent>
+              <TabsContent value="ar-campaigns"><div><StoreMarketingSection storeId={storeId!} storeName={form.name} storeCategory={form.category} /></div></TabsContent>
+              <TabsContent value="ar-gift-cards"><div><StoreMarketingSection storeId={storeId!} storeName={form.name} storeCategory={form.category} /></div></TabsContent>
               <TabsContent value="ar-booking-link"><div><AutoRepairBookingLinkSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-qr"><div><AutoRepairBookingLinkSection storeId={storeId!} /></div></TabsContent>
               <TabsContent value="ar-reports"><div><AutoRepairReportsSection storeId={storeId!} /></div></TabsContent>
@@ -5274,6 +5313,10 @@ export default function AdminStoreEditPage() {
 
           <TabsContent value="software" data-testid="store-tab-software">
             <SoftwareDownloadsSection storeCategory={effectiveStoreCategory} storeId={storeId} />
+          </TabsContent>
+
+          <TabsContent value="subscriptions" data-testid="store-tab-subscriptions">
+            <SoftwareSubscriptionSection storeId={storeId!} />
           </TabsContent>
 
           {/* Cafe module — real sections where built, placeholder otherwise. */}

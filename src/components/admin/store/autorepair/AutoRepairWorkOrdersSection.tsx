@@ -17,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import {
   Hammer, Plus, Search, LayoutGrid, List, Trash2, AlertOctagon,
-  User, Pencil, Receipt, Timer, CheckCheck, Link2, BookOpen,
+  User, Pencil, Receipt, Timer, CheckCheck, Link2, BookOpen, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { assignDocNumber, assignWorkOrderNumber } from "@/lib/admin/invoiceActions";
@@ -109,6 +109,43 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
     techs.forEach((t: any) => { m[t.id] = t.name; });
     return m;
   }, [techs]);
+
+  // Minimal id↔number maps so a WO row can show + open the estimate/invoice it
+  // produced (estimate via ar_work_orders.estimate_id, invoice via the invoice's
+  // source_workorder_id back-link).
+  const { data: estList = [] } = useQuery({
+    queryKey: ["ar-estimates-min", storeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("ar_estimates" as any).select("id, number").eq("store_id", storeId);
+      return (data ?? []) as any[];
+    },
+  });
+  const { data: invList = [] } = useQuery({
+    queryKey: ["ar-invoices-min", storeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("ar_invoices" as any).select("id, number, source_workorder_id").eq("store_id", storeId);
+      return (data ?? []) as any[];
+    },
+  });
+  const estNumById = useMemo(() => {
+    const m: Record<string, string> = {};
+    estList.forEach((e: any) => { if (e.id) m[e.id] = e.number; });
+    return m;
+  }, [estList]);
+  const invByWoId = useMemo(() => {
+    const m: Record<string, { id: string; number: string }> = {};
+    invList.forEach((i: any) => { if (i.source_workorder_id) m[i.source_workorder_id] = { id: i.id, number: i.number }; });
+    return m;
+  }, [invList]);
+
+  // Stash the target doc id and ask the page to switch tabs; the estimates/
+  // invoices section reads the stashed id and opens that doc.
+  const openDoc = (type: "estimate" | "invoice", id: string) => {
+    try {
+      sessionStorage.setItem(type === "estimate" ? "ar_estimate_open" : "ar_invoice_open", id);
+    } catch { /* ignore */ }
+    window.dispatchEvent(new CustomEvent("lodge-set-tab", { detail: { tab: type === "estimate" ? "ar-estimates" : "ar-invoices" } }));
+  };
 
   const filtered = useMemo(() => orders.filter((o: any) =>
     !q || `${o.number} ${o.customer_name ?? ""} ${o.vehicle_label ?? ""} ${o.notes ?? ""}`
@@ -253,7 +290,7 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
         : [];
       const items = [...laborItem, ...partsItems];
 
-      const { error } = await supabase.from("ar_invoices" as any).insert({
+      const { data: inv, error } = await supabase.from("ar_invoices" as any).insert({
         store_id: storeId,
         number: await assignDocNumber(storeId, "invoice"),
         status: "draft",
@@ -265,21 +302,90 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
         total_cents: o.total_cents ?? 0,
         amount_paid_cents: 0,
         source_workorder_id: o.id,
-      });
+      }).select("id").single();
       if (error) throw error;
       await supabase.from("ar_work_orders" as any)
         .update({ status: "done", converted_invoice: true }).eq("id", o.id);
       const reminderCount = await scheduleFollowUps(o);
-      return { reminderCount };
+      return { reminderCount, invoiceId: (inv as any)?.id as string | undefined };
     },
     onSuccess: (res: any) => {
       const remPart = res?.reminderCount ? ` · ${res.reminderCount} follow-up reminder${res.reminderCount === 1 ? "" : "s"} scheduled` : "";
       toast.success(`Converted to Invoice${remPart}`);
       qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-invoices", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-invoices-min", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-reminders", storeId] });
+      setOpen(false);
+      if (res?.invoiceId) openDoc("invoice", res.invoiceId);
     },
     onError: (e: any) => toast.error(e.message ?? "Conversion failed"),
+  });
+
+  // Build line items + a doc draft from a work order (used for both estimate and
+  // invoice creation). Labor becomes one line; each part becomes a line.
+  const buildLineItems = (o: any) => {
+    const laborItem = o.labor_hours
+      ? [{ category: "labor", description: "Labor", hours: o.labor_hours, price: o.total_cents ? ((o.total_cents / 100) / o.labor_hours) : 0 }]
+      : [];
+    const partsItems = Array.isArray(o.parts_used)
+      ? o.parts_used.map((p: any) => ({ category: "part", description: p.name || "Part", qty: p.qty ?? 1, price: p.unit_cents ? p.unit_cents / 100 : 0 }))
+      : [];
+    return [...laborItem, ...partsItems];
+  };
+
+  // Merge the dialog's current (possibly unsaved) edits over the saved order so
+  // a created estimate/invoice reflects what the user sees.
+  const buildDocSource = () => {
+    const current: any = orders.find((o: any) => o.id === editId) || {};
+    return {
+      ...current,
+      id: editId,
+      customer_name: form.customer_name,
+      customer_phone: form.customer_phone,
+      customer_email: form.customer_email,
+      vehicle_label: form.vehicle_label,
+      notes: form.notes,
+      labor_hours: form.labor_hours ? parseFloat(form.labor_hours) : (current.labor_hours ?? null),
+      total_cents: form.total_cents_str ? Math.round(parseFloat(form.total_cents_str) * 100) : (current.total_cents ?? 0),
+    };
+  };
+
+  const createEstimate = useMutation({
+    mutationFn: async (o: any) => {
+      const items = buildLineItems(o);
+      const total = o.total_cents ?? 0;
+      const { data, error } = await supabase.from("ar_estimates" as any).insert({
+        store_id: storeId,
+        number: await assignDocNumber(storeId, "estimate"),
+        status: "draft",
+        customer_name: o.customer_name,
+        customer_phone: o.customer_phone,
+        customer_email: o.customer_email,
+        vehicle_label: o.vehicle_label,
+        notes: o.notes ?? null,
+        items,
+        line_items: items,
+        subtotal_cents: total,
+        total_cents: total,
+      }).select("id, number").single();
+      if (error) throw error;
+      // Link the estimate to the work order so the WO row can show + open it.
+      const created = data as any;
+      if (o.id && created?.id) {
+        await supabase.from("ar_work_orders" as any).update({ estimate_id: created.id }).eq("id", o.id);
+      }
+      return created;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Estimate ${data?.number ?? ""} created`.trim());
+      qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-estimates-min", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+      setOpen(false);
+      if (data?.id) openDoc("estimate", data.id);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Could not create estimate"),
   });
 
   const shareStatus = async (o: any) => {
@@ -310,11 +416,30 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
               <AlertOctagon className="w-3 h-3" /> Comeback
             </Badge>
           )}
-          {o.converted_invoice && (
-            <Badge variant="outline" className="text-[10px] gap-1">
-              <Receipt className="w-3 h-3" /> Invoiced
-            </Badge>
+          {o.estimate_id && estNumById[o.estimate_id] && (
+            <button
+              type="button"
+              onClick={() => openDoc("estimate", o.estimate_id)}
+              title={`Open ${estNumById[o.estimate_id]}`}
+              className="inline-flex items-center gap-1 rounded-full border border-amber-300 px-2 py-0.5 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-50"
+            >
+              <FileText className="w-3 h-3" /> {estNumById[o.estimate_id]}
+            </button>
           )}
+          {o.converted_invoice && (() => {
+            const inv = invByWoId[o.id];
+            return (
+              <button
+                type="button"
+                onClick={() => inv && openDoc("invoice", inv.id)}
+                disabled={!inv}
+                title={inv ? `Open ${inv.number}` : "Invoiced"}
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-300 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-default disabled:opacity-60"
+              >
+                <Receipt className="w-3 h-3" /> {inv?.number || "Invoiced"}
+              </button>
+            );
+          })()}
           {o.technician_id && techMap[o.technician_id] && (
             <Badge variant="outline" className="text-[10px] gap-1">
               <User className="w-3 h-3" /> {techMap[o.technician_id]}
@@ -610,11 +735,37 @@ export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
                 onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => save.mutate()} disabled={save.isPending}>
-              {save.isPending ? "Saving..." : editId ? "Save changes" : "Create RO"}
-            </Button>
+          <DialogFooter className="sm:justify-between">
+            {editId ? (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => createEstimate.mutate(buildDocSource())}
+                  disabled={createEstimate.isPending}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  {createEstimate.isPending ? "Creating…" : "Create Estimate"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => convertToInvoice.mutate(buildDocSource())}
+                  disabled={convertToInvoice.isPending}
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  {convertToInvoice.isPending ? "Creating…" : "Create Invoice"}
+                </Button>
+              </div>
+            ) : <span />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={() => save.mutate()} disabled={save.isPending}>
+                {save.isPending ? "Saving..." : editId ? "Save changes" : "Create RO"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

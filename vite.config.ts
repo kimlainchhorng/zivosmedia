@@ -348,6 +348,16 @@ export default defineConfig(({ mode }) => ({
         find: "@radix-ui/react-slot",
         replacement: path.resolve(__dirname, "./node_modules/@radix-ui/react-slot"),
       },
+      // React 19.2 re-invokes identity-changing callback refs on every commit,
+      // so Radix PopperAnchor's setState-in-ref (onAnchorChange) loops forever
+      // ("Maximum update depth exceeded") across Select/Popover/Dropdown/Tooltip
+      // — white-screening pages like /more and the embedded Build R.O. sections.
+      // This shim makes useComposedRefs return a stable-identity ref, breaking
+      // the loop app-wide. Keep in sync with @radix-ui/react-compose-refs' API.
+      {
+        find: /^@radix-ui\/react-compose-refs$/,
+        replacement: path.resolve(__dirname, "./src/lib/radix-compose-refs-shim.ts"),
+      },
       // React 19 hoists <title>/<meta>/<link> natively. react-helmet-async
       // collides with that hoisting, causing NotFoundError on commit/unmount
       // (App failed to start crash on iOS WKWebView in particular).

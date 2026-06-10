@@ -421,10 +421,9 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                 {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <motion.button
-                        whileHover={{ scale: 1.05, z: 10 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="lg:hidden flex items-center gap-2 px-2 py-1.5 rounded-full transition-all duration-200 group"
+                      <button
+                        type="button"
+                        className="lg:hidden flex items-center gap-2 px-2 py-1.5 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 group"
                         style={{
                           background: "hsl(var(--muted) / 0.3)",
                           boxShadow: "0 2px 10px -2px hsl(var(--foreground) / 0.06), inset 0 1px 1px hsl(var(--background) / 0.4)",
@@ -454,7 +453,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                           )}
                         </div>
                         <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors lg:hidden" />
-                      </motion.button>
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"

@@ -8,7 +8,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { invalidateAllStoryCaches } from "@/lib/storiesCache";
@@ -27,6 +27,7 @@ import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2";
 import Globe2 from "lucide-react/dist/esm/icons/globe-2";
 import Zap from "lucide-react/dist/esm/icons/zap";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
+import XIcon from "lucide-react/dist/esm/icons/x";
 import { useHaptic } from "@/hooks/useHaptic";
 
 const externalIntents = (url: string, text: string) => {
@@ -228,16 +229,24 @@ export default function PostShareSheet() {
 
   return (
     <Sheet open={!!target} onOpenChange={(o) => { if (!o) close(); }}>
-      <SheetContent side="bottom" className="zivo-social-sheet-panel rounded-t-3xl px-4 pt-3 pb-[max(1.25rem,var(--zivo-safe-bottom,0px))]">
+      <SheetContent side="bottom" hideClose className="zivo-social-sheet-panel rounded-t-3xl px-4 pt-3 pb-[max(1.25rem,var(--zivo-safe-bottom,0px))]">
         <SheetHeader className="zivo-social-header-glass rounded-[1.25rem] px-4 py-3 text-left">
-          <div className="flex items-center gap-3">
-            <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-primary">
-              <Share2 className="h-[18px] w-[18px]" />
-            </span>
-            <div className="min-w-0">
-              <SheetTitle className="truncate text-[17px] font-extrabold tracking-tight">Share post</SheetTitle>
-              <p className="truncate text-xs font-medium text-muted-foreground">{host}</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-primary">
+                <Share2 className="h-[18px] w-[18px]" />
+              </span>
+              <div className="min-w-0">
+                <SheetTitle className="truncate text-[17px] font-extrabold tracking-tight">Share post</SheetTitle>
+                <p className="truncate text-xs font-medium text-muted-foreground">{host}</p>
+              </div>
             </div>
+            <SheetClose
+              aria-label="Close"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <XIcon className="h-4 w-4" />
+            </SheetClose>
           </div>
           <SheetDescription className="sr-only">
             Choose where to share this post or copy its link.

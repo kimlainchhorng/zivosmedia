@@ -9,7 +9,7 @@ import PackageCheck from "lucide-react/dist/esm/icons/package-check";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import X from "lucide-react/dist/esm/icons/x";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useStoreProductSearch } from "@/hooks/usePostProducts";
 import { cn } from "@/lib/utils";
 
@@ -61,22 +61,30 @@ export default function ProductPickerSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="zivo-social-sheet-panel flex h-[82vh] flex-col overflow-hidden rounded-t-[1.75rem] p-0">
+      <SheetContent side="bottom" hideClose className="zivo-social-sheet-panel flex h-[82vh] flex-col overflow-hidden rounded-t-[1.75rem] p-0">
         <SheetHeader className="zivo-social-header-glass m-2 rounded-[1.25rem] px-4 py-3">
-          <SheetTitle className="flex items-center gap-2.5 text-left text-base">
-            <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
-              <ShoppingBag className="h-4 w-4 text-primary" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate leading-tight">Tag products</span>
-              <span className="block truncate text-[11px] font-medium text-muted-foreground">
-                Add shoppable products to this post
+          <div className="flex items-center justify-between gap-3">
+            <SheetTitle className="flex min-w-0 flex-1 items-center gap-2.5 text-left text-base">
+              <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
+                <ShoppingBag className="h-4 w-4 text-primary" />
               </span>
-            </span>
-            <span className="zivo-social-chip-active rounded-full px-3 py-1.5 text-[11px] font-bold">
-              {selectedIds.length}/{max}
-            </span>
-          </SheetTitle>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate leading-tight">Tag products</span>
+                <span className="block truncate text-[11px] font-medium text-muted-foreground">
+                  Add shoppable products to this post
+                </span>
+              </span>
+              <span className="zivo-social-chip-active rounded-full px-3 py-1.5 text-[11px] font-bold">
+                {selectedIds.length}/{max}
+              </span>
+            </SheetTitle>
+            <SheetClose
+              aria-label="Close"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <X className="h-4 w-4" />
+            </SheetClose>
+          </div>
         </SheetHeader>
 
         <div className="space-y-2 px-3 pb-2 pt-1">

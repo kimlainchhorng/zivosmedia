@@ -2,6 +2,7 @@
  * useUnifiedPerformance — Cross-tab analytics combining Ads + Marketing events.
  * Supports preset ranges (7d/30d/90d) and custom from/to dates.
  */
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,25 +23,33 @@ export function useUnifiedPerformance(
   const opts: UnifiedPerfOptions =
     typeof rangeOrOptions === "string" ? { range: rangeOrOptions } : rangeOrOptions;
   const range = opts.range ?? "30d";
+  const fromIso = opts.fromIso;
+  const toIso = opts.toIso;
 
-  // Compute since/until ISO
-  const now = Date.now();
-  let sinceIso: string;
-  let untilIso: string;
-  let days: number;
-
-  if (range === "custom" && opts.fromIso && opts.toIso) {
-    sinceIso = opts.fromIso;
-    untilIso = opts.toIso;
-    days = Math.max(
-      1,
-      Math.ceil((new Date(opts.toIso).getTime() - new Date(opts.fromIso).getTime()) / 86_400_000)
-    );
-  } else {
-    days = presetDays(range);
-    sinceIso = new Date(now - days * 86_400_000).toISOString();
-    untilIso = new Date(now).toISOString();
-  }
+  // Stabilize the time window across renders. Computing Date.now() during render
+  // produced a fresh sinceIso/untilIso every render, which changed the query key
+  // on every render → perpetual refetch loop → data for the current key never
+  // resolved (panel stuck on "Loading…"). Memoizing freezes the window per
+  // mount / param change.
+  const { sinceIso, untilIso, days } = useMemo(() => {
+    if (range === "custom" && fromIso && toIso) {
+      return {
+        sinceIso: fromIso,
+        untilIso: toIso,
+        days: Math.max(
+          1,
+          Math.ceil((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 86_400_000)
+        ),
+      };
+    }
+    const d = presetDays(range);
+    const now = Date.now();
+    return {
+      sinceIso: new Date(now - d * 86_400_000).toISOString(),
+      untilIso: new Date(now).toISOString(),
+      days: d,
+    };
+  }, [range, fromIso, toIso]);
 
   return useQuery({
     queryKey: ["unified-performance", storeId, range, sinceIso, untilIso],

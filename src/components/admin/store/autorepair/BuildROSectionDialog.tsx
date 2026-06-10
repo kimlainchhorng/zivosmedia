@@ -51,9 +51,24 @@ export default function BuildROSectionDialog({ storeId, tab, onOpenChange, onNav
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
+      // Only act on messages from our own app (the embedded section iframe).
+      if (e.origin !== window.location.origin) return;
       if (e.data?.type === "ar_navigate" && e.data?.tab) {
+        // Apply any handoff prefill in the parent context first, so the target
+        // tab (e.g. Build R.O.) reliably sees it even if storage isn't shared
+        // across the iframe boundary. Then close the popup and switch tabs.
+        const prefill = e.data.prefill;
+        if (prefill?.key && typeof prefill.value === "string") {
+          try { sessionStorage.setItem(prefill.key, prefill.value); } catch { /* ignore */ }
+        }
         onOpenChange(false);
         onNavigate?.(e.data.tab);
+        // Build R.O. is usually already mounted under this popup, so navigating to
+        // its tab is a no-op and its mount-time prefill read won't re-fire. Nudge it
+        // to consume the handoff now (next tick, after the dialog has closed).
+        if (e.data.tab === "ar-build-ro") {
+          setTimeout(() => window.dispatchEvent(new CustomEvent("ar-buildro-consume-prefill")), 0);
+        }
       }
     };
     window.addEventListener("message", handler);

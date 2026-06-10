@@ -9,7 +9,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Home, MessageCircle, User, Film, Newspaper, Car } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuth } from "@/contexts/AuthContext";
@@ -138,127 +138,134 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
       data-zivo-mobile-nav
       className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe pointer-events-none"
     >
-      <div className="flex justify-center pb-3 pointer-events-auto">
-        {/* Floating pill — width animates as active tab expands/contracts */}
-        <motion.div
-          layout
-          transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.75 }}
+      {/* Big floating frosted pill — wide (near full-width) but rounded on all
+          sides and floating above the bottom with side + bottom margins. */}
+      <div className="px-3 pb-3">
+        <div
           className={cn(
-            "flex h-[54px] items-center gap-[3px] rounded-[23px] px-1.5",
-            "bg-white/88 backdrop-blur-2xl",
-            "shadow-[0_6px_32px_rgba(0,0,0,0.12),0_1px_0_rgba(255,255,255,0.7)_inset,0_0_0_1px_rgba(0,0,0,0.06)]",
-            "dark:bg-zinc-900/88 dark:shadow-[0_6px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.07)]",
+            "pointer-events-auto flex w-full items-stretch gap-1 px-2 py-2",
+            "rounded-[30px] bg-white/90 backdrop-blur-2xl",
+            "border border-black/[0.06]",
+            "shadow-[0_12px_40px_rgba(0,0,0,0.16),0_1px_0_rgba(255,255,255,0.7)_inset]",
+            "dark:bg-zinc-900/90 dark:border-white/10 dark:shadow-[0_14px_44px_rgba(0,0,0,0.6)]",
           )}
         >
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-            const label = t(tab.labelKey);
-            const isAccountWithAvatar = tab.id === "account" && !!user;
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
+          const label = t(tab.labelKey);
+          const isAccountWithAvatar = tab.id === "account" && !!user;
 
-            return (
-              <motion.button
-                key={tab.id}
-                layout="position"
-                type="button"
-                onPointerDown={() => {
-                  const target = tab.path.startsWith("/login")
-                    ? decodeURIComponent(tab.path.split("redirect=")[1] || "")
-                    : tab.path;
-                  if (target && activeTab !== tab.id) prefetch(target);
-                }}
-                onClick={() => {
-                  if (tab.id === "account" && activeTab === "account") {
-                    impact("light");
-                    navigate(location.pathname.startsWith("/more") ? gated("/profile") : "/more");
-                    return;
-                  }
-                  if (activeTab !== tab.id) {
-                    impact("light");
-                    navigate(tab.path);
-                  }
-                }}
-                className={cn(
-                  "relative flex h-10 min-w-[44px] touch-manipulation items-center justify-center gap-[5px]",
-                  "rounded-[18px] px-3 transition-colors duration-100 active:scale-[0.93]",
-                  isActive
-                    ? isAccountWithAvatar
-                      ? "bg-zinc-100/90 dark:bg-zinc-800/80"
-                      : "bg-ig-gradient text-white shadow-[0_2px_12px_rgba(236,72,153,0.32)]"
-                    : "text-zinc-400/90 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300",
-                )}
-                aria-label={label}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {/* Icon / avatar */}
-                {isAccountWithAvatar ? (
-                  <div className={cn(
-                    "relative z-10 shrink-0 rounded-full transition-all duration-150",
-                    isActive ? "p-[1.5px] bg-ig-gradient shadow-sm" : "",
-                  )}>
-                    <Avatar className={cn("block", isActive ? "h-[22px] w-[22px]" : "h-6 w-6")}>
-                      <AvatarImage
-                        src={profile?.avatar_url || user.user_metadata?.avatar_url || undefined}
-                        alt="Account"
-                        className="object-cover"
-                      />
-                      <AvatarFallback className={cn(
-                        "text-[10px] font-semibold",
-                        isActive
-                          ? "bg-white dark:bg-zinc-900 text-foreground"
-                          : "bg-muted text-foreground",
-                      )}>
-                        {(profile?.full_name?.[0] || user.email?.[0] || "Z").toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                ) : (
-                  <Icon
-                    className="relative z-10 h-[21px] w-[21px] shrink-0"
-                    strokeWidth={isActive ? 2.3 : 1.6}
-                    fill={isActive && tab.fillable ? "currentColor" : "none"}
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onPointerDown={() => {
+                const target = tab.path.startsWith("/login")
+                  ? decodeURIComponent(tab.path.split("redirect=")[1] || "")
+                  : tab.path;
+                if (target && activeTab !== tab.id) prefetch(target);
+              }}
+              onClick={() => {
+                if (tab.id === "account" && activeTab === "account") {
+                  impact("light");
+                  navigate(location.pathname.startsWith("/more") ? gated("/profile") : "/more");
+                  return;
+                }
+                if (activeTab !== tab.id) {
+                  impact("light");
+                  navigate(tab.path);
+                }
+              }}
+              className={cn(
+                "group relative flex flex-1 min-h-[58px] min-w-[44px] touch-manipulation flex-col items-center justify-center gap-1",
+                "rounded-2xl px-1 transition-colors duration-150 active:scale-[0.92]",
+                isActive
+                  ? "text-white"
+                  : "text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300",
+              )}
+              aria-label={t(tab.labelKey)}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {/* Active highlight — plain divs, NOT framer-motion layoutId.
+                  Shared-layout layoutId loops ("Maximum update depth") when
+                  ZivoMobileNav is mounted more than once on a page (e.g. MorePage
+                  renders its own instance), because duplicate layoutIds make the
+                  layout system re-measure endlessly. */}
+              {isActive && (
+                <>
+                  <div
+                    className="absolute inset-x-3 bottom-1 -z-0 h-4 rounded-full bg-pink-500/40 blur-lg"
                     aria-hidden
                   />
-                )}
+                  <div
+                    className="absolute inset-x-1 inset-y-1 rounded-2xl bg-ig-gradient shadow-[0_4px_16px_rgba(236,72,153,0.35)]"
+                    aria-hidden
+                  />
+                </>
+              )}
 
-                {/* Expanding label — only for active non-account tabs */}
-                <AnimatePresence mode="popLayout">
-                  {isActive && !isAccountWithAvatar && (
-                    <motion.span
-                      key={tab.id + "-label"}
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                      className="overflow-hidden whitespace-nowrap text-[11px] font-black tracking-[0.02em]"
-                      aria-hidden
-                    >
-                      {label}
-                    </motion.span>
+              {/* Icon / avatar */}
+              {isAccountWithAvatar ? (
+                <div className={cn(
+                  "relative z-10 shrink-0 rounded-full transition-all duration-150",
+                  isActive ? "p-[1.5px] bg-white/40 shadow-sm" : "",
+                )}>
+                  <Avatar className="block h-7 w-7">
+                    <AvatarImage
+                      src={profile?.avatar_url || user.user_metadata?.avatar_url || undefined}
+                      alt="Account"
+                      className="object-cover"
+                    />
+                    <AvatarFallback className={cn(
+                      "text-[11px] font-semibold",
+                      isActive ? "bg-white text-foreground" : "bg-muted text-foreground",
+                    )}>
+                      {(profile?.full_name?.[0] || user.email?.[0] || "Z").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              ) : (
+                <Icon
+                  className="relative z-10 h-[25px] w-[25px] shrink-0"
+                  strokeWidth={isActive ? 2.4 : 1.7}
+                  fill={isActive && tab.fillable ? "currentColor" : "none"}
+                  aria-hidden
+                />
+              )}
+
+              {/* Always-visible label */}
+              <span
+                className={cn(
+                  "relative z-10 max-w-full truncate text-[11px] font-bold tracking-tight",
+                  isActive ? "text-white" : "",
+                )}
+                aria-hidden
+              >
+                {label}
+              </span>
+
+              {/* Badge */}
+              {typeof tab.badge === "number" && tab.badge > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 520, damping: 22 }}
+                  className={cn(
+                    "absolute right-[22%] top-1 z-20 flex h-[16px] min-w-[16px] items-center justify-center",
+                    "rounded-full px-[3px] text-[9px] font-black leading-none ring-2",
+                    isActive
+                      ? "bg-white text-rose-500 ring-transparent"
+                      : "bg-destructive text-destructive-foreground ring-background",
                   )}
-                </AnimatePresence>
-
-                {/* Badge */}
-                {typeof tab.badge === "number" && tab.badge > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 520, damping: 22 }}
-                    className={cn(
-                      "absolute -right-0.5 -top-0.5 z-20 flex h-[15px] min-w-[15px] items-center justify-center",
-                      "rounded-full px-[3px] text-[9px] font-black leading-none ring-[1.5px]",
-                      isActive && !isAccountWithAvatar
-                        ? "bg-white text-rose-500 ring-white/40"
-                        : "bg-destructive text-destructive-foreground ring-background",
-                    )}
-                  >
-                    {tab.badge > 99 ? "99+" : tab.badge}
-                  </motion.span>
-                )}
-              </motion.button>
-            );
-          })}
-        </motion.div>
+                >
+                  {tab.badge > 99 ? "99+" : tab.badge}
+                </motion.span>
+              )}
+            </button>
+          );
+        })}
+        </div>
       </div>
     </nav>
   );

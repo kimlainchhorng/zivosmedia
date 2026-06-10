@@ -10,6 +10,7 @@ import { Plus, Package, Wrench, CircleDot, Receipt, Truck, Search } from "lucide
 import { listConnectedVendors, AR_SUPPLIER_NAMES } from "./AutoRepairPartSuppliersSection";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { sellFromCostCents, type MatrixTier } from "@/lib/admin/partsMatrix";
+import { searchLaborOperations } from "@/lib/admin/laborOperations";
 
 export type ComposerKind = "part" | "labor" | "tire" | "fee" | "sublet" | "diagnosis";
 
@@ -72,6 +73,7 @@ export default function BuildROLineComposer({ laborRateCents, partsMatrix, store
   const [disc, setDisc] = useState("");
   const [discType, setDiscType] = useState<"%" | "$">("%");
   const [taxable, setTaxable] = useState(true);
+  const [descFocused, setDescFocused] = useState(false);
 
   const isLabor = kind === "labor" || kind === "diagnosis";
   const isPartLike = kind === "part" || kind === "tire";
@@ -106,6 +108,17 @@ export default function BuildROLineComposer({ laborRateCents, partsMatrix, store
     : kind === "sublet" ? "Description of sublet"
     : "Description of parts";
 
+  // Standard-operation typeahead (e.g. "brake" → "Brake Pads - Front - Replace").
+  const suggestions = useMemo(() => searchLaborOperations(description), [description]);
+  const showSuggestions = descFocused && suggestions.length > 0;
+
+  const pickOperation = (op: { label: string; hours: number }) => {
+    setDescription(op.label);
+    // For labor/diag lines, seed the Hrs field with the operation's book time.
+    if (isLabor && op.hours > 0) setQty(String(op.hours));
+    setDescFocused(false);
+  };
+
   const reset = () => {
     setDescription("");
     setPartNumber("");
@@ -139,7 +152,7 @@ export default function BuildROLineComposer({ laborRateCents, partsMatrix, store
 
   return (
     <form
-      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+      className="rounded-xl border border-slate-200 bg-white shadow-sm"
       onSubmit={(e) => { e.preventDefault(); add(); }}
     >
       <div className="grid gap-2 p-3 xl:grid-cols-[104px_minmax(0,1fr)]">
@@ -170,7 +183,34 @@ export default function BuildROLineComposer({ laborRateCents, partsMatrix, store
           </Field>
 
           <Field label="Description" className={isPartLike || isLabor ? "md:col-span-4" : "md:col-span-6"}>
-            <input className={`${inp} w-full`} placeholder={label} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <div className="relative">
+              <input
+                className={`${inp} w-full`}
+                placeholder={label}
+                value={description}
+                autoComplete="off"
+                onChange={(e) => setDescription(e.target.value)}
+                onFocus={() => setDescFocused(true)}
+                onBlur={() => setDescFocused(false)}
+              />
+              {showSuggestions && (
+                <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-60 overflow-auto rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                  {suggestions.map((op) => (
+                    <button
+                      key={op.label}
+                      type="button"
+                      // onMouseDown fires before the input's blur, so the pick
+                      // lands before the dropdown unmounts on blur.
+                      onMouseDown={(e) => { e.preventDefault(); pickOperation(op); }}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-xs transition hover:bg-sky-50"
+                    >
+                      <span className="min-w-0 truncate font-medium text-slate-800">{op.label}</span>
+                      <span className="shrink-0 text-[10px] font-semibold text-slate-400">{op.group} · {op.hours}h</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </Field>
 
           {isPartLike && (

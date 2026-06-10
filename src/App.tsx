@@ -158,6 +158,7 @@ import { ZivoTravel3DProvider } from "@/components/zivo-travel/ZivoTravel3DProvi
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
+const DevBuildRO = lazy(() => import("./pages/__DevBuildRO"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ConnectCallback = lazy(() => import("./pages/ConnectCallback"));
 const OAuthForwarder = lazy(() => import("./pages/OAuthForwarder"));
@@ -1693,6 +1694,7 @@ const App = () => (
                             <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : isCurrentZivoDriverHost() ? <ZivoDriverLandingPage /> : isCurrentZivoBusinessHost() ? <ZivoBusinessHome /> : isCurrentZivoEmployeeHost() ? <ZivoEmployeeHome /> : <Index />} />
                             <Route path="/zivo-travel" element={<ZivoTravelHome />} />
                             
+                            <Route path="/__dev_buildro/:storeId" element={<DevBuildRO />} />
                             <Route path="/login" element={<Login />} />
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/unsubscribe" element={<Unsubscribe />} />

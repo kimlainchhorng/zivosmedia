@@ -512,6 +512,12 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                     onTabChange("ar-dashboard");
                   } else if (isAutoRepairSoftwareDomain) {
                     navigate("/business");
+                  } else if (isAutoRepair) {
+                    // Already at the Auto Repair dashboard home: leave the shop for
+                    // the account hub. navigate(-1) only steps back through the
+                    // dashboard's own tab history, so it lands on the dashboard
+                    // again and looks like nothing happened.
+                    navigate("/more");
                   } else {
                     navigate(-1);
                   }
@@ -747,6 +753,16 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
           >
             <Download className="w-3.5 h-3.5" />
             Software & Apps
+          </button>
+          <button type="button"
+            onClick={() => { onTabChange?.("subscriptions"); closeSidebar(); }}
+            className={cn(
+              "w-full flex items-center gap-2 px-2 py-1 rounded-md text-[12px] transition-colors",
+              activeTab === "subscriptions" ? "bg-primary/12 text-primary font-semibold" : "text-foreground/75 hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            Subscriptions
           </button>
           </>}
           {!isAutoRepairSoftwareDomain && (

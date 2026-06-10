@@ -14,7 +14,7 @@
  * fields ride along; the legacy {kind,name,qty,unit_cents} keys are kept so the simple Estimates list and
  * the print/share flows keep working). No database changes — clean note/PO round-tripping lands in Phase 2.
  */
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import BuildROSectionDialog from "./BuildROSectionDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -223,6 +223,8 @@ const blankHeader = {
   diagnosis: "",
   recommendation: "",
   warranty: "",
+  extended_warranty: "",
+  insurance: "",
   note: "",
   internal: "",
 };
@@ -239,6 +241,8 @@ const NOTE_TABS = [
   { key: "diagnosis", label: "Diagnosis" },
   { key: "recommendation", label: "Recommendation" },
   { key: "warranty", label: "Warranty" },
+  { key: "extended_warranty", label: "Extend Warranty" },
+  { key: "insurance", label: "Insurance" },
   { key: "note", label: "Note" },
   { key: "internal", label: "Internal Note" },
 ] as const;
@@ -250,6 +254,8 @@ const composeNotes = (h: HeaderForm) => {
   if (h.diagnosis.trim()) parts.push(`Diagnosis: ${h.diagnosis.trim()}`);
   if (h.recommendation.trim()) parts.push(`Recommendation: ${h.recommendation.trim()}`);
   if (h.warranty.trim()) parts.push(`Warranty: ${h.warranty.trim()}`);
+  if (h.extended_warranty.trim()) parts.push(`Extended Warranty: ${h.extended_warranty.trim()}`);
+  if (h.insurance.trim()) parts.push(`Insurance: ${h.insurance.trim()}`);
   if (h.note.trim()) parts.push(`Note: ${h.note.trim()}`);
   if (h.internal.trim()) parts.push(`Internal: ${h.internal.trim()}`);
   return parts.join("\n\n");
@@ -261,6 +267,7 @@ const parseNotes = (notes: string | null): Partial<HeaderForm> => {
   const map: Record<string, keyof HeaderForm> = {
     "Customer Request": "customer_request", Diagnosis: "diagnosis",
     Recommendation: "recommendation", Warranty: "warranty", Note: "note", Internal: "internal",
+    "Extended Warranty": "extended_warranty", Insurance: "insurance",
   };
   const blocks = notes.split(/\n\n+/);
   let matchedAny = false;
@@ -333,6 +340,8 @@ const tidyNote = (raw: string): string => {
 
 export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwareDomain = false }: Props) {
   const qc = useQueryClient();
+  (window as any).__arc = (window as any).__arc || { r: 0, e1: 0, e2: 0, e3: 0, e4: 0 };
+  (window as any).__arc.r++;
   const suppliesLabel = isSoftwareDomain ? "Supply Charge" : "Shop Supplies";
   const [editId, setEditId] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
@@ -864,7 +873,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
 
   // Handoff from another tab (Estimates list "Open / New in Build R.O."): a sessionStorage
   // key + the lodge-set-tab event bring us here; load the requested estimate or start fresh.
-  useEffect(() => {
+  const consumeBuildROOpen = useCallback(() => {
     const raw = sessionStorage.getItem("ar_buildro_open");
     if (!raw) return;
     sessionStorage.removeItem("ar_buildro_open");
@@ -881,7 +890,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   // open a fresh R.O. here, pre-bound to that vehicle + its customer. The same
   // builder backs both — an estimate is saved with "Build R.O.", and the
   // "Invoice" button converts it, so both buttons land in the one workflow.
-  useEffect(() => {
+  const consumeBuildROPrefill = useCallback(() => {
     const raw = sessionStorage.getItem("ar_buildro_prefill");
     if (!raw) return;
     sessionStorage.removeItem("ar_buildro_prefill");
@@ -917,6 +926,17 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     } catch { /* ignore malformed prefill */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Consume the handoff on mount, and again when a Build R.O. popup (Vehicles /
+  // Customers / Estimates) hands off while this page is already mounted — in that
+  // case the mount read can't re-fire, so BuildROSectionDialog nudges us via this
+  // event. Handles both "open an existing estimate" and "prefill a new R.O.".
+  useEffect(() => {
+    const consumeAll = () => { consumeBuildROOpen(); consumeBuildROPrefill(); };
+    consumeAll();
+    window.addEventListener("ar-buildro-consume-prefill", consumeAll);
+    return () => window.removeEventListener("ar-buildro-consume-prefill", consumeAll);
+  }, [consumeBuildROOpen, consumeBuildROPrefill]);
 
   // ── Save ──
   const save = useMutation({

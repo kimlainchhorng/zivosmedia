@@ -2,15 +2,19 @@
  * TemplatesLibrary — Reusable creatives by channel with usage count.
  */
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, Edit, Trash2, Bell, Mail, MessageSquare, Smartphone, Image as ImageIcon } from "lucide-react";
+import { Plus, FileText, Edit, Trash2, Bell, Mail, MessageSquare, Smartphone, Image as ImageIcon, Sparkles } from "lucide-react";
 import { useMarketingTemplates, useDeleteTemplate, type MarketingTemplate } from "@/hooks/useMarketingTemplates";
 import TemplateEditor from "./TemplateEditor";
 import { formatDistanceToNow, parseISO } from "date-fns";
+import { getStarterTemplateSeeds } from "@/lib/marketing/starterTemplates";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const CH_ICON: Record<string, any> = {
   push: Bell, email: Mail, sms: MessageSquare, inapp: Smartphone, ad: ImageIcon,
@@ -23,14 +27,37 @@ const CH_TONE: Record<string, string> = {
   ad: "bg-rose-500/10 text-rose-600",
 };
 
-export default function TemplatesLibrary({ storeId }: { storeId: string }) {
+export default function TemplatesLibrary({ storeId, category, storeName }: { storeId: string; category?: string; storeName?: string }) {
   const [channel, setChannel] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<MarketingTemplate | null>(null);
   const [creating, setCreating] = useState(false);
+  const qc = useQueryClient();
 
+  // Load all templates (no channel filter) to dedupe the starter pack against
+  // what's already saved, regardless of the active tab.
+  const { data: allTemplates = [] } = useMarketingTemplates(storeId);
   const { data: templates = [], isLoading } = useMarketingTemplates(storeId, channel === "all" ? undefined : channel);
   const del = useDeleteTemplate(storeId);
+
+  const seedPack = useMutation({
+    mutationFn: async () => {
+      const seeds = getStarterTemplateSeeds(category, storeName);
+      const existing = new Set(allTemplates.map((t) => `${t.name}::${t.channel}`));
+      const rows = seeds
+        .filter((s) => !existing.has(`${s.name}::${s.channel}`))
+        .map((s) => ({ store_id: storeId, ...s }));
+      if (rows.length === 0) return { added: 0 };
+      const { error } = await supabase.from("marketing_templates" as any).insert(rows);
+      if (error) throw error;
+      return { added: rows.length };
+    },
+    onSuccess: (res) => {
+      toast.success(res.added ? `Added ${res.added} starter templates` : "Starter templates already added");
+      qc.invalidateQueries({ queryKey: ["marketing-templates", storeId] });
+    },
+    onError: (e: any) => toast.error(e.message || "Could not add starter templates"),
+  });
 
   const filtered = templates.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -41,9 +68,14 @@ export default function TemplatesLibrary({ storeId }: { storeId: string }) {
           <h3 className="text-sm font-semibold">Template library</h3>
           <p className="text-[11px] text-muted-foreground">{templates.length} templates</p>
         </div>
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus className="w-4 h-4 mr-1" /> New template
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => seedPack.mutate()} disabled={seedPack.isPending}>
+            <Sparkles className="w-4 h-4 mr-1" /> {seedPack.isPending ? "Adding…" : "Add starter pack"}
+          </Button>
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="w-4 h-4 mr-1" /> New template
+          </Button>
+        </div>
       </div>
 
       <Tabs value={channel} onValueChange={setChannel}>
@@ -67,6 +99,9 @@ export default function TemplatesLibrary({ storeId }: { storeId: string }) {
             <FileText className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
             <p className="text-sm font-medium">No templates yet</p>
             <p className="text-[11px] text-muted-foreground mt-1">Save reusable content for faster campaigns.</p>
+            <Button size="sm" className="mt-3" onClick={() => seedPack.mutate()} disabled={seedPack.isPending}>
+              <Sparkles className="w-4 h-4 mr-1" /> {seedPack.isPending ? "Adding…" : "Add starter pack"}
+            </Button>
           </CardContent>
         </Card>
       ) : (

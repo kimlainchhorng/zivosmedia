@@ -85,6 +85,7 @@ import Crown from "lucide-react/dist/esm/icons/crown";
 import Package from "lucide-react/dist/esm/icons/package";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -1831,9 +1832,17 @@ export default function ReelsFeedPage() {
                         <Menu className="h-5 w-5" />
                       </button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="zivo-social-surface w-[88vw] sm:w-[400px] p-0 overflow-y-auto">
+                    <SheetContent side="left" hideClose className="zivo-social-surface w-[88vw] sm:w-[400px] p-0 overflow-y-auto">
                       <SheetHeader className="zivo-social-header-glass m-2 rounded-[1.25rem] px-4 py-3">
-                        <SheetTitle className="text-base font-bold">Menu</SheetTitle>
+                        <div className="flex items-center justify-between gap-3">
+                          <SheetTitle className="text-base font-bold">Menu</SheetTitle>
+                          <SheetClose
+                            aria-label="Close"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </SheetClose>
+                        </div>
                         <SheetDescription className="sr-only">
                           Shortcuts for creating posts, navigating ZIVO, and opening saved or notification tools.
                         </SheetDescription>

@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import {
   Search, MessageSquareText, CalendarClock, ExternalLink,
   CheckCircle2, XCircle, AlertCircle, TrendingUp, RefreshCw,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Wrench, Star, BarChart3, Download,
-  Filter, SortAsc, SortDesc, Eye, Zap, Plus, Trash2
+  Filter, SortAsc, SortDesc, Eye, Zap, Plus, Trash2, ArrowLeft
 } from "lucide-react";
 import { format, isToday, isThisMonth, parseISO, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths } from "date-fns";
 import { toast } from "sonner";
@@ -39,6 +40,20 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
 };
 
 export default function AdminBookingsTab({ storeId }: { storeId: string }) {
+  const navigate = useNavigate();
+  // When opened from the Build R.O. "Section" popup the page runs inside an
+  // iframe (?embed=1); "back" there means asking the parent to close back to
+  // Build R.O. Otherwise it's a normal history back.
+  const isEmbedded = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "1";
+  const goBack = () => {
+    if (isEmbedded) {
+      window.parent?.postMessage({ type: "ar_navigate", tab: "ar-build-ro" }, window.location.origin);
+      return;
+    }
+    if (window.history.length > 1) navigate(-1);
+    else navigate(`/admin/stores/${storeId}`);
+  };
+
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
@@ -78,16 +93,16 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
   });
 
   const createBooking = async () => {
-    if (!newDialog.customer_name.trim() || !newDialog.customer_phone.trim() || !newDialog.service_name.trim() || !newDialog.date || !newDialog.time) {
-      toast.error("Name, phone, service, date and time are required");
+    if (!newDialog.customer_name.trim() || !newDialog.customer_phone.trim() || !newDialog.customer_email.trim() || !newDialog.service_name.trim() || !newDialog.date || !newDialog.time) {
+      toast.error("Name, phone, email, service, date and time are required");
       return;
     }
     setSaving(true);
-    const payload: any = {
+    const payload = {
       store_id: storeId,
       customer_name: newDialog.customer_name.trim(),
       customer_phone: newDialog.customer_phone.trim(),
-      customer_email: newDialog.customer_email.trim() || null,
+      customer_email: newDialog.customer_email.trim(),
       service_name: newDialog.service_name.trim(),
       vehicle_year: newDialog.vehicle_year.trim() || null,
       vehicle_make: newDialog.vehicle_make.trim() || null,
@@ -97,13 +112,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       preferred_time: newDialog.time,
       status: newDialog.status,
     };
-    const { error } = await supabase.functions.invoke("service-booking-manage", {
-      body: {
-        action: "create",
-        store_id: storeId,
-        booking: payload,
-      },
-    });
+    const { error } = await supabase.from("service_bookings").insert(payload as any);
     setSaving(false);
     if (error) { toast.error(error.message || "Failed to create booking"); return; }
     toast.success("Booking created");
@@ -141,9 +150,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
 
   const deleteBooking = async (id: string) => {
     if (!window.confirm("Delete this booking? This cannot be undone.")) return;
-    const { error } = await supabase.functions.invoke("service-booking-manage", {
-      body: { action: "delete", booking_id: id },
-    });
+    const { error } = await supabase.from("service_bookings").delete().eq("id", id);
     if (error) { toast.error(error.message || "Failed to delete booking"); return; }
     toast.success("Booking deleted");
     if (expandedId === id) setExpandedId(null);
@@ -151,10 +158,11 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.functions.invoke("service-booking-manage", {
-      body: { action: "update_status", booking_id: id, status },
-    });
-    if (error) { toast.error("Failed to update"); return; }
+    const { error } = await supabase
+      .from("service_bookings")
+      .update({ status, updated_at: new Date().toISOString() } as any)
+      .eq("id", id);
+    if (error) { toast.error(error.message || "Failed to update"); return; }
     toast.success(`Booking ${status}`);
     fetchBookings();
   };
@@ -213,9 +221,10 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       .select("id")
       .single();
     if (woErr || !wo) { toast.error("Failed to create work order"); setConvertingId(null); return; }
-    await supabase.functions.invoke("service-booking-manage", {
-      body: { action: "link_workorder", booking_id: b.id, workorder_id: wo.id },
-    });
+    await supabase
+      .from("service_bookings")
+      .update({ workorder_id: wo.id, updated_at: new Date().toISOString() } as any)
+      .eq("id", b.id);
     setConvertingId(null);
     toast.success(`Work Order ${woNumber} created${vehicleId ? " with linked vehicle" : ""}`);
     fetchBookings();
@@ -223,15 +232,12 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
 
   const saveNotes = async () => {
     setSaving(true);
-    const { error } = await supabase.functions.invoke("service-booking-manage", {
-      body: {
-        action: "save_notes",
-        booking_id: notesDialog.bookingId,
-        admin_notes: notesDialog.notes,
-      },
-    });
+    const { error } = await supabase
+      .from("service_bookings")
+      .update({ admin_notes: notesDialog.notes.trim() || null, updated_at: new Date().toISOString() } as any)
+      .eq("id", notesDialog.bookingId);
     setSaving(false);
-    if (error) { toast.error("Failed to save notes"); return; }
+    if (error) { toast.error(error.message || "Failed to save notes"); return; }
     toast.success("Notes saved");
     setNotesDialog({ open: false, bookingId: "", notes: "" });
     fetchBookings();
@@ -243,16 +249,16 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.functions.invoke("service-booking-manage", {
-      body: {
-        action: "reschedule",
-        booking_id: rescheduleDialog.bookingId,
+    const { error } = await supabase
+      .from("service_bookings")
+      .update({
         preferred_date: format(rescheduleDialog.date, "yyyy-MM-dd"),
         preferred_time: rescheduleDialog.time,
-      },
-    });
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("id", rescheduleDialog.bookingId);
     setSaving(false);
-    if (error) { toast.error("Failed to reschedule"); return; }
+    if (error) { toast.error(error.message || "Failed to reschedule"); return; }
     toast.success("Booking rescheduled");
     setRescheduleDialog({ open: false, bookingId: "", date: undefined, time: "" });
     fetchBookings();
@@ -266,14 +272,14 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     if (!b || b.preferred_date === newDateStr) return;
     const prevDate = b.preferred_date;
     setBookings((list) => list.map((x) => x.id === bookingId ? { ...x, preferred_date: newDateStr } : x));
-    const { error } = await supabase.functions.invoke("service-booking-manage", {
-      body: {
-        action: "reschedule",
-        booking_id: bookingId,
+    const { error } = await supabase
+      .from("service_bookings")
+      .update({
         preferred_date: newDateStr,
         preferred_time: b.preferred_time || "09:00",
-      },
-    });
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("id", bookingId);
     if (error) {
       setBookings((list) => list.map((x) => x.id === bookingId ? { ...x, preferred_date: prevDate } : x));
       toast.error("Couldn't move booking");
@@ -357,9 +363,21 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     <div className="space-y-5">
       {/* ── Header with refresh ── */}
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-bold text-foreground">Customer Bookings</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{bookings.length} total bookings</p>
+        <div className="flex items-center gap-3">
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={goBack}
+            className="h-9 w-9 shrink-0"
+            aria-label="Back"
+            title="Back"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h3 className="text-lg font-bold text-foreground">Customer Bookings</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{bookings.length} total bookings</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -975,7 +993,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                 <Input value={newDialog.customer_phone} onChange={e => setNewDialog(n => ({ ...n, customer_phone: e.target.value }))} placeholder="(555) 555-5555" />
               </div>
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium mb-1.5 block">Email</label>
+                <label className="text-sm font-medium mb-1.5 block">Email *</label>
                 <Input type="email" value={newDialog.customer_email} onChange={e => setNewDialog(n => ({ ...n, customer_email: e.target.value }))} placeholder="customer@example.com" />
               </div>
               <div className="sm:col-span-2">

@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, Wallet } from "@/lib/lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
@@ -120,8 +122,30 @@ export default function StoreAdsManager({ storeId }: Props) {
 
   const accountByPlatform = (p: AdPlatform) => accounts.find((a) => a.platform === p);
 
-  const goToWallet = () => {
-    document.getElementById("ads-wallet")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // ── Ads wallet top-up (inline) ──
+  // Pick an amount here, then Stripe Checkout handles payment; on return the
+  // store page verifies the session and credits the wallet (server-side).
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpDollars, setTopUpDollars] = useState("50");
+  const [topUpSubmitting, setTopUpSubmitting] = useState(false);
+  const TOP_UP_PRESETS = [25, 50, 100, 250];
+
+  const startTopUp = async () => {
+    const cents = Math.round(parseFloat(topUpDollars || "0") * 100);
+    if (!cents || cents < 500) { toast.error("Minimum top-up is $5"); return; }
+    setTopUpSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-ads-wallet-topup", {
+        body: { store_id: storeId, amount_cents: cents, return_url: `/admin/stores/${storeId}` },
+      });
+      if (error) throw error;
+      const url = (data as any)?.url as string | undefined;
+      if (!url) throw new Error((data as any)?.error || "Could not start checkout");
+      window.location.href = url; // Stripe Checkout
+    } catch (e: any) {
+      toast.error(e.message || "Could not start top-up");
+      setTopUpSubmitting(false);
+    }
   };
 
   // ===== Mutations =====
@@ -424,7 +448,7 @@ export default function StoreAdsManager({ storeId }: Props) {
           stats={stats}
           wallet={wallet}
           onCreateCampaign={openCreate}
-          onAddFunds={goToWallet}
+          onAddFunds={() => setTopUpOpen(true)}
           onConnectPlatform={scrollToPlatforms}
           onOpenCampaign={(c) => setDetailCampaign(c)}
         />
@@ -454,7 +478,7 @@ export default function StoreAdsManager({ storeId }: Props) {
             wallet={wallet}
             ledger={ledger}
             stats={stats}
-            onAddFunds={() => navigate("/shop-dashboard/wallet")}
+            onAddFunds={() => setTopUpOpen(true)}
             onViewAll={() => navigate("/shop-dashboard/wallet")}
             onToggleAutoReload={() => navigate("/shop-dashboard/wallet")}
           />
@@ -468,7 +492,7 @@ export default function StoreAdsManager({ storeId }: Props) {
         <AdsOnboardingChecklist
           state={checklist}
           onConnectPlatform={scrollToPlatforms}
-          onAddBilling={goToWallet}
+          onAddBilling={() => setTopUpOpen(true)}
           onCreateCampaign={openCreate}
           onSubmitForReview={scrollToCampaigns}
         />
@@ -704,7 +728,7 @@ export default function StoreAdsManager({ storeId }: Props) {
         saving={saveCampaign.isPending}
         walletBalanceCents={wallet.balance_cents}
         onConnectPlatform={(p) => { setCreateOpen(false); setConnectPlatform(p); }}
-        onAddFunds={goToWallet}
+        onAddFunds={() => { setCreateOpen(false); setTopUpOpen(true); }}
       />
 
       {/* Campaign detail drawer */}
@@ -720,6 +744,55 @@ export default function StoreAdsManager({ storeId }: Props) {
         onPause={(c) => toggleStatus.mutate({ id: c.id, status: "paused" })}
         onResume={(c) => toggleStatus.mutate({ id: c.id, status: "active" })}
       />
+
+      {/* Add funds — pick an amount, then continue to secure Stripe checkout */}
+      <Dialog open={topUpOpen} onOpenChange={(o) => { if (!topUpSubmitting) setTopUpOpen(o); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary" /> Add funds to ad wallet
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-4 gap-2">
+              {TOP_UP_PRESETS.map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setTopUpDollars(String(amt))}
+                  className={cn(
+                    "rounded-lg border py-2 text-sm font-semibold transition-all",
+                    topUpDollars === String(amt) ? "border-primary bg-primary/5 text-primary" : "border-border hover:border-primary/40",
+                  )}
+                >
+                  ${amt}
+                </button>
+              ))}
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Custom amount (USD)</label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                <Input
+                  type="number"
+                  min="5"
+                  step="1"
+                  value={topUpDollars}
+                  onChange={(e) => setTopUpDollars(e.target.value)}
+                  className="pl-6"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Minimum $5. Charged securely via Stripe.</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setTopUpOpen(false)} disabled={topUpSubmitting}>Cancel</Button>
+            <Button onClick={startTopUp} disabled={topUpSubmitting}>
+              {topUpSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continue to payment</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

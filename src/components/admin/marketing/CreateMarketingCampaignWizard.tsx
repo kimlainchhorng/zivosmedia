@@ -17,7 +17,7 @@ import { useMarketingSegments } from "@/hooks/useMarketingSegments";
 import SegmentPicker from "./SegmentPicker";
 import TemplatePicker from "./TemplatePicker";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -30,6 +30,8 @@ interface Props {
   storeId: string;
   onCreated?: () => void;
   defaultChannel?: Channel;
+  storeName?: string;
+  storeCategory?: string;
 }
 
 const CHANNELS: { id: Channel; icon: any; label: string; desc: string }[] = [
@@ -40,7 +42,121 @@ const CHANNELS: { id: Channel; icon: any; label: string; desc: string }[] = [
   { id: "multi", icon: Layers, label: "Multi-channel", desc: "Sequential" },
 ];
 
-export default function CreateMarketingCampaignWizard({ open, onClose, storeId, onCreated, defaultChannel }: Props) {
+const CHANNEL_LABEL: Record<Channel, string> = {
+  push: "Push notification", email: "Email", sms: "Text message", inapp: "In-app banner", multi: "Multi-channel",
+};
+
+// Channel-aware device preview: each channel renders the way the customer
+// actually receives it (lock-screen push, email client, SMS bubble, in-app
+// banner, or a multi-channel stack) so the owner sees a realistic result.
+function CampaignLivePreview({ channel, subject, body, storeName, logoUrl }: { channel: Channel; subject: string; body: string; storeName: string; logoUrl?: string | null }) {
+  const title = subject || "Your title";
+  const text = body || "Your message preview…";
+  const initial = (storeName || "Y").trim().charAt(0).toUpperCase();
+  // Sender avatar: the store's real logo when set, otherwise its initial.
+  const logo = (cls: string, textSize?: string) =>
+    logoUrl
+      ? <img src={logoUrl} alt="" className={`${cls} object-cover shrink-0`} />
+      : <div className={`${cls} bg-primary/20 flex items-center justify-center font-bold text-primary shrink-0 ${textSize ?? ""}`}>{initial}</div>;
+  return (
+    <div className="w-[210px] h-[420px] rounded-[2.2rem] border-[5px] border-foreground/85 bg-background overflow-hidden flex flex-col shadow-2xl">
+      {/* notch / status bar */}
+      <div className="relative h-7 bg-foreground/90 shrink-0">
+        <div className="absolute left-1/2 top-1.5 -translate-x-1/2 h-3 w-16 rounded-full bg-background/25" />
+      </div>
+
+      {channel === "push" && (
+        <div className="flex-1 bg-gradient-to-b from-zinc-700 via-zinc-800 to-zinc-900 px-3 pt-4 flex flex-col items-center">
+          <div className="text-white/90 text-2xl font-semibold tracking-tight leading-none">9:41</div>
+          <div className="text-white/70 text-[10px] mt-1 mb-4">Monday, June 10</div>
+          <div className="w-full rounded-2xl bg-white/95 backdrop-blur p-2.5 shadow-lg">
+            <div className="flex items-center gap-1.5 mb-1">
+              {logo("w-4 h-4 rounded-[5px]", "text-[7px]")}
+              <span className="text-[9px] font-medium uppercase tracking-wide text-zinc-500 truncate">{storeName} · now</span>
+            </div>
+            <div className="text-[11px] font-bold leading-tight text-zinc-900 break-words">{title}</div>
+            <div className="text-[10px] text-zinc-600 line-clamp-3 mt-0.5 break-words">{text}</div>
+          </div>
+        </div>
+      )}
+
+      {channel === "email" && (
+        <div className="flex-1 bg-white flex flex-col min-h-0">
+          <div className="px-2.5 py-2 border-b bg-zinc-50 flex items-center gap-1.5 shrink-0">
+            {logo("w-6 h-6 rounded-full", "text-[10px]")}
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold text-zinc-800 truncate">{storeName}</div>
+              <div className="text-[8px] text-zinc-400">to me · now</div>
+            </div>
+          </div>
+          <div className="p-2.5 flex-1 overflow-hidden">
+            <div className="text-[11px] font-bold text-zinc-900 leading-tight mb-1.5 line-clamp-2 break-words">{title}</div>
+            <div className="text-[10px] text-zinc-600 leading-snug whitespace-pre-wrap line-clamp-[9] break-words">{text}</div>
+            <div className="mt-2 inline-block rounded-md bg-primary px-2.5 py-1 text-[9px] font-semibold text-primary-foreground">View offer</div>
+          </div>
+        </div>
+      )}
+
+      {channel === "sms" && (
+        <div className="flex-1 bg-white flex flex-col min-h-0">
+          <div className="px-2.5 py-2 border-b text-center shrink-0">
+            <div className="flex justify-center mb-0.5">{logo("w-8 h-8 rounded-full", "text-[11px]")}</div>
+            <div className="text-[9px] font-semibold text-zinc-700 truncate">{storeName}</div>
+          </div>
+          <div className="p-2.5 flex-1 overflow-hidden">
+            <div className="max-w-[88%] rounded-2xl rounded-bl-md bg-zinc-100 px-2.5 py-1.5">
+              <div className="text-[10px] text-zinc-800 whitespace-pre-wrap break-words line-clamp-[10]">{text}</div>
+            </div>
+            <div className="text-[8px] text-zinc-400 mt-1 ml-1">Delivered</div>
+          </div>
+        </div>
+      )}
+
+      {channel === "inapp" && (
+        <div className="flex-1 relative bg-zinc-50 flex flex-col min-h-0">
+          <div className="p-2.5 space-y-2 opacity-50">
+            <div className="h-3 w-2/3 rounded bg-zinc-200" />
+            <div className="h-20 rounded-lg bg-zinc-200" />
+            <div className="h-3 w-1/2 rounded bg-zinc-200" />
+            <div className="h-12 rounded-lg bg-zinc-200" />
+          </div>
+          <div className="absolute inset-x-2 bottom-3 rounded-xl border bg-white p-2.5 shadow-lg">
+            <div className="flex items-center gap-1.5 mb-1">
+              {logo("w-4 h-4 rounded-[5px]", "text-[7px]")}
+              <span className="text-[9px] font-medium text-zinc-500 truncate">{storeName}</span>
+            </div>
+            <div className="text-[11px] font-bold leading-tight text-zinc-900 break-words">{title}</div>
+            <div className="text-[9px] text-zinc-600 line-clamp-2 mt-0.5 break-words">{text}</div>
+            <div className="mt-1.5 rounded-md bg-primary py-1 text-center text-[9px] font-semibold text-primary-foreground">Open</div>
+          </div>
+        </div>
+      )}
+
+      {channel === "multi" && (
+        <div className="flex-1 bg-gradient-to-b from-zinc-700 to-zinc-900 p-3 flex flex-col gap-2">
+          <div className="w-full rounded-2xl bg-white/95 p-2.5 shadow-lg">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Bell className="w-3 h-3 text-primary" />
+              <span className="text-[8px] font-medium uppercase tracking-wide text-zinc-500 truncate">Push · {storeName}</span>
+            </div>
+            <div className="text-[10px] font-bold leading-tight text-zinc-900 break-words">{title}</div>
+            <div className="text-[9px] text-zinc-600 line-clamp-2 break-words">{text}</div>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-xl bg-white/90 p-2 shadow">
+            <Mail className="w-3 h-3 text-primary shrink-0" />
+            <span className="text-[8px] text-zinc-600">Also delivered via Email</span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-xl bg-white/90 p-2 shadow">
+            <MessageSquare className="w-3 h-3 text-primary shrink-0" />
+            <span className="text-[8px] text-zinc-600">Also delivered via SMS</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function CreateMarketingCampaignWizard({ open, onClose, storeId, onCreated, defaultChannel, storeName = "YOUR STORE", storeCategory }: Props) {
   const qc = useQueryClient();
   const [step, setStep] = useState(1);
   const [channel, setChannel] = useState<Channel>(defaultChannel ?? "push");
@@ -63,6 +179,24 @@ export default function CreateMarketingCampaignWizard({ open, onClose, storeId, 
   const [submitting, setSubmitting] = useState(false);
 
   const { data: segments } = useMarketingSegments(storeId);
+
+  // Real store name + logo for the preview's "sender", so it shows the actual
+  // brand instead of the "YOUR STORE" placeholder.
+  const { data: storeInfo } = useQuery({
+    queryKey: ["mkt-wizard-store", storeId],
+    enabled: open && !!storeId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("store_profiles")
+        .select("name, logo_url")
+        .eq("id", storeId)
+        .maybeSingle();
+      return (data ?? null) as { name: string | null; logo_url: string | null } | null;
+    },
+  });
+  const previewStoreName = storeInfo?.name?.trim() || storeName;
+  const previewLogo = storeInfo?.logo_url || null;
 
   const reset = () => {
     setStep(1); setChannel("push"); setName(""); setSegmentId(""); setSubject(""); setBody("");
@@ -174,9 +308,9 @@ export default function CreateMarketingCampaignWizard({ open, onClose, storeId, 
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr,260px] flex-1 min-h-0">
-          {/* Form */}
-          <div className="p-4 overflow-y-auto" aria-live="polite">
+        <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] flex-1 min-h-0">
+          {/* Form — sits on the right so the phone preview leads on the left. */}
+          <div className="p-4 overflow-y-auto md:order-2" aria-live="polite">
             <AnimatePresence mode="wait">
               <motion.div key={step} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.15 }}>
                 {step === 1 && (
@@ -232,6 +366,8 @@ export default function CreateMarketingCampaignWizard({ open, onClose, storeId, 
                         <TemplatePicker
                           storeId={storeId}
                           channel={channel === "multi" ? undefined : channel}
+                          category={storeCategory}
+                          storeName={previewStoreName}
                           onPick={(t) => {
                             if (t.subject) setSubject(t.subject);
                             if (t.body) setBody(t.body);
@@ -330,22 +466,10 @@ export default function CreateMarketingCampaignWizard({ open, onClose, storeId, 
             </AnimatePresence>
           </div>
 
-          {/* Live preview */}
-          <div className="hidden md:flex flex-col bg-muted/30 border-l p-4 items-center justify-center">
-            <div className="w-[200px] h-[400px] rounded-[2rem] border-4 border-foreground/80 bg-background overflow-hidden flex flex-col shadow-xl">
-              <div className="h-6 bg-foreground/80" />
-              <div className="flex-1 p-2 overflow-hidden">
-                <div className="rounded-lg bg-card border p-2 shadow-sm">
-                  <div className="flex items-center gap-1 mb-1">
-                    <div className="w-4 h-4 rounded bg-primary/20" />
-                    <span className="text-[8px] text-muted-foreground">YOUR STORE · now</span>
-                  </div>
-                  <div className="text-[10px] font-bold leading-tight">{subject || "Your title"}</div>
-                  <div className="text-[9px] text-muted-foreground line-clamp-3 mt-0.5">{body || "Your message preview..."}</div>
-                </div>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-3">Live preview</p>
+          {/* Live preview — leads on the left so the owner sees it while editing. */}
+          <div className="hidden md:flex flex-col bg-muted/30 border-r p-4 items-center justify-center md:order-1">
+            <CampaignLivePreview channel={channel} subject={subject} body={body} storeName={previewStoreName} logoUrl={previewLogo} />
+            <p className="text-[10px] text-muted-foreground mt-3">Live preview · {CHANNEL_LABEL[channel]}</p>
           </div>
         </div>
 

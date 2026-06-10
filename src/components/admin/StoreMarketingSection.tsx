@@ -445,14 +445,10 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         is_active: promoForm.is_active,
       };
       if (isEdit && editingPromo) {
-        const { error } = await supabase.functions.invoke("promotion-manage", {
-          body: { action: "update", promotion_id: editingPromo.id, promotion: payload },
-        });
+        const { error } = await supabase.from("promotions").update(payload as any).eq("id", editingPromo.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.functions.invoke("promotion-manage", {
-          body: { action: "create", merchant_id: storeId, promotion: payload },
-        });
+        const { error } = await supabase.from("promotions").insert(payload as any);
         if (error) throw error;
       }
     },
@@ -467,9 +463,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
   const deletePromo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.functions.invoke("promotion-manage", {
-        body: { action: "delete", promotion_id: id },
-      });
+      const { error } = await supabase.from("promotions").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -482,9 +476,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
   const togglePromoActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.functions.invoke("promotion-manage", {
-        body: { action: "set_active", promotion_id: id, is_active: active },
-      });
+      const { error } = await supabase.from("promotions").update({ is_active: active } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -704,7 +696,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
         {/* ═══ OVERVIEW ═══ */}
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <MarketingOverviewHeader storeId={storeId} />
+          <MarketingOverviewHeader storeId={storeId} storeName={name} storeCategory={storeCategory} />
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard label="Total Views" value={analytics.totalViews.toLocaleString()} change={0} icon={Eye} color="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
@@ -939,7 +931,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4 mt-4">
-          <TemplatesLibrary storeId={storeId} />
+          <TemplatesLibrary storeId={storeId} category={storeCategory} storeName={name} />
         </TabsContent>
 
         <TabsContent value="automations" className="space-y-4 mt-4">

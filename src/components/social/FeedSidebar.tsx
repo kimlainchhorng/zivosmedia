@@ -26,6 +26,7 @@ import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -158,21 +159,6 @@ export default function FeedSidebar() {
       : isMember
         ? "Member benefits unlocked"
         : "Explore ZIVO features";
-  const toolCount = [
-    isAdmin,
-    canOpenShopDashboard,
-    isDriver,
-    isRestaurantOwner,
-    isHotelOwner,
-    isSupport,
-    isModerator,
-    isOperations,
-  ].filter(Boolean).length;
-  const sidebarSignals = [
-    { label: "Live nav", value: NAV_ITEMS.length, Icon: Radio, tone: "text-red-500 bg-red-500/10" },
-    { label: "Services", value: SERVICE_ITEMS.length, Icon: Compass, tone: "text-primary bg-primary/10" },
-    { label: "Tools", value: toolCount || 1, Icon: LayoutDashboard, tone: "text-emerald-600 bg-emerald-500/10" },
-  ];
 
   return (
     <>
@@ -226,27 +212,6 @@ export default function FeedSidebar() {
                 <span>Switch account</span>
               </button>
 
-              <div className="mt-3 grid grid-cols-3 gap-1.5">
-                <span className="zivo-social-module-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-center">
-                  <Crown className={cn("h-3.5 w-3.5", isMember ? "text-amber-500" : "text-muted-foreground")} aria-hidden="true" />
-                  <span className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-muted-foreground">
-                    {isMember ? "Plus" : "Basic"}
-                  </span>
-                </span>
-                <span className="zivo-social-module-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-center">
-                  <Store className={cn("h-3.5 w-3.5", hasOwnedShopIdentity ? "text-primary" : "text-muted-foreground")} aria-hidden="true" />
-                  <span className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-muted-foreground">
-                    {ownerStores.length || (hasOwnedShopIdentity ? 1 : 0)} Shop
-                  </span>
-                </span>
-                <span className="zivo-social-module-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-center">
-                  <LayoutDashboard className={cn("h-3.5 w-3.5", hasDashboard ? "text-emerald-600" : "text-muted-foreground")} aria-hidden="true" />
-                  <span className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-muted-foreground">
-                    {hasDashboard ? "Tools" : "Feed"}
-                  </span>
-                </span>
-              </div>
-
               <button
                 type="button"
                 onClick={() => setShowSwitch(true)}
@@ -268,20 +233,6 @@ export default function FeedSidebar() {
                   {commandCenterLabel}
                 </span>
               </button>
-
-              <div className="mt-3 grid grid-cols-3 gap-1.5">
-                {sidebarSignals.map(({ label, value, Icon, tone }) => (
-                  <span key={label} className="zivo-social-module-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-2 py-2 text-center">
-                    <span className={cn("flex h-6 w-6 items-center justify-center rounded-full", tone)}>
-                      <Icon className="h-3 w-3" aria-hidden="true" />
-                    </span>
-                    <span className="text-[10px] font-black leading-none text-foreground">{value}</span>
-                    <span className="truncate text-[8px] font-black uppercase tracking-[0.08em] text-muted-foreground">
-                      {label}
-                    </span>
-                  </span>
-                ))}
-              </div>
             </div>
           </div>
         )}
@@ -444,9 +395,17 @@ export default function FeedSidebar() {
 
       {/* Switch Account Sheet */}
       <Sheet open={showSwitch} onOpenChange={setShowSwitch}>
-        <SheetContent side="left" className="zivo-social-surface w-80 p-0">
+        <SheetContent side="left" hideClose className="zivo-social-surface w-80 p-0">
           <SheetHeader className="zivo-social-header-glass m-2 rounded-[1.25rem] p-4">
-            <SheetTitle className="text-base">Switch Account</SheetTitle>
+            <div className="flex items-center justify-between gap-3">
+              <SheetTitle className="text-base">Switch Account</SheetTitle>
+              <SheetClose
+                aria-label="Close"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <XIcon className="h-4 w-4" />
+              </SheetClose>
+            </div>
           </SheetHeader>
           <div className="p-3 space-y-1">
             {/* Current account */}

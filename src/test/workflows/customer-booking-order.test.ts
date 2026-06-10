@@ -219,18 +219,24 @@ describe("customer booking and order workflow", () => {
     expect(gate).toContain("GRANT SELECT ON TABLE public.car_rental_promo_redemptions TO authenticated");
   });
 
-  it("keeps public service booking submit behind server-side validation", () => {
+  it("gates public booking submit server-side and scopes owner management to RLS", () => {
     const bookingPage = source("src/pages/store/ServiceBookingPage.tsx");
     const adminBookings = source("src/components/admin/store/AdminBookingsTab.tsx");
     const submit = source("supabase/functions/service-booking-submit/index.ts");
-    const manage = source("supabase/functions/service-booking-manage/index.ts");
     const gate = source("supabase/migrations/20260601224500_service_bookings_public_submit_gate.sql");
-    const ownerGate = source("supabase/migrations/20260601230000_service_bookings_owner_manage_gate.sql");
 
+    // Public, unauthenticated submissions stay behind the trusted edge function.
     expect(bookingPage).toContain('functions.invoke("service-booking-submit"');
     expect(bookingPage).not.toMatch(/from\("service_bookings"\)[\s\S]{0,420}\.(insert|upsert)/);
-    expect(adminBookings).toContain('functions.invoke("service-booking-manage"');
-    expect(adminBookings).not.toMatch(/from\("service_bookings"\)[\s\S]{0,420}\.(insert|update|delete|upsert)/);
+
+    // Owner-side management writes directly to the table; RLS owner-scopes every
+    // row (store_profiles.owner_id = auth.uid() OR admin), so no edge function is
+    // required and the never-deployed service-booking-manage path is not used.
+    expect(adminBookings).not.toContain('functions.invoke("service-booking-manage"');
+    expect(adminBookings).toContain('.from("service_bookings")');
+    expect(adminBookings).toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.insert\(/);
+    expect(adminBookings).toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.update\(/);
+    expect(adminBookings).toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.delete\(/);
 
     expect(submit).toContain('withSecurity("service-booking-submit"');
     expect(submit).toContain('allowedMethods: ["POST"]');
@@ -240,20 +246,9 @@ describe("customer booking and order workflow", () => {
     expect(submit).toContain('.from("store_products")');
     expect(submit).toContain('.from("service_bookings")');
     expect(submit).toContain('status: "pending"');
-    expect(manage).toContain('withSecurity("service-booking-manage"');
-    expect(manage).toContain('allowedMethods: ["POST"]');
-    expect(manage).toContain("admin.auth.getUser(token)");
-    expect(manage).toContain('.from("service_bookings")');
-    expect(manage).toContain('.from("store_profiles")');
-    expect(manage).toContain('.from("ar_work_orders")');
-    expect(manage).toContain('rpc("has_role"');
 
     expect(gate).toContain("Service booking public inserts require trusted server-side validation");
     expect(gate).toContain("REVOKE INSERT ON TABLE public.service_bookings FROM anon");
-    expect(ownerGate).toContain("Service booking owner inserts require trusted server-side validation");
-    expect(ownerGate).toContain("Service booking owner updates require trusted server-side validation");
-    expect(ownerGate).toContain("Service booking owner deletes require trusted server-side validation");
-    expect(ownerGate).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.service_bookings FROM authenticated");
   });
 
   it("requires authenticated checkout and confirms only the caller's order", () => {
