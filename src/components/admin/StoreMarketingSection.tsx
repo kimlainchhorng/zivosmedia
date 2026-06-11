@@ -379,9 +379,8 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
       ? ZIVO_SOFTWARE_ORIGIN
       : ZIVO_MEDIA_ORIGIN;
   const isAutoRepairSoftwareDomain = isAutoRepair && publicOrigin === ZIVO_SOFTWARE_ORIGIN;
-  // Canonical brand URLs for sharing/SEO are https://hizivo.com/store/<slug> and
-  // https://hizivo.com/book/<slug>; the live share/QR links below use the active
-  // serving origin (publicOrigin) so they resolve during the hizivo.com cutover.
+  // Share/QR links use the active serving origin (publicOrigin) — zivosmedia.com
+  // for media stores, zivosoftware.com for the auto-repair software domain.
   const storeUrl = slug ? `${publicOrigin}/store/${slug}` : "";
   const bookingUrl = slug ? `${publicOrigin}/book/${slug}` : "";
   const businessPageLabel = isAutoRepairSoftwareDomain ? "Business Page URL" : "Store URL";

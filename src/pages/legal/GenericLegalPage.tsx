@@ -63,7 +63,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "5. Your Rights",
         content:
-          "You may request access, correction, deletion, portability, opt-out, restriction, or information about automated processing through account privacy controls or by contacting privacy@hizivo.com.",
+          "You may request access, correction, deletion, portability, opt-out, restriction, or information about automated processing through account privacy controls or by contacting privacy@zivosmedia.com.",
       },
     ],
   },
@@ -90,7 +90,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "4. How to Request",
         content:
-          "Use Account Settings, Account Data Rights, or contact privacy@hizivo.com to request access, download, or portability. We may verify your identity before fulfilling your request.",
+          "Use Account Settings, Account Data Rights, or contact privacy@zivosmedia.com to request access, download, or portability. We may verify your identity before fulfilling your request.",
       },
       {
         title: "5. Related Policies",
@@ -127,7 +127,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "5. Help With Deletion",
         content:
-          "If you cannot access your account, email privacy@hizivo.com or support@hizivo.com from the address connected to your ZIVO account with the subject Delete my ZIVO account.",
+          "If you cannot access your account, email privacy@zivosmedia.com or support@zivosmedia.com from the address connected to your ZIVO account with the subject Delete my ZIVO account.",
       },
     ],
   },
@@ -159,7 +159,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "5. How to Submit",
         content:
-          "Use Account Data Rights, Account Security, or email privacy@hizivo.com. Do not send sensitive documents unless requested through a secure verification workflow.",
+          "Use Account Data Rights, Account Security, or email privacy@zivosmedia.com. Do not send sensitive documents unless requested through a secure verification workflow.",
       },
     ],
   },
@@ -191,7 +191,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "5. Your Rights",
         content:
-          "You may request access, deletion, correction, portability, or restriction of location data through Account Data Rights or privacy@hizivo.com, subject to legal, safety, fraud, payment, dispute, and regulatory retention limits.",
+          "You may request access, deletion, correction, portability, or restriction of location data through Account Data Rights or privacy@zivosmedia.com, subject to legal, safety, fraud, payment, dispute, and regulatory retention limits.",
       },
     ],
   },
@@ -223,7 +223,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "5. Your Rights",
         content:
-          "You may request access, deletion, correction, or information about biometric processing through Account Data Rights or privacy@hizivo.com. Some requests may be limited by security, fraud, legal, or identity-verification obligations.",
+          "You may request access, deletion, correction, or information about biometric processing through Account Data Rights or privacy@zivosmedia.com. Some requests may be limited by security, fraud, legal, or identity-verification obligations.",
       },
     ],
   },
@@ -255,7 +255,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "5. Retention & Rights",
         content:
-          "Face verification records are retained according to the Data Retention Policy and may be deleted, de-identified, or retained for fraud, security, legal, payout, or regulatory obligations. Contact privacy@hizivo.com to exercise applicable rights.",
+          "Face verification records are retained according to the Data Retention Policy and may be deleted, de-identified, or retained for fraud, security, legal, payout, or regulatory obligations. Contact privacy@zivosmedia.com to exercise applicable rights.",
       },
     ],
   },
@@ -332,7 +332,7 @@ export default function GenericLegalPage() {
           },
           {
             title: "4. User Responsibilities & Compliance",
-            content: `You are responsible for: (a) reading and understanding this policy in its entirety; (b) complying with all applicable local, state, national, and international laws and regulations; (c) maintaining the confidentiality of your account credentials; (d) promptly reporting any suspected violations or security incidents to legal@hizivo.com; (e) cooperating with ZIVO in any investigation related to policy violations; (f) ensuring that your use of ZIVO services does not infringe upon the rights of any third party; and (g) accepting all risks associated with your use of the platform as described in our Assumption of Risk policy.`,
+            content: `You are responsible for: (a) reading and understanding this policy in its entirety; (b) complying with all applicable local, state, national, and international laws and regulations; (c) maintaining the confidentiality of your account credentials; (d) promptly reporting any suspected violations or security incidents to legal@zivosmedia.com; (e) cooperating with ZIVO in any investigation related to policy violations; (f) ensuring that your use of ZIVO services does not infringe upon the rights of any third party; and (g) accepting all risks associated with your use of the platform as described in our Assumption of Risk policy.`,
           },
           {
             title: "5. Limitation of Liability",
@@ -352,7 +352,7 @@ export default function GenericLegalPage() {
           },
           {
             title: "9. Contact & Notices",
-            content: `For questions, concerns, or notices regarding this policy, contact ZIVO's Legal Department at: legal@hizivo.com. Written notices should be sent to: ZIVO LLC, Legal Department, Wilmington, Delaware, United States. ZIVO may provide notices to you via email, in-app notification, or by posting updates on the platform. It is your responsibility to regularly review this policy for updates. Continued use of ZIVO services after any modifications constitutes acceptance of the updated terms.`,
+            content: `For questions, concerns, or notices regarding this policy, contact ZIVO's Legal Department at: legal@zivosmedia.com. Written notices should be sent to: ZIVO LLC, Legal Department, Wilmington, Delaware, United States. ZIVO may provide notices to you via email, in-app notification, or by posting updates on the platform. It is your responsibility to regularly review this policy for updates. Continued use of ZIVO services after any modifications constitutes acceptance of the updated terms.`,
           },
         ]).map((s, i) => (
           <div key={i} className="space-y-2">
@@ -368,7 +368,7 @@ export default function GenericLegalPage() {
 
         <div className="rounded-2xl bg-muted/30 border border-border/40 p-4 text-center space-y-1">
           <p className="text-sm font-semibold">Questions about this policy?</p>
-          <p className="text-xs text-muted-foreground">Contact us at <span className="text-primary font-semibold">legal@hizivo.com</span></p>
+          <p className="text-xs text-muted-foreground">Contact us at <span className="text-primary font-semibold">legal@zivosmedia.com</span></p>
         </div>
       </div>
     </div>
