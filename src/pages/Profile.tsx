@@ -16,7 +16,7 @@ import {
   Shield, Star, ChevronRight, UserPlus, BadgeCheck,
   Wallet, Store, ExternalLink, Users, Globe, ChevronDown, Crown, MapPin, ShoppingBag,
   Handshake, Car, Wrench, UtensilsCrossed, Building2, Truck, Phone, AlertCircle, Bell, MoreHorizontal,
-  Pencil, RotateCcw, Share2, BarChart3, Link as LinkIcon,
+  Pencil, RotateCcw, Share2, BarChart3,
   Repeat, DollarSign, Briefcase, User as UserIcon,
   Heart, Lock, Gift, MessageCircle, Video, TrendingUp, Eye,
   Settings as SettingsIcon,
@@ -37,13 +37,11 @@ import { useZivoPlus } from "@/contexts/ZivoPlusContext";
 import { MERCHANT_APP_URL } from "@/lib/eatsTables";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import NavBar from "@/components/home/NavBar";
-import { motion, useScroll, useTransform, AnimatePresence, useMotionValueEvent } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getPublicOrigin } from "@/lib/getPublicOrigin";
 import { invalidateAllStoryCaches } from "@/lib/storiesCache";
-import { copyText } from "@/lib/native/clipboard";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { assessLinkSync } from "@/hooks/useLinkRisk";
 import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
@@ -474,7 +472,6 @@ const Profile = () => {
   const setFollowingCount = (_n: number) => { void refetchSocialCounts(); };
   const [socialModal, setSocialModal] = useState<{ open: boolean; tab: "friends" | "followers" | "following" }>({ open: false, tab: "friends" });
   const [shareOpen, setShareOpen] = useState(false);
-  const [profileLinkCopied, setProfileLinkCopied] = useState(false);
   const [modeOpen, setModeOpen] = useState(false);
   const [activeMode, setActiveMode] = useState<string>(() => {
     if (typeof window === "undefined") return "personal";
@@ -536,33 +533,6 @@ const Profile = () => {
     profile?.profile_completion_score,
     profile?.username,
   ]);
-  const profileShareUrl = useMemo(
-    () => {
-      const origin = getPublicOrigin();
-      if (claimedUsername) return `${origin}/u/${encodeURIComponent(claimedUsername)}`;
-      if (user?.id) return `${origin}/user/${encodeURIComponent(user.id)}`;
-      return "";
-    },
-    [claimedUsername, user?.id],
-  );
-
-  const handleCopyProfileLink = useCallback(async () => {
-    selectionChanged();
-    if (!claimedUsername && !user?.id) {
-      toast.error("Profile link is not ready yet");
-      return;
-    }
-    try {
-      await copyText(profileShareUrl);
-      setProfileLinkCopied(true);
-      toast.success("Profile link copied");
-      window.setTimeout(() => setProfileLinkCopied(false), 1600);
-    } catch {
-      setShareOpen(true);
-      toast.info("Copy failed, share options opened");
-    }
-  }, [claimedUsername, profileShareUrl, selectionChanged, user?.id]);
-
   const getShopDashboardPath = useCallback(() => {
     if (!ownerStore?.id) return "/shop-dashboard";
     return resolveBusinessDashboardRoute(ownerStore.category, ownerStore.id).path;
@@ -602,12 +572,22 @@ const Profile = () => {
   const coverY = useTransform(scrollY, [0, 240], [0, -60]);
   const coverScale = useTransform(scrollY, [-100, 0], [1.15, 1]);
   // Header is always pinned & visible. Toggle "over cover" styling vs solid bar
-  // once the user scrolls past the cover area for legibility.
+  // once the user scrolls past the cover area for legibility. A direct scroll
+  // listener (not framer's rAF-batched useScroll, which can stall in throttled
+  // tabs/webviews and leave the header stuck transparent). Capture phase + a
+  // defensive position read so it fires whether the document or a nested
+  // overflow container (e.g. PullToRefresh) is the actual scroller.
   const [overCover, setOverCover] = useState(true);
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    const nextOverCover = latest < 80;
-    setOverCover((current) => (current === nextOverCover ? current : nextOverCover));
-  });
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || document.scrollingElement?.scrollTop || 0;
+      const next = y < 80;
+      setOverCover((current) => (current === next ? current : next));
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", onScroll, { capture: true } as any);
+  }, []);
 
   const getInitials = () => {
     if (brandName) return brandName.slice(0, 2).toUpperCase();
@@ -797,13 +777,14 @@ const Profile = () => {
           }}
           className="lg:hidden fixed top-0 inset-x-0 z-40 px-2.5 flex items-start gap-2"
         >
-          {/* Adaptive background: gradient scrim over cover, solid blurred bar after scroll */}
+          {/* Adaptive background: fully transparent over the cover photo (page just
+              opened), solid blurred bar once the user scrolls past the cover. */}
           <div
             aria-hidden
             className={cn(
               "absolute inset-0 -z-10 transition-all duration-300",
               overCover
-                ? "bg-background/94 backdrop-blur-2xl border-b border-border/50 shadow-sm shadow-background/20"
+                ? "bg-transparent"
                 : "bg-background/92 backdrop-blur-2xl border-b border-border/50 shadow-sm shadow-background/20"
             )}
           />
@@ -820,19 +801,25 @@ const Profile = () => {
           >
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </motion.button>
-          <span aria-hidden="true">
+          {/* Mini identity fades in with the solid bar; over the cover it would
+              collide with the large profile avatar right below the header. */}
+          <span
+            aria-hidden="true"
+            className={cn("transition-opacity duration-300", overCover && "opacity-0")}
+          >
             <Avatar className="h-8 w-8 ring-2 ring-background shadow-sm">
               <AvatarImage src={profile?.avatar_url || undefined} alt="" />
               <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
             </Avatar>
           </span>
-          <div className="flex min-w-0 flex-1 items-center gap-1" aria-live="polite">
-            <span
-              translate="no"
-              className={cn(
-              "font-semibold text-sm truncate",
-              "text-foreground"
-            )}>
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-1 transition-opacity duration-300",
+              overCover && "opacity-0"
+            )}
+            aria-live="polite"
+          >
+            <span translate="no" className="font-semibold text-sm truncate text-foreground">
               {headerName || "Profile"}
             </span>
             {profile?.is_verified && <VerifiedBadge size={14} />}
@@ -938,22 +925,6 @@ const Profile = () => {
                 </>
               )}
             </AnimatePresence>
-          <motion.button
-            type="button"
-            onClick={handleCopyProfileLink}
-            aria-label={profileLinkCopied ? "Profile link copied" : "Copy profile link"}
-            aria-pressed={profileLinkCopied}
-            whileTap={{ scale: 0.86 }}
-            transition={{ type: "spring", stiffness: 400, damping: 22 }}
-            className={cn(
-              "h-9 w-9 flex items-center justify-center rounded-2xl border bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none",
-              profileLinkCopied
-                ? "border-emerald-500/30 bg-emerald-500/12 text-emerald-600"
-                : "border-border/60 hover:bg-muted/60 text-foreground"
-            )}
-          >
-            {profileLinkCopied ? <Check className="h-5 w-5" /> : <LinkIcon className="h-5 w-5" />}
-          </motion.button>
           <div className="relative">
           <motion.button
             ref={notifBellRef}
@@ -1216,11 +1187,10 @@ const Profile = () => {
         }}
       >
         <div className={cn(
-          "px-2.5 lg:px-4 lg:pt-20 max-w-none lg:max-w-3xl mx-auto",
-          // Clear the fixed mobile header so the cover starts BELOW it (a solid
-          // bar above the cover) instead of sliding under it. Match the header's
-          // own height in each context — taller in the native app (safe-area).
-          "pt-[calc(var(--zivo-safe-top-sticky)_+_2.75rem)]"
+          // No mobile top padding: the cover photo slides under the transparent
+          // fixed header (Facebook-style). The cover's own top scrim keeps the
+          // status bar / notch area legible in the native app.
+          "px-2.5 lg:px-4 lg:pt-20 max-w-none lg:max-w-3xl mx-auto"
         )}>
 
           {profileLoading ? (

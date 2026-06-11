@@ -768,14 +768,6 @@ export default function MorePage() {
     });
   };
 
-  const focusDirectorySearch = useCallback(() => {
-    setExpandedSection(null);
-    setAllExpanded(false);
-    requestAnimationFrame(() => {
-      document.getElementById("more-directory")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.setTimeout(() => directorySearchRef.current?.focus(), 260);
-    });
-  }, []);
   const clearDirectorySearch = useCallback(() => {
     setSearch("");
     requestAnimationFrame(() => directorySearchRef.current?.focus());
@@ -1268,34 +1260,6 @@ export default function MorePage() {
     ]);
   }, [queryClient, user?.id]);
 
-  // ===== Suggested next action (computed from user state) =====
-  // Declared here (not earlier) because it depends on account state and query counts.
-  const suggestedAction = useMemo(() => {
-    if (!user) return null;
-    if (!isEmailVerified) {
-      return { icon: Mail, title: "Verify your email", desc: "Secure your account in 30s", href: "/account/contact", accent: "hsl(45 93% 58%)" };
-    }
-    if (completion < 50) {
-      return { icon: User, title: "Complete your profile", desc: "Add photo, bio, and more", href: "/account/profile-edit", accent: "hsl(263 70% 58%)" };
-    }
-    if (activeOrdersCount > 0) {
-      return { icon: Package, title: "Track active orders", desc: `${activeOrdersCount} order${activeOrdersCount === 1 ? "" : "s"} in progress`, href: "/grocery/orders", accent: "hsl(38 92% 50%)" };
-    }
-    if (upcomingFlightCount > 0) {
-      return { icon: Plane, title: "Review upcoming trips", desc: `${upcomingFlightCount} trip${upcomingFlightCount === 1 ? "" : "s"} on your calendar`, href: "/my-trips", accent: "hsl(199 89% 48%)" };
-    }
-    if (unreadNotifCount > 0) {
-      return { icon: Bell, title: "Review account alerts", desc: `${unreadNotifCount > 99 ? "99+" : unreadNotifCount} unread update${unreadNotifCount === 1 ? "" : "s"}`, href: "/notification-center", accent: "hsl(45 93% 58%)" };
-    }
-    if (!isPlus) {
-      return { icon: Crown, title: "Review ZIVO Plus", desc: "Compare membership benefits", href: "/zivo-plus", accent: "hsl(45 93% 58%)" };
-    }
-    if (pinnedHrefs.length === 0) {
-      return { icon: Pin, title: "Pin important tools", desc: "Keep your best links near the top", href: "#", accent: "hsl(263 70% 58%)" };
-    }
-    return { icon: Sparkles, title: "Try the AI Trip Planner", desc: "Plan a full itinerary in 30s", href: "/ai-trip-planner", accent: "hsl(199 89% 48%)" };
-  }, [user, isEmailVerified, completion, activeOrdersCount, upcomingFlightCount, unreadNotifCount, isPlus, pinnedHrefs.length]);
-
   const VerifiedCheck = ({ size = 18 }: { size?: number }) => (
     <VerifiedBadge size={size} />
   );
@@ -1381,39 +1345,6 @@ export default function MorePage() {
   const latestHubActivityLabel = hubActivity[0]?.created_at
     ? formatActivityTime(hubActivity[0].created_at)
     : null;
-  const hubStatusItems = [
-    {
-      label: "Security",
-      value: isEmailVerified ? "Protected" : "Verify",
-      href: isEmailVerified ? "/account/security" : "/account/contact",
-      ariaLabel: isEmailVerified ? "Open account security" : "Open email verification",
-      icon: isEmailVerified ? ShieldCheck : AlertCircle,
-      className: isEmailVerified
-        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    },
-    {
-      label: "Activity",
-      value: hubActivitySyncAvailable ? latestHubActivityLabel || "Ready" : "Retry",
-      href: "/account/activity-log?filter=account_hub",
-      ariaLabel: "Open account hub activity log",
-      icon: hubActivitySyncAvailable ? History : AlertCircle,
-      className: hubActivitySyncAvailable
-        ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
-        : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-    },
-    {
-      label: "Support",
-      value: isOnline ? "Online" : "Offline",
-      href: "/support/tickets",
-      ariaLabel: "Open support tickets",
-      icon: Headset,
-      className: isOnline
-        ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
-        : "bg-muted text-muted-foreground",
-    },
-  ];
-
   /* --- Account Hub Card --- */
   const renderProfileCard = () => (
     <motion.div
@@ -1490,31 +1421,6 @@ export default function MorePage() {
           ))}
         </div>
 
-        {!zivoOFMode && completion < 100 && (
-          <Link
-            to="/account/profile-edit"
-            aria-label={`Complete profile setup, ${completion}% done`}
-            onClick={() => trackRecent("/account/profile-edit")}
-            className="mt-3 block rounded-2xl border border-primary/15 bg-primary/5 p-3 active:scale-[0.99] transition-transform"
-          >
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <ListChecks className="h-4 w-4 text-primary" />
-                <p className="text-[12px] font-bold">Profile setup</p>
-              </div>
-              <p className="text-[12px] font-extrabold text-primary">{completion}%</p>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-background">
-              <motion.div
-                className="h-full rounded-full bg-primary"
-                initial={{ width: 0 }}
-                animate={{ width: `${completion}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              />
-            </div>
-          </Link>
-        )}
-
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Link
             to="/profile"
@@ -1534,22 +1440,6 @@ export default function MorePage() {
             <Pencil className="h-4 w-4" />
             Edit
           </Link>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1">
-            <Wallet className="h-3.5 w-3.5 text-emerald-500" />
-            <span className={blurClass}>{formatCount(coinBalance) || "0"} coins</span>
-          </span>
-          <span className="flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1">
-            <Pin className="h-3.5 w-3.5 text-primary" />
-            {formatShortcutCount(pinnedHrefs.length, "pinned")}
-          </span>
-          {connectedProviders.length > 0 && (
-            <span className="min-w-0 truncate rounded-full bg-muted/50 px-2.5 py-1">
-              {connectedProviders.slice(0, 2).join(" + ")}
-            </span>
-          )}
         </div>
 
         {!isEmailVerified && (
@@ -1602,14 +1492,6 @@ export default function MorePage() {
             <h2 id="more-quick-actions-title" className="text-[12px] font-extrabold">Quick actions</h2>
             <p className="text-[10px] font-medium text-muted-foreground">Common tasks.</p>
           </div>
-          <button
-            type="button"
-            onClick={focusDirectorySearch}
-            aria-label="Search More tools"
-            className="rounded-full bg-muted/60 px-2.5 py-1 text-[10px] font-bold text-foreground active:scale-95 transition-transform"
-          >
-            Search tools
-          </button>
         </div>
         <div className="grid grid-cols-3 gap-1.5">
           {priorityActions.map((action, i) => {
@@ -2126,35 +2008,6 @@ export default function MorePage() {
           {/* Profile Card */}
           {user && renderProfileCard()}
 
-          {user && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              role="region"
-              aria-labelledby="more-status-summary-title"
-              className="mb-3 flex gap-2"
-            >
-              <h2 id="more-status-summary-title" className="sr-only">Account status summary</h2>
-              {hubStatusItems.map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  aria-label={`${item.ariaLabel}: ${item.value}`}
-                  onClick={() => trackRecent(item.href)}
-                  className="flex flex-1 items-center gap-2 min-w-0 rounded-2xl border border-border/50 bg-card/70 px-2.5 py-2 active:scale-[0.97] transition-transform hover:bg-card"
-                >
-                  <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", item.className)}>
-                    <item.icon className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-[11px] font-extrabold leading-tight">{item.value}</p>
-                    <p className="truncate text-[9px] font-medium text-muted-foreground">{item.label}</p>
-                  </div>
-                </Link>
-              ))}
-            </motion.div>
-          )}
-
           {/* Guest empty state */}
           {!user && (
             <motion.div
@@ -2199,94 +2052,6 @@ export default function MorePage() {
                   Or download the app
                 </Link>
               </div>
-            </motion.div>
-          )}
-
-          {/* Action center */}
-          {user && (suggestedAction || upcomingFlightCount > 0 || activeOrdersCount > 0) && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              role="region"
-              aria-labelledby="more-action-center-title"
-              className="mb-3 rounded-2xl border border-border/50 bg-card/70 p-2.5"
-            >
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5">
-                  <h2 id="more-action-center-title" className="text-[12px] font-extrabold">Action center</h2>
-                  <p className="text-[10px] font-medium text-muted-foreground">What needs attention.</p>
-                </div>
-                {(upcomingFlightCount > 0 || activeOrdersCount > 0) && (
-                  <span className="rounded-full bg-muted/60 px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
-                    {upcomingFlightCount + activeOrdersCount} active
-                  </span>
-                )}
-              </div>
-
-              {suggestedAction && !zivoOFMode && (
-                <Link
-                  to={suggestedAction.href.startsWith("/") ? suggestedAction.href : "#"}
-                  aria-label={`Open suggested action: ${suggestedAction.title}`}
-                  className="block"
-	                  onClick={(e) => {
-	                    if (suggestedAction.href === "#") {
-	                      e.preventDefault();
-	                      setExpandedSection(null);
-	                      setAllExpanded(false);
-	                      requestAnimationFrame(() => {
-	                        document.getElementById("more-directory")?.scrollIntoView({ behavior: "smooth", block: "start" });
-	                      });
-                    } else {
-                      trackRecent(suggestedAction.href);
-                    }
-                  }}
-                >
-                  <div className={cn(
-                    "flex items-center gap-3 rounded-[1.15rem] border-l-4 bg-muted/35 p-3 active:scale-[0.99] transition-transform",
-                    getAccentClasses(suggestedAction.accent).border,
-                  )}>
-                    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", getAccentClasses(suggestedAction.accent).bg)}>
-                      <suggestedAction.icon className={cn("h-5 w-5", getAccentClasses(suggestedAction.accent).text)} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-extrabold">{suggestedAction.title}</p>
-                      <p className="truncate text-[11px] font-medium text-muted-foreground">{suggestedAction.desc}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
-                  </div>
-                </Link>
-              )}
-
-              {(upcomingFlightCount > 0 || activeOrdersCount > 0) && (
-                <div className={cn("grid gap-2", suggestedAction && !zivoOFMode ? "mt-2 grid-cols-2" : "grid-cols-2")}>
-                  <Link
-                    to="/my-trips"
-                    aria-label={`Open trips, ${upcomingFlightCount} upcoming`}
-                    onClick={() => trackRecent("/my-trips")}
-                    className="rounded-[1.15rem] bg-muted/35 p-3 active:scale-[0.97] transition-transform"
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <Plane className="h-4 w-4 text-sky-500" />
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trips</p>
-                    </div>
-                    <p className="text-2xl font-extrabold leading-none">{upcomingFlightCount}</p>
-                    <p className="mt-1 truncate text-[10px] font-medium text-muted-foreground">Upcoming</p>
-                  </Link>
-                  <Link
-                    to="/grocery/orders"
-                    aria-label={`Open orders, ${activeOrdersCount} in progress`}
-                    onClick={() => trackRecent("/grocery/orders")}
-                    className="rounded-[1.15rem] bg-amber-500/10 p-3 active:scale-[0.97] transition-transform"
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <Package className="h-4 w-4 text-amber-500" />
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Orders</p>
-                    </div>
-                    <p className="text-2xl font-extrabold leading-none">{activeOrdersCount}</p>
-                    <p className="mt-1 truncate text-[10px] font-medium text-muted-foreground">In progress</p>
-                  </Link>
-                </div>
-              )}
             </motion.div>
           )}
 
@@ -2374,272 +2139,6 @@ export default function MorePage() {
             </motion.div>
           )}
 
-          {/* Notifications preview (last 3 unread) */}
-          {user && notifPreview.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              role="region"
-              aria-labelledby="more-latest-alerts-title"
-              className="mb-5"
-            >
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                    <Bell className="w-3.5 h-3.5 text-foreground" strokeWidth={1.8} />
-                  </div>
-                  <h2 id="more-latest-alerts-title" className="font-bold text-[15px]">Latest alerts</h2>
-                  <span className="text-[10px] text-muted-foreground/60 font-medium bg-muted/40 px-1.5 py-0.5 rounded-full">
-                    {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
-                  </span>
-                </div>
-                <Link to="/notification-center" aria-label="See all latest alerts" className="text-[11px] font-semibold text-primary">
-                  See all
-                </Link>
-              </div>
-              <div className="space-y-1.5">
-                {notifPreview.map((n) => (
-                  <Link
-                    key={n.id}
-                    to={n.action_url || "/notification-center"}
-                    aria-label={`Open alert: ${formatNotificationText(n.title) || "Notification"}`}
-                    className="zivo-card-organic flex items-start gap-2.5 p-3 active:scale-[0.98] transition-transform"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-foreground mt-1.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[12px] leading-tight truncate">{n.title}</p>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
-                        {formatNotificationText(n.body)}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground/30 shrink-0 mt-0.5" />
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Directory */}
-          <section
-            id="more-directory"
-            role="region"
-            aria-labelledby="more-directory-title"
-            className="mb-4 rounded-[1.75rem] border border-border/60 bg-card p-3 shadow-sm [scroll-margin-top:88px]"
-          >
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <h2 id="more-directory-title" className="truncate text-[15px] font-extrabold">Directory</h2>
-                  <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-extrabold text-background">
-                    {formatToolCount(totalLinks)}
-                  </span>
-                </div>
-                <p className="truncate text-[11px] font-medium text-muted-foreground">
-                  Search settings, support, orders, travel, and account tools.
-                </p>
-              </div>
-              {!searchResults && (
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="rounded-full bg-muted/55 px-2 py-1 text-[10px] font-bold text-muted-foreground">
-                    {formatSectionCount(sections.length)}
-                  </span>
-                  <button type="button"
-                    onClick={toggleAll}
-                    aria-pressed={allExpanded}
-                    aria-label={allExpanded ? "Collapse all directory sections" : "Expand all directory sections"}
-                    className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-foreground active:scale-95 transition-transform"
-                  >
-                    {allExpanded ? "Collapse" : "All"}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div role="search" aria-label="More directory search" className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                ref={directorySearchRef}
-                type="search"
-                aria-label="Search More tools"
-                placeholder="Search More"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onBlur={() => recordSearch(search)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    recordSearch(search);
-                    if (searchResults?.length === 1) {
-                      e.preventDefault();
-                      openDirectoryResult(searchResults[0].link);
-                    }
-                  }
-                  if (e.key === "Escape") clearDirectorySearch();
-                }}
-                className="h-11 rounded-2xl border-border/50 bg-muted/45 pl-9 pr-16 text-sm"
-              />
-              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
-                {search && (
-                  <button type="button"
-                    onClick={clearDirectorySearch}
-                    aria-label={`Clear search for ${search}`}
-                    className="rounded-full p-1 hover:bg-muted active:scale-90 transition-transform"
-                  >
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                )}
-                {speechRef && (
-                  <button type="button"
-                    onClick={startVoiceSearch}
-                    aria-label="Voice search"
-                    className={cn(
-                      "rounded-full p-1.5 active:scale-90 transition-transform",
-                      isListening ? "bg-rose-500/15" : "hover:bg-muted",
-                    )}
-                  >
-                    <Mic className={cn(
-                      "h-4 w-4",
-                      isListening ? "text-rose-500 animate-pulse" : "text-muted-foreground",
-                    )} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {!search && searchHistory.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span
-                  title={formatSearchCount(searchHistory.length)}
-                  className="mr-0.5 max-w-[8.5rem] truncate text-[10px] font-bold uppercase tracking-wide text-muted-foreground/70"
-                >
-                  {formatSearchCount(searchHistory.length)}
-                </span>
-                {searchHistory.slice(0, 4).map((q) => (
-                  <button type="button"
-                    key={q}
-                    aria-label={`Search for ${q}`}
-                    title={q}
-                    onClick={() => {
-                      setSearch(q);
-                      recordSearch(q);
-                      requestAnimationFrame(() => directorySearchRef.current?.focus());
-                    }}
-                    className="max-w-[9rem] truncate rounded-full bg-muted/60 px-2.5 py-1 text-[11px] font-semibold text-foreground/80 active:scale-95 transition"
-                  >
-                    {q}
-                  </button>
-                ))}
-                <button type="button"
-                  onClick={() => {
-                    setSearchHistory([]);
-                    persistStoredStringList(SEARCH_HISTORY_KEY, [], 5);
-                    toast.success("Search history cleared");
-                  }}
-                  aria-label={`Clear ${formatSearchCount(searchHistory.length)}`}
-                  className="px-1 text-[10px] font-bold text-muted-foreground/70 hover:text-foreground transition-colors"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
-
-            {!searchResults && (
-              <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-                {sections.map((s) => (
-                  <button type="button"
-                    key={s.title}
-                    aria-pressed={isDirectoryChipActive(s.title)}
-                    aria-label={`${isDirectoryChipActive(s.title) ? "Showing" : "Open"} ${s.title}, ${formatToolCount(s.links.length)}`}
-                    title={`${s.title} · ${formatToolCount(s.links.length)}`}
-                    onClick={() => {
-                      setExpandedSection(s.title);
-                      setAllExpanded(false);
-                      requestAnimationFrame(() => {
-                        const el = document.getElementById(`more-section-${s.title.replace(/\s+/g, "-").toLowerCase()}`);
-                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      });
-                    }}
-                    className={cn(
-                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-95",
-                      isDirectoryChipActive(s.title)
-                        ? "bg-foreground text-background"
-                        : "bg-muted/60 text-muted-foreground",
-                    )}
-                  >
-                    <s.icon className="h-3 w-3" />
-                    <span className="max-w-[8.5rem] truncate">{s.title}</span>
-                    <span className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[9px] leading-none",
-                      isDirectoryChipActive(s.title)
-                        ? "bg-background/20 text-background"
-                        : "bg-background/70 text-muted-foreground",
-                    )}>
-                      {s.links.length}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {!searchResults && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="mt-2 flex items-center justify-between gap-2 rounded-2xl bg-muted/30 px-3 py-2"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <Compass className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <p className="truncate text-[11px] font-extrabold text-foreground">
-                    {activeDirectoryLabel}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-background/75 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                  {formatToolCount(activeDirectoryCount)}
-                </span>
-              </div>
-            )}
-
-            {!searchResults && (
-              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-3">
-                <div className="flex items-center gap-2">
-                  <button type="button"
-                    onClick={() => {
-                      const next = density === "compact" ? "comfortable" : "compact";
-                      setDensity(next);
-                      try { window.localStorage.setItem(DENSITY_KEY, next); } catch {}
-                      void logAccountHubActivity("more_preference_density", `${location.pathname}${location.search}#density-${next}`);
-                      toast.message(`Directory set to ${next}`);
-                    }}
-                    aria-pressed={density === "compact"}
-                    aria-label={`Directory density is ${density}. Switch to ${density === "compact" ? "comfortable" : "compact"} view`}
-                    className="flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
-                  >
-                    <Layers className="h-3.5 w-3.5" />
-                    {density === "compact" ? "Compact" : "Comfort"}
-                  </button>
-                  <button type="button"
-                    onClick={togglePrivacy}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold active:scale-95 transition-transform",
-                      privacyMode ? "bg-rose-500/10 text-rose-500" : "bg-muted/50 text-muted-foreground",
-                    )}
-                    aria-pressed={privacyMode}
-                    aria-label={privacyMode ? "Turn privacy mode off" : "Turn privacy mode on"}
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    {privacyMode ? "Private" : "Privacy"}
-                  </button>
-                </div>
-                <button type="button"
-                  onClick={() => user ? setShowShareProfile(true) : shareApp()}
-                  className="flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
-                  aria-label={user ? "Share your profile" : "Share ZIVO"}
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  {user ? "Profile" : "Share"}
-                </button>
-              </div>
-            )}
-          </section>
 
           {/* Shortcuts */}
           {!searchResults && shortcutLinks.length > 0 && (
