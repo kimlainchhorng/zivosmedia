@@ -31,10 +31,8 @@ import UsernameShareSheet from "@/components/profile/UsernameShareSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile, useUpdateUserProfile, useUploadAvatar, useUploadCover } from "@/hooks/useUserProfile";
 import { useUsername } from "@/hooks/useUsername";
-import { useMerchantRole } from "@/hooks/useMerchantRole";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
-import { MERCHANT_APP_URL } from "@/lib/eatsTables";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import NavBar from "@/components/home/NavBar";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
@@ -51,9 +49,6 @@ import ProfileStories from "@/components/profile/ProfileStories";
 import SocialListModal from "@/components/profile/SocialListModal";
 // Wallet, Completeness, Referral & QuickLinks cards moved to /more page
 import ProfileTripsCard from "@/components/profile/ProfileTripsCard";
-import { useCoinBalance } from "@/hooks/useCoinBalance";
-import { useWalletSummary } from "@/hooks/useZivoWallet";
-import { useReferrals } from "@/hooks/useReferrals";
 import { useBookingHistory } from "@/hooks/useBookingHistory";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -191,7 +186,7 @@ const Profile = () => {
   const location = useLocation();
   const { t, currentLanguage, changeLanguage } = useI18n();
   
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { data: profile, isLoading: profileLoading, isError: hasProfileError } = useUserProfile();
   const { username: claimedUsername } = useUsername();
   // Brand-name override (e.g. "ZIVO" for staff/founder accounts) — falls back to legal name.
@@ -199,7 +194,6 @@ const Profile = () => {
   const titleCase = (s: string) => s.replace(/\b([a-z])/g, (m) => m.toUpperCase());
   const rawHeaderName = brandName || profile?.full_name || "";
   const headerName = brandName ? rawHeaderName : (rawHeaderName ? titleCase(rawHeaderName) : "");
-  const { data: merchantData } = useMerchantRole();
   const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
   const { notifications, isLoading: notifLoading, markAsRead } = useNotifications(20);
   const { data: latestVerificationRequest, isError: hasVerificationRequestError } = useQuery({
@@ -282,9 +276,6 @@ const Profile = () => {
   );
   const totalNotifCount = profileUnreadCount + socialCount;
   const { isPlus, plan } = useZivoPlus();
-  const { balance: coinBalance, loading: coinLoading } = useCoinBalance();
-  const { data: walletSummary, isLoading: walletLoading } = useWalletSummary();
-  const { referralCode, isLoading: referralsLoading, copyReferralLink, shareReferral } = useReferrals();
   const { bookings, isLoading: bookingsLoading } = useBookingHistory();
   const updateProfile = useUpdateUserProfile();
   const uploadAvatar = useUploadAvatar();
