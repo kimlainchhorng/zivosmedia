@@ -142,13 +142,6 @@ export default function ExplorePage() {
         .map(([tag, count]) => ({ tag, count }));
     },
     staleTime: 5 * 60 * 1000,
-    placeholderData: [
-      { tag: "travel", count: 1240 }, { tag: "food", count: 980 },
-      { tag: "zivo", count: 870 }, { tag: "adventure", count: 650 },
-      { tag: "photography", count: 540 }, { tag: "nature", count: 430 },
-      { tag: "citylife", count: 380 }, { tag: "sunset", count: 320 },
-      { tag: "foodie", count: 290 }, { tag: "wanderlust", count: 260 },
-    ],
   });
 
   const tabs: { id: Tab; label: string; icon: typeof TrendingUp }[] = [
