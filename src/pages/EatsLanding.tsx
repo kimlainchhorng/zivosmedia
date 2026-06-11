@@ -1778,30 +1778,6 @@ export default function EatsLanding() {
                         <p className="text-[11px] text-muted-foreground">Based on {currentRestaurant.rating_count} customer reviews</p>
                       </div>
                     </div>
-                    {/* Recent review snippets (placeholder — wire to reviews table later) */}
-                    <div className="space-y-2 pt-3 border-t border-border/30">
-                      {[
-                        { name: "Sokha", rating: 5, text: "Tasty and fast, delivery was warm." },
-                        { name: "Mey", rating: 4, text: "Good portion size, packaging was nice." },
-                      ].map((rv, i) => (
-                        <div key={i} className="flex items-start gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-rose-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                            {rv.name[0]}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-bold text-foreground">{rv.name}</p>
-                              <span className="flex gap-0.5">
-                                {Array.from({ length: rv.rating }).map((_, j) => (
-                                  <Star key={j} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                                ))}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">{rv.text}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </>
                 ) : (
                   <p className="text-xs text-muted-foreground py-2">No reviews yet — be the first to order and rate.</p>
