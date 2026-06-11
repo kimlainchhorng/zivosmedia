@@ -772,10 +772,18 @@ const Profile = () => {
           aria-label="Profile quick navigation"
           data-testid="profile-sticky-header"
           style={{
-            height: isNativeApp ? "calc(var(--zivo-safe-top-sticky) + 2.75rem)" : "calc(2.75rem + 0.5rem)",
-            paddingTop: isNativeApp ? "var(--zivo-safe-top-sticky)" : "0.5rem",
+            // Opted out of the global .fixed.top-0 safe-area guard (index.css)
+            // via zivo-safe-top-guard-off, so this header owns its top inset:
+            // real notch inset when present (native app or iOS PWA), otherwise a
+            // tight 0.5rem so the buttons sit at the very top in the browser.
+            height: isNativeApp
+              ? "calc(var(--zivo-safe-top-sticky) + 2.75rem)"
+              : "calc(2.75rem + max(env(safe-area-inset-top, 0px), 0.5rem))",
+            paddingTop: isNativeApp
+              ? "var(--zivo-safe-top-sticky)"
+              : "max(env(safe-area-inset-top, 0px), 0.5rem)",
           }}
-          className="lg:hidden fixed top-0 inset-x-0 z-40 px-2.5 flex items-start gap-2"
+          className="lg:hidden zivo-safe-top-guard-off fixed top-0 inset-x-0 z-40 px-2.5 flex items-start gap-2"
         >
           {/* Adaptive background: fully transparent over the cover photo (page just
               opened), solid blurred bar once the user scrolls past the cover. */}
