@@ -1379,8 +1379,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
             hours: l.kind === "labor" ? l.qty : undefined,
           })),
           status: status, createdAt: new Date().toISOString(),
-          taxRate: taxRate, epaCents: epaC * 100, shopSuppliesCents: suppliesC * 100,
-          feesCents: feesC * 100,
+          taxRate: taxRate, epaCents: epaC, shopSuppliesCents: suppliesC,
+          feesCents: feesC,
         },
         storeName: storeInfo.name,
         storeAddress: storeInfo.address,
@@ -2412,8 +2412,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
                           hours: l.kind === "labor" ? l.qty : undefined,
                         })),
                         status: status, createdAt: new Date().toISOString(),
-                        taxRate: taxRate, epaCents: epaC * 100, shopSuppliesCents: suppliesC * 100,
-                        feesCents: feesC * 100,
+                        taxRate: taxRate, epaCents: epaC, shopSuppliesCents: suppliesC,
+                        feesCents: feesC,
                       },
                     });
                     downloadPdf(blob, `estimate-${header.number || "draft"}.pdf`);
