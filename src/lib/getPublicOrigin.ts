@@ -14,7 +14,7 @@ const CHANNEL_OG_FUNCTION = `${SUPABASE_FUNCTIONS_BASE}/channel-og`;
  */
 export function getPublicOrigin(): string {
   const configuredOrigin = import.meta.env.VITE_PUBLIC_ORIGIN?.trim();
-  if (configuredOrigin && /^https:\/\/(www\.)?(zivollc\.com|hizivo\.com)/i.test(configuredOrigin)) {
+  if (configuredOrigin && /^https:\/\/(www\.)?(zivosmedia\.com|zivollc\.com)/i.test(configuredOrigin)) {
     return configuredOrigin;
   }
 
