@@ -29,7 +29,7 @@ export function getMicrophoneRecoveryHint() {
     return "In Safari, open settings for this website, set Microphone to Allow, then reload. Also check macOS System Settings > Privacy & Security > Microphone.";
   }
 
-  return "Tap Allow mic. If it stays blocked, open site controls beside the URL, set Microphone to Allow, then reload. Also check macOS System Settings > Privacy & Security > Microphone.";
+  return "Use the 'Allow mic' button above. Still blocked? Open the site settings (lock icon by the address bar), set Microphone to Allow, then reload.";
 }
 
 export async function tryRequestMicrophoneAccess() {

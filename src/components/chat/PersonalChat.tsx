@@ -145,7 +145,6 @@ const StickerKeyboard = lazy(() => import("./StickerKeyboard"));
 // Phase 3B–3D wired components
 import MessageReactionsBar from "./MessageReactionsBar";
 import PinnedMessageBanner from "./PinnedMessageBanner";
-import SmartReplyChips from "./SmartReplyChips";
 import Flame from "lucide-react/dist/esm/icons/flame";
 const ForwardPickerSheet = lazy(() => import("./ForwardPickerSheet"));
 const ScheduledMessagesSheet = lazy(() => import("./ScheduledMessagesSheet"));
@@ -4169,17 +4168,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
       {/* Smart reply suggestions — chips above the composer */}
       <div className="zivo-chat-header-glass relative px-2.5 py-2 [padding-bottom:max(var(--zivo-safe-bottom,0px),0.5rem)]">
-          {/* AI smart-reply chips — appears when latest visible message is from
-              the other side and the composer is empty. Tap a chip to seed the
-              composer (does not auto-send so the user can edit). */}
-          {!editingId && (
-            <SmartReplyChips
-              recent={messages.slice(-12).map((m) => ({ text: m.message ?? "", isMe: m.sender_id === user?.id }))}
-              composerHasText={input.trim().length > 0}
-              onPick={(text) => { setInput(text); inputRef.current?.focus(); }}
-            />
-          )}
-
           {/* Sticker auto-suggestions (Telegram parity) — shown when the user types an emoji
               and there are matching illustrated stickers. Hidden during slash mode so the popovers don't fight. */}
           {stickerSuggestions.length > 0 && slashQuery == null && !editingId && (
