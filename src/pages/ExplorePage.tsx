@@ -44,12 +44,13 @@ export default function ExplorePage() {
   const { data: trendingPosts = [], isLoading: loadingPosts, isError: hasTrendingError } = useQuery({
     queryKey: ["explore-trending"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("store_posts")
         .select("id, media_urls, media_type, caption, likes_count, comments_count, created_at")
         .eq("is_published", true)
         .order("likes_count", { ascending: false })
         .limit(30);
+      if (error) throw error;
       return (data || []).map((p: any) => ({
         ...p,
         media_urls: Array.isArray(p.media_urls) ? p.media_urls : typeof p.media_urls === "string" ? [p.media_urls] : [],
@@ -63,12 +64,13 @@ export default function ExplorePage() {
     queryKey: ["explore-users", search],
     queryFn: async () => {
       if (!search.trim()) return [];
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("profiles")
         .select("id, full_name, avatar_url, is_verified")
         .ilike("full_name", `%${search}%`)
         .eq("is_of_creator", false)
         .limit(20);
+      if (error) throw error;
       return (data as any[]) || [];
     },
     enabled: search.length > 1,
@@ -79,13 +81,14 @@ export default function ExplorePage() {
   const { data: suggestedUsers = [], isLoading: loadingSuggested, isError: hasSuggestedError } = useQuery({
     queryKey: ["explore-suggested-users", user?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("profiles")
         .select("id, full_name, avatar_url, is_verified, bio")
         .not("id", "eq", user?.id ?? "")
         .eq("is_of_creator", false)
         .order("created_at", { ascending: false })
         .limit(20);
+      if (error) throw error;
       return (data as any[]) || [];
     },
     enabled: activeTab === "users" && !search,
@@ -97,13 +100,14 @@ export default function ExplorePage() {
     queryKey: ["explore-tagged", selectedTag],
     queryFn: async () => {
       if (!selectedTag) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("store_posts")
         .select("id, media_urls, media_type, caption, likes_count")
         .eq("is_published", true)
         .ilike("caption", `%#${selectedTag}%`)
         .order("likes_count", { ascending: false })
         .limit(30);
+      if (error) throw error;
       return (data || []).map((p: any) => ({
         ...p,
         media_urls: Array.isArray(p.media_urls) ? p.media_urls : typeof p.media_urls === "string" ? [p.media_urls] : [],
@@ -117,12 +121,13 @@ export default function ExplorePage() {
   const { data: trendingHashtags = [], isError: hasHashtagsError } = useQuery({
     queryKey: ["explore-hashtags"],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("store_posts")
         .select("caption")
         .eq("is_published", true)
         .not("caption", "is", null)
         .limit(500);
+      if (error) throw error;
       const counts: Record<string, number> = {};
       (data || []).forEach((p: any) => {
         const tags = (p.caption as string).match(/#(\w+)/g) ?? [];

@@ -56,16 +56,17 @@ export default function HistoryPage() {
   const [tab, setTab] = useState<HistoryTab>("all");
 
   /* ── Rides ── */
-  const { data: rides = [], isLoading: loadingRides } = useQuery({
+  const { data: rides = [], isLoading: loadingRides, isError: errorRides, refetch: refetchRides } = useQuery({
     queryKey: ["history-rides", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("rides")
         .select("id, pickup_text, dest_text, price, ride_type, status, created_at")
         .eq("rider_user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
+      if (error) throw error;
       return (data || []).map((r: any): HistoryItem => ({
         id: `ride-${r.id}`,
         type: "ride",
@@ -83,16 +84,17 @@ export default function HistoryPage() {
   });
 
   /* ── Eats ── */
-  const { data: eats = [], isLoading: loadingEats } = useQuery({
+  const { data: eats = [], isLoading: loadingEats, isError: errorEats, refetch: refetchEats } = useQuery({
     queryKey: ["history-eats", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("food_orders")
         .select("id, total_amount, status, created_at, store_profiles:restaurant_id(name)")
         .eq("customer_user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
+      if (error) throw error;
       return (data || []).map((o: any): HistoryItem => ({
         id: `eats-${o.id}`,
         type: "eats",
@@ -110,16 +112,17 @@ export default function HistoryPage() {
   });
 
   /* ── Flights ── */
-  const { data: flights = [], isLoading: loadingFlights } = useQuery({
+  const { data: flights = [], isLoading: loadingFlights, isError: errorFlights, refetch: refetchFlights } = useQuery({
     queryKey: ["history-flights", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("flight_bookings")
         .select("id, origin, destination, departure_date, total_amount, status, created_at")
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
+      if (error) throw error;
       return (data || []).map((f: any): HistoryItem => ({
         id: `flight-${f.id}`,
         type: "flight",
@@ -137,16 +140,17 @@ export default function HistoryPage() {
   });
 
   /* ── Hotels ── */
-  const { data: hotels = [], isLoading: loadingHotels } = useQuery({
+  const { data: hotels = [], isLoading: loadingHotels, isError: errorHotels, refetch: refetchHotels } = useQuery({
     queryKey: ["history-hotels", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("hotel_bookings")
         .select("id, hotel_id, check_in_date, check_out_date, nights, total_amount, status, created_at, store_profiles:hotel_id(name)")
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false })
         .limit(50);
+      if (error) throw error;
       return (data || []).map((h: any): HistoryItem => ({
         id: `hotel-${h.id}`,
         type: "hotel",
@@ -183,6 +187,20 @@ export default function HistoryPage() {
     tab === "flights" ? loadingFlights :
     tab === "hotels" ? loadingHotels :
     loadingRides || loadingEats || loadingFlights || loadingHotels;
+
+  const isError =
+    tab === "rides" ? errorRides :
+    tab === "eats" ? errorEats :
+    tab === "flights" ? errorFlights :
+    tab === "hotels" ? errorHotels :
+    errorRides || errorEats || errorFlights || errorHotels;
+
+  const retryAll = () => {
+    if (tab === "rides" || tab === "all") refetchRides();
+    if (tab === "eats" || tab === "all") refetchEats();
+    if (tab === "flights" || tab === "all") refetchFlights();
+    if (tab === "hotels" || tab === "all") refetchHotels();
+  };
 
   const tabConfig: { id: HistoryTab; label: string; icon: typeof Car }[] = [
     { id: "all", label: "All", icon: Clock },
@@ -251,6 +269,19 @@ export default function HistoryPage() {
                 {[0,1,2,3,4,5].map((i) => (
                   <div key={i} className="h-20 rounded-2xl bg-muted/40 animate-pulse" />
                 ))}
+              </motion.div>
+            ) : isError ? (
+              <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-24 gap-4 px-6 text-center">
+                <RefreshCw className="h-14 w-14 text-amber-500/60" />
+                <div>
+                  <p className="text-base font-semibold text-foreground mb-1">Couldn't load your history</p>
+                  <p className="text-sm text-muted-foreground">Something went wrong fetching your activity.</p>
+                </div>
+                <button type="button" onClick={retryAll}
+                  className="flex items-center gap-2 px-6 py-2 rounded-full bg-ig-gradient text-white text-sm font-semibold active:scale-95 transition-transform">
+                  <RefreshCw className="h-4 w-4" /> Retry
+                </button>
               </motion.div>
             ) : displayItems.length === 0 ? (
               <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
