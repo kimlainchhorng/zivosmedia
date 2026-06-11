@@ -2,10 +2,14 @@ import { MessageCircle } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button, type ButtonProps } from "@/components/ui/button";
-import { ZIVO_CHAT_ORIGIN } from "@/config/zivoChatDomain";
+import { ZIVO_CHAT_ORIGIN, ZIVO_CHAT_HOME_PATH } from "@/config/zivoChatDomain";
 
 export interface ZivoChatSupportButtonProps extends Omit<ButtonProps, "asChild"> {
-  /** Path at zivoschat.com to open (e.g. "/" or "/support"). Defaults to "/". */
+  /**
+   * Path at zivoschat.com to open. Defaults to the chat home ("/chat") so the
+   * support handoff lands the user directly in the chat (where they can reach
+   * support), not the marketing homepage.
+   */
   path?: string;
   /** Show the leading chat icon. Defaults to true. */
   showIcon?: boolean;
@@ -23,7 +27,7 @@ export interface ZivoChatSupportButtonProps extends Omit<ButtonProps, "asChild">
  * Styling/content are overridable via the usual Button props and children.
  */
 export default function ZivoChatSupportButton({
-  path = "/",
+  path = ZIVO_CHAT_HOME_PATH,
   showIcon = true,
   newTab = true,
   variant = "outline",

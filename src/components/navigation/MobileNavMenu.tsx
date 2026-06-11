@@ -194,7 +194,6 @@ const MobileNavMenu = ({ isOpen, onClose, user, signOut }: MobileNavMenuProps) =
               </div>
               <div className="mt-2">
                 <ZivoChatSupportButton
-                  path="/"
                   variant="outline"
                   className="w-full justify-center gap-2"
                   onClick={onClose}

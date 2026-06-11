@@ -95,7 +95,6 @@ export default function AppSwitcher({ className, align = "end" }: AppSwitcherPro
 
         <div className="p-2 border-t border-border/50">
           <ZivoChatSupportButton
-            path="/"
             variant="ghost"
             className="w-full justify-start gap-2 rounded-xl text-sm font-medium"
             onClick={() => setOpen(false)}
