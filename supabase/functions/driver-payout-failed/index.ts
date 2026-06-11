@@ -8,5 +8,6 @@ serve(withSecurity("driver-payout-failed", async (req, ctx) => {
 }, {
   allowedMethods: ["POST"],
   skipBotDetection: true,
+  strictCors: true,
   skipWaf: true,
 }));

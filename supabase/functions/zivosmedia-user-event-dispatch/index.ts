@@ -1,4 +1,5 @@
 import { createClient, serve } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 /**
  * Hub-side webhook emitter for Zivosmedia identity events.
@@ -24,29 +25,27 @@ type DispatchBody = {
 const ALLOWED_EVENTS = new Set(["user_updated", "user_disabled"]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-serve(async (req: Request) => {
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
-
+serve(withSecurity("zivosmedia-user-event-dispatch", async (req: Request, ctx) => {
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const webhookSecret = Deno.env.get("ZIVOSMEDIA_WEBHOOK_SECRET");
-  if (!url || !serviceKey) return json({ error: "server_misconfigured" }, 500);
-  if (!webhookSecret) return json({ error: "missing_webhook_secret" }, 503);
+  if (!url || !serviceKey) return json(ctx.corsHeaders, { error: "server_misconfigured" }, 500);
+  if (!webhookSecret) return json(ctx.corsHeaders, { error: "missing_webhook_secret" }, 503);
 
   // Internal-only: caller must present the service-role key.
   const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!timingSafeEqual(bearer, serviceKey)) return json({ error: "unauthorized" }, 401);
+  if (!timingSafeEqual(bearer, serviceKey)) return json(ctx.corsHeaders, { error: "unauthorized" }, 401);
 
   const body = (await req.json().catch(() => ({}))) as DispatchBody;
   const eventType = typeof body.event_type === "string" ? body.event_type : "";
   const userId = typeof body.zivosmedia_user_id === "string" ? body.zivosmedia_user_id : "";
-  if (!ALLOWED_EVENTS.has(eventType)) return json({ error: "invalid_event_type" }, 400);
-  if (!UUID_RE.test(userId)) return json({ error: "invalid_zivosmedia_user_id" }, 400);
+  if (!ALLOWED_EVENTS.has(eventType)) return json(ctx.corsHeaders, { error: "invalid_event_type" }, 400);
+  if (!UUID_RE.test(userId)) return json(ctx.corsHeaders, { error: "invalid_zivosmedia_user_id" }, 400);
 
   const service = createClient(url, serviceKey, { auth: { persistSession: false } });
 
   const { data: userData, error: userError } = await service.auth.admin.getUserById(userId);
-  if (userError || !userData.user) return json({ error: "user_not_found" }, 404);
+  if (userError || !userData.user) return json(ctx.corsHeaders, { error: "user_not_found" }, 404);
   const u = userData.user;
   const profile = {
     zivosmedia_user_id: u.id,
@@ -65,7 +64,7 @@ serve(async (req: Request) => {
     .eq("status", "enabled")
     .eq("enabled", true)
     .not("webhook_url", "is", null);
-  if (appsError) return json({ error: "registry_unavailable" }, 502);
+  if (appsError) return json(ctx.corsHeaders, { error: "registry_unavailable" }, 502);
 
   const targets = (apps ?? []).filter((a) => typeof a.webhook_url === "string" && a.webhook_url);
   const results: Array<{ app_key: string; ok: boolean; status?: number; error?: string }> = [];
@@ -127,7 +126,7 @@ serve(async (req: Request) => {
     results.push({ app_key: app.app_key, ok, status, error: errorMessage ?? undefined });
   }
 
-  return json({
+  return json(ctx.corsHeaders, {
     event_type: eventType,
     zivosmedia_user_id: userId,
     dispatched: results.length,
@@ -135,12 +134,16 @@ serve(async (req: Request) => {
     results,
     checkedAt: new Date().toISOString(),
   });
-});
+}, {
+  allowedMethods: ["POST"],
+  skipBotDetection: true,
+  strictCors: true,
+}));
 
-function json(bodyValue: unknown, status = 200) {
+function json(corsHeaders: Record<string, string>, bodyValue: unknown, status = 200) {
   return new Response(JSON.stringify(bodyValue), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 

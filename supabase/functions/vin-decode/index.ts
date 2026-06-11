@@ -5,11 +5,7 @@
 // NOTE: deployed self-contained (no _shared) with verify_jwt disabled — keep in
 // sync with the live function (supabase get_edge_function vin-decode).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const FUELECONOMY = "https://www.fueleconomy.gov/ws/rest";
 
@@ -159,11 +155,8 @@ async function fetchTransmissionFromFuelEcon(
   return "";
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+Deno.serve(withSecurity("vin-decode", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
     const { vin } = await req.json();
     const clean = typeof vin === "string" ? sanitizeVin(vin) : "";
@@ -256,4 +249,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+}));

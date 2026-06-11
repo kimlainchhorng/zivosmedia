@@ -57,7 +57,8 @@ export async function createSoftwareSubscription(input: {
       const body = ctx && typeof ctx.json === "function" ? (await ctx.json()) as { error?: string } : null;
       if (body?.error) {
         const raw = String(body.error);
-        code = /STRIPE_SECRET_KEY/i.test(raw) ? "stripe_not_configured" : raw;
+        const normalized = raw.toLowerCase();
+        code = normalized.includes("stripe") && normalized.includes("secret") ? "stripe_not_configured" : raw;
         message = friendlyMessage(code);
       }
     } catch {

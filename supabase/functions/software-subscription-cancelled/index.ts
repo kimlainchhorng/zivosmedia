@@ -8,5 +8,6 @@ serve(withSecurity("software-subscription-cancelled", async (req, ctx) => {
 }, {
   allowedMethods: ["POST"],
   skipBotDetection: true,
+  strictCors: true,
   skipWaf: true,
 }));

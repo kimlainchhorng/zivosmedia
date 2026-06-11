@@ -8,5 +8,6 @@ serve(withSecurity("software-subscription-past-due", async (req, ctx) => {
 }, {
   allowedMethods: ["POST"],
   skipBotDetection: true,
+  strictCors: true,
   skipWaf: true,
 }));

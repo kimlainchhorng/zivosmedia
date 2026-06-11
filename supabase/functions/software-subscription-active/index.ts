@@ -8,5 +8,6 @@ serve(withSecurity("software-subscription-active", async (req, ctx) => {
 }, {
   allowedMethods: ["POST"],
   skipBotDetection: true,
+  strictCors: true,
   skipWaf: true,
 }));

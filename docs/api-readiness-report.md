@@ -1,29 +1,29 @@
 # API Readiness Report
 
-Generated: 2026-06-08T16:40:45.585Z
+Generated: 2026-06-11T15:36:46.871Z
 
 ## Summary
 
-- Critical findings: 1
-- Warnings: 21
-- Edge Functions inventoried: 449
+- Critical findings: 0
+- Warnings: 20
+- Edge Functions inventoried: 452
 - High-risk Edge Functions: 168
-- Functions using withSecurity(): 448
-- Functions using strictCorsHeaders(): 439
-- Method-gated Edge Functions: 448
-- Functions using service role: 348
-- Loose Edge Function security backlog: 10
+- Functions using withSecurity(): 452
+- Functions using strictCorsHeaders(): 452
+- Method-gated Edge Functions: 452
+- Functions using service role: 349
+- Loose Edge Function security backlog: 0
 - Method gate backlog: 0
 - Required public env documented: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
 - Recommended backend env documented: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 - API operations runbook: present (0 missing topics)
-- Supabase migration drift: reportLocal=1102, currentLocal=1110, remote=0, matched=0, duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, remoteError=no
-- Supabase migration near-match diagnostics: near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1102, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0
-- Pending local migration risk gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Supabase migration drift: reportLocal=1120, currentLocal=1120, remote=1568, matched=1, duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, remoteError=no
+- Supabase migration near-match diagnostics: near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=503, unmatchedRemote=951, localAfterRemoteRange=19, sharedDays=91
+- Pending local migration risk gates: createsTables=2, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Critical
 
-- [edge-function-security-backlog] Every Edge Function must use withSecurity(), strict CORS, and avoid literal wildcard origins.
+- No critical API readiness issues found.
 
 ## Warnings
 
@@ -46,7 +46,6 @@ Generated: 2026-06-08T16:40:45.585Z
 - [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:158)
 - [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:159)
 - [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:246)
-- [stale-migration-drift-report] Supabase migration drift report is stale: report local=1102, current local=1110. (docs/supabase-migration-drift-report.md)
 - [duplicate-migration-versions] Local Supabase migrations contain 6 new duplicate version(s). (docs/supabase-migration-drift-report.md)
 
 ## High-Risk Functions Missing withSecurity()
@@ -59,16 +58,7 @@ Generated: 2026-06-08T16:40:45.585Z
 
 ## Loose Edge Function Security Backlog
 
-- supabase/functions/driver-payout-failed/index.ts
-- supabase/functions/driver-payout-paid/index.ts
-- supabase/functions/software-subscription-active/index.ts
-- supabase/functions/software-subscription-cancelled/index.ts
-- supabase/functions/software-subscription-past-due/index.ts
-- supabase/functions/travel-payment-failed/index.ts
-- supabase/functions/travel-payment-paid/index.ts
-- supabase/functions/travel-payment-refunded/index.ts
-- supabase/functions/zivopay-stripe-webhook/index.ts
-- supabase/functions/zivosmedia-user-event-dispatch/index.ts
+- None
 
 ## Next Hardening Moves
 
