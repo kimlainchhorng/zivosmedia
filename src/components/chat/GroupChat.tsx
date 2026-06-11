@@ -477,6 +477,9 @@ function renderMessageWithMentions(
 export default function GroupChat({ groupId, groupName, groupAvatar, onClose, autoStartCall = null, initialJumpMessageId }: GroupChatProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  // Notch safe-area padding on the sticky chat header is only needed in the
+  // installed native app; on the website it leaves an empty bar at the top.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
   const [currentGroupName, setCurrentGroupName] = useState(groupName);
   const [currentGroupAvatar, setCurrentGroupAvatar] = useState<string | null | undefined>(groupAvatar);
   const currentGroupAvatarSrc = useSignedMedia(currentGroupAvatar, CHAT_MEDIA_BUCKET, "thumbnail");
@@ -2438,7 +2441,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       transition={{ type: "tween", duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Header */}
-      <div className="zivo-chat-header-glass sticky top-0 z-10 safe-area-top">
+      <div className={cn("zivo-chat-header-glass sticky top-0 z-10", isNativeApp ? "safe-area-top" : "zivo-safe-top-none")}>
         <div className="px-3 py-2 flex items-center gap-3 lg:max-w-4xl lg:mx-auto lg:w-full">
           <button type="button" onClick={onClose} className="zivo-chat-icon-button flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full active:scale-90 transition-transform" aria-label="Back" title="Back">
             <ArrowLeft className="h-5 w-5 text-foreground" />

@@ -610,6 +610,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const { contacts, add: addContact, loading: contactsLoading } = useContacts();
   const navigate = useNavigate();
+  // Notch safe-area padding on the sticky chat header is only needed in the
+  // installed native app; on the website it leaves an empty bar at the top.
+  // `zivo-safe-top-none` opts the header out of the global safe-top rule on web.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
   const isSelfChat = !!user?.id && recipientId === user.id;
   const displayName = isSelfChat ? "Saved Messages" : recipientName;
   const [galleryState, setGalleryState] = useState<{ open: boolean; images: { id: string; url: string; type: "image" | "video"; protected?: boolean }[]; index: number }>({ open: false, images: [], index: 0 });
@@ -3375,7 +3379,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       transition={inline ? { duration: 0.12 } : { type: "tween", duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Header */}
-      <div className="zivo-chat-header-glass sticky top-0 z-10">
+      <div className={cn("zivo-chat-header-glass sticky top-0 z-10", !isNativeApp && "zivo-safe-top-none")}>
         <div className="px-2 py-2.5 flex items-center gap-3">
           <button type="button" onClick={onClose} className="zivo-chat-icon-button flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-transform active:scale-90" aria-label="Back" title="Back">
             <ArrowLeft className="h-5 w-5 text-foreground" />

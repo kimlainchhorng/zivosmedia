@@ -772,7 +772,7 @@ const AppHome = () => {
       {/* 3D Ambient orbs — contained within scrollable area only */}
 
       {/* Scrollable content */}
-      <div className="scroll-momentum relative z-10 [padding-bottom:calc(56px+var(--zivo-safe-bottom,0px)+24px)]">
+      <div className="scroll-momentum relative z-10 [padding-bottom:calc(56px+var(--zivo-safe-bottom,0px))]">
         {shouldShowHomeRecovery ? (
           <LoadFailureCard
             className="px-4 pt-safe pb-6"

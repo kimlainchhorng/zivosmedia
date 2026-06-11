@@ -2246,30 +2246,6 @@ export default function ReelsFeedPage() {
                   })()}
                 </button>
               </div>
-              <div className="border-t border-border/10 pt-2 flex gap-1.5 overflow-x-auto scrollbar-hide lg:max-w-md lg:mx-auto" role="toolbar" aria-label="Create post">
-                {[
-                  { mode: "photo" as const, label: "Photo", icon: ImageIcon, bg: "bg-emerald-500/10", fg: "text-emerald-600 dark:text-emerald-400", action: () => { setCreateMode("photo"); setShowCreate(true); } },
-                  { mode: "reel" as const,  label: "Reels",    icon: Film,      bg: "bg-violet-500/10",  fg: "text-violet-600 dark:text-violet-400",  action: () => { setCreateMode("reel");  setShowCreate(true); } },
-                  { mode: "poll" as const,  label: "Poll",     icon: TrendingUp,bg: "bg-amber-500/10",   fg: "text-amber-600 dark:text-amber-400",    action: () => { setCreateMode("poll");  setShowCreate(true); } },
-                  { mode: null,             label: "Check In", icon: MapPin,    bg: "bg-red-500/10",     fg: "text-red-600 dark:text-red-400",        action: () => navigate("/check-in") },
-                  { mode: null,             label: "Live",     icon: Radio,     bg: "bg-rose-500/10",    fg: "text-rose-600 dark:text-rose-400",      action: () => navigate("/live") },
-                ].map(({ label, icon: Icon, bg, fg, action }) => (
-                  <motion.button
-                    key={label}
-                    type="button"
-                    whileTap={{ scale: 0.93 }}
-                    onClick={action}
-                    aria-label={label}
-                    title={label}
-                    className="flex-1 shrink-0 flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-colors min-w-[52px] touch-manipulation active:opacity-80"
-                  >
-                    <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", bg)}>
-                      <Icon className={cn("h-3.5 w-3.5", fg)} />
-                    </span>
-                    <span className="text-[9px] leading-none font-semibold text-muted-foreground">{label}</span>
-                  </motion.button>
-                ))}
-              </div>
             </div>
           )}
 
