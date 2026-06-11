@@ -67,6 +67,7 @@ interface DirectoryStore {
   is_verified?: boolean | null;
   latitude?: number | null;
   longitude?: number | null;
+  created_at?: string | null;
 }
 
 const FILTERS: Array<{ id: string; label: string; match: (cat: string) => boolean }> = [
@@ -474,7 +475,7 @@ export default function HotelsLandingPage() {
     queryFn: async (): Promise<DirectoryStore[]> => {
       const { data, error } = await (supabase as any)
         .from("store_profiles")
-        .select("id, name, category, address, logo_url, banner_url, description, setup_complete, is_verified, latitude, longitude")
+        .select("id, name, category, address, logo_url, banner_url, description, setup_complete, is_verified, latitude, longitude, created_at")
         .in("category", LODGING_STORE_CATEGORIES)
         .order("setup_complete", { ascending: false })
         .order("name", { ascending: true })
@@ -665,6 +666,13 @@ export default function HotelsLandingPage() {
     );
   };
 
+  // If "Near me" is active (e.g. a ?sort=near_me deep link) but we have no
+  // location yet, prompt for it instead of silently showing a non-distance sort.
+  useEffect(() => {
+    if (sortBy === "near_me" && !coords) requestNearMe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, coords]);
+
   const featured = useMemo(
     () => {
       const completed = all.filter((s) => s.setup_complete);
@@ -707,7 +715,7 @@ export default function HotelsLandingPage() {
       if (savedOnly && !favorites.has(store.id)) return false;
       if (maxBudget !== null) {
         const cents = minRates[store.id]?.base;
-        if (typeof cents === "number" && cents / 100 > maxBudget) return false;
+        if (typeof cents !== "number" || cents / 100 > maxBudget) return false;
       }
       return true;
     });
@@ -737,7 +745,9 @@ export default function HotelsLandingPage() {
           return da - db;
         });
       }
-      return [...filtered].sort((a, b) => (favorites.has(a.id) ? 0 : 1) - (favorites.has(b.id) ? 0 : 1));
+      // No location yet: keep the default order rather than faking a distance
+      // sort (a useEffect requests location when near_me is active).
+      return filtered;
     }
     return filtered;
   }, [filtered, sortBy, minRates, favorites, reviewStats, coords]);
