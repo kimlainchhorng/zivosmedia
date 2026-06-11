@@ -1,6 +1,6 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-11T15:36:46.535Z
+Generated: 2026-06-11T16:05:16.301Z
 
 ## Summary
 
@@ -11,7 +11,7 @@ Generated: 2026-06-11T15:36:46.535Z
 - Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 6
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1120, remote=1568, matched=1, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=503, unmatchedRemote=951, localAfterRemoteRange=19, sharedDays=91, remoteError=no, generated=2026-06-11T15:36:46.187Z
+- Last linked drift report: local=1120, remote=1568, matched=1, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=503, unmatchedRemote=951, localAfterRemoteRange=19, sharedDays=91, remoteError=no, generated=2026-06-11T16:05:15.884Z
 - Pending local migration gates: createsTables=2, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
