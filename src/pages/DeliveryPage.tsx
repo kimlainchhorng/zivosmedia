@@ -180,13 +180,9 @@ function DeliveryRoutePreview() {
   );
 }
 
-// Price estimate preview
-function PriceEstimate({ basePrice, speed, fragile, signature, insurance, packages, promo }: {
-  basePrice: number; speed: number; fragile: boolean; signature: boolean; insurance: boolean; packages: number; promo: boolean;
-}) {
-  const total = (basePrice * packages * speed) + (fragile ? 2.99 : 0) + (signature ? 1.99 : 0) + (insurance ? 1.99 * packages : 0);
-  const discount = promo ? total * 0.1 : 0;
-  const final = total - discount;
+// Price estimate preview — shows the real charged total (passed in) so the
+// package-step estimate always matches the review/charge amount.
+function PriceEstimate({ total }: { total: number }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       className="rounded-xl bg-secondary border border-border p-3 flex items-center justify-between">
@@ -194,7 +190,7 @@ function PriceEstimate({ basePrice, speed, fragile, signature, insurance, packag
         <DollarSign className="w-4 h-4 text-foreground" />
         <span className="text-xs font-bold text-foreground">Estimated total</span>
       </div>
-      <span className="text-base font-bold text-foreground">${final.toFixed(2)}</span>
+      <span className="text-base font-bold text-foreground">${total.toFixed(2)}</span>
     </motion.div>
   );
 }
@@ -1452,7 +1448,7 @@ export default function DeliveryPage() {
 
               {/* Live price estimate */}
               {selectedSize && (
-                <PriceEstimate basePrice={currentSize?.price ?? 0} speed={speedMultiplier} fragile={isFragile} signature={requireSignature} insurance={includeInsurance} packages={packageCount} promo={promoApplied} />
+                <PriceEstimate total={totalPrice} />
               )}
 
               <Button onClick={handleContinueToReview} disabled={!selectedSize} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
