@@ -19,7 +19,7 @@ import {
   Search, MessageSquareText, CalendarClock, ExternalLink,
   CheckCircle2, XCircle, AlertCircle, TrendingUp, RefreshCw,
   ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Wrench, Star, BarChart3, Download,
-  Filter, SortAsc, SortDesc, Eye, Zap, Plus, Trash2, ArrowLeft
+  Filter, SortAsc, SortDesc, Eye, Zap, Plus, Trash2, ArrowLeft, List
 } from "lucide-react";
 import { format, isToday, isThisMonth, parseISO, differenceInDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths } from "date-fns";
 import { toast } from "sonner";
@@ -86,6 +86,7 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
   const [refreshing, setRefreshing] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(undefined);
   const [calMonth, setCalMonth] = useState<Date>(new Date());
+  const [calView, setCalView] = useState<"calendar" | "agenda">("calendar");
   const [newDialog, setNewDialog] = useState<{
     open: boolean;
     customer_name: string;
@@ -324,6 +325,28 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       });
   }, [bookings, filter, search]);
 
+  // Agenda view: the visible (search/filter-respecting) bookings for the current
+  // calendar month, grouped by day and sorted chronologically by time.
+  const agendaGroups = useMemo(() => {
+    const ms = startOfMonth(calMonth);
+    const me = endOfMonth(calMonth);
+    const byDate = new Map<string, any[]>();
+    for (const b of filtered) {
+      if (!b.preferred_date) continue;
+      let d: Date;
+      try { d = parseISO(b.preferred_date); } catch { continue; }
+      if (d < ms || d > me) continue;
+      if (!byDate.has(b.preferred_date)) byDate.set(b.preferred_date, []);
+      byDate.get(b.preferred_date)!.push(b);
+    }
+    return Array.from(byDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([d, items]) => [
+        d,
+        items.sort((x, y) => (x.preferred_time || "99:99").localeCompare(y.preferred_time || "99:99")),
+      ] as [string, any[]]);
+  }, [filtered, calMonth]);
+
   const pendingCount = bookings.filter(b => b.status === "pending").length;
   const confirmedCount = bookings.filter(b => b.status === "confirmed").length;
   const completedCount = bookings.filter(b => b.status === "completed").length;
@@ -528,6 +551,27 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
         return (
           <Card>
             <CardContent className="p-4 sm:p-4">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-primary" /> Schedule
+                </h4>
+                <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
+                  {([["calendar", "Calendar", CalendarIcon], ["agenda", "Agenda", List]] as const).map(([v, label, Icon]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setCalView(v)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                        calView === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" /> {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {calView === "calendar" ? (
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <BookingsCalendar
@@ -577,44 +621,9 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                     return (
                       <ScrollArea className="h-[260px]">
                         <div className="space-y-2 pr-2">
-                          {dayBookings.map(b => {
-                            const StatusIcon = STATUS_ICONS[b.status] || AlertCircle;
-                            return (
-                              <div
-                                key={b.id}
-                                draggable
-                                onDragStart={(e) => { e.dataTransfer.setData("text/plain", b.id); e.dataTransfer.effectAllowed = "move"; }}
-                                className="group flex items-stretch gap-2.5 rounded-xl border border-border/60 bg-card p-2.5 transition-all hover:border-primary/40 hover:shadow-sm cursor-grab active:cursor-grabbing"
-                                onClick={() => { setExpandedId(b.id); }}
-                                title="Drag to a day to reschedule"
-                              >
-                                {/* Time rail */}
-                                <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted/60 px-1 py-1.5 text-center">
-                                  {b.preferred_time ? (
-                                    <>
-                                      <span className="text-xs font-bold leading-none tabular-nums text-foreground">{fmtTime(b.preferred_time).time}</span>
-                                      <span className="mt-0.5 text-[9px] font-semibold leading-none text-muted-foreground">{fmtTime(b.preferred_time).ampm}</span>
-                                    </>
-                                  ) : (
-                                    <Clock className="h-4 w-4 text-muted-foreground/50" />
-                                  )}
-                                </div>
-                                {/* Status accent */}
-                                <div className={cn("w-1 shrink-0 rounded-full", statusDot(b.status))} />
-                                <div className="min-w-0 flex-1 self-center">
-                                  <p className="text-sm font-semibold text-foreground truncate">{b.service_name}</p>
-                                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                                    <User className="h-3 w-3 shrink-0" />
-                                    <span className="truncate">{b.customer_name}</span>
-                                  </p>
-                                </div>
-                                <Badge className={cn("self-center text-[10px] shrink-0", STATUS_COLORS[b.status])}>
-                                  <StatusIcon className="h-3 w-3 mr-1" />
-                                  {b.status}
-                                </Badge>
-                              </div>
-                            );
-                          })}
+                          {dayBookings.map(b => (
+                            <BookingTimeCard key={b.id} b={b} onOpen={setExpandedId} />
+                          ))}
                         </div>
                       </ScrollArea>
                     );
@@ -639,6 +648,56 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                   )}
                 </div>
               </div>
+              ) : (
+              <div className="space-y-4">
+                {/* Agenda month nav */}
+                <div className="flex items-center justify-center gap-3">
+                  <button type="button" onClick={() => setCalMonth(addMonths(calMonth, -1))} aria-label="Previous month" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <span className="min-w-[150px] text-center text-sm font-semibold text-foreground">{format(calMonth, "MMMM yyyy")}</span>
+                  <button type="button" onClick={() => setCalMonth(addMonths(calMonth, 1))} aria-label="Next month" className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+                {agendaGroups.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <CalendarClock className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">No bookings in {format(calMonth, "MMMM yyyy")}</p>
+                    <p className="mt-1 text-xs text-muted-foreground/70">Use the arrows to browse other months, or add a new booking.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-5">
+                    {agendaGroups.map(([dateStr, items]) => {
+                      const d = parseISO(dateStr);
+                      const today = isToday(d);
+                      return (
+                        <div key={dateStr}>
+                          <div className="mb-2 flex items-center gap-2.5">
+                            <div className={cn("flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl", today ? "bg-ig-gradient text-white shadow-sm shadow-primary/25" : "bg-muted text-foreground")}>
+                              <span className="text-[9px] font-semibold uppercase leading-none">{format(d, "EEE")}</span>
+                              <span className="text-sm font-bold leading-none tabular-nums">{format(d, "d")}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground">
+                                {format(d, "EEEE, MMMM d")}
+                                {today && <span className="ml-1.5 text-[10px] font-bold text-primary">· Today</span>}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">{items.length} booking{items.length > 1 ? "s" : ""}</p>
+                            </div>
+                          </div>
+                          <div className="space-y-2 sm:pl-12">
+                            {items.map((b) => (
+                              <BookingTimeCard key={b.id} b={b} onOpen={setExpandedId} />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -1079,6 +1138,47 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ── Compact booking card with a time rail + status accent, shared by the
+// calendar day panel and the agenda list. Draggable to a calendar day to
+// reschedule; click opens the full card in the list below.
+function BookingTimeCard({ b, onOpen }: { b: any; onOpen: (id: string) => void }) {
+  const StatusIcon = STATUS_ICONS[b.status] || AlertCircle;
+  return (
+    <div
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData("text/plain", b.id); e.dataTransfer.effectAllowed = "move"; }}
+      className="group flex items-stretch gap-2.5 rounded-xl border border-border/60 bg-card p-2.5 transition-all hover:border-primary/40 hover:shadow-sm cursor-grab active:cursor-grabbing"
+      onClick={() => onOpen(b.id)}
+      title="Drag to a day to reschedule"
+    >
+      {/* Time rail */}
+      <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted/60 px-1 py-1.5 text-center">
+        {b.preferred_time ? (
+          <>
+            <span className="text-xs font-bold leading-none tabular-nums text-foreground">{fmtTime(b.preferred_time).time}</span>
+            <span className="mt-0.5 text-[9px] font-semibold leading-none text-muted-foreground">{fmtTime(b.preferred_time).ampm}</span>
+          </>
+        ) : (
+          <Clock className="h-4 w-4 text-muted-foreground/50" />
+        )}
+      </div>
+      {/* Status accent */}
+      <div className={cn("w-1 shrink-0 rounded-full", statusDot(b.status))} />
+      <div className="min-w-0 flex-1 self-center">
+        <p className="text-sm font-semibold text-foreground truncate">{b.service_name}</p>
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+          <User className="h-3 w-3 shrink-0" />
+          <span className="truncate">{b.customer_name}</span>
+        </p>
+      </div>
+      <Badge className={cn("self-center text-[10px] shrink-0", STATUS_COLORS[b.status])}>
+        <StatusIcon className="h-3 w-3 mr-1" />
+        {b.status}
+      </Badge>
     </div>
   );
 }
