@@ -293,16 +293,19 @@ export default function DeliveryPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("deliveries")
-        .select("id, dropoff_location, status, created_at")
+        .select("id, pickup_location, dropoff_location, delivery_fee, package_size, status, created_at")
         .eq("customer_user_id", user!.id)
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(6);
       return (data || []).map((d: any) => ({
         id: d.id,
+        from: (d.pickup_location as any)?.address ?? "—",
         to: (d.dropoff_location as any)?.address ?? "—",
-        status: d.status === "delivered" ? "Delivered" : d.status === "pending" ? "Pending" : d.status ?? "—",
+        pkg: packageSizes.find((p) => p.id === d.package_size)?.name ?? (d.package_size ?? "Package"),
+        price: typeof d.delivery_fee === "number" ? `$${d.delivery_fee.toFixed(2)}` : "—",
+        status: d.status === "delivered" ? "Delivered" : d.status === "pending" ? "Pending" : (d.status ?? "—"),
         date: d.created_at ? new Date(d.created_at).toLocaleDateString() : "—",
-        tracking: d.id.slice(0, 8).toUpperCase(),
+        tracking: String(d.id).slice(0, 8).toUpperCase(),
       }));
     },
   });
@@ -479,9 +482,9 @@ export default function DeliveryPage() {
     }
   };
 
-  const handleLoadPrevious = (d: typeof previousDeliveries[0]) => {
-    setPickupAddress(d.from);
-    setDropoffAddress(d.to);
+  const handleLoadPrevious = (d: typeof pastDeliveries[0]) => {
+    if (d.from && d.from !== "—") setPickupAddress(d.from);
+    if (d.to && d.to !== "—") setDropoffAddress(d.to);
     toast.success("Previous route loaded");
   };
 
@@ -592,29 +595,34 @@ export default function DeliveryPage() {
 
               {/* Previous deliveries */}
               <div className="space-y-2">
-                <button type="button" onClick={() => setShowPreviousDeliveries(!showPreviousDeliveries)}
-                  className="-ml-1 flex min-h-[44px] items-center gap-2 px-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
-                  <History className="w-3.5 h-3.5" /> Recent Deliveries
-                  <ChevronRight className={cn("w-3 h-3 transition-transform", showPreviousDeliveries && "rotate-90")} />
-                </button>
-                <AnimatePresence>
-                  {showPreviousDeliveries && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                      className="space-y-1.5 overflow-hidden">
-                      {previousDeliveries.map(d => (
-                        <button type="button" key={d.id} onClick={() => handleLoadPrevious(d)}
-                          className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30 hover:border-border transition-all touch-manipulation active:scale-[0.98] text-left">
-                          <RotateCcw className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-foreground truncate">{d.from} → {d.to}</p>
-                            <p className="text-[10px] text-muted-foreground">{d.date} · {d.pkg}</p>
-                          </div>
-                          <span className="text-xs font-bold text-foreground shrink-0">{d.price}</span>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {pastDeliveries.length > 0 && (
+                  <>
+                    <button type="button" onClick={() => setShowPreviousDeliveries(!showPreviousDeliveries)}
+                      className="-ml-1 flex min-h-[44px] items-center gap-2 px-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
+                      <History className="w-3.5 h-3.5" /> Recent Deliveries
+                      <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{pastDeliveries.length}</span>
+                      <ChevronRight className={cn("w-3 h-3 transition-transform", showPreviousDeliveries && "rotate-90")} />
+                    </button>
+                    <AnimatePresence>
+                      {showPreviousDeliveries && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                          className="space-y-1.5 overflow-hidden">
+                          {pastDeliveries.map(d => (
+                            <button type="button" key={d.id} onClick={() => handleLoadPrevious(d)}
+                              className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30 hover:border-border transition-all touch-manipulation active:scale-[0.98] text-left">
+                              <RotateCcw className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-foreground truncate">{d.from} → {d.to}</p>
+                                <p className="text-[10px] text-muted-foreground">{d.date} · {d.pkg} · {d.status}</p>
+                              </div>
+                              <span className="text-xs font-bold text-foreground shrink-0">{d.price}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
               </div>
 
               <div className="space-y-3">
