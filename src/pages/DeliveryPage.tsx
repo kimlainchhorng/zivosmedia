@@ -817,7 +817,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5 text-foreground" /> Return shipping label</p>
-                  <p className="text-[10px] text-muted-foreground">Include prepaid return label · +$3.99</p>
+                  <p className="text-[10px] text-muted-foreground">Include prepaid return label</p>
                 </div>
               </div>
 
@@ -829,7 +829,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Temperature sensitive</p>
-                  <p className="text-[10px] text-muted-foreground">Keep cool/frozen during transit · +$4.99</p>
+                  <p className="text-[10px] text-muted-foreground">Keep cool/frozen during transit</p>
                 </div>
               </div>
 
@@ -916,7 +916,6 @@ export default function DeliveryPage() {
                         <span className="text-xs font-bold text-foreground">{tier.label}</span>
                         <span className="text-[10px] text-muted-foreground ml-2">{tier.coverage}</span>
                       </div>
-                      <span className="text-xs font-bold text-foreground">{tier.cost === 0 ? "Free" : `+$${tier.cost.toFixed(2)}`}</span>
                     </button>
                   ))}
                 </div>
@@ -949,7 +948,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-foreground" /> Require photo ID on delivery</p>
-                  <p className="text-[10px] text-muted-foreground">Recipient must show valid ID · +$1.99</p>
+                  <p className="text-[10px] text-muted-foreground">Recipient must show valid ID</p>
                 </div>
               </div>
 
@@ -961,7 +960,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Gift className="w-3.5 h-3.5 text-foreground" /> Gift wrapping</p>
-                  <p className="text-[10px] text-muted-foreground">Premium gift wrap & card · +$3.99</p>
+                  <p className="text-[10px] text-muted-foreground">Premium gift wrap & card</p>
                 </div>
               </div>
 
@@ -1052,19 +1051,19 @@ export default function DeliveryPage() {
                     <button type="button" onClick={() => setTwoPersonLift(!twoPersonLift)}
                       className={cn("flex-1 p-2 rounded-xl text-[10px] font-bold text-center transition-all touch-manipulation",
                         twoPersonLift ? "bg-violet-500/10 border border-violet-500/30 text-violet-500" : "bg-muted/50 text-muted-foreground border border-border/40")}>
-                      👥 2-Person Lift (+$15)
+                      👥 2-Person Lift
                     </button>
                     <button type="button" onClick={() => setAssemblyRequired(!assemblyRequired)}
                       className={cn("flex-1 p-2 rounded-xl text-[10px] font-bold text-center transition-all touch-manipulation",
                         assemblyRequired ? "bg-violet-500/10 border border-violet-500/30 text-violet-500" : "bg-muted/50 text-muted-foreground border border-border/40")}>
-                      🔧 Assembly (+$25)
+                      🔧 Assembly
                     </button>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setStairDelivery(!stairDelivery)}
                       className={cn("flex-1 p-2 rounded-xl text-[10px] font-bold text-center transition-all touch-manipulation",
                         stairDelivery ? "bg-violet-500/10 border border-violet-500/30 text-violet-500" : "bg-muted/50 text-muted-foreground border border-border/40")}>
-                      🪜 Stair Delivery (+$10)
+                      🪜 Stair Delivery
                     </button>
                     <button type="button" onClick={() => setCurbsideOnly(!curbsideOnly)}
                       className={cn("flex-1 p-2 rounded-xl text-[10px] font-bold text-center transition-all touch-manipulation",
@@ -1169,7 +1168,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5">🤵 White-glove service</p>
-                  <p className="text-[10px] text-muted-foreground">Premium handling, unpacking & setup · +$19.99</p>
+                  <p className="text-[10px] text-muted-foreground">Premium handling, unpacking & setup</p>
                 </div>
               </div>
 
@@ -1181,7 +1180,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> On-time guarantee</p>
-                  <p className="text-[10px] text-muted-foreground">Full refund if delivery is late · +$2.99</p>
+                  <p className="text-[10px] text-muted-foreground">Full refund if delivery is late</p>
                 </div>
               </div>
 
@@ -1220,7 +1219,6 @@ export default function DeliveryPage() {
                     </button>
                   ))}
                 </div>
-                {deliveryAttempts > 1 && <p className="text-[10px] text-foreground mt-2 font-medium">+${((deliveryAttempts - 1) * 2.99).toFixed(2)} per additional attempt</p>}
               </div>
 
               {/* Shipment Stats */}
@@ -1263,7 +1261,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-emerald-500" /> Carbon neutral delivery</p>
-                  <p className="text-[10px] text-muted-foreground">Offset emissions · +$0.50</p>
+                  <p className="text-[10px] text-muted-foreground">Offset emissions</p>
                 </div>
               </div>
 
@@ -1284,7 +1282,6 @@ export default function DeliveryPage() {
                     </button>
                   ))}
                 </div>
-                {tempControl !== "none" && <p className="text-[10px] text-foreground mt-2 font-medium">+$4.99 for temperature-controlled shipping</p>}
               </div>
 
               {/* Package Locker */}
@@ -1363,7 +1360,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5 text-foreground" /> Include return label</p>
-                  <p className="text-[10px] text-muted-foreground">Prepaid return shipping · +$5.99</p>
+                  <p className="text-[10px] text-muted-foreground">Prepaid return shipping</p>
                 </div>
               </div>
 
@@ -1375,7 +1372,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-foreground" /> Saturday delivery</p>
-                  <p className="text-[10px] text-muted-foreground">Deliver on weekends · +$3.99</p>
+                  <p className="text-[10px] text-muted-foreground">Deliver on weekends</p>
                 </div>
               </div>
 
@@ -1386,7 +1383,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-amber-500" /> Express pickup</p>
-                  <p className="text-[10px] text-muted-foreground">Courier arrives in 15 min · +$4.99</p>
+                  <p className="text-[10px] text-muted-foreground">Courier arrives in 15 min</p>
                 </div>
               </div>
 
