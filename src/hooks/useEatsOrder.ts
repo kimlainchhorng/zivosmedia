@@ -21,6 +21,8 @@ export interface PlaceOrderParams {
   totalAmount: number;
   paymentType: "cash" | "card" | "wallet" | "paypal" | "square";
   specialInstructions?: string;
+  isScheduled?: boolean;
+  scheduledFor?: string;
   isExpress?: boolean;
   expressFee?: number;
   promoCode?: string;
@@ -61,6 +63,8 @@ export function useEatsOrder() {
         totalAmount: params.totalAmount,
         paymentType: params.paymentType,
         specialInstructions: params.specialInstructions,
+        isScheduled: params.isScheduled,
+        scheduledFor: params.scheduledFor,
         isExpress: params.isExpress,
         expressFee: params.expressFee,
         promoCode: params.promoCode,

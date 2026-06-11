@@ -633,7 +633,7 @@ export default function EatsLanding() {
 
     const result = await placeOrder({
       restaurantId: cart[0].restaurantId,
-      items: cart,
+      items: cart.map((c) => ({ ...c, specialInstructions: specialInstructions[c.menuItemId] || undefined })),
       deliveryAddress: orderMode === "pickup" ? (currentRestaurant?.address || "Pickup at restaurant") : deliveryAddress,
       deliveryLat: userCoords?.lat ?? 0,
       deliveryLng: userCoords?.lng ?? 0,
@@ -650,6 +650,8 @@ export default function EatsLanding() {
         noUtensils ? "[No utensils]" : null,
         deliveryInstructions || null,
       ].filter(Boolean).join(" ") || undefined,
+      isScheduled: scheduleMode === "later",
+      scheduledFor: scheduleMode === "later" && scheduleTime ? new Date(scheduleTime).toISOString() : undefined,
       isExpress: selectedSpeed === "priority",
       expressFee: speedExtra,
       promoCode: promoApplied ? promoCode : undefined,
