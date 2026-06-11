@@ -1,36 +1,21 @@
 /**
- * Cross-project bridge to the ZIVO Software billing backend.
+ * In-app checkout bridge for ZIVO Software plans.
  *
- * Subscriptions live in the dedicated zivosoftware Supabase project (separate
- * from this app). To let store owners pay for their software plan *inside* this
- * admin, we call that project's unauthenticated `create-subscription` Edge
- * Function (it only needs plan + cycle + email) and render Stripe's embedded
- * Payment Element with the software project's publishable key. Nothing is
- * charged for a trial — Stripe collects the card via a SetupIntent.
+ * Subscriptions are created on THIS project's `software-subscription-intent`
+ * Edge Function, which returns a Stripe client secret for the embedded Payment
+ * Element so the owner never leaves the admin. We reuse the app's main Stripe
+ * publishable key (src/lib/stripe.ts) — the same "Zivo" Stripe account the rest
+ * of the app already bills on. A trial collects the card via a SetupIntent
+ * (nothing charged today).
  */
-import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { supabase } from "@/integrations/supabase/client";
+import { getStripe, STRIPE_PUBLISHABLE_KEY } from "@/lib/stripe";
+import type { Stripe } from "@stripe/stripe-js";
 
-// The software project (ydxztoresbdeoeijhxww). The anon key is a *publishable*
-// key — safe to ship in client code (RLS gates data, not key secrecy).
-const SOFTWARE_SUPABASE_URL =
-  (import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_URL as string | undefined) ??
-  "https://ydxztoresbdeoeijhxww.supabase.co";
-const SOFTWARE_SUPABASE_ANON_KEY =
-  (import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkeHp0b3Jlc2JkZW9laWpoeHd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxOTU0NTMsImV4cCI6MjA5NTc3MTQ1M30.TsxngKnoX_HXYyh4m1gK7peS4BUSl-NTTeAESdHJ70k";
+export const isSoftwareStripeConfigured = STRIPE_PUBLISHABLE_KEY.length > 0;
 
-// Software project's Stripe publishable key. Must match the account that the
-// `create-subscription` function uses, since the clientSecret is account-scoped.
-export const SOFTWARE_STRIPE_PUBLISHABLE_KEY =
-  (import.meta.env.VITE_ZIVO_SOFTWARE_STRIPE_PUBLISHABLE_KEY as string | undefined) ?? "";
-
-export const isSoftwareStripeConfigured = SOFTWARE_STRIPE_PUBLISHABLE_KEY.length > 0;
-
-let cachedStripe: Promise<Stripe | null> | null = null;
 export function getSoftwareStripe(): Promise<Stripe | null> {
-  if (!isSoftwareStripeConfigured) return Promise.resolve(null);
-  if (!cachedStripe) cachedStripe = loadStripe(SOFTWARE_STRIPE_PUBLISHABLE_KEY);
-  return cachedStripe;
+  return getStripe();
 }
 
 export interface CreateSoftwareSubscriptionResult {
@@ -50,50 +35,94 @@ export class SoftwareCheckoutError extends Error {
 }
 
 /**
- * Create an incomplete subscription on the software project and return the
- * client secret for the embedded Payment Element. Throws SoftwareCheckoutError
- * with a `code` ("stripe_not_configured" | "price_not_configured" | …) the UI
- * can branch on to show a friendly "billing launching soon" state.
+ * Create an incomplete subscription for the owner's store and return the client
+ * secret for the embedded Payment Element. Throws SoftwareCheckoutError with a
+ * `code` ("stripe_not_configured" | "unknown_plan" | …) the dialog branches on
+ * to show a friendly "billing launching soon" state.
  */
 export async function createSoftwareSubscription(input: {
   planId: string;
   cycle: "monthly" | "annual";
-  email: string;
+  storeId: string;
 }): Promise<CreateSoftwareSubscriptionResult> {
-  let res: Response;
-  try {
-    res = await fetch(`${SOFTWARE_SUPABASE_URL}/functions/v1/create-subscription`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SOFTWARE_SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SOFTWARE_SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify(input),
-    });
-  } catch (e) {
-    throw new SoftwareCheckoutError(
-      (e as Error)?.message || "Couldn't reach the billing service",
-      "network_error",
-    );
+  const { data, error } = await supabase.functions.invoke("software-subscription-intent", {
+    body: { plan_id: input.planId, cycle: input.cycle, store_id: input.storeId },
+  });
+
+  if (error) {
+    let code: string | undefined;
+    let message = error.message || "Couldn't start checkout. Please try again.";
+    try {
+      const ctx = (error as { context?: { json?: () => Promise<unknown> } }).context;
+      const body = ctx && typeof ctx.json === "function" ? (await ctx.json()) as { error?: string } : null;
+      if (body?.error) {
+        const raw = String(body.error);
+        code = /STRIPE_SECRET_KEY/i.test(raw) ? "stripe_not_configured" : raw;
+        message = friendlyMessage(code);
+      }
+    } catch {
+      /* couldn't parse the function body — keep the generic message */
+    }
+    throw new SoftwareCheckoutError(message, code);
   }
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok) {
-    const code = typeof data.error === "string" ? data.error : `http_${res.status}`;
-    throw new SoftwareCheckoutError(friendlyMessage(code), code);
+
+  const d = (data ?? {}) as Record<string, unknown>;
+  if (!d.client_secret) {
+    throw new SoftwareCheckoutError("Couldn't start checkout. Please try again.");
   }
-  return data as unknown as CreateSoftwareSubscriptionResult;
+  return {
+    clientSecret: String(d.client_secret),
+    subscriptionId: String(d.subscription_id ?? ""),
+    mode: d.mode === "payment" ? "payment" : "setup",
+  };
+}
+
+/**
+ * Hosted Stripe Checkout fallback — returns a Stripe-hosted URL to redirect to.
+ * Used when the embedded publishable key isn't configured, so owners can still
+ * pay using only the backend secret key. No card is collected until they finish
+ * the hosted page.
+ */
+export async function createSoftwareCheckoutUrl(input: {
+  planId: string;
+  cycle: "monthly" | "annual";
+  storeId: string;
+  returnUrl?: string;
+}): Promise<string> {
+  const { data, error } = await supabase.functions.invoke("software-subscription-intent", {
+    body: {
+      plan_id: input.planId,
+      cycle: input.cycle,
+      store_id: input.storeId,
+      flow: "hosted",
+      return_url: input.returnUrl,
+    },
+  });
+  if (error) {
+    let code: string | undefined;
+    let message = error.message || "Couldn't start checkout. Please try again.";
+    try {
+      const ctx = (error as { context?: { json?: () => Promise<unknown> } }).context;
+      const body = ctx && typeof ctx.json === "function" ? (await ctx.json()) as { error?: string } : null;
+      if (body?.error) { code = String(body.error); message = friendlyMessage(code); }
+    } catch { /* keep generic */ }
+    throw new SoftwareCheckoutError(message, code);
+  }
+  const url = (data as Record<string, unknown>)?.url;
+  if (typeof url !== "string" || !url) {
+    throw new SoftwareCheckoutError("Couldn't start checkout. Please try again.");
+  }
+  return url;
 }
 
 function friendlyMessage(code: string): string {
   switch (code) {
     case "stripe_not_configured":
-    case "price_not_configured":
       return "Subscriptions are launching soon — billing is being connected.";
     case "unknown_plan":
       return "That plan isn't available. Please pick another.";
-    case "email_required":
-      return "We need your email to start the subscription.";
+    case "store_id is required":
+      return "We couldn't tell which store this is for. Please reopen this page.";
     default:
       return "Couldn't start checkout. Please try again.";
   }

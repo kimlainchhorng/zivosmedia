@@ -11,9 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Check, Sparkles, ExternalLink, CreditCard } from "lucide-react";
+import { Check, Sparkles, ExternalLink, CreditCard, CheckCircle2 } from "lucide-react";
 import { ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
 import { supabase } from "@/integrations/supabase/client";
+import { useSoftwareSubscription } from "@/hooks/useSoftwareSubscription";
 import SoftwareSubscriptionCheckoutDialog from "./SoftwareSubscriptionCheckoutDialog";
 import {
   SOFTWARE_PLANS,
@@ -25,6 +26,21 @@ import {
   type BillingCycle,
   type SoftwarePlan,
 } from "@/lib/software/softwarePlans";
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  } catch { return ""; }
+}
+function statusLabel(s: string): string {
+  if (s === "trialing") return "Free trial";
+  if (s === "active") return "Active";
+  if (s === "past_due") return "Past due";
+  if (s === "unpaid") return "Unpaid";
+  if (s === "canceled") return "Canceled";
+  return s.replace(/_/g, " ");
+}
 
 export default function SoftwareSubscriptionSection({ storeId }: { storeId: string }) {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
@@ -158,6 +174,7 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
         onOpenChange={(o) => { if (!o) setCheckoutPlan(null); }}
         plan={checkoutPlan}
         cycle={cycle}
+        storeId={storeId}
         email={email}
       />
     </div>

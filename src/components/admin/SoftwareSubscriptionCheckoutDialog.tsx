@@ -13,6 +13,7 @@ import { ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
 import {
   getSoftwareStripe,
   createSoftwareSubscription,
+  createSoftwareCheckoutUrl,
   isSoftwareStripeConfigured,
   SoftwareCheckoutError,
 } from "@/lib/software/softwareCheckout";
@@ -34,14 +35,38 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   plan: SoftwarePlan | null;
   cycle: BillingCycle;
-  email: string | null;
+  storeId: string;
+  email?: string | null;
 }
 
-export default function SoftwareSubscriptionCheckoutDialog({ open, onOpenChange, plan, cycle, email }: Props) {
+export default function SoftwareSubscriptionCheckoutDialog({ open, onOpenChange, plan, cycle, storeId }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [mode, setMode] = useState<"setup" | "payment">("setup");
   const [error, setError] = useState<string | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
+  const [hostedError, setHostedError] = useState<string | null>(null);
+
+  // Hosted-checkout fallback: hand off to Stripe's secure page (needs only the
+  // backend secret key) and come back to the Subscriptions tab. Used when the
+  // embedded publishable key isn't configured for this build.
+  const goHosted = async () => {
+    if (!plan) return;
+    setRedirecting(true);
+    setHostedError(null);
+    try {
+      const url = await createSoftwareCheckoutUrl({
+        planId: plan.id,
+        cycle,
+        storeId,
+        returnUrl: `/admin/stores/${storeId}?tab=subscriptions`,
+      });
+      window.location.href = url;
+    } catch (e) {
+      setHostedError((e as SoftwareCheckoutError).message || "Couldn't start checkout. Please try again.");
+      setRedirecting(false);
+    }
+  };
 
   // Kick off subscription creation when the dialog opens for a plan.
   useEffect(() => {
@@ -54,14 +79,14 @@ export default function SoftwareSubscriptionCheckoutDialog({ open, onOpenChange,
       setPhase("not_configured");
       return;
     }
-    if (!email) {
+    if (!storeId) {
       setPhase("error");
-      setError("We couldn't find your account email. Please sign in again.");
+      setError("We couldn't tell which store this is for. Please reopen this page.");
       return;
     }
 
     setPhase("loading");
-    createSoftwareSubscription({ planId: plan.id, cycle, email })
+    createSoftwareSubscription({ planId: plan.id, cycle, storeId })
       .then((res) => {
         if (cancelled) return;
         setClientSecret(res.clientSecret);
@@ -78,7 +103,7 @@ export default function SoftwareSubscriptionCheckoutDialog({ open, onOpenChange,
         }
       });
     return () => { cancelled = true; };
-  }, [open, plan, cycle, email]);
+  }, [open, plan, cycle, storeId]);
 
   if (!plan) return null;
 
@@ -125,15 +150,21 @@ export default function SoftwareSubscriptionCheckoutDialog({ open, onOpenChange,
 
         {phase === "not_configured" && (
           <div className="space-y-3 py-2">
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <p>Subscriptions are launching soon — secure billing is being connected. You can review plans now and come back to subscribe.</p>
-            </div>
-            <Button variant="outline" className="w-full gap-1.5" asChild>
-              <a href={`${ZIVO_SOFTWARE_ORIGIN}/pricing`} target="_blank" rel="noopener noreferrer">
-                View on the software site <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+            <p className="text-xs text-muted-foreground">
+              You'll finish on Stripe's secure checkout page, then come right back here.
+              Nothing is charged during your {FREE_TRIAL_DAYS}-day free trial.
+            </p>
+            <Button className="w-full gap-1.5" onClick={goHosted} disabled={redirecting}>
+              {redirecting ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Opening secure checkout…</>
+              ) : (
+                <><Lock className="w-3.5 h-3.5" /> Continue to secure checkout</>
+              )}
             </Button>
+            <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground">
+              <Shield className="w-3 h-3" /> Secured by Stripe
+            </div>
+            {hostedError && <p className="text-xs text-destructive">{hostedError}</p>}
           </div>
         )}
 
