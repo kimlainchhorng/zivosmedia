@@ -140,7 +140,7 @@ export default function QuickReorderCarousel() {
   if (!items.length) return null;
 
   return (
-    <div>
+    <div className="px-5 pb-3">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-bold text-foreground flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">

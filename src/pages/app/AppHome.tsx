@@ -931,9 +931,7 @@ const AppHome = () => {
 
 
           {/* ─── LIVE TRIP TRACKER (moved up — surface active trip ASAP) ─── */}
-          <div className="px-5 pb-3">
-            <Suspense fallback={null}><LiveTripTracker /></Suspense>
-          </div>
+          <Suspense fallback={null}><LiveTripTracker /></Suspense>
 
           {/* ─── UPCOMING BOOKINGS (moved up — show personal trips before browse) ─── */}
           {user && upcomingBookings.length > 0 && (
@@ -969,9 +967,7 @@ const AppHome = () => {
           )}
 
           {/* ─── QUICK REBOOK (moved up — personal cluster) ─── */}
-          <div className="px-5 pb-3">
-            <Suspense fallback={null}><QuickReorderCarousel /></Suspense>
-          </div>
+          <Suspense fallback={null}><QuickReorderCarousel /></Suspense>
 
           {/* ─── RECENTLY VIEWED (moved up — personal cluster) ─── */}
           {user && recentItems.length > 0 && (
