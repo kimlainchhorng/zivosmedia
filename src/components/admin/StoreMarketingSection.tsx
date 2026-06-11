@@ -42,6 +42,7 @@ import AutomationsBuilder from "./marketing/AutomationsBuilder";
 import UnifiedPerformancePanel from "./marketing/UnifiedPerformancePanel";
 import PromoCodesManager from "./marketing/PromoCodesManager";
 import MarketingOverviewHeader from "./marketing/MarketingOverviewHeader";
+import CampaignsHistoryPanel from "./marketing/CampaignsHistoryPanel";
 import { useStoreMarketingOverview } from "@/hooks/useStoreMarketingOverview";
 import { isAutoRepairSoftwareHost, ZIVO_MEDIA_ORIGIN, ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
 
@@ -664,6 +665,9 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
             <TabsTrigger value="overview" className="text-[11px] sm:text-xs gap-1 sm:gap-1.5 px-2.5 sm:px-3 whitespace-nowrap shrink-0">
               <BarChart3 className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> <span>Overview</span>
             </TabsTrigger>
+            <TabsTrigger value="campaigns" className="text-[11px] sm:text-xs gap-1 sm:gap-1.5 px-2.5 sm:px-3 whitespace-nowrap shrink-0">
+              <Megaphone className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> <span>Campaigns</span>
+            </TabsTrigger>
             <TabsTrigger value="promotions" className="text-[11px] sm:text-xs gap-1 sm:gap-1.5 px-2.5 sm:px-3 whitespace-nowrap shrink-0">
               <Tag className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> <span>Promos</span>
             </TabsTrigger>
@@ -696,7 +700,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
         {/* ═══ OVERVIEW ═══ */}
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <MarketingOverviewHeader storeId={storeId} storeName={name} storeCategory={storeCategory} />
+          <MarketingOverviewHeader storeId={storeId} storeName={name} storeCategory={storeCategory} onCampaignCreated={() => setActiveSubTab("campaigns")} />
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard label="Total Views" value={analytics.totalViews.toLocaleString()} change={0} icon={Eye} color="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
@@ -731,6 +735,16 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               </div>
             </CardContent>
           </Card>
+
+          {/* Recent Campaigns — where "Campaign sending" lands */}
+          <CampaignsHistoryPanel
+            storeId={storeId}
+            storeName={name}
+            storeCategory={storeCategory}
+            compact
+            limit={4}
+            onViewAll={() => setActiveSubTab("campaigns")}
+          />
 
           {/* Recent Promotions Preview */}
           <Card>
@@ -807,6 +821,11 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ═══ CAMPAIGNS ═══ */}
+        <TabsContent value="campaigns" className="space-y-4 mt-4">
+          <CampaignsHistoryPanel storeId={storeId} storeName={name} storeCategory={storeCategory} />
         </TabsContent>
 
         {/* ═══ PROMOTIONS ═══ */}

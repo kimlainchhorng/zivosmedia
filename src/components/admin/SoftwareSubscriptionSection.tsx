@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Check, Sparkles, ExternalLink, CreditCard, CheckCircle2 } from "lucide-react";
+import { Check, Sparkles, ExternalLink, CreditCard, CheckCircle2, Rocket, Zap, Gem, Crown, type LucideIcon } from "lucide-react";
 import { ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
 import { supabase } from "@/integrations/supabase/client";
 import { useSoftwareSubscription } from "@/hooks/useSoftwareSubscription";
@@ -42,11 +42,77 @@ function statusLabel(s: string): string {
   return s.replace(/_/g, " ");
 }
 
+type PlanStyle = {
+  Icon: LucideIcon;
+  eyebrow: string;
+  medallion: string;
+  accent: string;
+  ring: string;
+  glow: string;
+  ctaVariant: "default" | "outline";
+  cta: string;
+  checkBg: string;
+  checkText: string;
+};
+
+// Per-tier visual identity — medallion gradient, eyebrow, CTA + accent colors.
+const PLAN_STYLE: Record<string, PlanStyle> = {
+  base: {
+    Icon: Rocket,
+    eyebrow: "Starter",
+    medallion: "bg-gradient-to-br from-sky-500 to-blue-600",
+    accent: "text-sky-600",
+    ring: "border-border/60",
+    glow: "",
+    ctaVariant: "outline",
+    cta: "hover:border-sky-400 hover:text-sky-600 hover:bg-sky-500/5",
+    checkBg: "bg-sky-500/15",
+    checkText: "text-sky-600",
+  },
+  gold: {
+    Icon: Zap,
+    eyebrow: "Most popular",
+    medallion: "bg-gradient-to-br from-amber-400 via-orange-500 to-pink-500",
+    accent: "text-orange-600",
+    ring: "ring-2 ring-amber-400/50 border-amber-300/50",
+    glow: "shadow-lg shadow-amber-500/10",
+    ctaVariant: "default",
+    cta: "border-0 text-white bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 hover:opacity-95",
+    checkBg: "bg-orange-500/15",
+    checkText: "text-orange-600",
+  },
+  platinum: {
+    Icon: Gem,
+    eyebrow: "Premium",
+    medallion: "bg-gradient-to-br from-violet-500 to-indigo-600",
+    accent: "text-violet-600",
+    ring: "border-violet-300/50",
+    glow: "",
+    ctaVariant: "outline",
+    cta: "hover:border-violet-400 hover:text-violet-600 hover:bg-violet-500/5",
+    checkBg: "bg-violet-500/15",
+    checkText: "text-violet-600",
+  },
+  pro: {
+    Icon: Crown,
+    eyebrow: "Elite",
+    medallion: "bg-gradient-to-br from-zinc-700 to-zinc-900",
+    accent: "text-amber-600",
+    ring: "border-zinc-300/70",
+    glow: "",
+    ctaVariant: "default",
+    cta: "border-0 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white",
+    checkBg: "bg-amber-500/15",
+    checkText: "text-amber-600",
+  },
+};
+
 export default function SoftwareSubscriptionSection({ storeId }: { storeId: string }) {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const annual = cycle === "annual";
   const [email, setEmail] = useState<string | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<SoftwarePlan | null>(null);
+  const { data: currentSub } = useSoftwareSubscription(storeId);
 
   // The signed-in store owner's email seeds the subscription (Stripe customer).
   useEffect(() => {
@@ -79,6 +145,40 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
         </Button>
       </div>
 
+      {/* Current plan */}
+      {currentSub && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold capitalize">ZIVO {currentSub.plan ?? "plan"}</p>
+                  <Badge variant="secondary" className="text-[10px]">{statusLabel(currentSub.status)}</Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {currentSub.cycle === "annual" ? "Annual" : "Monthly"} plan
+                  {currentSub.cancel_at_period_end
+                    ? ` · Cancels ${fmtDate(currentSub.current_period_end)}`
+                    : currentSub.status === "trialing" && currentSub.trial_end
+                      ? ` · Trial ends ${fmtDate(currentSub.trial_end)}`
+                      : currentSub.current_period_end
+                        ? ` · Renews ${fmtDate(currentSub.current_period_end)}`
+                        : ""}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" className="gap-1.5 shrink-0" asChild>
+              <a href={manageUrl} target="_blank" rel="noopener noreferrer">
+                Manage <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Billing cycle toggle */}
       <div className="inline-flex items-center rounded-full border bg-muted/40 p-1 text-sm">
         <button
@@ -109,59 +209,86 @@ export default function SoftwareSubscriptionSection({ storeId }: { storeId: stri
       </div>
 
       {/* Plan grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        {SOFTWARE_PLANS.map((plan) => (
-          <Card
-            key={plan.id}
-            className={cn(
-              "relative flex flex-col overflow-hidden",
-              plan.featured && "border-primary/50 ring-1 ring-primary/20"
-            )}
-          >
-            {plan.featured && (
-              <div className="absolute right-0 top-0">
-                <span className="inline-flex items-center gap-1 rounded-bl-lg bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                  <Sparkles className="w-3 h-3" /> Most popular
-                </span>
-              </div>
-            )}
-            <CardContent className="p-4 flex flex-col flex-1">
-              <h3 className="text-base font-semibold">{plan.name}</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5 min-h-[32px]">{plan.tagline}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-3">
+        {SOFTWARE_PLANS.map((plan) => {
+          const style = PLAN_STYLE[plan.id] ?? PLAN_STYLE.base;
+          const Icon = style.Icon;
+          const isCurrent = currentSub?.plan === plan.id;
+          return (
+            <Card
+              key={plan.id}
+              className={cn(
+                "group relative flex flex-col rounded-2xl bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg",
+                style.ring,
+                style.glow,
+              )}
+            >
+              {plan.featured && (
+                <div className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2">
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-amber-400 via-orange-500 to-pink-500 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
+                    <Sparkles className="h-3 w-3" /> Most popular
+                  </span>
+                </div>
+              )}
+              <CardContent className="flex flex-1 flex-col p-5">
+                {/* Tier graphic */}
+                <div className="flex items-center gap-3">
+                  <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-sm", style.medallion)}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className={cn("text-[10px] font-bold uppercase tracking-wider", style.accent)}>{style.eyebrow}</p>
+                    <h3 className="text-lg font-bold leading-tight">{plan.name}</h3>
+                  </div>
+                </div>
 
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-2xl font-bold tabular-nums">{formatUSD(monthlyPrice(plan, cycle))}</span>
-                <span className="text-xs text-muted-foreground">/mo</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {annual ? (
-                  <>
-                    <s>{formatUSD(plan.monthly)}/mo</s> · {formatUSD(chargedAmount(plan, cycle))} billed yearly
-                  </>
+                <p className="mt-3 min-h-[32px] text-[11px] text-muted-foreground">{plan.tagline}</p>
+
+                {/* Price */}
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold tracking-tight tabular-nums">{formatUSD(monthlyPrice(plan, cycle))}</span>
+                  <span className="text-xs text-muted-foreground">/mo</span>
+                </div>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {annual ? (
+                    <><s>{formatUSD(plan.monthly)}/mo</s> · {formatUSD(chargedAmount(plan, cycle))} billed yearly</>
+                  ) : (
+                    "billed monthly"
+                  )}
+                </p>
+
+                {/* CTA */}
+                {isCurrent ? (
+                  <Button className="mt-4 w-full" variant="secondary" disabled>
+                    Current plan
+                  </Button>
                 ) : (
-                  "billed monthly"
+                  <Button
+                    className={cn("mt-4 h-11 w-full gap-1.5 font-semibold", style.cta)}
+                    variant={style.ctaVariant}
+                    onClick={() => setCheckoutPlan(plan)}
+                  >
+                    {currentSub ? "Switch to this plan" : "Start free trial"}
+                  </Button>
                 )}
-              </p>
 
-              <Button
-                className="mt-3 w-full gap-1.5"
-                variant={plan.featured ? "default" : "outline"}
-                onClick={() => setCheckoutPlan(plan)}
-              >
-                Start free trial
-              </Button>
+                <div className="my-4 h-px bg-border/60" />
 
-              <ul className="mt-4 space-y-1.5">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-[12px]">
-                    <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
-                    <span className="text-foreground/80">{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ))}
+                {/* Features */}
+                <ul className="space-y-2">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-[12px]">
+                      <span className={cn("mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full", style.checkBg)}>
+                        <Check className={cn("h-2.5 w-2.5", style.checkText)} />
+                      </span>
+                      <span className="text-foreground/80">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <p className="text-[11px] text-muted-foreground">

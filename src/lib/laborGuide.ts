@@ -31,6 +31,139 @@ export const VEHICLE_CLASS_MULT: Record<VehicleClass, number> = Object.fromEntri
 export const adjustHours = (baseHours: number, vClass: VehicleClass): number =>
   Math.round(baseHours * VEHICLE_CLASS_MULT[vClass] * 10) / 10;
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Vehicle-specific estimate
+ * The flat class multiplier above makes every "Car / Sedan" look identical.
+ * estimateLabor() layers the things that actually move real flat-rate times —
+ * engine size, forced induction/diesel, AWD/4WD, and vehicle age (rust/seized
+ * fasteners) — but ONLY on the operations each factor truly affects, so a basic
+ * oil change on a 4-cyl sedan stays 0.5h while a head gasket on an old AWD V6
+ * is justifiably higher. Every adjustment is returned in `factors` so the shop
+ * sees exactly why the number is what it is (and can override it).
+ * ────────────────────────────────────────────────────────────────────── */
+const CURRENT_YEAR = new Date().getFullYear();
+
+export interface VehicleSpec {
+  year?: number | string | null;
+  make?: string | null;
+  model?: string | null;
+  engine?: string | null;       // e.g. "2.5L 4-cyl", "3.5L V6", "6.7L V8 Turbo Diesel"
+  drivetrain?: string | null;   // e.g. "AWD", "FWD", "4WD", "RWD"
+  bodyStyle?: string | null;
+  notes?: string | null;
+  vClass?: VehicleClass;
+}
+
+export interface EngineInfo {
+  cylinders: number | null;
+  turbo: boolean;
+  diesel: boolean;
+}
+
+export interface LaborFactor {
+  label: string;   // "V6 engine", "AWD / 4WD", "16-yr-old (rust)"
+  mult: number;    // 1.2, 1.15, …
+}
+
+export interface LaborEstimate {
+  hours: number;          // final, rounded to one decimal
+  baseHours: number;
+  factors: LaborFactor[]; // transparent breakdown (empty = no adjustment)
+  summary: string;        // short human string for tooltips/toasts
+  vehicleSpecific: boolean;
+}
+
+/** Pull cylinder count + forced-induction/diesel hints out of a free-text engine string. */
+export function parseEngine(engine?: string | null): EngineInfo {
+  const s = (engine || "").toLowerCase();
+  let cylinders: number | null = null;
+  let m: RegExpMatchArray | null;
+  if ((m = s.match(/\bv\s*[-]?\s*(\d{1,2})\b/))) cylinders = Number(m[1]);          // v6, v-8
+  else if ((m = s.match(/\b(\d{1,2})\s*[- ]?cyl/))) cylinders = Number(m[1]);        // 4-cyl, 6 cyl
+  else if ((m = s.match(/\b[il]\s*[-]?\s*(\d)\b/))) cylinders = Number(m[1]);         // i4, l4, i-6
+  else if ((m = s.match(/\b(\d)\s*cylinder/))) cylinders = Number(m[1]);             // 4 cylinder
+  if (cylinders !== null && (cylinders < 2 || cylinders > 16)) cylinders = null;
+  const turbo = /turbo|biturbo|twin[\s-]?turbo|superchg|supercharg|\btt\b/.test(s);
+  const diesel = /diesel|\btdi\b|duramax|powerstroke|power stroke|cummins|\bdci\b/.test(s);
+  return { cylinders, turbo, diesel };
+}
+
+/** AWD/4WD detection from drivetrain, model name, or notes. */
+export function isAllWheelDrive(spec: VehicleSpec): boolean {
+  const s = [spec.drivetrain, spec.model, spec.notes].filter(Boolean).join(" ").toLowerCase();
+  return /\bawd\b|\b4wd\b|4x4|all[\s-]?wheel|four[\s-]?wheel|quattro|xdrive|4motion|4matic/.test(s);
+}
+
+/** Which adjustment families a given operation is actually sensitive to. */
+function operationSensitivity(entry: LaborGuideEntry) {
+  const svc = entry.service.toLowerCase();
+  const cat = entry.category.toLowerCase();
+  // Entries already split by engine (e.g. "Spark Plugs — V6") must NOT get an engine bump.
+  const engineSplit = /\b(\d-?cyl|v\s*-?\s*\d{1,2}|i[46]|l[46])\b/.test(svc);
+  const engine = !engineSplit && (
+    /engine|fuel system|emissions/.test(cat) ||
+    /manifold|timing|valve cover|head gasket|water pump|turbo|camshaft|crankshaft|spark|ignition coil|\bpcv\b|serpentine|thermostat|oil pan|rear main|radiator|intake|throttle|fuel pump|fuel injector/.test(svc)
+  );
+  const drivetrain =
+    /drivetrain/.test(cat) ||
+    /cv axle|wheel bearing|differential|transfer case|alignment|driveshaft|\baxle\b|clutch|flywheel|flexplate/.test(svc);
+  const fastener =
+    /exhaust/.test(cat) ||
+    /catalytic|muffler|exhaust|ball joint|tie rod|control arm|sway bar|coil spring|subframe|\bstrut|leaf spring/.test(svc);
+  return { engine, drivetrain, fastener };
+}
+
+/**
+ * Vehicle-specific labor estimate for one guide operation.
+ * Falls back to the plain class multiplier when no richer vehicle data is known.
+ */
+export function estimateLabor(entry: LaborGuideEntry, spec: VehicleSpec = {}): LaborEstimate {
+  const factors: LaborFactor[] = [];
+  const vClass: VehicleClass = spec.vClass ?? "car";
+  const classMult = VEHICLE_CLASS_MULT[vClass];
+  const classLabel = VEHICLE_CLASSES.find((c) => c.id === vClass)?.label ?? "Car / Sedan";
+  if (classMult !== 1) factors.push({ label: classLabel, mult: classMult });
+
+  const sens = operationSensitivity(entry);
+  const eng = parseEngine(spec.engine);
+
+  // Engine — bigger engines = tighter bays / more to remove, on engine-bay jobs.
+  if (sens.engine && eng.cylinders) {
+    let m = 1;
+    if (eng.cylinders >= 12) m = 1.5;
+    else if (eng.cylinders >= 10) m = 1.4;
+    else if (eng.cylinders >= 8) m = 1.3;
+    else if (eng.cylinders >= 6) m = 1.2;
+    if (m !== 1) factors.push({ label: `${eng.cylinders}-cyl engine`, mult: m });
+    if (eng.turbo) factors.push({ label: "Turbo", mult: 1.1 });
+    if (eng.diesel) factors.push({ label: "Diesel", mult: 1.15 });
+  }
+
+  // Drivetrain — AWD/4WD adds driveline & undercar time.
+  if (sens.drivetrain && isAllWheelDrive(spec)) {
+    factors.push({ label: "AWD / 4WD", mult: 1.2 });
+  }
+
+  // Age — rust & seized fasteners on exhaust / suspension / brake hardware.
+  const year = Number(String(spec.year ?? "").slice(0, 4));
+  if (sens.fastener && year > 1980) {
+    const age = CURRENT_YEAR - year;
+    if (age >= 20) factors.push({ label: `${age}-yr-old (rust)`, mult: 1.25 });
+    else if (age >= 12) factors.push({ label: `${age}-yr-old (rust)`, mult: 1.15 });
+  }
+
+  // Stacked multiplier, capped so extreme combinations stay realistic.
+  const rawMult = factors.reduce((acc, f) => acc * f.mult, 1);
+  const mult = Math.min(rawMult, 2.2);
+  const hours = Math.round(entry.baseHours * mult * 10) / 10;
+
+  const summary = factors.length
+    ? factors.map((f) => f.label).join(" · ")
+    : classLabel;
+
+  return { hours, baseHours: entry.baseHours, factors, summary, vehicleSpecific: factors.length > 0 };
+}
+
 export const LABOR_GUIDE: LaborGuideEntry[] = [
   // Oil & Fluids
   { category: "Oil & Fluids", service: "Oil & Filter Change", baseHours: 0.5, diff: "easy", notes: "Add 0.3h for drain plug damage." },

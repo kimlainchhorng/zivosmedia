@@ -53,6 +53,7 @@ import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import { assignDocNumber, assignWorkOrderNumber, peekDocNumber } from "@/lib/admin/invoiceActions";
 import { copyText } from "@/lib/native/clipboard";
+import { printOrShareHtml } from "@/lib/native/printDocument";
 import { type MatrixTier, DEFAULT_PARTS_MATRIX, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
@@ -1359,7 +1360,60 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     onError: (e: any) => toast.error(e?.message ?? "Failed to send"),
   });
 
-  const printRO = () => {
+  // Save a branded PDF copy of the RO to storage + log it. Best-effort: it runs
+  // in the background and never blocks (or fails) the actual print.
+  const archiveRO = async () => {
+    try {
+      const blob = generateDocumentPdf({
+        doc: {
+          type: "estimate", number: header.number || "EST",
+          customer: header.customer_name || "Customer",
+          phone: header.customer_phone || undefined,
+          email: header.customer_email || undefined,
+          vehicle: header.vehicle_label || undefined,
+          mileageIn: header.mileage_in ? String(header.mileage_in) : undefined,
+          items: lines.filter(l => l.kind !== "note").map(l => ({
+            category: l.kind === "labor" ? "labor" : l.kind === "part" ? "part" : "diagnosis",
+            description: l.description,
+            qty: l.qty, price: l.unit_cents / 100,
+            hours: l.kind === "labor" ? l.qty : undefined,
+          })),
+          status: status, createdAt: new Date().toISOString(),
+          taxRate: taxRate, epaCents: epaC * 100, shopSuppliesCents: suppliesC * 100,
+          feesCents: feesC * 100,
+        },
+        storeName: storeInfo.name,
+        storeAddress: storeInfo.address,
+        storePhone: storeInfo.phone,
+        storePhone2: storeInfo.phone2,
+        storeEmail: storeInfo.email,
+        storeStateReg: storeInfo.stateReg,
+        storeLogo: storeLogoData,
+        storeTermsPolicy: storeInfo.termsPolicy,
+      });
+      const pdf_base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read PDF"));
+        reader.readAsDataURL(blob);
+      });
+      await supabase.functions.invoke("ar-ro-archive", {
+        body: {
+          store_id: storeId,
+          ro_number: header.number || null,
+          doc_type: "repair_order",
+          customer_name: header.customer_name || null,
+          vehicle_label: header.vehicle_label || null,
+          total_cents: Math.round(t.total),
+          pdf_base64,
+        },
+      });
+    } catch (e) {
+      console.warn("RO archive failed", e);
+    }
+  };
+
+  const printRO = async () => {
     if (!lines.length) { toast.error("Add at least one line first"); return; }
     const rows = lines
       .map(
@@ -1380,10 +1434,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         <p>Discount: -${money(discountC)} &nbsp; Tax: ${money(t.tax)}</p>
         <p class="tot">Total: ${money(t.total)}</p>
       </div></body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) { toast.error("Pop-up blocked"); return; }
-    w.document.write(html); w.document.close(); w.focus();
-    setTimeout(() => w.print(), 400);
+    // Cross-platform: web opens the OS print dialog (any printer / Save as PDF);
+    // the mobile app renders a PDF to the system share sheet (AirPrint, Save to
+    // Files, Mail). Either way the device's own printers are reachable.
+    await printOrShareHtml(html, `RO-${header.number || "draft"}.pdf`, `Print RO ${header.number || ""}`);
+    void archiveRO();
   };
 
   const shortcuts: { label: string; icon: typeof Wrench; onClick?: () => void }[] = [

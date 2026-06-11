@@ -45,7 +45,7 @@ import Save from "lucide-react/dist/esm/icons/save";
 
 interface Props { storeId: string }
 
-import { LABOR_GUIDE, LABOR_GUIDE_CATEGORIES, DIFF_COLOR, VEHICLE_CLASSES, adjustHours, type VehicleClass } from "@/lib/laborGuide";
+import { LABOR_GUIDE, LABOR_GUIDE_CATEGORIES, DIFF_COLOR, VEHICLE_CLASSES, estimateLabor, type VehicleClass, type VehicleSpec } from "@/lib/laborGuide";
 
 const GUIDE_CATEGORIES = LABOR_GUIDE_CATEGORIES.slice(1);
 const LABOR_TYPES = ["Diagnosis", "Repair", "Maintenance", "Inspection", "Electrical", "Bodywork", "Other"];
@@ -182,8 +182,6 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
   const [quickVehicleId, setQuickVehicleId] = useState("none");
   const [expandedVehicle, setExpandedVehicle] = useState<string | null>(null);
   const [guideVehicleId, setGuideVehicleId] = useState("new");
-  const [guideTechId, setGuideTechId] = useState("");
-  const [guideWoId, setGuideWoId] = useState("none");
   const [vehicleDraft, setVehicleDraft] = useState(blankVehicleDraft);
   const [vinLoading, setVinLoading] = useState(false);
 
@@ -237,6 +235,23 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
   const woMap = useMemo(() => { const m: Record<string, any> = {}; workOrders.forEach((w: any) => { m[w.id] = w; }); return m; }, [workOrders]);
   const vehicleMap = useMemo(() => { const m: Record<string, any> = {}; vehicles.forEach((v: any) => { m[v.id] = v; }); return m; }, [vehicles]);
   const selectedGuideVehicle = guideVehicleId !== "new" ? vehicleMap[guideVehicleId] : null;
+
+  // The vehicle the guide hours are estimated for — a saved selection wins,
+  // otherwise the in-progress draft. Feeds estimateLabor() so times reflect the
+  // exact engine / drivetrain / age, not just the broad vehicle class.
+  const guideVehicleSpec = useMemo<VehicleSpec>(() => {
+    const v: any = selectedGuideVehicle || vehicleDraft || {};
+    return {
+      year: v.year,
+      make: v.make,
+      model: v.model,
+      engine: v.engine_size,
+      drivetrain: v.drivetrain,
+      bodyStyle: v.body_style,
+      notes: v.notes,
+      vClass: guideClass,
+    };
+  }, [selectedGuideVehicle, vehicleDraft, guideClass]);
 
   const selectGuideVehicle = useCallback((id: string) => {
     setGuideVehicleId(id);
@@ -632,8 +647,9 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
   };
 
   const applyGuideEntry = (g: typeof LABOR_GUIDE[0]) => {
-    const hrs = adjustHours(g.baseHours, guideClass);
-    const classLabel = VEHICLE_CLASSES.find(c => c.id === guideClass)?.label ?? "";
+    const est = estimateLabor(g, guideVehicleSpec);
+    const hrs = est.hours;
+    const classLabel = est.summary;
     const vehicle = selectedGuideVehicle || (vehicleDraft.make && vehicleDraft.model ? vehicleDraft : null);
     const vehicleNotes = vehicle
       ? [
@@ -645,8 +661,6 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
       : "";
     setForm(f => ({
       ...f,
-      tech_id: guideTechId || f.tech_id,
-      work_order_id: guideWoId !== "none" ? guideWoId : f.work_order_id,
       vehicle_id: selectedGuideVehicle?.id ?? f.vehicle_id,
       labor_type: g.category,
       duration_minutes: String(Math.round(hrs * 60)),
@@ -658,43 +672,6 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
   };
 
   const guideVehicleReady = Boolean(vehicleDraft.make && vehicleDraft.model && (vehicleDraft.year || vehicleDraft.vin || vehicleDraft.plate));
-  const guideVehicleIdentified = Boolean(vehicleDraft.vin || vehicleDraft.plate);
-  const guideAssignmentReady = Boolean(guideTechId);
-  const guideWorkOrderReady = guideWoId !== "none";
-  const guideClassLabel = VEHICLE_CLASSES.find(c => c.id === guideClass)?.label ?? "Vehicle class";
-  const guideWorkflowItems = [
-    {
-      label: "Vehicle",
-      value: guideVehicleReady ? vehicleLabel(vehicleDraft) : "Add year, make, model",
-      ready: guideVehicleReady,
-    },
-    {
-      label: "VIN / plate",
-      value: guideVehicleIdentified ? vehicleVinPlate(vehicleDraft) : "Add VIN or license plate",
-      ready: guideVehicleIdentified,
-    },
-    {
-      label: "Record",
-      value: vehicleDraft.id ? "Linked saved vehicle" : guideVehicleReady ? "Snapshot will save on labor" : "Not ready",
-      ready: Boolean(vehicleDraft.id || guideVehicleReady),
-    },
-    {
-      label: "Technician",
-      value: guideTechId ? techMap[guideTechId]?.name ?? "Selected" : "Choose in dialog",
-      ready: guideAssignmentReady,
-    },
-    {
-      label: "Work order",
-      value: guideWorkOrderReady ? woMap[guideWoId]?.number ?? "Attached" : "Optional",
-      ready: guideWorkOrderReady,
-      optional: true,
-    },
-    {
-      label: "Labor class",
-      value: guideClassLabel,
-      ready: true,
-    },
-  ];
 
   // ── Render ───────────────────────────────────────────────────────────
   return (
@@ -1175,38 +1152,6 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
                 </div>
               </div>
 
-              <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Technician for labor</Label>
-                  <Select value={guideTechId || "none"} onValueChange={v => setGuideTechId(v === "none" ? "" : v)}>
-                    <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="Choose technician" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Choose when adding entry</SelectItem>
-                      {techs.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Attach work order</Label>
-                  <Select value={guideWoId} onValueChange={setGuideWoId}>
-                    <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="Choose work order" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No work order yet</SelectItem>
-                      {workOrders.filter((w: any) => w.status !== "done").map((w: any) => (
-                        <SelectItem key={w.id} value={w.id}>{w.number} — {w.customer_name}{w.vehicle_label ? ` (${w.vehicle_label})` : ""}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <div className="grid h-10 grid-cols-3 overflow-hidden rounded-xl border border-border/60 bg-background text-[10px] font-semibold text-muted-foreground">
-                    <span className="flex items-center gap-1 border-r px-2"><CheckCircle className={cn("h-3 w-3", guideVehicleReady ? "text-emerald-500" : "text-muted-foreground/40")} /> Vehicle</span>
-                    <span className="flex items-center gap-1 border-r px-2"><HardHat className={cn("h-3 w-3", guideAssignmentReady ? "text-blue-500" : "text-muted-foreground/40")} /> Tech</span>
-                    <span className="flex items-center gap-1 px-2"><BookOpen className="h-3 w-3 text-amber-500" /> Labor</span>
-                  </div>
-                </div>
-              </div>
-
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Year *</Label>
@@ -1292,22 +1237,6 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
                   {vehicleDraft.id ? "Update vehicle" : "Save vehicle"}
                 </Button>
               </div>
-
-              <div className="grid gap-2 rounded-2xl border border-border/50 bg-background p-3 sm:grid-cols-2 lg:grid-cols-3">
-                {guideWorkflowItems.map((item) => (
-                  <div key={item.label} className="flex min-w-0 items-start gap-2 rounded-xl bg-muted/20 p-2">
-                    {item.ready ? (
-                      <CheckCircle className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", item.optional ? "text-blue-500" : "text-emerald-500")} />
-                    ) : (
-                      <Circle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{item.label}</p>
-                      <p className="truncate text-xs font-semibold text-foreground">{item.value}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </CardContent>
           </Card>
 
@@ -1317,13 +1246,15 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
               <SelectTrigger className="h-9 text-sm w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="All">All Categories</SelectItem>{GUIDE_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
-            <div className="flex h-9 items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 text-xs font-semibold text-foreground sm:w-[220px]">
-              <Car className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="truncate">{VEHICLE_CLASSES.find(c => c.id === guideClass)?.label ?? "Vehicle class"}</span>
-            </div>
           </div>
 
-          <p className="text-[10px] text-muted-foreground">Hours are adjusted by the saved vehicle workflow. Click <strong>Use</strong> to pre-fill a manual entry with vehicle, VIN, plate, and engine notes.</p>
+          <p className="text-[10px] text-muted-foreground">
+            {guideVehicleSpec.make && guideVehicleSpec.model ? (
+              <>Estimated for <strong>{[guideVehicleSpec.year, guideVehicleSpec.make, guideVehicleSpec.model].filter(Boolean).join(" ")}</strong>{guideVehicleSpec.engine ? ` · ${guideVehicleSpec.engine}` : ""}{guideVehicleSpec.drivetrain ? ` · ${guideVehicleSpec.drivetrain}` : ""} — hours factor in engine, drivetrain, and age. Tap a time to see why.</>
+            ) : (
+              <>Add the vehicle above for engine-, drivetrain-, and age-specific hours. Click <strong>Use</strong> to pre-fill a manual entry.</>
+            )}
+          </p>
 
           <div className="space-y-1">
             {filteredGuide.length === 0
@@ -1332,6 +1263,8 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
                 let lastCat = "";
                 return filteredGuide.map((g, i) => {
                   const showHeader = g.category !== lastCat; lastCat = g.category;
+                  const est = estimateLabor(g, guideVehicleSpec);
+                  const estTitle = [`base ${est.baseHours}h`, ...est.factors.map(f => `${f.label} ×${f.mult}`)].join(" · ");
                   return (
                     <div key={i}>
                       {showHeader && <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pt-3 pb-1 px-1">{g.category}</p>}
@@ -1344,9 +1277,13 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
                           {g.notes && <p className="text-[10px] text-muted-foreground mt-0.5">{g.notes}</p>}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <div className="text-right leading-tight">
-                            <span className="text-sm font-bold text-foreground tabular-nums">{adjustHours(g.baseHours, guideClass)}h</span>
-                            {guideClass !== "car" && <p className="text-[9px] text-muted-foreground tabular-nums">base {g.baseHours}h</p>}
+                          <div className="text-right leading-tight max-w-[130px]">
+                            <span className="text-sm font-bold text-foreground tabular-nums" title={estTitle}>{est.hours}h</span>
+                            {est.vehicleSpecific && (
+                              <p className="text-[9px] text-muted-foreground">
+                                <span className="tabular-nums">base {est.baseHours}h</span> · {est.summary}
+                              </p>
+                            )}
                           </div>
                           <Button
                             size="sm"

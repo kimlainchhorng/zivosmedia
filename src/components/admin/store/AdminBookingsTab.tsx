@@ -32,6 +32,26 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800 border-red-200",
 };
 
+// Solid status colors for calendar dots + card accent bars.
+const STATUS_DOT: Record<string, string> = {
+  pending: "bg-amber-500",
+  confirmed: "bg-blue-500",
+  completed: "bg-emerald-500",
+  cancelled: "bg-rose-400",
+};
+const statusDot = (s: string) => STATUS_DOT[s] ?? "bg-primary";
+
+// "09:00" / "14:30" → { time: "9:00", ampm: "AM" } for the agenda time rail.
+function fmtTime(t: string | null | undefined): { time: string; ampm: string } {
+  if (!t) return { time: "", ampm: "" };
+  const m = t.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return { time: t, ampm: "" };
+  let h = parseInt(m[1], 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12; if (h === 0) h = 12;
+  return { time: `${h}:${m[2]}`, ampm };
+}
+
 const STATUS_ICONS: Record<string, React.ElementType> = {
   pending: AlertCircle,
   confirmed: CheckCircle2,
@@ -402,54 +422,25 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       </div>
 
       {/* ── Enhanced Stats Grid ── */}
-      <div className="grid grid-cols-4 gap-2">
-        <Card className="overflow-hidden border-l-4 border-l-primary/60">
-          <CardContent className="p-2.5 sm:p-2.5 pt-2.5">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 shrink-0 text-primary" />
-              <div className="min-w-0">
-                <p className="text-lg font-bold leading-none text-foreground">{bookings.length}</p>
-                <p className="text-[10px] text-muted-foreground truncate">Total</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {([
+          { label: "Total", value: bookings.length, icon: BarChart3, chip: "bg-primary/10 text-primary" },
+          { label: "Pending", value: pendingCount, icon: AlertCircle, chip: "bg-amber-500/15 text-amber-600" },
+          { label: "Today", value: todayCount, icon: CalendarIcon, chip: "bg-blue-500/15 text-blue-600" },
+          { label: "Completed", value: completedCount, icon: CheckCircle2, chip: "bg-emerald-500/15 text-emerald-600" },
+        ] as const).map((s) => (
+          <Card key={s.label} className="overflow-hidden transition-shadow hover:shadow-sm">
+            <CardContent className="flex items-center gap-2.5 p-3">
+              <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", s.chip)}>
+                <s.icon className="h-4 w-4" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="overflow-hidden border-l-4 border-l-amber-400">
-          <CardContent className="p-2.5 sm:p-2.5 pt-2.5">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
               <div className="min-w-0">
-                <p className="text-lg font-bold leading-none text-amber-700">{pendingCount}</p>
-                <p className="text-[10px] text-amber-600 truncate">Pending</p>
+                <p className="text-xl font-bold leading-none tabular-nums text-foreground">{s.value}</p>
+                <p className="mt-1 truncate text-[10px] text-muted-foreground">{s.label}</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="overflow-hidden border-l-4 border-l-blue-400">
-          <CardContent className="p-2.5 sm:p-2.5 pt-2.5">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4 shrink-0 text-blue-600" />
-              <div className="min-w-0">
-                <p className="text-lg font-bold leading-none text-blue-700">{todayCount}</p>
-                <p className="text-[10px] text-blue-600 truncate">Today</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="overflow-hidden border-l-4 border-l-green-400">
-          <CardContent className="p-2.5 sm:p-2.5 pt-2.5">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-              <div className="min-w-0">
-                <p className="text-lg font-bold leading-none text-green-700">{completedCount}</p>
-                <p className="text-[10px] text-green-600 truncate">Completed</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* ── Quick Insights Row ── */}
@@ -547,19 +538,36 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                     bookingDates={bookingDates}
                     onDropBooking={moveBooking}
                   />
-                  <p className="mt-2 text-center text-[11px] text-muted-foreground">Tip: drag a booking onto a day to reschedule it.</p>
+                  <div className="mt-3 space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                      {([["pending", "Pending"], ["confirmed", "Confirmed"], ["completed", "Completed"], ["cancelled", "Cancelled"]] as const).map(([k, label]) => (
+                        <span key={k} className="flex items-center gap-1">
+                          <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(k))} /> {label}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-center text-[10px] text-muted-foreground/80">Tip: drag a booking onto a day to reschedule it.</p>
+                  </div>
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-primary" />
-                    {calendarDate
-                      ? format(calendarDate, "EEEE, MMM d, yyyy")
-                      : "Select a date to view bookings"
-                    }
-                  </h4>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-semibold text-foreground flex items-center gap-2 min-w-0">
+                      <CalendarIcon className="h-4 w-4 text-primary shrink-0" />
+                      <span className="truncate">
+                        {calendarDate ? format(calendarDate, "EEEE, MMM d, yyyy") : "Select a date to view bookings"}
+                      </span>
+                    </h4>
+                    {calendarDate && (
+                      <Badge variant="secondary" className="shrink-0 text-[10px]">
+                        {filtered.filter(b => b.preferred_date === format(calendarDate, "yyyy-MM-dd")).length} booked
+                      </Badge>
+                    )}
+                  </div>
                   {calendarDate ? (() => {
                     const dateStr = format(calendarDate, "yyyy-MM-dd");
-                    const dayBookings = filtered.filter(b => b.preferred_date === dateStr);
+                    const dayBookings = filtered
+                      .filter(b => b.preferred_date === dateStr)
+                      .sort((a, b) => (a.preferred_time || "99:99").localeCompare(b.preferred_time || "99:99"));
                     if (dayBookings.length === 0) return (
                       <div className="text-center py-8">
                         <CalendarClock className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
@@ -576,23 +584,31 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
                                 key={b.id}
                                 draggable
                                 onDragStart={(e) => { e.dataTransfer.setData("text/plain", b.id); e.dataTransfer.effectAllowed = "move"; }}
-                                className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors cursor-grab active:cursor-grabbing"
+                                className="group flex items-stretch gap-2.5 rounded-xl border border-border/60 bg-card p-2.5 transition-all hover:border-primary/40 hover:shadow-sm cursor-grab active:cursor-grabbing"
                                 onClick={() => { setExpandedId(b.id); }}
                                 title="Drag to a day to reschedule"
                               >
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-foreground truncate">{b.service_name}</p>
-                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                    <User className="h-3 w-3" />
-                                    {b.customer_name}
-                                    {b.preferred_time && (
-                                      <span className="ml-2 flex items-center gap-0.5">
-                                        <Clock className="h-3 w-3" /> {b.preferred_time}
-                                      </span>
-                                    )}
+                                {/* Time rail */}
+                                <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted/60 px-1 py-1.5 text-center">
+                                  {b.preferred_time ? (
+                                    <>
+                                      <span className="text-xs font-bold leading-none tabular-nums text-foreground">{fmtTime(b.preferred_time).time}</span>
+                                      <span className="mt-0.5 text-[9px] font-semibold leading-none text-muted-foreground">{fmtTime(b.preferred_time).ampm}</span>
+                                    </>
+                                  ) : (
+                                    <Clock className="h-4 w-4 text-muted-foreground/50" />
+                                  )}
+                                </div>
+                                {/* Status accent */}
+                                <div className={cn("w-1 shrink-0 rounded-full", statusDot(b.status))} />
+                                <div className="min-w-0 flex-1 self-center">
+                                  <p className="text-sm font-semibold text-foreground truncate">{b.service_name}</p>
+                                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    <User className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">{b.customer_name}</span>
                                   </p>
                                 </div>
-                                <Badge className={cn("text-[10px] shrink-0", STATUS_COLORS[b.status])}>
+                                <Badge className={cn("self-center text-[10px] shrink-0", STATUS_COLORS[b.status])}>
                                   <StatusIcon className="h-3 w-3 mr-1" />
                                   {b.status}
                                 </Badge>
@@ -1081,10 +1097,11 @@ function BookingsCalendar({
   onDropBooking: (bookingId: string, dateStr: string) => void;
 }) {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
-  const gridStart = startOfWeek(startOfMonth(month));
-  const gridEnd = endOfWeek(endOfMonth(month));
+  // Week starts on Monday (professional / ISO layout): Mo–Su.
+  const gridStart = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
+  const gridEnd = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
-  const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const weekdays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
   return (
     <div className="rounded-xl border border-border p-2">
@@ -1126,21 +1143,25 @@ function BookingsCalendar({
                 if (id) onDropBooking(id, dateStr);
               }}
               className={cn(
-                "relative flex aspect-square flex-col items-center justify-center rounded-lg text-xs transition-colors",
-                !inMonth && "text-muted-foreground/40",
-                inMonth && "text-foreground hover:bg-muted",
-                isToday(day) && !isSel && "bg-accent",
-                isSel && "bg-ig-gradient text-white",
-                isDragOver && "ring-2 ring-primary ring-offset-1 bg-primary/10",
+                "relative flex aspect-square flex-col items-center justify-center gap-1 rounded-xl text-sm transition-all duration-150",
+                !inMonth && "text-muted-foreground/30",
+                inMonth && !isSel && "text-foreground hover:bg-muted/70",
+                isToday(day) && !isSel && "font-semibold text-primary ring-1 ring-inset ring-primary/40",
+                isSel && "bg-ig-gradient text-white font-semibold shadow-sm shadow-primary/25",
+                isDragOver && "scale-[1.04] bg-primary/10 ring-2 ring-primary ring-offset-1",
               )}
             >
-              <span className={cn("leading-none", info && "font-bold")}>{format(day, "d")}</span>
+              <span className="leading-none tabular-nums">{format(day, "d")}</span>
               {info && (
-                <span className={cn(
-                  "mt-0.5 rounded-full px-1 text-[8px] font-bold leading-tight",
-                  isSel ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary/15 text-primary",
-                )}>
-                  {info.count}
+                <span className="flex items-center gap-0.5">
+                  {info.statuses.slice(0, 3).map((s, i) => (
+                    <span key={i} className={cn("h-1.5 w-1.5 rounded-full", isSel ? "bg-white/90" : statusDot(s))} />
+                  ))}
+                  {info.count > 3 && (
+                    <span className={cn("text-[8px] font-bold leading-none", isSel ? "text-white/90" : "text-muted-foreground")}>
+                      +{info.count - 3}
+                    </span>
+                  )}
                 </span>
               )}
             </button>

@@ -347,7 +347,7 @@ export default function AutoRepairCustomersSection({ storeId, onNavigate }: Prop
   return (
     <div className="space-y-4">
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         {[
           { label: "Total Customers", value: stats.totalCustomers, icon: Users, color: "bg-primary/10 text-primary" },
           { label: "Total Orders", value: stats.totalOrders, icon: ShoppingBag, color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" },
@@ -355,12 +355,12 @@ export default function AutoRepairCustomersSection({ storeId, onNavigate }: Prop
           { label: "Repeat Rate", value: `${stats.repeatRate}%`, icon: TrendingUp, color: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400" },
         ].map((s) => (
           <Card key={s.label}>
-            <CardContent className="p-4">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${s.color}`}>
-                <s.icon className="w-4 h-4" />
+            <CardContent className="p-3 sm:p-3">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-1.5 ${s.color}`}>
+                <s.icon className="w-3.5 h-3.5" />
               </div>
-              <p className="text-xl font-bold text-foreground">{s.value}</p>
-              <p className="text-[11px] text-muted-foreground">{s.label}</p>
+              <p className="text-lg font-bold leading-tight text-foreground">{s.value}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{s.label}</p>
             </CardContent>
           </Card>
         ))}
