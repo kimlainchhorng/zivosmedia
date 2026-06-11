@@ -6,6 +6,10 @@
       "headers": {
         "Authorization": "Bearer ${SUPABASE_ACCESS_TOKEN}"
       }
+    },
+    "deepseek": {
+      "command": "node",
+      "args": ["scripts/deepseek-mcp-server.mjs"]
     }
   }
 }
