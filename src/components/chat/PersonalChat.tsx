@@ -562,7 +562,7 @@ function DirectChatIntroCard({
   onOpenInfo: () => void;
 }) {
   return (
-    <div className="mx-auto my-3 w-full max-w-[260px] overflow-hidden rounded-[1.25rem] border border-white/12 bg-background/60 text-center shadow-lg backdrop-blur-2xl">
+    <div className="mx-auto my-3 w-full max-w-[260px] overflow-hidden rounded-[1.25rem] border border-border/50 bg-card text-center shadow-lg">
       <button
         type="button"
         onClick={onOpenInfo}

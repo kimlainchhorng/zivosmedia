@@ -1215,7 +1215,13 @@ const Profile = () => {
           swipeStartY.current = null;
         }}
       >
-        <div className="px-2.5 lg:px-4 pt-12 lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
+        <div className={cn(
+          "px-2.5 lg:px-4 lg:pt-20 max-w-none lg:max-w-3xl mx-auto",
+          // Clear the fixed mobile header so the cover starts BELOW it (a solid
+          // bar above the cover) instead of sliding under it. Match the header's
+          // own height in each context — taller in the native app (safe-area).
+          "pt-[calc(var(--zivo-safe-top-sticky)_+_2.75rem)]"
+        )}>
 
           {profileLoading ? (
             <div className="flex items-center justify-center py-20">

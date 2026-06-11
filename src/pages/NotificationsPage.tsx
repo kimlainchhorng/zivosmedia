@@ -346,19 +346,19 @@ const NotificationsPage = () => {
     await Promise.all([fetchNotifications(), fetchFriendRequests()]);
   }, [fetchNotifications, fetchFriendRequests]);
 
-  const handleDeleteNotification = useCallback((id: string) => {
-    void deleteNotifications([id]);
-    toast.success('Notification deleted');
+  const handleDeleteNotification = useCallback(async (id: string) => {
+    const ok = await deleteNotifications([id]);
+    if (ok) toast.success('Notification deleted');
   }, [deleteNotifications]);
 
-  const handleClearRead = useCallback(() => {
+  const handleClearRead = useCallback(async () => {
     const readIds = notifications.filter(n => n.is_read).map(n => n.id);
     if (readIds.length === 0) {
       toast('No read notifications to clear');
       return;
     }
-    void deleteNotifications(readIds);
-    toast.success(`Cleared ${readIds.length} read notification${readIds.length === 1 ? '' : 's'}`);
+    const ok = await deleteNotifications(readIds);
+    if (ok) toast.success(`Cleared ${readIds.length} read notification${readIds.length === 1 ? '' : 's'}`);
   }, [deleteNotifications, notifications]);
 
   const handleMarkAllRead = useCallback(() => {
