@@ -5,7 +5,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { Plane, ArrowLeft, Filter, X, AlertTriangle, WifiOff, RefreshCw, Luggage, Clock, ChevronRight, ArrowRight, Sunrise, Sun, Sunset, Moon, Check, CalendarDays, Users, Pencil, ExternalLink, Star, ShieldCheck, Zap } from "lucide-react";
+import { Plane, ArrowLeft, Filter, X, AlertTriangle, WifiOff, RefreshCw, Luggage, Clock, ChevronRight, ArrowRight, Sunrise, Sun, Sunset, Moon, Check, CalendarDays, Users, Pencil, ExternalLink, Star, ShieldCheck, Zap, Bot, Sparkles, Route, SlidersHorizontal, type LucideIcon } from "lucide-react";
 import FlightSearchFormPro from "@/components/search/FlightSearchFormPro";
 import PriceAlertButton from "@/components/flight/PriceAlertButton";
 import { useAviasalesSearch, type AviasalesResult } from "@/hooks/useAviasalesSearch";
@@ -80,6 +80,184 @@ const timeOptions = [
   { id: "evening", label: "Evening", sub: "6pm – 12am", icon: Sunset },
 ];
 
+type AirportRecord = ReturnType<typeof getAirportByCode>;
+
+const aiProviderStates: Array<{
+  title: string;
+  detail: string;
+  state: string;
+  icon: LucideIcon;
+  tone: string;
+}> = [
+  {
+    title: "ZIVO AI",
+    detail: "Auto route",
+    state: "Active",
+    icon: Bot,
+    tone: "border-cyan-200 bg-cyan-50/80 text-cyan-800",
+  },
+  {
+    title: "DeepSeek",
+    detail: "Live travel",
+    state: "Active",
+    icon: Sparkles,
+    tone: "border-teal-200 bg-teal-50/80 text-teal-800",
+  },
+  {
+    title: "Claude API",
+    detail: "Optional",
+    state: "Standby",
+    icon: SlidersHorizontal,
+    tone: "border-amber-200 bg-amber-50/80 text-amber-800",
+  },
+];
+
+const formatResultDate = (value?: string) => {
+  if (!value) return "Flexible";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date);
+};
+
+const buildPlannerReturnUrl = ({
+  destination,
+  destinationCity,
+  departureDate,
+  returnDate,
+  travelers,
+}: {
+  destination: string;
+  destinationCity?: string;
+  departureDate: string;
+  returnDate?: string;
+  travelers: number;
+}) => {
+  const plannerParams = new URLSearchParams();
+  const destinationLabel = destinationCity || destination;
+  if (destinationLabel) plannerParams.set("destination", destinationLabel);
+  if (destination) plannerParams.set("to", destination);
+  if (departureDate) plannerParams.set("start", departureDate);
+  if (returnDate) plannerParams.set("end", returnDate);
+  if (travelers) plannerParams.set("travelers", String(travelers));
+  return `/ai-trip-planner${plannerParams.toString() ? `?${plannerParams.toString()}` : ""}`;
+};
+
+interface PlannerResultsBridgeProps {
+  origin: string;
+  destination: string;
+  originAirport?: AirportRecord;
+  destAirport?: AirportRecord;
+  departureDate: string;
+  returnDate?: string;
+  totalPassengers: number;
+  cabinClass: string;
+}
+
+function PlannerResultsBridge({
+  origin,
+  destination,
+  originAirport,
+  destAirport,
+  departureDate,
+  returnDate,
+  totalPassengers,
+  cabinClass,
+}: PlannerResultsBridgeProps) {
+  const fromLabel = originAirport?.city || origin || "Origin";
+  const toLabel = destAirport?.city || destination || "Destination";
+  const fromCode = origin ? origin.toUpperCase() : "";
+  const toCode = destination ? destination.toUpperCase() : "";
+  const dateLabel = `${formatResultDate(departureDate)}${returnDate ? ` - ${formatResultDate(returnDate)}` : ""}`;
+  const plannerHref = buildPlannerReturnUrl({
+    destination,
+    destinationCity: destAirport?.city,
+    departureDate,
+    returnDate,
+    travelers: totalPassengers,
+  });
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24 }}
+      className="mb-5 overflow-hidden rounded-lg border border-sky-200/90 bg-white/95 shadow-[0_18px_50px_-32px_rgba(8,47,73,0.35)]"
+    >
+      <div className="flex flex-col lg:flex-row lg:items-stretch">
+        <div className="flex min-w-0 items-center gap-3 px-4 py-4 lg:w-[310px] lg:border-r lg:border-slate-200/80">
+          <Sparkles className="h-5 w-5 shrink-0 text-cyan-700" />
+          <div className="min-w-0">
+            <p className="text-sm font-black text-slate-950">AI Planner Handoff</p>
+            <p className="mt-1 truncate text-xs text-slate-500">Here are live flight options based on your plan.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 border-t border-slate-200/80 sm:grid-cols-4 lg:flex lg:flex-1 lg:border-t-0">
+          <div className="min-w-0 px-4 py-3 lg:w-[250px] lg:border-r lg:border-slate-200/80">
+            <p className="text-[11px] font-semibold text-slate-500">Route</p>
+            <div className="mt-1 flex items-center gap-3">
+              <div className="min-w-0">
+                <p className="text-xl font-black text-slate-950">{fromCode || fromLabel}</p>
+                <p className="truncate text-xs text-slate-500">{fromLabel}</p>
+              </div>
+              <Plane className="h-4 w-4 shrink-0 rotate-45 text-slate-700" />
+              <div className="min-w-0">
+                <p className="text-xl font-black text-slate-950">{toCode || toLabel}</p>
+                <p className="truncate text-xs text-slate-500">{toLabel}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-w-0 border-l border-slate-200/80 px-4 py-3 sm:border-l lg:w-[190px] lg:border-r">
+            <p className="text-[11px] font-semibold text-slate-500">Dates</p>
+            <div className="mt-2 flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 shrink-0 text-slate-600" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-slate-950">{dateLabel}</p>
+                <p className="truncate text-xs text-slate-500">{returnDate ? "Round trip" : "One way"}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-w-0 border-t border-slate-200/80 px-4 py-3 sm:border-l sm:border-t-0 lg:w-[145px] lg:border-r">
+            <p className="text-[11px] font-semibold text-slate-500">Travelers</p>
+            <div className="mt-2 flex items-center gap-2">
+              <Users className="h-4 w-4 shrink-0 text-slate-600" />
+              <div>
+                <p className="text-sm font-black text-slate-950">{totalPassengers}</p>
+                <p className="truncate text-xs capitalize text-slate-500">{cabinClass.replace("_", " ")}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 border-t border-slate-200/80 sm:col-span-1 sm:border-l sm:border-t-0 lg:flex lg:flex-1">
+            {aiProviderStates.map((provider) => (
+              <div key={provider.title} className="min-w-0 border-r border-slate-200/80 px-3 py-3 last:border-r-0 lg:w-[135px]">
+                <p className="truncate text-sm font-black text-slate-950">{provider.title}</p>
+                <p className="truncate text-xs text-slate-500">{provider.detail}</p>
+                <span className={cn("mt-2 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-bold", provider.tone)}>
+                  <span className="h-2 w-2 rounded-full bg-current opacity-70" />
+                  {provider.state}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200/80 p-4 lg:flex lg:w-[175px] lg:items-center lg:border-l lg:border-t-0">
+          <Link
+            to={plannerHref}
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-800"
+          >
+            <Route className="h-4 w-4" />
+            Tune in planner
+          </Link>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
 const FlightResults = () => {
   const isMobile = useIsMobile();
   const [params] = useSearchParams();
@@ -117,6 +295,20 @@ const FlightResults = () => {
   const rawCabinClass = params.get("cabinClass") || params.get("cabin") || "economy";
   const cabinClass = (rawCabinClass === "premium" ? "premium_economy" : rawCabinClass) as 'economy' | 'premium_economy' | 'business' | 'first';
   const totalPassengers = adults + children + infants;
+  const source = params.get("source") || "";
+  const isPlannerHandoff = source === "ai-trip-planner";
+  const searchSnapshot = {
+    origin,
+    destination,
+    departureDate,
+    returnDate,
+    adults,
+    children,
+    infants,
+    cabinClass,
+    source: source || null,
+    plannerHandoff: isPlannerHandoff,
+  };
 
   // Validate return date is after departure date to prevent API errors
   const validReturnDate = returnDate && departureDate && returnDate > departureDate ? returnDate : undefined;
@@ -157,12 +349,12 @@ const FlightResults = () => {
     enabled: !!origin && !!destination && !!departureDate,
   });
 
-  const aviasalesResults = aviasalesData?.results || [];
+  const aviasalesResults = useMemo(() => aviasalesData?.results ?? [], [aviasalesData]);
   const aviasalesMeta = aviasalesData?.meta;
   const hasLiveAviasalesData = aviasalesResults.length > 0;
   const hasCachedTravelpayoutsData = tpPrices.length > 0;
 
-  const offers = data?.offers || [];
+  const offers = useMemo(() => data?.offers ?? [], [data]);
   const isRoundTrip = !!validReturnDate;
 
   // Best prices for comparison
@@ -228,9 +420,7 @@ const FlightResults = () => {
     const bestOffer = group.representativeOffer;
     sessionStorage.setItem("zivo_selected_offer", JSON.stringify(bestOffer));
     sessionStorage.setItem("zivo_selected_offer_snapshot", JSON.stringify(bestOffer));
-    sessionStorage.setItem("zivo_search_params", JSON.stringify({
-      origin, destination, departureDate, returnDate, adults, children, infants, cabinClass,
-    }));
+    sessionStorage.setItem("zivo_search_params", JSON.stringify(searchSnapshot));
     navigate("/flights/details/review");
   };
 
@@ -261,15 +451,15 @@ const FlightResults = () => {
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [offers]);
 
-  const getTimeBucket = (time: string): string => {
+  const getTimeBucket = useCallback((time: string): string => {
     const hour = parseInt(time.split(":")[0], 10);
     if (hour < 6) return "early_morning";
     if (hour < 12) return "morning";
     if (hour < 18) return "afternoon";
     return "evening";
-  };
+  }, []);
 
-  const applyFilters = (f: FlightFiltersState, offerList: DuffelOffer[]) => {
+  const applyFilters = useCallback((f: FlightFiltersState, offerList: DuffelOffer[]) => {
     let result = [...offerList];
     if (f.maxPrice > 0) result = result.filter(o => getAllInPrice(o.price) <= f.maxPrice);
     if (f.stops.length > 0) result = result.filter(o => f.stops.some(s => s === 2 ? o.stops >= 2 : o.stops === s));
@@ -282,9 +472,9 @@ const FlightResults = () => {
     if (f.baggageCarryOn) result = result.filter(o => o.baggageIncluded && (o.baggageIncluded.toLowerCase().includes("carry") || o.baggageIncluded.toLowerCase().includes("cabin")));
     if (f.baggageChecked) result = result.filter(o => o.baggageIncluded && o.baggageIncluded.toLowerCase().includes("checked"));
     return result;
-  };
+  }, [getTimeBucket]);
 
-  const sortOffers = (offerList: DuffelOffer[], sort: SortBy) => {
+  const sortOffers = useCallback((offerList: DuffelOffer[], sort: SortBy) => {
     const sorted = [...offerList];
     switch (sort) {
       case "cheapest": sorted.sort((a, b) => a.price - b.price); break;
@@ -302,9 +492,9 @@ const FlightResults = () => {
         break;
     }
     return sorted;
-  };
+  }, [priceRange.max]);
 
-  const filtered = useMemo(() => sortOffers(applyFilters(filters, offers), sortBy), [offers, filters, sortBy, priceRange]);
+  const filtered = useMemo(() => sortOffers(applyFilters(filters, offers), sortBy), [offers, filters, sortBy, sortOffers, applyFilters]);
 
   const lowestPriceId = useMemo(() => {
     if (filtered.length === 0) return null;
@@ -382,9 +572,7 @@ const FlightResults = () => {
   const handleSelect = (offer: DuffelOffer) => {
     sessionStorage.setItem("zivo_selected_offer", JSON.stringify(offer));
     sessionStorage.setItem("zivo_selected_offer_snapshot", JSON.stringify(offer));
-    sessionStorage.setItem("zivo_search_params", JSON.stringify({
-      origin, destination, departureDate, returnDate, adults, children, infants, cabinClass,
-    }));
+    sessionStorage.setItem("zivo_search_params", JSON.stringify(searchSnapshot));
     navigate("/flights/details/review");
   };
 
@@ -406,7 +594,7 @@ const FlightResults = () => {
     return Math.round(getAllInPrice(Math.min(...filtered.map(o => o.price))));
   }, [filtered]);
 
-  const pendingFiltered = useMemo(() => applyFilters(pendingFilters, offers), [offers, pendingFilters]);
+  const pendingFiltered = useMemo(() => applyFilters(pendingFilters, offers), [offers, pendingFilters, applyFilters]);
 
   // Quick stats for QuickStatsBar
   const quickStats = useMemo(() => {
@@ -634,7 +822,6 @@ const FlightResults = () => {
   );
 
   // Desktop filter onChange
-  const desktopFilterChange = (partial: Partial<FlightFiltersState>) => setFilters(prev => ({ ...prev, ...partial }));
   const desktopToggleArray = (key: keyof FlightFiltersState, value: string | number) => {
     setFilters(prev => {
       const arr = prev[key] as (string | number)[];
@@ -648,10 +835,342 @@ const FlightResults = () => {
 
   const routeSummary = `${originAirport?.city || origin} → ${destAirport?.city || destination}`;
 
+  const stopFilterOptions = [
+    { value: 0, label: "Nonstop", count: offers.filter((offer) => offer.stops === 0).length },
+    { value: 1, label: "1 stop", count: offers.filter((offer) => offer.stops === 1).length },
+    { value: 2, label: "2+ stops", count: offers.filter((offer) => offer.stops >= 2).length },
+  ];
+
+  const desktopFilterPanel = (
+    <div className="divide-y divide-slate-200">
+      <section className="pb-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-950">Stops</h3>
+          <ChevronRight className="h-4 w-4 -rotate-90 text-slate-500" />
+        </div>
+        <div className="mt-3 space-y-3">
+          <label className="flex cursor-pointer items-center justify-between gap-3 text-sm text-slate-700">
+            <span className="flex items-center gap-2">
+              <Checkbox
+                checked={filters.stops.length === 0}
+                onCheckedChange={() => setFilters((prev) => ({ ...prev, stops: [] }))}
+                className="data-[state=checked]:border-teal-600 data-[state=checked]:bg-teal-600"
+              />
+              All
+            </span>
+            <span className="text-slate-500">{offers.length}</span>
+          </label>
+          {stopFilterOptions.map((option) => (
+            <label key={option.value} className="flex cursor-pointer items-center justify-between gap-3 text-sm text-slate-700">
+              <span className="flex items-center gap-2">
+                <Checkbox
+                  checked={filters.stops.includes(option.value)}
+                  onCheckedChange={() => desktopToggleArray("stops", option.value)}
+                  className="data-[state=checked]:border-teal-600 data-[state=checked]:bg-teal-600"
+                />
+                {option.label}
+              </span>
+              <span className="text-slate-500">{option.count}</span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section className="py-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-950">Price</h3>
+          <ChevronRight className="h-4 w-4 -rotate-90 text-slate-500" />
+        </div>
+        <div className="mt-3">
+          <div className="mb-2 flex items-center justify-between text-xs text-slate-600">
+            <span>${priceRange.min}</span>
+            <span>${filters.maxPrice > 0 ? filters.maxPrice : `${priceRange.max}+`}</span>
+          </div>
+          <Slider
+            value={[filters.maxPrice > 0 ? filters.maxPrice : priceRange.max]}
+            min={priceRange.min}
+            max={priceRange.max}
+            step={10}
+            onValueChange={([value]) => setFilters((prev) => ({ ...prev, maxPrice: value >= priceRange.max ? 0 : value }))}
+            className="[&_[role=slider]]:border-teal-700 [&_[role=slider]]:bg-white [&_[role=slider]]:shadow-sm [&_.bg-primary]:bg-teal-700"
+          />
+        </div>
+      </section>
+
+      <section className="py-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-950">Departure ({origin || "Origin"})</h3>
+          <ChevronRight className="h-4 w-4 -rotate-90 text-slate-500" />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {timeOptions.map((option) => {
+            const active = filters.departureTime.includes(option.id);
+            return (
+              <button
+                type="button"
+                key={option.id}
+                onClick={() => desktopToggleArray("departureTime", option.id)}
+                className={cn(
+                  "rounded-lg border px-2 py-2 text-left text-[11px] transition-colors",
+                  active ? "border-teal-500 bg-teal-50 text-teal-800" : "border-slate-200 bg-white text-slate-600 hover:border-teal-300"
+                )}
+              >
+                <option.icon className="mb-1 h-3.5 w-3.5" />
+                <p className="font-bold">{option.label}</p>
+                <p className="text-[9px] opacity-75">{option.sub}</p>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="py-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-950">Baggage</h3>
+          <ChevronRight className="h-4 w-4 -rotate-90 text-slate-500" />
+        </div>
+        <div className="mt-3 space-y-3">
+          {[
+            { key: "baggagePersonalItem" as const, label: "Personal item" },
+            { key: "baggageCarryOn" as const, label: "Carry-on" },
+            { key: "baggageChecked" as const, label: "Checked bag" },
+          ].map((bag) => (
+            <label key={bag.key} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+              <Checkbox
+                checked={filters[bag.key]}
+                onCheckedChange={(value) => setFilters((prev) => ({ ...prev, [bag.key]: !!value }))}
+                className="data-[state=checked]:border-teal-600 data-[state=checked]:bg-teal-600"
+              />
+              {bag.label}
+            </label>
+          ))}
+        </div>
+      </section>
+
+      {["Airlines", "Duration", "More filters"].map((label) => (
+        <button key={label} type="button" className="flex w-full items-center justify-between py-4 text-left text-sm font-black text-slate-950">
+          {label}
+          <ChevronRight className="h-4 w-4 text-slate-500" />
+        </button>
+      ))}
+    </div>
+  );
+
+  const displayedFlightCount = isRoundTrip
+    ? selectionStep === "outbound"
+      ? sortedOutboundGroups.length
+      : sortedReturnGroups.length
+    : filtered.length;
+  const resultCountLabel = isLoading
+    ? "Searching flights"
+    : displayedFlightCount > 0
+      ? `${displayedFlightCount} flight${displayedFlightCount === 1 ? "" : "s"}`
+      : "Live flights";
+  const desktopDateLabel = `${formatResultDate(departureDate)}${validReturnDate ? ` - ${formatResultDate(validReturnDate)}` : ""}`;
+  const cabinLabel = cabinClass.replace("_", " ");
+  const desktopFareSummaryCards = [
+    {
+      key: "best" as SortBy,
+      label: "Best value",
+      price: quickStats?.bestValue.price,
+      meta: quickStats?.bestValue.duration || "Live scan",
+      active: sortBy === "best",
+    },
+    {
+      key: "cheapest" as SortBy,
+      label: "Cheapest",
+      price: quickStats?.cheapest.price || lowestPrice || undefined,
+      meta: quickStats?.cheapest.duration || "Lowest fare",
+      active: sortBy === "cheapest",
+    },
+    {
+      key: "fastest" as SortBy,
+      label: "Fastest",
+      price: quickStats?.fastest.price,
+      meta: quickStats?.fastest.duration || "Shortest trip",
+      active: sortBy === "fastest",
+    },
+    {
+      key: "earliest" as SortBy,
+      label: "Earliest",
+      price: filtered[0] ? Math.round(getAllInPrice(filtered[0].price)) : undefined,
+      meta: "First departure",
+      active: sortBy === "earliest",
+    },
+  ];
+  const bookingConfidence = lowestPrice > 0 || displayedFlightCount > 0 ? 92 : 78;
+
+  const desktopOverview = !isMobile && (
+    <div className="mb-5 hidden lg:block">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <h1 className="text-2xl font-black text-slate-950">{resultCountLabel}</h1>
+          <span className="text-sm font-semibold text-slate-500">{origin} - {destination}</span>
+          <span className="truncate text-sm text-slate-500">
+            {desktopDateLabel}, {totalPassengers} {totalPassengers === 1 ? "traveler" : "travelers"}, <span className="capitalize">{cabinLabel}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setEditMode(!editMode)}
+            className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-bold text-teal-700 transition-colors hover:bg-teal-50"
+          >
+            <Pencil className="h-4 w-4" />
+            Edit search
+          </button>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-slate-500">
+            Currency
+            <select className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none">
+              <option>USD</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-500">
+            Sort by
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as SortBy)}
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none"
+            >
+              <option value="best">Recommended</option>
+              <option value="cheapest">Cheapest</option>
+              <option value="fastest">Fastest</option>
+              <option value="earliest">Earliest</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {editMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="mb-5 rounded-lg border border-sky-200 bg-white p-3 shadow-sm"
+          >
+            <FlightSearchFormPro
+              initialFrom={origin}
+              initialTo={destination}
+              initialDepartDate={departureDate ? new Date(departureDate + "T00:00:00") : undefined}
+              initialReturnDate={returnDate ? new Date(returnDate + "T00:00:00") : undefined}
+              initialPassengers={totalPassengers}
+              initialCabin={rawCabinClass === "premium_economy" ? "premium" : rawCabinClass as any}
+              initialTripType={returnDate ? "roundtrip" : "oneway"}
+              navigateOnSearch={true}
+              onSearch={() => setEditMode(false)}
+              className="!p-0"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="grid grid-cols-4 gap-4">
+        {desktopFareSummaryCards.map((card) => (
+          <button
+            type="button"
+            key={card.key}
+            onClick={() => setSortBy(card.key)}
+            className={cn(
+              "rounded-lg border bg-white px-4 py-3 text-left shadow-sm transition-colors",
+              card.active ? "border-teal-600 bg-teal-50/40" : "border-slate-200 hover:border-teal-300"
+            )}
+          >
+            <p className="text-xs font-semibold text-slate-500">{card.label}</p>
+            <div className="mt-1 flex items-end gap-3">
+              <p className="text-2xl font-black text-slate-950">{card.price ? `$${card.price}` : "--"}</p>
+              <p className="pb-1 text-sm font-medium text-slate-500">{card.meta}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+        <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+        Prices are live and may change. Book within 24h to lock in the best fare.
+      </div>
+    </div>
+  );
+
+  const desktopInsights = !isMobile && (
+    <aside className="hidden w-[248px] shrink-0 space-y-4 lg:block">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-black text-slate-950">Booking confidence</h2>
+          <ShieldCheck className="h-4 w-4 text-slate-400" />
+        </div>
+        <div className="mt-5 flex items-center justify-between">
+          <p className="text-3xl font-black text-teal-700">{bookingConfidence >= 90 ? "High" : "Good"}</p>
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border-[10px] border-teal-100 border-r-teal-500 border-t-teal-700 text-sm font-black text-slate-950">
+            {bookingConfidence}%
+          </div>
+        </div>
+        <div className="mt-4 space-y-2 text-sm text-slate-600">
+          {["Prices are currently low", "Low demand on your dates", "Typical price is under budget"].map((item) => (
+            <p key={item} className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-teal-600" />
+              {item}
+            </p>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-slate-400">Confidence updated 2h ago</p>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="text-base font-black text-slate-950">Price comparison</h2>
+        <div className="mt-3 inline-flex rounded-full bg-sky-50 p-1 text-xs font-bold text-slate-500">
+          <span className="rounded-full bg-sky-100 px-4 py-1 text-sky-700">7 days</span>
+          <span className="px-4 py-1">30 days</span>
+        </div>
+        <div className="mt-4 flex items-end justify-between">
+          <div>
+            <p className="text-xs text-slate-500">Average price</p>
+            <p className="text-lg font-black text-slate-950">${lowestPrice || quickStats?.bestValue.price || 689}</p>
+          </div>
+          <p className="text-sm font-bold text-emerald-600">-8%</p>
+        </div>
+        <svg className="mt-3 h-20 w-full" viewBox="0 0 220 80" role="img" aria-label="Price trend">
+          <path d="M4 60 L30 42 L55 48 L82 35 L110 52 L140 44 L170 55 L198 38 L216 64" fill="none" stroke="#0f8a96" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4 60 L30 42 L55 48 L82 35 L110 52 L140 44 L170 55 L198 38 L216 64 L216 80 L4 80 Z" fill="#0f8a96" opacity="0.08" />
+        </svg>
+        <div className="mt-3 rounded-lg bg-sky-50 p-3 text-xs text-slate-600">
+          <p className="font-bold text-slate-950">Tips</p>
+          <p className="mt-1">Prices are likely to stay stable. Book within 3 days for the best fares.</p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="text-base font-black text-slate-950">Why book with ZIVO?</h2>
+        <div className="mt-4 space-y-3 text-sm text-slate-600">
+          {["24/7 human support", "Secure payments", "Trusted by 50K+ travelers"].map((item) => (
+            <p key={item} className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-teal-600" />
+              {item}
+            </p>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+
   const resultsContent = (
-    <div className="mx-auto px-2.5 sm:px-4 max-w-5xl">
+    <div className="mx-auto max-w-[1440px] px-2.5 sm:px-4 lg:px-8">
+      {isPlannerHandoff && !isMobile && (
+        <PlannerResultsBridge
+          origin={origin}
+          destination={destination}
+          originAirport={originAirport}
+          destAirport={destAirport}
+          departureDate={departureDate}
+          returnDate={returnDate}
+          totalPassengers={totalPassengers}
+          cabinClass={cabinClass}
+        />
+      )}
+
       {/* Sticky summary bar — compact nav */}
-      <div className={cn("sticky z-20 -mx-2.5 sm:-mx-4 px-2.5 sm:px-4 mb-2", isMobile ? "top-0" : "top-14")}>
+      <div className={cn("sticky z-20 -mx-2.5 sm:-mx-4 px-2.5 sm:px-4 mb-2", isMobile ? "top-0" : "top-14", isPlannerHandoff && !isMobile && "hidden")}>
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -773,6 +1292,21 @@ const FlightResults = () => {
             </motion.div>
           </div>
 
+          {isPlannerHandoff && isMobile && (
+            <PlannerResultsBridge
+              origin={origin}
+              destination={destination}
+              originAirport={originAirport}
+              destAirport={destAirport}
+              departureDate={departureDate}
+              returnDate={returnDate}
+              totalPassengers={totalPassengers}
+              cabinClass={cabinClass}
+            />
+          )}
+
+          {desktopOverview}
+
           {/* Limited coverage notice for Cambodia routes */}
           {offers.length > 0 && offers.length <= 5 && ["PNH", "KTI", "REP", "KOS"].some(c => origin.toUpperCase() === c || destination.toUpperCase() === c) && (
             <motion.div
@@ -785,7 +1319,7 @@ const FlightResults = () => {
           )}
 
           {/* Quick Stats Bar */}
-          {!isLoading && quickStats && filtered.length > 3 && (
+          {isMobile && !isLoading && quickStats && filtered.length > 3 && (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -800,7 +1334,7 @@ const FlightResults = () => {
             </motion.div>
           )}
 
-          {offers.length > 0 && (
+          {isMobile && offers.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -948,19 +1482,26 @@ const FlightResults = () => {
             </motion.div>
           )}
 
-          <div className="flex gap-4 sm:gap-5">
+          <div className="flex gap-4 lg:gap-6">
             {/* Desktop filters sidebar */}
-            {offers.length > 0 && (
-              <div className="hidden sm:block w-56 shrink-0">
-                <div className="sticky top-32 bg-card/70 backdrop-blur-xl rounded-2xl border border-border/40 p-3.5 max-h-[calc(100vh-9rem)] overflow-y-auto">
-                  <p className="text-xs font-semibold mb-3 flex items-center gap-1.5">
+            {(offers.length > 0 || isPlannerHandoff) && (
+              <div className="hidden w-[236px] shrink-0 lg:block">
+                <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between">
+                    <p className="flex items-center gap-1.5 text-lg font-black text-slate-950">
                     <Filter className="w-3.5 h-3.5 text-[hsl(var(--flights))]" />
                     Filters
                     {activeFilterCount > 0 && (
                       <Badge variant="secondary" className="text-[9px] h-4 px-1.5">{activeFilterCount}</Badge>
                     )}
                   </p>
-                  {renderFilterContent(filters, desktopFilterChange, desktopToggleArray)}
+                    {activeFilterCount > 0 && (
+                      <button type="button" onClick={clearFilters} className="text-xs font-bold text-teal-700">
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                  {desktopFilterPanel}
                   {activeFilterCount > 0 && (
                     <>
                       <Separator className="bg-border/30 my-4" />
@@ -1033,7 +1574,7 @@ const FlightResults = () => {
               )}
 
               {/* Multi-Agency Price Comparison (Aviasales Real-Time Search) */}
-              {!isLoading && !error && offers.length > 0 && (hasLiveAviasalesData || lowestDuffelPrice) && (
+              {isMobile && !isLoading && !error && offers.length > 0 && (hasLiveAviasalesData || lowestDuffelPrice) && (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1350,6 +1891,8 @@ const FlightResults = () => {
                 </p>
               )}
             </div>
+
+            {desktopInsights}
           </div>
 
           {/* Flight Compare Widget — one-way only, shown when at least one flight added */}

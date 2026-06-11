@@ -5,6 +5,7 @@ This config adds Cloudflare hosting in two pieces:
 - Cloudflare Pages serves the preview web app at `https://preview.zivosmedia.com`.
 - A Cloudflare Worker serves R2 media/downloads and can also serve the built Vite app from `dist` with SPA fallback.
 - Serve R2 media through `/media/*` and large downloads through `/downloads/*`, with public `GET`/`HEAD` and secret-protected `PUT`/`DELETE`.
+- Proxy `/api/ai/chat` to DeepSeek or Claude from the Worker so browser code never sees provider API keys. The bridge accepts `provider: "auto" | "claude" | "deepseek"` and falls back to the other configured provider when the primary provider is busy or temporarily unavailable.
 - Proxy `/share/c/:handle` to the existing Supabase `channel-og` Edge Function for link previews.
   Configure this with `SUPABASE_URL` or the more specific `CHANNEL_OG_FUNCTION_URL`.
 
@@ -46,6 +47,24 @@ npx wrangler secret put MEDIA_WRITE_TOKEN
 
 Skip this until the app or Supabase Edge Functions need to write directly to the Worker. Public reads from R2 already work without this secret.
 
+Set the DeepSeek API key for the AI chat bridge:
+
+```sh
+npx wrangler secret put DEEPSEEK_API_KEY
+```
+
+If a DeepSeek key was ever pasted into chat or committed locally, revoke it in the DeepSeek dashboard and create a fresh key before setting the Worker secret.
+
+Set the Claude API key for Claude-backed chat:
+
+```sh
+npx wrangler secret put ANTHROPIC_API_KEY
+```
+
+This is optional and only works with Anthropic API billing. A Claude Pro chat subscription cannot be used as a Worker/API key. If `ANTHROPIC_API_KEY` is not configured, auto mode uses DeepSeek for live website requests.
+
+Do not use `VITE_` variables for either provider key. Browser code should call the Worker bridge only.
+
 ## Local development
 
 Copy the example vars and set a local token:
@@ -68,6 +87,30 @@ Read it back:
 
 ```sh
 curl "http://localhost:8787/media/smoke/hello.txt"
+```
+
+Test the local DeepSeek bridge after adding `DEEPSEEK_API_KEY` to `.dev.vars`:
+
+```sh
+curl -X POST "http://localhost:8787/api/ai/chat" \
+  -H "Content-Type: application/json" \
+  --data '{"provider":"deepseek","message":"Give me one short Cambodia travel tip.","mode":"travel","stream":false}'
+```
+
+Test Claude after adding `ANTHROPIC_API_KEY`:
+
+```sh
+curl -X POST "http://localhost:8787/api/ai/chat" \
+  -H "Content-Type: application/json" \
+  --data '{"provider":"claude","message":"Give me one short support greeting for ZIVO.","mode":"support","stream":false}'
+```
+
+For coordinated provider selection, omit `provider` or send `provider: "auto"`. Auto mode prefers Claude for support/site-builder prompts only when an Anthropic API key is configured; otherwise it uses DeepSeek. Travel prompts prefer DeepSeek, with fallback to Claude only when API access exists.
+
+When running the React app with Vite and the Worker separately, point the browser app at the local Worker:
+
+```sh
+VITE_ZIVO_WORKER_API_ORIGIN=http://localhost:8787
 ```
 
 ## Deploy

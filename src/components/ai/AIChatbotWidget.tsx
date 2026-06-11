@@ -1,5 +1,5 @@
 ﻿/**
- * AIChatbotWidget — Real AI-powered support using Gemini via ai-support-chat edge function
+ * AIChatbotWidget — Real AI-powered support using DeepSeek through the ZIVO Worker
  * Supports user order tracking and merchant Meta performance insights
  */
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bot, X, Send, Sparkles, MessageCircle } from "lucide-react";
+import { X, Send, Sparkles, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { streamZivoAiChat } from "@/lib/zivoAiChat";
 import { toast } from "sonner";
 
 interface Message {
@@ -20,7 +19,6 @@ interface Message {
 }
 
 export default function AIChatbotWidget() {
-  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { id: "welcome", role: "assistant", content: "Hi! 👋 I'm ZIVO Assistant. I can help you track orders, understand your sales performance, or answer any questions. What can I help with?" },
@@ -42,92 +40,29 @@ export default function AIChatbotWidget() {
     setInput("");
     setIsStreaming(true);
 
-    // If not authenticated, use local fallback
-    if (!user) {
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: "Please log in to get personalized support. I can help with order tracking, Meta performance, and more once you're signed in!"
-        }]);
-        setIsStreaming(false);
-      }, 500);
-      return;
-    }
-
     try {
       const apiMessages = newMessages
         .filter(m => m.id !== "welcome")
         .map(m => ({ role: m.role, content: m.content }));
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      const url = `${SUPABASE_URL}/functions/v1/ai-support-chat`;
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({ messages: apiMessages }),
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        if (resp.status === 429) {
-          toast.error("Too many requests. Please wait a moment.");
-        } else if (resp.status === 402) {
-          toast.error("AI service temporarily unavailable.");
-        }
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: err.error || "Sorry, I'm having trouble connecting. Please try again in a moment."
-        }]);
-        setIsStreaming(false);
-        return;
-      }
-
-      // Stream SSE response
-      const reader = resp.body?.getReader();
-      if (!reader) throw new Error("No reader");
-
-      const decoder = new TextDecoder();
       let assistantContent = "";
-      let buffer = "";
-
       const assistantId = (Date.now() + 1).toString();
       setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "" }]);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (!line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              assistantContent += delta;
-              setMessages(prev =>
-                prev.map(m => m.id === assistantId ? { ...m, content: assistantContent } : m)
-              );
-            }
-          } catch { /* partial chunk */ }
-        }
-      }
+      await streamZivoAiChat({
+        mode: "support",
+        provider: "auto",
+        messages: apiMessages,
+        onDelta: (delta) => {
+          assistantContent += delta;
+          setMessages(prev =>
+            prev.map(m => m.id === assistantId ? { ...m, content: assistantContent } : m)
+          );
+        },
+      });
     } catch (err) {
       console.warn("[AIChatbot] Stream error:", err);
+      toast.error(err instanceof Error ? err.message : "AI is unavailable");
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -136,7 +71,7 @@ export default function AIChatbotWidget() {
     } finally {
       setIsStreaming(false);
     }
-  }, [input, isStreaming, messages, user]);
+  }, [input, isStreaming, messages]);
 
   const quickActions = ["Track Order", "Meta Performance", "Report Issue", "Help"];
 
@@ -156,7 +91,7 @@ export default function AIChatbotWidget() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold">ZIVO AI Assistant</p>
-                    <p className="text-xs opacity-80">Powered by Gemini</p>
+                    <p className="text-xs opacity-80">Powered by ZIVO AI</p>
                   </div>
                 </div>
                 <Button variant="ghost" size="icon" aria-label="Close chat" className="text-primary-foreground hover:bg-primary-foreground/20" onClick={() => setIsOpen(false)}>

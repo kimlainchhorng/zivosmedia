@@ -49,6 +49,8 @@ import { recordSearchAttempt } from "@/lib/recordSearchAttempt";
 type TripType = "roundtrip" | "oneway" | "multicity";
 type CabinClass = "economy" | "premium" | "business" | "first";
 
+const TRIP_TYPES: TripType[] = ["roundtrip", "oneway", "multicity"];
+
 interface FlightSearchFormProProps {
   initialFrom?: string;
   initialTo?: string;
@@ -75,6 +77,7 @@ export default function FlightSearchFormPro({
   className,
 }: FlightSearchFormProProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const { search: searchAirports, getPopular, getByCode, allOptions } = useAirportSearch();
   const { trackSearchStarted } = useFlightFunnel();
@@ -82,7 +85,6 @@ export default function FlightSearchFormPro({
 
   // Trip type
   const [tripType, setTripType] = useState<TripType>(initialTripType);
-  const tripTypes: TripType[] = ["roundtrip", "oneway", "multicity"];
 
   // Swipe left/right to cycle trip types
   const swipeTouchStartX = useRef<number | null>(null);
@@ -94,10 +96,10 @@ export default function FlightSearchFormPro({
     const diff = e.changedTouches[0].clientX - swipeTouchStartX.current;
     swipeTouchStartX.current = null;
     if (Math.abs(diff) < 55) return;
-    const idx = tripTypes.indexOf(tripType);
-    if (diff < 0 && idx < tripTypes.length - 1) setTripType(tripTypes[idx + 1]);
-    else if (diff > 0 && idx > 0) setTripType(tripTypes[idx - 1]);
-  }, [tripType, tripTypes]);
+    const idx = TRIP_TYPES.indexOf(tripType);
+    if (diff < 0 && idx < TRIP_TYPES.length - 1) setTripType(TRIP_TYPES[idx + 1]);
+    else if (diff > 0 && idx > 0) setTripType(TRIP_TYPES[idx - 1]);
+  }, [tripType]);
 
   // Location state
   const [fromOption, setFromOption] = useState<LocationOption | null>(null);
@@ -200,7 +202,22 @@ export default function FlightSearchFormPro({
       cabin: cabin,
     });
     if (returnDateStr) resultsParams.set("return", returnDateStr);
-    navigate(`/flights/results?${resultsParams.toString()}`);
+
+    [
+      "source",
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content",
+      "utm_term",
+      "creator",
+      "subid",
+    ].forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) resultsParams.set(key, value);
+    });
+
+    if (navigateOnSearch) navigate(`/flights/results?${resultsParams.toString()}`);
     if (onSearch) onSearch(resultsParams);
 
     // Telemetry: record this flight search for re-engagement / price alerts.

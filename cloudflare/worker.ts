@@ -27,6 +27,9 @@ type Env = {
   ZIVO_MEDIA: R2Bucket;
   ALLOWED_ORIGINS?: string;
   MEDIA_WRITE_TOKEN?: string;
+  DEEPSEEK_API_KEY?: string;
+  ANTHROPIC_API_KEY?: string;
+  CLAUDE_API_KEY?: string;
   CHANNEL_OG_FUNCTION_URL?: string;
   SUPABASE_URL?: string;
 };
@@ -34,6 +37,7 @@ type Env = {
 const WINDOW_MS = 10 * 60 * 1000;
 const AUTH_LIMIT = 80;
 const GENERAL_LIMIT = 600;
+const AI_LIMIT = 40;
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
 const DEFAULT_ALLOWED_ORIGINS = [
@@ -60,6 +64,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://zivo-web.myzivo.workers.dev",
   "http://localhost:8081",
   "http://localhost:5173",
+  "http://localhost:5174",
 ];
 
 const CHAT_HOSTS = new Set([
@@ -161,6 +166,7 @@ const CSP_REPORT_BY_HOST = new Map([
 
 const immutableCache = "public, max-age=31536000, immutable";
 const authPathPattern = /^\/(?:login|signup|auth(?:\/|$)|admin(?:\/|$))/i;
+const aiPathPattern = /^\/api\/(?:ai|deepseek)(?:\/|$)/i;
 const blockedPathPattern =
   /(?:^|\/)(?:\.env|\.git|\.svn|\.hg|wp-admin|wp-login\.php|xmlrpc\.php|phpmyadmin|adminer|\.DS_Store|composer\.json|package-lock\.json)(?:\/|$)|(?:\.\.\/|\/etc\/passwd|\/proc\/self|%2e%2e|%5c)/i;
 
@@ -183,8 +189,10 @@ function clientIp(request: Request) {
 function isRateLimited(request: Request, url: URL) {
   const now = Date.now();
   const isAuthPath = authPathPattern.test(url.pathname);
-  const key = `${isAuthPath ? "auth" : "site"}:${clientIp(request)}`;
-  const limit = isAuthPath ? AUTH_LIMIT : GENERAL_LIMIT;
+  const isAiPath = aiPathPattern.test(url.pathname);
+  const bucket = isAuthPath ? "auth" : isAiPath ? "ai" : "site";
+  const key = `${bucket}:${clientIp(request)}`;
+  const limit = isAuthPath ? AUTH_LIMIT : isAiPath ? AI_LIMIT : GENERAL_LIMIT;
   const current = buckets.get(key);
 
   if (!current || current.resetAt <= now) {
@@ -217,7 +225,7 @@ function corsHeaders(request: Request, env: Env) {
     headers.set("access-control-allow-origin", allowOrigin);
     headers.set("vary", "Origin");
   }
-  headers.set("access-control-allow-methods", "GET, HEAD, PUT, DELETE, OPTIONS");
+  headers.set("access-control-allow-methods", "GET, HEAD, POST, PUT, DELETE, OPTIONS");
   headers.set("access-control-allow-headers", "authorization, content-type, x-zivo-media-token");
   headers.set("access-control-max-age", "86400");
   return headers;
@@ -497,6 +505,358 @@ async function handleChannelSharePreview(request: Request, env: Env) {
   });
 }
 
+type AiProvider = "deepseek" | "claude";
+type AiProviderRequest = AiProvider | "auto";
+type AiChatMode = "support" | "travel" | "site-builder";
+type AiChatRole = "user" | "assistant";
+type AiChatMessage = {
+  role?: string;
+  content?: unknown;
+};
+
+const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+const DEEPSEEK_MODELS = new Set(["deepseek-v4-flash", "deepseek-v4-pro"]);
+const CLAUDE_MODELS = new Set([
+  "claude-sonnet-4-6",
+  "claude-opus-4-8",
+  "claude-haiku-4-5",
+  "claude-fable-5",
+]);
+const DEEPSEEK_DEFAULT_MODEL = "deepseek-v4-flash";
+const CLAUDE_DEFAULT_MODEL = "claude-sonnet-4-6";
+const AI_MAX_MESSAGES = 20;
+const AI_MAX_MESSAGE_CHARS = 3000;
+const AI_MAX_TOTAL_CHARS = 12000;
+const AI_MAX_TOKENS = 1200;
+
+const AI_SYSTEM_PROMPTS: Record<AiChatMode, string> = {
+  support:
+    "You are ZIVO AI Assistant, a friendly and concise support helper for ZIVO travel, delivery, chat, and marketplace products. Keep answers under 150 words unless the user asks for detail. Never invent order numbers, booking status, account details, prices, refunds, or policies. For payments, safety, account lockouts, charge disputes, or anything uncertain, recommend creating a human support ticket.",
+  travel:
+    "You are Zivo Travel Assistant. Help users plan trips, compare destinations, and understand flight, hotel, car, and bus booking options. Keep guidance practical, safety-minded, and concise. Do not claim live inventory, live prices, booking confirmation, refunds, or payment status unless the app provides that data.",
+  "site-builder":
+    "You are ZIVO Website Builder Assistant. Help draft website copy, page sections, SEO titles, UX ideas, and implementation notes for ZIVO-owned sites. Keep suggestions specific to ZIVO, avoid fake claims, and never ask users to paste API keys, payment secrets, or private credentials.",
+};
+
+function isAiMode(value: unknown): value is AiChatMode {
+  return value === "support" || value === "travel" || value === "site-builder";
+}
+
+function isAiProviderRequest(value: unknown): value is AiProviderRequest {
+  return value === "deepseek" || value === "claude" || value === "auto";
+}
+
+function clampNumber(value: unknown, min: number, max: number, fallback: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
+
+function sanitizeAiMessages(rawMessages: unknown) {
+  if (!Array.isArray(rawMessages)) {
+    return [];
+  }
+
+  let totalChars = 0;
+  const messages: { role: AiChatRole; content: string }[] = [];
+  const recent = rawMessages.slice(-AI_MAX_MESSAGES);
+
+  for (const raw of recent) {
+    const message = raw as AiChatMessage;
+    const role = message.role === "assistant" ? "assistant" : message.role === "user" ? "user" : null;
+    if (!role || typeof message.content !== "string") continue;
+
+    const content = message.content.trim().slice(0, AI_MAX_MESSAGE_CHARS);
+    if (!content) continue;
+
+    totalChars += content.length;
+    if (totalChars > AI_MAX_TOTAL_CHARS) break;
+    messages.push({ role, content });
+  }
+
+  return messages;
+}
+
+function isAiProviderConfigured(provider: AiProvider, env: Env) {
+  if (provider === "claude") {
+    return Boolean((env.ANTHROPIC_API_KEY || env.CLAUDE_API_KEY)?.trim());
+  }
+  return Boolean(env.DEEPSEEK_API_KEY?.trim());
+}
+
+function aiProviderOrder(requestedProvider: AiProviderRequest, mode: AiChatMode): AiProvider[] {
+  if (requestedProvider === "claude") return ["claude", "deepseek"];
+  if (requestedProvider === "deepseek") return ["deepseek", "claude"];
+  return mode === "support" || mode === "site-builder"
+    ? ["claude", "deepseek"]
+    : ["deepseek", "claude"];
+}
+
+function modelForProvider(provider: AiProvider, requestedModel: string) {
+  if (provider === "claude") {
+    return CLAUDE_MODELS.has(requestedModel) ? requestedModel : CLAUDE_DEFAULT_MODEL;
+  }
+  return DEEPSEEK_MODELS.has(requestedModel) ? requestedModel : DEEPSEEK_DEFAULT_MODEL;
+}
+
+function withAiProviderHeaders(response: Response, provider: AiProvider, isFallback: boolean) {
+  const headers = new Headers(response.headers);
+  headers.set("x-zivo-ai-provider", provider);
+  headers.set("x-zivo-ai-fallback", isFallback ? "true" : "false");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function deepSeekChat(
+  request: Request,
+  env: Env,
+  options: {
+    messages: { role: AiChatRole; content: string }[];
+    mode: AiChatMode;
+    model: string;
+    stream: boolean;
+    temperature: number;
+    maxTokens: number;
+  },
+) {
+  const deepSeekApiKey = env.DEEPSEEK_API_KEY?.trim();
+  if (!deepSeekApiKey) {
+    return withCors(noStoreJson({ error: "DeepSeek is not configured" }, { status: 503 }), request, env);
+  }
+
+  const upstream = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: {
+      "authorization": `Bearer ${deepSeekApiKey}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: options.model,
+      messages: [
+        { role: "system", content: AI_SYSTEM_PROMPTS[options.mode] },
+        ...options.messages,
+      ],
+      stream: options.stream,
+      temperature: options.temperature,
+      max_tokens: options.maxTokens,
+      thinking: { type: "disabled" },
+    }),
+  });
+
+  if (!upstream.ok) {
+    console.error("DeepSeek API error", { status: upstream.status, mode: options.mode, model: options.model });
+    const status = upstream.status === 429 ? 429 : upstream.status === 401 || upstream.status === 403 ? 503 : 502;
+    const message = status === 429 ? "DeepSeek is busy. Please try again shortly." : "DeepSeek request failed";
+    return withCors(noStoreJson({ error: message }, { status }), request, env);
+  }
+
+  const headers = new Headers();
+  headers.set("cache-control", "no-store");
+  headers.set("x-robots-tag", "noindex");
+  headers.set("content-type", options.stream ? "text/event-stream; charset=utf-8" : "application/json; charset=utf-8");
+  upstream.headers.forEach((value, key) => {
+    if (key.toLowerCase().startsWith("x-ratelimit-")) {
+      headers.set(key, value);
+    }
+  });
+
+  return withCors(new Response(upstream.body, { status: upstream.status, headers }), request, env);
+}
+
+function anthropicStreamToOpenAiStream(body: ReadableStream | null) {
+  if (!body) return null;
+
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+
+  return body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      buffer += decoder.decode(chunk, { stream: true });
+      let separatorIndex: number;
+
+      while ((separatorIndex = buffer.indexOf("\n\n")) !== -1) {
+        const eventBlock = buffer.slice(0, separatorIndex);
+        buffer = buffer.slice(separatorIndex + 2);
+        const dataLine = eventBlock
+          .split("\n")
+          .map((line) => line.trim())
+          .find((line) => line.startsWith("data: "));
+        if (!dataLine) continue;
+
+        try {
+          const payload = JSON.parse(dataLine.slice(6));
+          if (payload.type === "content_block_delta" && payload.delta?.type === "text_delta") {
+            const text = payload.delta.text;
+            if (typeof text === "string" && text) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`));
+            }
+          } else if (payload.type === "message_stop") {
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          } else if (payload.type === "error") {
+            const message = payload.error?.message || "Claude stream error";
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: message })}\n\n`));
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          }
+        } catch {
+          // Ignore malformed or partial SSE events; buffering handles partial chunks.
+        }
+      }
+    },
+    flush(controller) {
+      if (buffer.trim()) {
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      }
+    },
+  }));
+}
+
+async function claudeChat(
+  request: Request,
+  env: Env,
+  options: {
+    messages: { role: AiChatRole; content: string }[];
+    mode: AiChatMode;
+    model: string;
+    stream: boolean;
+    temperature: number;
+    maxTokens: number;
+  },
+) {
+  const anthropicApiKey = (env.ANTHROPIC_API_KEY || env.CLAUDE_API_KEY)?.trim();
+  if (!anthropicApiKey) {
+    return withCors(noStoreJson({ error: "Claude is not configured" }, { status: 503 }), request, env);
+  }
+
+  const upstream = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": anthropicApiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: options.model,
+      system: AI_SYSTEM_PROMPTS[options.mode],
+      messages: options.messages,
+      max_tokens: options.maxTokens,
+      stream: options.stream,
+      temperature: options.temperature,
+    }),
+  });
+
+  if (!upstream.ok) {
+    console.error("Claude API error", { status: upstream.status, mode: options.mode, model: options.model });
+    const status = upstream.status === 429 || upstream.status === 529
+      ? 429
+      : upstream.status === 401 || upstream.status === 403
+        ? 503
+        : 502;
+    const message = status === 429 ? "Claude is busy. Please try again shortly." : "Claude request failed";
+    return withCors(noStoreJson({ error: message }, { status }), request, env);
+  }
+
+  const headers = new Headers();
+  headers.set("cache-control", "no-store");
+  headers.set("x-robots-tag", "noindex");
+
+  if (options.stream) {
+    headers.set("content-type", "text/event-stream; charset=utf-8");
+    return withCors(new Response(anthropicStreamToOpenAiStream(upstream.body), { status: 200, headers }), request, env);
+  }
+
+  const data = await upstream.json() as { content?: { type?: string; text?: string }[] };
+  const content = (data.content || [])
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text)
+    .join("");
+
+  headers.set("content-type", "application/json; charset=utf-8");
+  return withCors(
+    new Response(JSON.stringify({ choices: [{ message: { role: "assistant", content } }] }), { status: 200, headers }),
+    request,
+    env,
+  );
+}
+
+async function handleAiChat(request: Request, env: Env, url: URL) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+  }
+
+  if (request.method !== "POST") {
+    return withCors(noStoreJson({ error: "Method not allowed" }, { status: 405 }), request, env);
+  }
+
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > 48_000) {
+    return withCors(noStoreJson({ error: "Request is too large" }, { status: 413 }), request, env);
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json() as Record<string, unknown>;
+  } catch {
+    return withCors(noStoreJson({ error: "Invalid JSON body" }, { status: 400 }), request, env);
+  }
+
+  const messages = sanitizeAiMessages(body.messages);
+  if (messages.length === 0 && typeof body.message === "string" && body.message.trim()) {
+    messages.push({ role: "user", content: body.message.trim().slice(0, AI_MAX_MESSAGE_CHARS) });
+  }
+
+  if (messages.length === 0) {
+    return withCors(noStoreJson({ error: "Message is required" }, { status: 400 }), request, env);
+  }
+
+  const requestedProvider = url.pathname.startsWith("/api/deepseek/")
+    ? "deepseek"
+    : isAiProviderRequest(body.provider)
+      ? body.provider
+      : "auto";
+  const mode = isAiMode(body.mode) ? body.mode : "travel";
+  const stream = body.stream !== false;
+  const temperature = clampNumber(body.temperature, 0, 1, 0.4);
+  const maxTokens = Math.round(clampNumber(body.max_tokens ?? body.maxTokens, 128, AI_MAX_TOKENS, 700));
+  const requestedModel = typeof body.model === "string" ? body.model : "";
+  const preferredProviders = aiProviderOrder(requestedProvider, mode);
+  const configuredProviders = preferredProviders.filter((provider) => isAiProviderConfigured(provider, env));
+
+  if (configuredProviders.length === 0) {
+    return withCors(noStoreJson({ error: "AI is not configured" }, { status: 503 }), request, env);
+  }
+
+  let lastResponse: Response | null = null;
+  for (const provider of configuredProviders) {
+    const options = {
+      messages,
+      mode,
+      model: modelForProvider(provider, requestedModel),
+      stream,
+      temperature,
+      maxTokens,
+    };
+    const response = provider === "claude"
+      ? await claudeChat(request, env, options)
+      : await deepSeekChat(request, env, options);
+    const isFallback = provider !== preferredProviders[0];
+    const canFallback = response.status === 429 || response.status >= 500;
+
+    if (!canFallback || provider === configuredProviders[configuredProviders.length - 1]) {
+      return withAiProviderHeaders(response, provider, isFallback);
+    }
+
+    lastResponse = response;
+  }
+
+  return lastResponse
+    ? withAiProviderHeaders(lastResponse, configuredProviders[configuredProviders.length - 1], true)
+    : withCors(noStoreJson({ error: "AI request failed" }, { status: 502 }), request, env);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -535,6 +895,10 @@ export default {
 
     if (url.pathname.startsWith("/share/c/")) {
       return handleChannelSharePreview(request, env);
+    }
+
+    if (url.pathname === "/api/ai/chat" || url.pathname === "/api/deepseek/chat") {
+      return withSecurityHeaders(await handleAiChat(request, env, url), request, env);
     }
 
     const travelSeo = travelSeoResponse(request, url);

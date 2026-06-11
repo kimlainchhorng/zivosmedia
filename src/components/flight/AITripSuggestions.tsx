@@ -271,7 +271,7 @@ export const AITripSuggestions = ({
                 AI Trip Suggestions
                 <Badge className="bg-secondary text-foreground border-border">
                   <Zap className="w-3 h-3 mr-1" />
-                  Gemini
+                  DeepSeek
                 </Badge>
               </CardTitle>
               <p className="text-sm text-muted-foreground">

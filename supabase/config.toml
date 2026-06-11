@@ -171,3 +171,7 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.zivosmedia-health]
     verify_jwt = false
+  [functions.zivosmedia-auth-issue-code]
+    verify_jwt = true
+  [functions.zivosmedia-auth-validate-code]
+    verify_jwt = false

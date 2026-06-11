@@ -8,7 +8,8 @@ import { calculateFlightPricing } from "@/utils/flightPricing";
 import { useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Plane, Clock, ChevronRight, ArrowRightLeft,
-  MapPin, Timer, Calendar, Users, AlertTriangle, Shield
+  MapPin, Timer, Calendar, Users, AlertTriangle, Shield,
+  Bot, Sparkles, SlidersHorizontal, CheckCircle, CreditCard
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
@@ -48,11 +49,15 @@ function parseDurationText(duration?: string): number {
   return (Number(hourMatch?.[1] || 0) * 60) + Number(minuteMatch?.[1] || 0);
 }
 
+const parseDisplayDate = (d: string) => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return new Date(`${d}T00:00:00`);
+  return new Date(d);
+};
 const formatDate = (d: string) => {
-  try { return new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); } catch { return d; }
+  try { return parseDisplayDate(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); } catch { return d; }
 };
 const formatDateShort = (d: string) => {
-  try { return new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); } catch { return d; }
+  try { return parseDisplayDate(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); } catch { return d; }
 };
 const formatTime = (d: string) => {
   try { return new Date(d).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }); } catch { return ""; }
@@ -483,6 +488,124 @@ function SegmentDetails({ segs, label, rotate }: { segs: DuffelSegment[]; label:
 }
 
 /* ── Main Page ───────────────────────────────────────── */
+function ReviewPlannerHandoff({
+  offer,
+  searchParams,
+  totalPassengers,
+  isRoundTrip,
+}: {
+  offer: DuffelOffer;
+  searchParams: Record<string, any>;
+  totalPassengers: number;
+  isRoundTrip: boolean;
+}) {
+  const dateLabel = `${formatDateShort(searchParams.departureDate || offer.departure.date)}${searchParams.returnDate ? ` - ${formatDateShort(searchParams.returnDate)}` : ""}`;
+  const providerStates = [
+    { title: "ZIVO AI", detail: "Trip review", state: "Active", icon: Bot, tone: "border-cyan-200 bg-cyan-50 text-cyan-800" },
+    { title: "DeepSeek", detail: "Live fare", state: "Active", icon: Sparkles, tone: "border-teal-200 bg-teal-50 text-teal-800" },
+    { title: "Claude API", detail: "Optional", state: "Standby", icon: SlidersHorizontal, tone: "border-amber-200 bg-amber-50 text-amber-800" },
+  ];
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24 }}
+      className="mb-5 overflow-hidden rounded-lg border border-sky-200/90 bg-white/95 shadow-[0_18px_50px_-32px_rgba(8,47,73,0.35)]"
+    >
+      <div className="flex flex-col lg:flex-row lg:items-stretch">
+        <div className="flex min-w-0 items-center gap-3 px-4 py-4 lg:w-[310px] lg:border-r lg:border-slate-200/80">
+          <Sparkles className="h-5 w-5 shrink-0 text-cyan-700" />
+          <div className="min-w-0">
+            <p className="text-sm font-black text-slate-950">AI Planner Review</p>
+            <p className="mt-1 truncate text-xs text-slate-500">Confirm your AI-picked flight before passenger details.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 border-t border-slate-200/80 sm:grid-cols-4 lg:flex lg:flex-1 lg:border-t-0">
+          <div className="min-w-0 px-4 py-3 lg:w-[250px] lg:border-r lg:border-slate-200/80">
+            <p className="text-[11px] font-semibold text-slate-500">Route</p>
+            <div className="mt-1 flex items-center gap-3">
+              <div>
+                <p className="text-xl font-black text-slate-950">{offer.departure.code}</p>
+                <p className="truncate text-xs text-slate-500">{offer.departure.city}</p>
+              </div>
+              <Plane className="h-4 w-4 shrink-0 rotate-45 text-slate-700" />
+              <div>
+                <p className="text-xl font-black text-slate-950">{offer.arrival.code}</p>
+                <p className="truncate text-xs text-slate-500">{offer.arrival.city}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-w-0 border-l border-slate-200/80 px-4 py-3 lg:w-[190px] lg:border-r">
+            <p className="text-[11px] font-semibold text-slate-500">Dates</p>
+            <div className="mt-2 flex items-center gap-2">
+              <Calendar className="h-4 w-4 shrink-0 text-slate-600" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-slate-950">{dateLabel}</p>
+                <p className="truncate text-xs text-slate-500">{isRoundTrip ? "Round trip" : "One way"}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-w-0 border-t border-slate-200/80 px-4 py-3 sm:border-l sm:border-t-0 lg:w-[145px] lg:border-r">
+            <p className="text-[11px] font-semibold text-slate-500">Travelers</p>
+            <div className="mt-2 flex items-center gap-2">
+              <Users className="h-4 w-4 shrink-0 text-slate-600" />
+              <div>
+                <p className="text-sm font-black text-slate-950">{totalPassengers}</p>
+                <p className="truncate text-xs capitalize text-slate-500">{offer.cabinClass.replace("_", " ")}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 border-t border-slate-200/80 sm:col-span-1 sm:border-l sm:border-t-0 lg:flex lg:flex-1">
+            {providerStates.map((provider) => (
+              <div key={provider.title} className="min-w-0 border-r border-slate-200/80 px-3 py-3 last:border-r-0 lg:w-[135px]">
+                <p className="truncate text-sm font-black text-slate-950">{provider.title}</p>
+                <p className="truncate text-xs text-slate-500">{provider.detail}</p>
+                <span className={cn("mt-2 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-bold", provider.tone)}>
+                  <span className="h-2 w-2 rounded-full bg-current opacity-70" />
+                  {provider.state}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+function ReviewReadinessCard({ isPlannerHandoff }: { isPlannerHandoff: boolean }) {
+  const checks = [
+    "Fare details loaded",
+    isPlannerHandoff ? "AI planner context saved" : "Search context saved",
+    "Secure checkout next",
+  ];
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-black text-slate-950">Booking readiness</h2>
+        <Shield className="h-4 w-4 text-slate-400" />
+      </div>
+      <div className="mt-4 space-y-3">
+        {checks.map((check) => (
+          <p key={check} className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <CheckCircle className="h-4 w-4 text-teal-600" />
+            {check}
+          </p>
+        ))}
+      </div>
+      <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+        Final fare and ticketing rules are confirmed before payment.
+      </div>
+    </div>
+  );
+}
+
 const FlightReview = () => {
   const navigate = useNavigate();
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -637,8 +760,10 @@ const FlightReview = () => {
   }, [reviewOffer]);
 
   const totalPassengers = (searchParams.adults || 1) + (searchParams.children || 0) + (searchParams.infants || 0);
-  const segments = reviewOffer?.segments || [];
+  const segments = useMemo(() => reviewOffer?.segments || [], [reviewOffer?.segments]);
   const isRoundTrip = !!searchParams.returnDate;
+  const isPlannerHandoff = searchParams.source === "ai-trip-planner" || searchParams.plannerHandoff === true;
+  const selectedServicesTotal = selectedServices.reduce((sum, service) => sum + Number(service.total_amount || 0), 0);
 
   const { outboundSegments, returnSegments } = useMemo(() => {
     if (!isRoundTrip || segments.length === 0) {
@@ -657,7 +782,7 @@ const FlightReview = () => {
     }
     if (splitIdx === -1) return { outboundSegments: segments, returnSegments: [] as DuffelSegment[] };
     return { outboundSegments: segments.slice(0, splitIdx), returnSegments: segments.slice(splitIdx) };
-  }, [segments, isRoundTrip, searchParams, reviewOffer?.arrival?.code]);
+  }, [segments, isRoundTrip, searchParams, offer?.arrival?.code]);
 
   if (!reviewOffer) {
     return (
@@ -690,16 +815,18 @@ const FlightReview = () => {
         description={`Review your ${reviewOffer.airline} flight from ${reviewOffer.departure.city} to ${reviewOffer.arrival.city}.`}
       />
 
-      {/* Decorative orbs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-20 right-0 w-72 h-72 rounded-full bg-[hsl(var(--flights))]/6 blur-3xl" />
-        <div className="absolute top-1/3 -left-20 w-52 h-52 rounded-full bg-[hsl(var(--flights))]/4 blur-3xl" />
-      </div>
-
       <Header />
 
       <main className="flex-1 pt-24 pb-32 sm:pb-20 relative z-10">
-        <div className="mx-auto px-3 sm:px-4 max-w-2xl">
+        <div className="mx-auto max-w-[1440px] px-3 sm:px-4 lg:px-8">
+          {isPlannerHandoff && (
+            <ReviewPlannerHandoff
+              offer={reviewOffer}
+              searchParams={searchParams}
+              totalPassengers={totalPassengers}
+              isRoundTrip={isRoundTrip}
+            />
+          )}
 
           {/* Step indicator */}
           <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mb-2">
@@ -725,12 +852,14 @@ const FlightReview = () => {
 
           {/* Page title */}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-4">
-            <h1 className="text-xl sm:text-2xl font-bold">Review your flight</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-950">Review your flight</h1>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               Confirm all details before continuing to passenger information
             </p>
           </motion.div>
 
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            <section className="min-w-0">
           {/* Outbound slice */}
           {outboundInfo && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
@@ -798,12 +927,12 @@ const FlightReview = () => {
           </motion.div>
 
           {/* Price Summary */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.33 }} className="mt-3">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.33 }} className="mt-3 lg:hidden">
             <PriceSummaryCard offer={reviewOffer} searchParams={searchParams} totalPassengers={totalPassengers} isRoundTrip={isRoundTrip} />
           </motion.div>
 
           {/* Partner disclosure — 3D */}
-          <motion.div initial={{ opacity: 0, y: 12, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.35, duration: 0.5 }} className="mt-3">
+          <motion.div initial={{ opacity: 0, y: 12, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.35, duration: 0.5 }} className="mt-3 lg:hidden">
             <div
               className="flex items-start gap-3 px-4 py-3.5 rounded-3xl border-[1.5px] border-[hsl(var(--flights))]/15"
               style={{
@@ -836,7 +965,7 @@ const FlightReview = () => {
           </motion.div>
 
           {/* Trust badges — 3D floating pills */}
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38, duration: 0.4 }} className="mt-3">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38, duration: 0.4 }} className="mt-3 lg:hidden">
             <div className="flex items-center justify-center gap-3 py-3">
               {[
                 { icon: Shield, text: "Secure booking" },
@@ -859,7 +988,7 @@ const FlightReview = () => {
           </motion.div>
 
           {/* Desktop CTA — 3D buttons */}
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-4 hidden sm:flex gap-3">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-4 hidden sm:flex gap-3 lg:hidden">
             <Button variant="outline" onClick={handleBack} className="flex-1 border-border/30 rounded-2xl h-12">
               <ArrowLeft className="w-4 h-4 mr-2" /> Back to Results
             </Button>
@@ -873,6 +1002,56 @@ const FlightReview = () => {
               Continue to Passenger Details <ChevronRight className="w-4 h-4" />
             </Button>
           </motion.div>
+            </section>
+
+            <aside className="hidden space-y-4 lg:sticky lg:top-24 lg:block">
+              <PriceSummaryCard offer={reviewOffer} searchParams={searchParams} totalPassengers={totalPassengers} isRoundTrip={isRoundTrip} />
+              <ReviewReadinessCard isPlannerHandoff={isPlannerHandoff} />
+              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-teal-700" />
+                  <h2 className="text-base font-black text-slate-950">Before you continue</h2>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  Continuing opens the real booking flow for passenger details and payment. Final price and terms are confirmed at checkout.
+                </p>
+                <Link to="/legal/partner-disclosure" className="mt-3 inline-block text-sm font-bold text-teal-700 hover:underline">
+                  Partner disclosure
+                </Link>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="text-base font-black text-slate-950">Checkout path</h2>
+                <div className="mt-4 space-y-3">
+                  {[
+                    { icon: Users, label: "Passenger details" },
+                    { icon: CreditCard, label: "Secure payment" },
+                    { icon: CheckCircle, label: "Booking confirmation" },
+                  ].map(({ icon: Icon, label }) => (
+                    <div key={label} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700">
+                      <Icon className="h-4 w-4 text-teal-700" />
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={handleBack} className="h-12 flex-1 rounded-lg border-slate-200">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                <Button
+                  onClick={handleContinue}
+                  className="h-12 flex-1 rounded-lg bg-teal-700 font-bold text-white hover:bg-teal-800"
+                >
+                  Continue <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+              {selectedServicesTotal > 0 && (
+                <p className="text-center text-xs font-medium text-slate-500">
+                  Add-ons selected: ${selectedServicesTotal.toFixed(2)}
+                </p>
+              )}
+            </aside>
+          </div>
         </div>
       </main>
 
