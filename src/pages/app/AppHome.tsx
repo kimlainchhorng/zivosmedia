@@ -744,6 +744,12 @@ const AppHome = () => {
   const avatarUrl = profile?.avatar_url;
   const initials = (profile?.full_name || user?.email || "Z").charAt(0).toUpperCase();
 
+  // The notch / Dynamic-Island safe-area padding is only needed inside the
+  // installed native app. In a regular browser there's no notch under the web
+  // content, so the forced 64px `pt-safe` floor just leaves an empty gap — drop
+  // it on the website and use normal header padding instead.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
+
   return (
     <div>
     <SEOHead title="ZIVO – Your Travel Super-App" description="Book rides, flights, hotels, and grocery delivery — all in one app." />
@@ -756,10 +762,12 @@ const AppHome = () => {
           blurred bar covering exactly var(--zivo-safe-top,0px) keeps that area
           legible without forcing the rest of the page to lose the edge-to-edge
           feel. */}
-      <div
-        aria-hidden
-        className="zivo-safe-top-none fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl pointer-events-none [height:var(--zivo-safe-top-sticky)]"
-      />
+      {isNativeApp && (
+        <div
+          aria-hidden
+          className="zivo-safe-top-none fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl pointer-events-none [height:var(--zivo-safe-top-sticky)]"
+        />
+      )}
 
       {/* 3D Ambient orbs — contained within scrollable area only */}
 
@@ -795,7 +803,7 @@ const AppHome = () => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="flex items-center justify-between px-5 pt-safe pb-4"
+              className={`flex items-center justify-between px-5 pb-4 ${isNativeApp ? "pt-safe" : "pt-3"}`}
             >
               <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-3 touch-manipulation active:opacity-75 transition-opacity">
                 <div className="shrink-0 p-[2px] rounded-full bg-ig-gradient shadow-md">

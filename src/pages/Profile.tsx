@@ -319,6 +319,11 @@ const Profile = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate("/feed");
   }, [impact, navigate]);
+
+  // The notch safe-area floor on the sticky header is only needed inside the
+  // installed native app. On the website there's no notch, so it just leaves an
+  // empty bar at the top — collapse it to a normal compact header on web.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
   const handleToggleNotif = useCallback(() => {
     selectionChanged();
     setShowLangPicker(false);
@@ -787,8 +792,8 @@ const Profile = () => {
           aria-label="Profile quick navigation"
           data-testid="profile-sticky-header"
           style={{
-            height: "calc(var(--zivo-safe-top-sticky) + 2.75rem)",
-            paddingTop: "var(--zivo-safe-top-sticky)",
+            height: isNativeApp ? "calc(var(--zivo-safe-top-sticky) + 2.75rem)" : "calc(2.75rem + 0.5rem)",
+            paddingTop: isNativeApp ? "var(--zivo-safe-top-sticky)" : "0.5rem",
           }}
           className="lg:hidden fixed top-0 inset-x-0 z-40 px-2.5 flex items-start gap-2"
         >
