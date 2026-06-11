@@ -145,20 +145,6 @@ export default function FeedSidebar() {
     : "/shop-dashboard";
 
   const hasDashboard = isAdmin || canOpenShopDashboard || isDriver || isRestaurantOwner || isHotelOwner || isSupport || isModerator || isOperations;
-  const commandCenterLabel = hasDashboard
-    ? "Dashboard ready"
-    : hasOwnedShopIdentity
-      ? "Shop tools ready"
-      : isMember
-        ? "Plus active"
-        : "Feed mode";
-  const commandCenterMeta = hasDashboard
-    ? "Tools and account shortcuts"
-    : hasOwnedShopIdentity
-      ? "Manage your business page"
-      : isMember
-        ? "Member benefits unlocked"
-        : "Explore ZIVO features";
 
   return (
     <>
@@ -210,28 +196,6 @@ export default function FeedSidebar() {
               >
                 <ArrowLeftRight className="h-3.5 w-3.5" />
                 <span>Switch account</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowSwitch(true)}
-                className="zivo-social-share-preview mt-3 flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2 text-left transition-transform active:scale-[0.99]"
-                aria-label={`Open command center, ${commandCenterLabel}`}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-[10px] font-black uppercase tracking-[0.08em] text-muted-foreground">
-                      Command center
-                    </span>
-                    <span className="block truncate text-xs font-bold text-foreground">{commandCenterMeta}</span>
-                  </span>
-                </span>
-                <span className="zivo-social-chip-active shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black">
-                  {commandCenterLabel}
-                </span>
               </button>
             </div>
           </div>
