@@ -2,7 +2,7 @@
  * FeedSidebar — Left sidebar for Feed page (desktop only)
  * Contains navigation shortcuts, services, and account switching
  */
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import {
   Car, UtensilsCrossed, MapPin, Plane, Hotel, CarFront,
@@ -10,7 +10,7 @@ import {
   Users, Bookmark, Clock, Settings, TrendingUp, Calendar,
   ArrowLeftRight, Shield, Store, LayoutDashboard,
   Handshake, CarTaxiFront, ChefHat, Building2,
-  Headphones, Eye, Wrench, X as XIcon, BadgeCheck, ChevronRight,
+  Headphones, Eye, Wrench, X as XIcon, BadgeCheck, ChevronRight, Lock,
   Crown, LogOut, Gift, Radio, Film, Bell, Star, Mic2, ShoppingCart,
   Plus,
 } from "lucide-react";
@@ -24,6 +24,7 @@ import { useUsername } from "@/hooks/useUsername";
 import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
+import { useSocialNotifications } from "@/hooks/useSocialNotifications";
 import {
   Sheet,
   SheetClose,
@@ -74,6 +75,7 @@ const MORE_ITEMS = [
 
 export default function FeedSidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const { data: profile } = useUserProfile();
   const { data: access } = useUserAccess(user?.id);
@@ -84,7 +86,9 @@ export default function FeedSidebar() {
     return !n || n === "Untitled Store" || n === "Untitled page";
   };
   const { isPlus: isMember } = useZivoPlus();
+  const { unreadCount: socialUnread = 0 } = useSocialNotifications();
   const [showSwitch, setShowSwitch] = useState(false);
+  const [showAllStores, setShowAllStores] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const goToItem = (path: string, authRequired?: boolean) => {
     if (authRequired && !user) {
@@ -146,6 +150,50 @@ export default function FeedSidebar() {
 
   const hasDashboard = isAdmin || canOpenShopDashboard || isDriver || isRestaurantOwner || isHotelOwner || isSupport || isModerator || isOperations;
 
+  // Active-route detection so the current destination is always highlighted.
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+
+  // Shared row renderer: active highlight + accent bar, auth lock cue, optional
+  // badge, and a primary/secondary size tier. Keeps every group consistent.
+  const renderNavRow = (
+    item: { label: string; icon: any; path: string; color?: string; authRequired?: boolean },
+    opts: { tier?: "primary" | "secondary"; badge?: number; iconClass?: string; onClick?: () => void } = {},
+  ) => {
+    const active = isActive(item.path);
+    const locked = !!item.authRequired && !user;
+    const badge = opts.badge && opts.badge > 0 ? opts.badge : 0;
+    const secondary = opts.tier === "secondary";
+    return (
+      <button
+        type="button"
+        key={item.label}
+        onClick={opts.onClick ?? (() => goToItem(item.path, item.authRequired))}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "zivo-social-sheet-row group relative flex items-center gap-3 rounded-2xl px-3 text-sm font-semibold transition-all active:scale-[0.99]",
+          secondary ? "py-2 text-foreground/80" : "py-2.5 text-foreground",
+          active && "bg-primary/10 text-primary ring-1 ring-primary/20",
+        )}
+      >
+        {active && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" aria-hidden="true" />}
+        <span className={cn(
+          "zivo-social-share-orb flex shrink-0 items-center justify-center rounded-2xl",
+          secondary ? "h-7 w-7" : "h-8 w-8",
+        )}>
+          <item.icon className={cn(secondary ? "h-3.5 w-3.5" : "h-4 w-4", active ? "text-primary" : (opts.iconClass ?? item.color))} />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+        {badge ? (
+          <span className="ml-auto inline-flex min-w-[1.15rem] items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+            {badge > 99 ? "99+" : badge}
+          </span>
+        ) : locked ? (
+          <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+        ) : null}
+      </button>
+    );
+  };
+
   return (
     <>
     <aside className="zivo-social-nav-glass hidden lg:flex flex-col w-60 shrink-0 sticky top-[4.5rem] h-[calc(100vh-4.5rem)] overflow-y-auto border-r border-border/30">
@@ -153,21 +201,23 @@ export default function FeedSidebar() {
         {/* Profile card — premium identity block */}
         {user && (
           <div className="zivo-social-module relative mb-3 overflow-hidden rounded-2xl">
-            <div className="px-3 py-3">
-              <div className="flex min-w-0 items-center gap-3">
+            {/* Gradient banner — gives the identity block a premium, branded header. */}
+            <div className="h-12 w-full bg-gradient-to-br from-primary/35 via-primary/15 to-accent/25" aria-hidden="true" />
+            <div className="px-3 pb-3 -mt-7">
+              <div className="flex items-end gap-3">
                 <div className="relative shrink-0">
-                  <Avatar className="zivo-social-avatar-ring h-12 w-12 shadow-md">
+                  <Avatar className="zivo-social-avatar-ring h-14 w-14 shadow-md ring-2 ring-card">
                     <AvatarImage src={avatarUrl || undefined} />
-                    <AvatarFallback className="bg-transparent text-primary font-bold text-lg">
+                    <AvatarFallback className="bg-card text-primary font-bold text-lg">
                       {displayName[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-card" aria-label="Online" />
+                  <span className="absolute bottom-0.5 right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-card" aria-label="Online" />
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 pb-1">
                   <div className="flex min-w-0 items-center gap-1">
-                    <p className="min-w-0 truncate text-sm font-semibold text-foreground">{displayName}</p>
+                    <p className="min-w-0 truncate text-sm font-bold text-foreground">{displayName}</p>
                     {profile?.is_verified && (
                       <BadgeCheck className="h-4 w-4 shrink-0 fill-sky-500 text-white" />
                     )}
@@ -180,23 +230,24 @@ export default function FeedSidebar() {
                 </div>
               </div>
 
-              <button type="button"
-                onClick={() => navigate("/profile")}
-                className="zivo-social-chip mt-3 flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors"
-              >
-                <span>View profile</span>
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-
-              <button type="button"
-                onClick={() => setShowSwitch(true)}
-                className="zivo-social-chip mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Switch account or open dashboards"
-                title="Switch account or open dashboards"
-              >
-                <ArrowLeftRight className="h-3.5 w-3.5" />
-                <span>Switch account</span>
-              </button>
+              <div className="mt-3 grid grid-cols-2 gap-1.5">
+                <button type="button"
+                  onClick={() => navigate("/profile")}
+                  className="zivo-social-chip flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-foreground transition-colors"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  <span>Profile</span>
+                </button>
+                <button type="button"
+                  onClick={() => setShowSwitch(true)}
+                  className="zivo-social-chip flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Switch account or open dashboards"
+                  title="Switch account or open dashboards"
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                  <span>Switch</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -207,7 +258,7 @@ export default function FeedSidebar() {
             <p className="px-3 pb-1 pt-2 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">
               Your Business Pages
             </p>
-            {ownerStores.map((store) => {
+            {(showAllStores ? ownerStores : ownerStores.slice(0, 4)).map((store) => {
               const placeholder = isPlaceholderStoreName(store.name);
               const displayName = placeholder ? "Finish setting up" : store.name;
               const subtitle = placeholder
@@ -244,6 +295,17 @@ export default function FeedSidebar() {
                 </button>
               );
             })}
+            {ownerStores.length > 4 && (
+              <button type="button"
+                onClick={() => setShowAllStores((v) => !v)}
+                className="zivo-social-sheet-row flex items-center gap-3 rounded-2xl px-3 py-2 text-[12px] font-semibold text-muted-foreground transition-all active:scale-[0.99]"
+              >
+                <span className="zivo-social-share-orb flex h-6 w-6 shrink-0 items-center justify-center rounded-2xl text-muted-foreground">
+                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showAllStores && "rotate-90")} />
+                </span>
+                <span>{showAllStores ? "Show less" : `Show ${ownerStores.length - 4} more`}</span>
+              </button>
+            )}
             <button type="button"
               onClick={() => navigate("/business/new?new=1")}
               className="zivo-social-sheet-row flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
@@ -258,73 +320,34 @@ export default function FeedSidebar() {
 
         {/* Main nav */}
         <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">Navigate</p>
-        {NAV_ITEMS.map((item) => (
-          <button type="button"
-            key={item.label}
-            onClick={() => navigate(item.path)}
-            className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
-          >
-            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl">
-              <item.icon className={cn("h-4 w-4", item.color)} />
-            </span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-        {/* Chat button — opens slide panel */}
+        {NAV_ITEMS.map((item) => renderNavRow(item, { tier: "primary" }))}
+        {/* Chat — opens slide panel; highlights while open */}
         <button type="button"
           onClick={() => user ? setShowChat(true) : navigate(`/login?redirect=${encodeURIComponent("/chat")}`)}
-          className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
+          aria-pressed={showChat}
+          className={cn(
+            "zivo-social-sheet-row group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all active:scale-[0.99]",
+            showChat ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-foreground",
+          )}
         >
+          {showChat && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" aria-hidden="true" />}
           <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-primary">
             <MessageCircle className="h-4 w-4" />
           </span>
-          <span>Chat</span>
+          <span className="min-w-0 flex-1 truncate text-left">Chat</span>
         </button>
 
         {/* Social */}
         <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">Social</p>
-        {SOCIAL_ITEMS.map((item) => (
-          <button type="button"
-            key={item.label}
-            onClick={() => goToItem(item.path, item.authRequired)}
-            className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
-          >
-            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-primary">
-              <item.icon className="h-4 w-4" />
-            </span>
-            <span>{item.label}</span>
-          </button>
-        ))}
+        {SOCIAL_ITEMS.map((item) => renderNavRow(item, { tier: "primary", iconClass: "text-primary" }))}
 
         {/* Services */}
         <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">Services</p>
-        {SERVICE_ITEMS.map((item) => (
-          <button type="button"
-            key={item.label}
-            onClick={() => goToItem(item.path, item.authRequired)}
-            className="zivo-social-sheet-row group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground transition-all active:scale-[0.99]"
-          >
-            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl">
-              <item.icon className={cn("h-4 w-4", item.color)} />
-            </span>
-            <span>{item.label}</span>
-          </button>
-        ))}
+        {SERVICE_ITEMS.map((item) => renderNavRow(item, { tier: "primary" }))}
 
         {/* More */}
         <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">More</p>
-        {MORE_ITEMS.map((item) => (
-          <button type="button"
-            key={item.label}
-            onClick={() => navigate(item.path)}
-            className="zivo-social-sheet-row flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-foreground/80 transition-all active:scale-[0.99]"
-          >
-            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-muted-foreground">
-              <item.icon className="h-4 w-4" />
-            </span>
-            <span>{item.label}</span>
-          </button>
-        ))}
+        {MORE_ITEMS.map((item) => renderNavRow(item, { tier: "secondary", iconClass: "text-muted-foreground", badge: item.path === "/notifications" ? socialUnread : 0 }))}
 
         {/* Account footer — Membership + Sign out */}
         {user && (
@@ -340,10 +363,15 @@ export default function FeedSidebar() {
             ) : (
               <button type="button"
                 onClick={() => navigate("/membership")}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-amber-600 hover:bg-amber-500/10 transition-colors w-full"
+                className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 px-3 py-2.5 text-left shadow-sm transition-transform active:scale-[0.99]"
               >
-                <Crown className="h-5 w-5" />
-                <span>Join ZIVO+</span>
+                <div className="flex items-center gap-2.5">
+                  <Crown className="h-5 w-5 shrink-0 text-white drop-shadow-sm" />
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-extrabold leading-tight text-white">Join ZIVO+</p>
+                    <p className="truncate text-[10px] font-medium text-white/90">Unlock perks & VIP features</p>
+                  </div>
+                </div>
               </button>
             )}
             <button type="button"
