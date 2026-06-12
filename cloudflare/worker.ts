@@ -968,9 +968,7 @@ function isAiProviderConfigured(provider: AiProvider, env: Env) {
 function aiProviderOrder(requestedProvider: AiProviderRequest, mode: AiChatMode): AiProvider[] {
   if (requestedProvider === "claude") return ["claude", "deepseek"];
   if (requestedProvider === "deepseek") return ["deepseek", "claude"];
-  return mode === "support" || mode === "site-builder"
-    ? ["claude", "deepseek"]
-    : ["deepseek", "claude"];
+  return ["deepseek", "claude"];
 }
 
 function modelForProvider(provider: AiProvider, requestedModel: string) {
