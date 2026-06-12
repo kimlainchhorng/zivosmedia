@@ -41,7 +41,7 @@ const AI_CHAT_ENDPOINT = `${WORKER_API_ORIGIN}/api/ai/chat`;
 export async function streamZivoAiChat({
   messages,
   mode = "travel",
-  provider = "auto",
+  provider = "deepseek",
   model,
   signal,
   onDelta,
@@ -118,7 +118,7 @@ export async function streamZivoAiChat({
 export async function completeZivoAiChat({
   messages,
   mode = "travel",
-  provider = "auto",
+  provider = "deepseek",
   model,
   maxTokens = 900,
   temperature = 0.4,
