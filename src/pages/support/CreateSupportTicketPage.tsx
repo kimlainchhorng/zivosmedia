@@ -58,7 +58,7 @@ export default function CreateSupportTicketPage() {
         canonical="/support/new"
       />
       <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4 max-w-md">
+      <main className="pt-safe-header pb-24 container mx-auto px-4 max-w-md">
         <h1 className="text-2xl font-bold mb-1 inline-flex items-center gap-2"><LifeBuoy className="w-6 h-6 text-primary" />Get help</h1>
         <p className="text-sm text-muted-foreground mb-6">Describe what's wrong — we'll get back ASAP.</p>
         <div className="space-y-3">

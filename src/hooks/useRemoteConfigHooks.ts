@@ -59,7 +59,7 @@ export function useSupportContact() {
   const { get } = useRemoteConfig();
 
   return {
-    email: get('SUPPORT_EMAIL', 'support@zivo.com'),
+    email: get('SUPPORT_EMAIL', 'support@zivosmedia.com'),
     phone: get('SUPPORT_PHONE', '+1-800-ZIVO-CAR'),
     website: get('SUPPORT_WEBSITE', 'https://support.zizo.app'),
     liveChat: get('LIVE_CHAT_ENABLED', true),

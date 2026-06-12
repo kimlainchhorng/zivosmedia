@@ -63,7 +63,7 @@ const ForCustomers = () => {
       <FAQSchema faqs={faqs} pageType="general" />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         {/* Hero */}
         <motion.section {...fadeIn} className="container mx-auto px-4 text-center mb-20 max-w-4xl">
           <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">

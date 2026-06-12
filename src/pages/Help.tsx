@@ -152,7 +152,7 @@ export default function Help() {
       <FAQStructuredData faqs={faqs.map(f => ({ question: f.q, answer: f.a }))} />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Hero */}
           <div className="text-center mb-12">

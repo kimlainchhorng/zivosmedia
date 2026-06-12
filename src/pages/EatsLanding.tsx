@@ -1087,8 +1087,8 @@ export default function EatsLanding() {
                           <button type="button" key={r.id}
                             onClick={() => { trackRecentlyViewed(r.id); setSelectedRestaurantId(r.id); setStep("restaurant"); }}
                             className="snap-start flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/50 text-left shrink-0 active:scale-95 hover:scale-105 transition-all duration-200 touch-manipulation hover:border-primary/30 hover:shadow-md hover:shadow-primary/10">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/15 to-rose-500/10 flex items-center justify-center text-primary shrink-0">
-                              <UtensilsCrossed className="w-4 h-4" />
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/15 to-rose-500/10 flex items-center justify-center text-base leading-none shrink-0" aria-hidden>
+                              {cuisineEmoji(r.cuisine_type || "")}
                             </div>
                             <div>
                               <p className="text-xs font-semibold truncate max-w-[120px]">{r.name}</p>
@@ -1126,8 +1126,8 @@ export default function EatsLanding() {
                           <button type="button" key={r.id}
                             onClick={() => { trackRecentlyViewed(r.id); setSelectedRestaurantId(r.id); setStep("restaurant"); }}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/30 border border-border/30 text-left shrink-0 active:scale-95 transition-transform touch-manipulation hover:border-primary/30">
-                            <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-primary shrink-0">
-                              <UtensilsCrossed className="w-4 h-4" />
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/15 to-rose-500/10 flex items-center justify-center text-base leading-none shrink-0" aria-hidden>
+                              {cuisineEmoji(r.cuisine_type || "")}
                             </div>
                             <div>
                               <p className="text-xs font-semibold truncate max-w-[110px]">{r.name}</p>

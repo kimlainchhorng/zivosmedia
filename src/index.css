@@ -547,6 +547,14 @@
 }
 
 @layer components {
+  /* Clears the fixed shared <Header/> so page content isn't tucked under it.
+     The header is ≈ var(--zivo-safe-top-sticky) (≥64px floor incl. notch inset)
+     plus a ~48px row, so pages that used pt-24 (96px) under-clear it on notched
+     phones. Use .pt-safe-header on the page's <main> instead of a hardcoded pt-*. */
+  .pt-safe-header {
+    padding-top: calc(var(--zivo-safe-top-sticky, 64px) + 3.5rem);
+  }
+
   /* Safe area support for mobile apps & PWA
      NOTE: Use !important so these classes remain effective even when combined
      with Tailwind padding utilities like py-3/pt-4 (which would otherwise override). */

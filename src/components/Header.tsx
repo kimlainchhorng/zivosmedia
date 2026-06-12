@@ -1,4 +1,4 @@
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, User, Search, Sparkles, ChevronDown, Car, ShieldCheck, Plane, Hotel, Globe, Check } from "lucide-react";
 import { useState } from "react";
@@ -34,12 +34,20 @@ interface NavItem {
 
 function NavLinkItem({ item }: { item: NavItem }) {
   const Icon = item.icon;
+  const { pathname } = useLocation();
+  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
   return (
     <Link
       to={item.href}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-semibold text-foreground hover:bg-secondary transition-colors"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-semibold transition-colors",
+        active
+          ? "bg-secondary text-foreground"
+          : "text-foreground/70 hover:text-foreground hover:bg-secondary/70",
+      )}
     >
-      <Icon className="w-3.5 h-3.5" />
+      <Icon className={cn("w-3.5 h-3.5", active ? "text-primary" : "text-foreground/60")} />
       <span>{item.label}</span>
     </Link>
   );
@@ -96,8 +104,8 @@ const Header = () => {
               ))}
             </nav>
 
-            {/* Desktop Actions - Enhanced */}
-            <div className="hidden md:flex items-center gap-1 ml-auto">
+            {/* Desktop Actions - Enhanced (lg+ only; below lg uses the hamburger) */}
+            <div className="hidden lg:flex items-center gap-1 ml-auto">
               {/* Language Selector */}
               <Popover open={isLangOpen} onOpenChange={setIsLangOpen}>
                 <PopoverTrigger asChild>

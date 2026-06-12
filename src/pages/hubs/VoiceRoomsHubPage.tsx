@@ -3,13 +3,16 @@
  * Live audio rooms (Clubhouse-style).
  */
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import VoiceRoomCard, { type VoiceRoomData } from "@/components/rooms/VoiceRoomCard";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import HubScaffold, { type HubStep } from "@/components/hubs/HubScaffold";
 import Mic from "lucide-react/dist/esm/icons/mic";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
-import { useNavigate } from "react-router-dom";
+import Radio from "lucide-react/dist/esm/icons/radio";
+import Hand from "lucide-react/dist/esm/icons/hand";
+import Users from "lucide-react/dist/esm/icons/users";
 
 interface RawRoom {
   id: string;
@@ -21,6 +24,12 @@ interface RawRoom {
 
 const dbFrom = (table: string): unknown =>
   (supabase as unknown as { from: (t: string) => unknown }).from(table);
+
+const STEPS: HubStep[] = [
+  { icon: Radio, title: "Start or join", desc: "Open a room or hop into a live one" },
+  { icon: Hand, title: "Raise your hand", desc: "Listen in, or ask to speak" },
+  { icon: Users, title: "Talk together", desc: "Real-time audio with your community" },
+];
 
 export default function VoiceRoomsHubPage() {
   const navigate = useNavigate();
@@ -62,36 +71,47 @@ export default function VoiceRoomsHubPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold inline-flex items-center gap-2"><Mic className="w-6 h-6 text-primary" />Voice rooms</h1>
-            <p className="text-sm text-muted-foreground">Drop into live audio conversations.</p>
+    <HubScaffold
+      badge="Live audio"
+      badgeIcon={Mic}
+      title="Voice rooms"
+      subtitle="Drop into live audio conversations — or start your own room and gather a crowd."
+      primaryCta={{ label: "Go live", onClick: () => navigate("/voice-rooms/create"), icon: Mic }}
+      browseLabel="Browse rooms"
+      steps={STEPS}
+      listingsHeading={`Live rooms${rooms && rooms.length > 0 ? ` (${rooms.length})` : ""}`}
+    >
+      {rooms == null ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+      ) : rooms.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35 }}
+          className="flex flex-col items-center justify-center py-14 text-center rounded-2xl border border-dashed border-border bg-card/30"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-fuchsia-500/10 to-orange-500/10 border border-border flex items-center justify-center mb-4 text-fuchsia-500">
+            <Mic className="w-7 h-7" />
           </div>
-          <button type="button" onClick={() => navigate("/voice-rooms/create")} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-white text-sm font-bold bg-foreground">
+          <h3 className="text-lg font-bold mb-1">No live rooms right now</h3>
+          <p className="text-sm text-muted-foreground max-w-xs mb-6">
+            Be the first to go live — start a room and let people drop in.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/voice-rooms/create")}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-ig-gradient text-white text-sm font-bold shadow-md shadow-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
             <Mic className="w-4 h-4" /> Go live
           </button>
+        </motion.div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {rooms.map((r) => (
+            <VoiceRoomCard key={r.id} room={r} onJoin={(id) => navigate(`/voice-rooms/${id}`)} />
+          ))}
         </div>
-
-        {rooms == null ? (
-          <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-        ) : rooms.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-16">No live rooms right now. Be the first to start one.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rooms.map((r) => (
-              <VoiceRoomCard
-                key={r.id}
-                room={r}
-                onJoin={(id) => navigate(`/voice-rooms/${id}`)}
-              />
-            ))}
-          </div>
-        )}
-      </main>
-      <Footer />
-    </div>
+      )}
+    </HubScaffold>
   );
 }

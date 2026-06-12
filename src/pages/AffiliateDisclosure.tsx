@@ -22,7 +22,7 @@ const AffiliateDisclosure = () => {
       />
       <Header />
       
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Header */}
           <motion.div 

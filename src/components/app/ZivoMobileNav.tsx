@@ -6,7 +6,7 @@
 import { forwardRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, MessageCircle, User, Film, Newspaper, Car } from "lucide-react";
+import { Home, MessageCircle, User, Film, Newspaper, Car, Compass, Luggage, Wallet, CreditCard, UserRound } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -21,10 +21,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
 import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 
 interface NavTab {
   id: string;
-  labelKey: string;
+  labelKey?: string;
+  label?: string;
   icon: typeof Home;
   path: string;
   badge?: number;
@@ -98,10 +100,14 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     [notifications],
   );
 
+  // On the Zivo Travel host (or `?zt=1` preview) the bottom nav becomes a
+  // travel-only tab set — never the social Feed/Reels/Ride/Chat tabs.
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+
   const gated = (path: string) =>
     user ? path : `/login?redirect=${encodeURIComponent(path)}`;
 
-  const tabs: NavTab[] = [
+  const socialTabs: NavTab[] = [
     { id: "home",    labelKey: "nav.home",    icon: Home,          path: "/",                                   badge: liveActivity.total, fillable: true },
     { id: "feed",    labelKey: "nav.feed",    icon: Newspaper,     path: SOCIAL_ROUTE_PATHS.feed },
     { id: "reels",   labelKey: "nav.reel",    icon: Film,          path: SOCIAL_ROUTE_PATHS.reels },
@@ -110,8 +116,27 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     { id: "account", labelKey: "nav.account", icon: User,          path: gated(SOCIAL_ROUTE_PATHS.profile),    badge: accountUnread },
   ];
 
+  // Mirrors the TravelUtilityShell bottom nav so the travel host has ONE
+  // consistent tab set across booking pages + utility pages.
+  const travelTabs: NavTab[] = [
+    { id: "home",    label: "Home",    icon: Compass,    path: "/",                       fillable: true },
+    { id: "trips",   label: "Trips",   icon: Luggage,    path: gated("/my-trips") },
+    { id: "wallet",  label: "Wallet",  icon: Wallet,     path: gated("/wallet") },
+    { id: "cards",   label: "Cards",   icon: CreditCard, path: gated("/payment-methods") },
+    { id: "account", label: "Account", icon: UserRound,  path: gated("/account"),         badge: accountUnread },
+  ];
+
+  const tabs = isTravel ? travelTabs : socialTabs;
+
   const getActiveTab = () => {
     const path = location.pathname;
+    if (isTravel) {
+      if (path.startsWith("/my-trips")) return "trips";
+      if (path.startsWith("/wallet")) return "wallet";
+      if (path.startsWith("/payment-methods")) return "cards";
+      if (path.startsWith("/account")) return "account";
+      return "home";
+    }
     if (path === "/" || path === "") return "home";
     if (path.startsWith(SOCIAL_ROUTE_PATHS.reels)) return "reels";
     if (path.startsWith("/rides")) return "ride";
@@ -153,7 +178,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
-          const label = t(tab.labelKey);
+          const label = tab.label ?? (tab.labelKey ? t(tab.labelKey) : "");
           const isAccountWithAvatar = tab.id === "account" && !!user;
 
           return (
@@ -167,7 +192,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                 if (target && activeTab !== tab.id) prefetch(target);
               }}
               onClick={() => {
-                if (tab.id === "account" && activeTab === "account") {
+                if (!isTravel && tab.id === "account" && activeTab === "account") {
                   impact("light");
                   navigate(location.pathname.startsWith("/more") ? gated("/profile") : "/more");
                   return;
@@ -184,7 +209,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                   ? "text-white"
                   : "text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300",
               )}
-              aria-label={t(tab.labelKey)}
+              aria-label={label}
               aria-current={isActive ? "page" : undefined}
             >
               {/* Active highlight — plain divs, NOT framer-motion layoutId.

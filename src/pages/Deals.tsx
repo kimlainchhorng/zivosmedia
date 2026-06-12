@@ -110,7 +110,7 @@ export default function Deals() {
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         {/* Hero Section — Premium */}
         <section className="relative overflow-hidden pb-8">
           <div className="absolute inset-0 bg-gradient-to-br from-destructive/8 via-orange-500/5 to-amber-500/8" />

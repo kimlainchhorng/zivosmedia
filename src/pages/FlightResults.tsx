@@ -1963,7 +1963,7 @@ const FlightResults = () => {
         <div className="absolute -top-20 right-0 w-72 h-72 rounded-full bg-[hsl(var(--flights))]/6 blur-3xl" />
       </div>
       <Header />
-      <main className="flex-1 pt-24 pb-20 relative z-10">
+      <main className="flex-1 pt-safe-header pb-20 relative z-10">
         {resultsContent}
       </main>
       <Footer />

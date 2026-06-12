@@ -788,7 +788,7 @@ const FlightReview = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-20">
+        <main className="pt-safe-header pb-20">
           <div className="container mx-auto px-4 max-w-2xl text-center">
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
               <Plane className="w-8 h-8 text-muted-foreground" />
@@ -817,7 +817,7 @@ const FlightReview = () => {
 
       <Header />
 
-      <main className="flex-1 pt-24 pb-32 sm:pb-20 relative z-10">
+      <main className="flex-1 pt-safe-header pb-32 sm:pb-20 relative z-10">
         <div className="mx-auto max-w-[1440px] px-3 sm:px-4 lg:px-8">
           {isPlannerHandoff && (
             <ReviewPlannerHandoff

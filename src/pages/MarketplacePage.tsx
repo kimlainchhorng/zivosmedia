@@ -14,7 +14,7 @@ import {
   Store, User as UserIcon, TrendingUp, Star, Clock, MessageSquare, Send, Bell, BellOff, Copy,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -152,6 +152,7 @@ export default function MarketplacePage() {
     setRecentSearches(next);
     try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {/**/}
   };
+  const reduceMotion = useReducedMotion();
   const [conditionFilter, setConditionFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [sort, setSort] = useState("newest");
@@ -983,8 +984,8 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => setCategoryFilter(null)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                !categoryFilter ? "bg-foreground text-background" : "bg-muted/50 text-muted-foreground"
+              className={`inline-flex min-h-[34px] items-center rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                !categoryFilter ? "bg-foreground text-background shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"
               }`}
             >
               All categories
@@ -994,8 +995,8 @@ export default function MarketplacePage() {
                 type="button"
                 key={cat.id}
                 onClick={() => setCategoryFilter(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                  categoryFilter === cat.id ? "bg-foreground text-background" : "bg-muted/50 text-muted-foreground"
+                className={`inline-flex min-h-[34px] items-center rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                  categoryFilter === cat.id ? "bg-foreground text-background shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {cat.icon ? `${cat.icon} ` : ""}{cat.name}
@@ -1013,7 +1014,7 @@ export default function MarketplacePage() {
             <button type="button"
               key={c.value}
               onClick={() => setConditionFilter(c.value)}
-              className={`min-h-[40px] rounded-full px-4 py-2 text-xs font-medium whitespace-nowrap transition-all touch-manipulation ${
+              className={`inline-flex min-h-[40px] items-center rounded-full px-4 py-2 text-xs font-medium whitespace-nowrap transition-all touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                 conditionFilter === c.value
                   ? "bg-ig-gradient text-white"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -1390,19 +1391,28 @@ export default function MarketplacePage() {
               <p className="text-sm font-semibold mb-1">Start exploring</p>
               <p className="text-xs text-muted-foreground">Pick a category to browse</p>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {categories.slice(0, 12).map((c: any) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCategoryFilter(c.id)}
-                  className="aspect-square rounded-2xl bg-gradient-to-br from-primary/10 to-muted/20 border border-border/30 flex flex-col items-center justify-center gap-1 hover:shadow-md hover:border-primary/40 transition-all"
-                >
-                  <span className="text-2xl">{c.icon || "🛍️"}</span>
-                  <span className="text-[11px] font-semibold text-center px-1 line-clamp-1">{c.name}</span>
-                  <span className="text-[10px] text-muted-foreground">{(categoryCounts as Record<string, number>)[c.id] || 0}</span>
-                </button>
-              ))}
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-6">
+              {categories.slice(0, 12).map((c: any, ci: number) => {
+                const count = (categoryCounts as Record<string, number>)[c.id] || 0;
+                return (
+                  <motion.button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setCategoryFilter(c.id)}
+                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: reduceMotion ? 0 : Math.min(ci * 0.03, 0.3), duration: 0.3, ease: "easeOut" }}
+                    whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+                    className="group flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/40 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+                  >
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-fuchsia-500/10 text-2xl ring-1 ring-border/40 transition-transform duration-200 group-hover:scale-110">
+                      {c.icon || "🛍️"}
+                    </span>
+                    <span className="line-clamp-1 px-1 text-center text-[11px] font-bold leading-tight">{c.name}</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground">{count} {count === 1 ? "item" : "items"}</span>
+                  </motion.button>
+                );
+              })}
             </div>
             {user && (
               <div className="mt-4 text-center">

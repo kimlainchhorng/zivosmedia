@@ -173,6 +173,10 @@ const InspectionViewPage = lazy(() => lazyRetry(() => import("./pages/Inspection
 
 const Index = lazy(() => lazyRetry(() => import("./pages/Index")));
 const ZivoTravelHome = lazy(() => import("./pages/ZivoTravelHome"));
+const ZivoTravelMyTrips = lazy(() => import("./pages/ZivoTravelMyTrips"));
+const ZivoTravelWallet = lazy(() => import("./pages/ZivoTravelWallet"));
+const ZivoTravelPaymentMethods = lazy(() => import("./pages/ZivoTravelPaymentMethods"));
+const ZivoTravelAccount = lazy(() => import("./pages/ZivoTravelAccount"));
 const ZivoDriverHome = lazy(() => import("./pages/ZivoDriverHome"));
 const ZivoBusinessHome = lazy(() => import("./pages/ZivoBusinessHome"));
 const ZivoEmployeeHome = lazy(() => import("./pages/ZivoEmployeeHome"));
@@ -1693,6 +1697,11 @@ const App = () => (
                           <Routes>
                             <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : isCurrentZivoDriverHost() ? <ZivoDriverLandingPage /> : isCurrentZivoBusinessHost() ? <ZivoBusinessHome /> : isCurrentZivoEmployeeHost() ? <ZivoEmployeeHome /> : <Index />} />
                             <Route path="/zivo-travel" element={<ZivoTravelHome />} />
+                            {/* Travel utility pages — host-agnostic preview paths (also usable on the travel host). */}
+                            <Route path="/zivo-travel/my-trips" element={<ZivoTravelMyTrips />} />
+                            <Route path="/zivo-travel/wallet" element={<ZivoTravelWallet />} />
+                            <Route path="/zivo-travel/payment-methods" element={<ZivoTravelPaymentMethods />} />
+                            <Route path="/zivo-travel/account" element={<ZivoTravelAccount />} />
                             
                             <Route path="/__dev_buildro/:storeId" element={<DevBuildRO />} />
                             <Route path="/login" element={<Login />} />
@@ -1711,10 +1720,11 @@ const App = () => (
                 <Route path="/app/home" element={<ProtectedRoute><AppHome /></ProtectedRoute>} />
                 <Route path="/index" element={<ProtectedRoute><AppHome /></ProtectedRoute>} />
                 <Route path="/hotel-admin" element={<ProtectedRoute><HotelAdminLaunchPage /></ProtectedRoute>} />
-                <Route path="/my-trips" element={<ProtectedRoute><MyTripsPage /></ProtectedRoute>} />
+                <Route path="/my-trips" element={isCurrentZivoTravelHost() ? <ZivoTravelMyTrips /> : <ProtectedRoute><MyTripsPage /></ProtectedRoute>} />
                 <Route path="/my-reviews" element={<ProtectedRoute><MyReviewsPage /></ProtectedRoute>} />
                 <Route path="/payments" element={<ProtectedRoute><PreserveQueryRedirect to="/wallet" /></ProtectedRoute>} />
-                <Route path="/wallet" element={<ProtectedRoute><AccountWalletPage /></ProtectedRoute>} />
+                <Route path="/wallet" element={isCurrentZivoTravelHost() ? <ZivoTravelWallet /> : <ProtectedRoute><AccountWalletPage /></ProtectedRoute>} />
+                <Route path="/payment-methods" element={isCurrentZivoTravelHost() ? <ZivoTravelPaymentMethods /> : <ProtectedRoute><PreserveQueryRedirect to="/wallet" /></ProtectedRoute>} />
                 <Route path="/wallet/coins/success" element={<ProtectedRoute><CoinPurchaseSuccess /></ProtectedRoute>} />
                 <Route path="/support" element={<ProtectedRoute><SupportCenterPage /></ProtectedRoute>} />
                 <Route path="/travel" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : <ProtectedRoute><AppTravel /></ProtectedRoute>} />
@@ -1785,7 +1795,7 @@ const App = () => (
                 <Route path="/move" element={<PreserveQueryRedirect to="/rides/hub" />} />
                 <Route path="/search" element={<PreserveQueryRedirect to="/flights" />} />
                 <Route path="/my-trips-legacy" element={<PreserveQueryRedirect to="/trips" />} />
-                <Route path="/account" element={<PreserveQueryRedirect to="/profile" />} />
+                <Route path="/account" element={isCurrentZivoTravelHost() ? <ZivoTravelAccount /> : <PreserveQueryRedirect to="/profile" />} />
                 <Route path="/alerts" element={<PreserveQueryRedirect to="/notifications" />} />
                 <Route path="/delivery" element={<DeliveryPage />} />
                 <Route path="/delivery/track/:id" element={<ProtectedRoute><DeliveryTrackingPage /></ProtectedRoute>} />

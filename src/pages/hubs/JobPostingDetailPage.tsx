@@ -133,7 +133,7 @@ export default function JobPostingDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4 max-w-2xl">
+      <main className="pb-24 container mx-auto px-4 max-w-2xl" style={{ paddingTop: "calc(var(--zivo-safe-top-sticky, 64px) + 3.5rem)" }}>
         <button
           type="button"
           onClick={() => navigate("/jobs-hub")}

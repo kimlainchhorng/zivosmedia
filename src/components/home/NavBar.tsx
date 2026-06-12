@@ -287,7 +287,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                         onFocus={() => prefetchIfEligible(targetPath)}
                         onTouchStart={() => prefetchIfEligible(targetPath)}
                         className={cn(
-                          "flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-300 whitespace-nowrap border",
+                          "flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-300 whitespace-nowrap border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                           isActive
                             ? ""
                             : "text-foreground/70 hover:text-foreground border-border/40 hover:border-border/70 hover:bg-muted/40"
@@ -339,7 +339,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                   <button
                     type="button"
                     onClick={() => navigate("/notifications")}
-                    className="hidden lg:flex relative w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors active:scale-95"
+                    className="hidden lg:flex relative w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     aria-label={notificationUnread > 0 ? `Notifications, ${notificationUnread} unread` : "Notifications"}
                     title="Notifications"
                   >

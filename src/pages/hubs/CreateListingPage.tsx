@@ -47,7 +47,7 @@ export default function CreateListingPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4 max-w-md">
+      <main className="pt-safe-header pb-24 container mx-auto px-4 max-w-md">
         <h1 className="text-2xl font-bold mb-6">List an item</h1>
         <div className="space-y-3">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What are you selling?" className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />

@@ -248,7 +248,7 @@ export default function FlightSearchForm({
           onClick={handleSearch}
           disabled={!fromCity || !toCity || !departDate}
           size="lg"
-          className="w-full h-14 hover:hover:hover:text-primary-foreground font-bold text-lg shadow-xl transition-all hover: bg-foreground"
+          className="w-full h-14 hover:text-primary-foreground font-bold text-lg shadow-xl transition-all bg-foreground"
         >
           <Search className="w-5 h-5 mr-2" />
           Search Flights

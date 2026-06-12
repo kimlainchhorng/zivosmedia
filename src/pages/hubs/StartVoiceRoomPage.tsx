@@ -45,7 +45,7 @@ export default function StartVoiceRoomPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4 max-w-md">
+      <main className="pt-safe-header pb-24 container mx-auto px-4 max-w-md">
         <h1 className="text-2xl font-bold mb-1 inline-flex items-center gap-2"><Mic className="w-6 h-6 text-primary" />Start a voice room</h1>
         <p className="text-sm text-muted-foreground mb-6">Anyone can listen; you control who speaks.</p>
         <div className="space-y-3">

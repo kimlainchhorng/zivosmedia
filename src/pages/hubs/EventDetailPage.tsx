@@ -105,7 +105,7 @@ export default function EventDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4 max-w-2xl">
+      <main className="pt-safe-header pb-24 container mx-auto px-4 max-w-2xl">
         <button
           type="button"
           onClick={() => navigate("/events-hub")}
