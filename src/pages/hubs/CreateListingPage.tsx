@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CreateListingPage — /marketplace-hub/create
  */
 import { useState } from "react";
@@ -6,14 +6,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import HubFormShell, { Field, fieldClass } from "@/components/hubs/HubFormShell";
+import Tag from "lucide-react/dist/esm/icons/tag";
 
 const dbFrom = (table: string): unknown =>
   (supabase as unknown as { from: (t: string) => unknown }).from(table);
 
 const CONDITIONS = ["new", "like_new", "good", "fair", "for_parts"] as const;
+const labelOf = (c: string) => c.replace(/_/g, " ").replace(/^\w/, (m) => m.toUpperCase());
 
 export default function CreateListingPage() {
   const { user } = useAuth();
@@ -45,27 +45,53 @@ export default function CreateListingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="pt-safe-header pb-24 container mx-auto px-4 max-w-md">
-        <h1 className="text-2xl font-bold mb-6">List an item</h1>
-        <div className="space-y-3">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What are you selling?" className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe it (condition, history, etc.)" rows={3} className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
-          <div className="flex items-center gap-2">
-            <span className="text-2xl text-muted-foreground">$</span>
-            <input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0.00" className="flex-1 px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          </div>
-          <select value={condition} onChange={(e) => setCondition(e.target.value as typeof CONDITIONS[number])} className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30">
-            {CONDITIONS.map((c) => <option key={c} value={c}>{c.replace("_", " ")}</option>)}
-          </select>
-          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)" className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          <button type="button" onClick={() => void submit()} disabled={busy || !title || !price} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50">
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post listing"}
-          </button>
+    <HubFormShell
+      backTo="/marketplace-hub"
+      backLabel="Marketplace"
+      badge="Sell on ZIVO"
+      badgeIcon={Tag}
+      title="List an item"
+      subtitle="Reach buyers in your area — listing is free."
+      submitLabel="Post listing"
+      onSubmit={() => void submit()}
+      busy={busy}
+      canSubmit={!!title && !!price}
+    >
+      <Field label="Title" htmlFor="li-title" required>
+        <input id="li-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What are you selling?" className={fieldClass} />
+      </Field>
+      <Field label="Description" htmlFor="li-desc">
+        <textarea id="li-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe it (condition, history, etc.)" rows={3} className={`${fieldClass} resize-none`} />
+      </Field>
+      <Field label="Price" htmlFor="li-price" required>
+        <div className="flex items-center gap-2">
+          <span className="text-lg text-muted-foreground">$</span>
+          <input id="li-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.]/g, ""))} placeholder="0.00" className={`flex-1 ${fieldClass}`} />
         </div>
-      </main>
-      <Footer />
-    </div>
+      </Field>
+      <Field label="Condition">
+        <div className="flex flex-wrap gap-1.5">
+          {CONDITIONS.map((c) => {
+            const active = condition === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCondition(c)}
+                aria-pressed={active}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  active ? "bg-ig-gradient text-white border-transparent" : "bg-background border-border text-foreground hover:bg-muted/50"
+                }`}
+              >
+                {labelOf(c)}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+      <Field label="Location" htmlFor="li-loc" optional>
+        <input id="li-loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City or area" className={fieldClass} />
+      </Field>
+    </HubFormShell>
   );
 }

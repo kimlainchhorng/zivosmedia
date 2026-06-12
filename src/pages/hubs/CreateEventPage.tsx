@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CreateEventPage — /events-hub/create
  */
 import { useState } from "react";
@@ -6,9 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import HubFormShell, { Field, fieldClass } from "@/components/hubs/HubFormShell";
+import CalendarPlus from "lucide-react/dist/esm/icons/calendar-plus";
 
 const dbFrom = (table: string): unknown =>
   (supabase as unknown as { from: (t: string) => unknown }).from(table);
@@ -64,23 +63,33 @@ export default function CreateEventPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="pt-safe-header pb-24 container mx-auto px-4 max-w-md">
-        <h1 className="text-2xl font-bold mb-6">Create an event</h1>
-        <div className="space-y-3">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" rows={3} className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
-          <label className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">Start time</label>
-          <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)" className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          <input type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="Capacity (optional)" className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          <button type="button" onClick={() => void submit()} disabled={busy || !title || !startsAt} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50">
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create event"}
-          </button>
-        </div>
-      </main>
-      <Footer />
-    </div>
+    <HubFormShell
+      backTo="/events-hub"
+      backLabel="Events"
+      badge="Host on ZIVO"
+      badgeIcon={CalendarPlus}
+      title="Create an event"
+      subtitle="Gather your community for a meetup, party, or meeting."
+      submitLabel="Create event"
+      onSubmit={() => void submit()}
+      busy={busy}
+      canSubmit={!!title && !!startsAt}
+    >
+      <Field label="Title" htmlFor="ev-title" required>
+        <input id="ev-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" className={fieldClass} />
+      </Field>
+      <Field label="Description" htmlFor="ev-desc">
+        <textarea id="ev-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What's happening?" rows={3} className={`${fieldClass} resize-none`} />
+      </Field>
+      <Field label="Start time" htmlFor="ev-start" required>
+        <input id="ev-start" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className={fieldClass} />
+      </Field>
+      <Field label="Location" htmlFor="ev-loc" optional>
+        <input id="ev-loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where is it?" className={fieldClass} />
+      </Field>
+      <Field label="Capacity" htmlFor="ev-cap" optional>
+        <input id="ev-cap" type="number" min={1} value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="Max attendees" className={fieldClass} />
+      </Field>
+    </HubFormShell>
   );
 }

@@ -80,9 +80,10 @@ export default function HubFormShell({
         <button
           type="button"
           onClick={() => navigate(backTo)}
+          aria-label={`Back to ${backLabel}`}
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md"
         >
-          <ArrowLeft className="w-4 h-4" /> {backLabel}
+          <ArrowLeft aria-hidden className="w-4 h-4" /> {backLabel}
         </button>
 
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-fuchsia-500/10 to-orange-500/10 border border-border text-xs font-semibold mb-3">
@@ -92,17 +93,19 @@ export default function HubFormShell({
         <h1 className="text-2xl font-extrabold tracking-tight mb-1">{title}</h1>
         <p className="text-sm text-muted-foreground mb-6">{subtitle}</p>
 
-        <div className="rounded-2xl border border-border bg-card/50 p-4 sm:p-5 space-y-4">
+        <form
+          onSubmit={(e) => { e.preventDefault(); if (!busy && canSubmit) onSubmit(); }}
+          className="rounded-2xl border border-border bg-card/50 p-4 sm:p-5 space-y-4"
+        >
           {children}
           <button
-            type="button"
-            onClick={onSubmit}
+            type="submit"
             disabled={busy || !canSubmit}
             className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm shadow-md shadow-black/10 disabled:opacity-50 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : submitLabel}
           </button>
-        </div>
+        </form>
       </main>
       <Footer />
     </div>

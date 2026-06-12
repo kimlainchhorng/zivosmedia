@@ -31,6 +31,12 @@ Staged slice-by-slice so nothing breaks. Each: apply the premium design language
 - ✅ **About page** (`src/pages/About.tsx`) — done (see In review).
 - ✅ **Car Rental landing** (`src/pages/CarRentalLanding.tsx`) — done (see In review). The "Search Cars" low-contrast was just its disabled state (intentional).
 - ✅ **Social shells** — `src/components/home/NavBar.tsx` got a focus-ring polish (see In review). `src/components/social/FeedSidebar.tsx` was audited and is already premium + responsive (left as-is). Chat shell (`src/pages/ChatHubPage.tsx`, ~5.3k lines) audited — mature + already responsive (two-column desktop, collapsible rail, mobile sticky header, safe-area); left as-is. Flag specific issues if any. _(Claude)_
+### Hub cluster — DONE by @claude 2026-06-12 (see In review); follow-ups for Codex
+
+All 5 barren hubs redesigned premium + responsive (hero + "how it works" + inviting empty state): `JobsHubPage`, `MarketplaceHubPage`, `EventsHubPage` (bespoke), `VoiceRoomsHubPage` + `FitnessHubPage` (consume new `src/components/hubs/HubScaffold.tsx`). 3 create forms now use `src/components/hubs/HubFormShell.tsx` (+ `Field`/`fieldClass`): `CreateListingPage`, `CreateEventPage`, `StartVoiceRoomPage`. `CreateJobPage` is the bespoke predecessor (built before the shell; visually identical, has the same labels/chips) — could migrate too. DeepSeek+MiMo scanned both shared components; fixes applied (semantic `<ol>` steps, `aria-hidden` badges, `useReducedMotion`, real `<form>` w/ Enter-to-submit, back-button aria-label).
+
+- **Migrate bespoke hubs to `HubScaffold`** _(Codex)_ — move `JobsHubPage`, `MarketplaceHubPage`, `EventsHubPage` onto `HubScaffold` for full consistency, preserving each one's unique bit (Jobs "Ways to earn" tiles between hero & steps; Marketplace condition filter + Events date filter via the `filterRow` prop). Keep exact supabase fetches. Verify `npm run update` + preview 375/768/1280.
+- **Polish hub detail pages** _(Codex)_ — `EventDetailPage`, `VoiceRoomDetailPage`, and the marketplace listing detail got only the `pt-24→pt-safe-header` sweep; give them the same premium pass `JobPostingDetailPage` has (it's the reference).
 - **Backend completeness** — owner to specify concrete gaps (edge functions / RPCs); production writes + deploys are owner-only. _(needs owner input)_
 
 ---
