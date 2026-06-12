@@ -110,7 +110,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
   const { isActive: isMember } = useMembership();
   const { data: ownerStores = [] } = useOwnerStores();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

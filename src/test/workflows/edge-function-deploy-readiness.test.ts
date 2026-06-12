@@ -12,6 +12,7 @@ const criticalFunctions = [
   ["push-device-manage", true],
   ["talent-invite-notification", true],
   ["admin-broadcast-notification", true],
+  ["mint-sso-handoff", true],
 ] as const;
 
 describe("Edge Function deploy readiness", () => {
@@ -24,7 +25,7 @@ describe("Edge Function deploy readiness", () => {
       expect(config).toMatch(new RegExp(`\\[functions\\.${slug}\\]\\s+verify_jwt = ${verifyJwt ? "true" : "false"}`));
       expect(fn).toContain(`withSecurity("${slug}"`);
       expect(fn).toContain('allowedMethods: ["POST"]');
-      if (verifyJwt) expect(fn).toMatch(/auth\.getUser\((?:token)?\)/);
+      if (verifyJwt) expect(fn).toMatch(/(auth\.getUser\((?:token)?\)|requireUser\(req\))/);
     }
   });
 

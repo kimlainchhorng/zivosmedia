@@ -3,7 +3,7 @@
  * ZIVO — Xiaomi MiMo agent runner
  *
  * Same idea as the DeepSeek runner, but talks to Xiaomi MiMo through its
- * Anthropic-compatible Messages API. Feeds MiMo the shared rulebook
+ * OpenAI-compatible Chat Completions API. Feeds MiMo the shared rulebook
  * (AGENTS.md + docs/agent-workflow.md + AGENT_TASKS.md) and a task, then
  * prints/saves its proposed plan or diff. MiMo is an ADVISOR here — it does
  * not edit the repo. A human, Claude, Codex, or DeepSeek applies what it proposes.
@@ -14,8 +14,9 @@
  *   npm run agent:mimo -- --task "..." --model mimo-v2.5-pro --out plan.md
  *
  * Needs MIMO_API_KEY (put it in .env.local, which is git-ignored).
- * Optional: MIMO_BASE_URL (default https://api.xiaomimimo.com/anthropic),
- *           MIMO_MODEL (default mimo-v2.5-pro).
+ * Optional: MIMO_BASE_URL (default https://api.xiaomimimo.com/v1),
+ *           MIMO_MODEL (default mimo-v2.5-pro),
+ *           MIMO_API_FORMAT (openai | anthropic; inferred from base URL).
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
@@ -43,9 +44,13 @@ function loadEnvFile(path) {
 loadEnvFile(join(ROOT, ".env.local"));
 loadEnvFile(join(ROOT, ".env"));
 
-const BASE_URL = (process.env.MIMO_BASE_URL || "https://api.xiaomimimo.com/anthropic").replace(/\/+$/, "");
+const BASE_URL = (process.env.MIMO_BASE_URL || "https://api.xiaomimimo.com/v1").replace(/\/+$/, "");
 const DEFAULT_MODEL = process.env.MIMO_MODEL || "mimo-v2.5-pro";
 const ANTHROPIC_VERSION = process.env.MIMO_ANTHROPIC_VERSION || "2023-06-01";
+const API_FORMAT = (process.env.MIMO_API_FORMAT || (BASE_URL.includes("/anthropic") ? "anthropic" : "openai"))
+  .trim()
+  .toLowerCase();
+const THINKING_MODE = process.env.MIMO_THINKING || "disabled";
 const RULEBOOK_FILES = ["AGENTS.md", "docs/agent-workflow.md", "AGENT_TASKS.md"];
 const MAX_FILE_CHARS = 60_000;
 
@@ -107,8 +112,9 @@ Options:
 
 Setup:
   Put MIMO_API_KEY=sk-... in .env.local (git-ignored), or export it.
-  Optional: MIMO_BASE_URL (default https://api.xiaomimimo.com/anthropic),
-            MIMO_MODEL (default mimo-v2.5-pro).
+  Optional: MIMO_BASE_URL (default https://api.xiaomimimo.com/v1),
+            MIMO_MODEL (default mimo-v2.5-pro),
+            MIMO_API_FORMAT (openai | anthropic; inferred from base URL).
 `);
 }
 
@@ -174,6 +180,63 @@ function buildUserPrompt() {
 
 // ── Call MiMo (Anthropic-compatible Messages API) ───────────────────────────
 async function callMiMo(apiKey, system, user) {
+  if (API_FORMAT === "openai") {
+    return callMiMoOpenAI(apiKey, system, user);
+  }
+  if (API_FORMAT === "anthropic") {
+    return callMiMoAnthropic(apiKey, system, user);
+  }
+  throw new Error(`Unsupported MIMO_API_FORMAT "${API_FORMAT}". Use "openai" or "anthropic".`);
+}
+
+async function callMiMoOpenAI(apiKey, system, user) {
+  const res = await fetch(`${BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      max_completion_tokens: maxTokens,
+      stream: false,
+      temperature,
+      top_p: topP,
+      thinking: { type: THINKING_MODE },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`MiMo API ${res.status} ${res.statusText}\n${body}`);
+  }
+
+  const data = await res.json();
+  const message = data.choices?.[0]?.message || {};
+  const content = normalizeOpenAIContent(message.content);
+  const thinking = normalizeOpenAIContent(message.reasoning_content || message.thinking);
+  return { content, thinking, stopReason: data.choices?.[0]?.finish_reason, usage: data.usage || {} };
+}
+
+function normalizeOpenAIContent(content) {
+  if (typeof content === "string") return content.trim();
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (part && typeof part.text === "string") return part.text;
+      if (part && typeof part.content === "string") return part.content;
+      return "";
+    })
+    .join("")
+    .trim();
+}
+
+async function callMiMoAnthropic(apiKey, system, user) {
   const res = await fetch(`${BASE_URL}/v1/messages`, {
     method: "POST",
     headers: {
@@ -236,8 +299,11 @@ async function main() {
 
   if (dryRun) {
     console.error(`🧪 dry-run — not calling the API`);
-    console.error(`   model: ${model} | temperature: ${temperature} | top-p: ${topP} | max-tokens: ${maxTokens}`);
-    console.error(`   base url: ${BASE_URL}/v1/messages`);
+    console.error(`   model: ${model} | format: ${API_FORMAT} | temperature: ${temperature} | top-p: ${topP}`);
+    console.error(`   max tokens: ${maxTokens} | thinking: ${THINKING_MODE}`);
+    console.error(
+      `   base url: ${API_FORMAT === "openai" ? `${BASE_URL}/chat/completions` : `${BASE_URL}/v1/messages`}`,
+    );
     console.error(`   rulebook: ${RULEBOOK_FILES.join(", ")}`);
     console.error(`   context files: ${files.length ? files.join(", ") : "(none)"}`);
     console.error(`   system prompt: ${system.length} chars | user prompt: ${user.length} chars`);
@@ -254,7 +320,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.error(`🤖 MiMo (${model}) working on: ${task}`);
+  console.error(`🤖 MiMo (${model}, ${API_FORMAT}) working on: ${task}`);
   if (files.length) console.error(`   context files: ${files.join(", ")}`);
 
   let result;
@@ -280,9 +346,15 @@ async function main() {
 
   // Print to screen.
   console.log("\n" + answer + "\n");
-  if (result.usage?.input_tokens || result.usage?.output_tokens) {
+  if (
+    result.usage?.input_tokens ||
+    result.usage?.output_tokens ||
+    result.usage?.prompt_tokens ||
+    result.usage?.completion_tokens
+  ) {
     console.error(
-      `   tokens: ${result.usage.input_tokens ?? "?"} in / ${result.usage.output_tokens ?? "?"} out`,
+      `   tokens: ${result.usage.input_tokens ?? result.usage.prompt_tokens ?? "?"} in / ` +
+        `${result.usage.output_tokens ?? result.usage.completion_tokens ?? "?"} out`,
     );
   }
 
@@ -290,7 +362,7 @@ async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const header =
     `# MiMo run — ${new Date().toISOString()}\n\n` +
-    `- model: ${model}\n- task: ${task}\n` +
+    `- model: ${model}\n- api_format: ${API_FORMAT}\n- task: ${task}\n` +
     (files.length ? `- files: ${files.join(", ")}\n` : "") +
     `\n---\n\n`;
 

@@ -32,13 +32,13 @@ const TEMPLATES: Template[] = [
   {
     id: "ai",
     title: "AI Assistant",
-    description: "Claude-powered. Answers anything, with memory.",
+    description: "AI-powered. Answers anything, with memory.",
     icon: Sparkles,
     suffix: "_ai_bot",
     defaultName: "AI Assistant",
     setup: async (bot, token) => {
       const url = `${AI_HANDLER_BASE}?bot_token=${encodeURIComponent(token)}`;
-      await supabase.from("bots").update({ webhook_url: url, category: "ai" }).eq("id", bot.id);
+      await supabase.from("bots").update({ webhook_url: `${url}&provider=deepseek&model=deepseek-v4-flash`, category: "ai" }).eq("id", bot.id);
       await supabase.from("bot_workflows").insert({
         bot_id: bot.id, trigger_type: "first", trigger_value: "",
         reply_text: "Hi! 👋 I'm an AI assistant. Ask me anything.",
@@ -334,7 +334,7 @@ export default function BotFatherPage() {
             <ul className="list-disc ml-5 text-xs space-y-1">
               <li><strong>Workflows</strong> — point-and-click rules. Run server-side, no server needed.</li>
               <li><strong>Webhook</strong> — paste your server URL; we POST every message.</li>
-              <li><strong>AI</strong> — one tap to make the bot Claude-powered.</li>
+            <li><strong>AI</strong> — one tap to enable DeepSeek-powered responses.</li>
               <li><strong>API</strong> — call <span className="font-mono">bot-api</span> with the token (sendMessage, getUpdates, etc.).</li>
             </ul>
             <p><strong>Owner tools:</strong> stats, broadcasts, scheduled messages, reports, regenerate token.</p>

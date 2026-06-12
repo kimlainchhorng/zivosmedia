@@ -503,7 +503,7 @@ function ReviewPlannerHandoff({
   const providerStates = [
     { title: "ZIVO AI", detail: "Trip review", state: "Active", icon: Bot, tone: "border-cyan-200 bg-cyan-50 text-cyan-800" },
     { title: "DeepSeek", detail: "Live fare", state: "Active", icon: Sparkles, tone: "border-teal-200 bg-teal-50 text-teal-800" },
-    { title: "Claude API", detail: "Optional", state: "Standby", icon: SlidersHorizontal, tone: "border-amber-200 bg-amber-50 text-amber-800" },
+    { title: "Fallback AI", detail: "Optional", state: "Standby", icon: SlidersHorizontal, tone: "border-amber-200 bg-amber-50 text-amber-800" },
   ];
 
   return (

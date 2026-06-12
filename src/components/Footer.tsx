@@ -95,7 +95,7 @@ const Footer = ({ className }: { className?: string }) => {
   if (Capacitor.isNativePlatform()) return null;
 
   // On the Zivo Travel host, rebrand the footer and drop non-travel sub-brands.
-  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
   const brand = isTravel ? "Zivo Travel" : "ZIVO";
   const sections = isTravel
     ? footerSections.map((s) => ({

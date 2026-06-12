@@ -66,7 +66,7 @@ export default function GlobalDesktopNav() {
   const { pathname } = useLocation();
   // zivostravel.com renders its own travel header on every travel page, so never
   // show the zivosmedia social NavBar (Feed/Reels/Chat) on the travel host.
-  if (typeof window !== "undefined" && isZivoTravelHost(window.location.hostname)) return null;
+  if (typeof window !== "undefined" && isZivoTravelHost()) return null;
   if (shouldHide(pathname)) return null;
   return (
     <div className="hidden lg:block">

@@ -85,8 +85,10 @@ to use MiMo instead.
    ```
    DEEPSEEK_API_KEY=sk-...your-key...
    MIMO_API_KEY=sk-...your-key...          # for npm run agent:mimo
-   # MIMO_BASE_URL=https://api.xiaomimimo.com/anthropic   # optional override
+   # MIMO_BASE_URL=https://api.xiaomimimo.com/v1           # optional override
    # MIMO_MODEL=mimo-v2.5-pro                              # optional override
+   # MIMO_API_FORMAT=openai                                # optional override
+   # MIMO_THINKING=disabled                                # optional override
    ```
 
 2. Ask it to plan or review a task:

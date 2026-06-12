@@ -58,7 +58,7 @@ export default function NavigationProgressBar() {
   // so it can't inherit travel tokens — pick the brand gradient by host. On the
   // travel host the IG pink/purple social gradient is an off-brand flash, so use
   // the sky/blue travel gradient instead (don't hide it — the feedback is useful).
-  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
 
   return (
     <div

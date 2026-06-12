@@ -9,10 +9,8 @@
 import { Plane, MapPin, Calendar, ArrowRight, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
 import { getAirportByCode } from "@/data/airports";
-import { cn } from "@/lib/utils";
 
 // Major hub alternatives for common airports
 const NEARBY_AIRPORTS: Record<string, string[]> = {
@@ -106,6 +104,41 @@ interface FlightEmptyStateProps {
   cabinClass: string;
 }
 
+type FlightEmptyStateSearchBase = FlightEmptyStateProps;
+
+type FlightEmptyStateSearchOverride = {
+  origin?: string;
+  destination?: string;
+  departureDate?: string;
+  returnDate?: string;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function buildFlightEmptyStateSearchUrl(
+  base: FlightEmptyStateSearchBase,
+  overrides: FlightEmptyStateSearchOverride = {},
+) {
+  const nextReturnDate = overrides.returnDate !== undefined ? overrides.returnDate : base.returnDate;
+  const totalPassengers = Math.max(1, base.adults + base.children + base.infants);
+  const params = new URLSearchParams({
+    origin: overrides.origin || base.origin,
+    dest: overrides.destination || base.destination,
+    depart: overrides.departureDate || base.departureDate,
+    adults: String(Math.max(1, base.adults)),
+    children: String(Math.max(0, base.children)),
+    infants: String(Math.max(0, base.infants)),
+    passengers: String(totalPassengers),
+    cabin: base.cabinClass,
+    tripType: nextReturnDate ? "roundtrip" : "oneway",
+  });
+
+  if (nextReturnDate) {
+    params.set("return", nextReturnDate);
+  }
+
+  return `/flights/results?${params.toString()}`;
+}
+
 export default function FlightEmptyState({
   origin,
   destination,
@@ -122,28 +155,17 @@ export default function FlightEmptyState({
   const nearbyDests = getNearbyAirports(destination);
   const flexDates = getFlexDates(departureDate, 3);
 
-  const buildSearchUrl = (params: {
-    origin?: string;
-    destination?: string;
-    departureDate?: string;
-    returnDate?: string;
-  }) => {
-    const p = new URLSearchParams({
-      origin: params.origin || origin,
-      destination: params.destination || destination,
-      departureDate: params.departureDate || departureDate,
-      adults: String(adults),
-      children: String(children),
-      infants: String(infants),
+  const buildSearchUrl = (params: FlightEmptyStateSearchOverride) =>
+    buildFlightEmptyStateSearchUrl({
+      origin,
+      destination,
+      departureDate,
+      returnDate,
+      adults,
+      children,
+      infants,
       cabinClass,
-    });
-    if (params.returnDate !== undefined) {
-      if (params.returnDate) p.set("returnDate", params.returnDate);
-    } else if (returnDate) {
-      p.set("returnDate", returnDate);
-    }
-    return `/flights/results?${p.toString()}`;
-  };
+    }, params);
 
   const originAirport = getAirportByCode(origin);
   const destAirport = getAirportByCode(destination);

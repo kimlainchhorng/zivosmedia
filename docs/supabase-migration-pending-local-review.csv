@@ -1,6 +1,4 @@
 version,filename,risk,domain,create_table,sequence_backed_id,enable_rls,creates_table_without_rls,create_policy,grant,creates_table_without_grant,sequence_grant,sequence_backed_id_without_sequence_grant,create_function,security_definer,sets_search_path,security_definer_without_search_path,cron,hardcoded_supabase_url,legacy_anon_jwt
-20260611000000,20260611000000_add_channel_subscriber_permissions.sql,high,security/auth,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false
-20260611000500,20260611000500_add_channel_permission_exceptions.sql,high,security/auth,true,false,true,false,true,true,false,false,false,false,false,false,false,false,false,false
 20260612000000,20260612000000_add_store_default_language.sql,high,security/auth,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false
 20260612000100,20260612000100_store_products_owner_write_policies.sql,high,security/auth,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false
 20260612000200,20260612000200_add_ar_estimate_issue_and_start_dates.sql,high,chat/social,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false
@@ -18,3 +16,5 @@ version,filename,risk,domain,create_table,sequence_backed_id,enable_rls,creates_
 20260615000500,20260615000500_store_posts_owner_manage_policy.sql,high,security/auth,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false
 20260615000600,20260615000600_ads_daily_spend_owner_select.sql,high,security/auth,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false
 20260615000700,20260615000700_ar_ro_documents.sql,high,security/auth,true,false,true,false,true,true,false,false,false,false,false,false,false,false,false,false
+20260615000800,20260615000800_user_contacts_added_via_chat_request.sql,high,security/auth,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false
+20260616090000,20260616090000_notifications_user_owned_mutations.sql,high,security/auth,false,false,true,false,true,false,false,false,false,false,false,false,false,false,false,false

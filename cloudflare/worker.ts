@@ -34,6 +34,23 @@ type Env = {
   SUPABASE_URL?: string;
 };
 
+type ZivoHtmlRewriterElement = {
+  append(content: string, options?: { html?: boolean }): void;
+  remove(): void;
+};
+
+type ZivoHtmlRewriterInstance = {
+  on(
+    selector: string,
+    handler: { element(element: ZivoHtmlRewriterElement): void | Promise<void> },
+  ): ZivoHtmlRewriterInstance;
+  transform(response: Response): Response | Promise<Response>;
+};
+
+declare const HTMLRewriter: {
+  new(): ZivoHtmlRewriterInstance;
+};
+
 const WINDOW_MS = 10 * 60 * 1000;
 const AUTH_LIMIT = 80;
 const GENERAL_LIMIT = 600;
@@ -87,6 +104,104 @@ const TRAVEL_HOSTS = new Set([
 ]);
 
 const TRAVEL_ORIGIN = "https://zivostravel.com";
+const TRAVEL_THEME_COLOR = "#f8fbff";
+const TRAVEL_IMAGE_URL = `${TRAVEL_ORIGIN}/og-zivo-travel.jpg`;
+const TRAVEL_IMAGE_ALT = "Zivo Travel - Flights, Hotels, Rental Cars, and Bus Booking";
+const TRAVEL_DEFAULT_TITLE = "Zivo Travel | Flights, Hotels, Rental Cars, and Bus Booking";
+const TRAVEL_DEFAULT_DESCRIPTION =
+  "Zivo Travel connects flights, hotels, rental cars, and bus booking in one travel workflow with secure payments, partner payouts, API access, SSO, and SEO-ready trip pages.";
+
+const TRAVEL_ROUTE_META = [
+  {
+    prefix: "/flights",
+    title: "Zivo Travel Flights | Search and Book Flights",
+    description: "Search flights, compare fares, and book secure trips through Zivo Travel.",
+  },
+  {
+    prefix: "/hotels",
+    title: "Zivo Travel Hotels | Find Stays",
+    description: "Search hotels, compare stays, and keep lodging connected to your Zivo Travel trip.",
+  },
+  {
+    prefix: "/cars",
+    title: "Zivo Travel Rental Cars | Compare Car Rentals",
+    description: "Compare rental cars and reserve ground transport inside the Zivo Travel workflow.",
+  },
+  {
+    prefix: "/car-rental",
+    title: "Zivo Travel Rental Cars | Compare Car Rentals",
+    description: "Compare rental cars and reserve ground transport inside the Zivo Travel workflow.",
+  },
+  {
+    prefix: "/bus",
+    title: "Zivo Travel Bus Tickets | Search Routes",
+    description: "Search bus routes and keep tickets connected with your Zivo Travel plans.",
+  },
+  {
+    prefix: "/my-trips",
+    title: "My Trips | Zivo Travel",
+    description: "View your upcoming and past Zivo Travel bookings.",
+    private: true,
+  },
+  {
+    prefix: "/wallet",
+    title: "Wallet | Zivo Travel",
+    description: "Manage your Zivo Travel wallet balance and activity.",
+    private: true,
+  },
+  {
+    prefix: "/payment-methods",
+    title: "Payment Methods | Zivo Travel",
+    description: "Manage saved cards for Zivo Travel bookings.",
+    private: true,
+  },
+  {
+    prefix: "/account",
+    title: "Account | Zivo Travel",
+    description: "Manage your Zivo Travel profile and account links.",
+    private: true,
+  },
+] satisfies {
+  prefix: string;
+  title: string;
+  description: string;
+  private?: boolean;
+}[];
+
+const TRAVEL_PRIVATE_PATH_PATTERN =
+  /^\/(?:(?:account|wallet|payment-methods|checkout|booking|confirmation|auth|login|signup|admin|my-trips)(?:\/|$)|(?:flights|rent-car)\/results(?:\/|$)|travel\/checkout(?:\/|$)|zivo-travel\/(?:account|my-trips|payment-methods|wallet)(?:\/|$))/i;
+const TRAVEL_SEO_REMOVE_SELECTORS = [
+  "title",
+  'link[rel="canonical"]',
+  'link[rel="alternate"][hreflang]',
+  'meta[name="description"]',
+  'meta[name="keywords"]',
+  'meta[name="author"]',
+  'meta[name="application-name"]',
+  'meta[name="apple-mobile-web-app-title"]',
+  'meta[name="apple-itunes-app"]',
+  'meta[name="theme-color"]',
+  'meta[name="robots"]',
+  'meta[property="og:title"]',
+  'meta[property="og:description"]',
+  'meta[property="og:type"]',
+  'meta[property="og:url"]',
+  'meta[property="og:image"]',
+  'meta[property="og:image:width"]',
+  'meta[property="og:image:height"]',
+  'meta[property="og:image:alt"]',
+  'meta[property="og:site_name"]',
+  'meta[property="og:locale"]',
+  'meta[property="og:locale:alternate"]',
+  'meta[name="twitter:card"]',
+  'meta[name="twitter:site"]',
+  'meta[name="twitter:creator"]',
+  'meta[name="twitter:title"]',
+  'meta[name="twitter:description"]',
+  'meta[name="twitter:image"]',
+  'meta[name="twitter:image:alt"]',
+  'script[type="application/ld+json"]',
+];
 
 // zivostravel.com is served by the same build as zivosmedia.com, so the static
 // public/robots.txt and public/sitemap.xml carry zivosmedia URLs. Serve a
@@ -110,7 +225,65 @@ Disallow: /rent-car/results
 Sitemap: ${TRAVEL_ORIGIN}/sitemap.xml
 `;
 
-const TRAVEL_SITEMAP_ENTRIES: { path: string; priority: string; freq: string }[] = [
+type TravelSitemapFrequency = "daily" | "weekly" | "monthly";
+
+type TravelSitemapEntry = {
+  path: string;
+  priority: string;
+  freq: TravelSitemapFrequency;
+};
+
+const TRAVEL_SITEMAP_DESTINATION_SLUGS = [
+  "phnom-penh",
+  "siem-reap",
+  "sihanoukville",
+  "kampot",
+  "kep",
+  "battambang",
+  "bangkok",
+  "singapore",
+  "tokyo",
+  "seoul",
+  "paris",
+  "london",
+  "new-york",
+  "los-angeles",
+  "dubai",
+  "bali",
+  "ho-chi-minh-city",
+  "kuala-lumpur",
+  "sydney",
+  "rome",
+  "barcelona",
+  "amsterdam",
+  "cancun",
+  "honolulu",
+] as const;
+
+const TRAVEL_SITEMAP_FLIGHT_ROUTE_SLUGS = [
+  "phnom-penh-to-siem-reap",
+  "phnom-penh-to-bangkok",
+  "phnom-penh-to-singapore",
+  "phnom-penh-to-ho-chi-minh-city",
+  "phnom-penh-to-kuala-lumpur",
+  "siem-reap-to-bangkok",
+  "siem-reap-to-singapore",
+  "bangkok-to-tokyo",
+  "singapore-to-bali",
+  "new-york-to-paris",
+  "new-york-to-london",
+  "los-angeles-to-tokyo",
+  "san-francisco-to-tokyo",
+  "chicago-to-paris",
+  "miami-to-cancun",
+  "london-to-dubai",
+  "paris-to-rome",
+  "london-to-barcelona",
+  "sydney-to-singapore",
+  "dubai-to-bangkok",
+] as const;
+
+const TRAVEL_SITEMAP_ENTRIES: TravelSitemapEntry[] = [
   { path: "/", priority: "1.0", freq: "daily" },
   { path: "/flights", priority: "0.9", freq: "daily" },
   { path: "/hotels", priority: "0.9", freq: "daily" },
@@ -121,6 +294,27 @@ const TRAVEL_SITEMAP_ENTRIES: { path: string; priority: string; freq: string }[]
   { path: "/travel-insurance", priority: "0.5", freq: "weekly" },
   { path: "/guides/cheap-flights", priority: "0.6", freq: "weekly" },
 ];
+
+function buildTravelSitemapEntries(): TravelSitemapEntry[] {
+  const destinationEntries = TRAVEL_SITEMAP_DESTINATION_SLUGS.flatMap((city): TravelSitemapEntry[] => [
+    { path: `/flights/to/${city}`, priority: "0.68", freq: "weekly" },
+    { path: `/flights/cities/${city}`, priority: "0.64", freq: "weekly" },
+    { path: `/destinations/${city}/hotels`, priority: "0.62", freq: "weekly" },
+    { path: `/destinations/${city}/activities`, priority: "0.58", freq: "weekly" },
+  ]);
+  const routeEntries = TRAVEL_SITEMAP_FLIGHT_ROUTE_SLUGS.map((route): TravelSitemapEntry => ({
+    path: `/flights/${route}`,
+    priority: "0.66",
+    freq: "weekly",
+  }));
+  const seen = new Set<string>();
+
+  return [...TRAVEL_SITEMAP_ENTRIES, ...destinationEntries, ...routeEntries].filter(({ path }) => {
+    if (seen.has(path) || TRAVEL_PRIVATE_PATH_PATTERN.test(path)) return false;
+    seen.add(path);
+    return true;
+  });
+}
 
 function travelSeoResponse(request: Request, url: URL): Response | null {
   if (!TRAVEL_HOSTS.has(url.hostname)) return null;
@@ -136,9 +330,9 @@ function travelSeoResponse(request: Request, url: URL): Response | null {
 
   if (url.pathname === "/sitemap.xml") {
     const lastmod = new Date().toISOString().slice(0, 10);
-    const urls = TRAVEL_SITEMAP_ENTRIES.map(
+    const urls = buildTravelSitemapEntries().map(
       ({ path, priority, freq }) =>
-        `  <url>\n    <loc>${TRAVEL_ORIGIN}${path}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`,
+        `  <url>\n    <loc>${escapeHtml(`${TRAVEL_ORIGIN}${path}`)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`,
     ).join("\n");
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
     return new Response(head ? null : xml, {
@@ -148,6 +342,193 @@ function travelSeoResponse(request: Request, url: URL): Response | null {
   }
 
   return null;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeJsonForHtml(value: unknown) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+function travelCanonical(url: URL) {
+  const canonical = new URL(url.pathname || "/", TRAVEL_ORIGIN);
+  return canonical.toString();
+}
+
+function travelPageMeta(url: URL) {
+  const pathname = url.pathname.replace(/\/+$/, "") || "/";
+  const routeMeta = TRAVEL_ROUTE_META.find(
+    ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  const isPrivate = Boolean(routeMeta?.private || TRAVEL_PRIVATE_PATH_PATTERN.test(pathname));
+  const canonical = travelCanonical(url);
+
+  return {
+    title: routeMeta?.title || TRAVEL_DEFAULT_TITLE,
+    description: routeMeta?.description || TRAVEL_DEFAULT_DESCRIPTION,
+    canonical,
+    robots: isPrivate ? "noindex,nofollow" : "index,follow,max-image-preview:large",
+  };
+}
+
+function travelHeadTags(url: URL) {
+  const meta = travelPageMeta(url);
+  const canonicalUrl = new URL(meta.canonical);
+  const languageBase = `${TRAVEL_ORIGIN}${canonicalUrl.pathname === "/" ? "/" : canonicalUrl.pathname}`;
+  const languageUrl = (lang?: string) => (lang ? `${languageBase}?lang=${lang}` : languageBase);
+  const webSiteJson = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Zivo Travel",
+    url: `${TRAVEL_ORIGIN}/`,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${TRAVEL_ORIGIN}/flights?from={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+  const organizationJson = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Zivo Travel",
+    url: `${TRAVEL_ORIGIN}/`,
+    parentOrganization: { "@type": "Organization", name: "Zivos Media" },
+  };
+
+  return `
+    <title>${escapeHtml(meta.title)}</title>
+    <meta name="description" content="${escapeHtml(meta.description)}" />
+    <meta name="application-name" content="Zivo Travel" />
+    <meta name="apple-mobile-web-app-title" content="Zivo Travel" />
+    <meta name="apple-itunes-app" content="app-id=6759480121, app-argument=${TRAVEL_ORIGIN}" />
+    <meta name="theme-color" content="${TRAVEL_THEME_COLOR}" />
+    <meta name="robots" content="${meta.robots}" />
+    <link rel="canonical" href="${escapeHtml(meta.canonical)}" />
+    <link rel="alternate" hreflang="x-default" href="${escapeHtml(languageUrl())}" />
+    <link rel="alternate" hreflang="en" href="${escapeHtml(languageUrl())}" />
+    <link rel="alternate" hreflang="km" href="${escapeHtml(languageUrl("km"))}" />
+    <link rel="alternate" hreflang="ar" href="${escapeHtml(languageUrl("ar"))}" />
+    <link rel="alternate" hreflang="fr" href="${escapeHtml(languageUrl("fr"))}" />
+    <meta property="og:title" content="${escapeHtml(meta.title)}" />
+    <meta property="og:description" content="${escapeHtml(meta.description)}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${escapeHtml(meta.canonical)}" />
+    <meta property="og:image" content="${TRAVEL_IMAGE_URL}" />
+    <meta property="og:image:alt" content="${TRAVEL_IMAGE_ALT}" />
+    <meta property="og:site_name" content="Zivo Travel" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(meta.title)}" />
+    <meta name="twitter:description" content="${escapeHtml(meta.description)}" />
+    <meta name="twitter:image" content="${TRAVEL_IMAGE_URL}" />
+    <meta name="twitter:image:alt" content="${TRAVEL_IMAGE_ALT}" />
+    <script type="application/ld+json">${escapeJsonForHtml(webSiteJson)}</script>
+    <script type="application/ld+json">${escapeJsonForHtml(organizationJson)}</script>
+  `;
+}
+
+function htmlResponseInit(response: Response) {
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  return { status: response.status, statusText: response.statusText, headers };
+}
+
+function tagAttribute(tag: string, name: string) {
+  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  return (match?.[2] || match?.[3] || match?.[4] || "").toLowerCase();
+}
+
+function stripTravelSeoTags(html: string) {
+  const removableMetaNames = new Set([
+    "description",
+    "keywords",
+    "author",
+    "application-name",
+    "apple-mobile-web-app-title",
+    "apple-itunes-app",
+    "theme-color",
+    "robots",
+    "twitter:card",
+    "twitter:site",
+    "twitter:creator",
+    "twitter:title",
+    "twitter:description",
+    "twitter:image",
+    "twitter:image:alt",
+  ]);
+  const removableOgProperties = new Set([
+    "og:title",
+    "og:description",
+    "og:type",
+    "og:url",
+    "og:image",
+    "og:image:width",
+    "og:image:height",
+    "og:image:alt",
+    "og:site_name",
+    "og:locale",
+    "og:locale:alternate",
+  ]);
+
+  return html
+    .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
+    .replace(/<link\b[^>]*>/gi, (tag) => {
+      const rel = tagAttribute(tag, "rel");
+      return rel === "canonical" || (rel === "alternate" && tagAttribute(tag, "hreflang")) ? "" : tag;
+    })
+    .replace(/<meta\b[^>]*>/gi, (tag) => {
+      const name = tagAttribute(tag, "name");
+      const property = tagAttribute(tag, "property");
+      return removableMetaNames.has(name) || removableOgProperties.has(property) ? "" : tag;
+    })
+    .replace(
+      /<script\b(?=[^>]*\btype\s*=\s*["']application\/ld\+json["'])[^>]*>[\s\S]*?<\/script>/gi,
+      "",
+    );
+}
+
+function rewriteTravelHtmlString(html: string, url: URL) {
+  const cleaned = stripTravelSeoTags(html);
+  const travelHead = `${travelHeadTags(url)}\n</head>`;
+  return /<\/head>/i.test(cleaned)
+    ? cleaned.replace(/<\/head>/i, travelHead)
+    : `${cleaned}\n${travelHeadTags(url)}`;
+}
+
+async function rewriteTravelHtml(request: Request, url: URL, response: Response): Promise<Response> {
+  if (request.method !== "GET" || !TRAVEL_HOSTS.has(url.hostname)) return response;
+  if (response.status < 200 || response.status >= 300) return response;
+  if (!(response.headers.get("content-type") || "").toLowerCase().includes("text/html")) return response;
+
+  const htmlResponse = new Response(response.body, htmlResponseInit(response));
+  const Rewriter = typeof HTMLRewriter === "undefined" ? undefined : HTMLRewriter;
+
+  if (!Rewriter) {
+    return new Response(rewriteTravelHtmlString(await htmlResponse.text(), url), htmlResponseInit(htmlResponse));
+  }
+
+  const removeElement = {
+    element(element: ZivoHtmlRewriterElement) {
+      element.remove();
+    },
+  };
+  const appendTravelHead = {
+    element(element: ZivoHtmlRewriterElement) {
+      element.append(travelHeadTags(url), { html: true });
+    },
+  };
+
+  let rewriter = new Rewriter();
+  for (const selector of TRAVEL_SEO_REMOVE_SELECTORS) {
+    rewriter = rewriter.on(selector, removeElement);
+  }
+  return rewriter.on("head", appendTravelHead).transform(htmlResponse);
 }
 
 const CSP_BASE =
@@ -907,7 +1288,8 @@ export default {
     }
 
     if (env.ASSETS) {
-      return withSecurityHeaders(await env.ASSETS.fetch(request), request, env);
+      const assetResponse = await env.ASSETS.fetch(request);
+      return withSecurityHeaders(await rewriteTravelHtml(request, url, assetResponse), request, env);
     }
 
     return json({ error: "Not found" }, { status: 404 });

@@ -7,6 +7,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import { withRedirectParam } from "@/lib/authRedirect";
 import AccessDenied from "@/components/auth/AccessDenied";
 import { supabase } from "@/integrations/supabase/client";
+import { buildAdminQueueHref } from "@/config/zivoAdminDomain";
 import {
   AUTO_REPAIR_STORE_ID,
   ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
@@ -18,7 +19,12 @@ import {
 } from "@/config/autoRepairDomain";
 
 const isLodgingCategory = (category?: string | null) => {
-  const normalized = (category || "").toLowerCase().replace(/&/g, "and").replace(/[\/_-]+/g, " ").replace(/\s+/g, " ").trim();
+  const normalized = (category || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[/_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return ["hotel", "hotels", "resort", "resorts", "guesthouse", "guest house", "guesthouse b and b", "guesthouse bed and breakfast", "bed and breakfast", "b and b"].includes(normalized);
 };
 
@@ -26,6 +32,18 @@ const getPublicStorePath = (store?: { id: string; slug: string | null; category:
   if (!store?.is_active) return null;
   if (isLodgingCategory(store.category)) return `/hotel/${store.id}`;
   return store.slug ? `/store/${store.slug}` : null;
+};
+
+const adminAnchorForPath = (pathname: string) => {
+  if (pathname.includes("/driver")) return "#driver-ops";
+  if (pathname.includes("/flight") || pathname.includes("/lodging") || pathname.includes("/travel")) return "#travel-ops";
+  if (pathname.includes("/employees")) return "#employees";
+  if (pathname.includes("/support") || pathname.includes("/feedback")) return "#live-support";
+  if (pathname.includes("/security") || pathname.includes("/moderation")) return "#audit-security";
+  if (pathname.includes("/system") || pathname.includes("/remote-config") || pathname.includes("/app-store") || pathname.includes("/android")) {
+    return "#deployments";
+  }
+  return "#platform-metrics";
 };
 
 type ProtectedRouteProps = {
@@ -101,12 +119,23 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   const ownerAccessAllowed = ownerQuery.data === true;
   const publicStoreResolved = publicStoreQuery.isSuccess || publicStoreQuery.isError;
   const publicStorePath = getPublicStorePath(publicStoreQuery.data);
+  const shouldRedirectStaffAdminToZivoAdmin =
+    requireAdmin && (isAdmin || supportAccessAllowed) && location.pathname.startsWith("/admin") && !allowStoreOwner;
+  const zivoAdminUrl = shouldRedirectStaffAdminToZivoAdmin
+    ? buildAdminQueueHref(adminAnchorForPath(location.pathname))
+    : "";
 
   useEffect(() => {
     if (shouldRedirectMediaBusinessSetup) {
       window.location.replace(softwareBusinessSetupUrl);
     }
   }, [shouldRedirectMediaBusinessSetup, softwareBusinessSetupUrl]);
+
+  useEffect(() => {
+    if (shouldRedirectStaffAdminToZivoAdmin) {
+      window.location.replace(zivoAdminUrl);
+    }
+  }, [shouldRedirectStaffAdminToZivoAdmin, zivoAdminUrl]);
 
   if (shouldRedirectMediaBusinessSetup) {
     return (
@@ -163,6 +192,19 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     }
 
     return <Navigate to={loginUrl} state={{ from: location }} replace />;
+  }
+
+  if (shouldRedirectStaffAdminToZivoAdmin) {
+    return (
+      <div className="min-h-screen bg-background px-6 py-12 text-center">
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 shadow-sm">
+          <p className="text-sm font-semibold text-foreground">Opening Zivo Admin...</p>
+          <a className="text-sm font-medium text-primary underline" href={zivoAdminUrl}>
+            Continue to Zivo Admin
+          </a>
+        </div>
+      </div>
+    );
   }
 
   if (requireAdmin && !isAdmin) {

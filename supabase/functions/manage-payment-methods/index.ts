@@ -80,7 +80,17 @@ Deno.serve(withSecurity("manage-payment-methods", async (req, ctx) => {
       body = {};
     }
     const { action, payment_method_id } = body;
-    console.log("[manage-payment-methods] Action:", action, "PM ID:", payment_method_id);
+    const paymentMethodId = typeof payment_method_id === "string" ? payment_method_id.trim() : "";
+    console.log("[manage-payment-methods] Action:", action, "PM ID:", paymentMethodId);
+
+    const getOwnedPaymentMethod = async (id: string) => {
+      if (!id.startsWith("pm_")) return null;
+      const paymentMethod = await stripe.paymentMethods.retrieve(id);
+      const owner = typeof paymentMethod.customer === "string"
+        ? paymentMethod.customer
+        : paymentMethod.customer?.id;
+      return owner === customerId ? paymentMethod : null;
+    };
 
     // LIST saved payment methods
     if (action === "list") {
@@ -110,7 +120,11 @@ Deno.serve(withSecurity("manage-payment-methods", async (req, ctx) => {
       console.log("[manage-payment-methods] Creating SetupIntent for customer:", customerId);
       const setupIntent = await stripe.setupIntents.create({
         customer: customerId,
-        payment_method_types: ["card"],
+        automatic_payment_methods: {
+          enabled: true,
+          allow_redirects: "never",
+        },
+        usage: "off_session",
         metadata: { zivo_user_id: userId },
       });
 
@@ -125,20 +139,36 @@ Deno.serve(withSecurity("manage-payment-methods", async (req, ctx) => {
     }
 
     // DELETE a saved payment method
-    if (action === "delete" && payment_method_id) {
-      await stripe.paymentMethods.detach(payment_method_id);
-      console.log("[manage-payment-methods] Detached PM:", payment_method_id);
+    if (action === "delete" && paymentMethodId) {
+      const ownedPaymentMethod = await getOwnedPaymentMethod(paymentMethodId);
+      if (!ownedPaymentMethod) {
+        return new Response(JSON.stringify({ error: "Payment method not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await stripe.paymentMethods.detach(paymentMethodId);
+      console.log("[manage-payment-methods] Detached PM:", paymentMethodId);
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // SET DEFAULT payment method
-    if (action === "set_default" && payment_method_id) {
+    if (action === "set_default" && paymentMethodId) {
+      const ownedPaymentMethod = await getOwnedPaymentMethod(paymentMethodId);
+      if (!ownedPaymentMethod) {
+        return new Response(JSON.stringify({ error: "Payment method not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       await stripe.customers.update(customerId, {
-        invoice_settings: { default_payment_method: payment_method_id },
+        invoice_settings: { default_payment_method: paymentMethodId },
       });
-      console.log("[manage-payment-methods] Set default PM:", payment_method_id);
+      console.log("[manage-payment-methods] Set default PM:", paymentMethodId);
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

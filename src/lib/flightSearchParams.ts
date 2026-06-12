@@ -4,6 +4,7 @@
  */
 
 import { getAirportByCode, type Airport } from "@/data/airports";
+import { resolveAirportSeed } from "@/lib/flightDeepLink";
 
 export interface ParsedFlightSearchParams {
   // Core IATA codes (always 3 uppercase letters)
@@ -52,21 +53,7 @@ type TripType = typeof VALID_TRIP_TYPES[number];
  */
 export function extractIataCode(input: string): string | null {
   if (!input || typeof input !== 'string') return null;
-  
-  const trimmed = input.trim().toUpperCase();
-  
-  // Check if it's already a raw 3-letter IATA code
-  if (/^[A-Z]{3}$/.test(trimmed)) {
-    return trimmed;
-  }
-  
-  // Extract from "City (IATA)" format
-  const match = input.match(/\(([A-Z]{3})\)/i);
-  if (match) {
-    return match[1].toUpperCase();
-  }
-  
-  return null;
+  return resolveAirportSeed(input) || null;
 }
 
 /**
@@ -168,8 +155,8 @@ export function parseFlightSearchParams(searchParams: URLSearchParams): ParsedFl
     : destinationIata || toRaw;
   
   // Validate dates
-  const departDateRaw = searchParams.get('depart');
-  const returnDateRaw = searchParams.get('return');
+  const departDateRaw = searchParams.get('depart') || searchParams.get('departureDate');
+  const returnDateRaw = searchParams.get('return') || searchParams.get('returnDate');
   
   const departureDate = validateDateString(departDateRaw);
   const returnDate = validateDateString(returnDateRaw);
@@ -185,7 +172,8 @@ export function parseFlightSearchParams(searchParams: URLSearchParams): ParsedFl
   const cabinClass = validateCabinClass(searchParams.get('cabin'));
   
   // Validate trip type
-  const tripType = validateTripType(searchParams.get('tripType'));
+  const tripTypeRaw = searchParams.get('tripType');
+  const tripType = tripTypeRaw ? validateTripType(tripTypeRaw) : returnDate ? 'roundtrip' : 'oneway';
   
   // If roundtrip but no return date, that's a warning (not error)
   if (tripType === 'roundtrip' && !returnDate && departureDate) {
@@ -223,9 +211,9 @@ export function buildFlightSearchUrl(params: {
 }): string {
   const searchParams = new URLSearchParams();
   
-  // Use raw IATA codes (not city + IATA format)
-  searchParams.set('from', params.originIata);
-  searchParams.set('to', params.destinationIata);
+  // Match the live /flights/results reader.
+  searchParams.set('origin', params.originIata);
+  searchParams.set('dest', params.destinationIata);
   searchParams.set('depart', params.departureDate);
   
   if (params.returnDate) {

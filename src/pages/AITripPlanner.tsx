@@ -400,7 +400,7 @@ const AITripPlanner = () => {
                 Ready to build
               </div>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Your request will use the unified AI bridge. DeepSeek powers live travel generation now; Claude can join when Anthropic API access is configured.
+                Your request will use the unified AI bridge. DeepSeek powers live travel generation now; fallback AI can join when Anthropic API access is configured.
               </p>
             </div>
           </PlannerStepPanel>
@@ -476,7 +476,7 @@ const AITripPlanner = () => {
               <div className="mt-7 grid gap-3 rounded-lg border border-white/70 bg-white/85 p-4 shadow-xl shadow-sky-900/10 backdrop-blur sm:grid-cols-3">
                 <ProviderStatus icon={Bot} label="ZIVO AI" value="Auto route" tone="teal" />
                 <ProviderStatus icon={Plane} label="DeepSeek" value="Live travel" tone="blue" />
-                <ProviderStatus icon={Sparkles} label="Claude API" value="Optional" tone="coral" />
+                <ProviderStatus icon={Sparkles} label="Fallback AI" value="Optional" tone="coral" />
               </div>
 
               <div className="mt-4 grid gap-3 rounded-lg border border-white/70 bg-white/80 p-3 shadow-lg shadow-sky-900/10 backdrop-blur sm:grid-cols-4">
@@ -609,12 +609,12 @@ const AITripPlanner = () => {
                 <Badge className="rounded-lg bg-white text-slate-700">/api/ai/chat</Badge>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <WorkflowNode icon={Sparkles} title="Claude API" status="Optional" />
+                <WorkflowNode icon={Sparkles} title="Fallback AI" status="Optional" />
                 <WorkflowNode icon={Bot} title="ZIVO AI" status="Auto" />
                 <WorkflowNode icon={Plane} title="DeepSeek" status="Live" />
               </div>
               <p className="mt-4 text-xs leading-5 text-slate-500">
-                Claude Pro is personal chat access. The live app uses DeepSeek now and can add Anthropic API billing later.
+                Personal chat is separate. The live app uses DeepSeek now and can add Anthropic API billing later.
               </p>
             </div>
           </div>

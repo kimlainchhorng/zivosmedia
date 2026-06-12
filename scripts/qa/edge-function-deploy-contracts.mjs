@@ -18,6 +18,7 @@ const criticalFunctions = [
   { slug: "push-device-manage", verifyJwt: true, why: "push subscription revoke" },
   { slug: "talent-invite-notification", verifyJwt: true, why: "job invite notification creation" },
   { slug: "admin-broadcast-notification", verifyJwt: true, why: "admin broadcast notification creation" },
+  { slug: "mint-sso-handoff", verifyJwt: true, why: "cross-domain SSO one-time token minting" },
 ];
 
 function source(relativePath) {
@@ -44,8 +45,8 @@ function requireMatch(id, text, pattern, relativePath) {
 }
 
 function requireUserAuth(id, text, relativePath) {
-  if (!/auth\.getUser\((?:token)?\)/.test(text)) {
-    failures.push(`${id}: ${relativePath} must validate the bearer token with auth.getUser`);
+  if (!/(auth\.getUser\((?:token)?\)|requireUser\(req\))/.test(text)) {
+    failures.push(`${id}: ${relativePath} must validate the bearer token with auth.getUser or requireUser(req)`);
   }
 }
 

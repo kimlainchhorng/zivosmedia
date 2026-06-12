@@ -102,7 +102,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
 
   // On the Zivo Travel host (or `?zt=1` preview) the bottom nav becomes a
   // travel-only tab set — never the social Feed/Reels/Ride/Chat tabs.
-  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
 
   const gated = (path: string) =>
     user ? path : `/login?redirect=${encodeURIComponent(path)}`;

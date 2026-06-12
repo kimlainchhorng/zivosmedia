@@ -9,9 +9,7 @@ One agent per file/page. Run `npm run update` before moving anything to **Done**
 ---
 
 ## In progress
-<!-- Claim a task here: "- Task title — @claude, 2026-06-11" -->
-
-_(nothing claimed yet)_
+ - Add travel surface styling to booking list pages (`/flights`, `/hotels`, `/cars`, `/bus`) with existing `.zivo-travel-3d` components and responsive layout sweep. — @codex, 2026-06-12
 
 ---
 
@@ -21,11 +19,9 @@ Pulled from `AGENTS.md`. Pick one, move it to **In progress**, add your name.
 
 - ✅ **Travel `og:image`** — ALREADY DONE (backlog was stale): `ZivoTravelHome` Helmet has full `og:image`/`twitter:image` meta → `public/og-zivo-travel.jpg`, with a `reconcile()` MutationObserver that strips the default zivosmedia OG tags. Verified 2026-06-12 by @claude.
 - ✅ **Hotels gate** — ALREADY RESOLVED (verified 2026-06-12): `CambodiaOnlyGate` was removed from hotel routes (a P0 bug that rendered a "Rides available in Cambodia" screen instead of hotels); `ZivoTravelHotelGate` is now a pass-through, so hotels render on all hosts. `CambodiaOnlyGate` is intentionally reserved for ride/drive routes only (Cambodia-only ride-hailing). No decision needed.
-- **Harden SSO** — replace URL-hash refresh_token handoff with a one-time magic-link OTP edge function. _(Claude)_
-- **SEO for non-JS crawlers** — Cloudflare HTMLRewriter in `worker.ts` to fix the static head on travel hosts. _(Codex)_
-- **Flight one-click** — resolve free-text origin/destination to IATA so deep-linked searches auto-run. _(Codex)_
 - ✅ **Mobile travel nav** — DONE (see In review): `ZivoMobileNav` now renders a travel tab set on the travel host instead of the social Feed/Reels/Ride/Chat tabs.
 - ✅ **Travel utility pages** — My Trips / Wallet / Payment Methods built in `.zivo-travel-3d` style (see In review).
+
 ### App-wide premium + responsive redesign (owner asked, 2026-06-12)
 
 Staged slice-by-slice so nothing breaks. Each: apply the premium design language (dark-navy, IG-gradient, uppercase tracked headings, glass/ring surfaces, reduced-motion-aware motion), make it responsive (mobile/iPad/desktop), fix incomplete/disconnected pieces, verify with `npm run update` + preview. Use DeepSeek + MiMo advisors; Codex can claim page-level pages.
@@ -41,7 +37,23 @@ Staged slice-by-slice so nothing breaks. Each: apply the premium design language
 
 ## In review
 
+- **Travel sitemap depth** - expanded the Cloudflare-generated `zivostravel.com/sitemap.xml` from the shallow top-level list to 125 public URLs across flight-to-city, flight city, hotel destination, activity destination, and popular flight route SEO pages, with de-dupe/private-path filtering so wallet/cards/trips/results/checkout stay out. Verified `npm run test -- src/test/cloudflarePagesEdgeGuard.test.ts`, `npm run type-check:worker`, and `npm run update` (first update attempt hit a transient Windows/OneDrive `dist/assets` EPERM lock; retry passed). - @codex, 2026-06-12
+
+- **SSO edge deploy contract** - added `mint-sso-handoff` to the critical edge-function deploy inventory and updated the auth contract to accept either inline `auth.getUser(...)` or the shared `requireUser(req)` helper. Also added the handoff function to `scripts/qa/edge-function-slot-readiness.mjs` so deploy-gap reporting and slot-pressure checks track it. Verified `npm run qa:edge-function-deploy-contracts`, `npm run qa:edge-function-slot-readiness`, `npm run test -- src/test/workflows/edge-function-deploy-readiness.test.ts`, and `npm run update`. - @codex, 2026-06-12
+
+- **Harden SSO handoff** - replaced source-side URL refresh-token handoff with a protected `mint-sso-handoff` edge function that mints a single-use magic-link token hash, verifies target origins, keeps `verify_jwt = true`, and updates `/auth/handoff` to consume `#ott` with `verifyOtp` while retaining legacy `#at/#rt` receiver fallback only for rollout. Verified `npm run test -- src/test/workflows/crossDomainSsoHandoff.test.ts`, `npm run type-check`, `npm run type-check:worker`, Browser smoke on `/auth/handoff#ott=...`, and `npm run update`. - @codex, 2026-06-12
+
 _(waiting on owner to commit / deploy)_
+
+- **Flight results resilience** - canonicalized the smart empty-state suggestion URLs to the live results contract (`origin`, `dest`, `depart`, `return`, `cabin`, `tripType`) while preserving adult/child/infant counts, and added a delayed slow-provider helper panel with Refresh/Edit actions above the loading skeleton. Verified `npm run test -- src/test/flightEmptyState.test.tsx src/test/flightSearchParams.test.ts src/test/flightDeepLink.test.ts`, `npm run type-check`, Browser desktop/mobile QA on `/flights/results?origin=LAX&dest=BKK&depart=2026-07-10&passengers=1&cabin=economy`, edit-search interaction, and `npm run update`. - @codex, 2026-06-12
+
+- **MiMo runner OpenAI-compatible API fix** - updated `npm run agent:mimo` to match Xiaomi MiMo's OpenAI-style `/v1/chat/completions` sample by default, while keeping Anthropic mode available through `MIMO_API_FORMAT=anthropic`; refreshed `.env.example` and `docs/agent-workflow.md`. Verified `node --check scripts/agents/mimo-runner.mjs` plus MiMo/DeepSeek dry-runs. - @codex, 2026-06-12
+
+- **Flight one-click** - added centralized free-text/IATA deep-link parsing, PNH->KTI alias handling, auto-run from `/flights?from&to&start&end&travelers&cabin` into `/flights/results`, cabin/passenger/date preservation, and route ordering so results render correctly on mobile and desktop. Claude review flagged ambiguous city-only auto-run risk, so auto-run now requires explicit airport codes or an unambiguous exact airport/city match while still prefilling the form for ambiguous labels. Verified `npm run test -- src/test/flightDeepLink.test.ts src/test/flightSearchParams.test.ts`, browser checks for explicit auto-run + ambiguous manual stay, and `npm run update`. - @codex, 2026-06-12
+
+- **SEO for non-JS crawlers** - added a Cloudflare `HTMLRewriter` pass for travel-host HTML responses so non-JS crawlers get Zivo Travel title, descriptions, canonical/alternate links, OG/Twitter cards, robots policy, app labels, theme color, and travel JSON-LD before React boots. Non-travel hosts and existing robots/sitemap behavior unchanged. Verified `npm run type-check`, `npm run type-check:worker`, `npm run test -- src/test/cloudflarePagesEdgeGuard.test.ts`, and `npm run update`. - @codex, 2026-06-12
+
+- **Travel payment methods + wallet completion** - added in-app PaymentElement add-card flow, travel payment-method add/default/remove UI, travel wallet top-up sheet wired to existing create/verify top-up functions, and Stripe payment-method ownership checks. Verified `npm run type-check`, `npm run type-check:worker`, payment workflow test, `npm run update`, and browser responsive checks. - @codex, 2026-06-12
 
 - **Eats — wire up the cuisine-emoji fallback** (`src/pages/EatsLanding.tsx`). The page already had a `cuisineEmoji()` helper explicitly written "for empty-image fallbacks so cards look intentional rather than broken," but the **Trending now** strip (~L1091) and **Recently viewed** strip (~L1130) ignored it — every restaurant showed an identical generic `UtensilsCrossed` fork. Wired `cuisineEmoji(r.cuisine_type)` into both so each card shows a relevant per-cuisine glyph (🍜🍣🍔… / 🍽️ default), and unified the recently-viewed chip to the same orange→rose gradient. Finishing intended-but-unwired code, not new design. **Verified in preview** on /eats: Trending cards now render 🍽️ (kikka, unknown cuisine) and 🥢 (CHHORNG KIMLAIN, asian) instead of identical forks; `npm run update` green. — @claude, 2026-06-12
 - **HelpCenter contact cards — contrast bug + stale email fix** (`src/pages/HelpCenter.tsx`, Contact Us tab). The Phone + Email cards used `from-muted to-muted` (flat gray) icon circles with `text-primary-foreground` (white) icons → the icons were **near-invisible** (a real contrast bug, not just polish), and inconsistent with the colorful Live Chat card. Gave them visible brand gradients (Phone = sky→blue, Email = violet→purple). Also fixed a **stale support email**: badge `support@zivo.com` → `support@zivosmedia.com` (canonical; 39 files use zivosmedia vs 4 stragglers — tail of the domain standardization). **Verified in preview** (Contact tab): Phone icon bg = sky (oklch hue 237), Email icon bg = violet (hue 292), badge now `support@zivosmedia.com`; `npm run update` green. Flagged the 3 other `support@zivo.com` files (FlightCustomerSupport, PersonalPayStubsPage, useRemoteConfigHooks) for a separate cleanup chip. — @claude, 2026-06-12

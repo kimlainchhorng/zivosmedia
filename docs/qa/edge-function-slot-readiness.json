@@ -1,12 +1,12 @@
 {
-  "generated": "2026-06-11T16:05:16.814Z",
+  "generated": "2026-06-12T21:34:33.473Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
-    "configuredFunctions": 85,
-    "localConfiguredFunctions": 85,
+    "configuredFunctions": 88,
+    "localConfiguredFunctions": 88,
     "liveFunctions": null,
     "knownMissingLiveFunctions": 6,
-    "criticalFunctions": 6,
+    "criticalFunctions": 7,
     "missingLiveCritical": 6,
     "warnings": 1,
     "failures": 0
@@ -107,6 +107,16 @@
         ".env.example": "false",
         ".env.deploy.example": "false"
       }
+    },
+    {
+      "slug": "mint-sso-handoff",
+      "why": "cross-domain SSO one-time token minting",
+      "verifyJwt": true,
+      "configPresent": true,
+      "localPresent": true,
+      "livePresent": null,
+      "browserFeatureFlag": null,
+      "envDefaults": null
     }
   ],
   "missingLiveCritical": [

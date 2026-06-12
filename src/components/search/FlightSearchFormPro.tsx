@@ -45,6 +45,7 @@ import { MobileDatePickerSheet, MobileDateRangePickerSheet, MobilePassengerCabin
 import { useFlightFunnel } from "@/hooks/useFlightFunnel";
 import { useTranslation } from "@/hooks/useI18n";
 import { recordSearchAttempt } from "@/lib/recordSearchAttempt";
+import { resolveAirportSeed } from "@/lib/flightDeepLink";
 
 type TripType = "roundtrip" | "oneway" | "multicity";
 type CabinClass = "economy" | "premium" | "business" | "first";
@@ -131,7 +132,7 @@ export default function FlightSearchFormPro({
   // Initialize from props
   useEffect(() => {
     if (initialFrom) {
-      const option = getByCode(initialFrom);
+      const option = getByCode(resolveAirportSeed(initialFrom));
       if (option) {
         setFromOption(option);
         setFromDisplay(option.label);
@@ -140,7 +141,7 @@ export default function FlightSearchFormPro({
       }
     }
     if (initialTo) {
-      const option = getByCode(initialTo);
+      const option = getByCode(resolveAirportSeed(initialTo));
       if (option) {
         setToOption(option);
         setToDisplay(option.label);
@@ -200,6 +201,7 @@ export default function FlightSearchFormPro({
       depart: departDateStr,
       passengers: String(passengers),
       cabin: cabin,
+      tripType,
     });
     if (returnDateStr) resultsParams.set("return", returnDateStr);
 

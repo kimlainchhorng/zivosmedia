@@ -60,6 +60,11 @@ const criticalFunctions = [
     browserFeatureFlag: "VITE_ADMIN_BROADCAST_NOTIFICATION_ENABLED",
     why: "admin broadcast notification creation",
   },
+  {
+    slug: "mint-sso-handoff",
+    verifyJwt: true,
+    why: "cross-domain SSO one-time token minting",
+  },
 ];
 
 function read(relativePath) {

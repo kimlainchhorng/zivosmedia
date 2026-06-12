@@ -115,7 +115,7 @@ export default function HotelsLandingPage() {
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { format: fmtPrice } = useCurrency();
-  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const seoOrigin = isTravelHost ? ZIVO_TRAVEL_ORIGIN : "https://zivosmedia.com";
   const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
   const seoTitle = `Hotels & Resorts - Find Your Stay | ${seoBrand}`;
@@ -757,7 +757,7 @@ export default function HotelsLandingPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-background pb-24">
+    <div className={cn("min-h-dvh bg-background pb-24", isTravelHost && "zivo-travel-3d zivo-travel-light")}>
       <ZivoMobileNav />
       <Helmet>
         <title>{seoTitle}</title>
@@ -790,8 +790,9 @@ export default function HotelsLandingPage() {
       {/* Hero — tightened. Background layers live in their own `overflow-hidden`
           wrapper so the search-autocomplete dropdown can spill out below the
           hero without being clipped. */}
-      <div className="relative">
+      <div className={cn("relative", isTravelHost && "zt-on-media")}>
         <div className="absolute inset-0 overflow-hidden">
+          <div className="zt-aurora opacity-80" aria-hidden />
           <img
             src={tabHotelsBg}
             alt=""

@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/sheet";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { useP2PVehicleSearch, type P2PSearchFilters } from "@/hooks/useP2PBooking";
 
 const categories = [
@@ -73,7 +74,7 @@ export default function Cars() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
 
   // Parse search params into filters
@@ -172,7 +173,7 @@ export default function Cars() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={cn("min-h-screen bg-background", isTravelHost && "zivo-travel-3d zivo-travel-light")}>
       <SEOHead
         title={`Rent Cars from Local Owners${filters.city ? ` in ${filters.city}` : ""} | ${seoBrand}`}
         description={`Rent cars directly from local owners. Better prices, unique vehicles, flexible terms. Book now on ${seoBrand}'s peer-to-peer car sharing marketplace.`}

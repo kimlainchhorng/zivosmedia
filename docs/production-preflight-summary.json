@@ -1,36 +1,36 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-06-11T16:05:28.425Z",
+  "generated": "2026-06-12T21:36:06.711Z",
   "mode": "soft",
   "options": {
     "strict": false,
     "skipBuild": false,
     "skipTypeCheck": true
   },
-  "readyForCurrentGate": true,
+  "readyForCurrentGate": false,
   "readyForProductionGate": false,
   "counts": {
     "apiCritical": 0,
     "apiWarnings": 20,
-    "environmentCritical": 0,
-    "environmentWarnings": 0,
+    "environmentCritical": 2,
+    "environmentWarnings": 1,
     "databaseBlockers": 1,
     "databaseWarnings": 1,
     "edgeFunctionDeployFailures": 0,
     "edgeFunctionMissingLiveCritical": 6,
-    "edgeFunctionBrowserGateFailures": 0,
-    "failedCommands": 0,
-    "productionBlockers": 7,
-    "currentGateBlockers": 0
+    "edgeFunctionBrowserGateFailures": 2,
+    "failedCommands": 4,
+    "productionBlockers": 8,
+    "currentGateBlockers": 1
   },
   "supabase": {
-    "envAccessToken": false,
-    "driftAccessToken": false,
+    "envAccessToken": true,
+    "driftAccessToken": true,
     "runtimeSettingsSqlInputs": false,
     "linkedHistoryDisconnected": false,
     "remoteMigrationHistoryRead": true,
     "remoteMigrationHistoryStatus": "read",
-    "remoteMigrations": 1568,
+    "remoteMigrations": 1570,
     "matchedVersions": 1,
     "duplicateVersions": 6,
     "newDuplicateVersions": 6
@@ -39,8 +39,8 @@
     "candidates": 616,
     "highConfidenceCandidates": 584,
     "mediumConfidenceCandidates": 32,
-    "unmatchedLocalAfterCandidates": 503,
-    "unmatchedRemoteAfterCandidates": 951,
+    "unmatchedLocalAfterCandidates": 505,
+    "unmatchedRemoteAfterCandidates": 953,
     "unmatchedLocalAfterRemoteRange": 19,
     "reviewOrder": [
       "high-confidence candidate mappings",
@@ -63,12 +63,12 @@
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-        "count": 503
+        "count": 505
       },
       {
         "order": 4,
         "label": "unmatched remote versions after candidates",
-        "count": 951
+        "count": 953
       },
       {
         "order": 5,
@@ -78,7 +78,7 @@
     ]
   },
   "pendingMigrationGates": {
-    "createsTables": 2,
+    "createsTables": 1,
     "withoutRls": 0,
     "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
@@ -99,37 +99,45 @@
     ],
     "slotReadinessWarnings": 1,
     "slotReadinessFailures": 0,
-    "browserGateFailures": 0,
+    "browserGateFailures": 2,
     "browserGatedFunctions": 6
   },
   "blockers": {
     "production": [
+      "Environment readiness has 2 critical finding(s).",
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
-      "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+      "Environment readiness has 1 warning(s).",
       "API readiness has 20 warning(s).",
       "Database readiness has 1 blocker(s).",
       "Database readiness has 1 warning(s).",
       "Supabase migrations have 6 unresolved duplicate version(s)."
     ],
-    "currentGate": [],
-    "failedCommands": []
+    "currentGate": [
+      "Environment readiness has 2 critical finding(s)."
+    ],
+    "failedCommands": [
+      "Security scan",
+      "Supabase deploy environment",
+      "Supabase runtime settings SQL",
+      "Edge Function browser gates"
+    ]
   },
   "steps": [
     {
       "id": "secrets",
       "title": "Security scan",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "environment",
       "title": "Supabase deploy environment",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "runtime-settings-sql",
       "title": "Supabase runtime settings SQL",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "migration-drift",
@@ -159,7 +167,7 @@
     {
       "id": "edge-function-browser-gates",
       "title": "Edge Function browser gates",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "media-readiness",
@@ -175,31 +183,31 @@
   "artifacts": {
     "markdown": "docs/production-preflight-report.md",
     "json": "docs/production-preflight-summary.json",
-    "migrationDrift": "docs/supabase-migration-drift-report.md",
+    "migrationDrift": "docs\\supabase-migration-drift-report.md",
     "databaseReadiness": "docs/database-upgrade-readiness-report.md",
     "apiReadiness": "docs/api-readiness-report.md",
-    "reconciliationPlan": "docs/supabase-migration-reconciliation-plan.md",
-    "reconciliationCandidates": "docs/supabase-migration-reconciliation-candidates.csv",
-    "reconciliationRepairDraft": "docs/supabase-migration-reconciliation-repair-draft.sql",
-    "pendingLocalReview": "docs/supabase-migration-pending-local-review.csv",
-    "unmatchedLocal": "docs/supabase-migration-unmatched-local.csv",
-    "unmatchedRemote": "docs/supabase-migration-unmatched-remote.csv"
+    "reconciliationPlan": "docs\\supabase-migration-reconciliation-plan.md",
+    "reconciliationCandidates": "docs\\supabase-migration-reconciliation-candidates.csv",
+    "reconciliationRepairDraft": "docs\\supabase-migration-reconciliation-repair-draft.sql",
+    "pendingLocalReview": "docs\\supabase-migration-pending-local-review.csv",
+    "unmatchedLocal": "docs\\supabase-migration-unmatched-local.csv",
+    "unmatchedRemote": "docs\\supabase-migration-unmatched-remote.csv"
   },
   "artifactMeta": {
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 19100
+      "bytes": 20983
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 7079
+      "bytes": 7315
     },
     "migrationDrift": {
-      "path": "docs/supabase-migration-drift-report.md",
+      "path": "docs\\supabase-migration-drift-report.md",
       "exists": true,
-      "bytes": 16877
+      "bytes": 16874
     },
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
@@ -209,43 +217,43 @@
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-      "bytes": 5700
+      "bytes": 5701
     },
     "reconciliationPlan": {
-      "path": "docs/supabase-migration-reconciliation-plan.md",
+      "path": "docs\\supabase-migration-reconciliation-plan.md",
       "exists": true,
-      "bytes": 5166
+      "bytes": 5169
     },
     "reconciliationCandidates": {
-      "path": "docs/supabase-migration-reconciliation-candidates.csv",
+      "path": "docs\\supabase-migration-reconciliation-candidates.csv",
       "exists": true,
       "bytes": 57337
     },
     "reconciliationRepairDraft": {
-      "path": "docs/supabase-migration-reconciliation-repair-draft.sql",
+      "path": "docs\\supabase-migration-reconciliation-repair-draft.sql",
       "exists": true,
       "bytes": 212021
     },
     "pendingLocalReview": {
-      "path": "docs/supabase-migration-pending-local-review.csv",
+      "path": "docs\\supabase-migration-pending-local-review.csv",
       "exists": true,
-      "bytes": 3754
+      "bytes": 3759
     },
     "unmatchedLocal": {
-      "path": "docs/supabase-migration-unmatched-local.csv",
+      "path": "docs\\supabase-migration-unmatched-local.csv",
       "exists": true,
-      "bytes": 61083
+      "bytes": 61345
     },
     "unmatchedRemote": {
-      "path": "docs/supabase-migration-unmatched-remote.csv",
+      "path": "docs\\supabase-migration-unmatched-remote.csv",
       "exists": true,
-      "bytes": 100617
+      "bytes": 100819
     }
   },
   "artifactSummary": {
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 503044
+    "bytes": 505633
   }
 }

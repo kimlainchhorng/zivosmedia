@@ -63,7 +63,7 @@ const Header = () => {
   const { data: supportedLanguages } = useSupportedLanguages(true);
   const activeLanguages = (supportedLanguages || []).filter(l => l.is_active);
   const currentLangData = activeLanguages.find(l => l.code === currentLanguage);
-  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
 
   return (
     <>

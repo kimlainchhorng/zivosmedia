@@ -149,6 +149,8 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.send-otp-email]
     verify_jwt = false
+  [functions.mint-sso-handoff]
+    verify_jwt = true
   [functions.target-search]
     verify_jwt = false
   [functions.wallet-summary]

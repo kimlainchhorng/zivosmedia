@@ -1,18 +1,18 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-11T16:05:16.301Z
+Generated: 2026-06-12T21:34:29.446Z
 
 ## Summary
 
 - Supabase CLI: 2.105.0
-- Local migrations: 1120
+- Local migrations: 1122
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 6
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1120, remote=1568, matched=1, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=503, unmatchedRemote=951, localAfterRemoteRange=19, sharedDays=91, remoteError=no, generated=2026-06-11T16:05:15.884Z
-- Pending local migration gates: createsTables=2, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Last linked drift report: local=1122, remote=1570, matched=1, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=505, unmatchedRemote=953, localAfterRemoteRange=19, sharedDays=92, remoteError=no, generated=2026-06-12T21:34:26.712Z
+- Pending local migration gates: createsTables=1, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
 - Public tables created in migrations: 933

@@ -4,7 +4,7 @@
  */
 
 import { useRef, useCallback, useMemo, useState, useEffect, lazy, Suspense, type ComponentType } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plane, Shield, Star, TrendingUp, Sparkles,
@@ -37,13 +37,19 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FlightSearchFormPro } from "@/components/search";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 const AISmartDeals = lazy(() => import("@/components/home/AISmartDeals"));
 import { usePopularRoutePrices } from "@/hooks/usePopularRoutePrices";
 import { useTravelpayoutsPopularRoutes } from "@/hooks/useTravelpayoutsPopularRoutes";
 import { useFlightAppTrackingTransparencyPrompt } from "@/hooks/useFlightAppTrackingTransparencyPrompt";
 import { format, parseISO } from "date-fns";
 import { Calendar } from "lucide-react";
-import { getAirportByCode, searchAirports } from "@/data/airports";
+import { getAirportByCode } from "@/data/airports";
+import {
+  buildFlightResultsSearch,
+  parseFlightDeepLinkInitial,
+  type FlightDeepLinkInitial,
+} from "@/lib/flightDeepLink";
 
 const ease3D = [0.16, 1, 0.3, 1] as const;
 type FlightIcon = ComponentType<{ className?: string }>;
@@ -110,7 +116,7 @@ const flightWorkflowSteps: Array<{ title: string; detail: string; icon: FlightIc
 const providerStatuses: Array<{ label: string; value: string; icon: FlightIcon; tone: "teal" | "blue" | "rose" }> = [
   { label: "ZIVO AI", value: "Auto route", icon: Bot, tone: "teal" },
   { label: "DeepSeek", value: "Live travel", icon: Plane, tone: "blue" },
-  { label: "Claude API", value: "Optional", icon: Sparkles, tone: "rose" },
+  { label: "Fallback AI", value: "Optional", icon: Sparkles, tone: "rose" },
 ];
 
 const destinationSpotlights: Record<string, { image: string; priceHint: string; season: string; routeHint: string }> = {
@@ -575,18 +581,6 @@ function WhyZivoSection({ className }: { className?: string }) {
   );
 }
 
-function resolveAirportSeed(raw?: string | null) {
-  const value = decodeURIComponent(raw || "").trim();
-  if (!value) return "";
-
-  const cleanValue = value.replace(/-/g, " ");
-  const upper = cleanValue.toUpperCase();
-  if (/^[A-Z]{3}$/.test(upper) && getAirportByCode(upper)) return upper;
-
-  const match = searchAirports(cleanValue)[0];
-  return match?.code || upper;
-}
-
 function getAirportLabel(code: string, fallback: string) {
   const airport = getAirportByCode(code);
   if (!airport) return fallback;
@@ -617,29 +611,16 @@ function formatFlightDate(date: Date | undefined, fallback = "Flexible") {
 /* ─── Deep-link prefill: route params win; then ?from/?to/?origin/?destination/?start/?end/?travelers ─── */
 function useFlightDeepLinkInitial(fromCity?: string, toCity?: string) {
   const [params] = useSearchParams();
-  return useMemo(() => {
-    const parseDate = (raw: string | null | undefined) => {
-      if (!raw) return undefined;
-      const d = new Date(`${raw}T00:00:00`);
-      return Number.isNaN(d.getTime()) ? undefined : d;
-    };
-    const travelers = Number.parseInt(params.get("travelers") || "", 10);
-    const fromRaw = fromCity || params.get("from") || params.get("origin");
-    const toRaw = toCity || params.get("to") || params.get("destination") || params.get("dest");
-    return {
-      initialFrom: resolveAirportSeed(fromRaw),
-      initialTo: resolveAirportSeed(toRaw),
-      initialDepartDate: parseDate(params.get("start") || params.get("depart") || params.get("departureDate") || params.get("date")),
-      initialReturnDate: parseDate(params.get("end") || params.get("return") || params.get("returnDate")),
-      initialPassengers: Number.isFinite(travelers) && travelers > 0 ? travelers : undefined,
-    };
-  }, [params, fromCity, toCity]);
+  return useMemo(() => parseFlightDeepLinkInitial(params, fromCity, toCity), [params, fromCity, toCity]);
+}
+
+function useFlightDeepLinkResultsSearch(initial: FlightDeepLinkInitial) {
+  const [params] = useSearchParams();
+  return useMemo(() => buildFlightResultsSearch(initial, params), [initial, params]);
 }
 
 /* ─── Cinematic Desktop Hero ─── */
-function DesktopCinematicHero() {
-  const { fromCity, toCity } = useParams();
-  const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
+function DesktopCinematicHero({ flightInitial }: { flightInitial: FlightDeepLinkInitial }) {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
@@ -765,6 +746,8 @@ function DesktopCinematicHero() {
                 initialDepartDate={flightInitial.initialDepartDate}
                 initialReturnDate={flightInitial.initialReturnDate}
                 initialPassengers={flightInitial.initialPassengers}
+                initialCabin={flightInitial.initialCabin}
+                initialTripType={flightInitial.initialTripType}
                 className="rounded-lg border border-slate-200 bg-white shadow-none"
               />
             </div>
@@ -775,7 +758,7 @@ function DesktopCinematicHero() {
                 AI to booking workflow
               </div>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                DeepSeek powers live travel generation now. Claude can join this same route when Anthropic API access is configured.
+                DeepSeek powers live travel generation now. A fallback AI can join this same route when Anthropic API access is configured.
               </p>
             </div>
           </motion.div>
@@ -979,9 +962,7 @@ function TravelTipBar() {
 }
 
 /* ─── Mobile / Tablet Flight Search ─── */
-function MobileFlightSearch() {
-  const { fromCity, toCity } = useParams();
-  const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
+function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkInitial }) {
   const navigate = useNavigate();
   const [showBackToTop, setShowBackToTop] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -1031,6 +1012,8 @@ function MobileFlightSearch() {
           initialDepartDate={flightInitial.initialDepartDate}
           initialReturnDate={flightInitial.initialReturnDate}
           initialPassengers={flightInitial.initialPassengers}
+          initialCabin={flightInitial.initialCabin}
+          initialTripType={flightInitial.initialTripType}
           className="shadow-xl shadow-primary/10 rounded-2xl border border-border/30"
         />
       </motion.div>
@@ -1268,24 +1251,42 @@ function Animated3DBackground() {
 /* ─── Main Component ─── */
 const FlightLanding = () => {
   useFlightAppTrackingTransparencyPrompt(true);
+  const { fromCity, toCity } = useParams();
+  const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
+  const flightResultsSearch = useFlightDeepLinkResultsSearch(flightInitial);
   const isMobile = useIsMobile();
+
+  if (flightResultsSearch) {
+    return <Navigate to={`/flights/results?${flightResultsSearch.toString()}`} replace />;
+  }
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
+  const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
+  const travelCanonicalHost = isTravelHost ? "https://zivostravel.com" : "https://zivosmedia.com";
+  const seoTitle = `Search Flights from Cambodia – ${seoBrand} | 500+ Airlines`;
+  const seoDescription = isTravelHost
+    ? "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops on Zivo Travel."
+    : "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops — all on ZIVO.";
 
   if (isMobile) {
     return (
       <>
         <SEOHead
-          title="Search Flights from Cambodia – ZIVO | 500+ Airlines"
-          description="Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops — all on ZIVO."
+          title={seoTitle}
+          description={seoDescription}
           canonical="/flights"
           ogImage="/og-flights.jpg"
           appLink="zivo://flights"
         />
-        <AppLayout title="Flights" headerRightAction={undefined}>
+        <AppLayout
+          title="Flights"
+          headerRightAction={undefined}
+          className={cn("zivo-travel-3d", isTravelHost && "zivo-travel-light")}
+        >
           <BundleProgressBanner step="flight" />
           <Flight3DSkyHeader className="-mt-1" />
-          <div className="relative overflow-hidden">
+          <div className={cn("relative overflow-hidden", isTravelHost && "zt-on-media")}>
             <Animated3DBackground />
-            <div className="relative z-10"><MobileFlightSearch /></div>
+            <div className="relative z-10"><MobileFlightSearch flightInitial={flightInitial} /></div>
           </div>
         </AppLayout>
       </>
@@ -1293,11 +1294,14 @@ const FlightLanding = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className={cn(
+      "min-h-screen bg-background relative overflow-hidden",
+      isTravelHost && "zivo-travel-3d zivo-travel-light",
+    )}>
       <BundleProgressBanner step="flight" />
       <SEOHead
-        title="Search Flights from Cambodia – ZIVO | 500+ Airlines"
-        description="Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops — all on ZIVO."
+        title={seoTitle}
+        description={seoDescription}
         canonical="/flights"
         ogImage="/og-flights.jpg"
         appLink="zivo://flights"
@@ -1305,13 +1309,13 @@ const FlightLanding = () => {
           {
             "@context": "https://schema.org",
             "@type": "WebPage",
-            "name": "Search Flights from Cambodia – ZIVO",
+            "name": `Search Flights from Cambodia – ${seoBrand}`,
             "description": "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines.",
-            "url": "https://zivosmedia.com/flights",
-            "isPartOf": { "@type": "WebSite", "url": "https://zivosmedia.com", "name": "ZIVO" },
+            "url": `${travelCanonicalHost}/flights`,
+            "isPartOf": { "@type": "WebSite", "url": travelCanonicalHost, "name": seoBrand },
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "https://zivosmedia.com/flights/results?origin={origin}&destination={destination}&date={date}",
+              "target": `${travelCanonicalHost}/flights/results?origin={origin}&destination={destination}&date={date}`,
               "query-input": "required name=origin required name=destination required name=date"
             }
           },
@@ -1319,34 +1323,35 @@ const FlightLanding = () => {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://zivosmedia.com/" },
-              { "@type": "ListItem", "position": 2, "name": "Flights", "item": "https://zivosmedia.com/flights" }
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": `${travelCanonicalHost}/` },
+              { "@type": "ListItem", "position": 2, "name": "Flights", "item": `${travelCanonicalHost}/flights` }
             ]
           },
           {
             "@context": "https://schema.org",
             "@type": "ItemList",
-            "name": "Popular flight destinations from Cambodia on ZIVO",
+            "name": `Popular flight destinations from Cambodia on ${seoBrand}`,
             "itemListOrder": "https://schema.org/ItemListOrderAscending",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1,  "name": "Siem Reap",     "url": "https://zivosmedia.com/flights/to-siem-reap" },
-              { "@type": "ListItem", "position": 2,  "name": "Sihanoukville", "url": "https://zivosmedia.com/flights/to-sihanoukville" },
-              { "@type": "ListItem", "position": 3,  "name": "Bangkok",       "url": "https://zivosmedia.com/flights/to-bangkok" },
-              { "@type": "ListItem", "position": 4,  "name": "Singapore",     "url": "https://zivosmedia.com/flights/to-singapore" },
-              { "@type": "ListItem", "position": 5,  "name": "Kuala Lumpur",  "url": "https://zivosmedia.com/flights/to-kuala-lumpur" },
-              { "@type": "ListItem", "position": 6,  "name": "Hong Kong",     "url": "https://zivosmedia.com/flights/to-hong-kong" },
-              { "@type": "ListItem", "position": 7,  "name": "Tokyo",         "url": "https://zivosmedia.com/flights/to-tokyo" },
-              { "@type": "ListItem", "position": 8,  "name": "Seoul",         "url": "https://zivosmedia.com/flights/to-seoul" },
-              { "@type": "ListItem", "position": 9,  "name": "Ho Chi Minh",   "url": "https://zivosmedia.com/flights/to-ho-chi-minh" },
-              { "@type": "ListItem", "position": 10, "name": "Hanoi",         "url": "https://zivosmedia.com/flights/to-hanoi" }
+              { "@type": "ListItem", "position": 1,  "name": "Siem Reap",     "url": `${travelCanonicalHost}/flights/to-siem-reap` },
+              { "@type": "ListItem", "position": 2,  "name": "Sihanoukville", "url": `${travelCanonicalHost}/flights/to-sihanoukville` },
+              { "@type": "ListItem", "position": 3,  "name": "Bangkok",       "url": `${travelCanonicalHost}/flights/to-bangkok` },
+              { "@type": "ListItem", "position": 4,  "name": "Singapore",     "url": `${travelCanonicalHost}/flights/to-singapore` },
+              { "@type": "ListItem", "position": 5,  "name": "Kuala Lumpur",  "url": `${travelCanonicalHost}/flights/to-kuala-lumpur` },
+              { "@type": "ListItem", "position": 6,  "name": "Hong Kong",     "url": `${travelCanonicalHost}/flights/to-hong-kong` },
+              { "@type": "ListItem", "position": 7,  "name": "Tokyo",         "url": `${travelCanonicalHost}/flights/to-tokyo` },
+              { "@type": "ListItem", "position": 8,  "name": "Seoul",         "url": `${travelCanonicalHost}/flights/to-seoul` },
+              { "@type": "ListItem", "position": 9,  "name": "Ho Chi Minh",   "url": `${travelCanonicalHost}/flights/to-ho-chi-minh` },
+              { "@type": "ListItem", "position": 10, "name": "Hanoi",         "url": `${travelCanonicalHost}/flights/to-hanoi` }
             ]
           }
         ]}
       />
       <Header />
       <NativeBackButton />
-      <main className="pt-16 sm:pt-20">
-        <DesktopCinematicHero />
+      <main className={cn("pt-16 sm:pt-20", isTravelHost && "zt-on-media")}>
+        <div className="zt-aurora opacity-80" aria-hidden />
+        <DesktopCinematicHero flightInitial={flightInitial} />
       </main>
       <Footer />
     </div>

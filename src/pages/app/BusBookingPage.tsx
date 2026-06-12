@@ -402,7 +402,7 @@ export default function BusBookingPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const reduce = useReducedMotion();
-  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO Bus";
 
   // Step & direction tracking
@@ -678,8 +678,16 @@ export default function BusBookingPage() {
         canonical="/bus"
         noIndex={!isTravelHost}
       />
-      <AppLayout title={stepTitle[step]} showBack onBack={handleBack}>
-        <PageTransition className="mx-auto w-full max-w-6xl px-3 pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] pt-3 sm:px-4 sm:pb-28 sm:pt-5 lg:pb-8">
+      <AppLayout
+        title={stepTitle[step]}
+        showBack
+        onBack={handleBack}
+        className={cn(isTravelHost && "zivo-travel-3d zivo-travel-light")}
+      >
+        <PageTransition className={cn(
+          "mx-auto w-full max-w-6xl px-3 pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] pt-3 sm:px-4 sm:pb-28 sm:pt-5 lg:pb-8",
+          isTravelHost && "zivo-travel-3d zivo-travel-light",
+        )}>
 
           {/* Step progress */}
           <StepProgress step={step} />
@@ -710,7 +718,9 @@ export default function BusBookingPage() {
 
                   {/* Main column */}
                   <div className="space-y-4">
-                    <SearchHero from={from} to={to} date={date} passengers={passengers} />
+              <div className={cn(isTravelHost && "zt-on-media")}>
+                <SearchHero from={from} to={to} date={date} passengers={passengers} />
+              </div>
 
                     {/* From / To card */}
                     <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-[0_2px_20px_rgba(0,0,0,0.05)]">

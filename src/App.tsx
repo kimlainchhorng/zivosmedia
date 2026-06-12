@@ -1258,7 +1258,7 @@ function isCurrentZivoChatHost() {
 }
 
 function isCurrentZivoTravelHost() {
-  return typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  return typeof window !== "undefined" && isZivoTravelHost();
 }
 
 function isCurrentZivoDriverHost() {
@@ -1589,7 +1589,7 @@ function ZivoChatHostGate() {
 function ZivoTravelHostGate() {
   const location = useLocation();
 
-  if (typeof window === "undefined" || !isZivoTravelHost(window.location.hostname)) {
+  if (typeof window === "undefined" || !isZivoTravelHost()) {
     return null;
   }
 
@@ -2062,13 +2062,13 @@ const App = () => (
 
                 {/* Flights */}
                 <Route path="/flights" element={<RouteErrorBoundary section="Flights"><FlightLanding /></RouteErrorBoundary>} />
+                <Route path="/flights/results" element={<RouteErrorBoundary section="Flights"><FlightResults /></RouteErrorBoundary>} />
                 <Route path="/flights/from-:fromCity" element={<RouteErrorBoundary section="Flights"><FlightLanding /></RouteErrorBoundary>} />
                 <Route path="/flights/to-:toCity" element={<RouteErrorBoundary section="Flights"><FlightLanding /></RouteErrorBoundary>} />
                 <Route path="/flights/to/:citySlug" element={<RouteErrorBoundary section="Flights"><FlightToCity /></RouteErrorBoundary>} />
                 <Route path="/flights/cities/:citySlug" element={<RouteErrorBoundary section="Flights"><FlightCityPage /></RouteErrorBoundary>} />
                 <Route path="/flights/:origin-to-:destination" element={<RouteErrorBoundary section="Flights"><FlightRoutePage /></RouteErrorBoundary>} />
                 <Route path="/flights/:route" element={<RouteErrorBoundary section="Flights"><FlightLanding /></RouteErrorBoundary>} />
-                <Route path="/flights/results" element={<RouteErrorBoundary section="Flights"><FlightResults /></RouteErrorBoundary>} />
                 <Route path="/flights/live" element={<RouteErrorBoundary section="Flights"><FlightLive /></RouteErrorBoundary>} />
                 <Route path="/flights/details/review" element={<RouteErrorBoundary section="Flights"><FlightReview /></RouteErrorBoundary>} />
                 <Route path="/flights/details/:id" element={<RouteErrorBoundary section="Flights"><FlightDetails /></RouteErrorBoundary>} />

@@ -44,6 +44,8 @@ import { getAllInPrice } from "@/utils/flightPricing";
 import { TRAVELPAYOUTS_DIRECT_LINKS } from "@/config/affiliateLinks";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import PullToRefresh from "@/components/shared/PullToRefresh";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
+import { TravelPullToRefresh } from "@/components/zivo-travel";
 
 type SortBy = "best" | "cheapest" | "fastest" | "earliest" | "shortest";
 
@@ -104,7 +106,7 @@ const aiProviderStates: Array<{
     tone: "border-teal-200 bg-teal-50/80 text-teal-800",
   },
   {
-    title: "Claude API",
+    title: "Fallback AI",
     detail: "Optional",
     state: "Standby",
     icon: SlidersHorizontal,
@@ -260,7 +262,9 @@ function PlannerResultsBridge({
 
 const FlightResults = () => {
   const isMobile = useIsMobile();
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const [params] = useSearchParams();
+  const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState<SortBy>("best");
   const [filters, setFilters] = useState<FlightFiltersState>(defaultFilters);
@@ -1936,27 +1940,37 @@ const FlightResults = () => {
   );
 
   if (isMobile) {
+    const PullToRefreshComponent = isTravelHost ? TravelPullToRefresh : PullToRefresh;
     return (
       <>
         <SEOHead
-          title={`Flights ${origin} → ${destination} – ZIVO`}
+          title={`Flights ${origin} → ${destination} – ${seoBrand}`}
           description={`Compare flight deals from ${origin} to ${destination}.`}
         />
         <AppLayout hideHeader hideNav>
-          <PullToRefresh onRefresh={handlePullRefresh} className="min-h-[100dvh] bg-background">
+          <PullToRefreshComponent
+            onRefresh={handlePullRefresh}
+            className={cn(
+              "min-h-[100dvh] bg-background",
+              isTravelHost && "zivo-travel-3d zivo-travel-light",
+            )}
+          >
             <div className="pb-4">
               {resultsContent}
             </div>
-          </PullToRefresh>
+          </PullToRefreshComponent>
         </AppLayout>
       </>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background relative overflow-hidden flex flex-col">
+    <div className={cn(
+      "min-h-[100dvh] bg-background relative overflow-hidden flex flex-col",
+      isTravelHost && "zivo-travel-3d zivo-travel-light",
+    )}>
       <SEOHead
-        title={`Flights ${origin} → ${destination} – ZIVO`}
+        title={`Flights ${origin} → ${destination} – ${seoBrand}`}
         description={`Compare flight deals from ${origin} to ${destination}.`}
       />
       <div className="pointer-events-none absolute inset-0 overflow-hidden">

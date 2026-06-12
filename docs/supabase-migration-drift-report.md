@@ -1,48 +1,48 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-06-11T16:05:15.884Z
+Generated: 2026-06-12T21:34:26.712Z
 
 ## Summary
 
-- Local migrations: 1120
+- Local migrations: 1122
 - Invalid filenames: 0
 - Duplicate versions: 6
 - Allowed duplicate versions: 0
 - New duplicate versions: 6
 - Duplicate SQL hashes: 0
-- SUPABASE_ACCESS_TOKEN configured: no
-- Local version range: 20260126182101 to 20260615000700
-- Remote version range: 20260126182059 to 20260610204751
-- Remote migrations: 1568
+- SUPABASE_ACCESS_TOKEN configured: yes
+- Local version range: 20260126182101 to 20260616090000
+- Remote version range: 20260126182059 to 20260611183433
+- Remote migrations: 1570
 - Matched versions: 1
-- Local-only pending: 1119
-- Remote-only missing locally: 1567
+- Local-only pending: 1121
+- Remote-only missing locally: 1569
 - Near timestamp pairs within 5 seconds: 585
 - Near timestamp pairs within 1 minute: 618
 - One-to-one reconciliation candidates within 5 seconds: 584
 - One-to-one reconciliation candidates within 1 minute: 616
-- Unmatched local migrations after one-to-one candidates: 503
-- Unmatched remote versions after one-to-one candidates: 951
+- Unmatched local migrations after one-to-one candidates: 505
+- Unmatched remote versions after one-to-one candidates: 953
 - Unmatched local migrations after remote range: 19
 - Unmatched remote versions before local range: 0
-- Pending local creates tables: 2
+- Pending local creates tables: 1
 - Pending local creates tables without RLS: 0
 - Pending local creates tables without explicit grants: 0
 - Pending local sequence-backed ids without sequence grants: 0
 - Pending local SECURITY DEFINER without search_path: 0
 - Pending local hardcoded Supabase URLs: 0
 - Pending local legacy anon JWTs: 0
-- Shared migration calendar days: 91
+- Shared migration calendar days: 92
 - Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv
 - Unmatched local CSV: docs/supabase-migration-unmatched-local.csv
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=1042, medium=54, low=23
+- Pending risk: high=1044, medium=54, low=23
 
 ## Domains
 
-- security/auth: 953
+- security/auth: 955
 - commerce/store: 58
 - chat/social: 50
 - general: 24
@@ -60,7 +60,7 @@ Generated: 2026-06-11T16:05:15.884Z
 
 ## Remote Query
 
-- Auth token: SUPABASE_ACCESS_TOKEN was not present for this run.
+- Auth token: SUPABASE_ACCESS_TOKEN was present for this run.
 - Linked remote migration history was read successfully.
 
 
@@ -199,7 +199,7 @@ Generated: 2026-06-11T16:05:15.884Z
 - 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
 - 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
 - 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 942 more
+- ...and 944 more
 
 ## Remote-Only Versions
 
@@ -303,5 +303,5 @@ Generated: 2026-06-11T16:05:15.884Z
 - 20260131202048
 - 20260131203610
 - 20260131204000
-- ...and 1467 more
+- ...and 1469 more
 

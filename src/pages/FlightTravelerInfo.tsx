@@ -247,7 +247,7 @@ function TravelerPlannerHandoff({
             {[
               { label: "ZIVO AI", value: "Auto", tone: "text-[hsl(var(--flights))]" },
               { label: "DeepSeek", value: deepSeekLabel, tone: "text-emerald-600" },
-              { label: "Claude API", value: "Optional", tone: "text-amber-600" },
+              { label: "Fallback AI", value: "Optional", tone: "text-amber-600" },
             ].map((item) => (
               <div key={item.label} className="min-w-0 rounded-xl bg-muted/35 px-2 py-2">
                 <p className="truncate font-bold uppercase tracking-[0.12em] text-muted-foreground">{item.label}</p>
