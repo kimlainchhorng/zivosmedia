@@ -298,9 +298,9 @@ export default function BusinessSoftwarePortalPage() {
 
               <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
                 {[
-                  ["1", "software page"],
-                  ["1", "software setup"],
-                  ["1", "software domain"],
+                  ["14 days", "free trial"],
+                  ["Minutes", "guided setup"],
+                  ["Anytime", "change or cancel"],
                 ].map(([value, label]) => (
                   <div key={label} className="rounded-lg border border-black/10 bg-white/70 p-3 shadow-sm backdrop-blur lg:p-4">
                     <div className="text-xl font-black text-[#111412] lg:text-2xl">{value}</div>
