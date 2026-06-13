@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import type { MouseEvent } from "react";
 import {
   ArrowRight,
-  BadgeCheck,
   BarChart3,
   Building2,
   CalendarCheck,
@@ -16,7 +15,6 @@ import {
   Gauge,
   Layers3,
   LayoutDashboard,
-  Loader2,
   LockKeyhole,
   PackageCheck,
   Plus,
@@ -28,8 +26,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStores";
 import { useAuth } from "@/contexts/AuthContext";
-import AppSwitcher from "@/components/cross-app/AppSwitcher";
-import CrossAppReturnBar from "@/components/cross-app/CrossAppReturnBar";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { resolveSoftwarePortalAccountDashboardPath } from "@/lib/business/softwarePortal";
@@ -151,15 +147,13 @@ const commandRows = [
 
 function ZivoSoftwareMark() {
   return (
-    <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] bg-[#101412] shadow-[0_16px_34px_rgba(17,20,18,0.24)]">
-      <span className="absolute -right-1 -top-1 h-4 w-4 rounded-md bg-[#48e7af] shadow-[0_8px_18px_rgba(72,231,175,0.42)]" />
-      <span className="absolute bottom-2 left-2 h-2 w-2 rounded-sm bg-[#35a8ff]/80" />
-      <svg viewBox="0 0 44 44" aria-hidden="true" className="relative h-8 w-8">
+    <span className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-[24px] bg-[#0b0f0d] shadow-[0_24px_58px_rgba(15,23,42,0.18)]">
+      <span className="absolute -right-1.5 -top-1.5 h-6 w-6 rounded-[9px] border-[3px] border-white bg-[#34d399] shadow-[0_10px_20px_rgba(52,211,153,0.36)]" />
+      <svg viewBox="0 0 44 44" aria-hidden="true" className="relative h-14 w-14">
         <defs>
           <linearGradient id="zivoSoftwareMark" x1="8" y1="8" x2="36" y2="36" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="0.5" stopColor="#48e7af" />
-            <stop offset="1" stopColor="#35a8ff" />
+            <stop offset="0" stopColor="#f8fffc" />
+            <stop offset="1" stopColor="#f8fffc" />
           </linearGradient>
         </defs>
         <path
@@ -175,10 +169,21 @@ function ZivoSoftwareMark() {
   );
 }
 
+function ZivoSoftwareWordmark() {
+  return (
+    <Link to="/business" className="flex items-center gap-6" aria-label="ZIVO Software home">
+      <ZivoSoftwareMark />
+      <span className="hidden leading-none sm:block">
+        <span className="block text-[42px] font-black uppercase tracking-[0.01em] text-[#101412]">ZIVO</span>
+        <span className="mt-2 block text-[19px] font-black uppercase tracking-[0.42em] text-[#22c988]">Software</span>
+      </span>
+    </Link>
+  );
+}
+
 export default function BusinessSoftwarePortalPage() {
-  const { user, isLoading: authLoading } = useAuth();
-  const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
-  const accountLoading = authLoading || (!!user && ownerStoreLoading);
+  const { user } = useAuth();
+  const { data: ownerStore } = useOwnerStoreProfile();
   const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
   const isSoftwareRuntimeHost = isAutoRepairSoftwareHost(currentHostname);
   const mediaDashboardUrl =
@@ -190,13 +195,7 @@ export default function BusinessSoftwarePortalPage() {
     currentHostname,
     mediaDashboardUrl,
   );
-  const hasAccountDashboard = Boolean(ownerStore?.id) || isSoftwareRuntimeHost;
   const primaryActionPath = user ? accountDashboardPath : startPath();
-  const primaryActionLabel = user
-    ? hasAccountDashboard
-      ? "Open Dashboard"
-      : "Create Business Software"
-    : "Create Business Software";
   const footerLoginPath = user ? accountDashboardPath : authPath("/login");
 
   return (
@@ -209,164 +208,80 @@ export default function BusinessSoftwarePortalPage() {
         />
       </Helmet>
 
-      <main className="min-h-screen overflow-hidden bg-[#f7f8f6] text-[#111412]">
-        <div className="mx-auto flex w-full max-w-7xl justify-end px-5 pt-3 sm:px-6 lg:px-8">
-          <CrossAppReturnBar adminHref="#software-businesses" returnPath="/business" />
-        </div>
-        <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f8f6]/90 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
-            <Link to="/business" className="flex items-center gap-3" aria-label="ZIVO Software">
-              <ZivoSoftwareMark />
-              <span className="leading-none">
-                <span className="block text-base font-black uppercase tracking-[0.2em] text-[#101412]">ZIVO</span>
-                <span className="mt-1 block text-[0.7rem] font-black uppercase tracking-[0.16em] text-[#138f68]">Software</span>
-              </span>
-            </Link>
+      <main className="min-h-screen overflow-hidden bg-[#f2f9f4] text-[#0b0f0d]">
+        <header className="sticky top-0 z-50 border-b border-black/10 bg-white">
+          <div className="mx-auto flex min-h-[116px] w-full max-w-[1680px] items-center gap-8 px-8 sm:px-12 lg:px-16">
+            <ZivoSoftwareWordmark />
 
-            <nav className="hidden items-center gap-8 text-sm font-semibold text-[#3f4742] md:flex" aria-label="ZIVO Software sections">
-              <a href="#software" className="transition-colors hover:text-[#111412]">Software</a>
-              <a href="#workflow" className="transition-colors hover:text-[#111412]">Workflow</a>
-              <a href="#industries" className="transition-colors hover:text-[#111412]">Business Page</a>
-              <a href="#security" className="transition-colors hover:text-[#111412]">Security</a>
+            <nav className="ml-auto hidden items-center gap-10 text-[22px] font-medium text-[#353b37] lg:flex" aria-label="ZIVO Software sections">
+              <Link to="/business">Home</Link>
+              <a href="#software">Software</a>
+              <a href="#workflow">Features</a>
+              <a href="#pricing">Pricing</a>
+              <a href="#security">About</a>
+              <a href="mailto:support@zivosoftware.com">Contact</a>
             </nav>
 
-            <div className="flex items-center gap-2">
-              <AppSwitcher className="h-11 w-11" />
-              {user ? (
-                <>
-                  {ownerStore?.name ? (
-                    <span className="hidden max-w-44 truncate rounded-lg border border-black/10 bg-white px-3 py-2 text-xs font-black text-[#3f4742] shadow-sm lg:inline-flex">
-                      {ownerStore.name}
-                    </span>
-                  ) : null}
-                  <Button asChild variant="ghost" className="hidden rounded-lg text-[#111412] hover:bg-black/5 sm:inline-flex">
-                    <a href={startPath()} onClick={forceNavigate(startPath())}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Setup
-                    </a>
-                  </Button>
-                  {accountLoading ? (
-                    <Button disabled className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)]">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Dashboard
-                    </Button>
-                  ) : (
-                    <Button asChild className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)] hover:bg-black">
-                      <a href={accountDashboardPath} onClick={forceNavigate(accountDashboardPath)}>
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        Dashboard
-                      </a>
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Button asChild variant="ghost" className="hidden rounded-lg text-[#111412] hover:bg-black/5 sm:inline-flex">
-                    <a href={authPath("/login")} onClick={forceNavigate(authPath("/login"))}>Log in</a>
-                  </Button>
-                  <Button asChild className="rounded-lg bg-[#111412] text-white shadow-[0_14px_30px_rgba(17,20,18,0.2)] hover:bg-black">
-                    <a href={authPath("/signup")} onClick={forceNavigate(authPath("/signup"))}>Sign up</a>
-                  </Button>
-                </>
-              )}
-            </div>
+            <Button asChild className="ml-auto h-[68px] rounded-[24px] bg-[#0b0f0d] px-9 text-[22px] font-bold text-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] hover:bg-black lg:ml-8">
+              <a href={authPath("/login")} onClick={forceNavigate(authPath("/login"))}>
+                <LockKeyhole className="mr-4 h-7 w-7" />
+                Sign in
+              </a>
+            </Button>
           </div>
         </header>
 
-        <section id="software" className="relative">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(28,216,155,0.22),transparent_28%),radial-gradient(circle_at_88%_12%,rgba(36,167,255,0.18),transparent_30%),linear-gradient(180deg,#f7f8f6_0%,#ffffff_72%)]" />
-          <div className="relative mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-8 px-5 py-10 sm:px-6 md:grid-cols-[0.92fr_1.08fr] lg:gap-12 lg:px-8 lg:py-16">
-            <div className="max-w-2xl">
-              <h1 className="max-w-4xl text-4xl font-black leading-[0.96] tracking-normal text-[#111412] sm:text-5xl lg:text-7xl">
-                ZIVO Software for local businesses
+        <section
+          id="software"
+          className="relative min-h-[calc(100vh-116px)] overflow-hidden bg-[radial-gradient(circle_at_6%_0%,rgba(72,231,175,0.36),transparent_31%),radial-gradient(circle_at_95%_8%,rgba(68,167,255,0.22),transparent_34%),linear-gradient(145deg,#eaf7ef_0%,#eff9f3_45%,#eef8ff_100%)]"
+        >
+          <div className="relative mx-auto w-full max-w-[1680px] px-8 pb-24 pt-20 sm:px-12 lg:px-16 lg:pb-32 lg:pt-24">
+            <div className="ml-auto mr-auto max-w-[1040px] lg:ml-[18%] lg:mr-0">
+              <h1 className="max-w-[760px] text-[64px] font-black leading-[0.96] tracking-normal text-[#0b0f0d] sm:text-[88px] lg:text-[106px]">
+                ZIVO Software
+                <br />
+                for local
+                <br />
+                businesses
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-8 text-[#58625d]">
-                Launch one software-only business workspace for setup, customers, invoices, operations, reports, and secure team access.
+              <p className="mt-14 max-w-[780px] text-[25px] font-medium leading-[1.55] text-[#66706a] sm:text-[31px]">
+                Launch one software-only business workspace for setup, customers,
+                invoices, operations, reports, and secure team access.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="h-12 rounded-lg bg-[#111412] px-6 text-white hover:bg-black">
-                  <a href={primaryActionPath} onClick={forceNavigate(primaryActionPath)}>
-                    {primaryActionLabel}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+              <div className="mt-16 flex flex-col gap-7 sm:flex-row">
+                <Button asChild className="h-[86px] rounded-[26px] bg-[#0b0f0d] px-12 text-[26px] font-bold text-white shadow-[0_20px_50px_rgba(15,23,42,0.1)] hover:bg-black">
+                  <a href={authPath("/signup")} onClick={forceNavigate(authPath("/signup"))}>
+                    Start free trial
+                    <ArrowRight className="ml-6 h-8 w-8" />
                   </a>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="h-12 rounded-lg border-black/15 bg-white/80 px-6 text-[#111412] hover:bg-white">
-                  <a href="#industries">View Software Page</a>
+                <Button asChild variant="outline" className="h-[86px] rounded-[26px] border-black/10 bg-white px-12 text-[26px] font-bold text-[#0b0f0d] shadow-[0_10px_28px_rgba(15,23,42,0.08)] hover:bg-white">
+                  <a href="#pricing">View pricing</a>
                 </Button>
               </div>
 
-              <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
+              <div className="mt-20 grid max-w-[1040px] grid-cols-1 gap-7 sm:grid-cols-3">
                 {[
                   ["14 days", "free trial"],
                   ["Minutes", "guided setup"],
                   ["Anytime", "change or cancel"],
                 ].map(([value, label]) => (
-                  <div key={label} className="rounded-lg border border-black/10 bg-white/70 p-3 shadow-sm backdrop-blur lg:p-4">
-                    <div className="text-xl font-black text-[#111412] lg:text-2xl">{value}</div>
-                    <div className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#67706b]">{label}</div>
+                  <div key={label} className="min-h-[168px] rounded-[28px] border border-white bg-white/70 p-10 shadow-[0_24px_70px_rgba(15,23,42,0.06)] backdrop-blur">
+                    <div className="text-[48px] font-black leading-none text-[#0b0f0d]">{value}</div>
+                    <div className="mt-8 text-[19px] font-black uppercase leading-[1.35] tracking-[0.2em] text-[#8a928d]">{label}</div>
                   </div>
                 ))}
               </div>
-            </div>
 
-            <div className="relative mx-auto w-full max-w-[620px]">
-              <div className="absolute -left-8 top-16 h-28 w-28 rounded-full bg-[#33e6ae]/30 blur-3xl" />
-              <div className="absolute -right-8 bottom-10 h-36 w-36 rounded-full bg-[#44a7ff]/20 blur-3xl" />
-              <div className="relative min-h-[380px] [perspective:1200px] lg:min-h-[480px]">
-                <div className="absolute left-[7%] top-8 w-[86%] rounded-[2rem] border border-white/80 bg-white/75 p-5 shadow-[0_40px_90px_rgba(18,28,24,0.18)] backdrop-blur-xl [transform:rotateX(58deg)_rotateZ(-28deg)] [transform-style:preserve-3d]">
-                  <div className="grid grid-cols-[1fr_0.7fr] gap-4">
-                    <div className="rounded-2xl bg-[#111412] p-5 text-white">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-[0.14em] text-white/60">Workspace</span>
-                        <BadgeCheck className="h-5 w-5 text-[#48e7af]" />
-                      </div>
-                      <div className="mt-8 text-4xl font-black">$18.4k</div>
-                      <div className="mt-1 text-sm text-white/60">weekly revenue</div>
-                    </div>
-                    <div className="grid gap-3">
-                      <div className="rounded-2xl bg-[#48e7af] p-4 text-[#102018] shadow-[0_18px_35px_rgba(72,231,175,0.24)]">
-                        <CalendarCheck className="h-5 w-5" />
-                        <div className="mt-6 text-2xl font-black">42</div>
-                        <div className="text-xs font-semibold">bookings</div>
-                      </div>
-                      <div className="rounded-2xl bg-white p-4 shadow-sm">
-                        <Users className="h-5 w-5 text-[#1f8cff]" />
-                        <div className="mt-6 text-2xl font-black">318</div>
-                        <div className="text-xs font-semibold text-[#69736e]">customers</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-3 gap-3">
-                    {operatingModules.slice(0, 6).map((module) => {
-                      const Icon = module.icon;
-                      return (
-                        <div key={module.label} className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
-                          <Icon className="h-5 w-5 text-[#111412]" />
-                          <div className="mt-5 text-sm font-black">{module.label}</div>
-                          <div className="mt-1 text-xs text-[#69736e]">{module.value}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="absolute left-2 top-24 rounded-2xl border border-white/80 bg-white/85 p-4 shadow-[0_24px_50px_rgba(18,28,24,0.16)] backdrop-blur [transform:translateZ(70px)_rotate(-8deg)]">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111412] text-white">
-                      <LockKeyhole className="h-5 w-5" />
-                    </span>
-                    <div>
-                      <div className="text-sm font-black">Secure sign-in</div>
-                      <div className="text-xs text-[#69736e]">team access ready</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-6 right-2 overflow-hidden rounded-2xl border border-white/80 bg-white shadow-[0_24px_50px_rgba(18,28,24,0.18)] [transform:translateZ(90px)_rotate(7deg)] lg:bottom-10">
-                  <img src={serviceCars} alt="Auto repair software workspace" className="h-28 w-44 object-cover lg:h-36 lg:w-52" />
-                </div>
+              <div className="mt-24 inline-flex max-w-[400px] items-center gap-6 rounded-[26px] border border-white bg-white/72 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur">
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] bg-[#0b0f0d] text-white">
+                  <LockKeyhole className="h-8 w-8" />
+                </span>
+                <span>
+                  <span className="block text-[24px] font-black text-[#0b0f0d]">Secure sign-in</span>
+                  <span className="mt-1 block text-[19px] font-medium text-[#66706a]">team access ready</span>
+                </span>
               </div>
             </div>
           </div>
@@ -603,7 +518,7 @@ export default function BusinessSoftwarePortalPage() {
           </div>
         </section>
 
-        <section className="bg-[#111412] px-5 py-14 text-white sm:px-6 lg:px-8">
+        <section id="pricing" className="bg-[#111412] px-5 py-14 text-white sm:px-6 lg:px-8">
           <div className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <h2 className="max-w-3xl text-3xl font-black tracking-normal sm:text-4xl">Start with the right business software today</h2>
