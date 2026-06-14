@@ -33,7 +33,19 @@ export default function BuildROSaveCannedDialog({ open, onOpenChange, storeId, l
   const [name, setName] = useState("");
   const [category, setCategory] = useState("general");
 
-  useEffect(() => { if (open) { setName(""); setCategory("general"); } }, [open]);
+  const resetCannedState = () => {
+    setName("");
+    setCategory("general");
+  };
+
+  useEffect(() => {
+    if (open) resetCannedState();
+  }, [open]);
+
+  const handleOpenChange = (v: boolean) => {
+    if (!v) resetCannedState();
+    onOpenChange(v);
+  };
 
   const usable = useMemo(
     () => lines.filter((l) => l.description.trim() && (l.kind !== "note" && l.kind !== "concern")),
@@ -64,13 +76,13 @@ export default function BuildROSaveCannedDialog({ open, onOpenChange, storeId, l
       toast.success("Saved to Price Book as a canned job");
       qc.invalidateQueries({ queryKey: ["ar-service-catalog-picker", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-service-catalog", storeId] });
-      onOpenChange(false);
+      handleOpenChange(false);
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to save"),
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><BookOpen className="h-4 w-4" /> Save as Canned Job</DialogTitle>
@@ -97,7 +109,7 @@ export default function BuildROSaveCannedDialog({ open, onOpenChange, storeId, l
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending || usable.length === 0}>
             {save.isPending ? "Saving…" : "Save to Price Book"}
           </Button>

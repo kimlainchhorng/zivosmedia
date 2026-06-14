@@ -133,9 +133,9 @@ function SwipeableCartItem({
           </p>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
-          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)} className="p-1.5 rounded-lg hover:bg-muted active:scale-95 transition-all"><Minus className="h-3 w-3" /></motion.button>
+          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)} className="p-1.5 rounded-lg hover:bg-muted active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Decrease quantity"><Minus className="h-3 w-3" /></motion.button>
           <motion.span key={item.quantity} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="text-[11px] font-bold w-4 text-center">{item.quantity}</motion.span>
-          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)} className="p-1.5 rounded-lg hover:bg-muted active:scale-95 transition-all"><Plus className="h-3 w-3" /></motion.button>
+          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)} className="p-1.5 rounded-lg hover:bg-muted active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Increase quantity"><Plus className="h-3 w-3" /></motion.button>
         </div>
       </motion.div>
     </motion.div>
@@ -196,7 +196,8 @@ function FeaturedProductRow({ products, onAdd, cart }: {
                   <motion.button
                     whileTap={{ scale: 0.8 }}
                     onClick={() => onAdd(p)}
-                    className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                    aria-label="Add to cart"
+                    className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       inCart
                         ? "bg-ig-gradient text-white shadow-md shadow-primary/30"
                         : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/15"
@@ -392,7 +393,7 @@ export default function GroceryStorePage() {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate("/grocery")}
-            className="p-2 rounded-2xl hover:bg-muted/60 transition-colors duration-200"
+            className="p-2 rounded-2xl hover:bg-muted/60 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back to stores"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -434,7 +435,7 @@ export default function GroceryStorePage() {
               e.stopPropagation();
               setShowCart((prev) => !prev);
             }}
-            className="relative p-3 -mr-1 rounded-2xl bg-muted/30 hover:bg-muted/50 active:bg-muted/70 transition-colors duration-200 min-w-[48px] min-h-[48px] flex items-center justify-center z-40 touch-manipulation cursor-pointer"
+            className="relative p-3 -mr-1 rounded-2xl bg-muted/30 hover:bg-muted/50 active:bg-muted/70 transition-colors duration-200 min-w-[48px] min-h-[48px] flex items-center justify-center z-40 touch-manipulation cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Shopping cart"
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
@@ -473,7 +474,7 @@ export default function GroceryStorePage() {
               key={f.label}
               whileTap={{ scale: 0.93 }}
               onClick={() => handleQuickFilter(f)}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0 transition-all duration-200 ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 activeFilter === f.label
                   ? "bg-ig-gradient text-white shadow-sm shadow-primary/25"
                   : "bg-muted/30 text-muted-foreground hover:bg-muted/60 border border-border/20"
@@ -513,7 +514,7 @@ export default function GroceryStorePage() {
               autoLoadCount.current = 0;
               search(storeCfg!.defaultQuery);
             }}
-            className="flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:underline"
+            className="flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:underline rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             ← Back to categories
           </motion.button>
@@ -539,9 +540,9 @@ export default function GroceryStorePage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {cart.items.length > 0 && (
-                    <button type="button" onClick={cart.clearCart} className="text-[11px] text-destructive hover:underline font-medium">Clear</button>
+                    <button type="button" onClick={cart.clearCart} className="text-[11px] text-destructive hover:underline font-medium rounded-md transition-transform active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Clear</button>
                   )}
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowCart(false)} className="p-1 rounded-lg hover:bg-muted/60 transition-colors">
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setShowCart(false)} aria-label="Close cart" className="p-1 rounded-lg hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <ChevronUp className="h-4 w-4 text-muted-foreground" />
                   </motion.button>
                 </div>
@@ -720,7 +721,7 @@ export default function GroceryStorePage() {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={cycleSortMode}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-muted/30 border border-border/20 hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-muted/30 border border-border/20 hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
               <span className="text-[10px] font-semibold text-muted-foreground">{sortLabel[sortMode]}</span>
@@ -787,7 +788,7 @@ export default function GroceryStorePage() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => setShowCart(true)}
-              className="w-full flex items-center justify-between gap-3 p-3.5 pl-4 rounded-2xl bg-ig-gradient text-white shadow-2xl shadow-primary/30 border border-primary/20"
+              className="w-full flex items-center justify-between gap-3 p-3.5 pl-4 rounded-2xl bg-ig-gradient text-white shadow-2xl shadow-primary/30 border border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center h-8 w-8 rounded-xl bg-primary-foreground/20 backdrop-blur-sm">

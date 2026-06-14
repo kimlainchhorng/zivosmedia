@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
-  ArrowLeft, Calendar, MapPin, Users, Loader2, CheckCircle2, HelpCircle, XCircle,
+  ArrowLeft, Calendar, MapPin, Users, Loader2, CheckCircle2, HelpCircle, XCircle, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -102,6 +102,23 @@ export default function EventDetailPage() {
     });
   }, [event?.starts_at]);
 
+  const endsAtLabel = useMemo(() => {
+    if (!event?.ends_at) return "";
+    const end = new Date(event.ends_at);
+    const start = event.starts_at ? new Date(event.starts_at) : null;
+    if (start && end.toDateString() === start.toDateString()) {
+      return end.toLocaleString(undefined, { hour: "numeric", minute: "2-digit" });
+    }
+    return end.toLocaleString(undefined, {
+      weekday: "short", month: "short", day: "numeric",
+      hour: "numeric", minute: "2-digit",
+    });
+  }, [event?.ends_at, event?.starts_at]);
+
+  const isFull =
+    !!event && event.capacity != null && event.capacity > 0 && event.going_count >= event.capacity;
+  const isPrivate = !!event && !!event.visibility && event.visibility !== "public";
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -132,33 +149,49 @@ export default function EventDetailPage() {
               </div>
             )}
 
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight">{event.title}</h1>
-              {isCreator && (
-                <p className="text-[11px] font-bold uppercase tracking-wider text-primary mt-1">
-                  Your event
-                </p>
-              )}
+            <div className="flex items-start gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-extrabold tracking-tight">{event.title}</h1>
+                {isCreator && (
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-primary mt-0.5">
+                    Your event
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                {isFull && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-400 text-[11px] font-bold uppercase tracking-wide">
+                    Full
+                  </span>
+                )}
+                {isPrivate && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[11px] font-bold uppercase tracking-wide">
+                    <Lock className="w-3 h-3" /> Private
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2.5 text-sm">
-              <div className="flex items-center gap-2.5 text-foreground">
-                <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span>{startsAtLabel}</span>
-              </div>
-              {event.location && (
-                <div className="flex items-center gap-2.5 text-foreground">
-                  <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span>{event.location}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2.5 text-foreground">
-                <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 shrink-0" />
                 <span>
-                  {event.going_count} going
-                  {event.capacity ? ` / ${event.capacity} capacity` : ""}
+                  {startsAtLabel}
+                  {endsAtLabel && <> &ndash; {endsAtLabel}</>}
                 </span>
-              </div>
+              </span>
+              {event.location && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" /> {event.location}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 shrink-0" />
+                {event.going_count} going{event.capacity ? ` · ${event.capacity} cap.` : ""}
+              </span>
             </div>
 
             {event.description && (
@@ -168,42 +201,54 @@ export default function EventDetailPage() {
             )}
 
             {user && !isCreator && (
-              <div className="grid grid-cols-3 gap-2 pt-2">
-                {([
-                  { v: "going",    label: "Going",    icon: CheckCircle2, accent: "bg-emerald-500 text-white border-emerald-500" },
-                  { v: "maybe",    label: "Maybe",    icon: HelpCircle,   accent: "bg-amber-500 text-white border-amber-500" },
-                  { v: "declined", label: "Decline",  icon: XCircle,      accent: "bg-rose-500 text-white border-rose-500" },
-                ] as const).map((opt) => {
-                  const active = myRsvp === opt.v;
-                  return (
-                    <button
-                      key={opt.v}
-                      type="button"
-                      onClick={() => rsvpMut.mutate(opt.v)}
-                      disabled={rsvpMut.isPending}
-                      className={cn(
-                        "inline-flex flex-col items-center justify-center gap-1 py-3 rounded-xl border-2 text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-60",
-                        active
-                          ? opt.accent
-                          : "bg-card text-foreground border-border hover:border-primary/40",
-                      )}
-                    >
-                      <opt.icon className="w-4 h-4" />
-                      {opt.label}
-                    </button>
-                  );
-                })}
+              <div className="space-y-3 pt-4 border-t border-border/40">
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { v: "going",    label: "Going",    icon: CheckCircle2, accent: "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600" },
+                    { v: "maybe",    label: "Maybe",    icon: HelpCircle,   accent: "bg-amber-500 text-white border-amber-500 hover:bg-amber-600" },
+                    { v: "declined", label: "Decline",  icon: XCircle,      accent: "bg-rose-500 text-white border-rose-500 hover:bg-rose-600" },
+                  ] as const).map((opt) => {
+                    const active = myRsvp === opt.v;
+                    const goingDisabled = opt.v === "going" && isFull && !active;
+                    return (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => rsvpMut.mutate(opt.v)}
+                        disabled={rsvpMut.isPending || goingDisabled}
+                        className={cn(
+                          "inline-flex flex-col items-center justify-center gap-1 py-3 rounded-xl border-2 text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-60",
+                          active
+                            ? opt.accent
+                            : goingDisabled
+                              ? "bg-muted/50 text-muted-foreground border-border cursor-not-allowed"
+                              : "bg-card text-foreground border-border hover:border-primary/40",
+                        )}
+                      >
+                        <opt.icon className="w-4 h-4" />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {isFull && !myRsvp && (
+                  <p className="text-xs text-center text-muted-foreground">
+                    This event is at full capacity.
+                  </p>
+                )}
               </div>
             )}
 
             {!user && (
-              <button
-                type="button"
-                onClick={() => navigate(`/login?redirect=/events-hub/${id}`)}
-                className="w-full py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm"
-              >
-                Sign in to RSVP
-              </button>
+              <div className="pt-4 border-t border-border/40">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/login?redirect=/events-hub/${id}`)}
+                  className="w-full py-3.5 rounded-xl bg-ig-gradient text-white font-extrabold text-sm active:scale-[0.98] transition-all"
+                >
+                  Sign in to RSVP
+                </button>
+              </div>
             )}
           </div>
         )}

@@ -140,12 +140,12 @@ export default function CommunitiesPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" aria-label="Go back" title="Go back" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50">
+          <button type="button" aria-label="Go back" title="Go back" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-bold flex-1">Communities</h1>
           {user && (
-            <button type="button" aria-label="Create community" title="Create community" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-ig-gradient text-white">
+            <button type="button" aria-label="Create community" title="Create community" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-ig-gradient text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Plus className="h-4 w-4" />
             </button>
           )}
@@ -157,7 +157,8 @@ export default function CommunitiesPage() {
             <button type="button"
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
+              aria-pressed={tab === t}
+              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 tab === t ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
               }`}
             >
@@ -197,7 +198,7 @@ export default function CommunitiesPage() {
                   void refetch();
                 }}
                 disabled={isFetching}
-                className="shrink-0 rounded-full bg-foreground px-3 py-1 text-[11px] font-bold text-background disabled:opacity-50"
+                className="shrink-0 rounded-full bg-foreground px-3 py-1 text-[11px] font-bold text-background disabled:opacity-50 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {isFetching ? "Refreshing..." : "Retry"}
               </button>
@@ -277,7 +278,7 @@ export default function CommunitiesPage() {
                   <button type="button"
                     onClick={(e) => { e.stopPropagation(); joinMutation.mutate(community.id); }}
                     disabled={joinMutation.isPending}
-                    className={`w-full mt-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    className={`w-full mt-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       isMember
                         ? "bg-muted text-foreground"
                         : "bg-ig-gradient text-white"
@@ -329,7 +330,8 @@ export default function CommunitiesPage() {
                     <button type="button"
                       key={p}
                       onClick={() => setNewCommunity({ ...newCommunity, privacy: p })}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-medium ${
+                      aria-pressed={newCommunity.privacy === p}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         newCommunity.privacy === p
                           ? "bg-ig-gradient text-white"
                           : "bg-muted/40 text-muted-foreground"
@@ -342,7 +344,7 @@ export default function CommunitiesPage() {
                 <button type="button"
                   onClick={() => createMutation.mutate()}
                   disabled={!newCommunity.name || createMutation.isPending}
-                  className="w-full py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {createMutation.isPending ? "Creating..." : "Create Community"}
                 </button>

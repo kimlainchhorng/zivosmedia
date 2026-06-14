@@ -164,7 +164,7 @@ export default function InterestsPage() {
                     type="button"
                     aria-label={`Remove ${i.interest}`}
                     onClick={() => removeMutation.mutate(i.id)}
-                    className="h-5 w-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center active:scale-90 transition-all"
+                    className="h-5 w-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <X className="h-3 w-3" strokeWidth={3} />
                   </button>
@@ -190,7 +190,7 @@ export default function InterestsPage() {
               type="button"
               onClick={() => addMutation.mutate(adding)}
               disabled={!adding.trim() || addMutation.isPending}
-              className="h-10 px-4 rounded-lg bg-ig-gradient text-white font-bold text-sm inline-flex items-center gap-1 hover:opacity-90 active:scale-95 transition-all border-0 disabled:opacity-40"
+              className="h-10 px-4 rounded-lg bg-ig-gradient text-white font-bold text-sm inline-flex items-center gap-1 hover:opacity-90 active:scale-95 transition-all border-0 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={3} /> Add
             </button>
@@ -213,7 +213,7 @@ export default function InterestsPage() {
                   onClick={() => addMutation.mutate(name)}
                   disabled={addMutation.isPending}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-all",
+                    "flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     "disabled:opacity-50",
                   )}
                 >

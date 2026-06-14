@@ -60,7 +60,7 @@ function Field({ label, className = "", children }: { label: string; className?:
   );
 }
 
-export default function BuildROLineComposer({ laborRateCents, partsMatrix, storeId, onAdd }: Props) {
+export default function BuildROLineComposer({ laborRateCents, partsMatrix, storeId, onAdd, onOpenCatalog }: Props) {
   const [kind, setKind] = useState<ComposerKind>("part");
   const [description, setDescription] = useState("");
   const [partNumber, setPartNumber] = useState("");
@@ -130,6 +130,21 @@ export default function BuildROLineComposer({ laborRateCents, partsMatrix, store
     setQty("1");
     setDisc("");
     setDiscType("%");
+    setTaxable(true);
+  };
+
+  const changeKind = (nextKind: ComposerKind) => {
+    setKind(nextKind);
+    setPartNumber("");
+    setVendor("");
+    setTechnician("");
+    setCost("");
+    setSell("");
+    setSellTouched(false);
+    setQty("1");
+    setDisc("");
+    setDiscType("%");
+    setTaxable(true);
   };
 
   const add = () => {
@@ -168,7 +183,7 @@ export default function BuildROLineComposer({ laborRateCents, partsMatrix, store
 
         <div className="grid min-w-0 gap-2 md:grid-cols-12">
           <Field label="Type" className="md:col-span-2">
-            <Select value={kind} onValueChange={(v: ComposerKind) => setKind(v)}>
+            <Select value={kind} onValueChange={(v: ComposerKind) => changeKind(v)}>
               <SelectTrigger className="h-10 rounded-md border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-sm">
                 <SelectValue />
               </SelectTrigger>
@@ -273,7 +288,17 @@ export default function BuildROLineComposer({ laborRateCents, partsMatrix, store
                 <input className={`${inp} w-full`} placeholder="Part #" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} />
               </Field>
               <Field label="Vendor" className="md:col-span-4">
-                <input className={`${inp} w-full`} list="ar-composer-vendors" placeholder="Vendor" value={vendor} onChange={(e) => setVendor(e.target.value)} />
+                <div className="flex gap-1">
+                  <input className={`${inp} min-w-0 flex-1`} list="ar-composer-vendors" placeholder="Vendor" value={vendor} onChange={(e) => setVendor(e.target.value)} />
+                  <button
+                    type="button"
+                    onClick={onOpenCatalog}
+                    className="h-10 shrink-0 rounded-md border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 shadow-sm transition hover:border-sky-300 hover:text-sky-700"
+                    title="Open parts catalog"
+                  >
+                    Catalog
+                  </button>
+                </div>
                 <datalist id="ar-composer-vendors">{vendors.map((v) => <option key={v} value={v} />)}</datalist>
               </Field>
             </>

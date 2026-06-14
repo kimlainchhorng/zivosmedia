@@ -57,7 +57,7 @@ export default function AvatarMoodsPage() {
         {!isLoading && moods.length > 0 && (
           <div className="grid grid-cols-3 gap-2">
             {moods.map((m, idx) => (
-              <motion.button key={m.id} type="button" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: Math.min(idx, 20) * 0.02 }} whileTap={{ scale: 0.95 }} className="aspect-square rounded-2xl bg-ig-gradient/5 border border-border hover:bg-ig-gradient/10 transition-all flex flex-col items-center justify-center gap-1">
+              <motion.button key={m.id} type="button" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: Math.min(idx, 20) * 0.02 }} whileTap={{ scale: 0.95 }} className="aspect-square rounded-2xl bg-ig-gradient/5 border border-border hover:bg-ig-gradient/10 transition-all flex flex-col items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <span className="text-4xl">{m.emoji}</span>
                 <span className="text-[11px] font-bold text-foreground capitalize">{m.label}</span>
               </motion.button>

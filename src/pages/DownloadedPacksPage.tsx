@@ -108,7 +108,7 @@ export default function DownloadedPacksPage() {
                       <span className="inline-flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {formatRelative(d.created_at)}</span>
                     </div>
                   </div>
-                  <button type="button" aria-label="Remove" onClick={() => remove(d.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors">
+                  <button type="button" aria-label="Remove" onClick={() => remove(d.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </motion.div>

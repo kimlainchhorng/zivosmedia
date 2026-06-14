@@ -479,7 +479,7 @@ export default function PublicStylistDayPage() {
           <div className="text-center">
             <p className="text-sm font-bold text-foreground">{formatDay(date)}</p>
             {date !== todayIso() && (
-              <button type="button" onClick={() => setDate(todayIso())} className="text-[11px] text-primary hover:underline">
+              <button type="button" onClick={() => setDate(todayIso())} className="rounded-sm text-[11px] text-primary transition-all hover:underline active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 Jump to today
               </button>
             )}
@@ -530,7 +530,7 @@ export default function PublicStylistDayPage() {
                           <StatusIcon className="h-3 w-3" /> {status.label}
                         </span>
                         {r.client_phone && (
-                          <a href={`tel:${r.client_phone}`} className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground hover:bg-muted/80">
+                          <a href={`tel:${r.client_phone}`} className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground transition-all hover:bg-muted/80 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <Phone className="h-3 w-3" /> {r.client_phone}
                           </a>
                         )}
@@ -658,7 +658,7 @@ export default function PublicStylistDayPage() {
                           value={formulaPanel[r.id]?.draftNotes ?? ""}
                           onChange={(e) => updateFormulaDraftNotes(r.id, e.target.value)}
                           placeholder="Notes (e.g. 'loved it', 'try 7G next time')"
-                          className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
+                          className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground transition-all placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           maxLength={500}
                         />
                         <div className="flex items-center justify-end gap-2">
@@ -792,7 +792,7 @@ function StripeConnectBanner({
         </span>
         <Link
           to={`/stylist/${stylistId}/earnings`}
-          className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-[11px] font-bold text-foreground hover:bg-muted"
+          className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1 text-[11px] font-bold text-foreground transition-all hover:bg-muted active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           My earnings <ArrowRight className="h-3 w-3" />
         </Link>

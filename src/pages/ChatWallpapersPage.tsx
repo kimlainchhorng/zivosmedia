@@ -177,7 +177,7 @@ export default function ChatWallpapersPage() {
                       <button
                         type="button"
                         onClick={() => setAsDefault(w.id)}
-                        className="flex-1 h-7 rounded-full bg-white text-black text-[10px] font-bold inline-flex items-center justify-center gap-0.5 active:scale-95 transition-all"
+                        className="flex-1 h-7 rounded-full bg-white text-black text-[10px] font-bold inline-flex items-center justify-center gap-0.5 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                       >
                         <Check className="h-2.5 w-2.5" /> Default
                       </button>
@@ -186,7 +186,7 @@ export default function ChatWallpapersPage() {
                       type="button"
                       aria-label="Remove"
                       onClick={() => remove(w.id)}
-                      className="h-7 w-7 rounded-full bg-rose-500/80 hover:bg-rose-500 text-white inline-flex items-center justify-center active:scale-95 transition-all"
+                      className="h-7 w-7 rounded-full bg-rose-500/80 hover:bg-rose-500 text-white inline-flex items-center justify-center active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

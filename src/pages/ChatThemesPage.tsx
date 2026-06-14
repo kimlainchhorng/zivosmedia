@@ -131,7 +131,7 @@ export default function ChatThemesPage() {
                   whileTap={{ scale: 0.97 }}
                   onClick={() => apply(t)}
                   className={cn(
-                    "relative rounded-2xl overflow-hidden text-left transition-all",
+                    "relative rounded-2xl overflow-hidden text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     isSelected ? "ring-2 ring-transparent ring-offset-2 ring-offset-background bg-ig-gradient p-[2px]" : "",
                   )}
                   aria-pressed={isSelected}

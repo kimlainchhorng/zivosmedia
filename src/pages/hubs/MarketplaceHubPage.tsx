@@ -186,7 +186,7 @@ export default function MarketplaceHubPage() {
             </motion.div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {shown.map((l) => <MarketplaceListingCard key={l.id} listing={l} onTap={(id) => navigate(`/marketplace-hub/${id}`)} />)}
+              {shown.map((l) => <MarketplaceListingCard key={l.id} listing={l} onTap={(id) => navigate(`/marketplace?listing=${id}`)} />)}
             </div>
           )}
         </section>

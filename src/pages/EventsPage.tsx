@@ -104,12 +104,12 @@ export default function EventsPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-bold flex-1">Events</h1>
           {user && (
-            <button type="button" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-ig-gradient text-white">
+            <button type="button" onClick={() => setShowCreate(true)} aria-label="Create event" className="p-2 rounded-full bg-ig-gradient text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Plus className="h-4 w-4" />
             </button>
           )}
@@ -134,7 +134,8 @@ export default function EventsPage() {
             <button type="button"
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              aria-pressed={selectedCategory === cat}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 selectedCategory === cat
                   ? "bg-ig-gradient text-white"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -224,7 +225,7 @@ export default function EventsPage() {
                     <button type="button"
                       onClick={() => rsvpMutation.mutate(event.id)}
                       disabled={rsvpMutation.isPending}
-                      className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                      className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         isRsvpd
                           ? "bg-muted text-foreground"
                           : "bg-ig-gradient text-white"
@@ -287,7 +288,7 @@ export default function EventsPage() {
                 <select
                   value={newEvent.category}
                   onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-muted/40 text-sm focus:outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-muted/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   {CATEGORIES.filter((c) => c !== "All").map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -296,7 +297,7 @@ export default function EventsPage() {
                 <button type="button"
                   onClick={() => createMutation.mutate()}
                   disabled={!newEvent.title || !newEvent.start_time || createMutation.isPending}
-                  className="w-full py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                 >
                   {createMutation.isPending ? "Creating..." : "Create Event"}
                 </button>

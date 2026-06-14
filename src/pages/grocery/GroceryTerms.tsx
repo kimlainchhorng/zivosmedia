@@ -96,7 +96,7 @@ export default function GroceryTerms() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-2xl border-b border-border/20">
         <div className="flex items-center gap-3 px-4 py-3">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} className="p-2 rounded-2xl hover:bg-muted/60"><ArrowLeft className="h-5 w-5" /></motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} aria-label="Go back" className="p-2 rounded-2xl hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="h-5 w-5" /></motion.button>
           <div>
             <h1 className="text-base font-bold">Grocery Terms of Service</h1>
             <p className="text-[10px] text-muted-foreground">Last updated March 2026</p>
@@ -108,8 +108,8 @@ export default function GroceryTerms() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-2xl bg-primary/5 border border-primary/15">
           <p className="text-[13px] text-foreground/80 leading-relaxed">
             These terms govern your use of the ZIVO Grocery delivery marketplace. By using this service, you agree to the following terms and conditions. Please also review our{" "}
-            <Link to="/legal/privacy" className="text-primary underline">Privacy Policy</Link> and{" "}
-            <Link to="/grocery/fees" className="text-primary underline">Pricing & Fees</Link>.
+            <Link to="/legal/privacy" className="text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Privacy Policy</Link> and{" "}
+            <Link to="/grocery/fees" className="text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Pricing & Fees</Link>.
           </p>
         </motion.div>
 
@@ -136,7 +136,7 @@ export default function GroceryTerms() {
         <div className="text-center pt-4 space-y-2">
           <p className="text-[11px] text-muted-foreground">Questions? Contact <span className="text-primary font-semibold">support@zivosmedia.com</span></p>
           <p className="text-[9px] text-muted-foreground/50">
-            See also: <Link to="/legal/terms" className="text-primary/60 underline">General Terms</Link> · <Link to="/legal/privacy" className="text-primary/60 underline">Privacy Policy</Link> · <Link to="/grocery/fees" className="text-primary/60 underline">Pricing & Fees</Link> · <Link to="/grocery/returns" className="text-primary/60 underline">Returns Policy</Link>
+            See also: <Link to="/legal/terms" className="text-primary/60 underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">General Terms</Link> · <Link to="/legal/privacy" className="text-primary/60 underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Privacy Policy</Link> · <Link to="/grocery/fees" className="text-primary/60 underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Pricing & Fees</Link> · <Link to="/grocery/returns" className="text-primary/60 underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Returns Policy</Link>
           </p>
         </div>
       </div>

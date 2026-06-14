@@ -62,7 +62,7 @@ function FeaturedStore({ store, eta, location }: { store: StoreConfig; eta: numb
       transition={{ type: "spring", stiffness: 280, damping: 22, delay: 0.1 }}
       whileTap={{ scale: 0.97 }}
       onClick={() => navigate(`/grocery/store/${store.slug}`)}
-      className="w-full relative p-5 rounded-[24px] border border-primary/15 bg-card overflow-hidden group hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
+      className="w-full relative p-5 rounded-[24px] border border-primary/15 bg-card overflow-hidden group hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {/* Subtle gradient accent */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/40 via-primary/20 to-transparent rounded-t-[24px]" />
@@ -125,7 +125,7 @@ function StoreCardWithLocation({ store, eta, location }: { store: StoreConfig; e
       layout
       whileTap={{ scale: 0.97 }}
       onClick={() => navigate(`/grocery/store/${store.slug}`)}
-      className={`group w-full flex items-center gap-4 p-4 rounded-[20px] border bg-card transition-all duration-300 ${
+      className={`group w-full flex items-center gap-4 p-4 rounded-[20px] border bg-card transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
         status.isOpen
           ? "border-border/25 hover:border-primary/15 hover:shadow-xl hover:shadow-primary/5"
           : "border-border/15 opacity-60"
@@ -338,7 +338,7 @@ export default function GroceryMarketplace() {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate(-1)}
-            className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-2xl hover:bg-muted/60 transition-colors duration-200 touch-manipulation"
+            className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-2xl hover:bg-muted/60 transition-colors duration-200 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Go back"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -363,7 +363,7 @@ export default function GroceryMarketplace() {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => navigate("/grocery/orders")}
-              className="p-2.5 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors duration-200"
+              className="p-2.5 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="My orders"
             >
               <ClipboardList className="h-5 w-5" />
@@ -371,7 +371,7 @@ export default function GroceryMarketplace() {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => navigate("/grocery/store/walmart")}
-              className="relative p-2.5 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors duration-200"
+              className="relative p-2.5 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Shopping cart"
             >
               <ShoppingCart className="h-5 w-5" />
@@ -452,8 +452,9 @@ export default function GroceryMarketplace() {
                   <motion.button
                     key={ds.id}
                     variants={cardVariant}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => navigate(getStorePublicPath(ds))}
-                    className="w-full rounded-2xl bg-card border border-border/30 hover:border-primary/20 hover:shadow-lg transition-all text-left group overflow-hidden"
+                    className="w-full rounded-2xl bg-card border border-border/30 hover:border-primary/20 hover:shadow-lg transition-all text-left group overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {/* Cover / Banner */}
                     {ds.banner_url ? (
@@ -547,7 +548,7 @@ export default function GroceryMarketplace() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-primary/10">
+            <div className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-primary/10">
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
                 <Clock className="h-3 w-3 text-primary" />
                 <span>Same day</span>

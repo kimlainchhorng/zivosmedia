@@ -159,20 +159,23 @@ export default function MonetizationArticleDetailPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-sm font-bold flex-1 text-center truncate">{title}</h1>
           <div className="flex items-center gap-1">
             <button type="button"
               onClick={() => { toast.success("Link copied!"); navigator.clipboard?.writeText(window.location.href); }}
-              className="p-2 rounded-full hover:bg-muted/50 touch-manipulation"
+              aria-label="Share article"
+              className="p-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Share2 className="h-4 w-4" />
             </button>
             <button type="button"
               onClick={() => { setSaved(!saved); toast.success(saved ? "Removed from saved" : "Article saved!"); }}
-              className={`p-2 -mr-2 rounded-full hover:bg-muted/50 touch-manipulation ${saved ? "text-primary" : ""}`}
+              aria-label="Save article"
+              aria-pressed={saved}
+              className={`p-2 -mr-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${saved ? "text-primary" : ""}`}
             >
               <Bookmark className={`h-4 w-4 ${saved ? "fill-primary" : ""}`} />
             </button>
@@ -250,7 +253,7 @@ export default function MonetizationArticleDetailPage() {
         <div className="grid grid-cols-2 gap-3">
           <button type="button"
             onClick={() => navigate("/creator-dashboard")}
-            className="rounded-xl border border-border/40 bg-card p-3 text-left touch-manipulation active:scale-[0.97] transition-transform"
+            className="rounded-xl border border-border/40 bg-card p-3 text-left touch-manipulation active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Crown className="w-5 h-5 text-amber-500 mb-2" />
             <p className="text-xs font-bold">Creator Dashboard</p>
@@ -258,7 +261,7 @@ export default function MonetizationArticleDetailPage() {
           </button>
           <button type="button"
             onClick={() => navigate("/monetization")}
-            className="rounded-xl border border-border/40 bg-card p-3 text-left touch-manipulation active:scale-[0.97] transition-transform"
+            className="rounded-xl border border-border/40 bg-card p-3 text-left touch-manipulation active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <DollarSign className="w-5 h-5 text-emerald-500 mb-2" />
             <p className="text-xs font-bold">Monetization Hub</p>
@@ -266,7 +269,7 @@ export default function MonetizationArticleDetailPage() {
           </button>
           <button type="button"
             onClick={() => navigate("/shop-dashboard")}
-            className="rounded-xl border border-border/40 bg-card p-3 text-left touch-manipulation active:scale-[0.97] transition-transform"
+            className="rounded-xl border border-border/40 bg-card p-3 text-left touch-manipulation active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Gift className="w-5 h-5 text-foreground mb-2" />
             <p className="text-xs font-bold">ZIVO Shop</p>
@@ -274,7 +277,7 @@ export default function MonetizationArticleDetailPage() {
           </button>
           <button type="button"
             onClick={() => navigate("/account/settings")}
-            className="rounded-xl border border-border/40 bg-card p-3 text-left touch-manipulation active:scale-[0.97] transition-transform"
+            className="rounded-xl border border-border/40 bg-card p-3 text-left touch-manipulation active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Shield className="w-5 h-5 text-blue-500 mb-2" />
             <p className="text-xs font-bold">Account Settings</p>
@@ -286,19 +289,21 @@ export default function MonetizationArticleDetailPage() {
         <div className="flex items-center gap-3 py-3 border-t border-border/30">
           <button type="button"
             onClick={() => { setLiked(!liked); toast.success(liked ? "Removed" : "Marked as helpful!"); }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold touch-manipulation active:scale-95 transition-all ${liked ? "bg-primary/15 text-primary" : "bg-muted/50"}`}
+            aria-pressed={liked}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold touch-manipulation active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${liked ? "bg-primary/15 text-primary" : "bg-muted/50"}`}
           >
             <ThumbsUp className={`w-3.5 h-3.5 ${liked ? "fill-primary" : ""}`} /> Helpful
           </button>
           <button type="button"
             onClick={() => { toast.success("Link copied!"); navigator.clipboard?.writeText(window.location.href); }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-muted/50 text-xs font-semibold touch-manipulation active:scale-95 transition-transform"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-muted/50 text-xs font-semibold touch-manipulation active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Share2 className="w-3.5 h-3.5" /> Share
           </button>
           <button type="button"
             onClick={() => { setSaved(!saved); toast.success(saved ? "Removed" : "Saved!"); }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold touch-manipulation active:scale-95 transition-all ${saved ? "bg-primary/15 text-primary" : "bg-muted/50"}`}
+            aria-pressed={saved}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold touch-manipulation active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${saved ? "bg-primary/15 text-primary" : "bg-muted/50"}`}
           >
             <Bookmark className={`w-3.5 h-3.5 ${saved ? "fill-primary" : ""}`} /> Save
           </button>
@@ -312,7 +317,7 @@ export default function MonetizationArticleDetailPage() {
               <button type="button"
                 key={related}
                 onClick={() => navigate(`/monetization/articles/${related.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}`)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-card text-left touch-manipulation active:scale-[0.98] transition-transform"
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-card text-left touch-manipulation active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <BookOpen className="w-4 h-4 text-primary" />
@@ -327,7 +332,7 @@ export default function MonetizationArticleDetailPage() {
         {/* Browse All */}
         <button type="button"
           onClick={() => navigate("/monetization/articles")}
-          className="w-full py-3 rounded-xl bg-ig-gradient text-white text-sm font-bold touch-manipulation active:scale-[0.98] transition-transform"
+          className="w-full py-3 rounded-xl bg-ig-gradient text-white text-sm font-bold touch-manipulation active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Browse All Articles
         </button>

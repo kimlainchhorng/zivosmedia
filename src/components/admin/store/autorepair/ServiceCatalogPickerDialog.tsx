@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -40,6 +40,17 @@ const fmt = (cents: number) =>
 export default function ServiceCatalogPickerDialog({ open, onOpenChange, storeId, onPick, title = "Price Book" }: Props) {
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("All");
+  const resetPickerState = () => {
+    setSearch("");
+    setCat("All");
+  };
+  useEffect(() => {
+    if (open) resetPickerState();
+  }, [open]);
+  const handleOpenChange = (v: boolean) => {
+    if (!v) resetPickerState();
+    onOpenChange(v);
+  };
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ["ar-service-catalog-picker", storeId],
@@ -99,13 +110,11 @@ export default function ServiceCatalogPickerDialog({ open, onOpenChange, storeId
       });
     });
     onPick(lines, s);
-    onOpenChange(false);
-    setSearch("");
-    setCat("All");
+    handleOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">

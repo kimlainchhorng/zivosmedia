@@ -8,7 +8,7 @@
  *   part#   description   cost   [qty]
  * Free-text lines work too — a trailing $cost is detected, the rest is the name.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,17 @@ const money = (n: number) => `$${(n || 0).toLocaleString(undefined, { minimumFra
 export default function BuildROImportPartsDialog({ open, onOpenChange, onImport, matrix = DEFAULT_PARTS_MATRIX }: Props) {
   const [text, setText] = useState("");
   const [vendor, setVendor] = useState("AutoZone");
+  const resetImportState = () => {
+    setText("");
+    setVendor("AutoZone");
+  };
+  useEffect(() => {
+    if (open) resetImportState();
+  }, [open]);
+  const handleOpenChange = (v: boolean) => {
+    if (!v) resetImportState();
+    onOpenChange(v);
+  };
   const parsed = useMemo(() => parseParts(text), [text]);
   const rows = useMemo(
     () =>
@@ -79,7 +90,7 @@ export default function BuildROImportPartsDialog({ open, onOpenChange, onImport,
   const margin = totals.sell > 0 ? Math.round(((totals.sell - totals.cost) / totals.sell) * 100) : 0;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setText(""); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><ClipboardPaste className="h-4 w-4" /> Import / Paste Parts</DialogTitle>
@@ -140,8 +151,8 @@ export default function BuildROImportPartsDialog({ open, onOpenChange, onImport,
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={parsed.length === 0} onClick={() => { onImport(parsed, vendor.trim() || "AutoZone"); onOpenChange(false); }}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
+          <Button disabled={parsed.length === 0} onClick={() => { onImport(parsed, vendor.trim() || "AutoZone"); handleOpenChange(false); }}>
             Add {parsed.length || ""} Part{parsed.length === 1 ? "" : "s"}
           </Button>
         </DialogFooter>

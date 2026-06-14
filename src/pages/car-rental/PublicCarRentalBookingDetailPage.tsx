@@ -224,7 +224,7 @@ export default function PublicCarRentalBookingDetailPage() {
                   <Search className="mr-1 h-4 w-4" /> Look up booking
                 </Button>
               </form>
-              <Link to="/" className="mt-4 block text-center text-sm text-primary underline">Back to home</Link>
+              <Link to="/" className="mt-4 block text-center text-sm text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Back to home</Link>
             </CardContent>
           </Card>
         </main>
@@ -430,7 +430,7 @@ export default function PublicCarRentalBookingDetailPage() {
                         href={directionsUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         Directions <ExternalLink className="h-3 w-3" />
                       </a>
@@ -572,7 +572,7 @@ export default function PublicCarRentalBookingDetailPage() {
           </Card>
         )}
 
-        <Link to="/" className="block text-center text-sm text-primary underline">Back to home</Link>
+        <Link to="/" className="block text-center text-sm text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Back to home</Link>
       </main>
 
       <Dialog open={cancelOpen} onOpenChange={(o) => !cancelling && setCancelOpen(o)}>

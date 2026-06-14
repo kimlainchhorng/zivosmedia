@@ -277,7 +277,7 @@ export default function PublicSalonCheckinPage() {
           </p>
 
           <div className="mt-4 flex items-center justify-center">
-            <Link to={`/salon/${store.slug}`} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <Link to={`/salon/${store.slug}`} className="inline-flex items-center gap-1 rounded-sm text-xs text-muted-foreground transition-all hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ArrowLeft className="h-3 w-3" /> Back to {store.name}
             </Link>
           </div>
@@ -291,7 +291,7 @@ export default function PublicSalonCheckinPage() {
     <div className="min-h-screen bg-background">
       <Helmet><title>Check in · {store.name}</title></Helmet>
       <div className="mx-auto max-w-md px-4 py-8 sm:py-12">
-        <Link to={`/salon/${store.slug}`} className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <Link to={`/salon/${store.slug}`} className="mb-4 inline-flex items-center gap-1 rounded-sm text-xs text-muted-foreground transition-all hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ArrowLeft className="h-3 w-3" /> Back to {store.name}
         </Link>
 
@@ -321,7 +321,7 @@ export default function PublicSalonCheckinPage() {
                       type="button"
                       onClick={() => setSelectedServiceId(s.id)}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors",
+                        "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         active ? "border-primary/60 bg-primary/8" : "border-border bg-card hover:border-primary/30"
                       )}
                     >

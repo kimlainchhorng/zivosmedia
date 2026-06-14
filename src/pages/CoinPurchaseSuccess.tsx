@@ -100,7 +100,7 @@ export default function CoinPurchaseSuccess() {
             {isLiveReturn && (
               <button type="button"
                 onClick={() => navigate("/wallet")}
-                className="mt-3 text-xs text-muted-foreground underline"
+                className="mt-3 text-xs text-muted-foreground underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Go to Wallet instead
               </button>

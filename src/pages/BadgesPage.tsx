@@ -147,7 +147,8 @@ export default function BadgesPage() {
             <Badge
               key={cat}
               variant={activeCategory === cat ? "default" : "outline"}
-              className="cursor-pointer capitalize shrink-0"
+              aria-pressed={activeCategory === cat}
+              className="cursor-pointer capitalize shrink-0 transition-all active:scale-[0.97]"
               onClick={() => setActiveCategory(cat)}
             >
               {cat}

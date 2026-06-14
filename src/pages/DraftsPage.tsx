@@ -73,8 +73,9 @@ export default function DraftsPage() {
             <button type="button"
               key={t}
               onClick={() => setActiveTab(t)}
+              aria-pressed={activeTab === t}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeTab === t ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
               )}
             >
@@ -109,10 +110,10 @@ export default function DraftsPage() {
                   {d.publish_at ? `Scheduled: ${new Date(d.publish_at).toLocaleDateString()}` : `Updated ${formatDistanceToNow(new Date(d.updated_at), { addSuffix: true })}`}
                 </p>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => publishDraft(d)} aria-label="Publish draft" title="Publish draft" className="p-2 rounded-full hover:bg-primary/10">
+                  <button type="button" onClick={() => publishDraft(d)} aria-label="Publish draft" title="Publish draft" className="p-2 rounded-full hover:bg-primary/10 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Send className="h-4 w-4 text-primary" />
                   </button>
-                  <button type="button" onClick={() => deleteDraft(d.id)} aria-label="Delete draft" title="Delete draft" className="p-2 rounded-full hover:bg-destructive/10">
+                  <button type="button" onClick={() => deleteDraft(d.id)} aria-label="Delete draft" title="Delete draft" className="p-2 rounded-full hover:bg-destructive/10 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Trash2 className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </div>

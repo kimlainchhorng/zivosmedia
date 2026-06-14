@@ -103,9 +103,9 @@ export default function EmojiPacksPage() {
         </motion.div>
 
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({stats.total})</button>
-          <button type="button" onClick={() => setTab("mine")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "mine" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Mine ({stats.mine})</button>
-          <button type="button" onClick={() => setTab("public")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "public" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Public</button>
+          <button type="button" onClick={() => setTab("all")} aria-pressed={tab === "all"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({stats.total})</button>
+          <button type="button" onClick={() => setTab("mine")} aria-pressed={tab === "mine"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "mine" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Mine ({stats.mine})</button>
+          <button type="button" onClick={() => setTab("public")} aria-pressed={tab === "public"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "public" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Public</button>
         </div>
 
         {isLoading && <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-2xl" />)}</div>}
@@ -133,7 +133,7 @@ export default function EmojiPacksPage() {
                   transition={{ delay: Math.min(idx, 12) * 0.03 }}
                   className="rounded-2xl bg-card border border-border overflow-hidden"
                 >
-                  <button type="button" onClick={() => toggleExpand(p.id)} className="w-full text-left p-3.5 hover:bg-secondary/40 transition-colors">
+                  <button type="button" onClick={() => toggleExpand(p.id)} aria-expanded={isOpen} className="w-full text-left p-3.5 hover:bg-secondary/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                     <div className="flex items-center gap-3">
                       <div className="shrink-0 h-10 w-10 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><Smile className="h-4 w-4 text-ig-gradient" /></div>
                       <div className="flex-1 min-w-0">

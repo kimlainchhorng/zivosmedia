@@ -997,14 +997,14 @@ export default function PublicProfilePage() {
           className="mx-auto flex max-w-3xl items-center gap-2 px-3 pb-2"
           style={{ paddingTop: "max(0.5rem, var(--zivo-safe-top, 0px))" }}
         >
-          <button type="button" onClick={handleBack} aria-label="Back" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border/60 bg-card/90 shadow-sm active:scale-95 transition">
+          <button type="button" onClick={handleBack} aria-label="Back" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border/60 bg-card/90 shadow-sm active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[15px] font-extrabold text-foreground">{resolvedProfile?.full_name || "Profile"}</h1>
             <p className="truncate text-[11px] font-medium text-muted-foreground">Public profile</p>
           </div>
-          <button type="button" onClick={handleShare} aria-label="Share profile" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border/60 bg-card/90 shadow-sm active:scale-95 transition">
+          <button type="button" onClick={handleShare} aria-label="Share profile" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border/60 bg-card/90 shadow-sm active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Share2 className="h-5 w-5 text-foreground" />
           </button>
           <div className="relative">
@@ -1012,7 +1012,7 @@ export default function PublicProfilePage() {
               type="button"
               onClick={() => setShowProfileMenu((prev) => !prev)}
               aria-label="Profile actions"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border/60 bg-card/90 shadow-sm active:scale-95 transition"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border/60 bg-card/90 shadow-sm active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MoreHorizontal className="h-5 w-5 text-foreground" />
             </button>
@@ -1020,15 +1020,15 @@ export default function PublicProfilePage() {
               <>
                 <button type="button" className="fixed inset-0 z-40" aria-label="Close menu" onClick={() => setShowProfileMenu(false)} />
                 <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-                  <button type="button" onClick={handleShare} className="w-full px-4 py-3 text-left text-sm font-semibold hover:bg-muted/60">Share profile</button>
+                  <button type="button" onClick={handleShare} className="w-full px-4 py-3 text-left text-sm font-semibold hover:bg-muted/60 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">Share profile</button>
                   {!isOwnProfile && (
                     <>
-                      <button type="button" onClick={handleReportProfile} className="w-full px-4 py-3 text-left text-sm font-semibold hover:bg-muted/60">Report profile</button>
+                      <button type="button" onClick={handleReportProfile} className="w-full px-4 py-3 text-left text-sm font-semibold hover:bg-muted/60 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">Report profile</button>
                       <button
                         type="button"
                         onClick={() => void handleBlockProfile()}
                         disabled={blockingUser}
-                        className="w-full px-4 py-3 text-left text-sm font-semibold text-destructive hover:bg-muted/60 disabled:opacity-60"
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-destructive hover:bg-muted/60 disabled:opacity-60 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                       >
                         {blockingUser ? "Blocking..." : "Block user"}
                       </button>
@@ -1055,8 +1055,8 @@ export default function PublicProfilePage() {
                 <h2 className="text-xl font-bold text-foreground">18+ Content</h2>
                 <p className="text-sm text-muted-foreground">This profile belongs to an OF Creator and may contain adult content. You must be 18 or older to view it.</p>
                 <div className="flex gap-3 w-full mt-2">
-                  <button onClick={() => navigate(-1)} className="flex-1 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">Go back</button>
-                  <button onClick={() => void adultGate.confirm()} className="flex-1 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-colors">I am 18+</button>
+                  <button onClick={() => navigate(-1)} className="flex-1 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Go back</button>
+                  <button onClick={() => void adultGate.confirm()} className="flex-1 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">I am 18+</button>
                 </div>
               </div>
             </div>
@@ -1113,7 +1113,7 @@ export default function PublicProfilePage() {
                         <motion.button whileTap={{ scale: 0.96 }}
                           onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }}
                           disabled={followMutation.isPending}
-                          className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-extrabold shadow-sm transition", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
+                          className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-extrabold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
                           {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isFollowing && "fill-primary text-primary")} />}
                           {followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}
                         </motion.button>
@@ -1122,7 +1122,7 @@ export default function PublicProfilePage() {
                         <motion.button whileTap={{ scale: 0.96 }}
                           onClick={() => { if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" }); else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` }); else friendMutation.mutate(friendBtn.action); }}
                           disabled={friendMutation.isPending}
-                          className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-extrabold transition",
+                          className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                             friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary" : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground" : friendshipStatus === "request_received" ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground"
                           )}>
                           {friendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <friendBtn.icon className="h-4 w-4" />}
@@ -1132,7 +1132,7 @@ export default function PublicProfilePage() {
                       {canMessageProfile && (
                         <motion.button whileTap={{ scale: 0.96 }}
                           onClick={() => navigate(`/chat`, { state: { openChat: { recipientId: targetUserId, recipientName: resolvedProfile?.full_name || "User", recipientAvatar: resolvedProfile?.avatar_url } } })}
-                          className="flex h-10 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-extrabold text-foreground transition">
+                          className="flex h-10 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-extrabold text-foreground transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                           <MessageCircle className="h-4 w-4" />
                           Message
                         </motion.button>
@@ -1140,15 +1140,15 @@ export default function PublicProfilePage() {
                       <motion.button whileTap={{ scale: 0.96 }}
                         onClick={() => { if (!user) { toast.error("Sign in to tip"); navigate("/auth"); return; } setTipOpen(true); }}
                         aria-label="Send a tip"
-                        className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md">
+                        className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <Gift className="h-4 w-4" />
                       </motion.button>
                     </div>
                   )}
                   {isOwnProfile && (
                     <div className="hidden lg:flex items-center gap-2 ml-auto pb-1">
-                      <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate("/account/profile-edit")} className="flex h-10 items-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-extrabold text-foreground">Edit Profile</motion.button>
-                      <motion.button whileTap={{ scale: 0.96 }} onClick={handleShare} className="grid h-10 w-10 place-items-center rounded-2xl border border-border bg-card text-foreground"><Share2 className="h-4 w-4" /></motion.button>
+                      <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate("/account/profile-edit")} className="flex h-10 items-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-extrabold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Edit Profile</motion.button>
+                      <motion.button whileTap={{ scale: 0.96 }} onClick={handleShare} className="grid h-10 w-10 place-items-center rounded-2xl border border-border bg-card text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Share2 className="h-4 w-4" /></motion.button>
                     </div>
                   )}
                 </div>
@@ -1189,7 +1189,7 @@ export default function PublicProfilePage() {
                       <motion.button whileTap={{ scale: 0.96 }}
                         onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }}
                         disabled={followMutation.isPending}
-                        className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-extrabold shadow-sm transition", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
+                        className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-extrabold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
                         {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isFollowing && "fill-primary text-primary")} />}
                         <span className="truncate">{followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}</span>
                       </motion.button>
@@ -1198,7 +1198,7 @@ export default function PublicProfilePage() {
                       <motion.button whileTap={{ scale: 0.96 }}
                         onClick={() => { if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" }); else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` }); else friendMutation.mutate(friendBtn.action); }}
                         disabled={friendMutation.isPending}
-                        className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl border px-2 text-sm font-extrabold transition",
+                        className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl border px-2 text-sm font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary" : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground" : friendshipStatus === "request_received" ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground"
                         )}>
                         {friendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <friendBtn.icon className="h-4 w-4" />}
@@ -1208,7 +1208,7 @@ export default function PublicProfilePage() {
                     <motion.button whileTap={{ scale: 0.96 }}
                       onClick={() => { if (!user) { toast.error("Sign in to tip"); navigate("/auth"); return; } setTipOpen(true); }}
                       aria-label={`Send a tip to ${resolvedProfile?.full_name || "this creator"}`}
-                      className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md transition hover:opacity-95">
+                      className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Gift className="h-5 w-5" />
                     </motion.button>
                   </div>
@@ -1217,7 +1217,7 @@ export default function PublicProfilePage() {
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={() => navigate(`/chat`, { state: { openChat: { recipientId: targetUserId, recipientName: resolvedProfile?.full_name || "User", recipientAvatar: resolvedProfile?.avatar_url } } })}
-                    className="lg:hidden mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm font-extrabold text-foreground"
+                    className="lg:hidden mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm font-extrabold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <MessageCircle className="h-4 w-4" />
                     Message
@@ -1225,8 +1225,8 @@ export default function PublicProfilePage() {
                 )}
                 {isOwnProfile && (
                   <div className="mt-4 lg:hidden grid grid-cols-[1fr_48px] gap-2">
-                    <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate("/account/profile-edit")} className="h-12 rounded-2xl border border-border bg-card text-sm font-extrabold text-foreground">Edit Profile</motion.button>
-                    <motion.button whileTap={{ scale: 0.96 }} onClick={handleShare} className="grid h-12 w-12 place-items-center rounded-2xl border border-border bg-card text-foreground"><Share2 className="h-5 w-5" /></motion.button>
+                    <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate("/account/profile-edit")} className="h-12 rounded-2xl border border-border bg-card text-sm font-extrabold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Edit Profile</motion.button>
+                    <motion.button whileTap={{ scale: 0.96 }} onClick={handleShare} className="grid h-12 w-12 place-items-center rounded-2xl border border-border bg-card text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Share2 className="h-5 w-5" /></motion.button>
                   </div>
                 )}
               </div>
@@ -1252,7 +1252,7 @@ export default function PublicProfilePage() {
                   <p className="text-sm text-muted-foreground text-center leading-relaxed max-w-[260px]">{p.description}</p>
                   {p.showAddFriend && !isOwnProfile && user && (
                     <motion.button whileTap={{ scale: 0.95 }} onClick={() => friendMutation.mutate(friendshipStatus === "request_received" ? "accept" : "add")} disabled={friendMutation.isPending}
-                      className="mt-5 h-10 px-6 rounded-xl bg-ig-gradient text-white text-sm font-semibold flex items-center gap-2">
+                      className="mt-5 h-10 px-6 rounded-xl bg-ig-gradient text-white text-sm font-semibold flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <UserPlus className="h-4 w-4" />{friendshipStatus === "request_received" ? "Accept Friend Request" : "Send Friend Request"}
                     </motion.button>
                   )}
@@ -1287,7 +1287,7 @@ export default function PublicProfilePage() {
                       onClick={() => setPostTab(tab.key)}
                       whileTap={{ scale: 0.97 }}
                       className={cn(
-                        "relative flex h-12 items-center justify-center gap-1.5 rounded-2xl text-xs font-extrabold transition-colors",
+                        "relative flex h-12 items-center justify-center gap-1.5 rounded-2xl text-xs font-extrabold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         postTab === tab.key ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
@@ -1406,7 +1406,7 @@ export default function PublicProfilePage() {
                                     e.stopPropagation();
                                     navigate(`/user/${post.sharedOrigin.userId}`);
                                   }}
-                                  className="text-primary text-[13px] font-semibold ml-2 shrink-0"
+                                  className="text-primary text-[13px] font-semibold ml-2 shrink-0 rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                   Follow
                                 </button>
@@ -1506,17 +1506,17 @@ export default function PublicProfilePage() {
                       {/* Interaction bar */}
                       <div className="flex items-center px-4 py-2.5">
                         <div className="flex items-center gap-4 flex-1">
-                          <button type="button" aria-label="Like post" title="Like post" onClick={() => handleLike(post.id)} className="touch-manipulation active:scale-90 transition-transform">
+                          <button type="button" aria-label="Like post" title="Like post" onClick={() => handleLike(post.id)} className="touch-manipulation active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <Heart className={`h-[22px] w-[22px] ${likedPosts.has(post.id) ? "fill-red-500 text-red-500" : "text-foreground"}`} strokeWidth={1.5} />
                           </button>
-                          <button type="button" aria-label="Open comments" title="Open comments" onClick={() => setCommentPost(post)} className="touch-manipulation active:scale-90 transition-transform">
+                          <button type="button" aria-label="Open comments" title="Open comments" onClick={() => setCommentPost(post)} className="touch-manipulation active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <MessageCircle className="h-[22px] w-[22px] text-foreground" strokeWidth={1.5} />
                           </button>
-                          <button type="button" aria-label="Share post" title="Share post" onClick={() => void handleSharePost(post)} className="touch-manipulation active:scale-90 transition-transform">
+                          <button type="button" aria-label="Share post" title="Share post" onClick={() => void handleSharePost(post)} className="touch-manipulation active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <Share2 className="h-[22px] w-[22px] text-foreground" strokeWidth={1.5} />
                           </button>
                         </div>
-                        <button type="button" aria-label="Bookmark post" title="Bookmark post" onClick={() => void handleBookmark(post)} className="touch-manipulation active:scale-90 transition-transform">
+                        <button type="button" aria-label="Bookmark post" title="Bookmark post" onClick={() => void handleBookmark(post)} className="touch-manipulation active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                           <Bookmark className={`h-[22px] w-[22px] ${bookmarkedPosts.has(toUserPostInteractionId(post.id)) ? "fill-foreground text-foreground" : "text-foreground"}`} strokeWidth={1.5} />
                         </button>
                       </div>
@@ -1554,7 +1554,7 @@ export default function PublicProfilePage() {
                         }
                       }}
                       className={cn(
-                        "relative overflow-hidden bg-muted group rounded-lg",
+                        "relative overflow-hidden bg-muted group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                         postTab === "videos" ? "aspect-[9/16]" : "aspect-square"
                       )}
                     >
@@ -1598,7 +1598,7 @@ export default function PublicProfilePage() {
                             startDrag(e);
                           }}
                         >
-                          <button type="button" aria-label="Close post" title="Close post" onClick={() => setSelectedPost(null)} className="min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2">
+                          <button type="button" aria-label="Close post" title="Close post" onClick={() => setSelectedPost(null)} className="min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <ArrowLeft className="h-5 w-5 text-foreground" />
                           </button>
                           <Avatar className="h-9 w-9 ring-2 ring-primary/20">
@@ -1609,7 +1609,7 @@ export default function PublicProfilePage() {
                             <p className="text-sm font-bold text-foreground truncate">{resolvedProfile.full_name}</p>
                             <p className="text-[11px] text-muted-foreground">{formatTime(selectedPost.created_at)}</p>
                           </div>
-                          <button type="button" aria-label="Share post" title="Share post" onClick={(e) => { e.stopPropagation(); void handleSharePost(selectedPost); }} className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                          <button type="button" aria-label="Share post" title="Share post" onClick={(e) => { e.stopPropagation(); void handleSharePost(selectedPost); }} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <Share2 className="h-5 w-5 text-foreground" />
                           </button>
                         </div>
@@ -1649,12 +1649,12 @@ export default function PublicProfilePage() {
 	                            return next;
 	                          });
 	                        }}
-                        className="flex items-center gap-1.5"
+                        className="flex items-center gap-1.5 rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Heart className={`h-6 w-6 transition-colors ${likedPosts.has(selectedPost.id) ? "fill-red-500 text-red-500" : "text-foreground"}`} />
                         <span className="text-sm font-medium text-foreground">{(selectedPost.likes_count || 0) + (likedPosts.has(selectedPost.id) ? 1 : 0)}</span>
                       </button>
-                      <button type="button" onClick={() => setCommentPost(selectedPost)} className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => setCommentPost(selectedPost)} className="flex items-center gap-1.5 rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <MessageCircle className="h-6 w-6 text-foreground" />
                         <span className="text-sm font-medium text-foreground">{selectedPost.comments_count || 0}</span>
                       </button>
@@ -1663,7 +1663,7 @@ export default function PublicProfilePage() {
                         <span className="text-sm text-muted-foreground">{selectedPost.views_count || 0}</span>
                       </div>
                       <div className="flex-1" />
-                      <button type="button" aria-label="Share post" title="Share post" onClick={(e) => { e.stopPropagation(); void handleSharePost(selectedPost); }}>
+                      <button type="button" aria-label="Share post" title="Share post" onClick={(e) => { e.stopPropagation(); void handleSharePost(selectedPost); }} className="rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <Share2 className="h-5 w-5 text-foreground" />
                       </button>
                     </div>

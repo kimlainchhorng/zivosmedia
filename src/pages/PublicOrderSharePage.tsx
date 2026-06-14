@@ -260,7 +260,7 @@ export default function PublicOrderSharePage() {
               if (watchlist.has("order", orderId)) watchlist.remove("order", orderId);
               else watchlist.add("order", orderId, order.restaurant_name ?? null);
             }}
-            className={`w-full flex items-center gap-3 rounded-2xl border p-3 text-left active:scale-[0.99] transition-transform touch-manipulation ${
+            className={`w-full flex items-center gap-3 rounded-2xl border p-3 text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               watchlist.has("order", orderId)
                 ? "border-orange-500/40 bg-orange-500/10"
                 : "border-border/50 bg-card hover:bg-muted/40"

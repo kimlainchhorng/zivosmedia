@@ -9,7 +9,7 @@
  * VIN / plate / vehicle with one-tap copy — paste it into the supplier's vehicle
  * box, or use their "Shop Without Vehicle" option.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { copyText } from "@/lib/native/clipboard";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PARTS_SUPPLIERS, type PartsSupplier } from "@/config/partsSuppliers";
@@ -42,6 +42,17 @@ export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId,
   const browseWithoutVehicleLabel = isSoftwareDomain ? "Browse Without Vehicle" : "Shop Without Vehicle";
   const [supplier, setSupplier] = useState<PartsSupplier | null>(null);
   const [query, setQuery] = useState("");
+  const resetCatalogState = () => {
+    setQuery("");
+    setSupplier(null);
+  };
+  useEffect(() => {
+    if (open) resetCatalogState();
+  }, [open]);
+  const handleOpenChange = (v: boolean) => {
+    if (!v) resetCatalogState();
+    onOpenChange(v);
+  };
   const filtered = PARTS_SUPPLIERS.filter((s) =>
     `${s.name} ${s.shortName ?? ""} ${s.description ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()),
   );
@@ -55,7 +66,7 @@ export default function BuildROPartsCatalogDialog({ open, onOpenChange, storeId,
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-4xl gap-0 overflow-hidden border-slate-700 bg-[#1b1f27] p-0 text-slate-100">
           <DialogTitle className="sr-only">Parts Catalog — Suppliers</DialogTitle>
           <div className="bg-slate-800/80 px-5 py-2.5">

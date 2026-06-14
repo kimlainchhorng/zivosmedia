@@ -843,13 +843,13 @@ export default function PublicCafeOrderPage() {
               <div className="pb-2 flex flex-col items-end gap-0.5 shrink-0 text-[11px]">
                 <a
                   href={`/cafe/${store.slug}/reserve`}
-                  className="text-violet-700 dark:text-violet-300 hover:underline underline-offset-2"
+                  className="rounded text-violet-700 dark:text-violet-300 hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Reserve a table
                 </a>
                 <a
                   href={`/cafe/${store.slug}/about`}
-                  className="text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  className="rounded text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   About
                 </a>
@@ -904,7 +904,7 @@ export default function PublicCafeOrderPage() {
                 key={it.id}
                 type="button"
                 onClick={() => openItemPicker(it)}
-                className="shrink-0 w-44 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card text-left overflow-hidden hover:shadow-md transition-shadow"
+                className="shrink-0 w-44 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card text-left overflow-hidden hover:shadow-md transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {it.image_url ? (
                   <img src={it.image_url} alt="" className="h-24 w-full object-cover" loading="lazy" decoding="async" />
@@ -941,7 +941,7 @@ export default function PublicCafeOrderPage() {
                   key={b.id}
                   type="button"
                   onClick={() => { setBundlePicker(b); setBundlePickerQty(1); }}
-                  className="shrink-0 w-44 rounded-xl border border-rose-500/30 bg-gradient-to-br from-rose-500/10 via-card to-card text-left overflow-hidden hover:shadow-md transition-shadow relative"
+                  className="shrink-0 w-44 rounded-xl border border-rose-500/30 bg-gradient-to-br from-rose-500/10 via-card to-card text-left overflow-hidden hover:shadow-md transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative"
                 >
                   {b.image_url ? (
                     <img src={b.image_url} alt="" className="h-24 w-full object-cover" loading="lazy" decoding="async" />
@@ -990,7 +990,7 @@ export default function PublicCafeOrderPage() {
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded text-muted-foreground hover:text-foreground active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Clear search"
             >
               <X className="h-4 w-4" />
@@ -1003,12 +1003,12 @@ export default function PublicCafeOrderPage() {
         <div className="px-4 mt-3 mb-3 overflow-x-auto">
           <div className="flex gap-2">
             <button onClick={() => setActiveCatId(null)} className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-sm border",
+              "shrink-0 rounded-full px-3 py-1.5 text-sm border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               activeCatId === null ? "bg-ig-gradient text-white border-primary" : "bg-card border-border"
             )}>All</button>
             {categories.map((c) => (
               <button key={c.id} onClick={() => setActiveCatId(c.id)} className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-sm border",
+                "shrink-0 rounded-full px-3 py-1.5 text-sm border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeCatId === c.id ? "bg-ig-gradient text-white border-primary" : "bg-card border-border"
               )}>{c.name}</button>
             ))}
@@ -1031,7 +1031,7 @@ export default function PublicCafeOrderPage() {
             disabled={item.is_sold_out}
             aria-disabled={item.is_sold_out}
             className={cn(
-              "text-left rounded-xl border border-border bg-card overflow-hidden transition-shadow relative",
+              "text-left rounded-xl border border-border bg-card overflow-hidden transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative",
               item.is_sold_out ? "opacity-60 cursor-not-allowed" : "hover:shadow-md",
             )}
           >
@@ -1138,7 +1138,7 @@ export default function PublicCafeOrderPage() {
                             const on = picked.includes(m.id);
                             return (
                               <button key={m.id} type="button" onClick={() => togglePick(grp.id, m.id)} className={cn(
-                                "w-full flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors",
+                                "w-full flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                 on ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-muted"
                               )}>
                                 <span>{m.name}</span>
@@ -1162,9 +1162,9 @@ export default function PublicCafeOrderPage() {
                 </div>
                 <div className="flex items-center justify-between border-t border-border/60 pt-3">
                   <div className="flex items-center gap-2">
-                    <Button size="icon" variant="outline" onClick={() => setPickerQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="outline" aria-label="Decrease quantity" onClick={() => setPickerQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></Button>
                     <span className="w-6 text-center font-semibold">{pickerQty}</span>
-                    <Button size="icon" variant="outline" onClick={() => setPickerQty((q) => Math.min(99, q + 1))}><Plus className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="outline" aria-label="Increase quantity" onClick={() => setPickerQty((q) => Math.min(99, q + 1))}><Plus className="h-4 w-4" /></Button>
                   </div>
                 </div>
               </div>
@@ -1236,9 +1236,9 @@ export default function PublicCafeOrderPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Quantity</span>
                     <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" onClick={() => setBundlePickerQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="outline" aria-label="Decrease quantity" onClick={() => setBundlePickerQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></Button>
                       <span className="w-6 text-center font-semibold">{bundlePickerQty}</span>
-                      <Button size="icon" variant="outline" onClick={() => setBundlePickerQty((q) => Math.min(10, q + 1))}><Plus className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="outline" aria-label="Increase quantity" onClick={() => setBundlePickerQty((q) => Math.min(10, q + 1))}><Plus className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 </div>
@@ -1281,7 +1281,7 @@ export default function PublicCafeOrderPage() {
                       key={up.id}
                       type="button"
                       onClick={() => { setCartOpen(false); openItemPicker(up); }}
-                      className="shrink-0 w-32 rounded-md border border-border bg-card hover:border-primary/50 hover:shadow-sm transition text-left overflow-hidden"
+                      className="shrink-0 w-32 rounded-md border border-border bg-card hover:border-primary/50 hover:shadow-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left overflow-hidden"
                     >
                       {up.image_url ? (
                         <img src={up.image_url} alt="" className="h-16 w-full object-cover" loading="lazy" decoding="async" />
@@ -1322,10 +1322,10 @@ export default function PublicCafeOrderPage() {
                       </p>
                       <p className="text-[11px] text-muted-foreground">{fmt(line.bundle.priceCents)} each</p>
                       <div className="mt-1 flex items-center gap-1">
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => adjustQty(line.uid, -1)}><Minus className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" aria-label="Decrease quantity" className="h-6 w-6" onClick={() => adjustQty(line.uid, -1)}><Minus className="h-3 w-3" /></Button>
                         <span className="text-sm w-5 text-center">{line.quantity}</span>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => adjustQty(line.uid, +1)}><Plus className="h-3 w-3" /></Button>
-                        <Button size="icon" variant="ghost" className="h-6 w-6 ml-2 text-destructive" onClick={() => removeLine(line.uid)}><X className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" aria-label="Increase quantity" className="h-6 w-6" onClick={() => adjustQty(line.uid, +1)}><Plus className="h-3 w-3" /></Button>
+                        <Button size="icon" variant="ghost" aria-label="Remove item" className="h-6 w-6 ml-2 text-destructive" onClick={() => removeLine(line.uid)}><X className="h-3 w-3" /></Button>
                       </div>
                     </div>
                     <span className="tabular-nums text-sm shrink-0">{fmt(line.bundle.priceCents * line.quantity)}</span>
@@ -1342,10 +1342,10 @@ export default function PublicCafeOrderPage() {
                     {lineMods.length > 0 && <p className="text-[11px] text-muted-foreground truncate">{lineMods.join(" · ")}</p>}
                     {line.notes && <p className="text-[11px] italic text-muted-foreground truncate">"{line.notes}"</p>}
                     <div className="mt-1 flex items-center gap-1">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => adjustQty(line.uid, -1)}><Minus className="h-3 w-3" /></Button>
+                      <Button size="icon" variant="ghost" aria-label="Decrease quantity" className="h-6 w-6" onClick={() => adjustQty(line.uid, -1)}><Minus className="h-3 w-3" /></Button>
                       <span className="text-sm w-5 text-center">{line.quantity}</span>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => adjustQty(line.uid, +1)}><Plus className="h-3 w-3" /></Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6 ml-2 text-destructive" onClick={() => removeLine(line.uid)}><X className="h-3 w-3" /></Button>
+                      <Button size="icon" variant="ghost" aria-label="Increase quantity" className="h-6 w-6" onClick={() => adjustQty(line.uid, +1)}><Plus className="h-3 w-3" /></Button>
+                      <Button size="icon" variant="ghost" aria-label="Remove item" className="h-6 w-6 ml-2 text-destructive" onClick={() => removeLine(line.uid)}><X className="h-3 w-3" /></Button>
                     </div>
                   </div>
                   <span className="tabular-nums text-sm shrink-0">{fmt((effectivePrice(line.item).current + lineSum) * line.quantity)}</span>
@@ -1370,7 +1370,7 @@ export default function PublicCafeOrderPage() {
                         <button
                           key={label} type="button" onClick={() => setTipPercent(v)}
                           className={cn(
-                            "rounded-md border py-1.5 text-xs transition-colors",
+                            "rounded-md border py-1.5 text-xs transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                             active ? "border-primary bg-primary/10 text-primary font-semibold" : "border-border bg-card hover:bg-muted",
                           )}
                         >{label}</button>
@@ -1396,7 +1396,7 @@ export default function PublicCafeOrderPage() {
                       <button
                         type="button" onClick={() => { setScheduleMode("asap"); setScheduledFor(""); }}
                         className={cn(
-                          "rounded-md border py-1.5 text-xs transition-colors",
+                          "rounded-md border py-1.5 text-xs transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           scheduleMode === "asap"
                             ? "border-primary bg-primary/10 text-primary font-semibold"
                             : "border-border bg-card hover:bg-muted",
@@ -1405,7 +1405,7 @@ export default function PublicCafeOrderPage() {
                       <button
                         type="button" onClick={() => setScheduleMode("later")}
                         className={cn(
-                          "rounded-md border py-1.5 text-xs transition-colors",
+                          "rounded-md border py-1.5 text-xs transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           scheduleMode === "later"
                             ? "border-primary bg-primary/10 text-primary font-semibold"
                             : "border-border bg-card hover:bg-muted",

@@ -274,7 +274,7 @@ export default function PublicTripSharePage() {
                 watchlist.remove("trip", tripId);
               else watchlist.add("trip", tripId, trip.driver_first_name ? `${trip.driver_first_name}'s ride` : null);
             }}
-            className={`w-full flex items-center gap-3 rounded-2xl border p-3 text-left active:scale-[0.99] transition-transform touch-manipulation ${
+            className={`w-full flex items-center gap-3 rounded-2xl border p-3 text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               watchlist.has("trip", tripId)
                 ? "border-emerald-500/40 bg-emerald-500/10"
                 : "border-border/50 bg-card hover:bg-muted/40"

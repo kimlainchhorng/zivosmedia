@@ -121,7 +121,7 @@ export default function PublicCarRentalReviewSubmitPage() {
           <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-destructive" />
           <h1 className="text-xl font-bold">Review unavailable</h1>
           <p className="mt-1 text-muted-foreground">{error}</p>
-          <Link to="/" className="mt-4 inline-block text-primary underline">Back to home</Link>
+          <Link to="/" className="mt-4 inline-block text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Back to home</Link>
         </div>
       </div>
     );
@@ -145,9 +145,16 @@ export default function PublicCarRentalReviewSubmitPage() {
           <div>
             <h1 className="text-base font-bold text-foreground">{store?.name ?? "Rate your rental"}</h1>
             {reservation && (
-              <p className="text-[11px] text-muted-foreground">
-                {reservation.vehicle_label}
-              </p>
+              <>
+                <p className="text-[11px] text-muted-foreground">
+                  {reservation.vehicle_label}
+                </p>
+                {reservation.pickup_at && reservation.dropoff_at && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {new Date(reservation.pickup_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} – {new Date(reservation.dropoff_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -162,7 +169,7 @@ export default function PublicCarRentalReviewSubmitPage() {
               <p className="text-sm text-muted-foreground">
                 We already have a review for this rental. Thanks for taking the time to share your experience.
               </p>
-              <Link to="/" className="inline-block text-sm text-primary underline">Back to home</Link>
+              <Link to="/" className="inline-block text-sm text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Back to home</Link>
             </CardContent>
           </Card>
         ) : submitted ? (
@@ -173,7 +180,7 @@ export default function PublicCarRentalReviewSubmitPage() {
               <p className="text-sm text-muted-foreground">
                 Your {rating}-star review has been sent to the team at {store?.name ?? "the rental store"}.
               </p>
-              <Link to="/" className="inline-block pt-2 text-sm text-primary underline">Back to home</Link>
+              <Link to="/" className="inline-block pt-2 text-sm text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Back to home</Link>
             </CardContent>
           </Card>
         ) : (
@@ -222,7 +229,7 @@ export default function PublicCarRentalReviewSubmitPage() {
                 <p className="text-[10px] text-muted-foreground text-right">{comment.length} / 2000</p>
               </div>
 
-              <Button onClick={submit} disabled={rating === 0 || submitting} className="w-full">
+              <Button onClick={submit} disabled={rating === 0 || submitting} className="w-full transition-transform active:scale-[0.98]">
                 {submitting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
                 Submit review
               </Button>
@@ -251,7 +258,7 @@ function StarRow({ value, onChange, size = "md" }: { value: number; onChange: (n
           onClick={() => onChange(s)}
           onMouseEnter={() => setHover(s)}
           onMouseLeave={() => setHover(0)}
-          className="rounded p-0.5 transition-transform hover:scale-110"
+          className="rounded p-0.5 transition-all hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Star className={cn(dim, "transition-colors", s <= display ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40")} />
         </button>

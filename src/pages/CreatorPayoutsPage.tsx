@@ -124,9 +124,9 @@ export default function CreatorPayoutsPage() {
         </motion.div>
 
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({payouts.length})</button>
-          <button type="button" onClick={() => setTab("paid")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "paid" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Paid ({stats.paidCount})</button>
-          <button type="button" onClick={() => setTab("pending")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "pending" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Pending ({stats.pendingCount})</button>
+          <button type="button" onClick={() => setTab("all")} aria-pressed={tab === "all"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({payouts.length})</button>
+          <button type="button" onClick={() => setTab("paid")} aria-pressed={tab === "paid"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "paid" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Paid ({stats.paidCount})</button>
+          <button type="button" onClick={() => setTab("pending")} aria-pressed={tab === "pending"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "pending" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Pending ({stats.pendingCount})</button>
         </div>
 
         {isLoading && <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-2xl" />)}</div>}

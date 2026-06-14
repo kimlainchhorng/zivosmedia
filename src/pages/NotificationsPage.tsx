@@ -76,14 +76,16 @@ const FriendRequestCard = ({ request, onAccept, onDecline }: { request: FriendRe
           <motion.button
             whileTap={{ scale: 0.85 }}
             onClick={onAccept}
-            className="w-9 h-9 rounded-xl bg-ig-gradient text-white flex items-center justify-center shadow-lg shadow-rose-500/25 touch-manipulation hover:opacity-90 transition-opacity"
+            aria-label="Accept friend request"
+            className="w-9 h-9 rounded-xl bg-ig-gradient text-white flex items-center justify-center shadow-lg shadow-rose-500/25 touch-manipulation hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Check className="w-4 h-4" strokeWidth={3} />
           </motion.button>
           <motion.button
             whileTap={{ scale: 0.85 }}
             onClick={onDecline}
-            className="w-9 h-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shadow-sm touch-manipulation hover:bg-destructive/10 hover:text-destructive transition-colors"
+            aria-label="Decline friend request"
+            className="w-9 h-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shadow-sm touch-manipulation hover:bg-destructive/10 hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="w-4 h-4" />
           </motion.button>
@@ -115,7 +117,7 @@ const SocialNotifItem = ({ notif, index, onClick }: { notif: SocialNotification;
       transition={{ delay: index * 0.03, duration: 0.3 }}
     >
       <GlassCard3D glow={!notif.is_read}>
-        <button type="button" onClick={onClick} className="w-full flex items-center gap-3 p-3 text-left touch-manipulation">
+        <button type="button" onClick={onClick} className="w-full flex items-center gap-3 p-3 text-left touch-manipulation transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
           <div className="relative shrink-0">
             <Avatar className="h-10 w-10">
               <AvatarImage src={notif.actor_avatar || undefined} />
@@ -487,7 +489,7 @@ const NotificationsPage = () => {
                 <button
                   type="button"
                   onClick={() => navigate(-1)}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-foreground transition-colors hover:bg-muted"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-foreground transition-all hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Go back"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -549,9 +551,10 @@ const NotificationsPage = () => {
                       key={tab.value}
                       whileHover={{ scale: 1.05, y: -1 }}
                       whileTap={{ scale: 0.92 }}
+                      aria-pressed={isActive}
                       onClick={() => setActiveTab(tab.value)}
                       className={cn(
-                        "relative flex min-w-[4.9rem] items-center justify-center gap-1.5 rounded-xl px-2.5 py-2 text-[11px] font-bold transition-colors touch-manipulation",
+                        "relative flex min-w-[4.9rem] items-center justify-center gap-1.5 rounded-xl px-2.5 py-2 text-[11px] font-bold transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         isActive 
                           ? "bg-primary/10 text-primary ring-1 ring-primary/20" 
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -596,7 +599,7 @@ const NotificationsPage = () => {
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="rounded-2xl border border-border/55 bg-card px-3 py-2.5 text-left shadow-sm active:scale-[0.98]"
+                className="rounded-2xl border border-border/55 bg-card px-3 py-2.5 text-left shadow-sm active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <CheckCheck className="mb-1 h-4 w-4 text-primary" />
                 <p className="text-[11px] font-bold leading-tight">Mark all</p>
@@ -605,7 +608,7 @@ const NotificationsPage = () => {
               <button
                 type="button"
                 onClick={handleClearRead}
-                className="rounded-2xl border border-border/55 bg-card px-3 py-2.5 text-left shadow-sm active:scale-[0.98]"
+                className="rounded-2xl border border-border/55 bg-card px-3 py-2.5 text-left shadow-sm active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Trash2 className="mb-1 h-4 w-4 text-destructive" />
                 <p className="text-[11px] font-bold leading-tight">Clear read</p>
@@ -614,7 +617,7 @@ const NotificationsPage = () => {
               <button
                 type="button"
                 onClick={() => navigate("/account/notifications")}
-                className="rounded-2xl border border-border/55 bg-card px-3 py-2.5 text-left shadow-sm active:scale-[0.98]"
+                className="rounded-2xl border border-border/55 bg-card px-3 py-2.5 text-left shadow-sm active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Settings2 className="mb-1 h-4 w-4 text-muted-foreground" />
                 <p className="text-[11px] font-bold leading-tight">Rules</p>
@@ -843,7 +846,7 @@ const NotificationsPage = () => {
             <GlassCard3D className="shadow-xl">
               <button type="button"
                 onClick={() => navigate("/account/notifications")}
-                className="w-full p-4 text-left flex items-center gap-3 active:scale-[0.99] transition-transform"
+                className="w-full p-4 text-left flex items-center gap-3 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
                   <Bell className="w-5 h-5 text-primary" />

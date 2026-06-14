@@ -4,7 +4,7 @@
  * row (owner info comes from the customer captured on the R.O.) and returns it
  * so the caller can bind it to the estimate.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -35,8 +35,27 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
   const [decoding, setDecoding] = useState(false);
   const [reportCarfax, setReportCarfax] = useState(true);
   const [carfaxOpen, setCarfaxOpen] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => { if (open) { setF(blank); setReportCarfax(true); } }, [open]);
+  const resetVehicleDialogState = () => {
+    setF(blank);
+    setDecoding(false);
+    setReportCarfax(true);
+    setCarfaxOpen(false);
+    setPhotoFile(null);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
+  useEffect(() => {
+    if (open) resetVehicleDialogState();
+  }, [open]);
+
+  const handleOpenChange = (v: boolean) => {
+    if (!v) resetVehicleDialogState();
+    onOpenChange(v);
+  };
+
   const set = (p: Partial<typeof blank>) => setF((s) => ({ ...s, ...p }));
 
   const decodeVin = async () => {
@@ -55,12 +74,40 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
     }
   };
 
+  const uploadVehiclePhoto = async (vehicleId: string, file: File) => {
+    const rawExt = file.name.split(".").pop() ?? "jpg";
+    const ext = rawExt.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const path = `${storeId}/vehicles/${vehicleId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+
+    const { error: storageError } = await supabase.storage
+      .from("ar-job-photos")
+      .upload(path, file, { contentType: file.type || undefined, upsert: false });
+    if (storageError) throw storageError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from("ar-job-photos")
+      .getPublicUrl(path);
+
+    const { error: dbError } = await (supabase as any)
+      .from("ar_job_photos")
+      .insert({
+        store_id: storeId,
+        work_order_id: null,
+        photo_url: publicUrl,
+        photo_type: "vehicle",
+        caption: "Vehicle photo captured from Build R.O.",
+        uploaded_at: new Date().toISOString(),
+      });
+    if (dbError) throw dbError;
+  };
+
   const save = useMutation({
     mutationFn: async () => {
       if (!f.make.trim() || !f.model.trim()) throw new Error("Make and model are required");
       const noteParts = [
         f.engine.trim() ? `Engine: ${f.engine.trim()}` : "",
         f.transmission.trim() ? `Trans: ${f.transmission.trim()}` : "",
+        reportCarfax ? "Carfax reporting requested" : "",
         ownerMemo?.trim() || "",
       ].filter(Boolean);
       const payload = {
@@ -83,13 +130,26 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
       if (error) throw error;
       return data;
     },
-    onSuccess: (v) => { toast.success("Vehicle saved"); onSaved(v); onOpenChange(false); },
+    onSuccess: async (v) => {
+      if (photoFile) {
+        try {
+          await uploadVehiclePhoto(v.id, photoFile);
+          toast.success("Vehicle and photo saved");
+        } catch (e: any) {
+          toast.error(e?.message ? `Vehicle saved, photo upload failed: ${e.message}` : "Vehicle saved, photo upload failed");
+        }
+      } else {
+        toast.success("Vehicle saved");
+      }
+      onSaved(v);
+      handleOpenChange(false);
+    },
     onError: (e: any) => toast.error(e?.message ?? "Failed to save vehicle"),
   });
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden border-slate-200 bg-white p-0 text-slate-900">
           <DialogTitle className="sr-only">Add Vehicle</DialogTitle>
 
@@ -102,7 +162,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
               <h2 className="text-base font-bold leading-tight text-white">Add Vehicle</h2>
               <p className="text-xs text-white/80">Decode a VIN or enter the details, then save to the customer</p>
             </div>
-            <button onClick={() => onOpenChange(false)} className="rounded-lg bg-black/15 p-1.5 text-white transition hover:bg-black/25" aria-label="Close">
+            <button onClick={() => handleOpenChange(false)} className="rounded-lg bg-black/15 p-1.5 text-white transition hover:bg-black/25" aria-label="Close">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -178,7 +238,20 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
                 <History className="h-4 w-4" /> View Carfax History
               </button>
               <div className="flex items-center gap-3">
-                <button type="button" className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-400 transition hover:text-slate-600" title="Add photo">
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+                />
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-400 transition hover:text-slate-600"
+                  title={photoFile ? photoFile.name : "Add photo"}
+                  aria-label={photoFile ? `Selected vehicle photo: ${photoFile.name}` : "Add vehicle photo"}
+                >
                   <Camera className="h-4 w-4" />
                 </button>
                 <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
@@ -201,7 +274,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
             </button>
             <span className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-500">Step 3 of 3</span>
             <button
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               className="flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white px-5 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
             >
               <X className="h-4 w-4" /> Cancel

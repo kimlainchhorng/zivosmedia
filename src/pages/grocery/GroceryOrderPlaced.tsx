@@ -136,7 +136,7 @@ export default function GroceryOrderPlaced() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Order ID</p>
-                <button type="button" onClick={copyOrderId} className="flex items-center gap-1.5 mt-0.5 group">
+                <button type="button" onClick={copyOrderId} aria-label="Copy order ID" className="flex items-center gap-1.5 mt-0.5 group rounded-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <p className="text-[14px] font-mono font-bold text-foreground">{orderId.slice(0, 8).toUpperCase()}</p>
                   <Copy className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                 </button>
@@ -307,7 +307,7 @@ export default function GroceryOrderPlaced() {
                 meta: `$${order.total_amount.toFixed(2)} · Processing`,
                 deepLink: `/grocery/track/${orderId}`,
                 image: null,
-              })} className="rounded-2xl h-11 px-4">
+              })} aria-label="Share order" className="rounded-2xl h-11 px-4">
                 <Share2 className="h-4 w-4" />
               </Button>
             )}

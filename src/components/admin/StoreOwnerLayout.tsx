@@ -543,7 +543,15 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
                   onProfit={() => onTabChange?.("ar-build-ro")}
                   onNavigate={(tab) => onTabChange?.(tab)}
                   onNavigateMain={(tab) => onTabChange?.(tab)}
-                  onNewIntake={() => onTabChange?.("ar-build-ro")}
+                  onNewIntake={(type) => {
+                    try {
+                      sessionStorage.setItem("ar_buildro_intake_type", type);
+                    } catch {
+                      // Optional handoff only.
+                    }
+                    onTabChange?.("ar-build-ro");
+                    window.dispatchEvent(new CustomEvent("ar-buildro-consume-prefill"));
+                  }}
                   isSoftwareDomain={isAutoRepairSoftwareWorkspace}
                 />
               )}

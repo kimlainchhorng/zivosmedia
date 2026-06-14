@@ -76,7 +76,7 @@ export default function BotPublicProfilePage() {
     <div className="min-h-screen bg-background pb-[var(--zivo-safe-bottom,0px)]">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex items-center gap-2 h-14 px-2 max-w-2xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-semibold flex-1 truncate">@{bot.username}</h1>
@@ -121,7 +121,7 @@ export default function BotPublicProfilePage() {
                   href={p.checkout_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3 hover:bg-emerald-100"
+                  className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3 hover:bg-emerald-100 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{p.title}</div>
@@ -146,7 +146,7 @@ export default function BotPublicProfilePage() {
                   href={a.app_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl bg-muted/40 border border-border p-3 hover:bg-muted/60"
+                  className="rounded-xl bg-muted/40 border border-border p-3 hover:bg-muted/60 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="text-xl">{a.icon_emoji ?? "📱"}</div>
                   <div className="text-sm font-medium truncate">{a.title}</div>
@@ -173,7 +173,7 @@ export default function BotPublicProfilePage() {
 
         <div className="text-center text-xs text-muted-foreground">
           Built with Zivo bots ·{" "}
-          <button onClick={() => navigate("/chat/bots")} className="underline">create your own</button>
+          <button onClick={() => navigate("/chat/bots")} className="underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">create your own</button>
         </div>
       </div>
     </div>

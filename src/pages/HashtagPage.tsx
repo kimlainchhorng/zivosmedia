@@ -154,7 +154,7 @@ export default function HashtagPage() {
       >
         <button type="button"
           onClick={() => navigate(-1)}
-          className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center"
+          className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Back"
         >
           <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -204,7 +204,7 @@ export default function HashtagPage() {
             <button
               type="button"
               onClick={() => navigate("/feed")}
-              className="rounded-full bg-ig-gradient px-5 py-2 text-sm font-bold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+              className="rounded-full bg-ig-gradient px-5 py-2 text-sm font-bold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Browse the feed
             </button>
@@ -218,8 +218,9 @@ export default function HashtagPage() {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: Math.min(i * 0.02, 0.4) }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => navigate(`/feed?post=${tile.feedId}`)}
-              className="group relative overflow-hidden rounded-xl bg-muted aspect-[3/4]"
+              className="group relative overflow-hidden rounded-xl bg-muted aspect-[3/4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={`Open: ${tile.caption ?? "post"}`}
             >
               {tile.thumbnail ? (

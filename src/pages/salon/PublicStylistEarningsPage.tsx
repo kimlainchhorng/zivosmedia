@@ -131,7 +131,7 @@ export default function PublicStylistEarningsPage() {
         <div className="max-w-md rounded-2xl border border-destructive/30 bg-destructive/8 p-6 text-center">
           <AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" />
           <p className="text-base font-semibold text-foreground">{error}</p>
-          <Link to={`/stylist/${stylistId}`} className="mt-3 inline-block text-xs text-primary hover:underline">
+          <Link to={`/stylist/${stylistId}`} className="mt-3 inline-block rounded-sm text-xs text-primary transition-all hover:underline active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             ← Back to my schedule
           </Link>
         </div>
@@ -147,7 +147,7 @@ export default function PublicStylistEarningsPage() {
       <div className="mx-auto max-w-md px-4 py-6 sm:py-10">
         <Link
           to={`/stylist/${stylistId}`}
-          className="mb-3 inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground"
+          className="mb-3 inline-flex items-center gap-1 rounded-sm text-xs font-bold text-muted-foreground transition-all hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Back to schedule
         </Link>

@@ -238,7 +238,7 @@ export default function PollsPage() {
                   type="button"
                   aria-label="Cancel"
                   onClick={() => { setCreating(false); setQuestion(""); setOptionsDraft(["", ""]); }}
-                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground"
+                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -267,7 +267,7 @@ export default function PollsPage() {
                         type="button"
                         aria-label="Remove option"
                         onClick={() => setOptionsDraft((p) => p.filter((_, i) => i !== idx))}
-                        className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center"
+                        className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -278,7 +278,7 @@ export default function PollsPage() {
                   <button
                     type="button"
                     onClick={() => setOptionsDraft((p) => [...p, ""])}
-                    className="text-xs font-bold text-ig-gradient inline-flex items-center gap-1"
+                    className="text-xs font-bold text-ig-gradient inline-flex items-center gap-1 transition-transform active:scale-[0.97] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Plus className="h-3 w-3" strokeWidth={3} /> Add option
                   </button>
@@ -290,8 +290,9 @@ export default function PollsPage() {
                     key={d}
                     type="button"
                     onClick={() => setDuration(d)}
+                    aria-pressed={duration === d}
                     className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-bold transition-all",
+                      "px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       duration === d ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                     )}
                   >
@@ -368,7 +369,7 @@ export default function PollsPage() {
                       type="button"
                       aria-label="Delete poll"
                       onClick={() => { if (confirm("Delete this poll?")) deleteMutation.mutate(p.id); }}
-                      className="shrink-0 h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
+                      className="shrink-0 h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

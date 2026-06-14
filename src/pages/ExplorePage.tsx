@@ -224,7 +224,7 @@ export default function ExplorePage() {
               className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-muted/50 border border-border/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             {search && (
-              <button type="button" onClick={() => setSearch("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2">
+              <button type="button" onClick={() => setSearch("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <X className="h-4 w-4 text-muted-foreground" />
               </button>
             )}
@@ -237,8 +237,9 @@ export default function ExplorePage() {
             <button type="button"
               key={t.id}
               onClick={() => setActiveTab(t.id)}
+              aria-pressed={activeTab === t.id}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeTab === t.id ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
               )}
             >
@@ -286,7 +287,7 @@ export default function ExplorePage() {
               <button type="button"
                 key={u.id}
                 onClick={() => navigate(`/profile/${u.id}`)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-colors"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={u.avatar_url} />
@@ -318,8 +319,9 @@ export default function ExplorePage() {
               return (
                 <motion.button
                   key={post.id}
+                  aria-label="Open post"
                   className={cn(
-                    "relative aspect-square bg-muted overflow-hidden",
+                    "relative aspect-square bg-muted overflow-hidden focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-ring",
                     isLarge && "col-span-2 row-span-2"
                   )}
                   whileTap={{ scale: 0.97 }}
@@ -352,7 +354,7 @@ export default function ExplorePage() {
               <button type="button"
                 key={u.id}
                 onClick={() => navigate(`/profile/${u.id}`)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left"
               >
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={u.avatar_url} />
@@ -382,7 +384,7 @@ export default function ExplorePage() {
                   <h3 className="text-sm font-semibold text-foreground">#{selectedTag}</h3>
                   <button type="button"
                     onClick={() => setSelectedTag(null)}
-                    className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors"
+                    className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground transition-all active:scale-[0.97] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <X className="h-3.5 w-3.5" /> Clear
                   </button>
@@ -404,7 +406,8 @@ export default function ExplorePage() {
                       return (
                         <motion.button
                           key={post.id}
-                          className="relative aspect-square bg-muted overflow-hidden"
+                          aria-label="Open post"
+                          className="relative aspect-square bg-muted overflow-hidden focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-ring"
                           whileTap={{ scale: 0.97 }}
                           onClick={() => navigate(`/reels/${post.id}`)}
                         >
@@ -424,7 +427,7 @@ export default function ExplorePage() {
               <button type="button"
                 key={h.tag}
                 onClick={() => setSelectedTag(h.tag)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left"
               >
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <Hash className="h-4 w-4 text-primary" />

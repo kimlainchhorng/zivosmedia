@@ -191,7 +191,7 @@ export default function ForumsPage() {
                 transition={{ delay: idx * 0.03 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={() => setOpenForumId(f.id)}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="shrink-0 h-11 w-11 rounded-xl bg-ig-gradient flex items-center justify-center text-white text-xl">
                   {f.icon || <MessageSquare className="h-5 w-5" />}
@@ -258,7 +258,7 @@ export default function ForumsPage() {
                     type="button"
                     aria-label="Close"
                     onClick={() => setOpenForumId(null)}
-                    className="h-9 w-9 rounded-full bg-black/25 backdrop-blur-sm flex items-center justify-center"
+                    className="h-9 w-9 rounded-full bg-black/25 backdrop-blur-sm flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <X className="h-4 w-4" />
                   </button>

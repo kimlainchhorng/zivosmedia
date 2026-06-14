@@ -30,7 +30,7 @@ export default function ShareWatchlistPage() {
         <div className="max-w-screen-md mx-auto px-4 py-3 flex items-center gap-3">
           <button type="button"
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
+            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -152,14 +152,14 @@ function Row({
       </div>
       <button type="button"
         onClick={() => setEditing(true)}
-        className="w-9 h-9 rounded-xl bg-muted/60 hover:bg-muted flex items-center justify-center"
+        className="w-9 h-9 rounded-xl bg-muted/60 hover:bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="Rename"
       >
         <Pencil className="w-4 h-4 text-muted-foreground" />
       </button>
       <button type="button"
         onClick={onRemove}
-        className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center"
+        className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label="Remove"
       >
         <Trash2 className="w-4 h-4" />

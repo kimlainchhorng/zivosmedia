@@ -150,8 +150,9 @@ export default function FanBadgesPage() {
                 key={t}
                 type="button"
                 onClick={() => setActiveType(t)}
+                aria-pressed={activeType === t}
                 className={cn(
-                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeType === t ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                 )}
               >
@@ -205,7 +206,7 @@ export default function FanBadgesPage() {
                   transition={{ delay: idx * 0.04 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => creator && navigate(`/user/${creator.user_id}`)}
-                  className="relative aspect-square rounded-2xl bg-card border border-border overflow-hidden text-left active:opacity-90"
+                  className="relative aspect-square rounded-2xl bg-card border border-border overflow-hidden text-left active:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={`${b.badge_name ?? b.badge_type} badge from ${creator?.full_name ?? "creator"}`}
                 >
                   {/* Big badge emoji centered */}

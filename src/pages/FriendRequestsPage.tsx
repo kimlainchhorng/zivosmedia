@@ -194,10 +194,10 @@ export default function FriendRequestsPage() {
                       <p className="text-sm font-bold text-foreground line-clamp-1">{name}</p>
                       <p className="text-[11px] text-muted-foreground inline-flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {formatRelative(r.created_at)}</p>
                     </div>
-                    <button type="button" aria-label="Accept" onClick={() => accept(r.id)} className="h-9 w-9 rounded-full bg-ig-gradient text-white inline-flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-sm">
+                    <button type="button" aria-label="Accept" onClick={() => accept(r.id)} className="h-9 w-9 rounded-full bg-ig-gradient text-white inline-flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Check className="h-3.5 w-3.5" />
                     </button>
-                    <button type="button" aria-label="Decline" onClick={() => decline(r.id)} className="h-9 w-9 rounded-full bg-secondary text-foreground hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 inline-flex items-center justify-center active:scale-95 transition-all">
+                    <button type="button" aria-label="Decline" onClick={() => decline(r.id)} className="h-9 w-9 rounded-full bg-secondary text-foreground hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 inline-flex items-center justify-center active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </motion.div>
@@ -234,7 +234,7 @@ export default function FriendRequestsPage() {
                       <p className="text-sm font-bold text-foreground line-clamp-1">{name}</p>
                       <p className="text-[11px] text-muted-foreground">Waiting · {formatRelative(r.created_at)}</p>
                     </div>
-                    <button type="button" aria-label="Cancel" onClick={() => decline(r.id)} className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold active:scale-95 transition-all">
+                    <button type="button" aria-label="Cancel" onClick={() => decline(r.id)} className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       Cancel
                     </button>
                   </motion.div>

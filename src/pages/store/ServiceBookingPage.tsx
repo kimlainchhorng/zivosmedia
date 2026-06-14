@@ -24,6 +24,7 @@ const TIME_SLOTS = [
   "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM",
   "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM",
 ];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const VEHICLE_MODELS: Record<string, string[]> = {
   Acura: ["ILX","Integra","MDX","RDX","TLX"],
@@ -88,30 +89,42 @@ export default function ServiceBookingPage() {
   useEffect(() => {
     if (!slug) return;
     (async () => {
-      const { data: s } = await supabase
+      let { data: storeRow } = await supabase
         .from("store_profiles")
         .select("id, name, logo_url, address, phone, category")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle();
-      if (!s) { setLoading(false); return; }
-      setStore(s);
+      if (!storeRow && UUID_RE.test(slug)) {
+        const { data } = await supabase
+          .from("store_profiles")
+          .select("id, name, logo_url, address, phone, category")
+          .eq("id", slug)
+          .eq("is_active", true)
+          .maybeSingle();
+        storeRow = data;
+      }
+      if (!storeRow) { setLoading(false); return; }
+      setStore(storeRow);
 
       // @ts-ignore - deep type instantiation
       const { data: p } = await supabase
         .from("store_products")
         .select("id, name, price, category, image_url")
-        .eq("store_id", s.id);
+        .eq("store_id", storeRow.id);
       setServices(p || []);
-      // Auto-select service from URL query param
+      // Auto-select/prefill from URL query params (used by shop SMS links).
       const preselect = searchParams.get("service");
-      if (preselect) {
-        const svc = (p || []).find((s: any) => s.name?.toLowerCase() === preselect.toLowerCase());
-        setForm(f => ({ ...f, service_name: preselect, product_id: svc?.id || "" }));
-      }
+      const phone = searchParams.get("phone");
+      const svc = preselect ? (p || []).find((s: any) => s.name?.toLowerCase() === preselect.toLowerCase()) : null;
+      if (preselect || phone) setForm(f => ({
+        ...f,
+        ...(preselect ? { service_name: preselect, product_id: svc?.id || "" } : {}),
+        ...(phone ? { customer_phone: phone } : {}),
+      }));
       setLoading(false);
     })();
-  }, [slug]);
+  }, [slug, searchParams]);
 
   const update = (key: string, val: string) => setForm(f => ({ ...f, [key]: val }));
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -141,7 +141,7 @@ function OrderCard({ order, onReorder, onRate, onTrack }: {
           : "border-border/20 bg-card/80"
       }`}
     >
-      <button type="button" onClick={() => setExpanded(!expanded)} className="w-full p-4 text-left">
+      <button type="button" onClick={() => setExpanded(!expanded)} aria-expanded={expanded} className="w-full p-4 text-left transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
         <div className="flex items-start gap-3">
           <div className={`h-10 w-10 rounded-xl ${cfg.bg} flex items-center justify-center shrink-0`}>
             <StatusIcon className={`h-5 w-5 ${cfg.color}`} />
@@ -207,7 +207,8 @@ function OrderCard({ order, onReorder, onRate, onTrack }: {
               {/* Order ID */}
               <button type="button"
                 onClick={copyOrderId}
-                className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/10 w-full text-left"
+                aria-label="Copy order ID"
+                className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/10 w-full text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">Order</span>
                 <span className="text-[10px] font-mono text-foreground flex-1">{order.id.slice(0, 8).toUpperCase()}</span>
@@ -227,7 +228,8 @@ function OrderCard({ order, onReorder, onRate, onTrack }: {
                   {order.driver_phone && (
                     <a
                       href={`tel:${order.driver_phone}`}
-                      className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+                      aria-label="Call driver"
+                      className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Phone className="h-4 w-4 text-primary" />
                     </a>
@@ -301,7 +303,7 @@ function OrderCard({ order, onReorder, onRate, onTrack }: {
               {order.receipt_photo_url && (
                 <button type="button"
                   onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(order.receipt_photo_url))}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/20 border border-border/10 hover:bg-muted/30 transition-colors w-full text-left"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/20 border border-border/10 hover:bg-muted/30 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring w-full text-left"
                 >
                   <Receipt className="h-4 w-4 text-primary" />
                   <span className="text-[11px] font-semibold text-foreground flex-1">View Store Receipt</span>
@@ -319,7 +321,8 @@ function OrderCard({ order, onReorder, onRate, onTrack }: {
                         key={s}
                         whileTap={{ scale: 0.8 }}
                         onClick={() => onRate(order.id, s)}
-                        className="p-2 rounded-xl bg-muted/20 hover:bg-amber-500/10 transition-colors border border-border/15"
+                        aria-label={`Rate ${s} star${s !== 1 ? "s" : ""}`}
+                        className="p-2 rounded-xl bg-muted/20 hover:bg-amber-500/10 transition-colors border border-border/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Star className="h-5 w-5 text-muted-foreground/30 hover:text-amber-400 hover:fill-amber-400 transition-colors" />
                       </motion.button>
@@ -540,7 +543,8 @@ export default function GroceryOrderHistory() {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate("/grocery")}
-            className="p-2 rounded-2xl hover:bg-muted/60 transition-colors"
+            aria-label="Go back"
+            className="p-2 rounded-2xl hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="h-5 w-5" />
           </motion.button>
@@ -556,7 +560,7 @@ export default function GroceryOrderHistory() {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleRefresh}
-            className="p-2 rounded-2xl hover:bg-muted/60 transition-colors"
+            className="p-2 rounded-2xl hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Refresh"
           >
             <RefreshCw className={`h-4 w-4 text-muted-foreground ${refreshing ? "animate-spin" : ""}`} />
@@ -574,7 +578,8 @@ export default function GroceryOrderHistory() {
               key={tab.key}
               whileTap={{ scale: 0.95 }}
               onClick={() => setFilter(tab.key)}
-              className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all ${
+              aria-pressed={filter === tab.key}
+              className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 filter === tab.key
                   ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-border/20"

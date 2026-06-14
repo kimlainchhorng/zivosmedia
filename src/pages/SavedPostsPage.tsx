@@ -165,7 +165,7 @@ export default function SavedPostsPage() {
       >
         <button type="button"
           onClick={() => navigate(-1)}
-          className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center"
+          className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Back"
         >
           <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -192,7 +192,7 @@ export default function SavedPostsPage() {
           <p className="font-semibold">Sign in to see your saved posts</p>
           <button type="button"
             onClick={() => navigate("/login")}
-            className="mt-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+            className="mt-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Sign in
           </button>
@@ -211,7 +211,7 @@ export default function SavedPostsPage() {
           <button
             type="button"
             onClick={() => setSelectedCollectionId(null)}
-            className="mt-2 rounded-full bg-muted px-5 py-2 text-sm font-semibold"
+            className="mt-2 rounded-full bg-muted px-5 py-2 text-sm font-semibold active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Show all saved
           </button>
@@ -225,7 +225,7 @@ export default function SavedPostsPage() {
           </p>
           <button type="button"
             onClick={() => navigate("/feed")}
-            className="mt-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+            className="mt-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Browse the feed
           </button>
@@ -278,7 +278,7 @@ export default function SavedPostsPage() {
               {/* Tap targets */}
               <button type="button"
                 onClick={() => navigate(tile.feedHref)}
-                className="absolute inset-0 cursor-pointer focus:outline-none"
+                className="absolute inset-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 aria-label={`Open: ${tile.caption ?? "post"}`}
               />
               <AddToCollectionPopover
@@ -287,7 +287,7 @@ export default function SavedPostsPage() {
               />
               <button type="button"
                 onClick={(e) => { e.stopPropagation(); handleRemove(tile.bookmarkId); }}
-                className="absolute right-1.5 top-1.5 z-10 rounded-full bg-red-500/90 p-2 text-white shadow-lg opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 group-active:opacity-100 transition-opacity active:scale-90"
+                className="absolute right-1.5 top-1.5 z-10 rounded-full bg-red-500/90 p-2 text-white shadow-lg opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 group-active:opacity-100 transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 aria-label="Remove from saved"
               >
                 <Trash2 className="h-3.5 w-3.5" />

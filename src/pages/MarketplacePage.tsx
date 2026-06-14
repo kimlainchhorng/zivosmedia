@@ -2478,13 +2478,13 @@ function ListingDetail({
               <button
                 type="button"
                 onClick={onToggleFav}
-                className="p-2.5 rounded-full bg-muted/40"
+                className="p-2.5 rounded-full bg-muted/40 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Save"
               >
                 <Heart className={`h-5 w-5 ${isFav ? "fill-red-500 text-red-500" : ""}`} />
               </button>
             )}
-            <button type="button" aria-label="Share listing" onClick={handleShare} disabled={isSharingListing} className="p-2.5 rounded-full bg-muted/40 disabled:opacity-50">
+            <button type="button" aria-label="Share listing" onClick={handleShare} disabled={isSharingListing} className="p-2.5 rounded-full bg-muted/40 disabled:opacity-50 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Share2 className="h-5 w-5" />
             </button>
           </div>
@@ -2526,7 +2526,7 @@ function ListingDetail({
                   key={t}
                   type="button"
                   onClick={() => { onClose(); navigate(`/marketplace?q=${encodeURIComponent(t)}`); }}
-                  className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary/15"
+                  className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary/15 active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   #{t}
                 </button>
@@ -2545,7 +2545,7 @@ function ListingDetail({
           <button
             type="button"
             onClick={() => navigate(`/u/${seller?.username || listing.seller_id}`)}
-            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-muted/30 text-left"
+            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-muted/30 text-left active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0">
               {seller?.avatar_url ? (
@@ -2662,7 +2662,7 @@ function ListingDetail({
                 <button
                   type="button"
                   onClick={handleMessage}
-                  className="flex-1 py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <MessageCircle className="h-4 w-4" /> Message
                 </button>
@@ -2672,7 +2672,7 @@ function ListingDetail({
                     onClick={() => setShowOffer(true)}
                     disabled={hasPendingOffer}
                     title={hasPendingOffer ? "You already have a pending offer" : ""}
-                    className="flex-1 py-3.5 rounded-2xl bg-foreground text-background font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 py-3.5 rounded-2xl bg-foreground text-background font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <HandCoins className="h-4 w-4" /> {hasPendingOffer ? "Offer pending" : "Make Offer"}
                   </button>
@@ -2680,7 +2680,7 @@ function ListingDetail({
                 <button
                   type="button"
                   onClick={() => setShowReport(true)}
-                  className="px-4 rounded-2xl bg-muted/40"
+                  className="px-4 rounded-2xl bg-muted/40 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Report"
                 >
                   <Flag className="h-4 w-4" />
@@ -2690,7 +2690,7 @@ function ListingDetail({
           ) : (
             <div className="space-y-3 pt-2">
               {/* Owner controls */}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {listing.status === "draft" ? (
                   <button
                     type="button"
@@ -2705,7 +2705,7 @@ function ListingDetail({
                     type="button"
                     onClick={() => updateStatus.mutate("active")}
                     disabled={updateStatus.isPending}
-                    className="flex-1 py-3 rounded-2xl bg-muted/40 font-semibold text-sm flex items-center justify-center gap-2"
+                    className="flex-1 py-3 rounded-2xl bg-muted/40 font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <RotateCcw className="h-4 w-4" /> Relist
                   </button>
@@ -2722,7 +2722,7 @@ function ListingDetail({
                 <button
                   type="button"
                   onClick={() => onEdit(listing)}
-                  className="px-4 rounded-2xl bg-muted/40 font-semibold text-sm"
+                  className="px-4 rounded-2xl bg-muted/40 font-semibold text-sm active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Edit
                 </button>
@@ -2731,7 +2731,7 @@ function ListingDetail({
                     type="button"
                     onClick={() => bumpListing.mutate()}
                     disabled={bumpListing.isPending}
-                    className="px-4 rounded-2xl bg-blue-500/15 text-blue-700 dark:text-blue-400 font-semibold text-sm flex items-center gap-1"
+                    className="px-4 rounded-2xl bg-blue-500/15 text-blue-700 dark:text-blue-400 font-semibold text-sm flex items-center gap-1 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     title="Bump to top of feed (once per 24h)"
                   >
                     <TrendingUp className="h-4 w-4" />
@@ -2741,7 +2741,7 @@ function ListingDetail({
                   type="button"
                   onClick={() => togglePromote.mutate()}
                   disabled={togglePromote.isPending}
-                  className={`px-4 rounded-2xl font-semibold text-sm flex items-center gap-1 ${
+                  className={`px-4 rounded-2xl font-semibold text-sm flex items-center gap-1 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     listing.is_featured ? "bg-ig-gradient text-white" : "bg-muted/40"
                   }`}
                   title={listing.is_featured ? "Remove from Featured" : "Promote to Featured"}
@@ -2906,7 +2906,7 @@ function ListingDetail({
                       type="button"
                       key={s.id}
                       onClick={() => onOpenListing(s)}
-                      className="group shrink-0 w-32 rounded-xl overflow-hidden bg-card border border-border/30 text-left hover:shadow-md hover:border-border/60 transition-all"
+                      className="group shrink-0 w-32 rounded-xl overflow-hidden bg-card border border-border/30 text-left hover:shadow-md hover:border-border/60 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <div className="aspect-square bg-muted/30 overflow-hidden">
                         {img ? <img src={img} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}

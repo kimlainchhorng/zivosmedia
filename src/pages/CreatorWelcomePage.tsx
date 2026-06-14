@@ -94,7 +94,7 @@ export default function CreatorWelcomePage() {
           <button
             type="button"
             onClick={() => setShowPicker(true)}
-            className="mt-5 h-12 px-6 rounded-2xl bg-ig-gradient text-white font-extrabold text-[14px] inline-flex items-center gap-2 active:scale-[0.98]"
+            className="mt-5 h-12 px-6 rounded-2xl bg-ig-gradient text-white font-extrabold text-[14px] inline-flex items-center gap-2 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Choose your creator type
             <ArrowRight className="h-4 w-4" />
@@ -113,7 +113,8 @@ export default function CreatorWelcomePage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 + i * 0.04 }}
-              className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 bg-card hover:border-primary/40 active:scale-[0.99] transition-all text-left"
+              whileTap={{ scale: 0.99 }}
+              className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/40 bg-card hover:border-primary/40 active:scale-[0.99] transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", step.accent)}>
                 <step.icon className="h-5 w-5" />
@@ -130,7 +131,7 @@ export default function CreatorWelcomePage() {
           <button
             type="button"
             onClick={() => navigate("/creator-dashboard")}
-            className="w-full mt-4 h-12 rounded-2xl bg-muted/60 font-bold text-[13px] active:scale-[0.98] inline-flex items-center justify-center gap-2"
+            className="w-full mt-4 h-12 rounded-2xl bg-muted/60 font-bold text-[13px] active:scale-[0.98] inline-flex items-center justify-center gap-2 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Rocket className="h-4 w-4" />
             Skip — go to dashboard

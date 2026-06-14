@@ -202,7 +202,8 @@ export default function AudioSpacesPage() {
 
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {TOPICS.map((topic) => (
-            <Badge key={topic} variant={selectedTopic === topic ? "default" : "outline"} className="cursor-pointer whitespace-nowrap shrink-0"
+            <Badge key={topic} variant={selectedTopic === topic ? "default" : "outline"} className="cursor-pointer whitespace-nowrap shrink-0 transition-all active:scale-[0.97]"
+              aria-pressed={selectedTopic === topic}
               onClick={() => setSelectedTopic(topic)}>
               {topic}
             </Badge>
@@ -217,7 +218,7 @@ export default function AudioSpacesPage() {
               <Input placeholder="Space title..." value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
               <div className="flex gap-2 flex-wrap">
                 {TOPICS.filter(t => t !== "All").map((t) => (
-                  <Badge key={t} variant={newTopic === t ? "default" : "outline"} className="cursor-pointer" onClick={() => setNewTopic(t)}>{t}</Badge>
+                  <Badge key={t} variant={newTopic === t ? "default" : "outline"} className="cursor-pointer transition-all active:scale-[0.97]" aria-pressed={newTopic === t} onClick={() => setNewTopic(t)}>{t}</Badge>
                 ))}
               </div>
               <div className="flex gap-2">
@@ -247,7 +248,7 @@ export default function AudioSpacesPage() {
 
       <div className="p-4 space-y-3">
         {filtered.map((space) => (
-          <Card key={space.id} className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+          <Card key={space.id} className="p-4 cursor-pointer hover:bg-accent/50 transition-all active:scale-[0.98]"
             onClick={() => { setActiveSpace(space); setIsMuted(true); setHandRaised(false); }}>
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">

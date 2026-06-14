@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { UserPlus, ScanLine, X, Car, FileText } from "lucide-react";
+import { UserPlus, ScanLine, X, Car, FileText, Star } from "lucide-react";
 
 export type CustomerDraft = {
   name: string; street: string; city: string; state: string; zip: string;
@@ -132,6 +132,29 @@ export default function BuildROCustomerDialog({ open, onOpenChange, initial, onS
           <div className="space-y-1">
             <label className={lbl}>Email</label>
             <input className={inp} type="email" placeholder="name@example.com" value={f.email} onChange={(e) => set({ email: e.target.value })} />
+          </div>
+
+          {/* Customer rating */}
+          <div className="space-y-1">
+            <label className={lbl}>Customer rating</label>
+            <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2">
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <button
+                  key={rating}
+                  type="button"
+                  onClick={() => set({ rating: f.rating === rating ? 0 : rating })}
+                  className="rounded-md p-1 text-slate-300 transition hover:bg-white hover:text-amber-400"
+                  aria-label={`Set customer rating to ${rating}`}
+                  aria-pressed={f.rating === rating}
+                  title={`${rating} star${rating === 1 ? "" : "s"}`}
+                >
+                  <Star className={`h-5 w-5 ${rating <= f.rating ? "fill-amber-400 text-amber-400" : ""}`} />
+                </button>
+              ))}
+              <span className="ml-2 text-xs font-medium text-slate-500">
+                {f.rating ? `${f.rating}/5` : "No rating"}
+              </span>
+            </div>
           </div>
 
           {/* Address */}

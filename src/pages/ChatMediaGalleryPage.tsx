@@ -167,8 +167,9 @@ export default function ChatMediaGalleryPage() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
+              aria-pressed={tab === t.id}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring inline-flex items-center gap-1.5",
                 tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
@@ -216,7 +217,7 @@ export default function ChatMediaGalleryPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: Math.min(idx, 20) * 0.015 }}
                   onClick={() => setPreview(m)}
-                  className="relative aspect-square rounded-xl overflow-hidden bg-muted active:scale-95 transition-transform"
+                  className="relative aspect-square rounded-xl overflow-hidden bg-muted active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={`${m.kind === "video" ? "Video" : "Photo"} from ${isMine ? "you" : "partner"}, ${formatRelative(m.created_at)}`}
                 >
 	                  <img src={thumb} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -287,7 +288,7 @@ export default function ChatMediaGalleryPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Download ${m.file_name}`}
-                    className="shrink-0 h-9 w-9 rounded-full bg-ig-gradient text-white inline-flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                    className="shrink-0 h-9 w-9 rounded-full bg-ig-gradient text-white inline-flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Download className="h-3.5 w-3.5" />
                   </a>
@@ -320,7 +321,7 @@ export default function ChatMediaGalleryPage() {
                 type="button"
                 aria-label="Close"
                 onClick={(e) => { e.stopPropagation(); setPreview(null); }}
-                className="h-9 w-9 rounded-full bg-white/10 backdrop-blur-sm text-white inline-flex items-center justify-center active:scale-95"
+                className="h-9 w-9 rounded-full bg-white/10 backdrop-blur-sm text-white inline-flex items-center justify-center active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -335,7 +336,7 @@ export default function ChatMediaGalleryPage() {
                   href={preview.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-full bg-ig-gradient text-white font-bold text-sm shadow-lg shadow-rose-500/30 hover:opacity-90 active:scale-95 transition-all inline-flex items-center gap-2"
+                  className="px-6 py-3 rounded-full bg-ig-gradient text-white font-bold text-sm shadow-lg shadow-rose-500/30 hover:opacity-90 active:scale-95 transition-all inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 >
                   <Download className="h-4 w-4" /> Open {preview.file_name}
                 </a>

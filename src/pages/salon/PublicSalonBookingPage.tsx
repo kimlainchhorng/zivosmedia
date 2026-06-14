@@ -552,7 +552,7 @@ export default function PublicSalonBookingPage() {
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               <a
                 href={`/booking/${confirmed.id}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/40 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 View or cancel this booking
               </a>
@@ -562,7 +562,7 @@ export default function PublicSalonBookingPage() {
               {user && (
                 <a
                   href="/salon/me"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/15"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/15 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Go to your salon area →
                 </a>
@@ -653,7 +653,7 @@ export default function PublicSalonBookingPage() {
                           key={cat}
                           onClick={() => setServiceCategoryFilter(cat)}
                           className={cn(
-                            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                            "rounded-full border px-3 py-1 text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                             active ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground/75 hover:border-primary/40"
                           )}
                         >
@@ -670,7 +670,7 @@ export default function PublicSalonBookingPage() {
                     key={s.id}
                     onClick={() => { setServiceId(s.id); setStylistId(""); setSelectedSlot(""); }}
                     className={cn(
-                      "flex items-start gap-3 rounded-xl border p-3 text-left transition-colors",
+                      "flex items-start gap-3 rounded-xl border p-3 text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       serviceId === s.id ? "border-primary bg-primary/8" : "border-border hover:border-primary/40"
                     )}
                   >
@@ -705,7 +705,7 @@ export default function PublicSalonBookingPage() {
                     type="button"
                     onClick={() => { setStylistId("__any"); setSelectedSlot(""); }}
                     className={cn(
-                      "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       stylistId === "__any" ? "border-primary bg-ig-gradient text-white" : "border-border hover:border-primary/40"
                     )}
                   >
@@ -718,7 +718,7 @@ export default function PublicSalonBookingPage() {
                     key={s.id}
                     onClick={() => { setStylistId(s.id); setSelectedSlot(""); }}
                     className={cn(
-                      "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       stylistId === s.id ? "border-primary bg-ig-gradient text-white" : "border-border hover:border-primary/40"
                     )}
                   >
@@ -738,9 +738,9 @@ export default function PublicSalonBookingPage() {
               <CardTitle className="flex items-center justify-between gap-2 text-base">
                 <span>3. Pick a time</span>
                 <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setDate(shiftDay(date, -1))} aria-label="Previous day"><ChevronLeft className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8 active:scale-[0.95] transition-transform" onClick={() => setDate(shiftDay(date, -1))} aria-label="Previous day"><ChevronLeft className="h-4 w-4" /></Button>
                   <span className="px-2 text-xs font-medium">{formatDate(date)}</span>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setDate(shiftDay(date, 1))} aria-label="Next day"><ChevronRight className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8 active:scale-[0.95] transition-transform" onClick={() => setDate(shiftDay(date, 1))} aria-label="Next day"><ChevronRight className="h-4 w-4" /></Button>
                 </div>
               </CardTitle>
             </CardHeader>
@@ -763,7 +763,7 @@ export default function PublicSalonBookingPage() {
                       key={iso}
                       onClick={() => setSelectedSlot(iso)}
                       className={cn(
-                        "rounded-lg border px-2 py-2 text-sm font-medium transition-colors",
+                        "rounded-lg border px-2 py-2 text-sm font-medium transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         selectedSlot === iso ? "border-primary bg-ig-gradient text-white" : "border-border hover:border-primary/40"
                       )}
                     >
@@ -866,7 +866,7 @@ export default function PublicSalonBookingPage() {
                 </div>
               )}
 
-              <Button onClick={handleConfirm} disabled={!canSubmit || submitting} className="w-full gap-1.5">
+              <Button onClick={handleConfirm} disabled={!canSubmit || submitting} className="w-full gap-1.5 active:scale-[0.98] transition-transform">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                 Request booking
               </Button>
@@ -975,26 +975,26 @@ function SalonContactStrip({ store }: { store: SalonProfile }) {
     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
       {items.map(({ key, icon: Icon, href, label }) => (
         <a key={key} href={href} target={key === "addr" ? "_blank" : undefined} rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
+          className="inline-flex items-center gap-1 rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Icon className="h-3 w-3" /> <span className="truncate max-w-[180px]">{label}</span>
         </a>
       ))}
       <span className="ml-auto inline-flex items-center gap-1.5">
         {store.facebook_url && (
-          <a href={store.facebook_url} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+          <a href={store.facebook_url} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Facebook className="h-3.5 w-3.5" />
           </a>
         )}
         {store.instagram_url && (
-          <a href={store.instagram_url} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+          <a href={store.instagram_url} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Instagram className="h-3.5 w-3.5" />
           </a>
         )}
         {store.tiktok_url && (
-          <a href={store.tiktok_url} target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="grid h-6 w-6 place-items-center rounded-md text-[10px] font-bold text-muted-foreground hover:bg-muted hover:text-foreground">TT</a>
+          <a href={store.tiktok_url} target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="grid h-6 w-6 place-items-center rounded-md text-[10px] font-bold text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">TT</a>
         )}
         {store.telegram_url && (
-          <a href={store.telegram_url} target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+          <a href={store.telegram_url} target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Send className="h-3.5 w-3.5" />
           </a>
         )}

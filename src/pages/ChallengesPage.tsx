@@ -179,9 +179,10 @@ export default function ChallengesPage() {
             <button
               key={f}
               type="button"
+              aria-pressed={filter === f}
               onClick={() => setFilter(f)}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 filter === f ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
@@ -282,7 +283,7 @@ export default function ChallengesPage() {
                       disabled={busy || exp.expired}
                       onClick={() => (joined ? leaveMutation.mutate(c.id) : joinMutation.mutate(c.id))}
                       className={cn(
-                        "shrink-0 h-9 px-3 rounded-full text-xs font-bold inline-flex items-center justify-center gap-1 active:scale-95 transition-all",
+                        "shrink-0 h-9 px-3 rounded-full text-xs font-bold inline-flex items-center justify-center gap-1 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         joined
                           ? "bg-secondary text-foreground hover:bg-muted"
                           : exp.expired

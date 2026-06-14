@@ -204,8 +204,9 @@ export default function BookmarksPage() {
             <button type="button"
               key={t.id}
               onClick={() => setActiveTab(t.id)}
+              aria-pressed={activeTab === t.id}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeTab === t.id ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
               )}
             >
@@ -255,7 +256,7 @@ export default function BookmarksPage() {
                 type="button"
                 onClick={() => openHref && navigate(openHref)}
                 disabled={!openHref}
-                className="flex flex-1 items-start gap-3 min-w-0 text-left disabled:cursor-default"
+                className="flex flex-1 items-start gap-3 min-w-0 text-left disabled:cursor-default transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="relative h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                   {b.item_type === "post" && b.preview_url && b.is_video ? (
@@ -283,7 +284,7 @@ export default function BookmarksPage() {
                   </p>
                 </div>
               </button>
-              <button type="button" onClick={() => removeBookmark(b)} aria-label="Remove bookmark" title="Remove bookmark" className="p-2 rounded-full hover:bg-destructive/10 self-start">
+              <button type="button" onClick={() => removeBookmark(b)} aria-label="Remove bookmark" title="Remove bookmark" className="p-2 rounded-full hover:bg-destructive/10 self-start active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <Trash2 className="h-4 w-4 text-muted-foreground" />
               </button>
             </motion.div>

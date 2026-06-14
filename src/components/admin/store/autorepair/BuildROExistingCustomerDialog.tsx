@@ -5,7 +5,7 @@
  * from AutoRepairBuildROSection to avoid a duplicate query, and pulls a light
  * service-history summary (visits / last visit / lifetime spend) per vehicle.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -55,6 +55,10 @@ const gradientOf = (name: string) => {
 
 export default function BuildROExistingCustomerDialog({ open, onOpenChange, storeId, garage, onPick }: Props) {
   const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (open) setQ("");
+  }, [open]);
 
   // Light service-history summary — invoices keyed by vehicle_label.
   const { data: invoices = [] } = useQuery({

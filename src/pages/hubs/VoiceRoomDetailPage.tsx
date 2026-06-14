@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
-  ArrowLeft, Mic, Loader2, Users, Crown, LogOut, StopCircle, Radio,
+  ArrowLeft, Mic, Loader2, Users, Crown, LogOut, StopCircle, Radio, Clock,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -173,6 +173,17 @@ export default function VoiceRoomDetailPage() {
 
   const hostProfile = room ? profiles[room.host_id] : undefined;
 
+  const timeLabel = useMemo(() => {
+    if (!room) return "";
+    if (room.is_live && room.started_at) {
+      return `Started ${new Date(room.started_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+    }
+    if (!room.is_live && room.ended_at) {
+      return `Ended ${new Date(room.ended_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+    }
+    return "";
+  }, [room?.is_live, room?.started_at, room?.ended_at]);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -197,23 +208,40 @@ export default function VoiceRoomDetailPage() {
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="flex items-center gap-2">
+            {/* Header — icon chip + topic + Live/Ended badge */}
+            <div className="flex items-start gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Mic className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-extrabold tracking-tight">{room.topic}</h1>
+              </div>
               {room.is_live ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-extrabold uppercase">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500 text-white text-[11px] font-extrabold uppercase tracking-wide shrink-0">
                   <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                   Live
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-foreground text-[10px] font-extrabold uppercase">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-[11px] font-extrabold uppercase tracking-wide shrink-0">
                   Ended
                 </span>
               )}
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
-                <Radio className="w-3 h-3" /> Voice room
-              </span>
             </div>
 
-            <h1 className="text-2xl font-extrabold tracking-tight">{room.topic}</h1>
+            {/* Meta row — voice room label + start/end time + listeners */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <Radio className="w-3.5 h-3.5 shrink-0" /> Voice room
+              </span>
+              {timeLabel && (
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 shrink-0" /> {timeLabel}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1">
+                <Users className="w-3.5 h-3.5 shrink-0" /> {participants.length} listening
+              </span>
+            </div>
             {room.description && (
               <p className="text-sm text-muted-foreground whitespace-pre-line">{room.description}</p>
             )}
@@ -236,7 +264,7 @@ export default function VoiceRoomDetailPage() {
             <div>
               <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
                 <Users className="w-3.5 h-3.5" />
-                {participants.length} listening
+                Listeners
               </div>
               <div className="flex flex-wrap gap-2">
                 {participants.map((p) => {
@@ -266,7 +294,7 @@ export default function VoiceRoomDetailPage() {
             </div>
 
             {/* Actions */}
-            <div className="pt-2 space-y-2">
+            <div className="pt-4 border-t border-border/40 space-y-2">
               {!room.is_live ? (
                 <p className="text-center text-sm text-muted-foreground py-4">
                   This room has ended.

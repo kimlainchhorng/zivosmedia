@@ -193,7 +193,7 @@ export default function SharedTodosPage() {
                   <button
                     type="button"
                     onClick={() => toggleExpand(l.id)}
-                    className="w-full flex items-center gap-3 p-3.5 hover:bg-secondary/40 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3.5 hover:bg-secondary/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset text-left"
                     aria-label={`${l.title}, ${isExpanded ? "collapse" : "expand"}`}
                   >
                     <div className="shrink-0 h-10 w-10 rounded-xl bg-ig-gradient/10 border border-ig-gradient/20 flex items-center justify-center">
@@ -239,7 +239,7 @@ export default function SharedTodosPage() {
                                 type="button"
                                 onClick={() => toggleItem(l, i)}
                                 className={cn(
-                                  "w-full flex items-start gap-2.5 px-2.5 py-2 rounded-xl text-left transition-colors active:scale-[0.99]",
+                                  "w-full flex items-start gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                   it.done ? "bg-secondary/40" : "hover:bg-secondary/50",
                                 )}
                               >
@@ -259,7 +259,7 @@ export default function SharedTodosPage() {
                           <button
                             type="button"
                             onClick={() => navigate(`/chat`)}
-                            className="w-full mt-2 h-9 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors"
+                            className="w-full mt-2 h-9 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             <MessageSquare className="h-3.5 w-3.5" /> Open in chat
                           </button>

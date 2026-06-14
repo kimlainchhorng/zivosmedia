@@ -138,7 +138,7 @@ export default function ChatSearchAllPage() {
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/85 backdrop-blur-xl border-b border-border/40 pt-safe px-3 py-3">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/60">
+          <button type="button" onClick={goBack} aria-label="Go back" className="p-1.5 rounded-full hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1 relative">
@@ -151,7 +151,7 @@ export default function ChatSearchAllPage() {
               className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-muted/40 border border-border/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             {q && (
-              <button type="button" onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <button type="button" onClick={() => setQ("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             )}
@@ -166,8 +166,9 @@ export default function ChatSearchAllPage() {
               <button type="button"
                 key={t.key}
                 onClick={() => setTab(t.key)}
+                aria-pressed={active}
                 className={cn(
-                  "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                  "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   active ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
                 )}
               >
@@ -193,7 +194,7 @@ export default function ChatSearchAllPage() {
                 const partnerId = makePartnerId(m, user!.id);
                 return (
                   <li key={m.id}>
-                    <button type="button" onClick={() => goToChat(partnerId)} className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/40">
+                    <button type="button" onClick={() => goToChat(partnerId)} className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <div className="text-sm line-clamp-2">{m.message}</div>
                       <div className="text-[11px] text-muted-foreground mt-1">{new Date(m.created_at).toLocaleString()}</div>
                     </button>
@@ -207,7 +208,7 @@ export default function ChatSearchAllPage() {
             <ul className="space-y-1">
               {people.map((p) => (
                 <li key={p.id}>
-                  <button type="button" onClick={() => goToChat(p.user_id || p.id)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/40">
+                  <button type="button" onClick={() => goToChat(p.user_id || p.id)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Avatar className="w-10 h-10">
                       <AvatarImage src={p.avatar_url || ""} />
                       <AvatarFallback>{(p.full_name || p.username || "?").slice(0, 1)}</AvatarFallback>
@@ -228,7 +229,7 @@ export default function ChatSearchAllPage() {
                 const partnerId = makePartnerId(m, user!.id);
                 const url = m.image_url || m.video_url;
                 return (
-                  <button type="button" key={m.id} onClick={() => goToChat(partnerId)} className="aspect-square overflow-hidden rounded-lg bg-muted/40">
+                  <button type="button" key={m.id} onClick={() => goToChat(partnerId)} aria-label="Open conversation" className="aspect-square overflow-hidden rounded-lg bg-muted/40 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
                     {m.image_url ? (
                       <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     ) : (
@@ -247,7 +248,7 @@ export default function ChatSearchAllPage() {
                 const url = extractFirstUrl(m.message || "");
                 return (
                   <li key={m.id}>
-                    <button type="button" onClick={() => goToChat(partnerId)} className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/40">
+                    <button type="button" onClick={() => goToChat(partnerId)} className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-muted/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <div className="text-sm text-primary truncate">{url}</div>
                       <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{m.message}</div>
                     </button>

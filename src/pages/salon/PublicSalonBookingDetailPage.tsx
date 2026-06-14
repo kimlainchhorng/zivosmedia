@@ -267,14 +267,14 @@ export default function PublicSalonBookingDetailPage() {
       <Helmet><title>Your booking · {booking.store_name}</title></Helmet>
       <div className="mx-auto max-w-md px-4 py-10 sm:py-14">
         <div className="mb-4 flex items-center justify-between gap-3 text-xs">
-          <Link to={`/salon/${booking.store_slug}`} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
+          <Link to={`/salon/${booking.store_slug}`} className="inline-flex items-center gap-1 rounded-sm text-muted-foreground transition-all hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-3 w-3" /> Back to {booking.store_name}
           </Link>
           {/* Authenticated viewers get a one-tap shortcut to /salon/me so they
               can see all their visits, not just this one. RLS guarantees they
               only land on this page for bookings tied to their account. */}
           {user && (
-            <Link to="/salon/me" className="inline-flex items-center gap-1 text-primary hover:underline">
+            <Link to="/salon/me" className="inline-flex items-center gap-1 rounded-sm text-primary transition-all hover:underline active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Your salon area <ArrowLeft className="h-3 w-3 rotate-180" />
             </Link>
           )}
@@ -381,7 +381,7 @@ export default function PublicSalonBookingDetailPage() {
                           type="button"
                           onClick={() => { setTipDraftCents(cents); setTipCustomInput(""); setTipChargeError(null); }}
                           className={cn(
-                            "rounded-xl border p-2 text-center transition",
+                            "rounded-xl border p-2 text-center transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                             active
                               ? "border-pink-500/60 bg-pink-500/15 text-pink-800 dark:text-pink-200"
                               : "border-border bg-card text-foreground hover:border-pink-500/30",

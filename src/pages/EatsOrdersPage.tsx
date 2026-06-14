@@ -148,8 +148,8 @@ export default function EatsOrdersPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-20 bg-background/95 backdrop-blur-2xl border-b border-border/30">
         <div className="px-4 py-3 flex items-center gap-3 safe-area-top">
-          <motion.button whileTap={{ scale: 0.88 }} onClick={() => navigate("/eats")}
-            className="w-10 h-10 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation">
+          <motion.button whileTap={{ scale: 0.88 }} onClick={() => navigate("/eats")} aria-label="Go back"
+            className="w-10 h-10 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
           <div className="flex-1">
@@ -171,8 +171,8 @@ export default function EatsOrdersPage() {
             { id: "delivered" as const, label: "Delivered" },
             { id: "cancelled" as const, label: "Cancelled" },
           ]).map(f => (
-            <button type="button" key={f.id} onClick={() => setFilter(f.id)}
-              className={cn("px-3 py-1.5 rounded-full text-[10px] font-bold transition-all touch-manipulation active:scale-95",
+            <button type="button" key={f.id} onClick={() => setFilter(f.id)} aria-pressed={filter === f.id}
+              className={cn("px-3 py-1.5 rounded-full text-[10px] font-bold transition-all touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 filter === f.id ? "bg-ig-gradient text-white shadow-sm" : "bg-muted/50 text-muted-foreground border border-border/40")}>
               {f.label}
             </button>
@@ -207,8 +207,8 @@ export default function EatsOrdersPage() {
           return (
             <motion.div key={order.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}>
-              <button type="button" onClick={() => setSelectedOrder(order)}
-                className="w-full text-left rounded-2xl bg-card border border-border/40 p-4 hover:border-primary/20 transition-all touch-manipulation active:scale-[0.99] space-y-3">
+              <button type="button" onClick={() => setSelectedOrder(order)} aria-haspopup="dialog"
+                className="w-full text-left rounded-2xl bg-card border border-border/40 p-4 hover:border-primary/20 transition-all touch-manipulation active:scale-[0.99] space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <div className="flex items-center gap-3">
                   {restaurant?.logo_url ? (
 	                    <img src={restaurant.logo_url} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" loading="lazy" decoding="async" />
@@ -277,8 +277,8 @@ export default function EatsOrdersPage() {
                     <Receipt className="w-5 h-5 text-primary" />
                     <h2 className="text-lg font-bold text-foreground">Order Receipt</h2>
                   </div>
-                  <button type="button" onClick={() => setSelectedOrder(null)}
-                    className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center touch-manipulation active:scale-90">
+                  <button type="button" onClick={() => setSelectedOrder(null)} aria-label="Close"
+                    className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center touch-manipulation active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -382,7 +382,7 @@ export default function EatsOrdersPage() {
                           onMouseEnter={() => setHoverRating(s)}
                           onMouseLeave={() => setHoverRating(0)}
                           onClick={() => handleRate(selectedOrder.id, s)}
-                          className="flex-1 flex items-center justify-center py-2 rounded-xl border border-border/40 bg-muted/30 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors active:scale-90 touch-manipulation">
+                          className="flex-1 flex items-center justify-center py-2 rounded-xl border border-border/40 bg-muted/30 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all active:scale-90 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                           <Star className={`w-5 h-5 transition-colors ${s <= (hoverRating || 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />
                         </button>
                       ))}

@@ -31,7 +31,7 @@ export default function GroceryReturns() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-2xl border-b border-border/20">
         <div className="flex items-center gap-3 px-4 py-3">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} className="p-2 rounded-2xl hover:bg-muted/60"><ArrowLeft className="h-5 w-5" /></motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} aria-label="Go back" className="p-2 rounded-2xl hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="h-5 w-5" /></motion.button>
           <div>
             <h1 className="text-base font-bold">Returns & Refund Policy</h1>
             <p className="text-[10px] text-muted-foreground">ZIVO Grocery Delivery · Last updated March 2026</p>
@@ -147,7 +147,7 @@ export default function GroceryReturns() {
         <div className="text-center pt-4 space-y-2">
           <p className="text-[11px] text-muted-foreground">Need help? Contact <span className="text-primary font-semibold">support@zivosmedia.com</span></p>
           <p className="text-[9px] text-muted-foreground/50">
-            See also: <Link to="/grocery/terms" className="text-primary/60 underline">Terms of Service</Link> · <Link to="/grocery/fees" className="text-primary/60 underline">Pricing & Fees</Link>
+            See also: <Link to="/grocery/terms" className="text-primary/60 underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Terms of Service</Link> · <Link to="/grocery/fees" className="text-primary/60 underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Pricing & Fees</Link>
           </p>
         </div>
       </div>

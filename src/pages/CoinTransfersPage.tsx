@@ -172,7 +172,7 @@ export default function CoinTransfersPage() {
 
         <div className="flex gap-2">
           {tabs.map((t) => (
-            <button key={t.id} type="button" onClick={() => setTab(t.id)} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5", tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>
+            <button key={t.id} type="button" aria-pressed={tab === t.id} onClick={() => setTab(t.id)} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>
               <span>{t.label}</span>
               <span className={cn("text-[10px] font-extrabold px-1.5 py-0.5 rounded-full", tab === t.id ? "bg-white/20" : "bg-background/60")}>{t.count}</span>
             </button>
