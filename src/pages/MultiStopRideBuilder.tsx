@@ -158,7 +158,7 @@ export default function MultiStopRideBuilder() {
         <div className="max-w-screen-md mx-auto px-4 py-3 flex items-center gap-3">
           <button type="button"
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
+            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -214,7 +214,7 @@ export default function MultiStopRideBuilder() {
                   <button type="button"
                     onClick={() => moveStop(i, i - 1)}
                     disabled={i === 0}
-                    className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-[11px] font-bold disabled:opacity-40"
+                    className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-[11px] font-bold disabled:opacity-40 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Move up"
                   >
                     ↑
@@ -222,7 +222,7 @@ export default function MultiStopRideBuilder() {
                   <button type="button"
                     onClick={() => moveStop(i, i + 1)}
                     disabled={i === stops.length - 1}
-                    className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-[11px] font-bold disabled:opacity-40"
+                    className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-[11px] font-bold disabled:opacity-40 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Move down"
                   >
                     ↓
@@ -241,7 +241,7 @@ export default function MultiStopRideBuilder() {
                   {stops.length > 1 && (
                     <button type="button"
                       onClick={() => removeStop(i)}
-                      className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center"
+                      className="w-9 h-9 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label="Remove stop"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -280,7 +280,7 @@ export default function MultiStopRideBuilder() {
                       setStopAt(firstEmpty, p.name);
                     }
                   }}
-                  className="rounded-full border border-border/50 bg-card hover:bg-muted/40 px-3 py-1.5 text-[11px] font-bold text-foreground transition-colors"
+                  className="rounded-full border border-border/50 bg-card hover:bg-muted/40 px-3 py-1.5 text-[11px] font-bold text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {p.kind === "restaurant" ? "🍽️" : "🛏️"} {p.name}
                 </button>

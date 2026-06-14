@@ -31,11 +31,11 @@ export default function BroadcastListsPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/85 backdrop-blur-xl border-b border-border/40 pt-safe px-3 py-3 flex items-center gap-2">
-        <button type="button" onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/60">
+        <button type="button" onClick={goBack} aria-label="Back" className="p-1.5 rounded-full hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h1 className="text-base font-semibold flex-1">Broadcast Lists</h1>
-        <button type="button" onClick={() => nav("/chat/broadcasts/new")} className="p-1.5 rounded-full hover:bg-muted/60">
+        <button type="button" onClick={() => nav("/chat/broadcasts/new")} aria-label="New broadcast list" className="p-1.5 rounded-full hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Plus className="w-5 h-5" />
         </button>
       </header>
@@ -51,7 +51,7 @@ export default function BroadcastListsPage() {
           <Megaphone className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-sm font-semibold mb-1">No broadcast lists</p>
           <p className="text-xs text-muted-foreground mb-4">Create one to message many contacts at once.</p>
-          <button type="button" onClick={() => nav("/chat/broadcasts/new")} className="px-4 py-2 rounded-full bg-ig-gradient text-white text-sm font-medium">
+          <button type="button" onClick={() => nav("/chat/broadcasts/new")} className="px-4 py-2 rounded-full bg-ig-gradient text-white text-sm font-medium transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             New broadcast list
           </button>
         </div>
@@ -68,11 +68,11 @@ export default function BroadcastListsPage() {
               </div>
               <button type="button"
                 onClick={() => setComposeFor(l.id)}
-                className="px-3 py-1.5 text-xs font-medium rounded-full bg-ig-gradient text-white"
+                className="px-3 py-1.5 text-xs font-medium rounded-full bg-ig-gradient text-white transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Send
               </button>
-              <button type="button" onClick={() => deleteList(l.id)} className="p-1.5 rounded-full hover:bg-muted/60 text-destructive">
+              <button type="button" onClick={() => deleteList(l.id)} aria-label="Delete list" className="p-1.5 rounded-full hover:bg-muted/60 text-destructive transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
@@ -85,7 +85,7 @@ export default function BroadcastListsPage() {
           <div className="bg-background rounded-2xl p-4 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold">Broadcast message</h3>
-              <button type="button" onClick={() => setComposeFor(null)}><X className="w-4 h-4" /></button>
+              <button type="button" onClick={() => setComposeFor(null)} aria-label="Close" className="transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4" /></button>
             </div>
             <textarea
               value={text}
@@ -98,7 +98,7 @@ export default function BroadcastListsPage() {
             <button type="button"
               onClick={send}
               disabled={sending || !text.trim()}
-              className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Send className="w-4 h-4" />
               {sending ? "Sending…" : "Send broadcast"}

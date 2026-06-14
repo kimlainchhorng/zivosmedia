@@ -76,9 +76,9 @@ export default function RecommendationScoresPage() {
         </motion.div>
         {kinds.length > 0 && (
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            <button type="button" onClick={() => setTab("all")} className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({scores.length})</button>
+            <button type="button" aria-pressed={tab === "all"} onClick={() => setTab("all")} className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({scores.length})</button>
             {kinds.map(([k, n]) => (
-              <button key={k} type="button" onClick={() => setTab(k)} className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold capitalize transition-all", tab === k ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>{k.replace(/_/g, " ")} ({n})</button>
+              <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)} className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold capitalize transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === k ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>{k.replace(/_/g, " ")} ({n})</button>
             ))}
           </div>
         )}

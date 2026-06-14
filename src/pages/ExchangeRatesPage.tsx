@@ -126,7 +126,7 @@ export default function ExchangeRatesPage() {
             aria-label="Refresh rates"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="h-10 w-10 rounded-full hover:bg-secondary flex items-center justify-center text-foreground"
+            className="h-10 w-10 rounded-full hover:bg-secondary flex items-center justify-center text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
           </button>
@@ -156,7 +156,7 @@ export default function ExchangeRatesPage() {
               <select
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="h-11 px-3 rounded-xl bg-white/20 backdrop-blur-sm text-white text-sm font-bold focus:outline-none border-0"
+                className="h-11 px-3 rounded-xl bg-white/20 backdrop-blur-sm text-white text-sm font-bold focus:outline-none border-0 focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 {fromOptions.map((c) => <option key={c} value={c} className="text-foreground">{c}</option>)}
               </select>
@@ -166,7 +166,7 @@ export default function ExchangeRatesPage() {
               type="button"
               onClick={swap}
               aria-label="Swap currencies"
-              className="mx-auto block h-9 w-9 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center active:scale-90 transition-all"
+              className="mx-auto block h-9 w-9 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ArrowLeftRight className="h-4 w-4 text-white rotate-90" />
             </button>
@@ -178,7 +178,7 @@ export default function ExchangeRatesPage() {
               <select
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="h-11 px-3 rounded-xl bg-white/20 backdrop-blur-sm text-white text-sm font-bold focus:outline-none border-0"
+                className="h-11 px-3 rounded-xl bg-white/20 backdrop-blur-sm text-white text-sm font-bold focus:outline-none border-0 focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 {toOptions.map((c) => <option key={c} value={c} className="text-foreground">{c}</option>)}
               </select>
@@ -234,7 +234,7 @@ export default function ExchangeRatesPage() {
                 transition={{ delay: Math.min(idx, 12) * 0.02 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={() => { setFrom(r.base_currency); setTo(r.target_currency); }}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-card border border-border hover:bg-secondary/40 transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-card border border-border hover:bg-secondary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-foreground">{r.base_currency}</span>

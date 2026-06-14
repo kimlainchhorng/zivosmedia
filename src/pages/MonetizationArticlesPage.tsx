@@ -792,7 +792,7 @@ export default function MonetizationArticlesPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           {searchOpen ? (
@@ -809,7 +809,9 @@ export default function MonetizationArticlesPage() {
           )}
           <button type="button"
             onClick={() => { setSearchOpen(!searchOpen); setSearchQuery(""); }}
-            className="p-2 -mr-2 rounded-full hover:bg-muted/50 touch-manipulation"
+            aria-label="Search"
+            aria-expanded={searchOpen}
+            className="p-2 -mr-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Search className="h-5 w-5" />
           </button>
@@ -822,7 +824,8 @@ export default function MonetizationArticlesPage() {
               <button type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`shrink-0 px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-colors whitespace-nowrap ${
+                aria-pressed={activeTab === tab.id}
+                className={`shrink-0 px-4 py-2.5 text-[13px] font-semibold border-b-2 transition-all whitespace-nowrap active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   activeTab === tab.id
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted-foreground"
@@ -893,7 +896,7 @@ export default function MonetizationArticlesPage() {
                       animate={{ opacity: 1 }}
                       transition={{ delay: ai * 0.02 }}
                       onClick={() => navigate(`/monetization/articles/${article.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}`)}
-                      className="w-full flex items-start gap-3 p-4 text-left touch-manipulation active:bg-muted/20 transition-colors"
+                      className="w-full flex items-start gap-3 p-4 text-left touch-manipulation active:bg-muted/20 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-[13px] leading-snug mb-1">{article.title}</p>

@@ -154,7 +154,7 @@ export default function PersonalPayStubsPage() {
             type="button"
             aria-label="Go back"
             onClick={() => navigate(-1)}
-            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -208,7 +208,8 @@ export default function PersonalPayStubsPage() {
               >
                 <button
                   type="button"
-                  className="w-full flex items-center justify-between p-4"
+                  aria-expanded={expanded === p.id}
+                  className="w-full flex items-center justify-between p-4 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   onClick={() => setExpanded(expanded === p.id ? null : p.id)}
                 >
                   <div className="flex items-center gap-3">
@@ -257,7 +258,7 @@ export default function PersonalPayStubsPage() {
                       <button
                         type="button"
                         onClick={() => downloadPeriod(p)}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors text-[12px] font-bold text-foreground"
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-[12px] font-bold text-foreground"
                       >
                         <Download className="w-3.5 h-3.5" /> Download PDF
                       </button>

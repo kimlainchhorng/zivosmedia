@@ -173,7 +173,7 @@ export default function ReactionPacksPage() {
                       disabled={installed && !p.is_premium}
                       onClick={() => install(p)}
                       className={cn(
-                        "shrink-0 h-7 px-2.5 rounded-full text-[10px] font-bold inline-flex items-center justify-center gap-0.5 active:scale-95 transition-all",
+                        "shrink-0 h-7 px-2.5 rounded-full text-[10px] font-bold inline-flex items-center justify-center gap-0.5 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         installed && !p.is_premium
                           ? "bg-secondary text-foreground"
                           : "bg-ig-gradient text-white shadow-sm hover:opacity-90",

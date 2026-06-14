@@ -262,9 +262,10 @@ const AITripPlanner = () => {
                     key={quick.label}
                     onClick={() => setDestination(quick.label)}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:border-teal-300 hover:bg-white",
+                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:border-teal-300 hover:bg-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       destination === quick.label ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white/80",
                     )}
+                    aria-pressed={destination === quick.label}
                   >
                     <img src={quick.image} alt="" className="h-9 w-9 rounded-md object-cover" />
                     <span>
@@ -352,9 +353,10 @@ const AITripPlanner = () => {
                   key={level.value}
                   onClick={() => setBudget(level.value)}
                   className={cn(
-                    "rounded-lg border p-4 text-left transition hover:-translate-y-0.5 hover:border-teal-300",
+                    "rounded-lg border p-4 text-left transition hover:-translate-y-0.5 hover:border-teal-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     budget === level.value ? "border-teal-500 bg-teal-50" : "border-slate-200 bg-white",
                   )}
+                  aria-pressed={budget === level.value}
                 >
                   <DollarSign className="mb-3 h-5 w-5 text-teal-600" />
                   <span className="block text-sm font-black text-slate-950">{level.label}</span>
@@ -369,11 +371,12 @@ const AITripPlanner = () => {
                   key={interest.id}
                   onClick={() => toggleInterest(interest.id)}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-3 text-sm font-semibold transition",
+                    "flex items-center gap-2 rounded-lg border px-3 py-3 text-sm font-semibold transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     interests.includes(interest.id)
                       ? "border-slate-950 bg-slate-950 text-white"
                       : "border-slate-200 bg-white text-slate-700 hover:border-teal-300",
                   )}
+                  aria-pressed={interests.includes(interest.id)}
                 >
                   <interest.icon className="h-4 w-4" />
                   {interest.label}
@@ -582,11 +585,12 @@ const AITripPlanner = () => {
                     key={interest.id}
                     onClick={() => toggleInterest(interest.id)}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition",
+                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       interests.includes(interest.id)
                         ? "border-teal-500 bg-teal-600 text-white"
                         : "border-slate-200 bg-white text-slate-600 hover:border-teal-300",
                     )}
+                    aria-pressed={interests.includes(interest.id)}
                   >
                     <interest.icon className="h-4 w-4" />
                     {interest.label}
@@ -849,7 +853,7 @@ function DestinationCard({
         <button
           type="button"
           aria-label={`Favorite ${destination.city}`}
-          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:text-rose-600"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-sm backdrop-blur transition hover:text-rose-600 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
           <Heart className="h-5 w-5" />
         </button>
@@ -885,7 +889,7 @@ function DestinationCard({
           type="button"
           onClick={onSave}
           disabled={saving}
-          className="flex min-h-12 items-center justify-center gap-2 border-r border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex min-h-12 items-center justify-center gap-2 border-r border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bookmark className="h-4 w-4" />}
           Save
@@ -893,7 +897,7 @@ function DestinationCard({
         <button
           type="button"
           onClick={onStart}
-          className="flex min-h-12 items-center justify-center gap-2 border-r border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+          className="flex min-h-12 items-center justify-center gap-2 border-r border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Start
           <ArrowRight className="h-4 w-4" />
@@ -901,7 +905,7 @@ function DestinationCard({
         <button
           type="button"
           aria-label={`Share ${destination.city}`}
-          className="flex min-h-12 w-12 items-center justify-center text-slate-500 transition hover:bg-slate-50 hover:text-slate-950"
+          className="flex min-h-12 w-12 items-center justify-center text-slate-500 transition hover:bg-slate-50 hover:text-slate-950 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Share2 className="h-4 w-4" />
         </button>

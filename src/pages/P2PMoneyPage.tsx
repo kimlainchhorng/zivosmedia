@@ -150,7 +150,7 @@ export default function P2PMoneyPage() {
 
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
           {(["all", "in", "out", "pending"] as Tab[]).map((t) => (
-            <button key={t} type="button" onClick={() => setTab(t)} className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize", tab === t ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>{t}</button>
+            <button key={t} type="button" onClick={() => setTab(t)} aria-pressed={tab === t} className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === t ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>{t}</button>
           ))}
         </div>
 
@@ -189,8 +189,8 @@ export default function P2PMoneyPage() {
                     <p className={cn("text-sm font-extrabold", isReceived ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>{isReceived ? "+" : "-"}${(t.amount_cents / 100).toFixed(2)}</p>
                     {canRespond && (
                       <div className="flex gap-1 mt-1">
-                        <button type="button" onClick={() => respond(t.id, true)} aria-label="Accept" className="h-7 w-7 rounded-full bg-emerald-500 text-white inline-flex items-center justify-center active:scale-95"><Check className="h-3 w-3" /></button>
-                        <button type="button" onClick={() => respond(t.id, false)} aria-label="Decline" className="h-7 w-7 rounded-full bg-rose-500 text-white inline-flex items-center justify-center active:scale-95"><X className="h-3 w-3" /></button>
+                        <button type="button" onClick={() => respond(t.id, true)} aria-label="Accept" className="h-7 w-7 rounded-full bg-emerald-500 text-white inline-flex items-center justify-center active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Check className="h-3 w-3" /></button>
+                        <button type="button" onClick={() => respond(t.id, false)} aria-label="Decline" className="h-7 w-7 rounded-full bg-rose-500 text-white inline-flex items-center justify-center active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="h-3 w-3" /></button>
                       </div>
                     )}
                   </div>

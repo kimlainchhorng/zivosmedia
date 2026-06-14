@@ -144,7 +144,7 @@ export default function TwoStepAuthPage() {
                 type="button"
                 onClick={toggle}
                 disabled={toggling}
-                className={cn("h-9 px-4 rounded-full text-xs font-bold inline-flex items-center transition-all disabled:opacity-50", enabled ? "bg-secondary hover:bg-muted text-foreground" : "bg-ig-gradient text-white shadow-sm")}
+                className={cn("h-9 px-4 rounded-full text-xs font-bold inline-flex items-center transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50", enabled ? "bg-secondary hover:bg-muted text-foreground" : "bg-ig-gradient text-white shadow-sm")}
               >
                 {toggling ? "…" : enabled ? "Disable" : "Enable"}
               </button>
@@ -173,7 +173,7 @@ export default function TwoStepAuthPage() {
             <button
               type="button"
               onClick={() => navigate("/account/security")}
-              className="w-full flex items-center justify-between p-3 rounded-xl bg-secondary/40 hover:bg-secondary text-foreground text-xs font-bold transition-colors"
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-secondary/40 hover:bg-secondary text-foreground text-xs font-bold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span>Change password or hint</span>
               <ChevronRight className="h-3.5 w-3.5" />

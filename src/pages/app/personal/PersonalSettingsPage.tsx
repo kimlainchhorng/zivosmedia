@@ -112,7 +112,7 @@ export default function PersonalSettingsPage() {
     <AppLayout title="Settings" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24 space-y-4">
         <div className="flex items-center gap-2.5">
-          <button type="button" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform">
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-[17px]">Settings</h1>
@@ -146,7 +146,7 @@ export default function PersonalSettingsPage() {
             <span className="text-[12px] font-bold text-foreground">Account</span>
           </div>
           <button type="button" onClick={() => navigate("/settings")}
-            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-muted/30 transition-colors">
+            className="w-full flex items-center justify-between px-4 py-3.5 active:bg-muted/30 transition-colors focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <span className="text-[13px] font-semibold text-foreground">Language</span>
             <div className="flex items-center gap-1">
               <span className="text-[12px] text-muted-foreground">{settings.language}</span>
@@ -154,7 +154,7 @@ export default function PersonalSettingsPage() {
             </div>
           </button>
           <button type="button" onClick={() => setShowChangePw(true)}
-            className="w-full flex items-center justify-between px-4 py-3.5 border-t border-border/20 active:bg-muted/30 transition-colors">
+            className="w-full flex items-center justify-between px-4 py-3.5 border-t border-border/20 active:bg-muted/30 transition-colors focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <div className="flex items-center gap-2">
               <Lock className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-[13px] font-semibold text-foreground">Change Password</span>
@@ -162,7 +162,7 @@ export default function PersonalSettingsPage() {
             <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
           </button>
           <button type="button" onClick={() => navigate("/profile/delete-account")}
-            className="w-full flex items-center justify-between px-4 py-3.5 border-t border-border/20 active:bg-muted/30 transition-colors">
+            className="w-full flex items-center justify-between px-4 py-3.5 border-t border-border/20 active:bg-muted/30 transition-colors focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <span className="text-[13px] font-semibold text-red-500">Delete Account</span>
             <ChevronRight className="w-4 h-4 text-red-400/60" />
           </button>
@@ -183,7 +183,7 @@ export default function PersonalSettingsPage() {
                 onChange={e => setNewPw(e.target.value)}
                 className="w-full rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm pr-11 outline-none focus:ring-1 focus:ring-foreground/20"
               />
-              <button type="button" aria-label={showPw ? "Hide password" : "Show password"} onClick={() => setShowPw(!showPw)} className="absolute right-3 top-3.5">
+              <button type="button" aria-label={showPw ? "Hide password" : "Show password"} onClick={() => setShowPw(!showPw)} className="absolute right-3 top-3.5 rounded transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {showPw ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
               </button>
             </div>
@@ -201,7 +201,7 @@ export default function PersonalSettingsPage() {
               type="button"
               disabled={pwLoading || newPw.length < 8 || newPw !== confirmPw}
               onClick={handleUpdatePassword}
-              className="w-full rounded-2xl bg-foreground text-background font-bold py-3 text-sm disabled:opacity-40 active:scale-[0.98] transition-transform"
+              className="w-full rounded-2xl bg-foreground text-background font-bold py-3 text-sm disabled:opacity-40 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {pwLoading ? "Updating…" : "Update Password"}
             </button>

@@ -145,7 +145,7 @@ function TripCompleteScreen({ onDone }: { onDone: () => void }) {
 
       <button type="button"
         onClick={onDone}
-        className="mt-2 w-full max-w-xs rounded-2xl bg-ig-gradient text-white font-bold py-3.5 active:scale-95 transition-transform"
+        className="mt-2 w-full max-w-xs rounded-2xl bg-ig-gradient text-white font-bold py-3.5 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         Done
       </button>
@@ -393,7 +393,7 @@ export default function TripStatusPage() {
       >
         <button type="button"
           onClick={() => navigate(-1)}
-          className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform shrink-0"
+          className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Go back"
         >
           <ArrowLeft className="w-4 h-4 text-foreground" />
@@ -444,7 +444,7 @@ export default function TripStatusPage() {
                 </div>
                 <button type="button"
                   onClick={() => navigate("/")}
-                  className="mt-2 rounded-2xl bg-ig-gradient text-white font-bold py-3 px-8 active:scale-95 transition-transform"
+                  className="mt-2 rounded-2xl bg-ig-gradient text-white font-bold py-3 px-8 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Go Home
                 </button>
@@ -490,7 +490,7 @@ export default function TripStatusPage() {
                     disabled={isCancelling}
                     className={cn(
                       "w-full py-3 rounded-2xl border border-red-500/30 text-red-500 text-sm font-bold",
-                      "bg-red-500/5 hover:bg-red-500/10 active:scale-[0.98] transition-all",
+                      "bg-red-500/5 hover:bg-red-500/10 active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       isCancelling && "opacity-50 cursor-not-allowed"
                     )}
                   >

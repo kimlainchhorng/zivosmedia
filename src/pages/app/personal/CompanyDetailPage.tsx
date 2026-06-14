@@ -54,7 +54,7 @@ export default function CompanyDetailPage() {
               <p className="text-xs text-muted-foreground">{company.industry ?? "—"}</p>
               <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
                 {company.location && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{company.location}</span>}
-                {company.website && <a href={company.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><Globe className="h-3 w-3" />Website</a>}
+                {company.website && <a href={company.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Globe className="h-3 w-3" />Website</a>}
               </div>
             </div>
           </div>
@@ -66,7 +66,7 @@ export default function CompanyDetailPage() {
           {jobs.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">No open jobs.</Card>}
           <div className="space-y-2">
             {jobs.map(j => (
-              <Card key={j.id} className="cursor-pointer p-3 transition-colors hover:bg-accent" onClick={() => navigate(`/personal/jobs/${j.id}`)}>
+              <Card key={j.id} className="cursor-pointer p-3 transition-all hover:bg-accent active:scale-[0.98]" onClick={() => navigate(`/personal/jobs/${j.id}`)}>
                 <div className="text-sm font-semibold">{j.title}</div>
                 <div className="text-xs text-muted-foreground">{j.is_remote ? "Remote" : j.location ?? "—"} · {j.employment_type?.replaceAll("_", " ") ?? "—"}</div>
               </Card>

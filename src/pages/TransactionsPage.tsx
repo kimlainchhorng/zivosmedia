@@ -137,9 +137,9 @@ export default function TransactionsPage() {
         </motion.div>
 
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({txs.length})</button>
-          <button type="button" onClick={() => setTab("in")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "in" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Money in</button>
-          <button type="button" onClick={() => setTab("out")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "out" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Money out</button>
+          <button type="button" aria-pressed={tab === "all"} onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({txs.length})</button>
+          <button type="button" aria-pressed={tab === "in"} onClick={() => setTab("in")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "in" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Money in</button>
+          <button type="button" aria-pressed={tab === "out"} onClick={() => setTab("out")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "out" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Money out</button>
         </div>
 
         {isLoading && <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-16 bg-muted animate-pulse rounded-2xl" />)}</div>}

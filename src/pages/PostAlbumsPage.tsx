@@ -290,7 +290,7 @@ export default function PostAlbumsPage() {
                   type="button"
                   aria-label="Cancel"
                   onClick={() => { setCreating(false); setName(""); setSelectedPostIds(new Set()); }}
-                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground"
+                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -320,7 +320,7 @@ export default function PostAlbumsPage() {
                           key={p.id}
                           type="button"
                           onClick={() => togglePostSelect(p.id)}
-                          className="relative aspect-square rounded-lg overflow-hidden bg-muted active:opacity-80 transition-opacity"
+                          className="relative aspect-square rounded-lg overflow-hidden bg-muted active:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                           aria-pressed={sel}
                         >
                           {sel && <div className="absolute inset-0 bg-ig-gradient p-[2px] rounded-lg z-10" aria-hidden />}
@@ -400,7 +400,7 @@ export default function PostAlbumsPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/feed?album=${a.id}`)}
-                    className="w-full aspect-square relative active:opacity-80 transition-opacity"
+                    className="w-full aspect-square relative active:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                     aria-label={`Open album ${a.name}`}
                   >
                     {a.cover_url ? (
@@ -440,7 +440,7 @@ export default function PostAlbumsPage() {
                       type="button"
                       aria-label={`Rename ${a.name}`}
                       onClick={(e) => { e.stopPropagation(); setEditingId(a.id); setEditName(a.name); }}
-                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 active:scale-90 transition-all"
+                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
@@ -448,7 +448,7 @@ export default function PostAlbumsPage() {
                       type="button"
                       aria-label={`Delete ${a.name}`}
                       onClick={(e) => { e.stopPropagation(); if (confirm(`Delete album "${a.name}"?`)) deleteMutation.mutate(a.id); }}
-                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-destructive/80 active:scale-90 transition-all"
+                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-destructive/80 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

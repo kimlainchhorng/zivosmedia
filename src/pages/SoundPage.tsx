@@ -131,7 +131,7 @@ export default function SoundPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur border-b border-border/40">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-muted/50">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-1.5 rounded-full hover:bg-muted/50 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
           <div className="flex-1 min-w-0">
@@ -173,7 +173,7 @@ export default function SoundPage() {
         {user && (
           <button type="button"
             onClick={() => setShowCreatePost(true)}
-            className="mt-4 w-full py-2.5 rounded-xl bg-ig-gradient text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="mt-4 w-full py-2.5 rounded-xl bg-ig-gradient text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Music className="h-4 w-4" />
             Use this sound
@@ -203,7 +203,8 @@ export default function SoundPage() {
                 <button type="button"
                   key={post.id}
                   onClick={() => navigate(`/reels/${post.id}`)}
-                  className="relative aspect-[9/16] bg-muted overflow-hidden group"
+                  aria-label={`View reel by ${post.author_name}`}
+                  className="relative aspect-[9/16] bg-muted overflow-hidden group active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                 >
                   {thumb && post.media_type === "video" ? (
                     <video

@@ -181,7 +181,7 @@ export default function TravelJournalsPage() {
                   type="button"
                   aria-label="Cancel"
                   onClick={() => setCreating(false)}
-                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground"
+                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -261,7 +261,7 @@ export default function TravelJournalsPage() {
                 <button
                   type="button"
                   onClick={() => navigate(`/journals/${j.id}`)}
-                  className="w-full text-left active:opacity-90 transition-opacity"
+                  className="w-full text-left active:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-inset"
                   aria-label={`Open journal ${j.title}`}
                 >
                   <div className="relative h-24 bg-muted">
@@ -300,7 +300,7 @@ export default function TravelJournalsPage() {
                   type="button"
                   aria-label={`Delete ${j.title}`}
                   onClick={() => { if (confirm(`Delete journal "${j.title}"?`)) deleteMutation.mutate(j.id); }}
-                  className="absolute top-2 left-2 h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-destructive/80 active:scale-90 transition-all"
+                  className="absolute top-2 left-2 h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-destructive/80 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>

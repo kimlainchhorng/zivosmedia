@@ -154,8 +154,9 @@ export default function StickerStorePage() {
                 key={c}
                 type="button"
                 onClick={() => setActiveCategory(c)}
+                aria-pressed={activeCategory === c}
                 className={cn(
-                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeCategory === c
                     ? "bg-ig-gradient text-white shadow-sm"
                     : "bg-secondary text-foreground hover:bg-muted",
@@ -201,7 +202,7 @@ export default function StickerStorePage() {
                 transition={{ delay: idx * 0.04 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setOpenPackId(p.id)}
-                className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md text-left"
+                className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 style={gradientStyle(p.gradient_color)}
                 aria-label={`Open pack ${p.name}`}
               >
@@ -250,7 +251,7 @@ export default function StickerStorePage() {
                     type="button"
                     aria-label="Close"
                     onClick={() => setOpenPackId(null)}
-                    className="h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center"
+                    className="h-9 w-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -276,7 +277,7 @@ export default function StickerStorePage() {
                           type="button"
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleAddSticker(emoji)}
-                          className="aspect-square rounded-xl bg-secondary hover:bg-muted active:scale-95 flex items-center justify-center text-3xl transition-all"
+                          className="aspect-square rounded-xl bg-secondary hover:bg-muted active:scale-95 flex items-center justify-center text-3xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           aria-label={`Copy ${emoji}`}
                         >
                           {emoji}

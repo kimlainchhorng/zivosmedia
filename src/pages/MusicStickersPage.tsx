@@ -87,7 +87,7 @@ export default function MusicStickersPage() {
               const isPlaying = playingId === t.id;
               return (
                 <motion.div key={t.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx, 20) * 0.015 }} className={cn("flex items-center gap-3 p-3 rounded-2xl bg-card border", isPlaying ? "border-ig-gradient/40" : "border-border")}>
-                  <button type="button" aria-label={isPlaying ? "Pause" : "Play"} onClick={() => togglePlay(t)} disabled={!t.preview_url} className={cn("shrink-0 h-11 w-11 rounded-full inline-flex items-center justify-center active:scale-95 transition-all disabled:opacity-40", isPlaying ? "bg-ig-gradient text-white shadow-md shadow-rose-500/30" : "bg-secondary text-foreground hover:bg-muted")}>
+                  <button type="button" aria-label={isPlaying ? "Pause" : "Play"} onClick={() => togglePlay(t)} disabled={!t.preview_url} className={cn("shrink-0 h-11 w-11 rounded-full inline-flex items-center justify-center active:scale-95 transition-all disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isPlaying ? "bg-ig-gradient text-white shadow-md shadow-rose-500/30" : "bg-secondary text-foreground hover:bg-muted")}>
                     {isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 ml-0.5" fill="currentColor" />}
                   </button>
                   <div className="shrink-0 h-12 w-12 rounded-xl bg-ig-gradient/10 flex items-center justify-center text-2xl">{t.cover_emoji}</div>
@@ -96,7 +96,7 @@ export default function MusicStickersPage() {
                     <p className="text-[11px] text-muted-foreground line-clamp-1">{t.artist} · {t.duration}</p>
                   </div>
                   {t.external_url && (
-                    <a href={t.external_url} target="_blank" rel="noopener noreferrer" aria-label="Open in source" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary inline-flex items-center justify-center transition-colors">
+                    <a href={t.external_url} target="_blank" rel="noopener noreferrer" aria-label="Open in source" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary inline-flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   )}

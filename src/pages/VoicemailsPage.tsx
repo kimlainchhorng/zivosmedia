@@ -245,7 +245,7 @@ export default function VoicemailsPage() {
               type="button"
               aria-label="Clear search"
               onClick={() => setQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -259,8 +259,9 @@ export default function VoicemailsPage() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
+              aria-pressed={tab === t.id}
               className={cn(
-                "flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5",
+                "flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring inline-flex items-center justify-center gap-1.5",
                 tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
@@ -325,7 +326,7 @@ export default function VoicemailsPage() {
                       aria-label={isPlaying ? "Pause voicemail" : "Play voicemail"}
                       onClick={() => toggle(v)}
                       className={cn(
-                        "shrink-0 h-11 w-11 rounded-full inline-flex items-center justify-center active:scale-95 transition-all",
+                        "shrink-0 h-11 w-11 rounded-full inline-flex items-center justify-center active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         isPlaying ? "bg-ig-gradient text-white shadow-md shadow-rose-500/30" : "bg-secondary text-foreground hover:bg-muted",
                       )}
                     >
@@ -368,7 +369,7 @@ export default function VoicemailsPage() {
                         type="button"
                         aria-label="Call back"
                         onClick={() => navigate("/chat")}
-                        className="h-8 w-8 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 inline-flex items-center justify-center active:scale-95 transition-all"
+                        className="h-8 w-8 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 inline-flex items-center justify-center active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <PhoneOutgoing className="h-3.5 w-3.5" />
                       </button>
@@ -376,7 +377,7 @@ export default function VoicemailsPage() {
                         type="button"
                         aria-label="Message"
                         onClick={() => navigate("/chat")}
-                        className="h-8 w-8 rounded-full bg-secondary hover:bg-muted text-foreground inline-flex items-center justify-center active:scale-95 transition-all"
+                        className="h-8 w-8 rounded-full bg-secondary hover:bg-muted text-foreground inline-flex items-center justify-center active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />
                       </button>
@@ -389,7 +390,8 @@ export default function VoicemailsPage() {
                       <button
                         type="button"
                         onClick={() => toggleTranscript(v.id)}
-                        className="w-full text-left rounded-xl bg-secondary/40 px-3 py-2 hover:bg-secondary/60 transition-colors"
+                        aria-expanded={shortTranscript ? transcriptOpen : undefined}
+                        className="w-full text-left rounded-xl bg-secondary/40 px-3 py-2 hover:bg-secondary/60 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <FileText className="h-3 w-3 text-muted-foreground" />

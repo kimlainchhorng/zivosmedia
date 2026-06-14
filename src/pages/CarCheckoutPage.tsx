@@ -51,7 +51,7 @@ export default function CarCheckoutPage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border/60 pt-safe">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/" className="font-bold text-xl text-primary">ZIVO</Link>
+            <Link to="/" className="font-bold text-xl text-primary rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ZIVO</Link>
             <span className="text-muted-foreground">|</span>
             <span className="text-sm text-muted-foreground">Secure Checkout</span>
           </div>
@@ -72,7 +72,7 @@ export default function CarCheckoutPage() {
           {/* Back Link */}
           <Link 
             to={`/rent-car/traveler-info?${searchParams.toString()}`}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 rounded-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to traveler info
@@ -148,7 +148,7 @@ export default function CarCheckoutPage() {
                       </div>
                       {appliedPromo.description && <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80 truncate">{appliedPromo.description}</p>}
                     </div>
-                    <button type="button" onClick={handleRemovePromo} className="p-1.5 rounded-lg hover:bg-emerald-500/10" aria-label="Remove promo">
+                    <button type="button" onClick={handleRemovePromo} className="p-1.5 rounded-lg hover:bg-emerald-500/10 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove promo">
                       <X className="w-4 h-4 text-emerald-500" />
                     </button>
                   </div>

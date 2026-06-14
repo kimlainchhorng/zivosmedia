@@ -238,7 +238,7 @@ export default function HighlightsPage() {
                   type="button"
                   aria-label="Cancel"
                   onClick={() => { setCreating(false); setTitle(""); setSelectedStories(new Set()); }}
-                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground"
+                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -267,7 +267,7 @@ export default function HighlightsPage() {
                           key={s.id}
                           type="button"
                           onClick={() => toggleStorySelect(s.id)}
-                          className="relative aspect-[9/16] rounded-lg overflow-hidden bg-muted active:opacity-80 transition-opacity"
+                          className="relative aspect-[9/16] rounded-lg overflow-hidden bg-muted active:opacity-80 transition-opacity focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                           aria-pressed={sel}
                           aria-label={`Toggle story ${s.id}`}
                         >
@@ -336,7 +336,7 @@ export default function HighlightsPage() {
                 <div key={h.id} className="shrink-0 w-[72px] text-center">
                   <button
                     type="button"
-                    className="block w-[72px] h-[72px] rounded-full bg-ig-gradient p-[3px] mx-auto active:scale-95 transition-transform"
+                    className="block w-[72px] h-[72px] rounded-full bg-ig-gradient p-[3px] mx-auto active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label={`Open highlight ${h.title}`}
                   >
                     <div className="w-full h-full rounded-full overflow-hidden bg-card ring-2 ring-background">
@@ -394,7 +394,7 @@ export default function HighlightsPage() {
                           type="button"
                           aria-label="Save"
                           onClick={() => renameMutation.mutate({ id: h.id, newTitle: editTitle.trim() || h.title })}
-                          className="h-8 w-8 rounded-full bg-ig-gradient text-white flex items-center justify-center"
+                          className="h-8 w-8 rounded-full bg-ig-gradient text-white flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Check className="h-3.5 w-3.5" strokeWidth={3} />
                         </button>
@@ -414,7 +414,7 @@ export default function HighlightsPage() {
                         type="button"
                         aria-label={`Rename ${h.title}`}
                         onClick={() => { setEditingId(h.id); setEditTitle(h.title); }}
-                        className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary transition-colors"
+                        className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                       </button>
@@ -422,7 +422,7 @@ export default function HighlightsPage() {
                         type="button"
                         aria-label={`Delete ${h.title}`}
                         onClick={() => deleteMutation.mutate(h.id)}
-                        className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
                       </button>

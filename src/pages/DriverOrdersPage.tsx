@@ -109,7 +109,7 @@ function OrderCard({
             <button type="button"
               onClick={(e) => { e.stopPropagation(); onAdvance?.(); }}
               disabled={isAdvancing}
-              className="w-full py-2 rounded-xl bg-ig-gradient text-white text-xs font-bold touch-manipulation active:scale-[0.98] transition-all disabled:opacity-50">
+              className="w-full py-2 rounded-xl bg-ig-gradient text-white text-xs font-bold touch-manipulation active:scale-[0.98] transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               {isAdvancing ? "Updating…" : STATUS_ADVANCE_LABEL[order.status]}
             </button>
           )}
@@ -175,11 +175,11 @@ export default function DriverOrdersPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-1.5 rounded-xl hover:bg-muted">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-1.5 rounded-xl hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-bold flex-1">Shopping Orders</h1>
-          <button type="button" onClick={refetch} className="p-1.5 rounded-xl hover:bg-muted" disabled={isLoading}>
+          <button type="button" onClick={refetch} aria-label="Refresh" className="p-1.5 rounded-xl hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={isLoading}>
             <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
           </button>
         </div>

@@ -44,7 +44,7 @@ const PaymentMethodsPage = () => {
       <header className="sticky top-0 safe-area-top z-50 flex items-center gap-3 px-4 py-4 bg-background/95 backdrop-blur-xl border-b border-border/50">
         <button type="button"
           onClick={() => navigate(-1)}
-          className="p-2 rounded-full hover:bg-muted transition-colors touch-manipulation"
+          className="p-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation"
           aria-label="Go back"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -171,7 +171,7 @@ const PaymentMethodsPage = () => {
                         onClick={() => handleSetDefault(card)}
                         disabled={card.isDefault}
                         className={cn(
-                          "p-2 rounded-lg transition-colors touch-manipulation",
+                          "p-2 rounded-lg transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation",
                           card.isDefault
                             ? "text-primary cursor-default"
                             : "text-muted-foreground hover:text-amber-400 hover:bg-muted/50"
@@ -187,7 +187,7 @@ const PaymentMethodsPage = () => {
                       </button>
                       <button type="button"
                         onClick={() => handleDelete(card)}
-                        className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors touch-manipulation"
+                        className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation"
                         aria-label="Delete card"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -203,8 +203,9 @@ const PaymentMethodsPage = () => {
               <motion.button
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => setShowAddForm(true)}
-                className="w-full p-4 rounded-xl border border-dashed border-border flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors touch-manipulation"
+                className="w-full p-4 rounded-xl border border-dashed border-border flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm font-medium">Add New Card</span>

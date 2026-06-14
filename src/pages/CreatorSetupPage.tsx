@@ -170,7 +170,7 @@ export default function CreatorSetupPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/85 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate("/creator-dashboard")} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" onClick={() => navigate("/creator-dashboard")} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex-1 min-w-0">
@@ -200,7 +200,8 @@ export default function CreatorSetupPage() {
               <button type="button"
                 key={s.key}
                 onClick={() => { setActive(s.key); setParams({ step: s.key }); }}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors touch-manipulation ${
+                aria-current={isActive ? "step" : undefined}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation ${
                   isActive
                     ? "bg-foreground text-background border-foreground"
                     : s.done
@@ -362,7 +363,8 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (v: stri
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="mt-1 w-full flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent/40 transition"
+        aria-expanded={open}
+        className="mt-1 w-full flex items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-accent/40 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className={value ? "text-foreground" : "text-muted-foreground"}>
           {value || "Tap to choose a category"}
@@ -378,7 +380,7 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (v: stri
                 <button type="button"
                   key={c}
                   onClick={() => { onChange(c); setOpen(false); }}
-                  className={`text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition ${
+                  className={`text-[11px] font-bold px-2.5 py-1.5 rounded-full border transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     active
                       ? "bg-ig-gradient text-white border-primary"
                       : "bg-background text-foreground border-border hover:bg-accent"
@@ -570,7 +572,8 @@ function TierStep({ tiers, userId, onSaved }: any) {
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
+      aria-pressed={active}
+      className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
         active
           ? "bg-ig-gradient text-white border-primary"
           : "bg-card text-muted-foreground border-border/60 hover:border-border"
@@ -612,8 +615,8 @@ function TierStep({ tiers, userId, onSaved }: any) {
                   {t.is_free ? "Free" : `$${((t.price_cents || 0) / 100).toFixed(2)} / ${(t.billing_interval || "month").replace("_", " ")}`}
                 </p>
               </div>
-              <button type="button" onClick={() => startEdit(t)} className="text-[10px] font-bold text-primary px-2 py-1 hover:underline">Edit</button>
-              <button type="button" onClick={() => remove(t.id)} className="text-[10px] font-bold text-destructive px-2 py-1 hover:underline">Delete</button>
+              <button type="button" onClick={() => startEdit(t)} className="text-[10px] font-bold text-primary px-2 py-1 hover:underline active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Edit</button>
+              <button type="button" onClick={() => remove(t.id)} className="text-[10px] font-bold text-destructive px-2 py-1 hover:underline active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Delete</button>
             </div>
           ))}
         </div>
@@ -625,7 +628,7 @@ function TierStep({ tiers, userId, onSaved }: any) {
             {editingId ? "Edit tier" : tiers.length > 0 ? "Add another tier" : "Create your first tier"}
           </p>
           {editingId && (
-            <button type="button" onClick={reset} className="text-[10px] font-bold text-muted-foreground hover:text-foreground">Cancel</button>
+            <button type="button" onClick={reset} className="text-[10px] font-bold text-muted-foreground hover:text-foreground active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Cancel</button>
           )}
         </div>
 
@@ -865,10 +868,10 @@ function PromoCodesManager({ userId }: { userId: string }) {
                 {c.uses_count}{c.max_uses ? `/${c.max_uses}` : ""} uses
                 {c.expires_at && ` · exp ${new Date(c.expires_at).toLocaleDateString()}`}
               </span>
-              <button type="button" onClick={() => toggle(c.id, c.is_active)} className="text-[10px] font-bold text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={() => toggle(c.id, c.is_active)} className="text-[10px] font-bold text-muted-foreground hover:text-foreground active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {c.is_active ? "Pause" : "Resume"}
               </button>
-              <button type="button" onClick={() => remove(c.id)} className="text-[10px] font-bold text-destructive">Delete</button>
+              <button type="button" onClick={() => remove(c.id)} className="text-[10px] font-bold text-destructive active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Delete</button>
             </div>
           ))}
         </div>

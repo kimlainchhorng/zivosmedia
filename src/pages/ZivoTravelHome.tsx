@@ -622,7 +622,7 @@ function ServiceCarousel3D({
               key={service.id}
               type="button"
               onClick={() => (isCenter ? onLaunch(service) : onSelect(i))}
-              className="zt-on-media absolute inset-y-2 left-0 right-0 mx-auto w-[268px] overflow-hidden rounded-[2rem] border border-white/15 text-left shadow-[0_44px_90px_rgba(2,6,23,0.55)] will-change-transform sm:w-[320px]"
+              className="zt-on-media absolute inset-y-2 left-0 right-0 mx-auto w-[268px] overflow-hidden rounded-[2rem] border border-white/15 text-left shadow-[0_44px_90px_rgba(2,6,23,0.55)] will-change-transform sm:w-[320px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               style={{ zIndex: slot.zIndex, transformStyle: "preserve-3d" }}
               animate={{ x: slot.x, z: slot.z, rotateY: slot.rotateY, scale: slot.scale, opacity: slot.opacity }}
               transition={{ type: "spring", stiffness: 120, damping: 18 }}
@@ -659,7 +659,7 @@ function ServiceCarousel3D({
       <button
         type="button"
         onClick={() => go(-1)}
-        className="absolute left-1 top-1/2 z-[60] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:scale-105 hover:bg-white/20"
+        className="absolute left-1 top-1/2 z-[60] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:scale-105 hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         aria-label="Previous service"
       >
         <ChevronLeft className="h-5 w-5" />
@@ -667,7 +667,7 @@ function ServiceCarousel3D({
       <button
         type="button"
         onClick={() => go(1)}
-        className="absolute right-1 top-1/2 z-[60] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:scale-105 hover:bg-white/20"
+        className="absolute right-1 top-1/2 z-[60] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:scale-105 hover:bg-white/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         aria-label="Next service"
       >
         <ChevronRight className="h-5 w-5" />
@@ -679,7 +679,7 @@ function ServiceCarousel3D({
             key={service.id}
             type="button"
             onClick={() => onSelect(i)}
-            className={cn("h-2 rounded-full transition-all", i === index ? "w-8 bg-white" : "w-2 bg-white/40")}
+            className={cn("h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70", i === index ? "w-8 bg-white" : "w-2 bg-white/40")}
             aria-label={`Show ${service.label}`}
           />
         ))}
@@ -754,7 +754,7 @@ function ServiceLayerShowcase() {
             const Icon = item.icon;
             return (
               <ScrollTurn key={item.service} axis={i % 2 === 0 ? "y" : "x"} rotate={i % 2 === 0 ? 13 : -10} className="w-[82vw] max-w-[390px] sm:w-[390px]">
-                <Link to={item.href} className="group block">
+                <Link to={item.href} className="group block rounded-[2rem] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
                   <TravelTiltCard className="zt-on-media relative h-[520px] overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.055] p-4 shadow-[0_36px_90px_rgba(2,6,23,0.45)] backdrop-blur-xl">
                     <img src={item.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-700 group-hover:scale-105" loading="lazy" />
                     <div className={cn("absolute inset-0 bg-gradient-to-b", item.tone)} />
@@ -804,7 +804,7 @@ function QuickActionDock() {
               <Link
                 key={item.title}
                 to={item.href}
-                className="group flex min-h-28 items-center gap-4 rounded-[1.4rem] border border-slate-900/8 bg-white/72 p-4 text-left transition hover:-translate-y-1 hover:border-emerald-300/50 hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                className="group flex min-h-28 items-center gap-4 rounded-[1.4rem] border border-slate-900/8 bg-white/72 p-4 text-left transition hover:-translate-y-1 hover:border-emerald-300/50 hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-2xl", item.tone)}>
                   <Icon className="h-5 w-5" />
@@ -862,11 +862,11 @@ function LiveItineraryBoard({ onSelectService }: { onSelectService: (next: numbe
             ))}
           </div>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link to="/travel/checkout" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-black text-slate-950 shadow-[0_18px_40px_rgba(16,185,129,0.24)] transition hover:-translate-y-0.5 hover:bg-emerald-400">
+            <Link to="/travel/checkout" className="inline-flex min-h-12 items-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-black text-slate-950 shadow-[0_18px_40px_rgba(16,185,129,0.24)] transition hover:-translate-y-0.5 hover:bg-emerald-400 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Continue checkout
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/my-trips" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-slate-900/12 bg-white/78 px-5 text-sm font-black text-slate-950 transition hover:-translate-y-0.5">
+            <Link to="/my-trips" className="inline-flex min-h-12 items-center gap-2 rounded-full border border-slate-900/12 bg-white/78 px-5 text-sm font-black text-slate-950 transition hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               View trips
               <Luggage className="h-4 w-4" />
             </Link>
@@ -884,8 +884,9 @@ function LiveItineraryBoard({ onSelectService }: { onSelectService: (next: numbe
                     key={item.title}
                     type="button"
                     onClick={() => selectLayer(i)}
+                    aria-pressed={selected}
                     className={cn(
-                      "group flex items-center justify-between gap-3 rounded-[1.35rem] border p-4 text-left shadow-sm transition hover:-translate-y-0.5",
+                      "group flex items-center justify-between gap-3 rounded-[1.35rem] border p-4 text-left shadow-sm transition hover:-translate-y-0.5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       selected ? "border-emerald-400/50 bg-white shadow-[0_18px_45px_rgba(16,185,129,0.12)]" : "border-slate-900/10 bg-white/70 hover:bg-white",
                     )}
                   >
@@ -935,7 +936,7 @@ function LiveItineraryBoard({ onSelectService }: { onSelectService: (next: numbe
                       ))}
                     </div>
                   </div>
-                  <Link to={current.href} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-black text-slate-950 shadow-[0_18px_36px_rgba(16,185,129,0.28)] transition hover:bg-emerald-400">
+                  <Link to={current.href} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 text-sm font-black text-slate-950 shadow-[0_18px_36px_rgba(16,185,129,0.28)] transition hover:bg-emerald-400 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     Open layer
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -977,8 +978,9 @@ function TripStackBuilder({ onSelectService }: { onSelectService: (next: number)
                   key={item.layer}
                   type="button"
                   onClick={() => selectTripLayer(i)}
+                  aria-pressed={selected}
                   className={cn(
-                    "group flex items-center justify-between rounded-2xl border p-3 text-left transition",
+                    "group flex items-center justify-between rounded-2xl border p-3 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     selected ? "border-emerald-300/55 bg-emerald-300/10" : "border-white/10 bg-white/[0.04] hover:border-white/25",
                   )}
                 >
@@ -1032,7 +1034,7 @@ function TripStackBuilder({ onSelectService }: { onSelectService: (next: number)
                     key={item.layer}
                     to={item.service.href}
                     className={cn(
-                      "group rounded-2xl border p-3 transition",
+                      "group rounded-2xl border p-3 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       active === i ? "border-emerald-300/55 bg-emerald-300/12" : "border-white/10 bg-white/[0.05] hover:border-white/25",
                     )}
                   >
@@ -1076,8 +1078,9 @@ function JourneyCommandDeck() {
                   key={step.title}
                   type="button"
                   onClick={() => setActive(i)}
+                  aria-pressed={selected}
                   className={cn(
-                    "group flex items-center gap-4 rounded-2xl border p-4 text-left transition",
+                    "group flex items-center gap-4 rounded-2xl border p-4 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     selected ? "border-emerald-300/55 bg-emerald-300/10 shadow-[0_18px_50px_rgba(16,185,129,0.12)]" : "border-white/10 bg-white/[0.04] hover:border-white/25",
                   )}
                 >
@@ -1130,17 +1133,17 @@ function JourneyCommandDeck() {
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <Link to="/travel/checkout" className="group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:border-emerald-300/45">
+              <Link to="/travel/checkout" className="group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:border-emerald-300/45 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <CreditCard className="h-5 w-5 text-emerald-300" />
                 <p className="mt-3 text-sm font-black">Checkout</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-400">Open payment flow</p>
               </Link>
-              <Link to="/wallet" className="group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:border-emerald-300/45">
+              <Link to="/wallet" className="group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:border-emerald-300/45 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <WalletCards className="h-5 w-5 text-sky-300" />
                 <p className="mt-3 text-sm font-black">Wallet</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-400">Receipts and cash-out</p>
               </Link>
-              <a href="#booking" className="group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:border-emerald-300/45">
+              <a href="#booking" className="group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:border-emerald-300/45 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <Search className="h-5 w-5 text-violet-300" />
                 <p className="mt-3 text-sm font-black">New search</p>
                 <p className="mt-1 text-xs leading-5 text-zinc-400">Return to trip builder</p>
@@ -1165,10 +1168,10 @@ function TravelConfidenceBand() {
             Zivo Travel should feel easy after the search too: tickets, payment, wallet records, and support stay close to the customer.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link to="/my-trips" className="rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-[0_18px_38px_rgba(15,23,42,0.18)] transition hover:bg-slate-800">
+            <Link to="/my-trips" className="rounded-full bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-[0_18px_38px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               View my trips
             </Link>
-            <Link to="/support" className="rounded-full border border-slate-900/15 bg-white px-6 py-3 text-sm font-black text-slate-950 transition hover:border-emerald-400">
+            <Link to="/support" className="rounded-full border border-slate-900/15 bg-white px-6 py-3 text-sm font-black text-slate-950 transition hover:border-emerald-400 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Get support
             </Link>
           </div>
@@ -1181,7 +1184,7 @@ function TravelConfidenceBand() {
               <Reveal key={item.title} delay={i * 0.05}>
                 <Link
                   to={item.href}
-                  className="group block h-full rounded-[1.7rem] border border-slate-900/10 bg-white/82 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/55"
+                  className="group block h-full rounded-[1.7rem] border border-slate-900/10 bg-white/82 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/55 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className={cn("grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br shadow-inner", item.tone)}>
                     <Icon className="h-6 w-6" />
@@ -1217,10 +1220,10 @@ function AppHandoffPanel() {
             Zivo Travel keeps the customer trip connected across website, app, wallet, support, and partner payout so the booking does not feel split across systems.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link to="/my-trips" className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_18px_38px_rgba(16,185,129,0.28)] transition hover:bg-emerald-400">
+            <Link to="/my-trips" className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_18px_38px_rgba(16,185,129,0.28)] transition hover:bg-emerald-400 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Open trips
             </Link>
-            <Link to="/wallet" className="rounded-full border border-white/20 px-6 py-3 text-sm font-black text-white transition hover:border-white">
+            <Link to="/wallet" className="rounded-full border border-white/20 px-6 py-3 text-sm font-black text-white transition hover:border-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Wallet & cash-out
             </Link>
           </div>
@@ -1325,11 +1328,11 @@ function TravelConnectionHub() {
                   return (
                     <ScrollTurn key={item.label} rotate={i % 2 === 0 ? 6 : -6} lift={24}>
                       {i === 0 || i === 1 ? (
-                        <a href="#booking" className="group block h-full rounded-[1.65rem] border border-slate-900/10 bg-white/76 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/60">
+                        <a href="#booking" className="group block h-full rounded-[1.65rem] border border-slate-900/10 bg-white/76 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                           {card}
                         </a>
                       ) : (
-                        <Link to={i === 2 ? "/login" : "/connect-website"} className="group block h-full rounded-[1.65rem] border border-slate-900/10 bg-white/76 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/60">
+                        <Link to={i === 2 ? "/login" : "/connect-website"} className="group block h-full rounded-[1.65rem] border border-slate-900/10 bg-white/76 p-5 shadow-[0_22px_70px_rgba(15,23,42,0.1)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-emerald-300/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                           {card}
                         </Link>
                       )}
@@ -1423,12 +1426,12 @@ function PaymentPayoutFlow() {
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <Link to="/travel/checkout" className="group rounded-2xl border p-4 transition" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}>
+                <Link to="/travel/checkout" className="group rounded-2xl border p-4 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}>
                   <CreditCard className="h-5 w-5 text-emerald-300" />
                   <p className="mt-3 text-sm font-black" style={{ color: "#ffffff" }}>Open checkout</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: "#a1a1aa" }}>Continue payment flow</p>
                 </Link>
-                <Link to="/wallet" className="group rounded-2xl border p-4 transition" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}>
+                <Link to="/wallet" className="group rounded-2xl border p-4 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}>
                   <Landmark className="h-5 w-5 text-orange-300" />
                   <p className="mt-3 text-sm font-black" style={{ color: "#ffffff" }}>Wallet & cash-out</p>
                   <p className="mt-1 text-xs leading-5" style={{ color: "#a1a1aa" }}>Receipts and payout status</p>
@@ -1453,7 +1456,7 @@ function PopularSearchesPanel() {
               Open a ready-made route, then adjust city, date, traveler, or vehicle details on the booking page.
             </p>
           </div>
-          <a href="#booking" className="inline-flex items-center gap-2 text-sm font-black text-emerald-700">
+          <a href="#booking" className="inline-flex items-center gap-2 text-sm font-black text-emerald-700 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             Build my own search
             <ArrowRight className="h-4 w-4" />
           </a>
@@ -1466,7 +1469,7 @@ function PopularSearchesPanel() {
               <Reveal key={item.title} delay={i * 0.05}>
                 <Link
                   to={item.href}
-                  className="group flex h-full flex-col justify-between rounded-[1.6rem] border border-slate-900/10 bg-gradient-to-br from-white to-sky-50/70 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.09)] transition hover:-translate-y-1 hover:border-emerald-300/60"
+                  className="group flex h-full flex-col justify-between rounded-[1.6rem] border border-slate-900/10 bg-gradient-to-br from-white to-sky-50/70 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.09)] transition hover:-translate-y-1 hover:border-emerald-300/60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className={cn("grid h-12 w-12 place-items-center rounded-2xl", item.tone)}>
                     <Icon className="h-5 w-5" />
@@ -1807,7 +1810,7 @@ export default function ZivoTravelHome() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link to="/" className="group flex items-center gap-3" aria-label="Zivo Travel home">
+          <Link to="/" className="group flex items-center gap-3 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Zivo Travel home">
             <span className="relative grid h-12 w-12 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-3xl font-black leading-none text-white shadow-[0_18px_45px_rgba(16,185,129,0.35)]">
               <span className="relative z-10">Z</span>
               <span className="absolute -right-1 -top-1 h-4 w-4 rounded-md bg-white/80" />
@@ -1827,17 +1830,17 @@ export default function ZivoTravelHome() {
                 key={service.id}
                 type="button"
                 onClick={() => selectService(i)}
-                className={cn("flex items-center gap-2 transition hover:text-white", index === i && service.accent)}
+                className={cn("flex items-center gap-2 transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", index === i && service.accent)}
               >
                 <service.icon className="h-4 w-4" />
                 {service.nav}
               </button>
             ))}
-            <Link to="/my-trips" className="flex items-center gap-2 transition hover:text-white">
+            <Link to="/my-trips" className="flex items-center gap-2 transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Luggage className="h-4 w-4" />
               Trips
             </Link>
-            <Link to="/wallet" className="flex items-center gap-2 transition hover:text-white">
+            <Link to="/wallet" className="flex items-center gap-2 transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <WalletCards className="h-4 w-4" />
               Wallet
             </Link>
@@ -1848,10 +1851,10 @@ export default function ZivoTravelHome() {
               <Globe2 className="h-4 w-4" />
               USD
             </button>
-            <Link to="/login" className="h-11 rounded-full border border-white/15 px-6 py-3 text-sm font-black text-white transition hover:border-white">
+            <Link to="/login" className="h-11 rounded-full border border-white/15 px-6 py-3 text-sm font-black text-white transition hover:border-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Log in
             </Link>
-            <a href="#booking" className="h-11 whitespace-nowrap rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_16px_32px_rgba(16,185,129,0.32)] transition hover:bg-emerald-400">
+            <a href="#booking" className="h-11 whitespace-nowrap rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_16px_32px_rgba(16,185,129,0.32)] transition hover:bg-emerald-400 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               Start booking
             </a>
           </div>
@@ -1859,7 +1862,8 @@ export default function ZivoTravelHome() {
           <button
             type="button"
             onClick={() => setMobileOpen((value) => !value)}
-            className="rounded-full border border-white/15 px-4 py-2 text-sm font-black md:hidden"
+            aria-expanded={mobileOpen}
+            className="rounded-full border border-white/15 px-4 py-2 text-sm font-black md:hidden transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Menu
           </button>
@@ -1875,7 +1879,7 @@ export default function ZivoTravelHome() {
                     selectService(i);
                     setMobileOpen(false);
                   }}
-                  className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-black"
+                  className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-black transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="flex items-center gap-2"><service.icon className="h-4 w-4" />{service.label}</span>
                   <ArrowRight className="h-4 w-4" />
@@ -1884,12 +1888,12 @@ export default function ZivoTravelHome() {
               <Link
                 to="/wallet"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-black"
+                className="flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 text-left text-sm font-black transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="flex items-center gap-2"><WalletCards className="h-4 w-4" />Wallet & cash-out</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="mt-1 rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-black text-zinc-950">
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="mt-1 rounded-2xl bg-emerald-500 px-4 py-3 text-center text-sm font-black text-zinc-950 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 Log in
               </Link>
             </div>
@@ -1940,8 +1944,9 @@ export default function ZivoTravelHome() {
                       key={service.id}
                       type="button"
                       onClick={() => selectService(i)}
+                      aria-pressed={index === i}
                       className={cn(
-                        "flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 text-sm font-black transition",
+                        "flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 text-sm font-black transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         index === i ? "bg-white text-zinc-950" : "text-zinc-300 hover:bg-white/10",
                       )}
                     >
@@ -2019,7 +2024,7 @@ export default function ZivoTravelHome() {
                   </label>
                   <button
                     type="submit"
-                    className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-6 text-base font-black text-zinc-950 shadow-[0_22px_40px_rgba(16,185,129,0.3)] transition hover:bg-emerald-400"
+                    className="group flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-6 text-base font-black text-zinc-950 shadow-[0_22px_40px_rgba(16,185,129,0.3)] transition hover:bg-emerald-400 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Search {activeService.label}
                     <span className="grid h-9 w-9 place-items-center rounded-full bg-zinc-950/15 transition group-hover:translate-x-1">
@@ -2085,10 +2090,10 @@ export default function ZivoTravelHome() {
               <p className="mt-2 max-w-xl text-zinc-400">Hand-picked cities with flights, hotels, cars, and bus routes ready to book.</p>
             </div>
             <div className="hidden gap-2 sm:flex">
-              <button type="button" onClick={() => scrollRail(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 transition hover:bg-white/10" aria-label="Scroll left">
+              <button type="button" onClick={() => scrollRail(-1)} className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 transition hover:bg-white/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Scroll left">
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <button type="button" onClick={() => scrollRail(1)} className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 transition hover:bg-white/10" aria-label="Scroll right">
+              <button type="button" onClick={() => scrollRail(1)} className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 transition hover:bg-white/10 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Scroll right">
                 <ChevronRight className="h-5 w-5" />
               </button>
             </div>
@@ -2103,7 +2108,7 @@ export default function ZivoTravelHome() {
                 key={destination.name}
                 type="button"
                 onClick={() => selectService(0)}
-                className="zt-on-media group relative h-72 w-64 shrink-0 snap-start overflow-hidden rounded-[1.8rem] border border-white/10 text-left"
+                className="zt-on-media group relative h-72 w-64 shrink-0 snap-start overflow-hidden rounded-[1.8rem] border border-white/10 text-left transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 <img
                   src={destination.image}
@@ -2133,7 +2138,7 @@ export default function ZivoTravelHome() {
             <p className="mt-5 text-base leading-7 text-zinc-400">
               From search to payout, Zivo Travel keeps customer booking, partner operations, and trip records connected — on web and app.
             </p>
-            <a href="#booking" className="mt-6 inline-flex items-center gap-2 text-sm font-black text-emerald-300">
+            <a href="#booking" className="mt-6 inline-flex items-center gap-2 text-sm font-black text-emerald-300 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               See how it works <ArrowRight className="h-4 w-4" />
             </a>
           </Reveal>
@@ -2156,9 +2161,9 @@ export default function ZivoTravelHome() {
                 return (
                   <Reveal key={step.title} delay={i * 0.05}>
                     {step.href.startsWith("#") ? (
-                      <a href={step.href} className="block h-full">{card}</a>
+                      <a href={step.href} className="block h-full rounded-2xl transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{card}</a>
                     ) : (
-                      <Link to={step.href} className="block h-full">{card}</Link>
+                      <Link to={step.href} className="block h-full rounded-2xl transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{card}</Link>
                     )}
                   </Reveal>
                 );
@@ -2168,7 +2173,7 @@ export default function ZivoTravelHome() {
             <div className="grid gap-4 md:grid-cols-5">
               {ops.map((item, i) => (
                 <Reveal key={item.title} delay={i * 0.05}>
-                  <Link to={item.href} className="block h-full">
+                  <Link to={item.href} className="block h-full rounded-2xl transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <TiltCard className="h-full rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-white/25">
                       <span className={cn("grid h-11 w-11 place-items-center rounded-2xl text-white", item.color)}>
                         <item.icon className="h-5 w-5" />
@@ -2205,9 +2210,9 @@ export default function ZivoTravelHome() {
               Zivo Travel runs as its own website and app surface on zivostravel.com while staying connected to the larger Zivos Media account, auth, payment, and partner ecosystem.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <a href="#booking" className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-400">Start a trip</a>
-              <Link to="/wallet" className="rounded-full border border-white/20 px-6 py-3 text-sm font-black transition hover:border-white">Wallet &amp; cash-out</Link>
-              <Link to="/connect-website" className="rounded-full border border-white/20 px-6 py-3 text-sm font-black transition hover:border-white">Partner API</Link>
+              <a href="#booking" className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-400 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Start a trip</a>
+              <Link to="/wallet" className="rounded-full border border-white/20 px-6 py-3 text-sm font-black transition hover:border-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Wallet &amp; cash-out</Link>
+              <Link to="/connect-website" className="rounded-full border border-white/20 px-6 py-3 text-sm font-black transition hover:border-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Partner API</Link>
             </div>
           </Reveal>
           <Reveal delay={0.1}>
@@ -2243,16 +2248,16 @@ export default function ZivoTravelHome() {
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-bold text-zinc-400">
             {services.map((service) => (
-              <button key={service.id} type="button" onClick={() => navigate(service.href)} className="transition hover:text-white">
+              <button key={service.id} type="button" onClick={() => navigate(service.href)} className="transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {service.label}
               </button>
             ))}
-            <Link to="/terms-of-service" className="transition hover:text-white">Terms</Link>
-            <Link to="/privacy-policy" className="transition hover:text-white">Privacy</Link>
+            <Link to="/terms-of-service" className="transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Terms</Link>
+            <Link to="/privacy-policy" className="transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Privacy</Link>
             <button
               type="button"
               onClick={() => { void goCrossDomain(ZIVO_MEDIA_ORIGIN, "/"); }}
-              className="transition hover:text-white"
+              className="transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               title="Continue to Zivos Media with your session"
             >
               Zivos Media ↗

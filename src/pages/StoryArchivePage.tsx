@@ -150,8 +150,9 @@ export default function StoryArchivePage() {
                   key={f}
                   type="button"
                   onClick={() => setActiveFilter(f)}
+                  aria-pressed={activeFilter === f}
                   className={cn(
-                    "shrink-0 px-3.5 py-2 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5",
+                    "shrink-0 px-3.5 py-2 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     activeFilter === f
                       ? "bg-ig-gradient text-white shadow-sm"
                       : "bg-secondary text-foreground hover:bg-muted",
@@ -211,7 +212,7 @@ export default function StoryArchivePage() {
                   transition={{ delay: Math.min(idx, 12) * 0.02 }}
                   whileTap={{ scale: 0.96 }}
                   onClick={() => setSelectedId(s.id)}
-                  className="relative aspect-[9/16] bg-muted overflow-hidden active:opacity-80 transition-opacity"
+                  className="relative aspect-[9/16] bg-muted overflow-hidden active:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                   aria-label={`Open archived story from ${formatDate(s.created_at)}`}
                 >
                   {isText ? (
@@ -285,7 +286,7 @@ export default function StoryArchivePage() {
             <button
               type="button"
               onClick={() => setSelectedId(null)}
-              className="mt-2 w-full text-xs font-semibold text-muted-foreground hover:text-foreground py-1.5 transition-colors"
+              className="mt-2 w-full text-xs font-semibold text-muted-foreground hover:text-foreground py-1.5 transition-all rounded-md active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Close
             </button>

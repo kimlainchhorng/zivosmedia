@@ -245,9 +245,10 @@ export default function ReceiptsPage() {
               <button
                 key={t}
                 type="button"
+                aria-pressed={activeType === t}
                 onClick={() => setActiveType(t)}
                 className={cn(
-                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all capitalize",
+                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeType === t
                     ? "bg-ig-gradient text-white shadow-sm"
                     : "bg-secondary text-foreground hover:bg-muted",
@@ -310,7 +311,7 @@ export default function ReceiptsPage() {
                     <button
                       type="button"
                       onClick={() => openPdf(r.pdf_path, r.type)}
-                      className="mt-1 text-[11px] font-bold text-ig-gradient inline-flex items-center gap-0.5 hover:opacity-80 active:opacity-60"
+                      className="mt-1 text-[11px] font-bold text-ig-gradient inline-flex items-center gap-0.5 hover:opacity-80 active:opacity-60 transition-opacity rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={`Download receipt ${r.reference_id}`}
                     >
                       <Download className="h-3 w-3" /> PDF

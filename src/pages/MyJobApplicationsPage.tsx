@@ -149,9 +149,9 @@ export default function MyJobApplicationsPage() {
         </motion.div>
 
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({stats.total})</button>
-          <button type="button" onClick={() => setTab("active")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "active" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Active ({stats.active})</button>
-          <button type="button" onClick={() => setTab("decided")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "decided" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Decided</button>
+          <button type="button" onClick={() => setTab("all")} aria-pressed={tab === "all"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({stats.total})</button>
+          <button type="button" onClick={() => setTab("active")} aria-pressed={tab === "active"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "active" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Active ({stats.active})</button>
+          <button type="button" onClick={() => setTab("decided")} aria-pressed={tab === "decided"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "decided" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Decided</button>
         </div>
 
         {isLoading && <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 bg-muted animate-pulse rounded-2xl" />)}</div>}
@@ -187,7 +187,7 @@ export default function MyJobApplicationsPage() {
                   transition={{ delay: Math.min(idx, 12) * 0.03 }}
                   className="rounded-2xl bg-card border border-border p-3.5"
                 >
-                  <button type="button" onClick={() => navigate(`/jobs/${a.job_id}`)} className="w-full text-left flex items-start gap-3">
+                  <button type="button" onClick={() => navigate(`/jobs/${a.job_id}`)} className="w-full text-left flex items-start gap-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <div className={cn("shrink-0 h-10 w-10 rounded-xl flex items-center justify-center", meta.bg)}>
                       <Icon className={cn("h-4 w-4", meta.tone, a.status === "reviewing" && "animate-spin")} />
                     </div>
@@ -207,7 +207,7 @@ export default function MyJobApplicationsPage() {
                     <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-2" />
                   </button>
                   {canWithdraw && (
-                    <button type="button" onClick={() => withdraw(a.id)} className="mt-2 w-full h-8 rounded-lg bg-secondary hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 text-foreground text-xs font-bold transition-colors">
+                    <button type="button" onClick={() => withdraw(a.id)} className="mt-2 w-full h-8 rounded-lg bg-secondary hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 text-foreground text-xs font-bold transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       Withdraw application
                     </button>
                   )}

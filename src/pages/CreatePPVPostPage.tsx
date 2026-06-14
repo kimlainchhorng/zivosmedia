@@ -168,7 +168,7 @@ export default function CreatePPVPostPage() {
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Back"
-            className="p-2 -ml-2 rounded-full hover:bg-muted/50"
+            className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -230,8 +230,9 @@ export default function CreatePPVPostPage() {
           <button
             type="button"
             onClick={() => setFreeForSubscribers((v) => !v)}
+            aria-pressed={freeForSubscribers}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-colors text-left active:scale-[0.99]",
+              "w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-colors text-left active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               freeForSubscribers
                 ? "border-rose-500 bg-rose-500/8"
                 : "border-border bg-card hover:border-rose-500/40"
@@ -265,8 +266,9 @@ export default function CreatePPVPostPage() {
         <button
           type="button"
           onClick={() => setScheduled((v) => !v)}
+          aria-pressed={scheduled}
           className={cn(
-            "w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-colors text-left active:scale-[0.99]",
+            "w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition-colors text-left active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             scheduled
               ? "border-violet-500 bg-violet-500/8"
               : "border-border bg-card hover:border-violet-500/40"
@@ -336,8 +338,9 @@ export default function CreatePPVPostPage() {
                 key={p}
                 type="button"
                 onClick={() => setPriceUsd(p)}
+                aria-pressed={priceUsd === p}
                 className={cn(
-                  "px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors",
+                  "px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   priceUsd === p
                     ? "bg-rose-500 text-white border-rose-500"
                     : "bg-card text-muted-foreground border-border hover:border-rose-500/40"
@@ -368,7 +371,7 @@ export default function CreatePPVPostPage() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="mt-1 w-full h-32 rounded-2xl border-2 border-dashed border-border bg-card hover:border-rose-500/40 flex flex-col items-center justify-center gap-2 transition-colors"
+              className="mt-1 w-full h-32 rounded-2xl border-2 border-dashed border-border bg-card hover:border-rose-500/40 flex flex-col items-center justify-center gap-2 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {uploading ? (
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -410,15 +413,17 @@ export default function CreatePPVPostPage() {
                       <button
                         type="button"
                         onClick={() => removeItem(idx)}
-                        className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center"
+                        aria-label="Remove"
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                       >
                         <X className="h-3 w-3" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setPreviewIdx(idx)}
+                        aria-pressed={isPreview}
                         className={cn(
-                          "absolute bottom-1 left-1 right-1 text-[9px] font-extrabold rounded-md py-1 uppercase tracking-wide",
+                          "absolute bottom-1 left-1 right-1 text-[9px] font-extrabold rounded-md py-1 uppercase tracking-wide transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
                           isPreview
                             ? "bg-rose-500 text-white"
                             : "bg-black/60 text-white"
@@ -441,7 +446,7 @@ export default function CreatePPVPostPage() {
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="aspect-square rounded-xl border-2 border-dashed border-border bg-card hover:border-rose-500/40 flex flex-col items-center justify-center gap-1"
+                  className="aspect-square rounded-xl border-2 border-dashed border-border bg-card hover:border-rose-500/40 flex flex-col items-center justify-center gap-1 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {uploading ? (
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -466,7 +471,7 @@ export default function CreatePPVPostPage() {
           onClick={() => create.mutate()}
           disabled={!canSubmit}
           className={cn(
-            "w-full h-13 rounded-2xl font-extrabold text-[15px] py-3.5 flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+            "w-full h-13 rounded-2xl font-extrabold text-[15px] py-3.5 flex items-center justify-center gap-2 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             canSubmit
               ? "bg-rose-500 text-white hover:bg-rose-600"
               : "bg-muted/50 text-muted-foreground cursor-not-allowed"

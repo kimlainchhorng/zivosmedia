@@ -237,7 +237,7 @@ export default function MarketplaceCartPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/marketplace/${l.id}`)}
-                    className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-muted relative active:scale-95 transition-transform"
+                    className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-muted relative active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label={`View ${l.title}`}
                   >
                     {firstImage ? (
@@ -278,7 +278,7 @@ export default function MarketplaceCartPage() {
                           aria-label="Decrease quantity"
                           disabled={c.quantity <= 1}
                           onClick={() => updateQty(c.id, c.quantity - 1)}
-                          className="h-7 w-7 inline-flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-40 active:scale-95 transition-all"
+                          className="h-7 w-7 inline-flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-40 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
@@ -288,7 +288,7 @@ export default function MarketplaceCartPage() {
                           aria-label="Increase quantity"
                           disabled={c.quantity >= maxQty}
                           onClick={() => updateQty(c.id, c.quantity + 1)}
-                          className="h-7 w-7 inline-flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-40 active:scale-95 transition-all"
+                          className="h-7 w-7 inline-flex items-center justify-center text-foreground hover:bg-muted disabled:opacity-40 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
@@ -297,7 +297,7 @@ export default function MarketplaceCartPage() {
                         type="button"
                         aria-label="Remove from cart"
                         onClick={() => removeItem(c.id)}
-                        className="h-7 w-7 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors"
+                        className="h-7 w-7 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

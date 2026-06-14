@@ -139,8 +139,8 @@ export default function FindEmployeePage() {
         {/* Filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           {(["all", "remote", "full_time", "part_time", "contract"] as const).map(f => (
-            <button type="button" key={f} onClick={() => setFilterType(f)}
-              className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+            <button type="button" key={f} aria-pressed={filterType === f} onClick={() => setFilterType(f)}
+              className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 filterType === f ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/80")}>
               {f === "all" ? "All" : f === "remote" ? "Remote" : f === "full_time" ? "Full-time" : f === "part_time" ? "Part-time" : "Contract"}
             </button>
@@ -165,7 +165,7 @@ export default function FindEmployeePage() {
           {!isEmployer && (
             <button
               type="button"
-              className="mt-2 w-full rounded-md bg-emerald-500/10 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-500/20 transition-colors"
+              className="mt-2 w-full rounded-md bg-emerald-500/10 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-500/20 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => navigate("/become-partner")}
             >
               Not a Partner yet? Apply for Partner access →
@@ -199,7 +199,7 @@ export default function FindEmployeePage() {
               <Card className="p-6 text-center text-sm text-muted-foreground">No open jobs match your filters.</Card>
             )}
             {filteredJobs.slice(0, visibleCount).map(j => (
-              <Card key={j.id} className="cursor-pointer p-4 transition-colors hover:bg-accent" onClick={() => navigate(`/personal/jobs/${j.id}`)}>
+              <Card key={j.id} className="cursor-pointer p-4 transition-all hover:bg-accent active:scale-[0.98]" onClick={() => navigate(`/personal/jobs/${j.id}`)}>
                 <div className="flex items-start gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                     {j.career_companies?.logo_url ? (
@@ -240,7 +240,7 @@ export default function FindEmployeePage() {
               <Card className="p-6 text-center text-sm text-muted-foreground">No companies yet.</Card>
             )}
             {filteredCompanies.map(c => (
-              <Card key={c.id} className="cursor-pointer p-4 transition-colors hover:bg-accent" onClick={() => navigate(`/personal/companies/${c.id}`)}>
+              <Card key={c.id} className="cursor-pointer p-4 transition-all hover:bg-accent active:scale-[0.98]" onClick={() => navigate(`/personal/companies/${c.id}`)}>
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                     {c.logo_url ? <img src={c.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" /> : <Building2 className="h-5 w-5 text-muted-foreground" />}

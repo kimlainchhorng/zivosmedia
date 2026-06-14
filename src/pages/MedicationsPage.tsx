@@ -196,7 +196,7 @@ export default function MedicationsPage() {
                 aria-label={m.takenToday ? "Mark as not taken" : "Mark as taken"}
                 onClick={() => toggleTaken(m.id)}
                 className={cn(
-                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all active:scale-90",
+                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   m.takenToday
                     ? "bg-ig-gradient text-white shadow-sm"
                     : "bg-secondary border-2 border-dashed border-muted-foreground/40 text-transparent",
@@ -227,7 +227,7 @@ export default function MedicationsPage() {
                 type="button"
                 aria-label={`Remove ${m.name}`}
                 onClick={() => removeMed(m.id)}
-                className="shrink-0 h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive text-muted-foreground flex items-center justify-center transition-colors"
+                className="shrink-0 h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive text-muted-foreground flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="h-4 w-4" />
               </button>

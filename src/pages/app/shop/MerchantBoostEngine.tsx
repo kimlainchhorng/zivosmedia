@@ -75,8 +75,9 @@ export default function MerchantBoostEngine() {
       const { error } = await (supabase as any).from("ad_boost_bids").insert({
         user_id: user.id,
         placement,
-        budget_cents: Math.round(tier.amount * 100),
-        duration_days: 7,
+        // tier.amount is already in cents (1000/5000/10000 = $10/$50/$100); insert as-is.
+        budget_cents: tier.amount,
+        duration_days: tier.days,
         predicted_roi_pct: Math.round(roi),
       });
       if (error) throw error;
@@ -114,9 +115,10 @@ export default function MerchantBoostEngine() {
           ]).map(({ key, icon: Icon, label, desc }) => (
             <motion.button
               key={key}
+              aria-pressed={contentType === key}
               whileTap={{ scale: 0.97 }}
               onClick={() => setContentType(key)}
-              className={`rounded-2xl border-2 p-4 text-left transition-all ${
+              className={`rounded-2xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 contentType === key ? "border-primary bg-primary/5" : "border-border/40 bg-card"
               }`}
             >
@@ -140,9 +142,10 @@ export default function MerchantBoostEngine() {
               {BUDGET_TIERS.map((t, i) => (
                 <motion.button
                   key={t.amount}
+                  aria-pressed={selectedTier === i}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedTier(i)}
-                  className={`rounded-2xl border-2 p-3 text-center transition-all ${
+                  className={`rounded-2xl border-2 p-3 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     selectedTier === i ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" : "border-border/40 bg-card"
                   }`}
                 >

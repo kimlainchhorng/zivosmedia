@@ -229,7 +229,7 @@ function LegalSheet({ title, onClose, children }: { title: string; onClose: () =
           <div className="w-10 h-1 rounded-full bg-muted-foreground/20 mx-auto mb-3" />
           <div className="flex items-center justify-between">
             <h2 className="text-[16px] font-bold text-foreground">{title}</h2>
-            <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-muted/60 transition-colors">
+            <button type="button" onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
@@ -379,7 +379,7 @@ export default function ZivoPlusPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-2xl border-b border-border/20">
         <div className="flex items-center gap-3 px-4 py-3">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} aria-label="Go back" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-2xl hover:bg-muted/60 touch-manipulation">
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} aria-label="Go back" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-2xl hover:bg-muted/60 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </motion.button>
           <div className="flex items-center gap-2">
@@ -526,7 +526,8 @@ export default function ZivoPlusPage() {
                   key={p.id}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setSelectedPlan(p.id)}
-                  className={`relative p-3.5 rounded-2xl border-2 text-left transition-all duration-200 ${
+                  aria-pressed={selectedPlan === p.id}
+                  className={`relative p-3.5 rounded-2xl border-2 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     selectedPlan === p.id
                       ? "border-amber-500/50 bg-amber-500/5 shadow-md shadow-amber-500/10"
                       : "border-border/20 bg-card hover:border-border/40"
@@ -599,8 +600,8 @@ export default function ZivoPlusPage() {
 
             <p className="text-[9px] text-muted-foreground/60 text-center leading-relaxed px-4">
               Secure checkout opens with Stripe. Cancel anytime from your account settings. By subscribing you agree to our{" "}
-              <button type="button" onClick={() => setLegalSheet("terms")} className="text-primary/60 underline hover:text-primary transition-colors">Terms</button> and{" "}
-              <button type="button" onClick={() => setLegalSheet("privacy")} className="text-primary/60 underline hover:text-primary transition-colors">Privacy Policy</button>.
+              <button type="button" onClick={() => setLegalSheet("terms")} className="text-primary/60 underline hover:text-primary transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Terms</button> and{" "}
+              <button type="button" onClick={() => setLegalSheet("privacy")} className="text-primary/60 underline hover:text-primary transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Privacy Policy</button>.
             </p>
           </div>
         )}

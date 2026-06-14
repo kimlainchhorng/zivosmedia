@@ -132,9 +132,10 @@ export default function OnboardingProgressPage() {
                   <button
                     type="button"
                     aria-label={done ? "Mark incomplete" : "Mark complete"}
+                    aria-pressed={done}
                     onClick={() => toggleStep(step.id)}
                     disabled={busy}
-                    className="shrink-0"
+                    className="shrink-0 rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {done ? (
                       <div className="h-7 w-7 rounded-full bg-ig-gradient flex items-center justify-center"><CheckCircle2 className="h-4 w-4 text-white" /></div>
@@ -145,7 +146,7 @@ export default function OnboardingProgressPage() {
                   <div className={cn("shrink-0 h-9 w-9 rounded-xl flex items-center justify-center", done ? "bg-emerald-500/15" : "bg-ig-gradient/10")}>
                     <Icon className={cn("h-4 w-4", done ? "text-emerald-600 dark:text-emerald-400" : "text-ig-gradient")} />
                   </div>
-                  <button type="button" onClick={() => navigate(step.path)} className="flex-1 min-w-0 text-left">
+                  <button type="button" onClick={() => navigate(step.path)} className="flex-1 min-w-0 text-left rounded-lg transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <p className={cn("text-sm font-bold line-clamp-1", done ? "text-foreground line-through opacity-70" : "text-foreground")}>{step.label}</p>
                     <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{step.desc}</p>
                   </button>

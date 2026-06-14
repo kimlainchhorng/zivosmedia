@@ -146,7 +146,7 @@ export default function TaxInfoPage() {
           <button
             type="button"
             onClick={() => setYearOpen(!yearOpen)}
-            className="w-full h-11 px-4 rounded-xl bg-card border border-border flex items-center justify-between text-sm font-semibold text-foreground"
+            className="w-full h-11 px-4 rounded-xl bg-card border border-border flex items-center justify-between text-sm font-semibold text-foreground transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-expanded={yearOpen}
           >
             <span>Tax year {year}</span>
@@ -164,7 +164,7 @@ export default function TaxInfoPage() {
                   type="button"
                   onClick={() => { setYear(y); setYearOpen(false); }}
                   className={cn(
-                    "w-full px-4 py-2.5 text-left text-sm font-medium transition-colors",
+                    "w-full px-4 py-2.5 text-left text-sm font-medium transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                     year === y ? "bg-secondary text-ig-gradient font-bold" : "text-foreground hover:bg-secondary/60",
                   )}
                 >
@@ -247,7 +247,7 @@ export default function TaxInfoPage() {
                   <button
                     type="button"
                     aria-label={`Download ${d.name}`}
-                    className="shrink-0 h-9 px-3 rounded-full bg-ig-gradient text-white text-xs font-bold flex items-center gap-1 hover:opacity-90 active:scale-95 transition-all"
+                    className="shrink-0 h-9 px-3 rounded-full bg-ig-gradient text-white text-xs font-bold flex items-center gap-1 hover:opacity-90 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Download className="h-3.5 w-3.5" />
                     PDF

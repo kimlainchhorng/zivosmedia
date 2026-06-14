@@ -199,7 +199,7 @@ export default function WarningsPage() {
                     <button
                       type="button"
                       onClick={() => acknowledge(w.id)}
-                      className="mt-3 w-full h-9 rounded-xl bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+                      className="mt-3 w-full h-9 rounded-xl bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Acknowledge
                     </button>

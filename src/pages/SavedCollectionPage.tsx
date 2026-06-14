@@ -184,7 +184,7 @@ export default function SavedCollectionPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center"
+          className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Back"
         >
           <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -209,8 +209,9 @@ export default function SavedCollectionPage() {
           type="button"
           onClick={() => setRenameOpen(true)}
           disabled={!meta}
-          className="rounded-full p-2 text-muted-foreground hover:bg-muted/50 active:scale-95 transition-transform min-w-[40px] min-h-[40px] flex items-center justify-center disabled:opacity-40"
+          className="rounded-full p-2 text-muted-foreground hover:bg-muted/50 active:scale-95 transition-transform min-w-[40px] min-h-[40px] flex items-center justify-center disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Rename collection"
+          aria-haspopup="dialog"
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -218,7 +219,7 @@ export default function SavedCollectionPage() {
           type="button"
           onClick={handleDelete}
           disabled={!meta}
-          className="rounded-full p-2 text-destructive hover:bg-destructive/10 active:scale-95 transition-transform min-w-[40px] min-h-[40px] flex items-center justify-center disabled:opacity-40"
+          className="rounded-full p-2 text-destructive hover:bg-destructive/10 active:scale-95 transition-transform min-w-[40px] min-h-[40px] flex items-center justify-center disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Delete collection"
         >
           <Trash2 className="h-4 w-4" />
@@ -240,7 +241,7 @@ export default function SavedCollectionPage() {
           <button
             type="button"
             onClick={() => navigate("/saved-posts")}
-            className="mt-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+            className="mt-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Browse saved
           </button>
@@ -287,7 +288,7 @@ export default function SavedCollectionPage() {
               <button
                 type="button"
                 onClick={() => navigate(tile.feedHref)}
-                className="absolute inset-0 cursor-pointer focus:outline-none"
+                className="absolute inset-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                 aria-label={`Open: ${tile.caption ?? "post"}`}
               />
               <button
@@ -296,7 +297,7 @@ export default function SavedCollectionPage() {
                   e.stopPropagation();
                   handleRemoveFromCollection(tile.joinId);
                 }}
-                className="absolute right-1.5 top-1.5 z-10 rounded-full bg-red-500/90 p-2 text-white shadow-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity active:scale-90"
+                className="absolute right-1.5 top-1.5 z-10 rounded-full bg-red-500/90 p-2 text-white shadow-lg opacity-0 group-hover:opacity-100 group-active:opacity-100 focus-visible:opacity-100 transition-opacity active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 aria-label="Remove from collection"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -324,7 +325,7 @@ export default function SavedCollectionPage() {
             <button
               type="button"
               onClick={() => setRenameOpen(false)}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted/40"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Cancel
             </button>
@@ -332,7 +333,7 @@ export default function SavedCollectionPage() {
               type="button"
               onClick={handleRename}
               disabled={!newName.trim() || newName.trim() === meta?.name || rename.isPending}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {rename.isPending ? "Saving…" : "Save"}
             </button>

@@ -109,7 +109,7 @@ export default function ShopOrdersPage() {
       <div className="min-h-dvh bg-background pb-24">
         <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur-xl border-b border-border/30">
           <div className="flex items-center gap-3 px-4 py-3">
-            <button type="button" onClick={() => navigate("/shop-dashboard")} className="p-2 -ml-2 rounded-full hover:bg-muted/50">
+            <button type="button" aria-label="Go back" onClick={() => navigate("/shop-dashboard")} className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="text-lg font-extrabold flex-1">Orders</h1>
@@ -122,8 +122,8 @@ export default function ShopOrdersPage() {
             </div>
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
               {statuses.map(s => (
-                <button type="button" key={s} onClick={() => setStatusFilter(s)}
-                  className={cn("shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors capitalize",
+                <button type="button" key={s} onClick={() => setStatusFilter(s)} aria-pressed={s === statusFilter}
+                  className={cn("shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-all active:scale-[0.97] capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     s === statusFilter ? "bg-foreground text-background" : "bg-muted/60 text-muted-foreground")}>
                   {s === "all" ? "All" : (STATUS_CONFIG[s]?.label ?? s)}
                 </button>

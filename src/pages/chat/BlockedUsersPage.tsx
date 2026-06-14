@@ -72,7 +72,7 @@ export default function BlockedUsersPage() {
         <button type="button"
           onClick={goBack}
           aria-label="Go back"
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-muted focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none transition-all active:scale-95"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>

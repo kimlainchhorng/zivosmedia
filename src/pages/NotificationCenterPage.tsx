@@ -405,7 +405,8 @@ export default function NotificationCenterPage() {
               <button type="button"
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-manipulation ${
+                aria-pressed={isActive}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   isActive
                     ? "bg-ig-gradient text-white border-primary"
                     : "bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted/70"
@@ -537,14 +538,14 @@ export default function NotificationCenterPage() {
                                 setReplyText("");
                               }}
                               aria-label="Reply"
-                              className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 active:scale-90 transition-all"
+                              className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               <CornerUpLeft className="h-4 w-4" />
                             </button>
                             <button type="button"
                               onClick={(e) => { e.stopPropagation(); setPreviewUserId(threadId!); }}
                               aria-label="Preview profile"
-                              className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground active:scale-90 transition-all flex items-center justify-center"
+                              className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground active:scale-90 transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               <UserCircle2 className="h-4 w-4" />
                             </button>
@@ -560,7 +561,7 @@ export default function NotificationCenterPage() {
                               }}
                               aria-label={rowMuted ? "Unmute" : "Mute"}
                               className={cn(
-                                "h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted active:scale-90 transition-all",
+                                "h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                 rowMuted ? "bg-muted text-foreground" : "text-muted-foreground"
                               )}
                             >
@@ -577,7 +578,7 @@ export default function NotificationCenterPage() {
                             if (notif.count > 1) void deleteMany(notif.ids);
                             else void deleteNotif(notif.id);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-destructive/10 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           aria-label="Delete notification"
                         >
                           <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
@@ -617,7 +618,7 @@ export default function NotificationCenterPage() {
                             <button type="button"
                               onClick={() => { setReplyOpenFor(null); setReplyText(""); }}
                               disabled={replySending}
-                              className="shrink-0 h-9 px-3 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+                              className="shrink-0 h-9 px-3 text-[12px] font-medium text-muted-foreground hover:text-foreground active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               Cancel
                             </button>
@@ -625,7 +626,7 @@ export default function NotificationCenterPage() {
                               onClick={() => void sendReply()}
                               disabled={!replyText.trim() || replySending}
                               aria-label="Send reply"
-                              className="shrink-0 h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all"
+                              className="shrink-0 h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               {replySending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                             </button>
@@ -654,7 +655,7 @@ export default function NotificationCenterPage() {
                                   setMuteOpenFor(null);
                                   toast.success(`Muted · ${d.label.toLowerCase()}`);
                                 }}
-                                className="h-8 px-3 rounded-full bg-muted/70 hover:bg-muted text-foreground text-[12px] font-medium flex items-center justify-center"
+                                className="h-8 px-3 rounded-full bg-muted/70 hover:bg-muted text-foreground text-[12px] font-medium flex items-center justify-center active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               >
                                 {d.label}
                               </button>

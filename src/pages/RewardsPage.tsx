@@ -183,7 +183,8 @@ export default function RewardsPage() {
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => navigate(-1)}
-              className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation"
+              aria-label="Back"
+              className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ArrowLeft className="w-5 h-5" />
             </motion.button>
@@ -218,8 +219,9 @@ export default function RewardsPage() {
               ].map(tab => (
                 <button type="button"
                   key={tab.value}
+                  aria-pressed={activeTab === tab.value}
                   onClick={() => setActiveTab(tab.value)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 touch-manipulation ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     activeTab === tab.value 
                       ? "bg-card text-foreground shadow-sm" 
                       : "text-muted-foreground hover:text-foreground"

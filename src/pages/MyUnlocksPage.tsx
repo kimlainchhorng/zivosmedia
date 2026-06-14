@@ -198,7 +198,7 @@ export default function MyUnlocksPage() {
                   whileTap={{ scale: 0.985 }}
                   onClick={() => c?.content_url && window.open(c.content_url, "_blank", "noopener,noreferrer")}
                   className={cn(
-                    "w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left",
+                    "w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     !isActive && "opacity-60",
                   )}
                   aria-label={c?.title ?? "Open unlocked content"}

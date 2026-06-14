@@ -478,7 +478,7 @@ export default function BotDetailPage() {
     <div className="min-h-screen bg-background pb-[var(--zivo-safe-bottom,0px)]">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border safe-area-top">
         <div className="flex items-center gap-2 h-14 px-2">
-          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-semibold flex-1 truncate">@{bot.username}</h1>
@@ -704,7 +704,7 @@ export default function BotDetailPage() {
                       {t.description && <div className="text-muted-foreground line-clamp-1">{t.description}</div>}
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => editToolSchema(t)} className="h-6 px-2 text-[10px]">Schema</Button>
-                    <button onClick={() => removeTool(t.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                    <button onClick={() => removeTool(t.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -751,7 +751,7 @@ export default function BotDetailPage() {
                   <div className="text-sm font-mono">/{c.command}</div>
                   <div className="text-xs text-muted-foreground truncate">{c.description || "—"}</div>
                 </div>
-                <button onClick={() => removeCommand(c.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removeCommand(c.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -846,7 +846,7 @@ export default function BotDetailPage() {
                     {s.last_sent_count != null && ` · last sent: ${s.last_sent_count}`}
                   </div>
                 </div>
-                <button onClick={() => removeSchedule(s.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removeSchedule(s.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -906,7 +906,7 @@ export default function BotDetailPage() {
                   </div>
                   <div className="text-muted-foreground truncate">→ {w.reply_text}</div>
                 </div>
-                <button onClick={() => removeWorkflow(w.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removeWorkflow(w.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1016,7 +1016,7 @@ Methods: getMe · sendMessage · setWebhook · deleteWebhook
                   <div className="text-muted-foreground truncate font-mono">{p.checkout_url}</div>
                   <div className="text-[10px] text-muted-foreground">slug: <span className="font-mono">{p.slug}</span></div>
                 </div>
-                <button onClick={() => removePay(p.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removePay(p.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -1057,7 +1057,7 @@ Methods: getMe · sendMessage · setWebhook · deleteWebhook
                   <div className="font-medium">{a.title} <span className="text-muted-foreground font-mono">/{a.slug}</span></div>
                   <div className="text-muted-foreground truncate">{a.app_url}</div>
                 </div>
-                <button onClick={() => removeApp(a.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removeApp(a.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>

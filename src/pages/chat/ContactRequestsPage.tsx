@@ -34,7 +34,7 @@ export default function ContactRequestsPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="flex items-center gap-3 px-4 h-14 border-b border-border/30 sticky top-0 bg-background/95 backdrop-blur z-10 pt-safe">
-        <button type="button" onClick={goBack} aria-label="Back" className="h-9 w-9 rounded-full hover:bg-muted/60 flex items-center justify-center">
+        <button type="button" onClick={goBack} aria-label="Back" className="h-9 w-9 rounded-full hover:bg-muted/60 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="font-semibold text-lg">Contact Requests</h1>
@@ -46,7 +46,7 @@ export default function ContactRequestsPage() {
             role="tab"
             aria-selected={tab === "in"}
             onClick={() => setTab("in")}
-            className={`h-9 rounded-full text-sm font-medium ${tab === "in" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            className={`h-9 rounded-full text-sm font-medium transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tab === "in" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
           >
             Incoming{incoming.length ? ` · ${incoming.length}` : ""}
           </button>
@@ -54,7 +54,7 @@ export default function ContactRequestsPage() {
             role="tab"
             aria-selected={tab === "out"}
             onClick={() => setTab("out")}
-            className={`h-9 rounded-full text-sm font-medium ${tab === "out" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+            className={`h-9 rounded-full text-sm font-medium transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tab === "out" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
           >
             Sent{sentPending ? ` · ${sentPending}` : ""}
           </button>
@@ -90,22 +90,22 @@ export default function ContactRequestsPage() {
             </div>
             {tab === "in" && r.status === "pending" && (
               <div className="flex gap-1.5">
-                <button type="button" onClick={() => accept(r.id)} aria-label="Accept request" className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center">
+                <button type="button" onClick={() => accept(r.id)} aria-label="Accept request" className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Check className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => decline(r.id)} aria-label="Decline request" className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
+                <button type="button" onClick={() => decline(r.id)} aria-label="Decline request" className="h-9 w-9 rounded-full bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
             {tab === "out" && r.status === "pending" && (
-              <button type="button" onClick={() => cancel(r.id)} className="px-3 h-9 rounded-full bg-muted text-xs font-medium">Cancel</button>
+              <button type="button" onClick={() => cancel(r.id)} className="px-3 h-9 rounded-full bg-muted text-xs font-medium transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Cancel</button>
             )}
             {tab === "out" && r.status === "declined" && (
               <button type="button"
                 onClick={() => handleResend(r.id)}
                 aria-label="Resend declined request"
-                className="px-3 h-9 rounded-full bg-emerald-500 text-white text-xs font-medium flex items-center gap-1"
+                className="px-3 h-9 rounded-full bg-emerald-500 text-white text-xs font-medium flex items-center gap-1 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <RotateCw className="h-3.5 w-3.5" /> Resend
               </button>

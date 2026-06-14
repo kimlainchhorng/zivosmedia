@@ -139,7 +139,7 @@ export default function MyReviewsPage() {
           type="button"
           aria-label="Go back"
           onClick={() => navigate(-1)}
-          className="h-9 w-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition"
+          className="h-9 w-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
@@ -162,9 +162,10 @@ export default function MyReviewsPage() {
             {serviceTypes.map(type => (
               <button type="button"
                 key={type}
+                aria-pressed={filterType === type}
                 onClick={() => setFilterType(type)}
                 className={cn(
-                  "px-3 py-1.5 rounded-full border text-[12px] font-semibold whitespace-nowrap transition-all",
+                  "px-3 py-1.5 rounded-full border text-[12px] font-semibold whitespace-nowrap transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   filterType === type
                     ? "bg-ig-gradient text-white border-primary"
                     : "bg-muted/20 text-foreground border-border/20 hover:bg-muted/40"
@@ -224,16 +225,17 @@ export default function MyReviewsPage() {
                     <button
                       type="button"
                       onClick={() => navigate(`/my-trips`)}
-                      className="h-8 w-8 rounded-lg bg-muted/40 flex items-center justify-center hover:bg-muted/60 transition"
+                      className="h-8 w-8 rounded-lg bg-muted/40 flex items-center justify-center hover:bg-muted/60 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label="View trip"
                     >
                       <MessageSquare className="w-4 h-4 text-muted-foreground" />
                     </button>
                     <button
                       type="button"
+                      aria-expanded={editingId === review.id}
                       onClick={() => editingId === review.id ? setEditingId(null) : handleEdit(review)}
                       className={cn(
-                        "h-8 w-8 rounded-lg flex items-center justify-center transition",
+                        "h-8 w-8 rounded-lg flex items-center justify-center transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         editingId === review.id
                           ? "bg-primary/10 text-primary"
                           : "bg-muted/40 hover:bg-muted/60"
@@ -245,7 +247,7 @@ export default function MyReviewsPage() {
                     <button
                       type="button"
                       onClick={() => setDeleteConfirm(review.id)}
-                      className="h-8 w-8 rounded-lg bg-muted/40 flex items-center justify-center hover:bg-red-500/10 hover:text-red-600 transition"
+                      className="h-8 w-8 rounded-lg bg-muted/40 flex items-center justify-center hover:bg-red-500/10 hover:text-red-600 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label="Delete review"
                     >
                       <Trash2 className="w-4 h-4 text-muted-foreground" />
@@ -267,7 +269,7 @@ export default function MyReviewsPage() {
                           key={i}
                           aria-label={`Rate ${i + 1} star${i !== 0 ? "s" : ""}`}
                           onClick={() => setEditRating(i + 1)}
-                          className="touch-manipulation active:scale-90 transition-transform"
+                          className="touch-manipulation active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Star className={cn("w-5 h-5", i < editRating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
                         </button>

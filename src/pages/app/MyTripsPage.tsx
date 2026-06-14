@@ -138,7 +138,7 @@ function TripCard({ trip, index }: { trip: UnifiedTrip; index: number }) {
     </motion.div>
   );
 
-  return detailPath ? <Link to={detailPath}>{cardContent}</Link> : cardContent;
+  return detailPath ? <Link to={detailPath} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{cardContent}</Link> : cardContent;
 }
 
 function NextTripCard({ trips }: { trips: UnifiedTrip[] | undefined }) {
@@ -186,7 +186,7 @@ function NextTripCard({ trips }: { trips: UnifiedTrip[] | undefined }) {
           </div>
           {next.detailPath && (
             <Link to={next.detailPath}
-              className="shrink-0 text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-xl px-3 py-1.5 touch-manipulation active:scale-95 transition-all">
+              className="shrink-0 text-[11px] font-bold text-primary bg-primary/10 border border-primary/20 rounded-xl px-3 py-1.5 touch-manipulation active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               View
             </Link>
           )}
@@ -249,7 +249,7 @@ export default function MyTripsPage() {
                   <motion.div whileHover={{ scale: 1.1, rotateY: 10 }} whileTap={{ scale: 0.88 }}>
                     <Link
                       to="/app"
-                      className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-2xl bg-card/60 backdrop-blur-xl border border-border/30 flex items-center justify-center touch-manipulation shadow-lg shadow-primary/[0.05] hover:bg-card/80 transition-all"
+                      className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-2xl bg-card/60 backdrop-blur-xl border border-border/30 flex items-center justify-center touch-manipulation shadow-lg shadow-primary/[0.05] hover:bg-card/80 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label="Go back"
                     >
                       <ArrowLeft className="w-5 h-5" />
@@ -287,8 +287,9 @@ export default function MyTripsPage() {
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.96 }}
                       onClick={() => setServiceFilter(filter.id)}
+                      aria-pressed={serviceFilter === filter.id}
                       className={cn(
-                        "shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-[11px] font-bold transition-all duration-300 touch-manipulation",
+                        "shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-[11px] font-bold transition-all duration-300 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         serviceFilter === filter.id
                           ? "bg-ig-gradient text-white shadow-lg shadow-primary/30"
                           : "bg-transparent border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30"
@@ -317,8 +318,9 @@ export default function MyTripsPage() {
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.92 }}
                       onClick={() => setStatusFilter(filter.id)}
+                      aria-pressed={statusFilter === filter.id}
                       className={cn(
-                        "flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all duration-300 touch-manipulation",
+                        "flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all duration-300 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         statusFilter === filter.id
                           ? "bg-ig-gradient text-white shadow-lg shadow-primary/25"
                           : "text-muted-foreground hover:text-foreground hover:bg-card/50"

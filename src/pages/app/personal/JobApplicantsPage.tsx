@@ -88,7 +88,7 @@ export default function JobApplicantsPage() {
                 </Button>
               )}
               {a.applicant_email && (
-                <a href={`mailto:${a.applicant_email}`} className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-accent">
+                <a href={`mailto:${a.applicant_email}`} className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-accent transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Mail className="h-3 w-3" /> Email
                 </a>
               )}

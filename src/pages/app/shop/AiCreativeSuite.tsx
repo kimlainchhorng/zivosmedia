@@ -134,7 +134,7 @@ export default function AiCreativeSuite() {
                   />
                   <button type="button"
                     onClick={() => fileRefs[idx].current?.click()}
-                    className="w-full h-28 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 transition-colors overflow-hidden"
+                    className="w-full h-28 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring overflow-hidden"
                   >
                     {slot.imageUrl ? (
                       <img src={slot.imageUrl} alt={slot.label} className="w-full h-full object-cover" />
@@ -165,12 +165,13 @@ export default function AiCreativeSuite() {
                 <motion.button
                   key={v.id}
                   whileTap={{ scale: 0.96 }}
+                  aria-pressed={selectedVibe === v.id}
                   onClick={() => {
                     setSelectedVibe(v.id);
                     setPlaceholderReady(false);
                     fillPromptFromVibe(v.id);
                   }}
-                  className={`rounded-xl p-3 text-left border transition-all ${
+                  className={`rounded-xl p-3 text-left border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     selectedVibe === v.id ? "border-primary bg-primary/5" : "border-border/40"
                   }`}
                 >

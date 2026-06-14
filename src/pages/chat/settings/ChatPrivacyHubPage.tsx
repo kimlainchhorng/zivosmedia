@@ -151,7 +151,7 @@ export default function ChatPrivacyHubPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background/85 backdrop-blur-xl border-b border-border/40 pt-safe px-3 py-3 flex items-center gap-2">
-        <button type="button" onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/60">
+        <button type="button" onClick={goBack} aria-label="Back" className="p-1.5 rounded-full hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h1 className="text-base font-semibold">Privacy & Notifications</h1>
@@ -236,7 +236,7 @@ export default function ChatPrivacyHubPage() {
                 </div>
                 <button type="button"
                   onClick={() => unblock(b.blocked_id)}
-                  className="text-xs font-medium text-primary px-3 py-1.5 rounded-full hover:bg-primary/10"
+                  className="text-xs font-medium text-primary px-3 py-1.5 rounded-full hover:bg-primary/10 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Unblock
                 </button>

@@ -152,7 +152,7 @@ export default function MediaLibraryPage() {
                   transition={{ delay: Math.min(idx, 12) * 0.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => navigate("/feed")}
-                  className="relative aspect-square bg-muted overflow-hidden active:opacity-80 transition-opacity"
+                  className="relative aspect-square bg-muted overflow-hidden active:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                   aria-label={`Open post${post.caption ? `: ${post.caption.slice(0, 40)}` : ""}`}
                 >
                   {url ? (

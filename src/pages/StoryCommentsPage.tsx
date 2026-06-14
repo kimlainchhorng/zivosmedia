@@ -158,8 +158,8 @@ export default function StoryCommentsPage() {
           <p className="text-sm text-white/80 mt-1">{tab === "mine" ? "By you" : "On your stories"}</p>
         </motion.div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("mine")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "mine" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>By me</button>
-          <button type="button" onClick={() => setTab("on-my-stories")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "on-my-stories" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>On my stories</button>
+          <button type="button" aria-pressed={tab === "mine"} onClick={() => setTab("mine")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "mine" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>By me</button>
+          <button type="button" aria-pressed={tab === "on-my-stories"} onClick={() => setTab("on-my-stories")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "on-my-stories" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>On my stories</button>
         </div>
         {isLoading && <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 bg-muted animate-pulse rounded-2xl" />)}</div>}
         {!isLoading && comments.length === 0 && (

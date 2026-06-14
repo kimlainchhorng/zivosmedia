@@ -186,7 +186,7 @@ export default function ShopEmployeeSchedulePage() {
     <AppLayout title="Employee Schedule" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24 max-w-2xl mx-auto">
         <div className="flex items-center gap-2.5 mb-5">
-          <button type="button" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform">
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-[17px] flex-1">Employee Schedule</h1>
@@ -196,7 +196,7 @@ export default function ShopEmployeeSchedulePage() {
         </div>
 
         <div className="flex items-center justify-between mb-4">
-          <button type="button" onClick={() => setWeekOffset((w) => w - 1)} className="w-8 h-8 rounded-full hover:bg-muted/60 flex items-center justify-center transition-colors">
+          <button type="button" aria-label="Previous week" onClick={() => setWeekOffset((w) => w - 1)} className="w-8 h-8 rounded-full hover:bg-muted/60 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="text-center">
@@ -211,7 +211,7 @@ export default function ShopEmployeeSchedulePage() {
             </p>
             <p className="text-[11px] text-muted-foreground">{getWeekLabel(weekOffset)}</p>
           </div>
-          <button type="button" onClick={() => setWeekOffset((w) => w + 1)} className="w-8 h-8 rounded-full hover:bg-muted/60 flex items-center justify-center transition-colors">
+          <button type="button" aria-label="Next week" onClick={() => setWeekOffset((w) => w + 1)} className="w-8 h-8 rounded-full hover:bg-muted/60 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -237,7 +237,7 @@ export default function ShopEmployeeSchedulePage() {
                   <Card className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-[14px]">Add Shift</p>
-                      <button type="button" onClick={() => setShowForm(false)} className="p-1 rounded-lg hover:bg-muted/60">
+                      <button type="button" aria-label="Close" onClick={() => setShowForm(false)} className="p-1 rounded-lg hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <X className="w-4 h-4 text-muted-foreground" />
                       </button>
                     </div>
@@ -332,7 +332,7 @@ export default function ShopEmployeeSchedulePage() {
                               <span className="font-medium tabular-nums">
                                 {trimTime(s.start_time)}–{trimTime(s.end_time)}
                               </span>
-                              <button type="button" onClick={() => removeShift(s.id)} className="ml-1 opacity-60 hover:opacity-100">
+                              <button type="button" aria-label="Remove shift" onClick={() => removeShift(s.id)} className="ml-1 opacity-60 hover:opacity-100 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 <X className="w-3 h-3" />
                               </button>
                             </div>

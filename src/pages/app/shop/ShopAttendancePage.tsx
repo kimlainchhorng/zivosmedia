@@ -101,13 +101,14 @@ export default function ShopAttendancePage() {
       <div className="flex flex-col pb-28">
         {/* Header */}
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
-          <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center">
+          <button type="button" aria-label="Back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-lg flex-1">Attendance & Leave</h1>
           <button type="button"
+            aria-label="Add attendance record"
             onClick={() => setShowForm(true)}
-            className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center"
+            className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Plus className="w-4.5 h-4.5 text-primary" />
           </button>
@@ -138,7 +139,7 @@ export default function ShopAttendancePage() {
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm">Add Attendance Record</p>
-                  <button type="button" onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
+                  <button type="button" aria-label="Close form" onClick={() => setShowForm(false)} className="rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-muted-foreground" /></button>
                 </div>
                 <input
                   className="w-full text-sm px-3 py-2 rounded-xl border border-border/40 bg-background outline-none focus:ring-1 focus:ring-primary/30"
@@ -156,9 +157,10 @@ export default function ShopAttendancePage() {
                   {(Object.keys(STATUS_META) as RecordType[]).map((s) => (
                     <button type="button"
                       key={s}
+                      aria-pressed={form.status === s}
                       onClick={() => setForm({ ...form, status: s })}
                       className={cn(
-                        "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                        "px-3 py-1 rounded-full text-xs font-medium border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         form.status === s ? "bg-ig-gradient text-white border-primary" : "border-border bg-muted/40"
                       )}
                     >
@@ -175,7 +177,7 @@ export default function ShopAttendancePage() {
                 <button type="button"
                   onClick={handleSave}
                   disabled={saving}
-                  className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50"
+                  className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {saving ? "Saving…" : "Save Record"}
                 </button>
@@ -188,9 +190,10 @@ export default function ShopAttendancePage() {
             {filterTabs.map((tab) => (
               <button type="button"
                 key={tab}
+                aria-pressed={filterTab === tab}
                 onClick={() => setFilterTab(tab)}
                 className={cn(
-                  "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
+                  "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   filterTab === tab ? "bg-ig-gradient text-white border-primary" : "border-border/50 bg-muted/30"
                 )}
               >

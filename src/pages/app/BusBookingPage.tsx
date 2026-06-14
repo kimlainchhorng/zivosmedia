@@ -281,7 +281,7 @@ const BusOperatorLogo = ({ trip, size = "md" }: { trip: BusTrip; size?: "sm" | "
 };
 
 // Step progress bar with numbered nodes + connecting lines
-const StepProgress = ({ step }: { step: Step }) => {
+const StepProgress = ({ step, isTravelHost = false }: { step: Step; isTravelHost?: boolean }) => {
   if (step === "confirmed") return null;
   const STEPS = [
     { key: "search"  as Step, label: "Search"  },
@@ -302,9 +302,17 @@ const StepProgress = ({ step }: { step: Step }) => {
               <motion.div
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black transition-all duration-300 sm:h-8 sm:w-8 sm:text-xs",
-                  done   ? "bg-ig-gradient text-white shadow-md" :
-                  active ? "bg-ig-gradient text-white shadow-[0_0_0_4px_hsl(var(--primary)/0.18)]" :
-                           "bg-muted text-muted-foreground/60",
+                  done
+                    ? isTravelHost
+                      ? "bg-gradient-to-r from-emerald-500 via-sky-500 to-violet-500 text-white shadow-md"
+                      : "bg-ig-gradient text-white shadow-md"
+                    : active
+                      ? isTravelHost
+                        ? "bg-gradient-to-r from-emerald-500 via-sky-500 to-violet-500 text-white shadow-[0_0_0_4px_rgba(14,165,233,0.18)]"
+                        : "bg-ig-gradient text-white shadow-[0_0_0_4px_hsl(var(--primary)/0.18)]"
+                      : isTravelHost
+                        ? "bg-white/70 text-slate-400 ring-1 ring-slate-200/70"
+                        : "bg-muted text-muted-foreground/60",
                 )}
                 animate={{ scale: active ? 1.08 : 1 }}
                 transition={{ type: "spring", stiffness: 260, damping: 22 }}
@@ -313,7 +321,11 @@ const StepProgress = ({ step }: { step: Step }) => {
               </motion.div>
               <span className={cn(
                 "hidden text-[9px] font-black uppercase tracking-[0.14em] sm:block",
-                active ? "text-primary" : done ? "text-primary/60" : "text-muted-foreground/40",
+                active
+                  ? isTravelHost ? "zt-gradient-text" : "text-primary"
+                  : done
+                    ? isTravelHost ? "text-sky-600" : "text-primary/60"
+                    : "text-muted-foreground/40",
               )}>
                 {s.label}
               </span>
@@ -321,7 +333,9 @@ const StepProgress = ({ step }: { step: Step }) => {
             {i < STEPS.length - 1 && (
               <div className={cn(
                 "mt-3.5 h-px flex-1 transition-all duration-500 sm:mt-4",
-                done ? "bg-primary/50" : "bg-muted",
+                done
+                  ? isTravelHost ? "bg-gradient-to-r from-emerald-400 via-sky-400 to-violet-400" : "bg-primary/50"
+                  : "bg-muted",
               )} />
             )}
           </div>
@@ -333,11 +347,11 @@ const StepProgress = ({ step }: { step: Step }) => {
 
 // 2026-style search hero
 const SearchHero = ({
-  from, to, date, passengers,
-}: { from: string; to: string; date: string; passengers: number }) => {
+  from, to, date, passengers, isTravelHost = false,
+}: { from: string; to: string; date: string; passengers: number; isTravelHost?: boolean }) => {
   const displayDate = new Date(`${date}T00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] bg-zinc-950 p-5 text-white sm:p-6 lg:p-7">
+    <div className={cn("relative overflow-hidden rounded-[1.75rem] bg-zinc-950 p-5 text-white sm:p-6 lg:p-7", isTravelHost && "zt-depth")}>
       {/* Gradient mesh */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <div className="absolute -left-16 -top-16 h-60 w-60 rounded-full bg-emerald-500/20 blur-[80px]" />
@@ -404,6 +418,9 @@ export default function BusBookingPage() {
   const reduce = useReducedMotion();
   const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO Bus";
+  const surfaceCardClass = isTravelHost ? "zt-glass bg-white/75" : "border border-border bg-card";
+  const softCardClass = isTravelHost ? "border border-slate-200/70 bg-white/75 shadow-sm" : "border border-border bg-card";
+  const rawControlFocus = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
   // Step & direction tracking
   const [step, setStep]     = useState<Step>("search");
@@ -682,15 +699,16 @@ export default function BusBookingPage() {
         title={stepTitle[step]}
         showBack
         onBack={handleBack}
-        className={cn(isTravelHost && "zivo-travel-3d zivo-travel-light")}
+        className={cn("relative", isTravelHost && "zivo-travel-3d zivo-travel-light overflow-hidden")}
       >
+        {isTravelHost && <div className="zt-aurora fixed inset-0 z-0" aria-hidden />}
         <PageTransition className={cn(
-          "mx-auto w-full max-w-6xl px-3 pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] pt-3 sm:px-4 sm:pb-28 sm:pt-5 lg:pb-8",
+          "relative z-10 mx-auto w-full max-w-6xl px-3 pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] pt-3 sm:px-4 sm:pb-28 sm:pt-5 lg:pb-8",
           isTravelHost && "zivo-travel-3d zivo-travel-light",
         )}>
 
           {/* Step progress */}
-          <StepProgress step={step} />
+          <StepProgress step={step} isTravelHost={isTravelHost} />
 
           {/* Step content with direction-aware transitions */}
           <AnimatePresence mode="wait" custom={dir}>
@@ -719,11 +737,11 @@ export default function BusBookingPage() {
                   {/* Main column */}
                   <div className="space-y-4">
               <div className={cn(isTravelHost && "zt-on-media")}>
-                <SearchHero from={from} to={to} date={date} passengers={passengers} />
+                <SearchHero from={from} to={to} date={date} passengers={passengers} isTravelHost={isTravelHost} />
               </div>
 
                     {/* From / To card */}
-                    <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-[0_2px_20px_rgba(0,0,0,0.05)]">
+                    <div className={cn("relative overflow-hidden rounded-3xl shadow-[0_2px_20px_rgba(0,0,0,0.05)]", surfaceCardClass)}>
                       <label className="flex cursor-pointer items-center gap-3 px-4 py-4 sm:px-5 sm:py-4.5">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
                           <MapPin className="h-4 w-4 text-emerald-500" aria-hidden />
@@ -747,7 +765,7 @@ export default function BusBookingPage() {
                           type="button"
                           onClick={swapCities}
                           aria-label={t("bus.swap")}
-                          className="mx-2 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-transform active:scale-90 hover:border-primary/40"
+                          className={cn("mx-2 flex h-9 w-9 items-center justify-center rounded-full border bg-background shadow-sm transition-all active:scale-90 hover:border-primary/40", rawControlFocus, isTravelHost ? "border-slate-200/70 bg-white/80 hover:border-sky-300" : "border-border")}
                         >
                           <ArrowLeftRight className="h-4 w-4 text-foreground" aria-hidden />
                         </button>
@@ -776,8 +794,8 @@ export default function BusBookingPage() {
                     </div>
 
                     {/* Date + Passengers */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] sm:px-5">
+                    <div className="grid grid-cols-2 gap-3 pt-24 sm:pt-0">
+                      <label className={cn("flex cursor-pointer items-center gap-3 rounded-2xl px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] sm:px-5", softCardClass)}>
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                           <Calendar className="h-4 w-4 text-primary" aria-hidden />
                         </span>
@@ -793,7 +811,7 @@ export default function BusBookingPage() {
                         </span>
                       </label>
 
-                      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] sm:px-5">
+                      <div className={cn("flex items-center gap-3 rounded-2xl px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] sm:px-5", softCardClass)}>
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                           <Users className="h-4 w-4 text-primary" aria-hidden />
                         </span>
@@ -802,18 +820,39 @@ export default function BusBookingPage() {
                           <div className="mt-0.5 flex items-center justify-between">
                             <button type="button" aria-label="Fewer passengers"
                               onClick={() => setPassengers((p) => Math.max(1, p - 1))}
-                              className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-sm font-black text-foreground transition-transform active:scale-90 sm:h-8 sm:w-8">−</button>
+                              className={cn("flex h-7 w-7 items-center justify-center rounded-full bg-muted text-sm font-black text-foreground transition-all active:scale-90 sm:h-8 sm:w-8", rawControlFocus)}>−</button>
                             <span className="text-base font-black text-foreground sm:text-[15px]">{passengers}</span>
                             <button type="button" aria-label="More passengers"
                               onClick={() => setPassengers((p) => Math.min(6, p + 1))}
-                              className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-sm font-black text-foreground transition-transform active:scale-90 sm:h-8 sm:w-8">+</button>
+                              className={cn("flex h-7 w-7 items-center justify-center rounded-full bg-muted text-sm font-black text-foreground transition-all active:scale-90 sm:h-8 sm:w-8", rawControlFocus)}>+</button>
                           </div>
                         </span>
                       </div>
                     </div>
 
-                    {/* Popular routes */}
+                    {/* Search CTA */}
                     <div>
+                      <Button
+                        onClick={runSearch}
+                        disabled={searching}
+                        className="h-13 w-full rounded-2xl text-base font-black tracking-tight shadow-[0_4px_20px_hsl(var(--primary)/0.35)] sm:h-14"
+                      >
+                        {searching ? (
+                          <span className="flex items-center gap-2">
+                            <motion.span
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                              className="block h-4 w-4 rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground"
+                              aria-hidden
+                            />
+                            Searching…
+                          </span>
+                        ) : t("bus.search")}
+                      </Button>
+                    </div>
+
+                    {/* Popular routes */}
+                    <div className="md:pt-36 lg:pt-0">
                       <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">{t("bus.popular_routes")}</p>
                       <div className="flex flex-wrap gap-2">
                         {popularRoutes.slice(0, 4).map((route) => (
@@ -821,7 +860,7 @@ export default function BusBookingPage() {
                             key={`${route.origin}-${route.destination}`}
                             type="button"
                             onClick={() => { setFrom(route.origin); setTo(route.destination); }}
-                            className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-bold text-foreground shadow-sm transition-all hover:border-primary/50 hover:bg-primary/5 active:scale-95"
+                            className={cn("flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-bold text-foreground shadow-sm transition-all active:scale-95", rawControlFocus, isTravelHost ? "border-slate-200/70 bg-white/75 hover:border-sky-300 hover:bg-white/90" : "border-border bg-card hover:border-primary/50 hover:bg-primary/5")}
                           >
                             {route.origin}
                             <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden />
@@ -834,35 +873,16 @@ export default function BusBookingPage() {
                       </div>
                     </div>
 
-                    {/* Search CTA */}
-                    <Button
-                      onClick={runSearch}
-                      disabled={searching}
-                      className="h-13 w-full rounded-2xl text-base font-black tracking-tight shadow-[0_4px_20px_hsl(var(--primary)/0.35)] sm:h-14"
-                    >
-                      {searching ? (
-                        <span className="flex items-center gap-2">
-                          <motion.span
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                            className="block h-4 w-4 rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground"
-                            aria-hidden
-                          />
-                          Searching…
-                        </span>
-                      ) : t("bus.search")}
-                    </Button>
-
                     {/* Secondary links */}
                     <div className="flex items-center justify-center gap-4">
                       {user && (
                         <button type="button" onClick={() => navigate("/bus/tickets")}
-                          className="text-xs font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+                          className={cn("rounded-md text-xs font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline", rawControlFocus)}>
                           {t("bus.my_tickets_cta")}
                         </button>
                       )}
                       <button type="button" onClick={() => navigate("/bus/operator")}
-                        className="text-xs font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+                        className={cn("rounded-md text-xs font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline", rawControlFocus)}>
                         {t("bus.operate_cta")}
                       </button>
                     </div>
@@ -870,7 +890,7 @@ export default function BusBookingPage() {
 
                   {/* Desktop sidebar — live network */}
                   <aside className="hidden space-y-3 lg:block">
-                    <div className="sticky top-20 rounded-3xl border border-border bg-card p-5 shadow-[0_2px_20px_rgba(0,0,0,0.05)]">
+                    <div className={cn("sticky top-20 rounded-3xl p-5 shadow-[0_2px_20px_rgba(0,0,0,0.05)]", surfaceCardClass)}>
                       <div className="mb-4 flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-black text-foreground">Live bus network</p>
@@ -893,7 +913,7 @@ export default function BusBookingPage() {
                             key={`${route.origin}-${route.destination}-panel`}
                             type="button"
                             onClick={() => { setFrom(route.origin); setTo(route.destination); }}
-                            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-background px-3 py-2.5 text-left transition-all hover:border-primary/40 hover:bg-primary/3 active:scale-[0.98]"
+                            className={cn("flex w-full items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all active:scale-[0.98]", rawControlFocus, isTravelHost ? "border-slate-200/70 bg-white/70 hover:border-sky-300 hover:bg-white/90" : "border-border bg-background hover:border-primary/40 hover:bg-primary/3")}
                           >
                             <span className="min-w-0">
                               <span className="block truncate text-xs font-black text-foreground">{route.origin} → {route.destination}</span>
@@ -928,7 +948,7 @@ export default function BusBookingPage() {
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-lg font-black text-foreground">
+                      <h2 className={cn("text-lg font-black text-foreground", isTravelHost && "zt-gradient-text")}>
                         {from} <span className="text-primary">→</span> {to}
                       </h2>
                       <p className="text-xs text-muted-foreground">
@@ -936,7 +956,7 @@ export default function BusBookingPage() {
                       </p>
                     </div>
                     <button type="button" onClick={() => goStep("search")}
-                      className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold text-foreground shadow-sm transition-all hover:border-primary/40 active:scale-95">
+                      className={cn("rounded-xl border px-3 py-2 text-xs font-bold text-foreground shadow-sm transition-all active:scale-95", rawControlFocus, isTravelHost ? "border-slate-200/70 bg-white/75 hover:border-sky-300" : "border-border bg-card hover:border-primary/40")}>
                       {t("bus.edit_search")}
                     </button>
                   </div>
@@ -952,7 +972,7 @@ export default function BusBookingPage() {
                         transition={{ delay: i * 0.05, duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => chooseTrip(trip)}
-                        className="group w-full overflow-hidden rounded-3xl border border-border bg-card p-4 text-left shadow-[0_2px_12px_rgba(0,0,0,0.05)] transition-all hover:border-primary/40 hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] sm:p-5"
+                        className={cn("group w-full overflow-hidden rounded-3xl p-4 text-left shadow-[0_2px_12px_rgba(0,0,0,0.05)] transition-all hover:shadow-[0_4px_24px_rgba(0,0,0,0.08)] sm:p-5", rawControlFocus, isTravelHost ? "zt-glass bg-white/75 hover:border-sky-300" : "border border-border bg-card hover:border-primary/40")}
                       >
                         {/* Operator row */}
                         <div className="flex items-start justify-between gap-3">
@@ -1034,7 +1054,7 @@ export default function BusBookingPage() {
               {step === "seats" && selectedTrip && (
                 <div className="space-y-5">
                   {/* Trip summary */}
-                  <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                  <div className={cn("flex items-center gap-3 rounded-2xl px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]", softCardClass)}>
                     <BusOperatorLogo trip={selectedTrip} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-black text-foreground">{selectedTrip.operator}</p>
@@ -1074,7 +1094,7 @@ export default function BusBookingPage() {
 
                   {/* Seat map — scrollable on small screens */}
                   <div className="overflow-x-auto pb-2">
-                    <div className="mx-auto w-fit rounded-[1.75rem] border border-border bg-card px-5 py-5 shadow-[0_4px_24px_rgba(0,0,0,0.07)]">
+                    <div className={cn("mx-auto w-fit rounded-[1.75rem] px-5 py-5 shadow-[0_4px_24px_rgba(0,0,0,0.07)]", surfaceCardClass)}>
                       {/* Driver indicator */}
                       <div className="mb-4 flex justify-end">
                         <span className="rounded-xl bg-muted px-3.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
@@ -1101,12 +1121,16 @@ export default function BusBookingPage() {
                                     transition={{ duration: 0.2 }}
                                     aria-label={`${t("bus.seat")} ${seatLabel(index)}${isTaken ? ` (${t("bus.taken")})` : ""}`}
                                     className={cn(
-                                      "flex h-10 w-10 items-center justify-center rounded-xl text-[10px] font-bold transition-colors",
+                                      "flex h-10 w-10 items-center justify-center rounded-xl text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                                       isTaken
                                         ? "cursor-not-allowed bg-muted-foreground/20 text-transparent"
                                         : isSelected
-                                          ? "bg-ig-gradient text-white shadow-[0_4px_12px_hsl(var(--primary)/0.40)]"
-                                          : "border border-border bg-card text-muted-foreground hover:border-primary/60 hover:bg-primary/6",
+                                          ? isTravelHost
+                                            ? "bg-gradient-to-r from-emerald-500 via-sky-500 to-violet-500 text-white shadow-[0_4px_12px_rgba(14,165,233,0.28)]"
+                                            : "bg-ig-gradient text-white shadow-[0_4px_12px_hsl(var(--primary)/0.40)]"
+                                          : isTravelHost
+                                            ? "border border-slate-200/80 bg-white/80 text-slate-500 hover:border-sky-300 hover:bg-white"
+                                            : "border border-border bg-card text-muted-foreground hover:border-primary/60 hover:bg-primary/6",
                                     )}
                                   >
                                     {isTaken ? "" : seatLabel(index)}
@@ -1135,7 +1159,7 @@ export default function BusBookingPage() {
                   )}
 
                   {/* Sticky CTA */}
-                  <div className="fixed inset-x-3 bottom-[calc(var(--zivo-safe-bottom,0px)+5.5rem)] z-30 lg:sticky lg:inset-x-auto lg:bottom-6">
+                  <div className="fixed inset-x-3 bottom-[calc(var(--zivo-safe-bottom,0px)+7rem)] z-30 lg:sticky lg:inset-x-auto lg:bottom-6">
                     <Button
                       onClick={goToSummary}
                       disabled={selectedSeats.length === 0}
@@ -1153,7 +1177,7 @@ export default function BusBookingPage() {
               {step === "summary" && selectedTrip && (
                 <div className="mx-auto max-w-lg space-y-4">
                   {/* Ticket-style booking card */}
-                  <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_4px_24px_rgba(0,0,0,0.07)]">
+                  <div className={cn("overflow-hidden rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.07)]", surfaceCardClass)}>
                     {/* Ticket header */}
                     <div className="flex items-center justify-between bg-primary/8 px-5 py-4">
                       <div className="flex items-center gap-2.5">
@@ -1211,7 +1235,7 @@ export default function BusBookingPage() {
                   </div>
 
                   {/* Contact details */}
-                  <div className="space-y-3 rounded-3xl border border-border bg-card p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                  <div className={cn("space-y-3 rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]", softCardClass)}>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">{t("bus.contact_details")}</p>
                     <input
                       value={contactName}
@@ -1230,14 +1254,14 @@ export default function BusBookingPage() {
 
                   {/* Promo code */}
                   {selectedTrip.real && (
-                    <div className="rounded-3xl border border-border bg-card p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                    <div className={cn("rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]", softCardClass)}>
                       {promo ? (
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="rounded-xl bg-emerald-500/12 px-3 py-1 font-mono text-xs font-black tracking-wider text-emerald-600">{promo.code}</span>
                             <span className="text-xs font-semibold text-emerald-600">−${promo.discountUsd.toFixed(2)}</span>
                           </div>
-                          <button type="button" onClick={clearPromo} className="text-xs font-bold text-muted-foreground hover:text-rose-500">Remove</button>
+                          <button type="button" onClick={clearPromo} className={cn("rounded-md text-xs font-bold text-muted-foreground hover:text-rose-500", rawControlFocus)}>Remove</button>
                         </div>
                       ) : (
                         <>
@@ -1259,7 +1283,7 @@ export default function BusBookingPage() {
                   )}
 
                   {/* Price breakdown */}
-                  <div className="rounded-3xl border border-border bg-card p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                  <div className={cn("rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]", softCardClass)}>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">${selectedTrip.priceUsd} × {selectedSeats.length} {selectedSeats.length > 1 ? t("bus.seats") : t("bus.seat")}</span>
                       <span className="font-semibold text-foreground">${subtotalUsd.toFixed(2)}</span>
@@ -1283,7 +1307,14 @@ export default function BusBookingPage() {
                         <button key={m} type="button" onClick={() => setPayMethod(m)}
                           className={cn(
                             "rounded-2xl border p-3.5 text-sm font-bold transition-all",
-                            payMethod === m ? "border-primary bg-primary/10 text-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]" : "border-border bg-card text-muted-foreground hover:border-primary/30",
+                            rawControlFocus,
+                            payMethod === m
+                              ? isTravelHost
+                                ? "border-sky-300 bg-sky-50 text-sky-700 shadow-[0_0_0_3px_rgba(14,165,233,0.14)]"
+                                : "border-primary bg-primary/10 text-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]"
+                              : isTravelHost
+                                ? "border-slate-200/70 bg-white/75 text-slate-500 hover:border-sky-300"
+                                : "border-border bg-card text-muted-foreground hover:border-primary/30",
                           )}>
                           {label}
                         </button>
@@ -1318,7 +1349,7 @@ export default function BusBookingPage() {
               ═══════════════════════════════════════════════ */}
               {step === "pay" && selectedTrip && clientSecret && (
                 <div className="mx-auto max-w-lg space-y-4 py-2">
-                  <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-sm shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                  <div className={cn("flex items-center justify-between rounded-2xl px-4 py-3.5 text-sm shadow-[0_2px_12px_rgba(0,0,0,0.04)]", softCardClass)}>
                     <span className="text-muted-foreground">{selectedTrip.operator} · {selectedSeats.map(seatLabel).sort().join(", ")}</span>
                     <span className="font-black text-foreground">${(payAmountCents / 100).toFixed(2)}</span>
                   </div>
@@ -1361,7 +1392,7 @@ export default function BusBookingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25, duration: 0.35 }}
-                    className="overflow-hidden rounded-3xl border border-border bg-card shadow-[0_8px_40px_rgba(0,0,0,0.10)]"
+                    className={cn("overflow-hidden rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.10)]", surfaceCardClass)}
                   >
                     {/* Ticket header */}
                     <div className="flex items-center justify-between bg-primary/10 px-5 py-4">

@@ -163,7 +163,7 @@ export default function ReservationPage() {
         <button type="button"
           onClick={() => navigate(-1)}
           style={{ top: 'calc(var(--zivo-safe-top,0px) + 0.75rem)' }}
-          className="absolute left-3 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white"
+          className="absolute left-3 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           aria-label="Back"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -210,7 +210,8 @@ export default function ReservationPage() {
                   <button type="button"
                     key={n}
                     onClick={() => setParty(n)}
-                    className={`min-w-[44px] h-11 px-4 rounded-xl border text-sm font-bold transition-all touch-manipulation ${
+                    aria-pressed={party === n}
+                    className={`min-w-[44px] h-11 px-4 rounded-xl border text-sm font-bold transition-all touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       party === n
                         ? "bg-ig-gradient text-white border-primary shadow"
                         : "bg-card border-border/60 text-foreground"
@@ -233,7 +234,8 @@ export default function ReservationPage() {
                   <button type="button"
                     key={t}
                     onClick={() => setTime(t)}
-                    className={`h-11 rounded-xl border text-sm font-semibold transition-all touch-manipulation ${
+                    aria-pressed={time === t}
+                    className={`h-11 rounded-xl border text-sm font-semibold transition-all touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       time === t
                         ? "bg-ig-gradient text-white border-primary shadow"
                         : "bg-card border-border/60 text-foreground"

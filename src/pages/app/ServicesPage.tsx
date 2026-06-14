@@ -138,7 +138,7 @@ function PromoBanner({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: "spring", stiffness: 300, damping: 30 }}
-      className="w-full rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 touch-manipulation mt-5 relative group"
+      className="w-full rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 touch-manipulation mt-5 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="relative h-[150px]">
         <img
@@ -266,8 +266,9 @@ export default function ServicesPage() {
           className="flex items-center gap-3 mb-1"
         >
           <button type="button"
+            aria-label="Back"
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-muted/60 backdrop-blur-md border border-border/40 flex items-center justify-center active:scale-95 transition-all duration-200 hover:bg-muted"
+            className="w-10 h-10 rounded-full bg-muted/60 backdrop-blur-md border border-border/40 flex items-center justify-center active:scale-95 transition-all duration-200 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-[18px] h-[18px] text-foreground" />
           </button>
@@ -301,8 +302,9 @@ export default function ServicesPage() {
           />
           {searchQuery && (
             <button type="button"
+              aria-label="Clear search"
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="w-3 h-3 text-muted-foreground" />
             </button>
@@ -328,7 +330,7 @@ export default function ServicesPage() {
                 type="button"
                 onClick={() => navigate(s.href)}
                 whileTap={{ scale: 0.94 }}
-                className="flex-shrink-0 flex flex-col items-center gap-2 touch-manipulation"
+                className="flex-shrink-0 flex flex-col items-center gap-2 touch-manipulation rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center shadow-md`}>
                   <img src={s.image} alt={s.label} className="w-9 h-9 object-contain" loading="lazy" decoding="async" />
@@ -351,7 +353,7 @@ export default function ServicesPage() {
                 type="button"
                 onClick={() => handleServiceClick(s)}
                 whileTap={{ scale: 0.94 }}
-                className="flex-shrink-0 flex flex-col items-center gap-2 touch-manipulation relative"
+                className="flex-shrink-0 flex flex-col items-center gap-2 touch-manipulation relative rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="w-16 h-16 rounded-2xl bg-card border border-primary/20 flex items-center justify-center shadow-sm relative">
                   {s.image ? (
@@ -363,7 +365,7 @@ export default function ServicesPage() {
                     type="button"
                     aria-label="Remove from favorites"
                     onClick={(e) => toggleFavorite(s.href, e)}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-card border border-border/40 shadow-sm"
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-card border border-border/40 shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
                   </button>
@@ -440,7 +442,7 @@ export default function ServicesPage() {
                       damping: 25,
                     }}
                     className={cn(
-                      "flex flex-col items-center gap-2 touch-manipulation relative group",
+                      "flex flex-col items-center gap-2 touch-manipulation relative group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       service.comingSoon && "opacity-60"
                     )}
                   >
@@ -450,7 +452,7 @@ export default function ServicesPage() {
                       aria-label={favorites.includes(service.href) ? "Remove from favorites" : "Save to favorites"}
                       onClick={(e) => toggleFavorite(service.href, e)}
                       className={cn(
-                        "absolute -top-1 -right-1 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-card/80 backdrop-blur-sm border border-border/30 shadow-sm transition-opacity",
+                        "absolute -top-1 -right-1 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-card/80 backdrop-blur-sm border border-border/30 shadow-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         favorites.includes(service.href)
                           ? "opacity-100"
                           : "opacity-0 group-hover:opacity-100 focus:opacity-100"
@@ -553,7 +555,7 @@ export default function ServicesPage() {
                 <p className="text-sm text-muted-foreground mt-1">We'll email you when it launches.</p>
               </div>
               <button type="button" onClick={() => setWaitlistService(null)}
-                className="text-sm text-primary font-semibold">Close</button>
+                className="text-sm text-primary font-semibold rounded-md transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Close</button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -592,7 +594,7 @@ export default function ServicesPage() {
                   setWaitlistLoading(false);
                   setWaitlistSubmitted(true);
                 }}
-                className="w-full h-12 rounded-2xl bg-foreground text-background font-bold text-sm disabled:opacity-50 active:scale-[0.98] transition-transform"
+                className="w-full h-12 rounded-2xl bg-foreground text-background font-bold text-sm disabled:opacity-50 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {waitlistLoading ? "Joining…" : "Notify me when it launches"}
               </button>

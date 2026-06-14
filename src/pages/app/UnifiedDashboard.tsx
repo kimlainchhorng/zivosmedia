@@ -135,8 +135,8 @@ export default function UnifiedDashboard() {
 
       <div className="px-4 py-5 space-y-6">
         {/* Wallet */}
-        <Link to="/wallet">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        <Link to="/wallet" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
             className="rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-emerald-500 text-primary-foreground p-5 relative overflow-hidden shadow-xl shadow-primary/20">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-12 translate-x-12 blur-2xl" />
             <div className="flex items-center justify-between relative z-10">
@@ -156,7 +156,7 @@ export default function UnifiedDashboard() {
             {services.map((service, i) => (
               <motion.div key={service.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                 {service.enabled ? (
-                  <Link to={service.link}>
+                  <Link to={service.link} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Card className="hover:shadow-lg transition-all duration-300 active:scale-95 border-border/40 hover:border-primary/15">
                       <CardContent className="p-4 flex flex-col items-center gap-2">
                         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.gradient} flex items-center justify-center shadow-md`}>
@@ -167,7 +167,7 @@ export default function UnifiedDashboard() {
                     </Card>
                   </Link>
                 ) : (
-                  <button type="button" className="w-full" onClick={() => toast.info(`${service.name} — coming soon!`)}>
+                  <button type="button" className="w-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => toast.info(`${service.name} — coming soon!`)}>
                     <Card className="transition-all duration-300 active:scale-95 border-border/40 opacity-50">
                       <CardContent className="p-4 flex flex-col items-center gap-2">
                         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.gradient} flex items-center justify-center`}>
@@ -188,7 +188,7 @@ export default function UnifiedDashboard() {
           <h2 className="font-bold text-sm flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /> Intelligence</h2>
 
           {/* Spending Breakdown */}
-          <button type="button" onClick={() => setShowSpendingBreakdown(!showSpendingBreakdown)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
+          <button type="button" aria-expanded={showSpendingBreakdown} onClick={() => setShowSpendingBreakdown(!showSpendingBreakdown)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <BarChart3 className="w-3.5 h-3.5 text-foreground" /> Spending Breakdown
             <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showSpendingBreakdown && "rotate-90")} />
           </button>
@@ -208,7 +208,7 @@ export default function UnifiedDashboard() {
           )}
 
           {/* Travel Stats */}
-          <button type="button" onClick={() => setShowTravelStats(!showTravelStats)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
+          <button type="button" aria-expanded={showTravelStats} onClick={() => setShowTravelStats(!showTravelStats)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Globe className="w-3.5 h-3.5 text-foreground" /> Travel Stats
             <Badge className="bg-secondary text-foreground border-0 text-[8px] ml-auto">{travelStats.totalTrips} trips</Badge>
             <ChevronRight className={cn("w-3 h-3 transition-transform", showTravelStats && "rotate-90")} />
@@ -231,7 +231,7 @@ export default function UnifiedDashboard() {
           )}
 
           {/* Safety Alerts */}
-          <button type="button" onClick={() => setShowSafetyAlerts(!showSafetyAlerts)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
+          <button type="button" aria-expanded={showSafetyAlerts} onClick={() => setShowSafetyAlerts(!showSafetyAlerts)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Travel Safety Alerts
             <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showSafetyAlerts && "rotate-90")} />
           </button>
@@ -247,7 +247,7 @@ export default function UnifiedDashboard() {
           )}
 
           {/* Carbon Tracker */}
-          <button type="button" onClick={() => setShowCarbonTracker(!showCarbonTracker)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
+          <button type="button" aria-expanded={showCarbonTracker} onClick={() => setShowCarbonTracker(!showCarbonTracker)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Leaf className="w-3.5 h-3.5 text-emerald-500" /> Carbon Footprint
             <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[8px] ml-auto">{carbonData.rank}</Badge>
             <ChevronRight className={cn("w-3 h-3 transition-transform", showCarbonTracker && "rotate-90")} />

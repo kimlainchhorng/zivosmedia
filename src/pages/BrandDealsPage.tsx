@@ -212,8 +212,9 @@ export default function BrandDealsPage() {
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
+              aria-pressed={activeCategory === cat}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeCategory === cat
                   ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-secondary text-foreground hover:bg-muted",
@@ -281,7 +282,7 @@ export default function BrandDealsPage() {
                   type="button"
                   disabled={!eligible}
                   className={cn(
-                    "w-full h-11 flex items-center justify-center gap-1.5 text-sm font-bold transition-opacity",
+                    "w-full h-11 flex items-center justify-center gap-1.5 text-sm font-bold transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70",
                     eligible
                       ? "bg-ig-gradient text-white hover:opacity-90 active:opacity-80"
                       : "bg-muted text-muted-foreground cursor-not-allowed",

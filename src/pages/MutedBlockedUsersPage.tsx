@@ -130,9 +130,9 @@ export default function MutedBlockedUsersPage() {
         </motion.div>
 
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All</button>
-          <button type="button" onClick={() => setTab("mute")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "mute" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Muted ({stats.muted})</button>
-          <button type="button" onClick={() => setTab("block")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "block" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Blocked ({stats.blocked})</button>
+          <button type="button" aria-pressed={tab === "all"} onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All</button>
+          <button type="button" aria-pressed={tab === "mute"} onClick={() => setTab("mute")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "mute" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Muted ({stats.muted})</button>
+          <button type="button" aria-pressed={tab === "block"} onClick={() => setTab("block")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "block" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Blocked ({stats.blocked})</button>
         </div>
 
         {isLoading && <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-14 bg-muted animate-pulse rounded-2xl" />)}</div>}
@@ -168,7 +168,7 @@ export default function MutedBlockedUsersPage() {
                     </div>
                     <p className="text-[11px] text-muted-foreground inline-flex items-center gap-0.5 mt-0.5"><Clock className="h-2.5 w-2.5" /> {formatRelative(a.created_at)}</p>
                   </div>
-                  <button type="button" onClick={() => undo(a.id)} className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center gap-1 active:scale-95 transition-all">
+                  <button type="button" onClick={() => undo(a.id)} className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center gap-1 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <RotateCcw className="h-3 w-3" /> Undo
                   </button>
                 </motion.div>

@@ -80,7 +80,7 @@ export default function ApplyJobHubPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur pt-safe">
-        <button type="button" aria-label="Back" onClick={goBack} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform">
+        <button type="button" aria-label="Back" onClick={goBack} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ArrowLeft className="h-4 w-4" />
         </button>
         <h1 className="text-lg font-bold">Jobs Hub</h1>
@@ -97,7 +97,7 @@ export default function ApplyJobHubPage() {
             </p>
             <Progress value={cvScore} className="mt-2 h-1.5" />
             {cvScore < 100 && (
-              <button type="button" onClick={() => navigate("/personal/create-cv")} className="mt-2 text-[11px] font-bold text-primary underline-offset-2 hover:underline">
+              <button type="button" onClick={() => navigate("/personal/create-cv")} className="mt-2 rounded text-[11px] font-bold text-primary underline-offset-2 hover:underline transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 Complete profile →
               </button>
             )}
@@ -109,7 +109,7 @@ export default function ApplyJobHubPage() {
             <p className="text-2xl font-black text-foreground">{appCount}</p>
             <p className="text-[11px] text-muted-foreground mt-1">submitted</p>
             {appCount > 0 && (
-              <button type="button" onClick={() => navigate("/personal/find-employee")} className="mt-2 text-[11px] font-bold text-primary underline-offset-2 hover:underline">
+              <button type="button" onClick={() => navigate("/personal/find-employee")} className="mt-2 rounded text-[11px] font-bold text-primary underline-offset-2 hover:underline transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 View all →
               </button>
             )}
@@ -130,7 +130,7 @@ export default function ApplyJobHubPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => navigate(a.href)}
-                  className="w-full text-left rounded-2xl border border-border bg-card p-4 flex items-center gap-4 active:bg-muted/30 transition-colors"
+                  className="w-full text-left rounded-2xl border border-border bg-card p-4 flex items-center gap-4 active:bg-muted/30 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", a.color)}>
                     <Icon className={cn("h-5 w-5", a.iconColor)} />
@@ -151,7 +151,7 @@ export default function ApplyJobHubPage() {
           <div>
             <div className="flex items-center justify-between px-1 mb-2">
               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Open Positions</p>
-              <button type="button" onClick={() => navigate("/personal/find-employee")} className="text-[11px] font-bold text-primary">
+              <button type="button" onClick={() => navigate("/personal/find-employee")} className="rounded text-[11px] font-bold text-primary transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 See all
               </button>
             </div>
@@ -164,7 +164,7 @@ export default function ApplyJobHubPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => navigate(`/personal/jobs/${job.id}`)}
-                  className="w-full text-left rounded-2xl border border-border bg-card p-3.5 flex items-center gap-3 active:bg-muted/30 transition-colors"
+                  className="w-full text-left rounded-2xl border border-border bg-card p-3.5 flex items-center gap-3 active:bg-muted/30 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="w-9 h-9 rounded-lg bg-secondary border border-border flex items-center justify-center shrink-0 overflow-hidden">
                     {job.career_companies?.logo_url

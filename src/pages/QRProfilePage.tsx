@@ -175,7 +175,7 @@ export default function QRProfilePage() {
           <button
             onClick={goBack}
             aria-label="Back"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-foreground transition hover:bg-muted active:scale-95"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-foreground transition hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -205,7 +205,7 @@ export default function QRProfilePage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "relative flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-colors duration-200",
+                "relative flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeTab === tab
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground/70"
@@ -405,12 +405,12 @@ function MyCodeTab({
               value={profileUrl}
               readOnly
               aria-label="Profile link"
-              className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold text-foreground outline-none"
+              className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <button
               onClick={onCopy}
               aria-label="Copy link"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground active:scale-95"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition hover:bg-muted hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copied ? (
@@ -443,13 +443,13 @@ function MyCodeTab({
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={onDownload}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-border/60 bg-card text-sm font-bold text-foreground shadow-sm transition hover:bg-muted active:scale-[0.98]"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-border/60 bg-card text-sm font-bold text-foreground shadow-sm transition hover:bg-muted active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Download className="h-4 w-4" /> Save QR
           </button>
           <button
             onClick={onShare}
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-foreground text-sm font-bold text-background shadow-md transition hover:bg-foreground/90 active:scale-[0.98]"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-foreground text-sm font-bold text-background shadow-md transition hover:bg-foreground/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Share2 className="h-4 w-4" /> Share
           </button>
@@ -537,7 +537,7 @@ function ScanTab({ onOpenCamera }: { onOpenCamera: () => void }) {
 
           <button
             onClick={onOpenCamera}
-            className="mt-6 flex h-12 items-center gap-2 rounded-2xl bg-foreground px-6 text-sm font-bold text-background shadow-md transition hover:bg-foreground/90 active:scale-[0.98]"
+            className="mt-6 flex h-12 items-center gap-2 rounded-2xl bg-foreground px-6 text-sm font-bold text-background shadow-md transition hover:bg-foreground/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Camera className="h-4 w-4" /> Open camera
           </button>

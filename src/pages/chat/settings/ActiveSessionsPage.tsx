@@ -21,7 +21,7 @@ export default function ActiveSessionsPage() {
     <div className="min-h-screen bg-background pb-[var(--zivo-safe-bottom,0px)]">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border safe-area-top">
         <div className="flex items-center gap-2 h-14 px-2">
-          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-semibold">Active sessions</h1>

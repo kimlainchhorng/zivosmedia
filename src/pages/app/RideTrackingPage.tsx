@@ -161,7 +161,7 @@ export default function RideTrackingPage() {
         {tripData?.status === "completed" && queue && queue.upcoming.length > 0 && (
           <button type="button"
             onClick={handleNextLeg}
-            className="w-full flex items-center gap-3 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 to-primary/5 p-3 text-left active:scale-[0.99] transition-transform touch-manipulation"
+            className="w-full flex items-center gap-3 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 to-primary/5 p-3 text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-11 h-11 rounded-xl bg-primary/20 text-primary flex items-center justify-center text-lg">
               ➡️
@@ -182,7 +182,7 @@ export default function RideTrackingPage() {
         {tripData?.status && tripData.status !== "completed" && tripData.status !== "cancelled" && (
           <button type="button"
             onClick={shareTrip}
-            className="w-full flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-left active:scale-[0.99] transition-transform touch-manipulation"
+            className="w-full flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-lg">
               🔗
@@ -212,7 +212,7 @@ export default function RideTrackingPage() {
         {tripData?.status && ["en_route", "arrived", "in_progress"].includes(tripData.status) && tripData?.dropoff_address && (
           <button type="button"
             onClick={() => navigate(`/eats?q=${encodeURIComponent(tripData.dropoff_address)}`)}
-            className="w-full flex items-center gap-3 rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-amber-500/5 p-3 text-left active:scale-[0.99] transition-transform touch-manipulation"
+            className="w-full flex items-center gap-3 rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 to-amber-500/5 p-3 text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-11 h-11 rounded-xl bg-orange-500/15 flex items-center justify-center text-lg">🍽️</div>
             <div className="flex-1 min-w-0">

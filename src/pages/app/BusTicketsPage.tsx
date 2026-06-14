@@ -168,7 +168,7 @@ export default function BusTicketsPage() {
                           <div className="space-y-2">
                             <div className="flex items-center gap-1">
                               {[1, 2, 3, 4, 5].map((i) => (
-                                <button key={i} type="button" onClick={() => setRating(i)} aria-label={`${i} star`}>
+                                <button key={i} type="button" onClick={() => setRating(i)} aria-label={`${i} star`} className="rounded transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                   <Star className={cn("h-6 w-6", i <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
                                 </button>
                               ))}
@@ -186,7 +186,7 @@ export default function BusTicketsPage() {
                             </div>
                           </div>
                         ) : (
-                          <button type="button" onClick={() => { setOpenReview(b.booking_id); setRating(5); setComment(""); }} className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                          <button type="button" onClick={() => { setOpenReview(b.booking_id); setRating(5); setComment(""); }} className="flex items-center gap-1.5 text-xs font-bold text-primary rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <Star className="h-3.5 w-3.5" /> Rate this trip
                           </button>
                         )}

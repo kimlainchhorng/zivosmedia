@@ -98,7 +98,7 @@ export default function HotelsResortsDirectoryPage() {
           <button type="button"
             onClick={() => navigate(-1)}
             aria-label="Back"
-            className="min-h-[40px] min-w-[40px] -ml-1 rounded-full flex items-center justify-center active:bg-muted transition touch-manipulation"
+            className="min-h-[40px] min-w-[40px] -ml-1 rounded-full flex items-center justify-center active:bg-muted transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -128,8 +128,9 @@ export default function HotelsResortsDirectoryPage() {
               <button type="button"
                 key={f.id}
                 onClick={() => setActiveFilter(f.id)}
+                aria-pressed={active}
                 className={
-                  "shrink-0 min-h-[40px] min-w-[40px] rounded-full px-3 py-2 text-xs font-semibold transition touch-manipulation " +
+                  "shrink-0 min-h-[40px] min-w-[40px] rounded-full px-3 py-2 text-xs font-semibold transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
                   (active
                     ? "bg-ig-gradient text-white"
                     : "bg-muted/70 text-muted-foreground active:bg-muted")
@@ -192,7 +193,7 @@ function PropertyCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 6) * 0.04 }}
-      className="text-left rounded-2xl border border-border bg-card overflow-hidden shadow-sm active:scale-[0.99] transition"
+      className="text-left rounded-2xl border border-border bg-card overflow-hidden shadow-sm active:scale-[0.99] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       aria-label={`Open ${store.name}`}
     >
       <div className="flex">

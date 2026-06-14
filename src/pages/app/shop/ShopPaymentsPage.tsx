@@ -33,7 +33,7 @@ export default function ShopPaymentsPage() {
             <button
               type="button"
               onClick={() => navigate("/shop-dashboard")}
-              className="p-2 -ml-2 rounded-full hover:bg-muted/50"
+              className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Back to dashboard"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -57,7 +57,7 @@ export default function ShopPaymentsPage() {
               <button
                 type="button"
                 onClick={() => navigate("/store/setup")}
-                className="h-10 px-5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm"
+                className="h-10 px-5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Open my shop
               </button>

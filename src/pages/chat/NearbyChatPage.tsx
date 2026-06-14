@@ -25,7 +25,7 @@ export default function NearbyChatPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="flex items-center gap-3 px-4 h-14 border-b border-border/30 sticky top-0 bg-background/95 backdrop-blur z-10 pt-safe">
-        <button type="button" onClick={goBack} className="h-9 w-9 rounded-full hover:bg-muted/60 flex items-center justify-center">
+        <button type="button" onClick={goBack} aria-label="Back" className="h-9 w-9 rounded-full hover:bg-muted/60 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="font-semibold text-lg flex-1">People Nearby</h1>
@@ -70,7 +70,7 @@ export default function NearbyChatPage() {
             </div>
             <button type="button"
               onClick={() => nav("/chat", { state: { openChat: { recipientId: u.user_id, recipientName: u.profile?.full_name ?? u.profile?.username ?? "User", recipientAvatar: u.profile?.avatar_url ?? null } } })}
-              className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center"
+              className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Message"
             >
               <MessageCircle className="h-4 w-4" />

@@ -139,7 +139,7 @@ export default function NetworkPlacesPage() {
           <div className="flex items-center gap-2 mb-3">
             <button type="button"
               onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
+              className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Back"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -167,7 +167,8 @@ export default function NetworkPlacesPage() {
               <button type="button"
                 key={t}
                 onClick={() => onTab(t)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-colors ${
+                aria-pressed={tab === t}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold capitalize transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   tab === t
                     ? "bg-ig-gradient text-white"
                     : "bg-muted text-foreground"
@@ -340,7 +341,7 @@ function RestaurantCard({
     >
       <button type="button"
         onClick={() => navigate(`/eats/restaurant/${r.id}`)}
-        className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation"
+        className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <div className="relative aspect-[16/10] overflow-hidden">
           <img src={cover} alt={r.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -404,7 +405,7 @@ function HotelCard({
     >
       <button type="button"
         onClick={() => navigate(`/hotels?hotelId=${h.id}`)}
-        className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation"
+        className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <div className="relative aspect-[16/10] overflow-hidden">
           <img src={cover} alt={h.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />

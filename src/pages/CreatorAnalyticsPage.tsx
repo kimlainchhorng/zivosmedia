@@ -240,11 +240,11 @@ export default function CreatorAnalyticsPage() {
 
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30 zivo-ribbon">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate("/more")} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" aria-label="Back" onClick={() => navigate("/more")} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-extrabold flex-1 tracking-tight">Creator Analytics</h1>
-          <button type="button" onClick={() => navigate("/creator-dashboard")} className="p-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" aria-label="Open creator dashboard" onClick={() => navigate("/creator-dashboard")} className="p-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <BarChart3 className="h-5 w-5 text-primary" />
           </button>
         </div>
@@ -257,7 +257,8 @@ export default function CreatorAnalyticsPage() {
             <button type="button"
               key={range}
               onClick={() => setActiveRange(i)}
-              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors touch-manipulation ${
+              aria-pressed={i === activeRange}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 i === activeRange ? "bg-foreground text-background" : "bg-muted/60 text-muted-foreground"
               }`}
             >
@@ -350,7 +351,7 @@ export default function CreatorAnalyticsPage() {
                 Top PPV posts
               </h3>
               {topPPV.length === 0 ? (
-                <Link to="/ppv/create" className="block zivo-card-organic p-4 text-center hover:border-rose-500/40">
+                <Link to="/ppv/create" className="block zivo-card-organic p-4 text-center hover:border-rose-500/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Lock className="h-8 w-8 text-rose-500/40 mx-auto mb-1.5" />
                   <p className="text-[12px] font-bold">No PPV posts yet</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">Drop your first locked post →</p>
@@ -361,7 +362,7 @@ export default function CreatorAnalyticsPage() {
                     <Link
                       key={p.id}
                       to={`/ppv?post=${p.id}`}
-                      className="zivo-card-organic flex items-center gap-3 p-3 hover:border-rose-500/40 transition-colors"
+                      className="zivo-card-organic flex items-center gap-3 p-3 hover:border-rose-500/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <div className="h-8 w-8 rounded-lg bg-rose-500/15 flex items-center justify-center shrink-0">
                         <span className="text-[11px] font-extrabold text-rose-500">{i + 1}</span>
@@ -510,7 +511,7 @@ export default function CreatorAnalyticsPage() {
             { label: "Monetize", icon: TrendingUp, href: "/monetization", accent: "hsl(142 71% 45%)" },
             { label: "Academy", icon: Award, href: "/monetization/articles", accent: "hsl(25 95% 53%)" },
           ].map((action) => (
-            <Link key={action.label} to={action.href}>
+            <Link key={action.label} to={action.href} className="block rounded-2xl transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <div className="zivo-card-organic p-3.5 flex items-center gap-3 touch-manipulation">
                 <div className="zivo-icon-pill w-9 h-9 rounded-xl" style={{ color: action.accent, background: `${action.accent}15` }}>
                   <action.icon className="w-4 h-4" style={{ color: action.accent }} />

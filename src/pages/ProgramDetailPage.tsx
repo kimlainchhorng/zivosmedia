@@ -443,7 +443,7 @@ export default function ProgramDetailPage() {
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
           <p className="font-bold text-lg">Program not found</p>
-          <button type="button" onClick={() => navigate("/monetization")} className="mt-4 text-primary font-semibold text-sm">
+          <button type="button" onClick={() => navigate("/monetization")} className="mt-4 text-primary font-semibold text-sm active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             ← Back to Monetization
           </button>
         </div>
@@ -465,16 +465,17 @@ export default function ProgramDetailPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate("/monetization")} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" onClick={() => navigate("/monetization")} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-sm font-bold flex-1 text-center truncate">{program.label}</h1>
           <button type="button"
+            aria-label="Share link"
             onClick={() => {
               navigator.clipboard.writeText(`${window.location.origin}/monetization/program/${programId}`);
               toast.success("Link copied!");
             }}
-            className="p-2 -mr-2 rounded-full hover:bg-muted/50 touch-manipulation"
+            className="p-2 -mr-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Share2 className="h-4 w-4" />
           </button>
@@ -524,7 +525,7 @@ export default function ProgramDetailPage() {
               <button type="button"
                 onClick={() => leaveMutation.mutate()}
                 disabled={leaveMutation.isPending}
-                className="w-full py-2.5 rounded-xl border border-destructive/30 text-destructive text-xs font-semibold touch-manipulation active:scale-[0.98] transition-transform"
+                className="w-full py-2.5 rounded-xl border border-destructive/30 text-destructive text-xs font-semibold touch-manipulation active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {leaveMutation.isPending ? "Leaving..." : "Leave Program"}
               </button>
@@ -533,7 +534,7 @@ export default function ProgramDetailPage() {
             <button type="button"
               onClick={() => user ? joinMutation.mutate() : toast.error("Please sign in to join")}
               disabled={joinMutation.isPending}
-              className="w-full py-3.5 rounded-xl font-bold text-sm text-white touch-manipulation active:scale-[0.98] transition-transform"
+              className="w-full py-3.5 rounded-xl font-bold text-sm text-white touch-manipulation active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               style={{ background: `linear-gradient(135deg, ${program.accent}, ${program.accent}cc)` }}
             >
               {joinMutation.isPending ? "Joining..." : "Join Program — It's Free"}
@@ -547,7 +548,8 @@ export default function ProgramDetailPage() {
             <button type="button"
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-colors ${
+              aria-pressed={activeTab === tab}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 activeTab === tab ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
               }`}
             >
@@ -638,7 +640,8 @@ export default function ProgramDetailPage() {
                     <button type="button"
                       key={i}
                       onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
-                      className="w-full rounded-xl border border-border/40 bg-card p-3.5 text-left touch-manipulation"
+                      aria-expanded={expandedFaq === i}
+                      className="w-full rounded-xl border border-border/40 bg-card p-3.5 text-left touch-manipulation active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold pr-2">{item.q}</p>
@@ -724,7 +727,7 @@ export default function ProgramDetailPage() {
                 </div>
               </div>
 
-              <Link to="/wallet" className="block">
+              <Link to="/wallet" className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border/30 bg-card touch-manipulation active:scale-[0.98] transition-transform">
                   <Wallet className="w-5 h-5 text-primary" />
                   <div className="flex-1">
@@ -798,7 +801,7 @@ export default function ProgramDetailPage() {
             </h3>
             <div className="space-y-2">
               {relatedPrograms.map((rp) => (
-                <Link key={rp.id} to={`/monetization/program/${rp.id}`}>
+                <Link key={rp.id} to={`/monetization/program/${rp.id}`} className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <div className="flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-card touch-manipulation active:scale-[0.98] transition-transform">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${rp.accent}15` }}>
                       <rp.icon className="w-4 h-4" style={{ color: rp.accent }} />
@@ -814,7 +817,7 @@ export default function ProgramDetailPage() {
 
         {/* Bottom Links */}
         <div className="space-y-2">
-          <Link to="/monetization/articles">
+          <Link to="/monetization/articles" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border/30 bg-card touch-manipulation active:scale-[0.98] transition-transform">
               <BookOpen className="w-5 h-5 text-primary" />
               <div className="flex-1 text-left">
@@ -824,7 +827,7 @@ export default function ProgramDetailPage() {
               <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
             </div>
           </Link>
-          <Link to="/creator-dashboard">
+          <Link to="/creator-dashboard" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border/30 bg-card touch-manipulation active:scale-[0.98] transition-transform">
               <TrendingUp className="w-5 h-5 text-primary" />
               <div className="flex-1 text-left">
@@ -834,7 +837,7 @@ export default function ProgramDetailPage() {
               <ChevronRight className="w-4 h-4 text-muted-foreground/40" />
             </div>
           </Link>
-          <Link to="/monetization">
+          <Link to="/monetization" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <div className="flex items-center gap-3 p-3.5 rounded-xl border border-border/30 bg-card touch-manipulation active:scale-[0.98] transition-transform">
               <ArrowLeft className="w-5 h-5 text-primary" />
               <div className="flex-1 text-left">

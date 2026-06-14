@@ -27,7 +27,7 @@ function BackHeader({ onBack }: { onBack: () => void }) {
       <button type="button"
         onClick={onBack}
         aria-label="Back"
-        className="p-1.5 rounded-full hover:bg-muted/60"
+        className="p-1.5 rounded-full hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>

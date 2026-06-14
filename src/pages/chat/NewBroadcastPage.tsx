@@ -91,7 +91,7 @@ export default function NewBroadcastPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-10 bg-background/85 backdrop-blur-xl border-b border-border/40 pt-safe px-3 py-3 flex items-center gap-2">
-        <button type="button" onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/60">
+        <button type="button" onClick={goBack} aria-label="Back" className="p-1.5 rounded-full hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h1 className="text-base font-semibold flex-1">New broadcast list</h1>
@@ -126,7 +126,7 @@ export default function NewBroadcastPage() {
               const isPicked = picked.has(id);
               return (
                 <li key={id}>
-                  <button type="button" onClick={() => toggle(id)} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40">
+                  <button type="button" onClick={() => toggle(id)} aria-pressed={isPicked} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Avatar className="w-9 h-9">
                       <AvatarImage src={c.avatar_url || ""} />
                       <AvatarFallback>{(c.full_name || c.username || "?").slice(0, 1)}</AvatarFallback>
@@ -150,7 +150,7 @@ export default function NewBroadcastPage() {
         <button type="button"
           onClick={create}
           disabled={creating}
-          className="w-full py-3 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50"
+          className="w-full py-3 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {creating ? "Creating…" : `Create list (${picked.size})`}
         </button>

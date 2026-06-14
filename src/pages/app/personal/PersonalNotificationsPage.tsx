@@ -67,14 +67,14 @@ function PushOptInBanner() {
                 <button
                   type="button"
                   onClick={handleEnable}
-                  className="px-3.5 py-1.5 rounded-full bg-ig-gradient text-white text-[11px] font-bold active:scale-95 transition-transform"
+                  className="px-3.5 py-1.5 rounded-full bg-ig-gradient text-white text-[11px] font-bold active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Enable
                 </button>
                 <button
                   type="button"
                   onClick={handleDismiss}
-                  className="px-3.5 py-1.5 rounded-full bg-muted/60 text-muted-foreground text-[11px] font-semibold active:scale-95 transition-transform"
+                  className="px-3.5 py-1.5 rounded-full bg-muted/60 text-muted-foreground text-[11px] font-semibold active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Not now
                 </button>
@@ -84,7 +84,7 @@ function PushOptInBanner() {
               type="button"
               aria-label="Dismiss push notification prompt"
               onClick={handleDismiss}
-              className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/60 transition-colors -mt-0.5 shrink-0"
+              className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/60 transition-all active:scale-95 -mt-0.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -203,7 +203,8 @@ function NotifGroup({
         <button
           type="button"
           onClick={() => setCollapsed((v) => !v)}
-          className="flex items-center gap-2.5 flex-1 min-w-0 touch-manipulation active:opacity-70 transition-opacity"
+          aria-expanded={!collapsed}
+          className="flex items-center gap-2.5 flex-1 min-w-0 rounded-lg touch-manipulation active:opacity-70 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center shrink-0", meta.iconBg)}>
             <Icon className={cn("w-3.5 h-3.5", meta.iconColor)} />
@@ -224,7 +225,7 @@ function NotifGroup({
           type="button"
           onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
           aria-label={isMuted ? `Unmute ${meta.label} notifications` : `Mute ${meta.label} notifications`}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/60 transition-colors shrink-0 touch-manipulation"
+          className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/60 transition-all active:scale-95 shrink-0 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {isMuted ? <BellOff className="w-3.5 h-3.5 text-rose-400" /> : <Bell className="w-3.5 h-3.5" />}
         </button>
@@ -251,7 +252,7 @@ function NotifGroup({
                       if (!n.is_read) onMarkRead(n.id);
                       if (n.action_url) onNavigate(n.action_url);
                     }}
-                    className="w-full flex items-start gap-3 text-left touch-manipulation"
+                    className="w-full flex items-start gap-3 text-left touch-manipulation rounded-md transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div
                       className={cn(
@@ -281,7 +282,7 @@ function NotifGroup({
                           <button type="button"
                             key={action.label}
                             onClick={() => onNavigate(action.to)}
-                            className="flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/8 border border-primary/20 rounded-full px-2.5 py-1 touch-manipulation active:scale-95 transition-all"
+                            className="flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/8 border border-primary/20 rounded-full px-2.5 py-1 touch-manipulation active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             <ActionIcon className="w-3 h-3" />
                             {action.label}
@@ -383,7 +384,7 @@ export default function PersonalNotificationsPage() {
             type="button"
             aria-label="Go back"
             onClick={() => navigate(-1)}
-            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -392,7 +393,7 @@ export default function PersonalNotificationsPage() {
             <button
               type="button"
               onClick={markAllRead}
-              className="text-[12px] font-medium text-primary flex items-center gap-1 touch-manipulation active:opacity-70"
+              className="text-[12px] font-medium text-primary flex items-center gap-1 touch-manipulation active:opacity-70 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <CheckCheck className="w-3.5 h-3.5" /> Mark all read
             </button>

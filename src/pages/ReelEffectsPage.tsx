@@ -111,9 +111,10 @@ export default function ReelEffectsPage() {
               <button
                 key={c}
                 type="button"
+                aria-pressed={activeCategory === c}
                 onClick={() => setActiveCategory(c)}
                 className={cn(
-                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeCategory === c ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                 )}
               >
@@ -152,7 +153,7 @@ export default function ReelEffectsPage() {
                 transition={{ delay: idx * 0.03 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => handleUse(e)}
-                className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted shadow-sm text-left active:opacity-90"
+                className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted shadow-sm text-left active:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {e.preview_url ? (
                   <img src={e.preview_url} alt={e.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />

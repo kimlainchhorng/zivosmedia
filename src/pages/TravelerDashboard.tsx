@@ -127,7 +127,7 @@ export default function TravelerDashboard() {
 
               {/* Bucket List */}
               <div>
-                <button type="button" onClick={() => setShowBucketList(!showBucketList)} className="w-full flex items-center gap-2 text-lg font-bold mb-3">
+                <button type="button" onClick={() => setShowBucketList(!showBucketList)} aria-expanded={showBucketList} className="w-full flex items-center gap-2 text-lg font-bold mb-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Heart className="w-5 h-5 text-destructive" /> Bucket List
                   <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", showBucketList && "rotate-90")} />
                 </button>
@@ -153,7 +153,7 @@ export default function TravelerDashboard() {
 
               {/* Packing Helper */}
               <div>
-                <button type="button" onClick={() => setShowPackingHelper(!showPackingHelper)} className="w-full flex items-center gap-2 text-lg font-bold mb-3">
+                <button type="button" onClick={() => setShowPackingHelper(!showPackingHelper)} aria-expanded={showPackingHelper} className="w-full flex items-center gap-2 text-lg font-bold mb-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Package className="w-5 h-5 text-foreground" /> Smart Packing List
                   <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", showPackingHelper && "rotate-90")} />
                 </button>

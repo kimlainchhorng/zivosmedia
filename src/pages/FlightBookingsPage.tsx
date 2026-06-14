@@ -174,8 +174,9 @@ export default function FlightBookingsPage() {
               <button type="button"
                 key={key}
                 onClick={() => setActiveTab(key)}
+                aria-pressed={activeTab === key}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 shrink-0",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 shrink-0 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeTab === key
                     ? "bg-[hsl(var(--flights))] text-white shadow-sm"
                     : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -457,7 +458,7 @@ function BookingDetailsModal({ bookingId, onClose }: { bookingId: string | null;
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Booking Ref</span>
-                  <button type="button" onClick={handleCopy} className="flex items-center gap-1.5 font-mono font-bold hover:text-[hsl(var(--flights))] transition-colors">
+                  <button type="button" onClick={handleCopy} aria-label="Copy booking reference" className="flex items-center gap-1.5 font-mono font-bold hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     {booking.booking_reference}
                     {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
                   </button>
@@ -532,10 +533,10 @@ function BookingDetailsModal({ bookingId, onClose }: { bookingId: string | null;
                   <Separator className="bg-border/30" />
                   <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20 space-y-2">
                     <p className="text-xs font-semibold text-destructive">Need help?</p>
-                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizovo.com"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizovo.com"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Mail className="w-3.5 h-3.5" /> support@hizovo.com
                     </button>
-                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizovo.com/help"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizovo.com/help"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <MessageCircle className="w-3.5 h-3.5" /> Help Center
                     </button>
                   </div>

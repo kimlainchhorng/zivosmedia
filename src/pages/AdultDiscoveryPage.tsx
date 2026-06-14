@@ -111,7 +111,7 @@ export default function AdultDiscoveryPage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground rounded-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back
           </button>
@@ -129,8 +129,9 @@ export default function AdultDiscoveryPage() {
           <button
             type="button"
             onClick={() => setPendingConfirm((v) => !v)}
+            aria-pressed={pendingConfirm}
             className={cn(
-              "w-full flex items-start gap-3 p-4 rounded-2xl border-2 transition-colors text-left",
+              "w-full flex items-start gap-3 p-4 rounded-2xl border-2 transition-all active:scale-[0.98] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               pendingConfirm
                 ? "border-rose-500 bg-rose-500/8"
                 : "border-border bg-card hover:border-rose-500/40",
@@ -161,7 +162,7 @@ export default function AdultDiscoveryPage() {
               }
             }}
             className={cn(
-              "w-full h-13 rounded-2xl font-extrabold text-[14px] py-3.5 transition-all active:scale-[0.98] flex items-center justify-center gap-2",
+              "w-full h-13 rounded-2xl font-extrabold text-[14px] py-3.5 transition-all active:scale-[0.98] flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               pendingConfirm && !confirming
                 ? "bg-rose-500 text-white hover:bg-rose-600"
                 : "bg-muted/50 text-muted-foreground cursor-not-allowed",
@@ -190,7 +191,7 @@ export default function AdultDiscoveryPage() {
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Back"
-            className="p-2 -ml-2 rounded-full hover:bg-muted/50"
+            className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -244,7 +245,7 @@ export default function AdultDiscoveryPage() {
                   <Link
                     key={c.user_id}
                     to={profileHref}
-                    className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-rose-500/40 transition-colors"
+                    className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-rose-500/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="relative aspect-[4/5] bg-muted overflow-hidden">
                       {c.avatar_url ? (

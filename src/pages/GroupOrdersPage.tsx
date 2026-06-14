@@ -151,9 +151,9 @@ export default function GroupOrdersPage() {
         </motion.div>
 
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({stats.total})</button>
-          <button type="button" onClick={() => setTab("open")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "open" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Open ({stats.open})</button>
-          <button type="button" onClick={() => setTab("completed")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "completed" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Done</button>
+          <button type="button" aria-pressed={tab === "all"} onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({stats.total})</button>
+          <button type="button" aria-pressed={tab === "open"} onClick={() => setTab("open")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "open" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Open ({stats.open})</button>
+          <button type="button" aria-pressed={tab === "completed"} onClick={() => setTab("completed")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "completed" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Done</button>
         </div>
 
         {isLoading && <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-2xl" />)}</div>}
@@ -208,7 +208,7 @@ export default function GroupOrdersPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-2">
                         <code className="px-2 py-0.5 rounded-md bg-secondary text-foreground text-[11px] font-mono font-bold">{s.invite_code}</code>
-                        <button type="button" aria-label="Copy invite code" onClick={() => copyInvite(s.invite_code)} className="h-7 w-7 rounded-full bg-secondary hover:bg-muted text-foreground inline-flex items-center justify-center transition-colors">
+                        <button type="button" aria-label="Copy invite code" onClick={() => copyInvite(s.invite_code)} className="h-7 w-7 rounded-full bg-secondary hover:bg-muted text-foreground inline-flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                           <Copy className="h-3 w-3" />
                         </button>
                       </div>

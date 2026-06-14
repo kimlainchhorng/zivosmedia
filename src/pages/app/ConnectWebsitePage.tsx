@@ -163,8 +163,9 @@ const ConnectWebsitePage = () => {
                   <button type="button"
                     key={n.id}
                     onClick={() => handleNicheChange(n.id)}
+                    aria-pressed={niche === n.id}
                     className={cn(
-                      "text-left p-3 rounded-xl border-2 transition-all flex gap-3 items-start",
+                      "text-left p-3 rounded-xl border-2 transition-all flex gap-3 items-start active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       niche === n.id
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-primary/40"
@@ -191,10 +192,11 @@ const ConnectWebsitePage = () => {
                   <button type="button"
                     onClick={handleDofollowToggle}
                     className={cn(
-                      "h-6 w-11 rounded-full transition-colors relative shrink-0",
+                      "h-6 w-11 rounded-full transition-colors relative shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       dofollow ? "bg-primary" : "bg-muted"
                     )}
                     aria-label="Toggle dofollow"
+                    aria-pressed={dofollow}
                   >
                     <span
                       className={cn(
@@ -269,8 +271,9 @@ const ConnectWebsitePage = () => {
               <div className="grid sm:grid-cols-2 gap-3">
                 <button type="button"
                   onClick={() => handleStatusChange("live")}
+                  aria-pressed={status === "live"}
                   className={cn(
-                    "text-left p-4 rounded-xl border-2 transition-all",
+                    "text-left p-4 rounded-xl border-2 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     status === "live"
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/40"
@@ -289,8 +292,9 @@ const ConnectWebsitePage = () => {
 
                 <button type="button"
                   onClick={() => handleStatusChange("draft")}
+                  aria-pressed={status === "draft"}
                   className={cn(
-                    "text-left p-4 rounded-xl border-2 transition-all",
+                    "text-left p-4 rounded-xl border-2 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     status === "draft"
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/40"
@@ -330,8 +334,9 @@ const ConnectWebsitePage = () => {
                 <button type="button"
                   key={t}
                   onClick={() => setTheme(t)}
+                  aria-pressed={theme === t}
                   className={cn(
-                    "h-9 rounded-full text-sm font-medium capitalize transition-all flex items-center justify-center gap-2",
+                    "h-9 rounded-full text-sm font-medium capitalize transition-all flex items-center justify-center gap-2 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     theme === t ? "bg-background shadow-sm" : "text-muted-foreground"
                   )}
                 >

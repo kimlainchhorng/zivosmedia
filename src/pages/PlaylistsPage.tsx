@@ -213,7 +213,7 @@ export default function PlaylistsPage() {
                   type="button"
                   aria-label="Cancel"
                   onClick={() => setCreating(false)}
-                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground"
+                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -295,7 +295,7 @@ export default function PlaylistsPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/sounds?playlist=${p.id}`)}
-                    className="w-full aspect-square relative active:opacity-80 transition-opacity"
+                    className="w-full aspect-square relative active:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
                     aria-label={`Open playlist ${p.title}`}
                   >
                     {p.cover_url ? (
@@ -320,7 +320,7 @@ export default function PlaylistsPage() {
                             if (e.key === "Enter") renameMutation.mutate({ id: p.id, newTitle: editTitle.trim() || p.title });
                             if (e.key === "Escape") setEditingId(null);
                           }}
-                          className="w-full h-7 px-2 rounded-md bg-white/95 text-foreground text-xs font-bold focus:outline-none"
+                          className="w-full h-7 px-2 rounded-md bg-white/95 text-foreground text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         />
                       ) : (
                         <>
@@ -345,7 +345,7 @@ export default function PlaylistsPage() {
                       type="button"
                       aria-label={`Rename ${p.title}`}
                       onClick={(e) => { e.stopPropagation(); setEditingId(p.id); setEditTitle(p.title); }}
-                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 active:scale-90 transition-all"
+                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
@@ -353,7 +353,7 @@ export default function PlaylistsPage() {
                       type="button"
                       aria-label={p.is_public ? "Make private" : "Make public"}
                       onClick={(e) => { e.stopPropagation(); togglePublicMutation.mutate({ id: p.id, makePublic: !p.is_public }); }}
-                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 active:scale-90 transition-all"
+                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                     >
                       {p.is_public ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
                     </button>
@@ -361,7 +361,7 @@ export default function PlaylistsPage() {
                       type="button"
                       aria-label={`Delete ${p.title}`}
                       onClick={(e) => { e.stopPropagation(); if (confirm(`Delete "${p.title}"?`)) deleteMutation.mutate(p.id); }}
-                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-destructive/80 active:scale-90 transition-all"
+                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-destructive/80 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

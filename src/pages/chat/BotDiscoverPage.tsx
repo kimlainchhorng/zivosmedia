@@ -115,7 +115,7 @@ export default function BotDiscoverPage() {
     <div className="min-h-screen bg-background pb-[var(--zivo-safe-bottom,0px)]">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border safe-area-top">
         <div className="flex items-center gap-2 h-14 px-2">
-          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-semibold">Discover bots</h1>
@@ -144,7 +144,7 @@ export default function BotDiscoverPage() {
                   key={b.id}
                   type="button"
                   onClick={() => openChat(b)}
-                  className="flex-shrink-0 w-32 rounded-2xl bg-card border border-border p-3 text-center hover:bg-muted/40"
+                  className="flex-shrink-0 w-32 rounded-2xl bg-card border border-border p-3 text-center hover:bg-muted/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center overflow-hidden mb-1">
                     {b.avatar_url ? <img src={b.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <Bot className="w-6 h-6 text-primary" />}
@@ -166,7 +166,7 @@ export default function BotDiscoverPage() {
                   key={col.id}
                   type="button"
                   onClick={() => navigate(`/chat/bots/collections/${col.slug}`)}
-                  className="rounded-2xl bg-card border border-border p-3 text-left hover:bg-muted/40"
+                  className="rounded-2xl bg-card border border-border p-3 text-left hover:bg-muted/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="text-xl mb-1">{col.cover_emoji ?? "📦"}</div>
                   <div className="text-sm font-medium truncate">{col.title}</div>
@@ -186,7 +186,8 @@ export default function BotDiscoverPage() {
                 key={c.id || "all"}
                 type="button"
                 onClick={() => setCategory(c.id)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs whitespace-nowrap border ${
+                aria-pressed={active}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   active ? "bg-ig-gradient text-white border-primary" : "bg-card border-border hover:bg-muted/40"
                 }`}
               >

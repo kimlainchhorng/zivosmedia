@@ -123,8 +123,9 @@ export default function AiContentSuite() {
                 <div key={i} className="relative rounded-xl overflow-hidden aspect-square">
                   <img src={url} alt={`Product ${i + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   <button type="button"
+                    aria-label="Remove photo"
                     onClick={() => removePhoto(i)}
-                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center"
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <X className="h-3 w-3 text-white" />
                   </button>
@@ -136,7 +137,7 @@ export default function AiContentSuite() {
               {photos.length < 3 && (
                 <button type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="aspect-square rounded-xl border-2 border-dashed border-border/60 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors"
+                  className="aspect-square rounded-xl border-2 border-dashed border-border/60 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Upload className="h-5 w-5 text-muted-foreground" />
                   <span className="text-[10px] text-muted-foreground">Add Photo</span>
@@ -163,8 +164,9 @@ export default function AiContentSuite() {
                 <motion.button
                   key={m.id}
                   whileTap={{ scale: 0.95 }}
+                  aria-pressed={selectedMood === m.id}
                   onClick={() => { setSelectedMood(m.id); setGeneratedPreview(false); setSelectedTrack(0); }}
-                  className={`rounded-2xl p-3 text-center border-2 transition-all ${
+                  className={`rounded-2xl p-3 text-center border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     selectedMood === m.id ? "border-primary bg-primary/5" : "border-border/40 bg-card"
                   }`}
                 >
@@ -183,8 +185,9 @@ export default function AiContentSuite() {
                   {tracks.map((t, i) => (
                     <button type="button"
                       key={t.name}
+                      aria-pressed={selectedTrack === i}
                       onClick={() => setSelectedTrack(i)}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-all text-sm ${
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-all active:scale-[0.98] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         selectedTrack === i ? "bg-primary/10 border border-primary/30" : "bg-muted/30 hover:bg-muted/50"
                       }`}
                     >

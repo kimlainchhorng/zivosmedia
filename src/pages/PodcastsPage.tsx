@@ -94,8 +94,9 @@ export default function PodcastsPage() {
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
+              aria-pressed={activeCategory === cat}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeCategory === cat
                   ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-secondary text-foreground hover:bg-muted",
@@ -110,7 +111,7 @@ export default function PodcastsPage() {
         <section className="pt-5 pb-4">
           <div className="flex items-center justify-between px-4 mb-3">
             <h2 className="text-base font-bold text-foreground">Featured shows</h2>
-            <button type="button" aria-label="View all shows" className="text-xs font-semibold text-ig-gradient">
+            <button type="button" aria-label="View all shows" className="text-xs font-semibold text-ig-gradient focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               See all
             </button>
           </div>
@@ -123,7 +124,7 @@ export default function PodcastsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 whileTap={{ scale: 0.97 }}
-                className="shrink-0 w-[160px] text-left"
+                className="shrink-0 w-[160px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="relative w-[160px] h-[160px] rounded-2xl overflow-hidden bg-muted shadow-md">
                   <img
@@ -172,7 +173,7 @@ export default function PodcastsPage() {
                       type="button"
                       aria-label={isPlaying ? "Pause episode" : "Play episode"}
                       onClick={() => setPlayingId(isPlaying ? null : ep.id)}
-                      className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/55 rounded-xl transition-colors active:scale-95"
+                      className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/55 rounded-xl transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       {isPlaying ? (
                         <Pause className="h-5 w-5 text-white" fill="currentColor" />

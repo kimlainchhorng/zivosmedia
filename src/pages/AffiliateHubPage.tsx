@@ -91,7 +91,7 @@ export default function AffiliateHubPage() {
 
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30 zivo-ribbon">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate("/more")} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" aria-label="Go back" onClick={() => navigate("/more")} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-extrabold flex-1 tracking-tight">Affiliate Hub</h1>
@@ -114,12 +114,12 @@ export default function AffiliateHubPage() {
             <span className="text-xs text-muted-foreground flex-1 truncate font-mono">
               zivosmedia.com/ref/{referralCode}
             </span>
-            <button type="button" onClick={copyLink} className="p-1.5 rounded-lg bg-primary/10 touch-manipulation active:scale-95">
+            <button type="button" aria-label="Copy referral link" onClick={copyLink} className="p-1.5 rounded-lg bg-primary/10 touch-manipulation active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Copy className="w-3.5 h-3.5 text-primary" />
             </button>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={copyLink} className="flex-1 zivo-btn-signature py-2.5 text-xs flex items-center justify-center gap-1.5 touch-manipulation">
+            <button type="button" onClick={copyLink} className="flex-1 zivo-btn-signature py-2.5 text-xs flex items-center justify-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Copy className="w-3 h-3" /> Copy Link
             </button>
             <button type="button"
@@ -133,7 +133,7 @@ export default function AffiliateHubPage() {
                 if (navigator.share) navigator.share({ url: `https://zivosmedia.com/ref/${referralCode}`, title: "Join ZIVO" });
                 else copyLink();
               }}
-              className="flex-1 py-2.5 rounded-2xl bg-muted/60 text-foreground text-xs font-bold touch-manipulation active:scale-95 flex items-center justify-center gap-1.5 border border-border/30"
+              className="flex-1 py-2.5 rounded-2xl bg-muted/60 text-foreground text-xs font-bold touch-manipulation active:scale-95 flex items-center justify-center gap-1.5 border border-border/30 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Share2 className="w-3 h-3" /> Share
             </button>

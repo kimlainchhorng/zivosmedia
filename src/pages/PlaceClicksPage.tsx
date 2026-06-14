@@ -167,7 +167,7 @@ export default function PlaceClicksPage() {
                   transition={{ delay: Math.min(idx, 12) * 0.02 }}
                   whileTap={{ scale: 0.985 }}
                   onClick={() => navigate(s?.slug ? `/store/${s.slug}` : `/store-profile/${g.store_id}`)}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="shrink-0 h-10 w-10 rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
                     {s?.logo_url ? (

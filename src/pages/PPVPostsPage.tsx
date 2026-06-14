@@ -179,7 +179,7 @@ export default function PPVPostsPage() {
             type="button"
             onClick={() => navigate("/creator-dashboard")}
             aria-label="Back"
-            className="p-2 -ml-2 rounded-full hover:bg-muted/50"
+            className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -190,7 +190,7 @@ export default function PPVPostsPage() {
           <button
             type="button"
             onClick={() => navigate("/ppv/create")}
-            className="h-9 px-3 rounded-full bg-rose-500 text-white text-[12px] font-extrabold flex items-center gap-1 hover:bg-rose-600 transition-colors"
+            className="h-9 px-3 rounded-full bg-rose-500 text-white text-[12px] font-extrabold flex items-center gap-1 hover:bg-rose-600 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Plus className="h-3.5 w-3.5" />
             New
@@ -205,7 +205,7 @@ export default function PPVPostsPage() {
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "flex-1 h-11 text-[13px] font-extrabold relative",
+                "flex-1 h-11 text-[13px] font-extrabold relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                 tab === t ? "text-rose-500" : "text-muted-foreground"
               )}
             >
@@ -272,7 +272,7 @@ export default function PPVPostsPage() {
               key={post.id}
               type="button"
               onClick={() => navigate(`/ppv?post=${post.id}`)}
-              className="w-full text-left flex gap-3 p-3 rounded-2xl border border-border/40 bg-card hover:border-rose-500/40 transition-colors"
+              className="w-full text-left flex gap-3 p-3 rounded-2xl border border-border/40 bg-card hover:border-rose-500/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0">
                 <PreviewThumb path={post.preview_path || post.media_paths[0] || null} />
@@ -360,7 +360,7 @@ export default function PPVPostsPage() {
                 key={u.id}
                 type="button"
                 onClick={() => navigate(`/chat?with=${u.creator_id}`)}
-                className="w-full text-left flex gap-3 p-3 rounded-2xl border border-border/40 bg-card hover:border-rose-500/40 transition-colors"
+                className="w-full text-left flex gap-3 p-3 rounded-2xl border border-border/40 bg-card hover:border-rose-500/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="h-12 w-12 rounded-full bg-muted overflow-hidden shrink-0">
                   {profile?.avatar_url ? (
@@ -407,7 +407,7 @@ function EmptyState({
       <button
         type="button"
         onClick={onCta}
-        className="h-11 px-5 rounded-2xl bg-rose-500 text-white text-[13px] font-extrabold hover:bg-rose-600"
+        className="h-11 px-5 rounded-2xl bg-rose-500 text-white text-[13px] font-extrabold hover:bg-rose-600 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {cta}
       </button>

@@ -170,7 +170,7 @@ export default function LoginActivityPage() {
               <button
                 type="button"
                 onClick={() => navigate("/devices")}
-                className="mt-2 h-7 px-3 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-bold inline-flex items-center gap-1 hover:bg-rose-500/30 active:scale-95 transition-all"
+                className="mt-2 h-7 px-3 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-bold inline-flex items-center gap-1 hover:bg-rose-500/30 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <ShieldOff className="h-3 w-3" /> Manage devices
               </button>
@@ -184,9 +184,10 @@ export default function LoginActivityPage() {
             <button
               key={t.id}
               type="button"
+              aria-pressed={tab === t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >

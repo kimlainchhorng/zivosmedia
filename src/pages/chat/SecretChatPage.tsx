@@ -127,7 +127,7 @@ export default function SecretChatPage() {
         <button type="button"
           aria-label="Back"
           onClick={goBack}
-          className="-ml-1 rounded-full p-2 hover:bg-foreground/5"
+          className="-ml-1 rounded-full p-2 hover:bg-foreground/5 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -151,7 +151,7 @@ export default function SecretChatPage() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button type="button" aria-label="Options" className="rounded-full p-2 hover:bg-foreground/5">
+            <button type="button" aria-label="Options" className="rounded-full p-2 hover:bg-foreground/5 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <MoreVertical className="h-5 w-5" />
             </button>
           </DropdownMenuTrigger>
@@ -238,7 +238,7 @@ export default function SecretChatPage() {
                     {mine && (
                       <button type="button"
                         onClick={() => void deleteMessage(m.id)}
-                        className="opacity-0 transition group-hover:opacity-100 hover:text-destructive"
+                        className="opacity-0 transition group-hover:opacity-100 hover:text-destructive active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         aria-label="Delete message"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -258,7 +258,7 @@ export default function SecretChatPage() {
           <button
             type="button"
             onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
-            className="pointer-events-auto rounded-full bg-foreground px-3 py-2 text-xs font-semibold text-white shadow-lg"
+            className="pointer-events-auto rounded-full bg-foreground px-3 py-2 text-xs font-semibold text-white shadow-lg transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Jump to latest
           </button>
@@ -292,7 +292,7 @@ export default function SecretChatPage() {
               type="button"
               aria-label="Attach"
               disabled={!chatId}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-foreground hover:bg-secondary disabled:opacity-50"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-foreground hover:bg-secondary disabled:opacity-50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus className="h-4 w-4" />
             </button>
