@@ -761,7 +761,7 @@ const NotificationsPage = () => {
                     index={i}
                     onClick={() => {
                       if (!sn.is_read) markSocialRead([sn.id]);
-                      if (sn.entity_type === 'post' && sn.entity_id) navigate(`/feed`);
+                      if (sn.entity_type === 'post' && sn.entity_id) navigate(`/feed?post=${sn.entity_id}`);
                       else if (sn.entity_type === 'user' && sn.entity_id) navigate(`/u/${sn.entity_id}`);
                     }}
                   />
