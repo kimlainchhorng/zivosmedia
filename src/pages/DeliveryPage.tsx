@@ -213,6 +213,7 @@ export default function DeliveryPage() {
 
   // Package
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [createdDeliveryId, setCreatedDeliveryId] = useState<string | null>(null);
   const [selectedSpeed, setSelectedSpeed] = useState("standard");
   const [packageDescription, setPackageDescription] = useState("");
   const [isFragile, setIsFragile] = useState(false);
@@ -392,7 +393,8 @@ export default function DeliveryPage() {
     { zone: "Zone 4 (30+ mi)", time: "Same day", baseFee: "$24.99", color: "text-violet-500" },
   ];
 
-  const trackingId = `ZD-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+  const trackingCode = createdDeliveryId ? `ZD-${createdDeliveryId.slice(0, 8).toUpperCase()}` : null;
+  const trackingUrl = createdDeliveryId ? `${getPublicOrigin()}/delivery/track/${createdDeliveryId}` : null;
 
   const currentSize = packageSizes.find(s => s.id === selectedSize);
   const currentSpeed = deliverySpeed.find(s => s.id === selectedSpeed);
@@ -450,8 +452,8 @@ export default function DeliveryPage() {
         .single();
       if (error) throw error;
       notifyEats("order_placed");
-      if (inserted?.id) navigate(`/delivery/track/${inserted.id}`);
-      else setStep("confirmation");
+      if (inserted?.id) setCreatedDeliveryId(inserted.id);
+      setStep("confirmation");
     } catch {
       toast.error("Failed to place order. Please try again.");
     }
@@ -467,15 +469,18 @@ export default function DeliveryPage() {
   };
 
   const handleCopyTracking = () => {
-    navigator.clipboard.writeText(trackingId);
+    if (!trackingCode) return;
+    navigator.clipboard.writeText(trackingCode);
     toast.success("Tracking ID copied!");
   };
 
   const handleShareTracking = () => {
+    if (!trackingCode || !trackingUrl) return;
     if (navigator.share) {
-      navigator.share({ title: "ZIVO Delivery", text: `Track my package: ${trackingId}`, url: `${getPublicOrigin()}/delivery/track/${trackingId}` });
+      navigator.share({ title: "ZIVO Delivery", text: `Track my package: ${trackingCode}`, url: trackingUrl }).catch(() => {});
     } else {
-      handleCopyTracking();
+      navigator.clipboard.writeText(trackingUrl);
+      toast.success("Tracking link copied!");
     }
   };
 
@@ -1631,7 +1636,7 @@ export default function DeliveryPage() {
                   <p className="text-muted-foreground">A courier will be assigned shortly.</p>
                   <button type="button" onClick={handleCopyTracking}
                     className="text-xs font-mono text-foreground/80 mt-2 bg-secondary px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 hover:bg-secondary transition-all touch-manipulation">
-                    Tracking: {trackingId} <Copy className="w-3 h-3" />
+                    Tracking: {trackingCode ?? "Pending"} <Copy className="w-3 h-3" />
                   </button>
                 </motion.div>
 
@@ -1690,10 +1695,11 @@ export default function DeliveryPage() {
                   <Button variant="outline" onClick={handleShareTracking} className="flex-1 h-12 rounded-xl font-bold gap-2">
                     <Share2 className="w-4 h-4" /> Share
                   </Button>
-                  <Button onClick={() => navigate("/")} className="flex-1 h-12 rounded-xl font-bold text-primary-foreground gap-2 bg-foreground">
+                  <Button onClick={() => createdDeliveryId ? navigate(`/delivery/track/${createdDeliveryId}`) : navigate("/")} className="flex-1 h-12 rounded-xl font-bold text-primary-foreground gap-2 bg-foreground">
                     <Navigation className="w-4 h-4" /> Track Live
                   </Button>
                 </motion.div>
+                <p className="text-[10px] text-muted-foreground text-center">Recipients need a ZIVO account to view live tracking.</p>
                 <Button variant="ghost" onClick={() => navigate("/")} className="text-sm text-muted-foreground">
                   Back to Home
                 </Button>
