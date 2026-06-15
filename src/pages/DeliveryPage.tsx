@@ -18,6 +18,7 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import DeliveryRouteMap from "@/components/delivery/DeliveryRouteMap";
 
 const packageSizes = [
   { id: "envelope", name: "Envelope", description: "Documents, letters", icon: "📄", maxWeight: "0.5 lb", price: 5.99 },
@@ -153,32 +154,6 @@ function CourierPreviewCard() {
   );
 }
 
-function DeliveryRoutePreview() {
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.16),transparent_32%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)))]">
-      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(hsl(var(--border))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border))_1px,transparent_1px)] [background-size:42px_42px]" />
-      <div className="absolute left-[18%] top-[56%] h-3 w-3 rounded-full bg-foreground shadow-[0_0_0_8px_hsl(var(--foreground)/0.08)]" />
-      <div className="absolute right-[18%] top-[32%] h-3 w-3 rounded-full bg-primary shadow-[0_0_0_8px_hsl(var(--primary)/0.12)]" />
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M 20 58 C 34 38, 54 76, 80 34" fill="none" stroke="hsl(var(--primary))" strokeWidth="2.8" strokeLinecap="round" strokeDasharray="5 4" opacity="0.85" vectorEffect="non-scaling-stroke" />
-      </svg>
-      <div className="absolute left-[46%] top-[43%] flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-lg">
-        <Truck className="h-5 w-5 text-foreground" />
-      </div>
-      <div className="absolute left-4 right-4 top-[calc(var(--zivo-safe-top,0px)+3.75rem)] rounded-2xl border border-border/60 bg-background/88 p-3 shadow-sm backdrop-blur">
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <Package className="h-4 w-4 text-primary" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-foreground">Delivery route preview</p>
-            <p className="truncate text-[11px] text-muted-foreground">Enter pickup and dropoff to estimate courier timing.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Price estimate preview — shows the real charged total (passed in) so the
 // package-step estimate always matches the review/charge amount.
@@ -515,7 +490,7 @@ export default function DeliveryPage() {
       {/* Map Preview */}
       {step === "address" && (
         <div className="relative h-[25vh] min-h-[180px]">
-          <DeliveryRoutePreview />
+          <DeliveryRouteMap pickupAddress={pickupAddress} dropoffAddress={dropoffAddress} />
           <div className="absolute top-0 left-0 right-0 z-10 px-4 pt-3 safe-area-top">
             <motion.button whileTap={{ scale: 0.88 }} onClick={handleBack}
               className="h-10 px-4 rounded-full bg-card/90 backdrop-blur-lg border border-border/40 flex items-center gap-2 touch-manipulation text-sm font-medium text-foreground shadow-lg">
