@@ -208,7 +208,7 @@ export default function DatingPage() {
               <button type="button"
                 onClick={() => {
                   if (currentProfile) {
-                    navigate(`/chat`, { state: { recipientId: currentProfile.id } });
+                    navigate(`/chat`, { state: { openChat: { recipientId: currentProfile.id, recipientName: currentProfile.full_name, recipientAvatar: currentProfile.avatar_url ?? null } } });
                   }
                 }}
                 aria-label="Message"
