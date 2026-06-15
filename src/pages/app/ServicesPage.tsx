@@ -89,7 +89,7 @@ const getServiceCategories = (t: (key: string) => string, isCambodia = false): S
       { label: t("services.things_to_do"), href: "/explore", icon: MapPin, badge: "New", badgeVariant: "new" },
       { label: t("services.ai_planner"), href: "/ai-trip-planner", icon: Sparkles, badge: "AI", badgeVariant: "new" },
       { label: t("services.visa_help"), href: "/support", icon: FileCheck, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
-      { label: t("services.cruise"), href: "/flights", icon: Ship, badge: "New", badgeVariant: "new" },
+      { label: t("services.cruise"), href: "/flights", icon: Ship, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
     ],
   },
   {
@@ -102,7 +102,7 @@ const getServiceCategories = (t: (key: string) => string, isCambodia = false): S
       { label: t("services.deals"), href: "/deals", icon: Sparkles, badge: "Hot", badgeVariant: "promo" },
       { label: t("services.marketplace"), href: "/marketplace", icon: Store, badge: "Shop", badgeVariant: "promo" },
       { label: t("services.live"), href: "/live", icon: Tv, badge: "Live", badgeVariant: "new" },
-      { label: t("services.wellness"), href: "/explore", icon: Dumbbell, badge: "New", badgeVariant: "new" },
+      { label: t("services.wellness"), href: "/wellness", icon: Dumbbell, badge: "New", badgeVariant: "new" },
       { label: t("services.creator"), href: "/creator-dashboard", icon: Briefcase },
     ],
   },
