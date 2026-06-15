@@ -175,6 +175,7 @@ export default function NotificationCenterPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [loadError, setLoadError] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
   // Mute integration — same hooks the bell uses, so muting from this page
@@ -217,17 +218,23 @@ export default function NotificationCenterPage() {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
-    const { data, count } = await supabase
+    const { data, count, error } = await supabase
       .from("notifications")
       .select("id, title, body, category, is_read, created_at, action_url", { count: "exact" })
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .range(0, PAGE_SIZE - 1);
 
-    if (data) {
+    if (error) {
+      // Don't masquerade a failed fetch as "No notifications" — surface it so
+      // the empty view can offer Retry instead of implying the user has none.
+      console.error("Failed to load notifications:", error);
+      setLoadError(true);
+    } else if (data) {
       setNotifications(data.map(mapRow));
       setOffset(PAGE_SIZE);
       setHasMore((count ?? 0) > PAGE_SIZE);
+      setLoadError(false);
     }
     setLoading(false);
   }, [user]);
@@ -235,14 +242,17 @@ export default function NotificationCenterPage() {
   const loadMore = useCallback(async () => {
     if (!user || loadingMore) return;
     setLoadingMore(true);
-    const { data, count } = await supabase
+    const { data, count, error } = await supabase
       .from("notifications")
       .select("id, title, body, category, is_read, created_at, action_url", { count: "exact" })
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
 
-    if (data) {
+    if (error) {
+      console.error("Failed to load more notifications:", error);
+      toast.error("Couldn't load more notifications");
+    } else if (data) {
       setNotifications(prev => [...prev, ...data.map(mapRow)]);
       const newOffset = offset + PAGE_SIZE;
       setOffset(newOffset);
@@ -443,8 +453,25 @@ export default function NotificationCenterPage() {
 
         {!loading && filtered.length === 0 && (
           <div className="text-center py-20">
-            <Bell className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">No notifications</p>
+            {loadError ? (
+              <>
+                <AlertTriangle className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm mb-3">Couldn't load notifications</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full gap-2"
+                  onClick={() => { setLoading(true); void load(); }}
+                >
+                  Retry
+                </Button>
+              </>
+            ) : (
+              <>
+                <Bell className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">No notifications</p>
+              </>
+            )}
           </div>
         )}
 
