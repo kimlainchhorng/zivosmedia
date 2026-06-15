@@ -160,7 +160,7 @@ function DeliveryRoutePreview() {
       <div className="absolute left-[18%] top-[56%] h-3 w-3 rounded-full bg-foreground shadow-[0_0_0_8px_hsl(var(--foreground)/0.08)]" />
       <div className="absolute right-[18%] top-[32%] h-3 w-3 rounded-full bg-primary shadow-[0_0_0_8px_hsl(var(--primary)/0.12)]" />
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M 20 58 C 34 38, 54 76, 80 34" fill="none" stroke="hsl(var(--primary))" strokeWidth="2.8" strokeLinecap="round" strokeDasharray="5 4" opacity="0.85" />
+        <path d="M 20 58 C 34 38, 54 76, 80 34" fill="none" stroke="hsl(var(--primary))" strokeWidth="2.8" strokeLinecap="round" strokeDasharray="5 4" opacity="0.85" vectorEffect="non-scaling-stroke" />
       </svg>
       <div className="absolute left-[46%] top-[43%] flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-lg">
         <Truck className="h-5 w-5 text-foreground" />
