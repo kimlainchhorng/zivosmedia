@@ -33,6 +33,8 @@
     "update": "npm run type-check && npm run type-check:worker && npm run build",
     "agent:deepseek": "node scripts/agents/deepseek-runner.mjs",
     "agent:mimo": "node scripts/agents/mimo-runner.mjs",
+    "audit:watch": "node scripts/agents/page-audit-watchdog.mjs",
+    "audit:watch:loop": "node scripts/agents/page-audit-watchdog.mjs --loop",
     "supabase:types:linked": "supabase gen types --linked --lang=typescript --schema public > src/integrations/supabase/types.ts",
     "supabase:migrations:report": "node scripts/supabase/audit-migration-drift.mjs --linked --write-report",
     "supabase:migrations:check": "node scripts/supabase/audit-migration-drift.mjs",

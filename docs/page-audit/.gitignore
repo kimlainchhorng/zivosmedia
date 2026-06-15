@@ -1,0 +1,4 @@
+# Page-audit watchdog runtime — keep the dir + README, ignore everything generated.
+*
+!.gitignore
+!README.md
