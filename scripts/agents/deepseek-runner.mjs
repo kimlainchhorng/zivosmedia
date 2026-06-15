@@ -79,7 +79,7 @@ const out = readOption("--out");
 const save = !argv.includes("--no-save");
 const dryRun = argv.includes("--dry-run");
 const temperature = Number(readOption("--temperature") ?? "0.2");
-const maxTokens = Number(readOption("--max-tokens") ?? "4096");
+const maxTokens = Number(readOption("--max-tokens") ?? "393216");
 
 function printHelp() {
   console.log(`
@@ -94,7 +94,7 @@ Options:
   --out <path>        Save the answer to this file
   --no-save           Do not save a copy under docs/agent-runs/
   --temperature <n>   Sampling temperature (default 0.2)
-  --max-tokens <n>    Max output tokens (default 4096)
+  --max-tokens <n>    Max output tokens (default 393216 — DeepSeek's max; pass lower to cap)
   --dry-run           Build the prompt and show a summary, but do NOT call the API
   --help, -h          Show this help
 

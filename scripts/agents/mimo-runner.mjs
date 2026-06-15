@@ -90,7 +90,7 @@ const save = !argv.includes("--no-save");
 const dryRun = argv.includes("--dry-run");
 const temperature = Number(readOption("--temperature") ?? "0.3");
 const topP = Number(readOption("--top-p") ?? "0.95");
-const maxTokens = Number(readOption("--max-tokens") ?? "8192");
+const maxTokens = Number(readOption("--max-tokens") ?? "131072");
 
 function printHelp() {
   console.log(`
@@ -106,7 +106,7 @@ Options:
   --no-save           Do not save a copy under docs/agent-runs/
   --temperature <n>   Sampling temperature (default 0.3)
   --top-p <n>         Nucleus sampling (default 0.95)
-  --max-tokens <n>    Max output tokens (default 8192)
+  --max-tokens <n>    Max output tokens (default 131072 — MiMo's max; pass lower to cap)
   --dry-run           Build the prompt and show a summary, but do NOT call the API
   --help, -h          Show this help
 

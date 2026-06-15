@@ -90,12 +90,12 @@ async function callDeepSeek({ prompt, system, model }) {
   messages.push({ role: "user", content: String(prompt ?? "") });
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
+  const timeout = setTimeout(() => controller.abort(), 600_000);
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: model || DEFAULT_MODEL, messages, stream: false }),
+      body: JSON.stringify({ model: model || DEFAULT_MODEL, messages, stream: false, max_tokens: 393216 }),
       signal: controller.signal,
     });
     if (!resp.ok) {
@@ -107,7 +107,7 @@ async function callDeepSeek({ prompt, system, model }) {
     const usage = data?.usage ? ` (tokens: ${data.usage.prompt_tokens}+${data.usage.completion_tokens})` : "";
     return { isError: false, text: (text ?? "(DeepSeek returned no content)") + usage };
   } catch (err) {
-    const reason = err?.name === "AbortError" ? "request timed out after 120s" : String(err?.message || err);
+    const reason = err?.name === "AbortError" ? "request timed out after 600s" : String(err?.message || err);
     return { isError: true, text: `DeepSeek request failed: ${reason}` };
   } finally {
     clearTimeout(timeout);
