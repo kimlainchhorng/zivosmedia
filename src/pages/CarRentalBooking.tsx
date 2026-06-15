@@ -73,6 +73,7 @@ const carCategories = [
   { name: "Full-size", passengers: 5, bags: 4, priceFrom: 42, transmission: 'Automatic' as const, hasAC: true },
   { name: "SUV", passengers: 7, bags: 4, priceFrom: 55, transmission: 'Automatic' as const, hasAC: true },
   { name: "Luxury", passengers: 5, bags: 3, priceFrom: 95, transmission: 'Automatic' as const, hasAC: true },
+  { name: "Electric", passengers: 5, bags: 3, priceFrom: 65, transmission: 'Automatic' as const, hasAC: true },
 ];
 
 // ─── Road Trip Intelligence data ──────────────────────────────────────────────
