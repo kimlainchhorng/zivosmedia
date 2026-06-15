@@ -301,20 +301,35 @@ function PopularRoutesSection({ className }: { className?: string }) {
   const [sharedKey, setSharedKey] = useState<string | null>(null);
   const handleShare = useCallback(async (route: LiveRouteCard, e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/flights/results?origin=${route.from}&destination=${route.to}&adults=1&cabinClass=economy`;
+    // Mirror handleRouteClick: carry the card's dates so a shared link lands on
+    // the same search the sharer saw (not a date-less default).
+    const dep = route.departureDate || (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split("T")[0]; })();
+    const ret = route.returnDate || (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split("T")[0]; })();
+    const url = `${window.location.origin}/flights/results?origin=${route.from}&destination=${route.to}&departureDate=${dep}&returnDate=${ret}&adults=1&cabinClass=economy`;
     const title = `Flights from ${route.fromCity} to ${route.toCity}`;
     const text = `${route.fromCity} → ${route.toCity} from ${route.price} on ZIVO`;
     const key = `${route.from}-${route.to}`;
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({ title, text, url });
-      } else if (navigator.clipboard?.writeText) {
+    const copyToClipboard = async () => {
+      if (!navigator.clipboard?.writeText) return;
+      try {
         await navigator.clipboard.writeText(url);
         setSharedKey(key);
         setTimeout(() => setSharedKey((k) => (k === key ? null : k)), 1800);
+      } catch {
+        // Clipboard blocked — nothing more we can do.
       }
-    } catch {
-      // User cancelled / permission denied — silent
+    };
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title, text, url });
+      } catch (err) {
+        // User cancelled the share sheet — stay silent. Any other failure
+        // (the sheet never opened, a browser error) falls back to copy.
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        await copyToClipboard();
+      }
+    } else {
+      await copyToClipboard();
     }
   }, []);
 
