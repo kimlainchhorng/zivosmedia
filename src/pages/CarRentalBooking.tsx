@@ -306,8 +306,6 @@ const CarRentalBooking = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const [deliveryToYou, setDeliveryToYou] = useState(false);
-  const [instantBook, setInstantBook] = useState(true);
   const [showElectricOnly, setShowElectricOnly] = useState(false);
 
   const [selectedProtection, setSelectedProtection] = useState<"none" | "basic" | "standard" | "premium">("standard");
@@ -523,7 +521,7 @@ const CarRentalBooking = () => {
 
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
-                {carCategories.map((category) => (
+                {carCategories.filter((category) => !showElectricOnly || category.name === "Electric").map((category) => (
                   <CarResultCardPro
                     key={category.name}
                     id={category.name}
@@ -582,29 +580,6 @@ const CarRentalBooking = () => {
             <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground/60 mb-4">Quick Filters</h3>
             {/* Horizontal scroll on mobile, grid on md+ */}
             <div className="flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3">
-              <div className="snap-start shrink-0 w-[200px] md:w-auto">
-                <TogglePill
-                  active={deliveryToYou}
-                  onToggle={() => {
-                    setDeliveryToYou(!deliveryToYou);
-                    if (!deliveryToYou) toast.success("Car will be delivered to your location!");
-                  }}
-                  icon={MapPin}
-                  iconColor="text-emerald-500"
-                  label="Delivery to You"
-                  sub="Free delivery available"
-                />
-              </div>
-              <div className="snap-start shrink-0 w-[200px] md:w-auto">
-                <TogglePill
-                  active={instantBook}
-                  onToggle={() => setInstantBook(!instantBook)}
-                  icon={Zap}
-                  iconColor="text-violet-400"
-                  label="Instant Book"
-                  sub="Skip approval, book now"
-                />
-              </div>
               <div className="snap-start shrink-0 w-[200px] md:w-auto">
                 <TogglePill
                   active={showElectricOnly}
