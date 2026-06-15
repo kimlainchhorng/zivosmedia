@@ -92,6 +92,7 @@
     "security:watch:force": "node scripts/security/security-watchdog.mjs --force",
     "security:watch:quick": "node scripts/security/security-watchdog.mjs --quick",
     "security:watch:loop": "node scripts/security/security-watchdog.mjs --loop",
+    "security:watch:selftest": "node scripts/security/security-watchdog.mjs --self-test",
     "supabase:migrations:linked": "node scripts/supabase/audit-migration-drift.mjs --linked",
     "supabase:migrations:linked:strict": "node scripts/supabase/audit-migration-drift.mjs --linked --strict",
     "supabase:runtime-settings:sql": "node scripts/supabase/runtime-settings-sql.mjs",

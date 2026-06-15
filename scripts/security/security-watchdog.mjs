@@ -132,7 +132,8 @@ if (has("--help") || has("-h")) {
       `  --interval <min>  loop interval in minutes (default ${process.env.WATCHDOG_INTERVAL_MIN || 45})\n` +
       `  --force           run the AI analysis even if signals are unchanged\n` +
       `  --no-ai           collect + report only; do not call DeepSeek/MiMo\n` +
-      `  --quick           skip npm audit (faster)\n`,
+      `  --quick           skip npm audit (faster)\n` +
+      `  --self-test       validate keys + output dir + live config, then exit\n`,
   );
   process.exit(0);
 }
@@ -141,6 +142,7 @@ const LOOP = has("--loop");
 const FORCE = has("--force");
 const NO_AI = has("--no-ai");
 const QUICK = has("--quick");
+const SELF_TEST = has("--self-test");
 const INTERVAL_MIN = Number(opt("--interval", process.env.WATCHDOG_INTERVAL_MIN || "45"));
 const MODELS = (process.env.WATCHDOG_MODELS || "deepseek,mimo")
   .split(",")
@@ -705,8 +707,50 @@ async function runCycle() {
   return { overall, activeAttack, isAlert, changed };
 }
 
+// Self-test: validate the watchdog can actually do its job (keys present, output
+// writable, live-Supabase wired) WITHOUT running a full scan. Catches the silent
+// "running but scanning nothing / can't write reports" failure mode.
+function selfTest() {
+  const checks = [];
+  const ok = (label, pass, note = "") => checks.push({ label, pass, note });
+
+  ok("DEEPSEEK_API_KEY present", !!process.env.DEEPSEEK_API_KEY, NO_AI ? "(--no-ai)" : "");
+  ok("MIMO_API_KEY present", !!process.env.MIMO_API_KEY, NO_AI ? "(--no-ai)" : "");
+
+  let writable = false;
+  try {
+    mkdirSync(OUT_DIR, { recursive: true });
+    const probe = join(OUT_DIR, ".selftest");
+    writeFileSync(probe, "ok");
+    unlinkSync(probe);
+    writable = true;
+  } catch (e) {
+    writable = false;
+  }
+  ok("output dir writable", writable, OUT_DIR);
+
+  const liveConfigured = !!(process.env.SUPABASE_ACCESS_TOKEN && process.env.SUPABASE_PROJECT_REF);
+  ok(
+    "live Supabase log scan configured",
+    liveConfigured,
+    liveConfigured ? `project ${process.env.SUPABASE_PROJECT_REF}` : "(set SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF to enable live attack detection)",
+  );
+
+  console.error("🩺 ZIVO Security Watchdog — self-test\n");
+  for (const c of checks) {
+    console.error(`   ${c.pass ? "✅" : "⚠️ "} ${c.label}${c.note ? "  " + c.note : ""}`);
+  }
+  // Core requirement = we can write reports. AI keys/live scan are warnings only.
+  const coreOk = writable && (NO_AI || process.env.DEEPSEEK_API_KEY || process.env.MIMO_API_KEY);
+  console.error(`\n${coreOk ? "✅ self-test passed" : "❌ self-test FAILED — cannot run"}`);
+  return coreOk;
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 async function main() {
+  if (SELF_TEST) {
+    process.exit(selfTest() ? 0 : 1);
+  }
   if (!LOOP) {
     if (!acquireLock()) {
       console.error("⏭️  Another watchdog cycle is already running — skipping this run.");
