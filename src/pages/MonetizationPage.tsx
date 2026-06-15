@@ -221,11 +221,12 @@ export default function MonetizationPage() {
 
         // Deactivate the free Supporter tier so visitors only see the paid VIP.
         // (Reactivate from the Creator Setup page if you want both later.)
-        await (supabase as any)
+        const { error: deactivateErr } = await (supabase as any)
           .from("subscription_tiers")
           .update({ is_active: false })
           .eq("creator_id", user.id)
           .eq("is_free", true);
+        if (deactivateErr) throw deactivateErr;
 
         // Invalidate the public-tier cache so the visitor preview refetches.
         qc.invalidateQueries({ queryKey: ["public-creator-tiers", user.id] });
