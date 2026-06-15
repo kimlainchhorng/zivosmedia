@@ -671,12 +671,13 @@ const Profile = () => {
     staleTime: 60_000,
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("career_applications")
         .select("id, status, created_at, career_jobs!inner(title)")
         .eq("applicant_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
+      if (error) throw error;
       return (data ?? []) as Array<{ id: string; status: string; created_at: string; career_jobs: { title: string } | null }>;
     },
   });
