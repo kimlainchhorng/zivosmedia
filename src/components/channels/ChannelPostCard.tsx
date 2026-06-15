@@ -70,6 +70,7 @@ interface MediaItem {
   mime_type?: string;
   duration_ms?: number;
   waveform?: number[];
+  preview_image_url?: string;
 }
 
 interface StickerItem {
@@ -1138,6 +1139,7 @@ export function ChannelPostCard({
                     <>
                       <video
                         src={m.url}
+                        poster={m.preview_image_url}
                         muted
                         playsInline
                         preload="metadata"
@@ -1492,6 +1494,7 @@ export function ChannelPostCard({
           {isVideo(media[lightboxIdx]) ? (
             <video
               src={media[lightboxIdx].url}
+              poster={media[lightboxIdx].preview_image_url}
               autoPlay
 	              controls
 	              playsInline

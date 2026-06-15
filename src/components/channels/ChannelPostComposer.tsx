@@ -65,6 +65,48 @@ const STICKER_CHOICES: ChannelSticker[] = ILLUSTRATED_PACKS.flatMap((pack) =>
   pack.stickers.map((sticker) => ({ ...sticker, packName: pack.name })),
 ).slice(0, 32);
 const GIF_LABELS = ["Wave", "Thanks", "OK", "Laugh", "Fire", "Celebrate", "Done", "Love"];
+const X_STATUS_URL_RE = /https?:\/\/(?:www\.|mobile\.)?(?:x\.com|twitter\.com)\/[^/\s?#]+\/status(?:es)?\/\d{5,30}(?:[/?#][^\s]*)?/gi;
+
+function getXStatusUrls(text: string): string[] {
+  const matches = text.match(X_STATUS_URL_RE) ?? [];
+  return [...new Set(matches)].slice(0, 6);
+}
+
+function stripUrlsFromText(text: string, urls: string[]): string {
+  return urls.reduce((current, url) => current.replace(url, ""), text).replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function getXStatusIdFromUrl(url: string): string {
+  return url.match(/\/status(?:es)?\/(\d{5,30})/i)?.[1] || "mock";
+}
+
+function canUseLocalXVideoMock(): boolean {
+  if (typeof window === "undefined") return false;
+  const localHost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  if (!localHost) return false;
+  return (
+    window.localStorage.getItem("zivo_mock_x_video_import") === "1" ||
+    new URLSearchParams(window.location.search).get("x_video_mock") === "1"
+  );
+}
+
+function getLocalXVideoMock(url: string) {
+  const sourceId = getXStatusIdFromUrl(url);
+  return [{
+    url: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+    type: "video",
+    name: `x-${sourceId}.mp4`,
+    mime_type: "video/mp4",
+    duration_ms: 5500,
+    width: 960,
+    height: 540,
+    preview_image_url: "https://dummyimage.com/960x540/111827/ffffff.png&text=X+video+import+test",
+    source: "x",
+    source_url: url,
+    source_id: sourceId,
+    mock: true,
+  }];
+}
 
 function getUploadMediaType(file: File, kind: UploadKind): MediaItem["type"] | null {
   if (kind === "gif") return file.type === "image/gif" || /\.gif$/i.test(file.name) ? "gif" : null;
@@ -484,6 +526,54 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
       };
     }
 
+    const xStatusUrls = getXStatusUrls(body);
+    const importSlots = Math.max(0, 6 - media.length - (pollAttachment ? 1 : 0));
+    const importedXUrls: string[] = [];
+    const importedXMedia: any[] = [];
+    if (xStatusUrls.length > 0 && importSlots > 0) {
+      const urlsToImport = xStatusUrls.slice(0, importSlots);
+      toast.message("Importing X video...");
+      for (const url of urlsToImport) {
+        const { data: resolved, error: resolveError } = await supabase.functions.invoke("channel-resolve-x-video", {
+          body: { url },
+        });
+        let videos = Array.isArray((resolved as any)?.videos) ? (resolved as any).videos : [];
+        if ((resolveError || (resolved as any)?.error) && canUseLocalXVideoMock()) {
+          videos = getLocalXVideoMock(url);
+          toast.message("Using local X video test import");
+        } else if (resolveError || (resolved as any)?.error) {
+          const rawMessage =
+            (resolved as any)?.message ??
+            (resolved as any)?.error ??
+            await getFunctionErrorMessage(resolveError, "Couldn't import X video");
+          const message = /failed to send a request to the edge function/i.test(rawMessage)
+            ? "X video import backend is not deployed yet. Deploy channel-resolve-x-video and set X_BEARER_TOKEN."
+            : rawMessage;
+          toast.error(message);
+          setSubmitting(false);
+          return;
+        }
+        for (const video of videos) {
+          if (!video?.url) continue;
+          importedXMedia.push({
+            url: video.url,
+            type: "video",
+            name: video.name || "x-video.mp4",
+            mime_type: video.mime_type || "video/mp4",
+            duration_ms: video.duration_ms,
+            width: video.width,
+            height: video.height,
+            preview_image_url: video.preview_image_url,
+            source: "x",
+            source_url: video.source_url || url,
+            source_id: video.source_id,
+          });
+        }
+        if (videos.length > 0) importedXUrls.push(url);
+      }
+    }
+
+    const bodyToPublish = importedXUrls.length > 0 ? stripUrlsFromText(body, importedXUrls) : body.trim();
     const mediaPayload: any[] = [
       ...(pollAttachment ? [pollAttachment] : []),
       ...media.map((m) => {
@@ -499,12 +589,13 @@ export function ChannelPostComposer({ channelId, onPosted }: Props) {
         }
         return base;
       }),
+      ...importedXMedia,
     ];
 
     const { data, error } = await supabase.functions.invoke("channel-broadcast", {
       body: {
         channel_id: channelId,
-        body: body.trim() || null,
+        body: bodyToPublish || null,
         media: mediaPayload,
         scheduled_for: scheduled ? new Date(when).toISOString() : null,
         comments_enabled: !disableComments,
