@@ -378,18 +378,6 @@ const FlightResults = () => {
     return Math.min(...offers.map((o) => o.price));
   }, [offers]);
 
-  // Group offers by outbound leg for step-by-step selection
-  const outboundGroups = useMemo(() => {
-    if (!isRoundTrip || offers.length === 0) return [];
-    return groupByOutbound(offers, destination);
-  }, [offers, destination, isRoundTrip]);
-
-  // When outbound is selected, group remaining offers by return leg
-  const returnGroups = useMemo(() => {
-    if (!selectedOutboundGroup) return [];
-    return groupByReturn(selectedOutboundGroup.offers, destination);
-  }, [selectedOutboundGroup, destination]);
-
   // Sort leg groups
   const sortLegGroups = useCallback((groups: LegGroup[], sort: SortBy) => {
     const sorted = [...groups];
@@ -411,8 +399,6 @@ const FlightResults = () => {
     return sorted;
   }, []);
 
-  const sortedOutboundGroups = useMemo(() => sortLegGroups(outboundGroups, sortBy), [outboundGroups, sortBy, sortLegGroups]);
-  const sortedReturnGroups = useMemo(() => sortLegGroups(returnGroups, sortBy), [returnGroups, sortBy, sortLegGroups]);
 
   const handleSelectOutbound = useCallback((group: LegGroup) => {
     setSelectedOutboundGroup(group);
@@ -499,6 +485,23 @@ const FlightResults = () => {
   }, [priceRange.max]);
 
   const filtered = useMemo(() => sortOffers(applyFilters(filters, offers), sortBy), [offers, filters, sortBy, sortOffers, applyFilters]);
+
+  // Round-trip leg grouping. Group from the FILTERED offers (filter-only, no sort
+  // dependency — the leg groups are re-sorted by sortLegGroups below) so the
+  // round-trip filter UI (airline/price/stops/etc.) actually affects results, the
+  // same as one-way mode. Relocated below applyFilters to avoid a temporal-dead-zone
+  // reference (applyFilters is declared above this point).
+  const filteredForGrouping = useMemo(() => applyFilters(filters, offers), [filters, offers, applyFilters]);
+  const outboundGroups = useMemo(() => {
+    if (!isRoundTrip || filteredForGrouping.length === 0) return [];
+    return groupByOutbound(filteredForGrouping, destination);
+  }, [filteredForGrouping, destination, isRoundTrip]);
+  const returnGroups = useMemo(() => {
+    if (!selectedOutboundGroup) return [];
+    return groupByReturn(selectedOutboundGroup.offers, destination);
+  }, [selectedOutboundGroup, destination]);
+  const sortedOutboundGroups = useMemo(() => sortLegGroups(outboundGroups, sortBy), [outboundGroups, sortBy, sortLegGroups]);
+  const sortedReturnGroups = useMemo(() => sortLegGroups(returnGroups, sortBy), [returnGroups, sortBy, sortLegGroups]);
 
   const lowestPriceId = useMemo(() => {
     if (filtered.length === 0) return null;
