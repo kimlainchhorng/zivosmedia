@@ -425,12 +425,12 @@ export default function StoreProfilePage() {
   const [bookingRoom, setBookingRoom] = useState<LodgeRoom | null>(null);
   const [bookingPlan, setBookingPlan] = useState<{ rateCents: number; label: string; breakfastIncluded: boolean } | null>(null);
 
-  const handleAddToCart = (product: StoreProductItem, sizeVariant?: { size: string; price_khr: number; price_usd: number }) => {
+  const handleAddToCart = (product: StoreProductItem, sizeVariant?: { size: string; price_khr: number; price_usd: number }, priceOverride?: number) => {
     const displayName = localizedName(product.name, currentLanguage);
     cart.addItem({
       productId: sizeVariant ? `${product.id}__${sizeVariant.size}` : product.id,
       name: sizeVariant ? `${displayName} (${sizeVariant.size})` : displayName,
-      price: sizeVariant ? sizeVariant.price_usd : product.price,
+      price: priceOverride ?? (sizeVariant ? sizeVariant.price_usd : product.price),
       image: product.image_url || "",
       brand: product.brand || "",
       sizeLabel: sizeVariant?.size,
@@ -1477,7 +1477,7 @@ export default function StoreProfilePage() {
                       {!cartItem && product.in_stock && (
                         <motion.button
                           whileTap={{ scale: 0.8 }}
-                          onClick={(e) => { e.stopPropagation(); handleAddToCart(product, activeVariant || undefined); }}
+                          onClick={(e) => { e.stopPropagation(); handleAddToCart(product, activeVariant || undefined, hasDiscount && !hasSizes && discountUsd != null ? discountUsd : undefined); }}
                           aria-label="Add to cart"
                           className="h-6 w-6 shrink-0 rounded-full bg-primary flex items-center justify-center shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
