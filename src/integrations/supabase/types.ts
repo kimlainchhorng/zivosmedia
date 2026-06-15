@@ -69205,6 +69205,7 @@ export type Database = {
           forwards: string
           group_invites: string
           last_seen: string
+          messages: string
           phone_visibility: string
           profile_photo: string
           read_receipts: boolean
@@ -69218,6 +69219,7 @@ export type Database = {
           forwards?: string
           group_invites?: string
           last_seen?: string
+          messages?: string
           phone_visibility?: string
           profile_photo?: string
           read_receipts?: boolean
@@ -69231,6 +69233,7 @@ export type Database = {
           forwards?: string
           group_invites?: string
           last_seen?: string
+          messages?: string
           phone_visibility?: string
           profile_photo?: string
           read_receipts?: boolean

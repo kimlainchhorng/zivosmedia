@@ -55,6 +55,7 @@ export function useDriverDashboardData() {
       setAuthUserId(userId);
       if (!userId) {
         setDriverId(null);
+        setIsLoading(false);
         return;
       }
 
@@ -68,7 +69,11 @@ export function useDriverDashboardData() {
   }, []);
 
   const fetchStats = useCallback(async () => {
-    if (!driverId) return;
+    if (!driverId) {
+      setStats(DEFAULT_STATS);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
 
     try {

@@ -37,57 +37,89 @@ export default function DriverHomePage() {
   const [accepting, setAccepting] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentOfferIdRef = useRef<string | null>(null);
   const { stats, isLoading, driverId } = useDriverDashboardData();
 
   // Sync initial online status from DB
   useEffect(() => {
     if (!driverId) return;
     (supabase as any)
-      .from("driver_profiles")
+      .from("drivers_status")
       .select("is_online")
-      .eq("id", driverId)
+      .eq("driver_id", driverId)
       .maybeSingle()
-      .then(({ data }: { data: { is_online?: boolean } | null }) => {
-        if (data?.is_online != null) setIsOnline(data.is_online);
+      .then(async ({ data }: { data: { is_online?: boolean } | null }) => {
+        if (data?.is_online != null) {
+          setIsOnline(data.is_online);
+          return;
+        }
+        const { data: profile } = await (supabase as any)
+          .from("driver_profiles")
+          .select("is_online")
+          .eq("id", driverId)
+          .maybeSingle();
+        if (profile?.is_online != null) setIsOnline(profile.is_online);
       });
   }, [driverId]);
 
   const clearOffer = useCallback(() => {
+    currentOfferIdRef.current = null;
     setIncomingOffer(null);
     setCountdown(OFFER_TTL);
     if (countdownRef.current) clearInterval(countdownRef.current);
   }, []);
 
+  const startOfferCountdown = useCallback((seconds: number) => {
+    setCountdown(seconds);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) { clearOffer(); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  }, [clearOffer]);
+
   const fetchPendingOffer = useCallback(async (dId: string) => {
+    const now = new Date().toISOString();
     const { data } = await (supabase as any)
       .from("job_offers")
       .select("id, job_id, expires_at, jobs(pickup_address, dropoff_address, distance_km, estimated_fare)")
       .eq("driver_id", dId)
       .eq("status", "pending")
+      .gt("expires_at", now)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (data) {
-      const job = (data as any).jobs ?? {};
-      setIncomingOffer({
-        id: data.id,
-        job_id: data.job_id,
-        pickup_address: job.pickup_address ?? "Pickup",
-        dropoff_address: job.dropoff_address ?? "Dropoff",
-        distance_km: job.distance_km ?? null,
-        estimated_fare: job.estimated_fare ?? null,
-        expires_at: data.expires_at,
-      });
-      setCountdown(OFFER_TTL);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      countdownRef.current = setInterval(() => {
-        setCountdown(c => {
-          if (c <= 1) { clearOffer(); return 0; }
-          return c - 1;
-        });
-      }, 1000);
+    if (!data) {
+      clearOffer();
+      return;
     }
-  }, [clearOffer]);
+
+    const secondsRemaining = data.expires_at
+      ? Math.max(0, Math.ceil((new Date(data.expires_at).getTime() - Date.now()) / 1000))
+      : OFFER_TTL;
+    if (secondsRemaining <= 0) {
+      clearOffer();
+      return;
+    }
+
+    const job = (data as any).jobs ?? {};
+    setIncomingOffer({
+      id: data.id,
+      job_id: data.job_id,
+      pickup_address: job.pickup_address ?? "Pickup",
+      dropoff_address: job.dropoff_address ?? "Dropoff",
+      distance_km: job.distance_km ?? null,
+      estimated_fare: job.estimated_fare ?? null,
+      expires_at: data.expires_at,
+    });
+
+    if (currentOfferIdRef.current !== data.id) {
+      currentOfferIdRef.current = data.id;
+      startOfferCountdown(secondsRemaining);
+    }
+  }, [clearOffer, startOfferCountdown]);
 
   // Subscribe to job offers when online
   useEffect(() => {
@@ -111,12 +143,33 @@ export default function DriverHomePage() {
     if (!driverId || togglingOnline) return;
     setTogglingOnline(true);
     const next = !isOnline;
-    const { error } = await (supabase as any)
+    const now = new Date().toISOString();
+    const nextState = next ? "online_available" : "offline";
+    const { error: stateRpcError } = await (supabase as any)
+      .rpc("set_driver_state", { p_state: nextState });
+    const { error: statusError } = stateRpcError
+      ? await (supabase as any)
+          .from("drivers_status")
+          .upsert({
+            driver_id: driverId,
+            is_online: next,
+            is_busy: false,
+            driver_state: nextState,
+            last_seen: now,
+            updated_at: now,
+          }, { onConflict: "driver_id" })
+      : { error: null };
+    const { error: profileError } = await (supabase as any)
       .from("driver_profiles")
       .update({ is_online: next })
       .eq("id", driverId);
     setTogglingOnline(false);
-    if (error) { toast.error("Could not update status"); return; }
+    if (statusError) {
+      console.error("[DriverHome] status update failed:", { stateRpcError, statusError });
+      toast.error(statusError.message || stateRpcError?.message || "Could not update status");
+      return;
+    }
+    if (profileError) console.warn("[DriverHome] driver_profiles status sync failed:", profileError);
     setIsOnline(next);
     toast.success(next ? "You're online — waiting for rides" : "You're offline");
     if (!next) clearOffer();

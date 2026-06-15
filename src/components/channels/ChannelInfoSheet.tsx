@@ -127,6 +127,32 @@ function getSubscriberPermissionsCount(permissions: ChannelSubscriberPermissions
   return `${enabled}/7`;
 }
 
+function getReactionPolicyLabel(policy: Channel["reaction_policy"] | null | undefined) {
+  if (policy === "none") return "No Reactions";
+  if (policy === "some") return "Some Reactions";
+  return "All Reactions";
+}
+
+function channelSettingsArgs(channelId: string, updates: Record<string, unknown>) {
+  return {
+    p_channel_id: channelId,
+    p_name: null,
+    p_description: null,
+    p_avatar_url: null,
+    p_banner_url: null,
+    p_is_public: null,
+    p_channel_join_approval_required: null,
+    p_restrict_saving_content: null,
+    p_reaction_policy: null,
+    p_slow_mode_seconds: null,
+    p_hide_members: null,
+    p_topics_enabled: null,
+    p_wallpaper_style: null,
+    p_subscriber_permissions: null,
+    ...updates,
+  };
+}
+
 const QR_THEME_CARDS = [
   { label: "Home", emoji: "🏠", bg: "from-emerald-200 via-teal-100 to-sky-100", qr: "#256f5f", panel: "#c8f3e5" },
   { label: "Duck", emoji: "🐥", bg: "from-lime-200 via-green-100 to-emerald-100", qr: "#68764c", panel: "#b7df9d" },
@@ -135,8 +161,7 @@ const QR_THEME_CARDS = [
 ] as const;
 
 function showManualCopyInvite(url: string) {
-  toast.message("Clipboard is blocked", { description: "Select and copy the invite link.", duration: 8000 });
-  window.setTimeout(() => window.prompt("Copy invite link", url), 50);
+  toast.message("Clipboard is blocked", { description: url, duration: 8000 });
 }
 
 type InfoMember = {
@@ -556,13 +581,11 @@ export function ChannelInfoSheet({
         }
       }
       if (memberPickerMode === "exceptions") {
-        const { error: exceptionError } = await (supabase as any)
-          .from("channel_permission_exceptions")
-          .upsert({
-            channel_id: channel.id,
-            user_id: member.user_id,
-            created_by: userData.user.id,
-          }, { onConflict: "channel_id,user_id" });
+        const { error: exceptionError } = await (supabase as any).rpc("channel_set_permission_exception", {
+          p_channel_id: channel.id,
+          p_user_id: member.user_id,
+          p_enabled: true,
+        });
         if (exceptionError) throw exceptionError;
         setPermissionExceptions((current) => [member, ...current.filter((row) => row.user_id !== member.user_id)]);
         toast.success("Permission exception added");
@@ -584,11 +607,11 @@ export function ChannelInfoSheet({
     if (memberBusyId) return;
     setMemberBusyId(member.user_id);
     try {
-      const { error } = await (supabase as any)
-        .from("channel_permission_exceptions")
-        .delete()
-        .eq("channel_id", channel.id)
-        .eq("user_id", member.user_id);
+      const { error } = await (supabase as any).rpc("channel_set_permission_exception", {
+        p_channel_id: channel.id,
+        p_user_id: member.user_id,
+        p_enabled: false,
+      });
       if (error) throw error;
       setPermissionExceptions((current) => current.filter((row) => row.user_id !== member.user_id));
       toast.success("Exception removed");
@@ -641,14 +664,12 @@ export function ChannelInfoSheet({
     if (member.role === "owner" || memberBusyId) return;
     setMemberBusyId(member.user_id);
     try {
-      const { error } = await (supabase as any)
-        .from("channel_subscribers")
-        .update({ role })
-        .eq("channel_id", channel.id)
-        .eq("user_id", member.user_id);
+      const { error } = await (supabase as any).rpc("channel_set_member_role", {
+        p_channel_id: channel.id,
+        p_user_id: member.user_id,
+        p_role: role,
+      });
       if (error) throw error;
-      const { data: actor } = await supabase.auth.getUser();
-      void logChannelAction(channel.id, actor.user?.id, "role_changed", { targetUserId: member.user_id, meta: { role } });
       toast.success(role === "admin" ? "Member promoted to admin" : "Admin role removed");
       reloadMembers();
       await onRefresh?.();
@@ -663,23 +684,11 @@ export function ChannelInfoSheet({
     if (member.role === "owner" || memberBusyId) return;
     setMemberBusyId(member.user_id);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("Sign in required");
-      const { error } = await (supabase as any)
-        .from("channel_subscribers")
-        .delete()
-        .eq("channel_id", channel.id)
-        .eq("user_id", member.user_id);
+      const { error } = await (supabase as any).rpc("channel_remove_member", {
+        p_channel_id: channel.id,
+        p_user_id: member.user_id,
+      });
       if (error) throw error;
-      const { error: removedError } = await (supabase as any)
-        .from("channel_removed_users")
-        .upsert({
-          channel_id: channel.id,
-          user_id: member.user_id,
-          removed_by: u.user.id,
-        }, { onConflict: "channel_id,user_id" });
-      if (removedError) throw removedError;
-      void logChannelAction(channel.id, u.user.id, "member_removed", { targetUserId: member.user_id });
       toast.success("Member removed");
       reloadMembers();
       reloadRemovedUsers();
@@ -736,14 +745,11 @@ export function ChannelInfoSheet({
                 if (removedBusyId) return;
                 setRemovedBusyId(user.user_id);
                 try {
-                  const { error } = await (supabase as any)
-                    .from("channel_removed_users")
-                    .delete()
-                    .eq("channel_id", channel.id)
-                    .eq("user_id", user.user_id);
+                  const { error } = await (supabase as any).rpc("channel_allow_rejoin", {
+                    p_channel_id: channel.id,
+                    p_user_id: user.user_id,
+                  });
                   if (error) throw error;
-                  const { data: actor } = await supabase.auth.getUser();
-                  void logChannelAction(channel.id, actor.user?.id, "member_unbanned", { targetUserId: user.user_id });
                   toast.success("User can rejoin");
                   reloadRemovedUsers();
                 } catch (error: any) {
@@ -753,7 +759,7 @@ export function ChannelInfoSheet({
                 }
               }}
               onRefresh={onRefresh}
-              onBack={() => setView("info")}
+              onBack={() => setView(view === "edit" ? "info" : "edit")}
               onClose={() => onOpenChange(false)}
               onView={setView}
               subscriberPermissions={subscriberPermissions}
@@ -894,7 +900,7 @@ export function ChannelInfoSheet({
                 <>
                   {channel.description && <p className="px-2 text-sm leading-5 text-slate-600">{channel.description}</p>}
 
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1">
                     <QuickAction icon={Video} label="video chat" onClick={startVideoChat} />
                     <QuickAction
                       icon={notificationsOn ? Bell : BellOff}
@@ -1229,9 +1235,9 @@ function ChannelQrPreview({
           </div>
         </div>
 
-        <div className="-mt-1 border-t border-sky-300/70 bg-gradient-to-b from-[#d8ebff] to-[#eef7ff] px-4 pb-3 pt-2.5">
-          <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-slate-300/70" aria-hidden />
-          <div className="mb-3 flex items-center justify-between">
+        <div className="-mt-1 border-t border-sky-200 bg-gradient-to-b from-[#dceeff] to-[#f5fbff] px-4 pb-3 pt-2.5">
+          <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-slate-300/80" aria-hidden />
+          <div className="mb-3 grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-2">
             <button
               type="button"
               onClick={() => runTapAction(onClose)}
@@ -1241,8 +1247,8 @@ function ChannelQrPreview({
               <X className="h-6 w-6" />
             </button>
             <div className="min-w-0 text-center">
-              <h2 className="text-[20px] font-bold leading-none text-slate-950">QR Code</h2>
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Swipe to dismiss</p>
+              <h2 className="text-[19px] font-bold leading-none text-slate-950">QR Code</h2>
+              <p className="mt-1 truncate text-[11px] font-semibold text-slate-500">Swipe to dismiss</p>
             </div>
             <button
               type="button"
@@ -1254,62 +1260,62 @@ function ChannelQrPreview({
             </button>
           </div>
 
-          <div className="mb-3 grid grid-cols-3 gap-2">
+          <div className="mb-3 grid grid-cols-3 gap-1.5">
             <button
               type="button"
               onClick={() => runTapAction(onCopy)}
               aria-label="Copy invite link"
-              className="pointer-events-auto flex min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-white/80 px-2 py-2.5 text-sky-700 shadow-sm ring-1 ring-white/80 transition active:scale-95"
+              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95"
             >
               <Copy className="h-4 w-4" />
-              <span className="truncate text-xs font-bold">Copy link</span>
+              <span className="max-w-full truncate text-[11px] font-bold">Copy</span>
             </button>
             <button
               type="button"
               onClick={() => runTapAction(shareInvite)}
               aria-label="Share invite link"
-              className="pointer-events-auto flex min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-white/80 px-2 py-2.5 text-sky-700 shadow-sm ring-1 ring-white/80 transition active:scale-95"
+              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95"
             >
               <ExternalLink className="h-4 w-4" />
-              <span className="truncate text-xs font-bold">Share</span>
+              <span className="max-w-full truncate text-[11px] font-bold">Share</span>
             </button>
             <button
               type="button"
               onClick={() => runTapAction(saveQrSvg)}
               aria-label="Save QR code"
-              className="pointer-events-auto flex min-w-0 items-center justify-center gap-1.5 rounded-2xl bg-white/80 px-2 py-2.5 text-sky-700 shadow-sm ring-1 ring-white/80 transition active:scale-95"
+              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95"
             >
               <Download className="h-4 w-4" />
-              <span className="truncate text-xs font-bold">Save QR</span>
+              <span className="max-w-full truncate text-[11px] font-bold">Save</span>
             </button>
           </div>
 
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Theme</span>
-            <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-bold text-slate-600 ring-1 ring-white/80">{activeTheme.label}</span>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Theme</span>
+            <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-slate-600 shadow-sm ring-1 ring-sky-100">{activeTheme.label}</span>
           </div>
-          <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-2.5">
+          <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1.5 scrollbar-hide">
             {QR_THEME_CARDS.map((theme) => (
               <button
                 key={theme.label}
                 type="button"
                 onClick={() => runTapAction(() => setActiveThemeLabel(theme.label))}
                 className={cn(
-                  "pointer-events-auto relative h-[4.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-[1.15rem] bg-gradient-to-br p-2 text-left shadow-sm ring-1 ring-white/80 transition active:scale-95",
+                  "pointer-events-auto relative h-[4.35rem] w-[4.35rem] shrink-0 snap-start overflow-hidden rounded-[1.05rem] bg-gradient-to-br p-2 text-left shadow-sm ring-1 ring-white/80 transition active:scale-95",
                   theme.bg,
-                  activeThemeLabel === theme.label && "outline outline-2 outline-offset-2 outline-emerald-500",
+                  activeThemeLabel === theme.label && "ring-2 ring-emerald-500 ring-offset-2 ring-offset-[#edf7ff]",
                 )}
                 aria-label={`${theme.label} QR theme`}
                 aria-pressed={activeThemeLabel === theme.label}
               >
                 {activeThemeLabel === theme.label && (
-                  <span className="absolute right-1.5 top-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                  <span className="absolute right-1.5 top-1.5 flex h-[1.15rem] w-[1.15rem] items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
                     <Check className="h-3 w-3" />
                   </span>
                 )}
-                <span className="block h-4 w-8 rounded-full bg-white/55" />
-                <span className="mt-2 block h-4 w-11 rounded-full bg-white/70" />
-                <span className="absolute bottom-5 left-1/2 -translate-x-1/2 text-xl">{theme.emoji}</span>
+                <span className="block h-3.5 w-8 rounded-full bg-white/55" />
+                <span className="mt-2 block h-3.5 w-10 rounded-full bg-white/70" />
+                <span className="absolute bottom-4 left-1/2 -translate-x-1/2 text-lg">{theme.emoji}</span>
                 <span className="absolute inset-x-1.5 bottom-1.5 truncate text-center text-[10px] font-bold text-slate-700">{theme.label}</span>
               </button>
             ))}
@@ -1321,11 +1327,16 @@ function ChannelQrPreview({
           <button
             type="button"
             onClick={() => runTapAction(onCopy)}
-            aria-label="Copy QR code"
-            className="pointer-events-auto flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-[#2bb978] text-[15px] font-bold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/25 transition hover:bg-[#21aa6d] active:scale-[.98]"
+            aria-label="Copy channel invite link"
+            className="pointer-events-auto flex h-11 w-full min-w-0 items-center gap-3 rounded-2xl bg-slate-50 px-3 text-left text-slate-700 ring-1 ring-slate-200 transition hover:bg-sky-50 active:scale-[.99]"
           >
-            <Copy className="h-5 w-5" />
-            Copy invite link
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <Copy className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-bold uppercase tracking-wide text-slate-400">Invite link</span>
+              <span className="block truncate text-sm font-bold text-slate-800">{shareUrl.replace(/^https?:\/\//, "")}</span>
+            </span>
           </button>
         </div>
       </div>
@@ -1658,6 +1669,7 @@ function TelegramSubview({
             <EditSettingsView
               channel={channel}
               removedCount={removedUsers.length}
+              adminCount={adminMembers.length || 1}
               subscriberPermissions={subscriberPermissions}
               onRefresh={onRefresh}
               onView={onView}
@@ -1725,12 +1737,14 @@ function TelegramSubview({
 function EditSettingsView({
   channel,
   removedCount,
+  adminCount,
   subscriberPermissions,
   onRefresh,
   onView,
 }: {
   channel: Channel;
   removedCount: number;
+  adminCount: number;
   subscriberPermissions: ChannelSubscriberPermissions;
   onRefresh?: () => void | Promise<void>;
   onView: (view: InfoView) => void;
@@ -1743,11 +1757,22 @@ function EditSettingsView({
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const channelShareUrl = getChannelShareUrl(channel.handle);
+  const hasProfileChanges = name.trim() !== channel.name || description.trim() !== (channel.description ?? "");
 
   useEffect(() => {
     setName(channel.name);
     setDescription(channel.description ?? "");
   }, [channel.description, channel.name]);
+
+  const copyChannelLink = async () => {
+    try {
+      await copyText(channelShareUrl);
+      toast.success("Channel link copied");
+    } catch {
+      showManualCopyInvite(channelShareUrl);
+    }
+  };
 
   const save = async () => {
     const nextName = name.trim();
@@ -1757,10 +1782,10 @@ function EditSettingsView({
     }
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ name: nextName, description: description.trim() || null })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_name: nextName,
+        p_description: description.trim(),
+      }));
       if (error) throw error;
       toast.success("Channel settings saved");
       await onRefresh?.();
@@ -1795,10 +1820,9 @@ function EditSettingsView({
       });
       if (uploadError) throw uploadError;
       const { data: publicUrl } = supabase.storage.from("channel-media").getPublicUrl(path);
-      const { error: updateError } = await (supabase as any)
-        .from("channels")
-        .update({ avatar_url: publicUrl.publicUrl })
-        .eq("id", channel.id);
+      const { error: updateError } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_avatar_url: publicUrl.publicUrl,
+      }));
       if (updateError) throw updateError;
       toast.success("Channel photo updated");
       await onRefresh?.();
@@ -1877,18 +1901,30 @@ function EditSettingsView({
       <button
         type="button"
         onClick={() => void save()}
-        disabled={saving}
-        className="w-full rounded-full bg-sky-500 px-4 py-3 text-base font-bold text-white shadow-xl disabled:opacity-60"
+        disabled={saving || !hasProfileChanges}
+        className="w-full rounded-full bg-sky-500 px-4 py-3 text-base font-bold text-white shadow-xl transition active:scale-[0.98] disabled:bg-sky-300 disabled:opacity-70"
       >
-        {saving ? "Saving..." : "Save Changes"}
+        {saving ? "Saving..." : hasProfileChanges ? "Save Changes" : "Saved"}
       </button>
 
       <InfoSection>
+        <button type="button" onClick={() => void copyChannelLink()} className="flex w-full items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50">
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-500">
+              <LinkIcon className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-base font-medium text-slate-950">Channel Link</span>
+              <span className="block truncate text-sm text-sky-500">@{channel.handle}</span>
+            </span>
+          </span>
+          <Copy className="h-4 w-4 shrink-0 text-slate-400" />
+        </button>
         <SettingsRow icon={Users} label="Channel Type" value={channel.is_public ? "Public" : "Private"} onClick={() => onView("groupType")} />
       </InfoSection>
 
       <InfoSection>
-        <SettingsRow icon={Heart} label="Reactions" value="All Reactions" onClick={() => onView("reactions")} />
+        <SettingsRow icon={Heart} label="Reactions" value={getReactionPolicyLabel(channel.reaction_policy)} onClick={() => onView("reactions")} />
         <SettingsRow icon={Brush} label="Appearance" onClick={() => onView("appearance")} />
         <SettingsRow icon={MessageSquare} label="Topics" value={channel.topics_enabled ? "Enabled" : "Disabled"} onClick={() => onView("topics")} />
       </InfoSection>
@@ -1897,7 +1933,7 @@ function EditSettingsView({
       <InfoSection>
         <SettingsRow icon={Users} label="Members" value={channel.subscriber_count.toLocaleString()} onClick={() => onView("members")} />
         <SettingsRow icon={Shield} label="Permissions" value={getSubscriberPermissionsCount(subscriberPermissions)} onClick={() => onView("permissions")} />
-        <SettingsRow icon={Shield} label="Administrators" value="1" onClick={() => onView("admins")} />
+        <SettingsRow icon={Shield} label="Administrators" value={adminCount.toLocaleString()} onClick={() => onView("admins")} />
         <SettingsRow icon={UserMinus} label="Removed Users" value={removedCount.toLocaleString()} onClick={() => onView("removed")} />
         <SettingsRow icon={Eye} label="Recent Actions" onClick={() => onView("actions")} />
       </InfoSection>
@@ -1989,10 +2025,9 @@ function GroupTypeView({
     if (next === channel.is_public || saving) return;
     setSaving(next ? "public" : "private");
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ is_public: next })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_is_public: next,
+      }));
       if (error) throw error;
       toast.success(next ? "Channel is public" : "Channel is private");
       await onRefresh?.();
@@ -2007,10 +2042,9 @@ function GroupTypeView({
     if (next === (channel.restrict_saving_content !== false) || savingRestrict) return;
     setSavingRestrict(true);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ restrict_saving_content: next })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_restrict_saving_content: next,
+      }));
       if (error) throw error;
       toast.success(next ? "Saving is restricted" : "Saving is allowed");
       await onRefresh?.();
@@ -2025,10 +2059,9 @@ function GroupTypeView({
     if (next === !!channel.channel_join_approval_required || savingApproval) return;
     setSavingApproval(true);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ channel_join_approval_required: next })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_channel_join_approval_required: next,
+      }));
       if (error) throw error;
       toast.success(next ? "Join approval enabled" : "Join approval disabled");
       await onRefresh?.();
@@ -2048,9 +2081,12 @@ function GroupTypeView({
       </InfoSection>
       <p className="-mt-3 px-4 text-xs leading-5 text-slate-500">Public channels can be found in search and anyone can join.</p>
       <InfoSection>
-        <button type="button" onClick={() => void copyShareUrl()} className="flex w-full items-center justify-between px-4 py-3 text-left">
+        <button type="button" onClick={() => void copyShareUrl()} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50">
           <span className="min-w-0 truncate text-base text-slate-950">{shareUrl.replace(/^https?:\/\//, "")}</span>
-          <X className="h-4 w-4 rounded-full bg-slate-300 p-0.5 text-white" />
+          <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-sky-500">
+            <Copy className="h-4 w-4" />
+            Copy
+          </span>
         </button>
       </InfoSection>
       <p className="-mt-3 px-4 text-xs leading-5 text-slate-500">People can share this link with others and find your channel.</p>
@@ -2083,10 +2119,9 @@ function ReactionsView({ channel, onRefresh }: { channel: Channel; onRefresh?: (
     if (next === current || saving) return;
     setSaving(next);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ reaction_policy: next })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_reaction_policy: next,
+      }));
       if (error) throw error;
       toast.success(next === "none" ? "Reactions disabled" : next === "some" ? "Limited reactions enabled" : "All reactions enabled");
       await onRefresh?.();
@@ -2124,10 +2159,9 @@ function AppearanceView({ channel, onRefresh }: { channel: Channel; onRefresh?: 
     if (next === currentWallpaper || savingWallpaper) return;
     setSavingWallpaper(next);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ wallpaper_style: next })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_wallpaper_style: next,
+      }));
       if (error) throw error;
       toast.success(`${CHANNEL_WALLPAPERS[next].label} wallpaper applied`);
       await onRefresh?.();
@@ -2163,7 +2197,7 @@ function AppearanceView({ channel, onRefresh }: { channel: Channel; onRefresh?: 
         <SettingsRow icon={Sparkles} label="Channel Emoji Status" value="Level 8" onClick={() => toast.message("Emoji status unlocks at Level 8")} />
       </InfoSection>
       <InfoSection>
-        <SettingsRow icon={ImageIcon} label="Channel Wallpaper" value="Choose" onClick={() => toast.message("Choose a wallpaper below")} />
+        <SettingsRow icon={ImageIcon} label="Channel Wallpaper" value={CHANNEL_WALLPAPERS[currentWallpaper].label} onClick={() => toast.message("Choose a wallpaper below")} />
         <div className="grid grid-cols-4 gap-2 p-3">
           {(Object.keys(CHANNEL_WALLPAPERS) as ChannelWallpaperStyle[]).map((style) => (
             <button
@@ -2188,14 +2222,8 @@ function AppearanceView({ channel, onRefresh }: { channel: Channel; onRefresh?: 
             </button>
           ))}
         </div>
+        <p className="border-t border-slate-100 px-4 py-3 text-xs leading-5 text-slate-500">Wallpaper changes save automatically when selected.</p>
       </InfoSection>
-      <button
-        type="button"
-        onClick={() => toast.success("Appearance changes applied")}
-        className="sticky bottom-4 w-full rounded-full bg-sky-500 px-4 py-3 text-base font-bold text-white shadow-xl"
-      >
-        Apply Changes
-      </button>
     </>
   );
 }
@@ -2206,10 +2234,9 @@ function TopicsView({ channel, onRefresh }: { channel: Channel; onRefresh?: () =
     if (next === !!channel.topics_enabled || saving) return;
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ topics_enabled: next })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_topics_enabled: next,
+      }));
       if (error) throw error;
       toast.success(next ? "Topics enabled" : "Topics disabled");
       await onRefresh?.();
@@ -2266,10 +2293,9 @@ function MembersView({
     if (next === !!channel.hide_members || savingHidden) return;
     setSavingHidden(true);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ hide_members: next })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_hide_members: next,
+      }));
       if (error) throw error;
       toast.success(next ? "Member list hidden" : "Member list visible");
       await onRefresh?.();
@@ -2403,10 +2429,9 @@ function PermissionsView({
     if (seconds === currentSlowMode || savingSlowMode !== null) return;
     setSavingSlowMode(seconds);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ slow_mode_seconds: seconds })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_slow_mode_seconds: seconds,
+      }));
       if (error) throw error;
       const label = SLOW_MODE_OPTIONS.find((option) => option.seconds === seconds)?.label ?? "Off";
       setCurrentSlowMode(seconds);
@@ -2423,10 +2448,9 @@ function PermissionsView({
     onPermissionsChange(next);
     setSavingPermission(key);
     try {
-      const { error } = await (supabase as any)
-        .from("channels")
-        .update({ subscriber_permissions: next })
-        .eq("id", channel.id);
+      const { error } = await (supabase as any).rpc("channel_update_settings", channelSettingsArgs(channel.id, {
+        p_subscriber_permissions: next,
+      }));
       if (error) throw error;
       toast.success("Permission updated");
     } catch (error: any) {
@@ -2522,13 +2546,25 @@ function AdminsView({
   onRemove: (member: InfoMember) => void;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const candidates = allMembers.filter((member) => member.role !== "owner" && member.role !== "admin" && member.role !== "pending");
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredCandidates = normalizedQuery
+    ? candidates.filter((member) => (member.display_name || "Subscriber").toLowerCase().includes(normalizedQuery))
+    : candidates;
 
   return (
     <>
       <SectionLabel>Channel Admins</SectionLabel>
       <InfoSection>
-        <SettingsRow icon={UserPlus} label="Add Admin" onClick={() => setPickerOpen(true)} />
+        <SettingsRow
+          icon={UserPlus}
+          label="Add Admin"
+          onClick={() => {
+            setQuery("");
+            setPickerOpen(true);
+          }}
+        />
         {members.length > 0 ? members.map((member) => (
           <MemberLine
             key={member.user_id}
@@ -2568,15 +2604,21 @@ function AdminsView({
               <span className="w-[76px]" />
             </div>
             <div className="px-5 pb-3">
-              <div className="flex h-10 items-center gap-2 rounded-full bg-white px-3 text-slate-400">
+              <label className="flex h-10 items-center gap-2 rounded-full bg-white px-3 text-slate-400 ring-1 ring-slate-200/70 focus-within:ring-2 focus-within:ring-sky-200">
                 <Search className="h-4 w-4" />
-                <span className="text-base">Search</span>
-              </div>
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  autoFocus
+                  placeholder="Search members"
+                  className="min-w-0 flex-1 bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400"
+                />
+              </label>
             </div>
             <ScrollArea className="max-h-[calc(78dvh-7.5rem)]">
               <div className="pb-4">
                 <SectionLabel>Channel Members</SectionLabel>
-                {candidates.length > 0 ? candidates.map((member) => (
+                {filteredCandidates.length > 0 ? filteredCandidates.map((member) => (
                   <button
                     key={member.user_id}
                     type="button"
@@ -2597,7 +2639,9 @@ function AdminsView({
                     </span>
                   </button>
                 )) : (
-                  <div className="bg-white px-5 py-6 text-sm text-slate-500">No subscribers available to promote.</div>
+                  <div className="bg-white px-5 py-6 text-sm text-slate-500">
+                    {normalizedQuery ? "No matching members." : "No subscribers available to promote."}
+                  </div>
                 )}
               </div>
             </ScrollArea>
@@ -2791,6 +2835,35 @@ function describeAction(row: InfoActionRow, nameOf: (id?: string | null) => stri
   }
 }
 
+function actionFilterKeys(row: InfoActionRow): string[] {
+  switch (row.action) {
+    case "role_changed":
+      return ["adminRights"];
+    case "member_unbanned":
+      return ["exceptions"];
+    case "member_joined":
+    case "member_added":
+      return ["newMembers"];
+    case "member_left":
+    case "member_removed":
+      return ["leftMembers"];
+    case "info_changed":
+      return ["groupInfo"];
+    case "settings_changed": {
+      const metaKeys = row.meta ? Object.keys(row.meta) : [];
+      const keys: string[] = [];
+      if (metaKeys.some((key) => key.includes("invite"))) keys.push("inviteLinks");
+      if (metaKeys.some((key) => key.includes("video") || key.includes("call"))) keys.push("videoChats");
+      if (metaKeys.some((key) => !key.includes("invite") && !key.includes("video") && !key.includes("call"))) keys.push("groupInfo");
+      return keys.length ? keys : ["groupInfo"];
+    }
+    case "post_canceled":
+      return ["deleted"];
+    default:
+      return [];
+  }
+}
+
 function RecentActionsView({
   channel,
   posts,
@@ -2828,9 +2901,30 @@ function RecentActionsView({
     owner: true,
   });
   const toggleChecked = (key: string) => setChecked((current) => ({ ...current, [key]: !current[key] }));
+  const toggleGroup = (groupKey: string, childKeys: string[]) => setChecked((current) => {
+    const nextValue = !current[groupKey];
+    return {
+      ...current,
+      [groupKey]: nextValue,
+      ...Object.fromEntries(childKeys.map((key) => [key, nextValue])),
+    };
+  });
+  const toggleActor = (actorId: string) => setChecked((current) => ({
+    ...current,
+    allAdmins: false,
+    [`actor:${actorId}`]: !current[`actor:${actorId}`],
+  }));
   const toggleExpanded = (key: string) => setExpanded((current) => ({ ...current, [key]: !current[key] }));
   const nameOf = (id?: string | null) => (id ? profiles.get(id)?.name || "Someone" : "Someone");
   const actorIds = Array.from(new Set(rows.map((row) => row.actor_id).filter(Boolean)));
+  const memberFilterKeys = ["adminRights", "exceptions", "newMembers", "leftMembers"];
+  const settingsFilterKeys = ["groupInfo", "inviteLinks", "videoChats"];
+  const messageFilterKeys = ["deleted", "edited", "pinned"];
+  const activeTypeFilters = new Set([
+    ...memberFilterKeys.filter((key) => checked.members && checked[key]),
+    ...settingsFilterKeys.filter((key) => checked.settings && checked[key]),
+    ...messageFilterKeys.filter((key) => checked.messages && checked[key]),
+  ]);
   const enabledCategories = new Set([
     checked.members && "members",
     checked.settings && "settings",
@@ -2839,10 +2933,16 @@ function RecentActionsView({
   const filteredRows = rows.filter((row) => {
     const category = LOG_CATEGORY[row.action as ChannelLogAction] ?? "settings";
     if (!enabledCategories.has(category)) return false;
-    if (!checked.allAdmins && !checked.owner) return false;
+    const rowFilterKeys = actionFilterKeys(row);
+    if (rowFilterKeys.length > 0 && !rowFilterKeys.some((key) => activeTypeFilters.has(key))) return false;
+    if (!checked.allAdmins && !checked[`actor:${row.actor_id}`]) return false;
     return true;
   });
   const previewRows = filteredRows.slice(0, 5);
+  const selectedMemberFilters = memberFilterKeys.filter((key) => checked.members && checked[key]).length;
+  const selectedSettingsFilters = settingsFilterKeys.filter((key) => checked.settings && checked[key]).length;
+  const selectedMessageFilters = messageFilterKeys.filter((key) => checked.messages && checked[key]).length;
+  const selectedActorCount = actorIds.filter((actorId) => checked[`actor:${actorId}`]).length;
   const filterLabel = enabledCategories.size === 3 ? "All" : `${enabledCategories.size}/3`;
 
   return (
@@ -2941,10 +3041,10 @@ function RecentActionsView({
                 <InfoSection>
                   <ActionFilterGroup
                     label="Members and Admins"
-                    count={checked.members ? "4/4" : "0/4"}
+                    count={`${selectedMemberFilters}/4`}
                     checked={checked.members}
                     expanded={expanded.members}
-                    onToggleChecked={() => toggleChecked("members")}
+                    onToggleChecked={() => toggleGroup("members", memberFilterKeys)}
                     onToggleExpanded={() => toggleExpanded("members")}
                   />
                   {expanded.members && (
@@ -2957,10 +3057,10 @@ function RecentActionsView({
                   )}
                   <ActionFilterGroup
                     label="Channel Settings"
-                    count={checked.settings ? "3/3" : "0/3"}
+                    count={`${selectedSettingsFilters}/3`}
                     checked={checked.settings}
                     expanded={expanded.settings}
-                    onToggleChecked={() => toggleChecked("settings")}
+                    onToggleChecked={() => toggleGroup("settings", settingsFilterKeys)}
                     onToggleExpanded={() => toggleExpanded("settings")}
                   />
                   {expanded.settings && (
@@ -2972,10 +3072,10 @@ function RecentActionsView({
                   )}
                   <ActionFilterGroup
                     label="Messages"
-                    count={checked.messages ? "3/3" : "0/3"}
+                    count={`${selectedMessageFilters}/3`}
                     checked={checked.messages}
                     expanded={expanded.messages}
-                    onToggleChecked={() => toggleChecked("messages")}
+                    onToggleChecked={() => toggleGroup("messages", messageFilterKeys)}
                     onToggleExpanded={() => toggleExpanded("messages")}
                   />
                   {expanded.messages && (
@@ -2989,17 +3089,26 @@ function RecentActionsView({
 
                 <SectionLabel>Filter Actions By Admins</SectionLabel>
                 <InfoSection>
-                  <ActionFilterChild label="Show Actions by All Admins" checked={checked.allAdmins} onClick={() => toggleChecked("allAdmins")} />
+                  <ActionFilterChild
+                    label="Show Actions by All Admins"
+                    checked={checked.allAdmins}
+                    onClick={() => setChecked((current) => ({ ...current, allAdmins: !current.allAdmins }))}
+                  />
                   {actorIds.slice(0, 6).map((actorId) => (
                     <div key={actorId} className="pl-14">
                       <ActionFilterChild
                         label={nameOf(actorId)}
-                        checked={checked.owner}
-                        onClick={() => toggleChecked("owner")}
+                        checked={checked.allAdmins || !!checked[`actor:${actorId}`]}
+                        onClick={() => toggleActor(actorId)}
                         avatar={nameOf(actorId).slice(0, 1).toUpperCase()}
                       />
                     </div>
                   ))}
+                  {!checked.allAdmins && actorIds.length > 0 && (
+                    <div className="px-4 py-3 text-xs leading-5 text-slate-500">
+                      Showing {selectedActorCount || "no"} selected admin{selectedActorCount === 1 ? "" : "s"}.
+                    </div>
+                  )}
                 </InfoSection>
               </div>
             </ScrollArea>
@@ -3240,14 +3349,14 @@ function QuickAction({
   return (
     <button
       type="button"
-      className="flex min-w-0 flex-col items-center gap-1.5 rounded-xl bg-white/86 px-1 py-2 text-center text-[11px] font-semibold text-sky-600 shadow-sm ring-1 ring-white/75 transition hover:bg-white disabled:opacity-60"
+      className="inline-flex h-11 min-w-max items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white/86 px-3 text-[11px] font-semibold text-sky-600 shadow-sm ring-1 ring-white/75 transition hover:bg-white active:scale-[0.98] disabled:opacity-60"
       onClick={onClick}
       disabled={disabled}
     >
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sky-600">
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sky-600">
         <Icon className="h-4 w-4" />
       </span>
-      <span className="w-full truncate">{label}</span>
+      <span>{label}</span>
     </button>
   );
 }

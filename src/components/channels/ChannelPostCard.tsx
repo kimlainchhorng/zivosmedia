@@ -209,25 +209,58 @@ function getFirstUrl(text?: string | null): string | null {
   return match || null;
 }
 
+function getXStatusId(url: string) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+    if (host !== "x.com" && host !== "twitter.com" && host !== "mobile.twitter.com") return null;
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const statusIndex = parts.findIndex((part) => part === "status" || part === "statuses");
+    const id = statusIndex >= 0 ? parts[statusIndex + 1] : null;
+    return id && /^\d{5,30}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function getTwitterStatusUrl(url: string) {
+  const statusId = getXStatusId(url);
+  if (!statusId) return null;
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const username = parts[0] || "i";
+    return `https://twitter.com/${encodeURIComponent(username)}/status/${encodeURIComponent(statusId)}`;
+  } catch {
+    return `https://twitter.com/i/status/${encodeURIComponent(statusId)}`;
+  }
+}
+
 function buildLinkPreview(url: string) {
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.replace(/^www\./, "");
     const isMeet = host.includes("meet.google.com");
     const isTelegram = host.includes("t.me") || host.includes("telegram.");
+    const xStatusId = getXStatusId(url);
+    const xStatusUrl = getTwitterStatusUrl(url);
     return {
-      kind: isMeet ? "meet" : isTelegram ? "telegram" : "link",
+      kind: xStatusId ? "x-status" : isMeet ? "meet" : isTelegram ? "telegram" : "link",
       host,
-      title: isMeet ? "Google Meet" : isTelegram ? "Telegram" : host,
-      description: isMeet
+      title: xStatusId ? "X video" : isMeet ? "Google Meet" : isTelegram ? "Telegram" : host,
+      description: xStatusId
+        ? "Watch this X post without leaving the channel."
+        : isMeet
         ? "Real-time meetings by Google. Using your browser, share your video, desktop, and presentations with teammates and customers."
         : isTelegram
         ? "Open this Telegram link."
         : parsed.pathname.split("/").filter(Boolean).join(" / ") || "Open link",
       accent: isMeet ? "border-l-4 border-l-emerald-500" : "border-l-4 border-l-sky-500",
+      xStatusId,
+      xStatusUrl,
     };
   } catch {
-    return { kind: "link", host: url, title: "Link", description: url, accent: "border-l-4 border-l-sky-500" };
+    return { kind: "link", host: url, title: "Link", description: url, accent: "border-l-4 border-l-sky-500", xStatusId: null, xStatusUrl: null };
   }
 }
 
@@ -585,6 +618,35 @@ export function ChannelPostCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id]);
 
+  useEffect(() => {
+    if (linkPreview?.kind !== "x-status" || !linkPreview.xStatusUrl) return;
+    if (typeof window === "undefined") return;
+
+    const renderWidgets = () => {
+      const widgets = (window as any).twttr?.widgets;
+      if (widgets?.load) widgets.load(ref.current ?? undefined);
+    };
+
+    if ((window as any).twttr?.widgets?.load) {
+      renderWidgets();
+      return;
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://platform.twitter.com/widgets.js"]');
+    if (existing) {
+      existing.addEventListener("load", renderWidgets, { once: true });
+      return () => existing.removeEventListener("load", renderWidgets);
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://platform.twitter.com/widgets.js";
+    script.async = true;
+    script.charset = "utf-8";
+    script.addEventListener("load", renderWidgets, { once: true });
+    document.head.appendChild(script);
+    return () => script.removeEventListener("load", renderWidgets);
+  }, [linkPreview?.kind, linkPreview?.xStatusUrl]);
+
   // Polls are inlined into post.media as `{ type: "poll", poll_id, ... }`
   // (no `url`). Voice notes use `{ type: "voice", url, duration_ms, ... }`.
   // Pull each out and render them with their own components; image/video
@@ -904,35 +966,76 @@ export function ChannelPostCard({
         )}
 
         {linkPreview && (
-          <a
-            href={firstUrl ?? undefined}
-            target="_blank"
-            rel="noreferrer"
-            className={cn(
-              "block overflow-hidden rounded-lg bg-emerald-100/60 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70",
-              hasBody ? "mt-1.5" : "mt-0",
-            )}
-          >
-            <span className="flex gap-2 p-2.5">
-              <span className="w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-bold text-emerald-700 dark:text-emerald-300">{linkPreview.title}</span>
-                <span className="mt-0.5 line-clamp-3 block text-[15px] leading-5 text-slate-950 dark:text-zinc-200">{linkPreview.description}</span>
-                <span className="mt-1 block truncate text-[11px] text-emerald-700/70 dark:text-emerald-300/70">{linkPreview.host}</span>
+          linkPreview.kind === "x-status" && linkPreview.xStatusId ? (
+            <div
+              className={cn(
+                "overflow-hidden rounded-2xl bg-black text-white shadow-sm ring-1 ring-black/10",
+                hasBody ? "mt-2" : "mt-0",
+              )}
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2.5">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-black">
+                    <X className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold">X video</span>
+                    <span className="block truncate text-[11px] text-white/60">{linkPreview.host}</span>
+                  </span>
+                </span>
+                <a
+                  href={firstUrl ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/20"
+                >
+                  Open
+                </a>
+              </div>
+              <div className="min-h-[260px] bg-white px-2 py-3 text-slate-950 [&_.twitter-tweet]:!mx-auto [&_.twitter-tweet]:!w-full [&_iframe]:!min-h-[260px] [&_iframe]:!w-full">
+                <blockquote
+                  className="twitter-tweet mx-auto"
+                  data-dnt="true"
+                  data-theme="light"
+                  data-conversation="none"
+                >
+                  <a href={linkPreview.xStatusUrl ?? firstUrl ?? undefined}>
+                    Watch on X
+                  </a>
+                </blockquote>
+              </div>
+            </div>
+          ) : (
+            <a
+              href={firstUrl ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "block overflow-hidden rounded-lg bg-emerald-100/60 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70",
+                hasBody ? "mt-1.5" : "mt-0",
+              )}
+            >
+              <span className="flex gap-2 p-2.5">
+                <span className="w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-bold text-emerald-700 dark:text-emerald-300">{linkPreview.title}</span>
+                  <span className="mt-0.5 line-clamp-3 block text-[15px] leading-5 text-slate-950 dark:text-zinc-200">{linkPreview.description}</span>
+                  <span className="mt-1 block truncate text-[11px] text-emerald-700/70 dark:text-emerald-300/70">{linkPreview.host}</span>
+                </span>
+                <span
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/65 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-300",
+                    linkPreview.kind === "meet" && "bg-yellow-300 text-white dark:bg-yellow-400 dark:text-white",
+                  )}
+                >
+                  {linkPreview.kind === "meet" ? <Video className="h-5 w-5 fill-current" /> : <LinkIcon className="h-4 w-4" />}
+                </span>
               </span>
-              <span
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/65 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-300",
-                  linkPreview.kind === "meet" && "bg-yellow-300 text-white dark:bg-yellow-400 dark:text-white",
-                )}
-              >
-                {linkPreview.kind === "meet" ? <Video className="h-5 w-5 fill-current" /> : <LinkIcon className="h-4 w-4" />}
-              </span>
-            </span>
-            {linkPreview.kind === "meet" && (
-              <MeetPreviewArtwork />
-            )}
-          </a>
+              {linkPreview.kind === "meet" && (
+                <MeetPreviewArtwork />
+              )}
+            </a>
+          )
         )}
 
         {pollAttachment && (

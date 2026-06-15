@@ -1627,16 +1627,20 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
     setPromoError(null);
     const code = promoInput.trim().toUpperCase();
 
-    // FREE promo: 100% off, USA rides only
-    if (code === "FREE") {
+    const isLocalTestPromo =
+      code === "TEST100FREE" &&
+      ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+
+    // Free promos: 100% off, USA rides only. TEST100FREE is local-preview only.
+    if (code === "FREE" || isLocalTestPromo) {
       if (useKm) {
         setPromoError("This promo code is only available for rides in the USA");
         setPromoValidating(false);
         return;
       }
-      setAppliedPromo({ code: "FREE", description: "100% discount — Free ride!" });
+      setAppliedPromo({ code, description: "100% discount — Free ride!" });
       setPromoDiscount(currentPrice);
-      toast.success("FREE promo applied — enjoy your free ride!");
+      toast.success(`${code} promo applied — enjoy your free ride!`);
       setPromoValidating(false);
       return;
     }
@@ -1661,7 +1665,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
     } finally {
       setPromoValidating(false);
     }
-  }, [promoInput, currentPrice, user?.id, user?.email]);
+  }, [promoInput, currentPrice, useKm, user?.id]);
 
   /* ─── Back navigation ─── */
   const handleBack = () => {

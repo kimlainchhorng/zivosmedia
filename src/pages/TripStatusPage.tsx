@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 type JobStatus =
   | "created"
   | "requested"
+  | "dispatched"
   | "accepted"
   | "en_route"
   | "arrived"
@@ -72,7 +73,7 @@ function mapToTrackerStatus(
   }
 }
 
-const FINDING_STATUSES: JobStatus[] = ["created", "requested"];
+const FINDING_STATUSES: JobStatus[] = ["created", "requested", "dispatched"];
 const DRIVER_STATUSES: JobStatus[] = [
   "accepted",
   "en_route",
