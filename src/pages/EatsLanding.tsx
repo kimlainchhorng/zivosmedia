@@ -202,6 +202,12 @@ const ORDER_STAGES = [
   { label: "Delivered", icon: CheckCircle },
 ] as const;
 
+// Map the real food_orders.status enum onto the inline ORDER_STAGES index.
+const EATS_STATUS_TO_STEP: Record<string, number> = {
+  pending: 0, confirmed: 1, preparing: 2, ready: 2,
+  picked_up: 3, out_for_delivery: 3, delivered: 4,
+};
+
 export default function EatsLanding() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -212,15 +218,34 @@ export default function EatsLanding() {
   const [statusStep, setStatusStep] = useState(0);
   const [cancelCountdown, setCancelCountdown] = useState(60);
 
+  // Reflect the REAL order status (no fake timer): fetch once, then subscribe to
+  // realtime updates — mirrors EatsTrackingPage. Monotonic so a slow initial fetch
+  // can't regress a newer realtime value. Closes the overlay if the order is cancelled.
   useEffect(() => {
     if (!trackedOrderId) return;
-    if (statusStep >= ORDER_STAGES.length - 1) {
-      const t = setTimeout(() => { setTrackedOrderId(null); navigate(`/eats/track/${trackedOrderId}`); }, 1800);
-      return () => clearTimeout(t);
-    }
-    const t = setTimeout(() => setStatusStep(s => s + 1), 15000);
-    return () => clearTimeout(t);
-  }, [trackedOrderId, statusStep, navigate]);
+    let active = true;
+    const apply = (status?: string | null) => {
+      if (!active || !status) return;
+      if (status === "cancelled") { setTrackedOrderId(null); return; }
+      const step = EATS_STATUS_TO_STEP[status];
+      if (typeof step === "number") setStatusStep((prev) => Math.max(prev, step));
+    };
+    supabase
+      .from("food_orders")
+      .select("status")
+      .eq("id", trackedOrderId)
+      .single()
+      .then(({ data }) => apply((data as { status?: string } | null)?.status));
+    const channel = supabase
+      .channel(`eats-inline-${trackedOrderId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "food_orders", filter: `id=eq.${trackedOrderId}` },
+        (payload) => apply((payload.new as { status?: string } | null)?.status),
+      )
+      .subscribe();
+    return () => { active = false; supabase.removeChannel(channel); };
+  }, [trackedOrderId]);
 
   useEffect(() => {
     if (!trackedOrderId || cancelCountdown <= 0) return;
