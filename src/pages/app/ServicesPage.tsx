@@ -53,6 +53,33 @@ interface ServiceCategory {
   services: ServiceItem[];
 }
 
+/* Per-service accent colours (static literal classes so Tailwind JIT keeps them).
+   Keyed by href so tiles don't each need annotating; related services share a hue.
+   A soft 10% tint on the icon tile + a coloured icon turns the monochrome grid into
+   a vibrant, organised super-app hub without touching layout or interaction. */
+const ACCENT_BY_HREF: Record<string, { bg: string; icon: string }> = {
+  "/rides/hub": { bg: "bg-blue-500/10 dark:bg-blue-400/15", icon: "text-blue-500 dark:text-blue-400" },
+  "/rides/hub?tab=reserve": { bg: "bg-rose-500/10 dark:bg-rose-400/15", icon: "text-rose-500 dark:text-rose-400" },
+  "/delivery": { bg: "bg-violet-500/10 dark:bg-violet-400/15", icon: "text-violet-500 dark:text-violet-400" },
+  "/flights": { bg: "bg-sky-500/10 dark:bg-sky-400/15", icon: "text-sky-500 dark:text-sky-400" },
+  "/rent-car": { bg: "bg-amber-500/10 dark:bg-amber-400/15", icon: "text-amber-600 dark:text-amber-400" },
+  "/eats": { bg: "bg-orange-500/10 dark:bg-orange-400/15", icon: "text-orange-500 dark:text-orange-400" },
+  "/grocery": { bg: "bg-emerald-500/10 dark:bg-emerald-400/15", icon: "text-emerald-500 dark:text-emerald-400" },
+  "/marketplace": { bg: "bg-fuchsia-500/10 dark:bg-fuchsia-400/15", icon: "text-fuchsia-500 dark:text-fuchsia-400" },
+  "/hotels": { bg: "bg-indigo-500/10 dark:bg-indigo-400/15", icon: "text-indigo-500 dark:text-indigo-400" },
+  "/travel-insurance": { bg: "bg-teal-500/10 dark:bg-teal-400/15", icon: "text-teal-500 dark:text-teal-400" },
+  "/explore": { bg: "bg-pink-500/10 dark:bg-pink-400/15", icon: "text-pink-500 dark:text-pink-400" },
+  "/wellness": { bg: "bg-green-500/10 dark:bg-green-400/15", icon: "text-green-500 dark:text-green-400" },
+  "/ai-trip-planner": { bg: "bg-purple-500/10 dark:bg-purple-400/15", icon: "text-purple-500 dark:text-purple-400" },
+  "/support": { bg: "bg-slate-500/10 dark:bg-slate-400/15", icon: "text-slate-500 dark:text-slate-400" },
+  "/drive": { bg: "bg-cyan-500/10 dark:bg-cyan-400/15", icon: "text-cyan-500 dark:text-cyan-400" },
+  "/zivo-plus": { bg: "bg-yellow-500/10 dark:bg-yellow-400/15", icon: "text-yellow-600 dark:text-yellow-400" },
+  "/rewards": { bg: "bg-amber-500/10 dark:bg-amber-400/15", icon: "text-amber-600 dark:text-amber-400" },
+  "/deals": { bg: "bg-red-500/10 dark:bg-red-400/15", icon: "text-red-500 dark:text-red-400" },
+  "/live": { bg: "bg-rose-500/10 dark:bg-rose-400/15", icon: "text-rose-500 dark:text-rose-400" },
+  "/creator-dashboard": { bg: "bg-cyan-500/10 dark:bg-cyan-400/15", icon: "text-cyan-500 dark:text-cyan-400" },
+};
+
 /* ── Data ── */
 const getServiceCategories = (t: (key: string) => string, isCambodia = false): ServiceCategory[] => [
   {
@@ -480,7 +507,8 @@ export default function ServicesPage() {
                     <div
                       className={cn(
                         "w-[68px] h-[68px] rounded-2xl flex items-center justify-center transition-all duration-200 overflow-visible",
-                        "bg-card border border-border/40 shadow-sm",
+                        ACCENT_BY_HREF[service.href]?.bg ?? "bg-card",
+                        "border border-border/40 shadow-sm",
                         "group-hover:shadow-md group-hover:border-primary/20 group-hover:-translate-y-0.5",
                         "group-active:bg-muted/60 group-active:shadow-none group-active:translate-y-0"
                       )}
@@ -497,7 +525,7 @@ export default function ServicesPage() {
                           decoding="async"
                         />
                       ) : service.icon ? (
-                        <service.icon className="w-6 h-6 text-muted-foreground transition-colors duration-200 group-hover:text-primary" />
+                        <service.icon className={cn("w-6 h-6 transition-colors duration-200", ACCENT_BY_HREF[service.href]?.icon ?? "text-muted-foreground")} />
                       ) : null}
                     </div>
 
