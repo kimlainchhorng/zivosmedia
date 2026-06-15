@@ -217,6 +217,7 @@ export default function EatsLanding() {
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
   const [statusStep, setStatusStep] = useState(0);
   const [cancelCountdown, setCancelCountdown] = useState(60);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
 
   // Reflect the REAL order status (no fake timer): fetch once, then subscribe to
   // realtime updates — mirrors EatsTrackingPage. Monotonic so a slow initial fetch
@@ -696,6 +697,39 @@ export default function EatsLanding() {
         action: { label: "Track", onClick: () => navigate(`/eats/track/${result.orderId}`) },
         duration: 6000,
       });
+    }
+  };
+
+  // ─── Cancel just-placed order (grace window) ─────────────────────────
+  // Reuses the REAL cancel + refund path (cancel-eats-order edge function),
+  // the same one EatsTrackingPage's CancelOrderButton calls. This actually
+  // cancels the live food_orders row and triggers the provider refund — it is
+  // NOT a cosmetic overlay close. On failure (e.g. restaurant already
+  // confirmed / driver assigned → 409) we surface the error and KEEP the
+  // overlay open so the order stays trackable.
+  const handleCancelTrackedOrder = async () => {
+    if (!trackedOrderId || cancellingOrder) return;
+    setCancellingOrder(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-eats-order", {
+        body: { order_id: trackedOrderId, reason: "customer_initiated" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const r = data as { refund_cents?: number; payment_status?: string; provider?: string };
+      if (r?.refund_cents && r.refund_cents > 0) {
+        toast.success("Order cancelled", {
+          description: `$${(r.refund_cents / 100).toFixed(2)} refund ${r.payment_status === "refunded" ? "issued" : "in progress"} via ${r.provider || "your payment method"}.`,
+        });
+      } else {
+        toast.success("Order cancelled");
+      }
+      setTrackedOrderId(null);
+      setStep("browse");
+    } catch (e: any) {
+      toast.error(e?.message || "Cancellation failed");
+    } finally {
+      setCancellingOrder(false);
     }
   };
 
@@ -2644,9 +2678,11 @@ export default function EatsLanding() {
               </button>
               {cancelCountdown > 0 && statusStep === 0 && (
                 <button type="button"
-                  onClick={() => { setTrackedOrderId(null); setStep("cart"); }}
-                  className="text-[12px] text-muted-foreground underline-offset-2 hover:underline">
-                  Cancel order ({cancelCountdown}s)
+                  onClick={handleCancelTrackedOrder}
+                  disabled={cancellingOrder}
+                  className="flex items-center gap-1.5 text-[12px] text-muted-foreground underline-offset-2 hover:underline disabled:opacity-60 disabled:no-underline">
+                  {cancellingOrder && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {cancellingOrder ? "Cancelling…" : `Cancel order (${cancelCountdown}s)`}
                 </button>
               )}
             </div>
