@@ -400,7 +400,8 @@ export default function DeliveryPage() {
   const speedMultiplier = currentSpeed?.multiplier ?? 1;
   const fragileFee = isFragile ? 2.99 : 0;
   const signatureFee = requireSignature ? 1.99 : 0;
-  const insuranceFee = includeInsurance ? 1.99 * packageCount : 0;
+  const selectedInsTier = insuranceTiers.find(t => t.id === selectedInsuranceTier) ?? insuranceTiers[1];
+  const insuranceFee = includeInsurance ? selectedInsTier.cost * packageCount : 0;
   const priorityFee = priorityHandling ? 4.99 : 0;
   const subtotal = basePrice * speedMultiplier + fragileFee + signatureFee + insuranceFee + priorityFee;
   const promoDiscount = promoApplied ? Math.round(subtotal * 0.15 * 100) / 100 : 0;
@@ -799,13 +800,18 @@ export default function DeliveryPage() {
 
               {/* Insurance toggle */}
               <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                <button type="button" onClick={() => setIncludeInsurance(!includeInsurance)}
+                <button type="button" onClick={() => {
+                  const next = !includeInsurance;
+                  setIncludeInsurance(next);
+                  if (!next) setSelectedInsuranceTier("none");
+                  else if (selectedInsuranceTier === "none") setSelectedInsuranceTier("basic");
+                }}
                   className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", includeInsurance ? "bg-violet-500" : "bg-muted/60")}>
                   <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", includeInsurance ? "left-[18px]" : "left-0.5")} />
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-foreground" /> Package Insurance</p>
-                  <p className="text-[10px] text-muted-foreground">Cover up to $500 for +$1.99{packageCount > 1 ? `/pkg` : ""}</p>
+                  <p className="text-[10px] text-muted-foreground">{includeInsurance ? `${selectedInsTier.coverage} coverage for +$${selectedInsTier.cost.toFixed(2)}${packageCount > 1 ? `/pkg` : ""}` : "Add coverage for your package"}</p>
                 </div>
               </div>
 
@@ -909,13 +915,17 @@ export default function DeliveryPage() {
                 </h3>
                 <div className="space-y-2">
                   {insuranceTiers.map(tier => (
-                    <button type="button" key={tier.id} onClick={() => setSelectedInsuranceTier(tier.id)}
+                    <button type="button" key={tier.id} onClick={() => {
+                      setSelectedInsuranceTier(tier.id);
+                      setIncludeInsurance(tier.id !== "none");
+                    }}
                       className={cn("w-full flex items-center justify-between p-3 rounded-xl transition-all touch-manipulation active:scale-[0.98]",
                         selectedInsuranceTier === tier.id ? "bg-violet-500/10 border border-violet-500/30" : "bg-muted/30 border border-border/30")}>
                       <div>
                         <span className="text-xs font-bold text-foreground">{tier.label}</span>
                         <span className="text-[10px] text-muted-foreground ml-2">{tier.coverage}</span>
                       </div>
+                      <span className="text-xs font-bold text-foreground shrink-0">{tier.cost === 0 ? "Free" : `+$${tier.cost.toFixed(2)}`}</span>
                     </button>
                   ))}
                 </div>
@@ -1588,7 +1598,7 @@ export default function DeliveryPage() {
                 )}
                 {fragileFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Fragile handling</span><span className="font-bold">${fragileFee.toFixed(2)}</span></div>}
                 {signatureFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Signature required</span><span className="font-bold">${signatureFee.toFixed(2)}</span></div>}
-                {includeInsurance && <div className="flex justify-between"><span className="text-muted-foreground">Insurance{packageCount > 1 ? ` (×${packageCount})` : ""}</span><span className="font-bold">${insuranceFee.toFixed(2)}</span></div>}
+                {insuranceFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Insurance · {selectedInsTier.label}{packageCount > 1 ? ` (×${packageCount})` : ""}</span><span className="font-bold">${insuranceFee.toFixed(2)}</span></div>}
                 {priorityFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Priority handling</span><span className="font-bold">${priorityFee.toFixed(2)}</span></div>}
                 {promoDiscount > 0 && <div className="flex justify-between text-foreground"><span className="font-bold flex items-center gap-1"><Tag className="w-3 h-3" /> DELIVER15</span><span className="font-bold">-${promoDiscount.toFixed(2)}</span></div>}
                 <div className="flex justify-between pt-3 border-t border-border/30">
@@ -1599,7 +1609,7 @@ export default function DeliveryPage() {
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
                 <Shield className="w-3.5 h-3.5 text-foreground/60" />
-                <span>{includeInsurance ? "Package insured up to $500" : "No insurance"} · Secured by ZIVO</span>
+                <span>{insuranceFee > 0 ? `Package insured · ${selectedInsTier.coverage}` : "No insurance"} · Secured by ZIVO</span>
               </div>
 
               <Button onClick={handlePlaceOrder} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
