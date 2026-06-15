@@ -53,7 +53,7 @@ To scan `slirphzzwcogdbkeicff` (MAIN — live payments/bookings/auth):
 3. Add to the watchdog's `.env` or scheduled-task environment:
    ```
    SUPABASE_MAIN_PROJECT_REF=slirphzzwcogdbkeicff
-   SUPABASE_MAIN_ACCESS_TOKEN=sbp_xxxxx
+   SUPABASE_MAIN_ACCESS_TOKEN=<paste the sbp_ token from the dashboard>
    ```
 4. The watchdog script will auto-detect the new token and begin scanning
    auth logs for brute-force / credential-stuffing patterns every 45 min.

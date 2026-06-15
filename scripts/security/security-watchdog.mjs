@@ -410,6 +410,7 @@ async function collectLiveSupabase() {
       const worstIp = Object.entries(fails).sort((a, b) => b[1] - a[1])[0];
       const burst = worstIp && worstIp[1] >= 20;
       result.attack = {
+        rowsScanned: rows.length,
         recentFailures: failCount,
         worstIp: worstIp ? { ip: worstIp[0], failures: worstIp[1] } : null,
         likelyAttack: !!burst,
@@ -572,7 +573,7 @@ function renderReport({ iso, signals, ai, overall, activeAttack }) {
     }
   }
   lines.push(`- git: ${signals.git?.uncommittedCount} uncommitted; sensitive changed: ${signals.git?.sensitiveChanged?.length || 0}`);
-  lines.push(`- live backend: ${signals.live?.status}${signals.live?.attack ? ` · recent auth failures: ${signals.live.attack.recentFailures}${signals.live.attack.worstIp ? ` (worst IP ${signals.live.attack.worstIp.ip}: ${signals.live.attack.worstIp.failures})` : ""}` : ""}`);
+  lines.push(`- live backend: ${signals.live?.status}${signals.live?.attack ? ` · scanned ${signals.live.attack.rowsScanned} auth-log rows · recent auth failures: ${signals.live.attack.recentFailures}${signals.live.attack.worstIp ? ` (worst IP ${signals.live.attack.worstIp.ip}: ${signals.live.attack.worstIp.failures})` : ""}` : ""}`);
   lines.push("");
   if (ai && ai.length) {
     lines.push(`## AI analysis`);

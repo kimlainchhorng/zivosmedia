@@ -22,7 +22,7 @@ To enable it for `slirphzzwcogdbkeicff` (main):
 1. Supabase Dashboard → **Account → Access Tokens** → generate a personal token (`sbp_…`).
 2. Add to `.env.local` (git-ignored):
    ```
-   SUPABASE_ACCESS_TOKEN=sbp_xxxxxxxx
+   SUPABASE_ACCESS_TOKEN=<paste the sbp_ token from the dashboard>
    SUPABASE_PROJECT_REF=slirphzzwcogdbkeicff
    ```
 3. Verify it's wired: `npm run security:watch:selftest` (should show ✅ live scan configured).
