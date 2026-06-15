@@ -11,7 +11,13 @@ each needs your decision/deploy. No active attack was detected anywhere checked.
 
 ---
 
-## 🔴 Priority 1 — Turn on live attack detection for the MAIN project
+## ✅ Priority 1 — Live attack detection for the MAIN project — DONE (2026-06-15)
+
+> Token added to `.env.local`; verified the watchdog scans `slirphzzwcogdbkeicff` live
+> auth logs every cycle (first run: 43 rows, no attack). Steps below kept for reference
+> (e.g. to point at another project, or after a token rotation).
+
+### (original steps)
 
 The watchdog can scan a project's live auth logs every cycle for brute-force /
 credential-stuffing, but only for a project it has a token for. Right now it has
@@ -32,9 +38,14 @@ To enable it for `slirphzzwcogdbkeicff` (main):
 
 ## 🟡 Priority 2 — Supabase Auth hardening (dashboard, ~2 min)
 
-- [ ] **Enable leaked-password protection** — Auth → Settings → "Prevent use of
-      compromised passwords" (HaveIBeenPwned). Currently **OFF**. Affects new
-      sign-ups/changes only; existing users unaffected.
+- [x] **Main project (`slirph`) — already hardened** (verified 2026-06-15 via Management
+      API): `password_hibp_enabled: true`, refresh-token rotation ON, reauth-required on
+      password change, 8-char letters+digits policy. No action needed.
+- [ ] **Zivo Software project (`ydxz`) — leaked-password protection is OFF.** Enabling
+      it (`PATCH /v1/projects/ydxztoresbdeoeijhxww/config/auth {"password_hibp_enabled":true}`)
+      is reversible. Risk is low: the shared `Signup.tsx` already blocks breached passwords
+      at signup, so almost no existing user has one. Confirm before flipping (Supabase also
+      enforces HIBP at sign-in).
 
 ---
 
@@ -70,11 +81,13 @@ The table lives on the **main** project; something running against ydxz queries 
 
 ## 🟢 Priority 4 — Lower-severity hardening
 
-- [ ] **Edge-function CORS** — `supabase/functions/_shared/cors.ts` uses
-      `Access-Control-Allow-Origin: *`. Move to an origin allowlist (the 7 ZIVO
-      domains + localhost). Cross-cutting: touches every edge function's CORS import,
-      so change `_shared/cors.ts` to a `getCorsHeaders(origin)` helper and update
-      callers. **You deploy.**
+- [ ] **Edge-function CORS (LOW — not the wallet-drain risk it first looks like).**
+      `_shared/cors.ts` *already* has `strictCorsHeaders()` (validates Origin against a
+      full ZIVO allowlist → 403 on unknown). The `corsHeaders` `*` export is intentional
+      for public/webhook routes. CORS `*` does **not** bypass `Bearer`-token auth, can't
+      carry credentials, and doesn't block non-browser (curl) calls — so it is not a
+      drain vector. Optional cleanup only: audit which *authenticated* edge fns still use
+      the legacy `corsHeaders`/`getCorsHeaders` and migrate them to `strictCorsHeaders`.
 - [ ] **`ip-api.com` over http** in `geo-detect` / `log-login` edge fns — geo data is
       low-sensitivity; options: keep + add a 3s timeout, or switch to `ipapi.co`
       (free HTTPS, but field names differ — verify the consumed fields). **You deploy.**
