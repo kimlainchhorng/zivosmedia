@@ -63,7 +63,7 @@ import { SEOContentBlock, InternalLinkGrid } from "@/components/seo";
 import { carAffiliatePartners } from "@/data/carAffiliatePartners";
 import CarCategoryTiles from "@/components/car/CarCategoryTiles";
 import type { CarCategory } from "@/config/photos";
-import type { Airport } from "@/data/airports";
+import { searchAirports, type Airport } from "@/data/airports";
 import { CAR_DISCLAIMERS } from "@/config/carCompliance";
 
 const carCategories = [
@@ -366,7 +366,17 @@ const CarRentalBooking = () => {
     import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(url));
   };
 
-  const handleLocationSelect = (city: string) => setPickupDisplayValue(city);
+  const handleLocationSelect = (city: string) => {
+    // Resolve the picked city to its top airport so the Search button enables
+    // (mirrors handleAirportChange). Falls back to the bare city if unmatched.
+    const match = searchAirports(city)[0];
+    if (match) {
+      setSelectedAirport(match);
+      setPickupDisplayValue(`${match.city} (${match.code})`);
+    } else {
+      setPickupDisplayValue(city);
+    }
+  };
 
   const daysCount = pickupDate && returnDate
     ? Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24)))
