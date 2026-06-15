@@ -1048,7 +1048,6 @@ const FlightResults = () => {
       active: sortBy === "earliest",
     },
   ];
-  const bookingConfidence = lowestPrice > 0 || displayedFlightCount > 0 ? 92 : 78;
 
   const desktopOverview = !isMobile && (
     <div className="mb-5 hidden lg:block">
@@ -1070,12 +1069,10 @@ const FlightResults = () => {
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-slate-500">
+          <span className="flex items-center gap-2 text-sm text-slate-500">
             Currency
-            <select className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950 outline-none">
-              <option>USD</option>
-            </select>
-          </label>
+            <span className="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-950">USD</span>
+          </span>
           <label className="flex items-center gap-2 text-sm text-slate-500">
             Sort by
             <select
@@ -1145,51 +1142,6 @@ const FlightResults = () => {
 
   const desktopInsights = !isMobile && (
     <aside className="hidden w-[248px] shrink-0 space-y-4 lg:block">
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-black text-slate-950">Booking confidence</h2>
-          <ShieldCheck className="h-4 w-4 text-slate-400" />
-        </div>
-        <div className="mt-5 flex items-center justify-between">
-          <p className="text-3xl font-black text-teal-700">{bookingConfidence >= 90 ? "High" : "Good"}</p>
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border-[10px] border-teal-100 border-r-teal-500 border-t-teal-700 text-sm font-black text-slate-950">
-            {bookingConfidence}%
-          </div>
-        </div>
-        <div className="mt-4 space-y-2 text-sm text-slate-600">
-          {["Prices are currently low", "Low demand on your dates", "Typical price is under budget"].map((item) => (
-            <p key={item} className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-teal-600" />
-              {item}
-            </p>
-          ))}
-        </div>
-        <p className="mt-4 text-xs text-slate-400">Confidence updated 2h ago</p>
-      </div>
-
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-black text-slate-950">Price comparison</h2>
-        <div className="mt-3 inline-flex rounded-full bg-sky-50 p-1 text-xs font-bold text-slate-500">
-          <span className="rounded-full bg-sky-100 px-4 py-1 text-sky-700">7 days</span>
-          <span className="px-4 py-1">30 days</span>
-        </div>
-        <div className="mt-4 flex items-end justify-between">
-          <div>
-            <p className="text-xs text-slate-500">Average price</p>
-            <p className="text-lg font-black text-slate-950">${lowestPrice || quickStats?.bestValue.price || 689}</p>
-          </div>
-          <p className="text-sm font-bold text-emerald-600">-8%</p>
-        </div>
-        <svg className="mt-3 h-20 w-full" viewBox="0 0 220 80" role="img" aria-label="Price trend">
-          <path d="M4 60 L30 42 L55 48 L82 35 L110 52 L140 44 L170 55 L198 38 L216 64" fill="none" stroke="#0f8a96" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M4 60 L30 42 L55 48 L82 35 L110 52 L140 44 L170 55 L198 38 L216 64 L216 80 L4 80 Z" fill="#0f8a96" opacity="0.08" />
-        </svg>
-        <div className="mt-3 rounded-lg bg-sky-50 p-3 text-xs text-slate-600">
-          <p className="font-bold text-slate-950">Tips</p>
-          <p className="mt-1">Prices are likely to stay stable. Book within 3 days for the best fares.</p>
-        </div>
-      </div>
-
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-base font-black text-slate-950">Why book with ZIVO?</h2>
         <div className="mt-4 space-y-3 text-sm text-slate-600">
