@@ -769,12 +769,31 @@ export default function PublicProfilePage() {
     }
   };
 
-  const handleLike = (postId: string) => {
+  const handleLike = async (postId: string) => {
+    if (!user) { toast.error("Please sign in to like posts"); return; }
+    const wasLiked = likedPosts.has(postId);
+    // Optimistic toggle (the heart fill is the instant feedback).
     setLikedPosts((prev) => {
       const next = new Set(prev);
-      if (next.has(postId)) next.delete(postId); else next.add(postId);
+      if (wasLiked) next.delete(postId); else next.add(postId);
       return next;
     });
+    try {
+      if (wasLiked) {
+        await (supabase as any).from("post_likes").delete().eq("post_id", postId).eq("user_id", user.id);
+      } else {
+        const { error } = await (supabase as any).from("post_likes").insert({ post_id: postId, user_id: user.id });
+        if (error && (error as { code?: string }).code !== "23505") throw error; // tolerate duplicate
+      }
+    } catch {
+      // Roll back the optimistic toggle on failure.
+      setLikedPosts((prev) => {
+        const next = new Set(prev);
+        if (wasLiked) next.add(postId); else next.delete(postId);
+        return next;
+      });
+      toast.error("Couldn't update like");
+    }
   };
 
   useEffect(() => {
@@ -808,6 +827,24 @@ export default function PublicProfilePage() {
     return () => {
       alive = false;
     };
+  }, [posts, user?.id]);
+
+  // Load which of the displayed posts the current user has already liked, so the
+  // heart state persists across reloads (mirrors the bookmark load above).
+  useEffect(() => {
+    if (!user) { setLikedPosts(new Set()); return; }
+    if (!posts.length) return;
+    let alive = true;
+    (async () => {
+      const postIds = posts.map((post: any) => post.id);
+      const { data } = await (supabase as any)
+        .from("post_likes")
+        .select("post_id")
+        .eq("user_id", user.id)
+        .in("post_id", postIds);
+      if (alive) setLikedPosts(new Set((data ?? []).map((row: any) => row.post_id)));
+    })();
+    return () => { alive = false; };
   }, [posts, user?.id]);
 
   useEffect(() => {
@@ -1637,22 +1674,11 @@ export default function PublicProfilePage() {
                     {/* Action bar */}
                     <div className="flex items-center gap-5 px-4 py-3 border-b border-border">
                       <button type="button"
-                        onClick={() => {
-	                          const isLiked = likedPosts.has(selectedPost.id);
-	                          setLikedPosts(prev => {
-	                            const next = new Set(prev);
-	                            if (isLiked) {
-	                              next.delete(selectedPost.id);
-	                            } else {
-	                              next.add(selectedPost.id);
-	                            }
-	                            return next;
-	                          });
-	                        }}
+                        onClick={() => handleLike(selectedPost.id)}
                         className="flex items-center gap-1.5 rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Heart className={`h-6 w-6 transition-colors ${likedPosts.has(selectedPost.id) ? "fill-red-500 text-red-500" : "text-foreground"}`} />
-                        <span className="text-sm font-medium text-foreground">{(selectedPost.likes_count || 0) + (likedPosts.has(selectedPost.id) ? 1 : 0)}</span>
+                        <span className="text-sm font-medium text-foreground">{selectedPost.likes_count || 0}</span>
                       </button>
                       <button type="button" onClick={() => setCommentPost(selectedPost)} className="flex items-center gap-1.5 rounded-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <MessageCircle className="h-6 w-6 text-foreground" />
