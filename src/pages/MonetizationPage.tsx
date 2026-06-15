@@ -89,12 +89,12 @@ const monetizationPrograms: Program[] = [
 ];
 
 const learningResources = [
-  { title: "Getting started with Subscription", description: "Your key to deeper audience connections...", views: "7.7M views", icon: Crown, accent: "hsl(38 92% 50%)" },
-  { title: "Going LIVE on ZIVO!", description: "Real-time fun, self-expression, and connecting...", views: "5.7M views", icon: Video, accent: "hsl(263 70% 58%)" },
-  { title: "Unlocking LIVE monetization", description: "Explore all ways to monetize your streams...", views: "5.7M views", icon: DollarSign, accent: "hsl(142 71% 45%)" },
-  { title: "Monetizing your content", description: "Turn views into real earnings...", views: "9.2M views", icon: TrendingUp, accent: "hsl(221 83% 53%)" },
-  { title: "Building affiliate business", description: "Earn $10K+ monthly through referrals...", views: "3.1M views", icon: Target, accent: "hsl(172 66% 50%)" },
-  { title: "Selling digital products", description: "Create and sell digital products...", views: "2.8M views", icon: PenTool, accent: "hsl(300 70% 55%)" },
+  { title: "Getting started with Subscription", description: "Your key to deeper audience connections...", views: "7.7M views", icon: Crown, accent: "hsl(38 92% 50%)", tab: "Subscription" },
+  { title: "Going LIVE on ZIVO!", description: "Real-time fun, self-expression, and connecting...", views: "5.7M views", icon: Video, accent: "hsl(263 70% 58%)", tab: "LIVE rewards" },
+  { title: "Unlocking LIVE monetization", description: "Explore all ways to monetize your streams...", views: "5.7M views", icon: DollarSign, accent: "hsl(142 71% 45%)", tab: "LIVE rewards" },
+  { title: "Monetizing your content", description: "Turn views into real earnings...", views: "9.2M views", icon: TrendingUp, accent: "hsl(221 83% 53%)", tab: "Creator Rewards" },
+  { title: "Building affiliate business", description: "Earn $10K+ monthly through referrals...", views: "3.1M views", icon: Target, accent: "hsl(172 66% 50%)", tab: "Affiliate" },
+  { title: "Selling digital products", description: "Create and sell digital products...", views: "2.8M views", icon: PenTool, accent: "hsl(300 70% 55%)", tab: "Digital Products" },
 ];
 
 const resourceTabs = ["Recommended", "Subscription", "LIVE rewards", "Creator Rewards", "Affiliate", "Digital Products"];
@@ -349,6 +349,13 @@ export default function MonetizationPage() {
   const visibleLearningResources = zivoOFMode
     ? learningResources.filter((res) => zivoOFResourceTitles.has(res.title))
     : learningResources;
+  // Filter the resource list by the selected tab ("Recommended" = all). Guarded so an
+  // out-of-range activeResTab (e.g. after the zivoOF tab set shrinks) falls back to all.
+  const activeResourceTabName = visibleResourceTabs[activeResTab];
+  const tabbedLearningResources =
+    !activeResourceTabName || activeResourceTabName === "Recommended"
+      ? visibleLearningResources
+      : visibleLearningResources.filter((res) => res.tab === activeResourceTabName);
 
   return (
     <div className="min-h-dvh bg-background pb-24">
@@ -795,7 +802,7 @@ export default function MonetizationPage() {
           </div>
 
           <div className="space-y-3">
-            {visibleLearningResources.map((res, i) => (
+            {tabbedLearningResources.map((res, i) => (
               <motion.button
                 key={res.title}
                 initial={{ opacity: 0, y: 10 }}
