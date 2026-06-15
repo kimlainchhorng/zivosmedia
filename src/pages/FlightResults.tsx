@@ -954,12 +954,55 @@ const FlightResults = () => {
         </div>
       </section>
 
-      {["Airlines", "Duration", "More filters"].map((label) => (
-        <button key={label} type="button" className="flex w-full items-center justify-between py-4 text-left text-sm font-black text-slate-950">
-          {label}
-          <ChevronRight className="h-4 w-4 text-slate-500" />
-        </button>
-      ))}
+      {availableAirlines.length > 0 && (
+        <section className="py-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-950">Airlines</h3>
+            <ChevronRight className="h-4 w-4 -rotate-90 text-slate-500" />
+          </div>
+          <div className="mt-3 max-h-48 space-y-2.5 overflow-y-auto">
+            {availableAirlines.map((al) => (
+              <label key={al.code} className="flex cursor-pointer items-center justify-between gap-3 text-sm text-slate-700">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Checkbox
+                    checked={filters.airlines.includes(al.code)}
+                    onCheckedChange={() => desktopToggleArray("airlines", al.code)}
+                    className="data-[state=checked]:border-teal-600 data-[state=checked]:bg-teal-600"
+                  />
+                  <AirlineLogo iataCode={al.code} airlineName={al.name} size={18} className="shrink-0" />
+                  <span className="truncate">{al.name}</span>
+                </span>
+                <span className="shrink-0 text-slate-500">{al.count}</span>
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="py-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-950">Duration</h3>
+          <ChevronRight className="h-4 w-4 -rotate-90 text-slate-500" />
+        </div>
+        <div className="mt-3">
+          <div className="mb-2 flex items-center justify-between text-xs text-slate-600">
+            <span>Max duration</span>
+            <span>{filters.maxDuration > 0 ? `${Math.floor(filters.maxDuration / 60)}h ${filters.maxDuration % 60}m` : "Any"}</span>
+          </div>
+          <Slider
+            value={[filters.maxDuration > 0 ? filters.maxDuration : maxDurationRange.max]}
+            min={maxDurationRange.min}
+            max={maxDurationRange.max}
+            step={15}
+            onValueChange={([value]) => setFilters((prev) => ({ ...prev, maxDuration: value >= maxDurationRange.max ? 0 : value }))}
+            className="[&_[role=slider]]:border-teal-700 [&_[role=slider]]:bg-white [&_[role=slider]]:shadow-sm [&_.bg-primary]:bg-teal-700"
+          />
+          <div className="mt-1 flex justify-between text-[10px] text-slate-500">
+            <span>{Math.floor(maxDurationRange.min / 60)}h</span>
+            <span>{Math.floor(maxDurationRange.max / 60)}h</span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 
