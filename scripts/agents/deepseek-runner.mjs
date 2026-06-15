@@ -111,12 +111,18 @@ function loadText(relPath, label) {
     return null;
   }
   let text = readFileSync(abs, "utf8");
+  const originalLength = text.length;
   let truncated = false;
   if (text.length > MAX_FILE_CHARS) {
     text = text.slice(0, MAX_FILE_CHARS);
     truncated = true;
+    console.error(
+      `⚠️  ${label || relPath} truncated: showing first ${MAX_FILE_CHARS.toLocaleString()} of ` +
+        `${originalLength.toLocaleString()} chars (~${Math.round((MAX_FILE_CHARS / originalLength) * 100)}%). ` +
+        `Absence findings ("unused"/"never called") are unreliable for this file.`,
+    );
   }
-  return { text, truncated };
+  return { text, truncated, originalLength };
 }
 
 function buildSystemPrompt() {
@@ -151,8 +157,15 @@ function buildUserPrompt() {
       const loaded = loadText(f, `--file ${f}`);
       if (!loaded) continue;
       const rel = relative(ROOT, resolve(ROOT, f));
+      const banner = loaded.truncated
+        ? `\n⚠️ TRUNCATED — only the first ${MAX_FILE_CHARS.toLocaleString()} of ${loaded.originalLength.toLocaleString()} ` +
+          `chars (~${Math.round((MAX_FILE_CHARS / loaded.originalLength) * 100)}%) of this file are shown; the rest is HIDDEN. ` +
+          `Do NOT report any symbol as "unused", "never called", "never attached", "dead code", or "written but never read" — ` +
+          `those conclusions require the whole file, which you cannot see. A handler defined here may be wired up, and a ` +
+          `filter may be applied, in the hidden portion. Only report bugs you can PROVE from the visible code.`
+        : "";
       parts.push(
-        `\n----- ${rel} -----\n\`\`\`\n${loaded.text}${loaded.truncated ? "\n…(truncated)…" : ""}\n\`\`\``,
+        `\n----- ${rel} -----${banner}\n\`\`\`\n${loaded.text}${loaded.truncated ? "\n…(rest of file truncated)…" : ""}\n\`\`\``,
       );
     }
   }
