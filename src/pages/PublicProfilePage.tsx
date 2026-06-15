@@ -1408,7 +1408,7 @@ export default function PublicProfilePage() {
                                   }}
                                   className="text-primary text-[13px] font-semibold ml-2 shrink-0 rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
-                                  Follow
+                                  View profile
                                 </button>
                               )}
                             </div>
