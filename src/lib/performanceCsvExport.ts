@@ -2,9 +2,18 @@
  * performanceCsvExport — Build & download CSV (campaigns + daily series) for performance reports.
  */
 
+// Cells beginning with these are executed as formulas by Excel/Sheets/LibreOffice
+// (CSV formula injection, CWE-1236). Merchant-controlled strings (campaign names)
+// reach this exporter, so neutralize them before RFC-4180 quoting.
+const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+const NUMERIC_LITERAL = /^-?\d+(\.\d+)?$/; // keep legit negative numbers (e.g. "-5.00") intact
+
 const escapeCell = (v: unknown): string => {
   if (v === null || v === undefined) return "";
-  const s = String(v);
+  let s = String(v);
+  if (FORMULA_TRIGGERS.test(s) && !NUMERIC_LITERAL.test(s)) {
+    s = `'${s}`; // leading apostrophe forces the cell to be read as text
+  }
   if (s.includes(",") || s.includes('"') || s.includes("\n")) {
     return `"${s.replace(/"/g, '""')}"`;
   }
