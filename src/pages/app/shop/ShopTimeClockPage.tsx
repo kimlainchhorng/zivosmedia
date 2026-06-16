@@ -29,8 +29,15 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
+// Cambodia-local day (browser is UTC+7, no DST). toISOString().slice(0,10) is the UTC
+// day, which from 00:00–06:59 ICT is still yesterday — so the "today" boundary would roll
+// at 07:00 local instead of midnight, dropping an employee who clocked in before dawn out
+// of "currently clocked in" (and zeroing their hours) the moment UTC ticks over.
+const ymdLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 function todayStr() {
-  return new Date().toISOString().split("T")[0];
+  return ymdLocal(new Date());
 }
 
 export default function ShopTimeClockPage() {
@@ -59,7 +66,7 @@ export default function ShopTimeClockPage() {
     setShowForm(false);
   };
 
-  const todayEntries = entries.filter((e) => e.timestamp.startsWith(todayStr()));
+  const todayEntries = entries.filter((e) => ymdLocal(new Date(e.timestamp)) === todayStr());
 
   const clockedInNames = new Set<string>();
   todayEntries.forEach((e) => {
