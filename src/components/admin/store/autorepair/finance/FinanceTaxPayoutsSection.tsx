@@ -16,10 +16,17 @@ import { collectedTaxCents } from "@/lib/admin/pnlCalculations";
 interface Props { storeId: string }
 const fmt = (cents: number) => `$${((cents ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+// Local YYYY-MM-DD (browser runs in Cambodia, UTC+7, no DST). toISOString() is the
+// UTC day, which from 00:00–06:59 ICT is still yesterday — so the payout-date
+// default would pre-fill, and the recorded payout carry, yesterday before dawn.
+// Mirrors ymdLocal in paymentsCalculations.ts.
+const ymdLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 export default function FinanceTaxPayoutsSection({ storeId }: Props) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ payout_date: new Date().toISOString().slice(0, 10), amount: "", source: "Bank deposit", reference: "" });
+  const [form, setForm] = useState({ payout_date: ymdLocal(new Date()), amount: "", source: "Bank deposit", reference: "" });
 
   const { data: invoices = [] } = useQuery({
     queryKey: ["ar-fin-tax-invoices", storeId],
