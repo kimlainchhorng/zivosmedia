@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left";
 import Calendar from "lucide-react/dist/esm/icons/calendar";
 import Users from "lucide-react/dist/esm/icons/users";
@@ -77,7 +78,11 @@ export default function ReservationPage() {
       : null,
   );
   const [step, setStep] = useState<Step>("details");
-  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  // Cambodia-local day (browser is UTC+7, no DST). toISOString().slice(0,10) is the UTC
+  // day, which from 00:00–06:59 ICT is still yesterday — the default would pre-fill, and
+  // the minDate floor below would allow, a past-dated reservation. date-fns format uses
+  // the local day, matching the user's calendar.
+  const [date, setDate] = useState<string>(() => format(new Date(), "yyyy-MM-dd"));
   const [party, setParty] = useState<number>(2);
   const [time, setTime] = useState<string>("19:00");
   const [name, setName] = useState<string>("");
@@ -103,7 +108,7 @@ export default function ReservationPage() {
     };
   }, [restaurantId, restaurant?.cuisine_type]);
 
-  const minDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const minDate = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
   const isValid = !!restaurant && date >= minDate && party > 0 && !!time && name.trim().length >= 2;
   const arrivalDateTime = `${date}T${time}:00`;
 
