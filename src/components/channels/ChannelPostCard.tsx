@@ -9,6 +9,7 @@ import {
   Copy,
   Eye,
   FileText,
+  ImageOff,
   Link as LinkIcon,
   Loader2,
   MessageCircle,
@@ -552,6 +553,10 @@ export function ChannelPostCard({
   // Viewer's own reaction (one per post, Telegram-style). null = none.
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [reacting, setReacting] = useState(false);
+  // Post images whose src failed to load (deleted from storage, dead URL, offline).
+  // Tracked per-url so a broken image shows a neutral placeholder instead of the
+  // browser's broken-image icon in the middle of the feed.
+  const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const allowedReactions = reactionPolicy === "some" ? REACTIONS.slice(0, 3) : REACTIONS;
   const firstUrl = useMemo(() => getFirstUrl(localBody ?? post.body), [localBody, post.body]);
@@ -1197,6 +1202,11 @@ export function ChannelPostCard({
                         </div>
                       </div>
                     </>
+                  ) : failedMedia[m.url] ? (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-muted text-muted-foreground">
+                      <ImageOff className="h-6 w-6" />
+                      <span className="text-[11px] font-medium">Image unavailable</span>
+                    </div>
                   ) : (
                     <>
                       <img
@@ -1206,6 +1216,7 @@ export function ChannelPostCard({
                         decoding="async"
                         draggable={false}
                         className="h-full w-full object-cover transition-transform hover:scale-[1.02]"
+                        onError={() => setFailedMedia((f) => ({ ...f, [m.url]: true }))}
                         onContextMenu={blockSaveGestures}
                         onContextMenuCapture={blockSaveGestures}
                         onDragStartCapture={blockSaveGestures}
