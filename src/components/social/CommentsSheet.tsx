@@ -86,10 +86,10 @@ export default function CommentsSheet({
   }, [open]);
 
   const handleSubmit = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || submitting) return;
     if (!currentUserId) { toast.error("Please sign in to comment"); return; }
     if (!canComment) { toast.error(disabledReason || "You can't comment on this post"); return; }
-    await addComment(text, replyTo?.id);
+    await addComment(text.trim(), replyTo?.id);
     setText("");
     setReplyTo(null);
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }), 100);
@@ -292,7 +292,14 @@ export default function CommentsSheet({
                   }
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                  onKeyDown={(e) => {
+                    // Don't submit mid-IME-composition (Khmer/CJK candidate Enter)
+                    // or on Shift+Enter; both should compose, not send.
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      handleSubmit();
+                    }
+                  }}
                   disabled={!canComment}
                   maxLength={280}
                   className={cn(
