@@ -161,6 +161,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     <nav
       ref={ref}
       data-zivo-mobile-nav
+      aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe pointer-events-none"
     >
       {/* Instagram-style floating glass bar — clean frosted capsule, icon-only,
@@ -222,8 +223,13 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                   ? "text-zinc-900 dark:text-white"
                   : "text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300",
               )}
-              aria-label={label}
+              aria-label={
+                typeof tab.badge === "number" && tab.badge > 0
+                  ? `${label}, ${tab.badge > 99 ? "99+" : tab.badge} unread`
+                  : label
+              }
               aria-current={isActive ? "page" : undefined}
+              title={label}
             >
               {/* Instagram-style active pill — a soft neutral lozenge behind the
                   selected icon. Plain CSS transition (no framer-motion layoutId):
@@ -276,6 +282,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
               {/* Badge */}
               {typeof tab.badge === "number" && tab.badge > 0 && (
                 <motion.span
+                  aria-hidden
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 520, damping: 22 }}

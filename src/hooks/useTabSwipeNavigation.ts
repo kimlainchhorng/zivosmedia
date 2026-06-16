@@ -35,6 +35,9 @@ import { tap } from "../lib/haptics";
 const ORDER = ["/", "/feed", "/reels", "/rides/hub", "/chat", "/profile"] as const;
 type TabPath = (typeof ORDER)[number];
 
+/** The six bottom-nav tab paths, shared with the swipe-discoverability hint. */
+export const TAB_PATHS: readonly string[] = ORDER;
+
 /** Paths whose page CONTENT may start a tab-swipe. Reels content is excluded —
  *  it owns its own gestures — but the nav bar still swipes there (see onStart). */
 const CONTENT_ORIGIN_PATHS = new Set<string>(["/", "/feed"]);
@@ -64,6 +67,10 @@ const MAX_DURATION = 700; // ms — longer than this is a scroll, not a flick
 
 type SwipeDir = "left" | "right";
 
+/** In-flight directional slides, shared across overlapping swipes so the
+ *  `data-swipe-nav` attribute is only removed once the LAST one settles. */
+let activeSlideTransitions = 0;
+
 /**
  * Navigate with a directional page-slide via the View Transitions API when the
  * browser supports it (Chrome/Safari) and the user hasn't asked for reduced
@@ -92,10 +99,16 @@ function navigateWithSlide(
     return;
   }
 
-  const clear = () => {
-    delete document.documentElement.dataset.swipeNav;
+  const root = document.documentElement;
+  // Set the LATEST direction and count this slide in. A rapid second swipe
+  // overwrites `dir` (so it animates the new direction) without the first
+  // transition's cleanup yanking the attribute mid-animation.
+  root.dataset.swipeNav = dir;
+  activeSlideTransitions += 1;
+  const release = () => {
+    activeSlideTransitions = Math.max(0, activeSlideTransitions - 1);
+    if (activeSlideTransitions === 0) root.removeAttribute("data-swipe-nav");
   };
-  document.documentElement.dataset.swipeNav = dir;
   try {
     const transition = doc.startViewTransition(() => navigate(to));
     // A View Transition exposes three promises (ready / updateCallbackDone /
@@ -104,9 +117,9 @@ function navigateWithSlide(
     // none surfaces as an unhandled rejection; the navigation still lands.
     transition.ready?.catch(() => {});
     transition.updateCallbackDone?.catch(() => {});
-    void transition.finished.catch(() => {}).then(clear);
+    void transition.finished.catch(() => {}).then(release);
   } catch {
-    clear();
+    release();
     navigate(to);
   }
 }

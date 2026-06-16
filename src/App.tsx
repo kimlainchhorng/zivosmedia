@@ -33,6 +33,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useVerificationRealtime } from "@/hooks/useVerificationRealtime";
 import { useOTAUpdate } from "@/hooks/useOTAUpdate";
 import { useTabSwipeNavigation } from "@/hooks/useTabSwipeNavigation";
+import SwipeNavHint from "@/components/app/SwipeNavHint";
 // OTA banner pulls framer-motion — keep it out of the root chunk; it only
 // renders on native when an update is queued.
 const OTAUpdateBanner = lazy(() => import("@/components/shared/OTAUpdateBanner"));
@@ -1203,7 +1204,7 @@ function RoutePerfTracker() {
 
 function TabSwipeNavigator() {
   useTabSwipeNavigation();
-  return null;
+  return <SwipeNavHint />;
 }
 
 function NativeDeepLinkHandler() {
