@@ -23,7 +23,10 @@ const escape = (v: unknown): string => {
   if (FORMULA_TRIGGERS.test(s) && !NUMERIC_LITERAL.test(s)) {
     s = `'${s}`;
   }
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+  // Quote on lone CR too (not just LF): some parsers (older Excel/Mac, naive
+  // readers) treat a bare \r as a record separator, so an embedded CR in a
+  // free-text cell could split the row. Matches the hardened sibling exporters.
+  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
