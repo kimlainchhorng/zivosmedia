@@ -14,8 +14,11 @@ import {
 // description, store name) reaches these cells; a value beginning with = + - @
 // tab or CR would execute as a formula in Excel/Sheets/LibreOffice. Neutralize
 // with a leading apostrophe before RFC-4180 quoting, leaving legit negative
-// numbers (e.g. "-5.00") intact.
-const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+// numbers (e.g. "-5.00") intact. The leading \s* matters: Sheets/Excel strip
+// leading whitespace before formula detection, so " =cmd" must be caught too
+// (\s also covers a leading BOM/newline). Quote on lone \r as well — Excel
+// splits rows on bare CR (RFC-4180).
+const FORMULA_TRIGGERS = /^\s*[=+\-@\t\r]/;
 const NUMERIC_LITERAL = /^-?\d+(\.\d+)?$/;
 const escape = (v: unknown): string => {
   if (v === null || v === undefined) return "";
@@ -23,7 +26,7 @@ const escape = (v: unknown): string => {
   if (FORMULA_TRIGGERS.test(s) && !NUMERIC_LITERAL.test(s)) {
     s = `'${s}`;
   }
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
