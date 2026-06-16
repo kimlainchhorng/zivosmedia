@@ -159,7 +159,13 @@ export type Preset = "today" | "week" | "mtd" | "last_month" | "qtd" | "ytd" | "
 
 export function presetRange(preset: Preset): { from: string; to: string } {
   const today = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  // Local YYYY-MM-DD. toISOString().slice(0,10) is the UTC day, which for Cambodia
+  // (UTC+7, no DST) reads as yesterday before 07:00 ICT. Worse, the month-anchored
+  // presets build new Date(y, m, 1) — local midnight of the 1st, which serializes in
+  // UTC to the last day of the previous month — so mtd/qtd/ytd/last_month would
+  // persistently leak (or drop) a boundary day. Read the local calendar parts instead.
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const start = (d: Date) => { d.setHours(0,0,0,0); return d; };
   const to = iso(today);
   switch (preset) {
