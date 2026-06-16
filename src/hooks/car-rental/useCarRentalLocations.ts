@@ -68,6 +68,7 @@ export function useCarRentalLocations(storeId: string | undefined) {
   const create = useCallback(async (draft: CarRentalLocationDraft): Promise<CarRentalLocation | null> => {
     if (!storeId) return null;
     setSaving(true);
+    setError(null);
     const payload = {
       store_id: storeId,
       name: draft.name.trim(),
@@ -97,25 +98,31 @@ export function useCarRentalLocations(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<CarRentalLocationDraft>) => {
+  const update = useCallback(async (id: string, patch: Partial<CarRentalLocationDraft>): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     setLocations((prev) => prev.map((l) => (l.id === id ? ({ ...l, ...patch } as CarRentalLocation) : l)));
     const { data, error: err } = await supabase.functions.invoke("car-rental-location-manage", {
       body: { action: "update", location_id: id, location: patch },
     });
     if (err) {
       console.error("[useCarRentalLocations] update failed", err);
-      setError("Couldn't save changes — refreshing.");
-      await load();
-    } else if (data?.location) {
+      await load(); // roll the optimistic patch back to server truth …
+      setError("Couldn't save changes — please retry."); // … then set the message (load() can clear it)
+      setSaving(false);
+      return false;
+    }
+    if (data?.location) {
       const updated = data.location as CarRentalLocation;
       setLocations((prev) => prev.map((l) => (l.id === id ? updated : l)));
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const prev = locations;
     setLocations((p) => p.filter((l) => l.id !== id));
     const { error: err } = await supabase.functions.invoke("car-rental-location-manage", {
@@ -125,8 +132,11 @@ export function useCarRentalLocations(storeId: string | undefined) {
       console.error("[useCarRentalLocations] delete failed", err);
       setError("Couldn't delete location.");
       setLocations(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [locations]);
 
   return { locations, loading, saving, error, create, update, remove, refresh: load };

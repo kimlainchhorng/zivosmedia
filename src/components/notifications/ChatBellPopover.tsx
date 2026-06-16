@@ -218,7 +218,10 @@ export function ChatBellPopover({
       let url = n.action_url as string;
       const m = url.match(/^\/dispatch\/support\/(.+)$/);
       if (m) url = `/support/tickets/${m[1]}`;
-      if (url.startsWith("/")) navigate(url);
+      // Reject protocol-relative ("//host") and backslash ("/\host") authorities —
+      // browsers normalize "\" to "/", so both would navigate off-origin.
+      const probe = url.replace(/\\/g, "/");
+      if (probe.startsWith("/") && !probe.startsWith("//")) navigate(url);
     }
     setOpen(false);
   };

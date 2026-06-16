@@ -142,12 +142,13 @@ export default function FeaturedCreatorsRow({ fullBleed = true }: Props) {
           .from("user_followers")
           .delete()
           .eq("follower_id", userId)
-          .eq("following_id", creatorId);
+          .eq("following_id", creatorId)
+          .throwOnError();
       } else {
         await (supabase as any).from("user_followers").insert({
           follower_id: userId,
           following_id: creatorId,
-        });
+        }).throwOnError();
       }
     } catch {
       // Roll back

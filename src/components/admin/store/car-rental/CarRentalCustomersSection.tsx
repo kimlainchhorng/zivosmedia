@@ -65,6 +65,9 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
   const [draft, setDraft] = useState<CarRentalCustomerDraft>(EMPTY);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [detailCustomer, setDetailCustomer] = useState<CarRentalCustomer | null>(null);
+  // Gates the in-dialog error banner so a stale hook error can't flash on
+  // re-open (both dialogs stay mounted). Set on confirm-click, reset on open.
+  const [submitted, setSubmitted] = useState(false);
 
   // Deduped set of all tags currently in use (for the filter chip row).
   const tagSet = useMemo(() => {
@@ -152,8 +155,9 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
     toast.success(`Exported ${filtered.length} renter${filtered.length === 1 ? "" : "s"}`);
   };
 
-  const openCreate = () => { setEditing(null); setDraft(EMPTY); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); setDraft(EMPTY); setSubmitted(false); setDialogOpen(true); };
   const openEdit = (c: CarRentalCustomer) => {
+    setSubmitted(false);
     setEditing(c);
     setDraft({
       display_name: c.display_name, email: c.email, phone: c.phone,
@@ -169,9 +173,12 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
   };
   const save = async () => {
     if (!draft.display_name.trim()) return;
-    if (editing) await update(editing.id, draft);
-    else await create(draft);
-    setDialogOpen(false);
+    setSubmitted(true);
+    // Close only on a successful write — a failed create/update keeps the
+    // dialog (and the operator's typed renter record) open with the inline
+    // error instead of silently discarding it behind the modal.
+    const ok = editing ? await update(editing.id, draft) : Boolean(await create(draft));
+    if (ok) setDialogOpen(false);
   };
 
   return (
@@ -291,14 +298,14 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
                     <p className="text-sm font-semibold text-foreground">{c.total_rentals}</p>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">rental{c.total_rentals === 1 ? "" : "s"}</p>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                     <Button variant="ghost" size="icon" className="h-7 w-7" title="Details" onClick={() => setDetailCustomer(c)}>
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => openEdit(c)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Delete" onClick={() => setDeleteId(c.id)}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Delete" onClick={() => { setSubmitted(false); setDeleteId(c.id); }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -309,7 +316,7 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o && saving) return; setDialogOpen(o); }}>
         <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit renter" : "Add renter"}</DialogTitle>
@@ -392,8 +399,13 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
               <Switch checked={draft.is_blocked ?? false} onCheckedChange={(c) => setDraft({ ...draft, is_blocked: c })} />
             </div>
           </div>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={save} disabled={saving || !draft.display_name.trim()}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               {editing ? "Save" : "Add renter"}
@@ -407,15 +419,27 @@ export default function CarRentalCustomersSection({ storeId }: Props) {
         onClose={() => setDetailCustomer(null)}
       />
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o && saving) return; if (!o) setDeleteId(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete renter?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Their past reservations keep the customer name snapshot.</p>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={async () => {
-              if (deleteId) { await remove(deleteId); setDeleteId(null); }
-            }}>Delete</Button>
+            <Button variant="ghost" onClick={() => setDeleteId(null)} disabled={saving}>Cancel</Button>
+            <Button variant="destructive" disabled={saving} onClick={async () => {
+              if (!deleteId) return;
+              setSubmitted(true);
+              // Keep the dialog open if the delete failed so the error stays
+              // visible (the row is rolled back into the list by the hook).
+              if (await remove(deleteId)) setDeleteId(null);
+            }}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

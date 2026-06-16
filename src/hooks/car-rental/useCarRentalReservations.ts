@@ -226,7 +226,7 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<CarRentalReservation>) => {
+  const update = useCallback(async (id: string, patch: Partial<CarRentalReservation>): Promise<boolean> => {
     setSaving(true);
     setError(null);
     setReservations((prev) => prev.map((r) => (r.id === id ? ({ ...r, ...patch } as CarRentalReservation) : r)));
@@ -236,26 +236,32 @@ export function useCarRentalReservations({ storeId, date }: UseArgs) {
     if (err) {
       console.error("[useCarRentalReservations] update failed", err);
       const m = (err as { message?: string }).message ?? "";
+      // load() resets `error` to null on entry, so set the message *after* the
+      // refresh — otherwise the dialog's error banner renders blank.
+      await load();
       if (m.startsWith("CUSTOMER_BLOCKED:")) setError(m.replace(/^CUSTOMER_BLOCKED:\s*/, ""));
       else setError("Couldn't save changes — refreshing.");
-      await load();
-    } else if (data?.reservation) {
+      setSaving(false);
+      return false;
+    }
+    if (data?.reservation) {
       const updated = data.reservation as CarRentalReservation;
       setReservations((prev) => prev.map((r) => (r.id === id ? updated : r)));
     }
     setSaving(false);
+    return true;
   }, [load]);
 
   const changeStatus = useCallback(async (
     id: string,
     status: CarRentalReservationStatus,
     extras?: Partial<CarRentalReservation>
-  ) => {
+  ): Promise<boolean> => {
     const patch: Partial<CarRentalReservation> = { status, ...extras };
     if (status === "picked_up" && !extras?.picked_up_at) patch.picked_up_at = new Date().toISOString();
     if (status === "returned" && !extras?.returned_at) patch.returned_at = new Date().toISOString();
     if (status === "cancelled") patch.cancelled_at = new Date().toISOString();
-    await update(id, patch);
+    return update(id, patch);
   }, [update]);
 
   const remove = useCallback(async (id: string) => {

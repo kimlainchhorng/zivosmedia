@@ -77,19 +77,13 @@ export function useCustomerLocationBroadcast({
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-    };
-  }, [enabled, user?.id, tripId, upsertLocation, intervalMs]);
-
-  // Cleanup location on unmount
-  useEffect(() => {
-    return () => {
+      // Stop exposing our last position the moment broadcasting stops — when the ride
+      // ends (enabled → false / tripId → null), the trip changes, the user logs out, or
+      // on unmount — not only on unmount. The row is keyed by user_id, so without this a
+      // completed ride would leave our last GPS readable while the page stays mounted.
       if (user?.id) {
-        supabase
-          .from("customer_locations")
-          .delete()
-          .eq("user_id", user.id)
-          .then(() => {});
+        void supabase.from("customer_locations").delete().eq("user_id", user.id);
       }
     };
-  }, [user?.id]);
+  }, [enabled, user?.id, tripId, upsertLocation, intervalMs]);
 }

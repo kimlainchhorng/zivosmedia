@@ -67,6 +67,7 @@ export function useCarRentalReviews(storeId: string | undefined) {
   const create = useCallback(async (draft: CarRentalReviewDraft): Promise<CarRentalReview | null> => {
     if (!storeId) return null;
     setSaving(true);
+    setError(null);
     const payload = {
       store_id: storeId,
       reservation_id: draft.reservation_id ?? null,
@@ -95,8 +96,9 @@ export function useCarRentalReviews(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const replyTo = useCallback(async (id: string, reply: string) => {
+  const replyTo = useCallback(async (id: string, reply: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const patch = { reply: reply.trim() || null, reply_at: reply.trim() ? new Date().toISOString() : null, is_acknowledged: true };
     setReviews((prev) => prev.map((r) => r.id === id ? { ...r, ...patch } as CarRentalReview : r));
     const { error: err } = await supabase.functions.invoke("car-rental-review-manage", {
@@ -104,28 +106,53 @@ export function useCarRentalReviews(storeId: string | undefined) {
     });
     if (err) {
       console.error("[useCarRentalReviews] reply failed", err);
-      setError("Couldn't save reply — refreshing.");
-      await load();
+      await load(); // roll the optimistic reply back to server truth …
+      setError("Couldn't save reply — please retry."); // … then set the message (load() can clear it)
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [load]);
 
   const acknowledge = useCallback(async (id: string) => {
-    setReviews((prev) => prev.map((r) => r.id === id ? { ...r, is_acknowledged: true } : r));
-    await supabase.functions.invoke("car-rental-review-manage", {
+    setSaving(true);
+    setError(null);
+    const prev = reviews;
+    setReviews((p) => p.map((r) => r.id === id ? { ...r, is_acknowledged: true } : r));
+    const { error: err } = await supabase.functions.invoke("car-rental-review-manage", {
       body: { action: "acknowledge", review_id: id },
     });
-  }, []);
+    if (err) {
+      console.error("[useCarRentalReviews] acknowledge failed", err);
+      setReviews(prev); // don't let the UI claim it's read when it isn't …
+      setError("Couldn't mark as read — please retry."); // … and tell the operator why it snapped back
+    }
+    setSaving(false);
+  }, [reviews]);
 
-  const togglePublished = useCallback(async (id: string, isPublished: boolean) => {
-    setReviews((prev) => prev.map((r) => r.id === id ? { ...r, is_published: isPublished } : r));
-    await supabase.functions.invoke("car-rental-review-manage", {
+  const togglePublished = useCallback(async (id: string, isPublished: boolean): Promise<boolean> => {
+    setSaving(true);
+    setError(null);
+    const prev = reviews;
+    setReviews((p) => p.map((r) => r.id === id ? { ...r, is_published: isPublished } : r));
+    const { error: err } = await supabase.functions.invoke("car-rental-review-manage", {
       body: { action: "set_published", review_id: id, is_published: isPublished },
     });
-  }, []);
+    if (err) {
+      console.error("[useCarRentalReviews] set_published failed", err);
+      setReviews(prev); // public-storefront visibility must not lie — snap back to truth
+      setError(isPublished ? "Couldn't publish review — please retry." : "Couldn't hide review — please retry.");
+      setSaving(false);
+      return false;
+    }
+    setSaving(false);
+    return true;
+  }, [reviews]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const prev = reviews;
     setReviews((p) => p.filter((r) => r.id !== id));
     const { error: err } = await supabase.functions.invoke("car-rental-review-manage", {
@@ -135,8 +162,11 @@ export function useCarRentalReviews(storeId: string | undefined) {
       console.error("[useCarRentalReviews] delete failed", err);
       setError("Couldn't delete review.");
       setReviews(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [reviews]);
 
   return { reviews, loading, saving, error, create, replyTo, acknowledge, togglePublished, remove, refresh: load };

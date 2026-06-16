@@ -246,7 +246,7 @@ export default function AutoRepairCustomersSection({ storeId, onNavigate }: Prop
     setSelected(null);
     // If running inside an iframe (embed=1), tell the parent page to close the dialog and navigate.
     if (window !== window.parent) {
-      window.parent.postMessage({ type: "ar_navigate", tab: "ar-build-ro" }, "*");
+      window.parent.postMessage({ type: "ar_navigate", tab: "ar-build-ro" }, window.location.origin);
     } else if (onNavigate) {
       onNavigate("ar-build-ro");
     } else {

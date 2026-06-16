@@ -26,7 +26,10 @@ export function sanitizeNextPath(next: string | null | undefined): string {
   if (!next) return "/";
   // Must be a root-relative path. Reject absolute URLs ("https://..."),
   // protocol-relative ("//evil.com"), and anything not starting with "/".
-  if (!next.startsWith("/") || next.startsWith("//")) return "/";
+  // Browsers normalize "\" to "/" for http(s), so "/\evil.com" parses as the
+  // authority //evil.com; collapse backslashes before the protocol-relative gate.
+  const probe = next.replace(/\\/g, "/");
+  if (!probe.startsWith("/") || probe.startsWith("//")) return "/";
   return next;
 }
 

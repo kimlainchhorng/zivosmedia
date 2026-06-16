@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { copyText } from "@/lib/native/clipboard";
+import { escapeHtml } from "@/lib/escapeHtml";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -329,23 +330,23 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
   const printEstimate = (e: any) => {
     const items: LineItem[] = e.line_items ?? [];
     const html = `
-      <html><head><title>Estimate ${e.number}</title>
+      <html><head><title>Estimate ${escapeHtml(e.number)}</title>
       <style>body{font-family:sans-serif;padding:24px;color:#111}h1{font-size:20px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #ddd}th{font-size:11px;text-transform:uppercase;color:#666}.right{text-align:right}.total{font-size:18px;font-weight:bold}</style>
       </head><body>
-      <h1>Estimate ${e.number}</h1>
-      <p><b>Customer:</b> ${e.customer_name || "—"} &nbsp;|&nbsp; <b>Vehicle:</b> ${e.vehicle_label || "—"}</p>
-      ${e.customer_phone ? `<p><b>Phone:</b> ${e.customer_phone}</p>` : ""}
-      ${e.customer_email ? `<p><b>Email:</b> ${e.customer_email}</p>` : ""}
+      <h1>Estimate ${escapeHtml(e.number)}</h1>
+      <p><b>Customer:</b> ${escapeHtml(e.customer_name || "—")} &nbsp;|&nbsp; <b>Vehicle:</b> ${escapeHtml(e.vehicle_label || "—")}</p>
+      ${e.customer_phone ? `<p><b>Phone:</b> ${escapeHtml(e.customer_phone)}</p>` : ""}
+      ${e.customer_email ? `<p><b>Email:</b> ${escapeHtml(e.customer_email)}</p>` : ""}
       ${e.expires_at ? `<p><b>Valid until:</b> ${new Date(e.expires_at).toLocaleDateString()}</p>` : ""}
       <table><tr><th>Type</th><th>Description</th><th class="right">Qty</th><th class="right">Unit</th><th class="right">Total</th></tr>
-      ${items.map(it => `<tr><td>${it.kind}</td><td>${it.name}</td><td class="right">${it.qty}</td><td class="right">$${(it.unit_cents / 100).toFixed(2)}</td><td class="right">$${(it.qty * it.unit_cents / 100).toFixed(2)}</td></tr>`).join("")}
+      ${items.map(it => `<tr><td>${escapeHtml(it.kind)}</td><td>${escapeHtml(it.name)}</td><td class="right">${it.qty}</td><td class="right">$${(it.unit_cents / 100).toFixed(2)}</td><td class="right">$${(it.qty * it.unit_cents / 100).toFixed(2)}</td></tr>`).join("")}
       </table>
       <div style="margin-top:16px;text-align:right">
         <p>Subtotal: ${fmt(e.subtotal_cents)}</p>
         ${e.tax_cents ? `<p>Tax: ${fmt(e.tax_cents)}</p>` : ""}
         <p class="total">Total: ${fmt(e.total_cents)}</p>
       </div>
-      ${e.notes ? `<p style="margin-top:16px;color:#555"><b>Notes:</b> ${e.notes}</p>` : ""}
+      ${e.notes ? `<p style="margin-top:16px;color:#555"><b>Notes:</b> ${escapeHtml(e.notes)}</p>` : ""}
       </body></html>`;
     const w = window.open("", "_blank");
     if (!w) return;

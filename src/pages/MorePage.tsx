@@ -203,7 +203,9 @@ const sameStringList = (a: string[], b: string[]) =>
 
 const normalizeInternalHref = (href: string) => {
   const value = href.trim();
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+  // "\" is normalized to "/" by browsers, so "/\evil.com" → authority //evil.com.
+  const probe = value.replace(/\\/g, "/");
+  return value && probe.startsWith("/") && !probe.startsWith("//") ? value : null;
 };
 
 const formatToolCount = (count: number) => `${count} ${count === 1 ? "tool" : "tools"}`;

@@ -350,7 +350,9 @@ export default function WalletPage() {
             if (returnTo) {
               window.sessionStorage.removeItem("zivo:wallet-return-to");
               // Only follow same-origin paths to prevent open-redirect.
-              if (returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+              // "\" normalizes to "/" in browsers, so "/\evil.com" → authority //evil.com.
+              const returnProbe = returnTo.replace(/\\/g, "/");
+              if (returnProbe.startsWith("/") && !returnProbe.startsWith("//")) {
                 navigate(returnTo, { replace: true });
               }
             }

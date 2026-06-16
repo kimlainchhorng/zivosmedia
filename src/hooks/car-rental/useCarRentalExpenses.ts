@@ -66,6 +66,7 @@ export function useCarRentalExpenses(storeId: string | undefined) {
   const create = useCallback(async (draft: CarRentalExpenseDraft): Promise<CarRentalExpense | null> => {
     if (!storeId) return null;
     setSaving(true);
+    setError(null);
     const payload = {
       store_id: storeId,
       vehicle_id: draft.vehicle_id ?? null,
@@ -93,25 +94,31 @@ export function useCarRentalExpenses(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<CarRentalExpenseDraft>) => {
+  const update = useCallback(async (id: string, patch: Partial<CarRentalExpenseDraft>): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     setExpenses((prev) => prev.map((e) => (e.id === id ? ({ ...e, ...patch } as CarRentalExpense) : e)));
     const { data, error: err } = await supabase.functions.invoke("car-rental-expense-manage", {
       body: { action: "update", expense_id: id, expense: patch },
     });
     if (err) {
       console.error("[useCarRentalExpenses] update failed", err);
-      setError("Couldn't save changes — refreshing.");
-      await load();
-    } else if (data?.expense) {
+      await load(); // roll the optimistic patch back to server truth …
+      setError("Couldn't save changes — please retry."); // … then set the message (load() can clear it)
+      setSaving(false);
+      return false;
+    }
+    if (data?.expense) {
       const updated = data.expense as CarRentalExpense;
       setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)));
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const prev = expenses;
     setExpenses((p) => p.filter((e) => e.id !== id));
     const { error: err } = await supabase.functions.invoke("car-rental-expense-manage", {
@@ -121,8 +128,11 @@ export function useCarRentalExpenses(storeId: string | undefined) {
       console.error("[useCarRentalExpenses] delete failed", err);
       setError("Couldn't delete expense.");
       setExpenses(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [expenses]);
 
   return { expenses, loading, saving, error, create, update, remove, refresh: load };

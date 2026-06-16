@@ -88,9 +88,11 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
   const [draft, setDraft] = useState<CarRentalPromotionDraft>(EMPTY);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
-  const openCreate = () => { setEditing(null); setDraft({ ...EMPTY, code: randomCode() }); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); setDraft({ ...EMPTY, code: randomCode() }); setSubmitted(false); setDialogOpen(true); };
   const openEdit = (p: CarRentalPromotion) => {
+    setSubmitted(false);
     setEditing(p);
     setDraft({
       code: p.code, description: p.description, kind: p.kind, amount: p.amount,
@@ -102,9 +104,9 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
   };
   const save = async () => {
     if (!draft.code.trim() || draft.amount <= 0) return;
-    if (editing) await update(editing.id, draft);
-    else await create(draft);
-    setDialogOpen(false);
+    setSubmitted(true);
+    const ok = editing ? await update(editing.id, draft) : Boolean(await create(draft));
+    if (ok) setDialogOpen(false);
   };
 
   const formatAmount = (p: CarRentalPromotion) =>
@@ -291,7 +293,7 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(p.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(p.id); }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -356,7 +358,7 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
         </Card>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o && saving) return; setDialogOpen(o); }}>
         <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit promotion" : "New promotion"}</DialogTitle>
@@ -412,8 +414,13 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
               <Switch checked={draft.is_active ?? true} onCheckedChange={(c) => setDraft({ ...draft, is_active: c })} />
             </div>
           </div>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={save} disabled={saving || !draft.code.trim() || draft.amount <= 0}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               {editing ? "Save" : "Create code"}
@@ -422,15 +429,25 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o && saving) return; if (!o) setDeleteId(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete promo code?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Past redemptions stay on the reservations they applied to.</p>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={async () => {
-              if (deleteId) { await remove(deleteId); setDeleteId(null); }
-            }}>Delete</Button>
+            <Button variant="ghost" onClick={() => setDeleteId(null)} disabled={saving}>Cancel</Button>
+            <Button variant="destructive" disabled={saving} onClick={async () => {
+              if (!deleteId) return;
+              setSubmitted(true);
+              if (await remove(deleteId)) setDeleteId(null);
+            }}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

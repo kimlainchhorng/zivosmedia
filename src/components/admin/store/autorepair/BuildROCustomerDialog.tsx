@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { UserPlus, ScanLine, X, Car, FileText, Star } from "lucide-react";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 export type CustomerDraft = {
   name: string; street: string; city: string; state: string; zip: string;
@@ -60,11 +61,11 @@ export default function BuildROCustomerDialog({ open, onOpenChange, initial, onS
   const printEnvelope = () => {
     if (!fullName) { toast.error("Enter the customer name first"); return; }
     const lines = [fullName, f.street.trim(), [f.city.trim(), f.state.trim(), f.zip.trim()].filter(Boolean).join(", ")].filter(Boolean);
-    const html = `<html><head><title>Envelope — ${fullName}</title>
+    const html = `<html><head><title>Envelope — ${escapeHtml(fullName)}</title>
       <style>@page{size:9.5in 4.125in;margin:0}body{margin:0;font-family:system-ui,Arial,sans-serif}
       .env{width:9.5in;height:4.125in;position:relative}
       .to{position:absolute;left:4.3in;top:1.9in;font-size:13pt;line-height:1.5}</style></head>
-      <body><div class="env"><div class="to">${lines.join("<br/>")}</div></div></body></html>`;
+      <body><div class="env"><div class="to">${lines.map(escapeHtml).join("<br/>")}</div></div></body></html>`;
     const w = window.open("", "_blank");
     if (!w) { toast.error("Pop-up blocked"); return; }
     w.document.write(html); w.document.close(); w.focus();

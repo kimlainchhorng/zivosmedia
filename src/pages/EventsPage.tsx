@@ -57,7 +57,8 @@ export default function EventsPage() {
       if (!user) throw new Error("Login required");
       const existing = myRsvps.find((r: any) => r.event_id === eventId);
       if (existing) {
-        await (supabase as any).from("event_attendees").delete().eq("event_id", eventId).eq("user_id", user.id);
+        const { error } = await (supabase as any).from("event_attendees").delete().eq("event_id", eventId).eq("user_id", user.id);
+        if (error) throw error;
       } else {
         const { error } = await (supabase as any).from("event_attendees").insert({
           event_id: eventId, user_id: user.id, status: "going",
@@ -69,6 +70,9 @@ export default function EventsPage() {
       queryClient.invalidateQueries({ queryKey: ["my-rsvps"] });
       queryClient.invalidateQueries({ queryKey: ["social-events"] });
       toast.success("RSVP updated!");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? "Couldn't update your RSVP. Please try again.");
     },
   });
 
@@ -86,6 +90,9 @@ export default function EventsPage() {
       toast.success("Event created!");
       setShowCreate(false);
       setNewEvent({ title: "", description: "", location: "", start_time: "", category: "Social", is_free: true });
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? "Couldn't create the event. Please try again.");
     },
   });
 

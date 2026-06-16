@@ -38,6 +38,7 @@ import { useSignedMedia } from "@/hooks/useSignedMedia";
 import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 import { findZivoTrackBySlug } from "@/lib/zivoSessions";
 import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
 import { assessLinkSync } from "@/hooks/useLinkRisk";
@@ -1251,6 +1252,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
       });
       if (error) throw error;
       if (!data?.url) throw new Error("No checkout URL");
+      if (!isAllowedCheckoutUrl(data.url)) throw new Error("Invalid checkout URL");
 
       if (Capacitor.isNativePlatform()) {
         // Native: open in-app browser, then verify on close

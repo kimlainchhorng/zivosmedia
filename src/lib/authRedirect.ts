@@ -116,7 +116,12 @@ export const getSafeRedirectTargetForHost = (
     }
   }
 
-  if (!safeValue.startsWith("/") || safeValue.startsWith("//")) {
+  // Browsers normalize backslashes to forward slashes for http(s), so "/\evil.com" parses
+  // as the authority //evil.com (an off-origin target) once assigned to window.location.
+  // Collapse backslashes before the protocol-relative gate so these leading-authority
+  // bypasses are rejected exactly like "//".
+  const leadingAuthorityProbe = safeValue.replace(/\\/g, "/");
+  if (!leadingAuthorityProbe.startsWith("/") || leadingAuthorityProbe.startsWith("//")) {
     return fallbackTarget;
   }
 

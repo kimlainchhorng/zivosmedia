@@ -527,9 +527,15 @@ export const usePushNotifications = () => {
     // likes, comments, reactions, transfers, etc., so this single line
     // routes nearly every modern notification correctly without needing a
     // case for each type.
-    if (actionUrl && actionUrl.startsWith("/")) {
-      window.location.href = actionUrl;
-      return;
+    if (actionUrl) {
+      // "\" is normalized to "/" by browsers, so "/\evil.com" resolves to the authority
+      // //evil.com. Collapse backslashes before the protocol-relative gate so this
+      // window.location assignment can only ever stay same-origin.
+      const probe = actionUrl.replace(/\\/g, "/");
+      if (probe.startsWith("/") && !probe.startsWith("//")) {
+        window.location.href = actionUrl;
+        return;
+      }
     }
 
     switch (normalizedType) {

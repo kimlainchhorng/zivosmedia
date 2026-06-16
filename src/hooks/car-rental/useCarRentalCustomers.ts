@@ -82,6 +82,7 @@ export function useCarRentalCustomers(storeId: string | undefined) {
   const create = useCallback(async (draft: CarRentalCustomerDraft): Promise<CarRentalCustomer | null> => {
     if (!storeId) return null;
     setSaving(true);
+    setError(null);
     const payload = {
       store_id: storeId,
       display_name: draft.display_name.trim(),
@@ -118,25 +119,31 @@ export function useCarRentalCustomers(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<CarRentalCustomerDraft>) => {
+  const update = useCallback(async (id: string, patch: Partial<CarRentalCustomerDraft>): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     setCustomers((prev) => prev.map((c) => (c.id === id ? ({ ...c, ...patch } as CarRentalCustomer) : c)));
     const { data, error: err } = await supabase.functions.invoke("car-rental-customer-manage", {
       body: { action: "update", customer_id: id, customer: patch },
     });
     if (err) {
       console.error("[useCarRentalCustomers] update failed", err);
-      setError("Couldn't save changes — refreshing.");
-      await load();
-    } else if (data?.customer) {
+      await load(); // roll the optimistic patch back to server truth …
+      setError("Couldn't save changes — please retry."); // … then set the message (load() can clear it)
+      setSaving(false);
+      return false;
+    }
+    if (data?.customer) {
       const updated = data.customer as CarRentalCustomer;
       setCustomers((prev) => prev.map((c) => (c.id === id ? updated : c)));
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const prev = customers;
     setCustomers((p) => p.filter((c) => c.id !== id));
     const { error: err } = await supabase.functions.invoke("car-rental-customer-manage", {
@@ -146,8 +153,11 @@ export function useCarRentalCustomers(storeId: string | undefined) {
       console.error("[useCarRentalCustomers] delete failed", err);
       setError("Couldn't delete renter.");
       setCustomers(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [customers]);
 
   return { customers, loading, saving, error, create, update, remove, refresh: load };

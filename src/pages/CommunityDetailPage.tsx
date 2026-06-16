@@ -90,15 +90,20 @@ export default function CommunityDetailPage() {
     mutationFn: async () => {
       if (!user) throw new Error("Login required");
       if (membership) {
-        await (supabase as any).from("community_members").delete().eq("community_id", id).eq("user_id", user.id);
+        const { error } = await (supabase as any).from("community_members").delete().eq("community_id", id).eq("user_id", user.id);
+        if (error) throw error;
       } else {
-        await (supabase as any).from("community_members").insert({ community_id: id, user_id: user.id, role: "member" });
+        const { error } = await (supabase as any).from("community_members").insert({ community_id: id, user_id: user.id, role: "member" });
+        if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["community-membership", id, user?.id] });
       queryClient.invalidateQueries({ queryKey: ["communities"] });
       toast.success(membership ? "Left community" : "Joined community!");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? "Something went wrong. Please try again.");
     },
   });
 
@@ -278,7 +283,11 @@ export default function CommunityDetailPage() {
                         aria-label="Delete post" className="p-1 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={async () => {
                           if (!confirm("Delete this post?")) return;
-                          await (supabase as any).from("community_posts").delete().eq("id", post.id);
+                          const { error } = await (supabase as any).from("community_posts").delete().eq("id", post.id);
+                          if (error) {
+                            toast.error(error.message ?? "Couldn't delete the post. Please try again.");
+                            return;
+                          }
                           queryClient.invalidateQueries({ queryKey: ["community-posts", id] });
                           toast.success("Post deleted");
                         }}

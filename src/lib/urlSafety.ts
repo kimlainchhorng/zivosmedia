@@ -257,6 +257,24 @@ export function isAllowedCheckoutUrl(url: string): boolean {
 }
 
 /**
+ * Check if a URL is a Stripe-hosted URL (any *.stripe.com host, https only).
+ * Used for server-returned Stripe Connect onboarding (account-link) URLs, which
+ * resolve to connect.stripe.com — not the checkout hosts — so they're validated
+ * before redirecting the owner. Accepts any Stripe-owned subdomain so a future
+ * Stripe host change can't block a legitimate onboarding redirect.
+ */
+export function isAllowedStripeConnectUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return false;
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname === 'stripe.com' || hostname.endsWith('.stripe.com');
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Check if a URL is a valid social media link.
  * Used to validate DB-stored social URLs before rendering as <a href>.
  */

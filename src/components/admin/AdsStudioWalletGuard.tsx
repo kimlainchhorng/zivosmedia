@@ -19,6 +19,7 @@ import { WalletSkeleton } from "./ads/MarketingSkeletons";
 import MarketingEmptyState from "./ads/MarketingEmptyState";
 import { mkBody, mkInput, mkLabel, mkMeta } from "./ads/marketing-tokens";
 import { cn } from "@/lib/utils";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 
 interface Props { storeId: string }
 
@@ -129,7 +130,11 @@ export default function AdsStudioWalletGuard({ storeId }: Props) {
     });
     setTopupBusy(false);
     if (error) { toast.error(error.message); return; }
-    if ((data as any)?.url) window.location.href = (data as any).url;
+    const topupUrl = (data as any)?.url;
+    if (topupUrl) {
+      if (!isAllowedCheckoutUrl(topupUrl)) { toast.error("Couldn't start checkout. Please try again."); return; }
+      window.location.href = topupUrl;
+    }
   };
 
   if (loading) return <WalletSkeleton />;

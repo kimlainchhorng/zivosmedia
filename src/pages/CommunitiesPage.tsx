@@ -68,7 +68,8 @@ export default function CommunitiesPage() {
       if (!user) throw new Error("Login required");
       const isMember = memberSet.has(communityId);
       if (isMember) {
-        await (supabase as any).from("community_members").delete().eq("community_id", communityId).eq("user_id", user.id);
+        const { error } = await (supabase as any).from("community_members").delete().eq("community_id", communityId).eq("user_id", user.id);
+        if (error) throw error;
       } else {
         const { error } = await (supabase as any).from("community_members").insert({
           community_id: communityId, user_id: user.id, role: "member",
@@ -80,6 +81,9 @@ export default function CommunitiesPage() {
       queryClient.invalidateQueries({ queryKey: ["my-communities"] });
       queryClient.invalidateQueries({ queryKey: ["communities"] });
       toast.success("Updated!");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? "Couldn't update membership. Please try again.");
     },
   });
 
@@ -119,6 +123,9 @@ export default function CommunitiesPage() {
       setShowCreate(false);
       setNewCommunity({ name: "", description: "", category: "General", privacy: "public" });
       navigate(`/communities/${communityId}`);
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? "Couldn't create community. Please try again.");
     },
   });
 

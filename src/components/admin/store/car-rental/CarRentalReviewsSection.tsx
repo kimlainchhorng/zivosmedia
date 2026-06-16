@@ -41,6 +41,7 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
   const [replying, setReplying] = useState<CarRentalReview | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const stats = useMemo(() => {
     const n = reviews.length;
@@ -98,13 +99,17 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
   const openReply = (r: CarRentalReview) => {
     setReplying(r);
     setReplyDraft(r.reply ?? "");
+    setSubmitted(false);
   };
 
   const submitReply = async () => {
     if (!replying) return;
-    await replyTo(replying.id, replyDraft);
-    setReplying(null);
-    setReplyDraft("");
+    setSubmitted(true);
+    const ok = await replyTo(replying.id, replyDraft);
+    if (ok) {
+      setReplying(null);
+      setReplyDraft("");
+    }
   };
 
   return (
@@ -258,13 +263,13 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
                       <Button size="sm" variant="ghost" onClick={() => togglePublished(r.id, !r.is_published)} disabled={saving}>
                         {r.is_published ? <><EyeOff className="mr-1 h-3.5 w-3.5" />Hide</> : <><Eye className="mr-1 h-3.5 w-3.5" />Show</>}
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteId(r.id)} disabled={saving}>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setSubmitted(false); setDeleteId(r.id); }} disabled={saving}>
                         <Trash2 className="mr-1 h-3.5 w-3.5" />Delete
                       </Button>
                     </div>
                   </div>
                   {!r.is_acknowledged && (
-                    <button type="button" className="mt-2 text-[11px] text-primary underline" onClick={() => acknowledge(r.id)}>
+                    <button type="button" className="mt-2 text-[11px] text-primary underline disabled:opacity-50" onClick={() => acknowledge(r.id)} disabled={saving}>
                       Mark as read
                     </button>
                   )}
@@ -275,7 +280,7 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
         </CardContent>
       </Card>
 
-      <Dialog open={!!replying} onOpenChange={(o) => !o && setReplying(null)}>
+      <Dialog open={!!replying} onOpenChange={(o) => { if (!o && saving) return; if (!o) setReplying(null); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reply to {replying?.customer_name}</DialogTitle>
@@ -318,8 +323,13 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
               </p>
             </div>
           )}
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setReplying(null)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setReplying(null)} disabled={saving}>Cancel</Button>
             <Button onClick={submitReply} disabled={saving || !replyDraft.trim()}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Send className="mr-1 h-4 w-4" />}
               Post reply
@@ -328,15 +338,25 @@ export default function CarRentalReviewsSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o && saving) return; if (!o) setDeleteId(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete review?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">This permanently removes the review.</p>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={async () => {
-              if (deleteId) { await remove(deleteId); setDeleteId(null); }
-            }}>Delete</Button>
+            <Button variant="ghost" onClick={() => setDeleteId(null)} disabled={saving}>Cancel</Button>
+            <Button variant="destructive" disabled={saving} onClick={async () => {
+              if (!deleteId) return;
+              setSubmitted(true);
+              if (await remove(deleteId)) setDeleteId(null);
+            }}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

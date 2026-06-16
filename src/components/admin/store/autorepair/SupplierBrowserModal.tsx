@@ -245,13 +245,18 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
   useEffect(() => {
     if (!open || isSkipEmbed) return;
     const handler = (ev: MessageEvent) => {
+      // The proxy page is a blob: document rendered same-origin (the iframe sandbox
+      // includes allow-same-origin), so legitimate messages carry our own origin.
+      // Reject anything else — once the frame wanders to a real cross-origin portal
+      // it must not be able to trigger the credential send or re-navigate the proxy.
+      if (ev.origin !== window.location.origin) return;
       const d = ev.data as { type?: string; url?: string; method?: string; body?: string; contentType?: string; filled?: boolean };
       if (d?.type === "zivo-proxy-ready") {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         setLoadState("ready");
         const win = iframeRef.current?.contentWindow;
         if (win && (email || password)) {
-          setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, "*"), 400);
+          setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, window.location.origin), 400);
         }
         return;
       }
@@ -323,7 +328,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     toast.success(accountSavedMessage);
     const win = iframeRef.current?.contentWindow;
     if (win && loadState === "ready") {
-      setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, "*"), 200);
+      setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, window.location.origin), 200);
     }
   };
 
@@ -351,7 +356,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
   const sendAutofill = () => {
     const win = iframeRef.current?.contentWindow;
     if (!win || loadState !== "ready") { toast.error("Portal not ready yet"); return; }
-    win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, "*");
+    win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, window.location.origin);
   };
 
   const reload = () => {

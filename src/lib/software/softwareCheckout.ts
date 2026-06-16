@@ -79,6 +79,25 @@ export async function createSoftwareSubscription(input: {
 }
 
 /**
+ * True only for an https Stripe-hosted URL. The hosted-checkout fallback hands
+ * its return value straight to a same-tab `window.location.href`, so we confirm
+ * the edge function really returned a Stripe page (checkout.stripe.com et al) —
+ * a compromised or buggy response must not be able to bounce the owner to a
+ * look-alike phishing site. Any `*.stripe.com` host is accepted so a future
+ * Stripe host change can't lock owners out of paying.
+ */
+function isStripeHostedUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return false;
+    const host = u.hostname.toLowerCase();
+    return host === "stripe.com" || host.endsWith(".stripe.com");
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Hosted Stripe Checkout fallback — returns a Stripe-hosted URL to redirect to.
  * Used when the embedded publishable key isn't configured, so owners can still
  * pay using only the backend secret key. No card is collected until they finish
@@ -110,7 +129,7 @@ export async function createSoftwareCheckoutUrl(input: {
     throw new SoftwareCheckoutError(message, code);
   }
   const url = (data as Record<string, unknown>)?.url;
-  if (typeof url !== "string" || !url) {
+  if (typeof url !== "string" || !url || !isStripeHostedUrl(url)) {
     throw new SoftwareCheckoutError("Couldn't start checkout. Please try again.");
   }
   return url;

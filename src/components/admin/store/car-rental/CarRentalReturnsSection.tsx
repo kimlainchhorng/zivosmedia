@@ -60,6 +60,7 @@ export default function CarRentalReturnsSection({ storeId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState<ActiveRental | null>(null);
   const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -160,10 +161,12 @@ export default function CarRentalReturnsSection({ storeId }: Props) {
       {active && (
         <ReturnDialog
           rental={active}
-          onClose={() => setActive(null)}
+          onClose={() => { setActive(null); setActionError(null); }}
           saving={saving}
+          error={actionError}
           onProcess={async (settle) => {
             setSaving(true);
+            setActionError(null);
             const { error: err } = await supabase
               .from("car_rental_reservations")
               .update({
@@ -181,6 +184,7 @@ export default function CarRentalReturnsSection({ storeId }: Props) {
               .eq("id", active.id);
             if (err) {
               setSaving(false);
+              setActionError("Couldn't save the return — check your connection and retry.");
               console.error(err);
               return;
             }
@@ -225,7 +229,7 @@ export default function CarRentalReturnsSection({ storeId }: Props) {
 }
 
 function ReturnDialog({
-  rental, onClose, onProcess, saving,
+  rental, onClose, onProcess, saving, error,
 }: {
   rental: ActiveRental;
   onClose: () => void;
@@ -245,7 +249,9 @@ function ReturnDialog({
     refund_deposit_cents: number;
   }) => Promise<void>;
   saving: boolean;
+  error: string | null;
 }) {
+  const [submitted, setSubmitted] = useState(false);
   const [endOdometer, setEndOdometer] = useState<string>(String(rental.pickup_odometer ?? ""));
   const [endFuel, setEndFuel] = useState<number>(rental.pickup_fuel_level ?? 100);
   const [damageNotes, setDamageNotes] = useState<string>("");
@@ -307,7 +313,7 @@ function ReturnDialog({
   const canSubmit = endOdoNum !== null && endOdoNum >= startOdo;
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Process return — {rental.customer_name}</DialogTitle>
@@ -462,9 +468,14 @@ function ReturnDialog({
             </div>
           </div>
         </div>
+        {submitted && error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+          </div>
+        )}
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button disabled={!canSubmit || saving} onClick={() => onProcess({
+          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button disabled={!canSubmit || saving} onClick={() => { setSubmitted(true); onProcess({
             dropoff_odometer: endOdoNum!,
             dropoff_fuel_level: endFuel,
             damage_notes: damageNotes.trim() || null,
@@ -478,7 +489,7 @@ function ReturnDialog({
             refund_deposit_cents: refundDeposit
               ? Math.max(0, rental.deposit_paid_cents - extraFeesTotal)
               : 0,
-          })}>
+          }); }}>
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
             Close rental
           </Button>

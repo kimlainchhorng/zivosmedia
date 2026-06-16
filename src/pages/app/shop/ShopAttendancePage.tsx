@@ -3,6 +3,7 @@
  * Stores records in feedback_submissions (category: shop_attendance)
  */
 import { useState } from "react";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,7 +35,10 @@ export default function ShopAttendancePage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     employeeName: "",
-    date: new Date().toISOString().slice(0, 10),
+    // Cambodia-local day (browser is UTC+7, no DST). toISOString().slice(0,10) is the UTC
+    // day, which from 00:00–06:59 ICT is still yesterday — the form would pre-fill yesterday
+    // and mis-date attendance recorded before dawn. date-fns format uses the local calendar.
+    date: format(new Date(), "yyyy-MM-dd"),
     status: "present" as RecordType,
     notes: "",
   });
@@ -81,7 +85,7 @@ export default function ShopAttendancePage() {
       toast.success("Attendance recorded");
       queryClient.invalidateQueries({ queryKey: ["shop-attendance", user?.id] });
       setShowForm(false);
-      setForm({ employeeName: "", date: new Date().toISOString().slice(0, 10), status: "present", notes: "" });
+      setForm({ employeeName: "", date: format(new Date(), "yyyy-MM-dd"), status: "present", notes: "" });
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to save");
     } finally {

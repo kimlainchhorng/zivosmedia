@@ -70,6 +70,7 @@ export function useCarRentalMaintenance(storeId: string | undefined) {
   const create = useCallback(async (draft: CarRentalMaintenanceDraft): Promise<CarRentalMaintenance | null> => {
     if (!storeId) return null;
     setSaving(true);
+    setError(null);
     const payload = {
       store_id: storeId,
       vehicle_id: draft.vehicle_id,
@@ -99,25 +100,31 @@ export function useCarRentalMaintenance(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<CarRentalMaintenanceDraft>) => {
+  const update = useCallback(async (id: string, patch: Partial<CarRentalMaintenanceDraft>): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     setRecords((prev) => prev.map((r) => (r.id === id ? ({ ...r, ...patch } as CarRentalMaintenance) : r)));
     const { data, error: err } = await supabase.functions.invoke("car-rental-maintenance-manage", {
       body: { action: "update", maintenance_id: id, maintenance: patch },
     });
     if (err) {
       console.error("[useCarRentalMaintenance] update failed", err);
-      setError("Couldn't save changes — refreshing.");
-      await load();
-    } else if (data?.maintenance) {
+      await load(); // roll the optimistic patch back to server truth …
+      setError("Couldn't save changes — please retry."); // … then set the message (load() can clear it)
+      setSaving(false);
+      return false;
+    }
+    if (data?.maintenance) {
       const updated = data.maintenance as CarRentalMaintenance;
       setRecords((prev) => prev.map((r) => (r.id === id ? updated : r)));
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const prev = records;
     setRecords((p) => p.filter((r) => r.id !== id));
     const { error: err } = await supabase.functions.invoke("car-rental-maintenance-manage", {
@@ -127,8 +134,11 @@ export function useCarRentalMaintenance(storeId: string | undefined) {
       console.error("[useCarRentalMaintenance] delete failed", err);
       setError("Couldn't delete record.");
       setRecords(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [records]);
 
   return { records, loading, saving, error, create, update, remove, refresh: load };

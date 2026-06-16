@@ -12,6 +12,7 @@ import Printer from "lucide-react/dist/esm/icons/printer";
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { copyText } from "@/lib/native/clipboard";
+import { escapeHtml } from "@/lib/escapeHtml";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,7 +75,7 @@ export default function AutoRepairBookingLinkSection({ storeId }: Props) {
   <h1>Scan to book your next appointment</h1>
   <p>Point your phone camera at the code below</p>
   <img src="${dataUrl}" alt="Booking QR" loading="lazy" decoding="async"/>
-  <p class="url">${bookingUrl}</p>
+  <p class="url">${escapeHtml(bookingUrl)}</p>
 </body></html>`);
     w.document.close();
     setTimeout(() => { w.focus(); w.print(); }, 300);

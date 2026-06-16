@@ -54,6 +54,7 @@ import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import { assignDocNumber, assignWorkOrderNumber, peekDocNumber } from "@/lib/admin/invoiceActions";
 import { copyText } from "@/lib/native/clipboard";
 import { printOrShareHtml } from "@/lib/native/printDocument";
+import { escapeHtml } from "@/lib/escapeHtml";
 import { buildAutoRepairBookingUrl } from "@/lib/admin/autoRepairBookingUrl";
 import { type MatrixTier, DEFAULT_PARTS_MATRIX, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
 import {
@@ -1624,7 +1625,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       let token = (data as any)?.share_token as string | undefined;
       if (!token) {
         token = crypto.randomUUID();
-        await supabase.from("ar_estimates" as any).update({ share_token: token, status: "sent" }).eq("id", id);
+        // A Supabase update resolves even when the DB rejects (RLS / offline), so an
+        // unchecked write let a failed token-save fall through to "Approval link copied"
+        // while the public /estimate/:token page (resolved via ar_get_estimate_by_share_token)
+        // had no row to find — a dead customer link. Throw into the outer catch instead.
+        const { error } = await supabase.from("ar_estimates" as any).update({ share_token: token, status: "sent" }).eq("id", id);
+        if (error) throw error;
       }
       const url = `${window.location.origin}/estimate/${token}`;
       setStatus("sent");
@@ -1713,15 +1719,15 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     const rows = lines
       .map(
         (l) =>
-          `<tr><td>${KIND_META[l.kind].label}</td><td>${l.description || "—"}${l.misc ? ` <span style="color:#888">(${l.misc})</span>` : ""}</td><td class="r">${l.qty}</td><td class="r">${money(l.unit_cents)}</td><td class="r">${money(lineTotalCents(l))}</td></tr>`,
+          `<tr><td>${KIND_META[l.kind].label}</td><td>${escapeHtml(l.description || "—")}${l.misc ? ` <span style="color:#888">(${escapeHtml(l.misc)})</span>` : ""}</td><td class="r">${l.qty}</td><td class="r">${money(l.unit_cents)}</td><td class="r">${money(lineTotalCents(l))}</td></tr>`,
       )
       .join("");
-    const html = `<html><head><title>RO ${header.number || ""}</title><style>
+    const html = `<html><head><title>RO ${escapeHtml(header.number || "")}</title><style>
       body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:20px;margin:0}
       table{width:100%;border-collapse:collapse;margin-top:14px}th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}
       th{font-size:11px;text-transform:uppercase;color:#666}.r{text-align:right}.tot{font-size:18px;font-weight:700}</style></head><body>
-      <h1>Repair Order ${header.number || ""}</h1>
-      <p><b>Customer:</b> ${header.customer_name || "—"} &nbsp;|&nbsp; <b>Vehicle:</b> ${header.vehicle_label || "—"}${header.license_plate ? ` (${header.license_plate})` : ""}</p>
+      <h1>Repair Order ${escapeHtml(header.number || "")}</h1>
+      <p><b>Customer:</b> ${escapeHtml(header.customer_name || "—")} &nbsp;|&nbsp; <b>Vehicle:</b> ${escapeHtml(header.vehicle_label || "—")}${header.license_plate ? ` (${escapeHtml(header.license_plate)})` : ""}</p>
       <table><tr><th>Type</th><th>Description</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Total</th></tr>${rows}</table>
       <div style="margin-top:16px;text-align:right">
         <p>Parts: ${money(t.parts)} &nbsp; Labor: ${money(t.labor)} &nbsp; Tires: ${money(t.tires)} &nbsp; Sublet: ${money(t.sublet)}</p>
@@ -2739,11 +2745,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               <button className="flex items-center gap-1 text-primary hover:underline"
                 onClick={() => {
                   const html = `<html><head><title>Tech Assignment</title><style>body{font-family:system-ui;padding:24px}h2{margin:0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{padding:6px 8px;border:1px solid #ddd;text-align:left}th{background:#f3f4f6;font-size:11px;text-transform:uppercase}</style></head><body>
-                    <h2>Tech Assignment — RO ${header.number || ""}</h2>
-                    <p><b>Vehicle:</b> ${header.vehicle_label || "—"} &nbsp;|&nbsp; <b>Plate:</b> ${header.license_plate || "—"}</p>
-                    <p><b>Mileage In:</b> ${header.mileage_in || "—"}</p>
+                    <h2>Tech Assignment — RO ${escapeHtml(header.number || "")}</h2>
+                    <p><b>Vehicle:</b> ${escapeHtml(header.vehicle_label || "—")} &nbsp;|&nbsp; <b>Plate:</b> ${escapeHtml(header.license_plate || "—")}</p>
+                    <p><b>Mileage In:</b> ${escapeHtml(header.mileage_in || "—")}</p>
                     <table><tr><th>Type</th><th>Description</th><th>Qty</th></tr>
-                    ${lines.filter(l => l.kind === "labor").map(l => `<tr><td>Labor</td><td>${l.description}</td><td>${l.qty} hr</td></tr>`).join("")}
+                    ${lines.filter(l => l.kind === "labor").map(l => `<tr><td>Labor</td><td>${escapeHtml(l.description)}</td><td>${l.qty} hr</td></tr>`).join("")}
                     </table></body></html>`;
                   const w = window.open("", "_blank");
                   if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }

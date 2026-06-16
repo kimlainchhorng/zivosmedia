@@ -24,7 +24,12 @@ function objectsToCSV<T extends Record<string, unknown>>(data: T[], columns: str
     columns.map(col => {
       const value = row[col];
       if (value === null || value === undefined) return '';
-      if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+      // RFC 4180: a field containing a comma, double-quote, CR or LF must be
+      // wrapped in double-quotes (inner quotes doubled). The CR/LF case matters
+      // here — the `error` column carries multi-line upstream airline/Duffel
+      // text, and an un-quoted newline would split one record into two and
+      // misalign every later column. Mirrors admin/webhookEventsCsv.ts.
+      if (typeof value === 'string' && /[",\r\n]/.test(value)) {
         return `"${value.replace(/"/g, '""')}"`;
       }
       return String(value);

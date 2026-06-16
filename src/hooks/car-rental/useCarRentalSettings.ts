@@ -66,8 +66,8 @@ export function useCarRentalSettings(storeId: string | undefined) {
 
   useEffect(() => { void load(); }, [load]);
 
-  const save = useCallback(async (patch: Partial<CarRentalSettingsDraft>) => {
-    if (!storeId) return;
+  const save = useCallback(async (patch: Partial<CarRentalSettingsDraft>): Promise<boolean> => {
+    if (!storeId) return false;
     setSaving(true);
     setError(null);
     const payload = { ...DEFAULTS, ...(settings ?? {}), ...patch, store_id: storeId };
@@ -78,10 +78,11 @@ export function useCarRentalSettings(storeId: string | undefined) {
       console.error("[useCarRentalSettings] save failed", err);
       setError("Couldn't save settings.");
       setSaving(false);
-      return;
+      return false;
     }
     setSettings(data?.settings as CarRentalSettings);
     setSaving(false);
+    return true;
   }, [storeId, settings]);
 
   return { settings, loading, saving, error, save, refresh: load };

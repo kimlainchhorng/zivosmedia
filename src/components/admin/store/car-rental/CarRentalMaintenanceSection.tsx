@@ -95,6 +95,7 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
   const [editing, setEditing] = useState<CarRentalMaintenance | null>(null);
   const [draft, setDraft] = useState<CarRentalMaintenanceDraft>(EMPTY(vehicles[0]?.id ?? ""));
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const filtered = useMemo(() => {
     if (vehicleFilter === "all") return records;
@@ -105,12 +106,14 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
 
   const openCreate = () => {
     if (vehicles.length === 0) return;
+    setSubmitted(false);
     setEditing(null);
     setDraft(EMPTY(vehicleFilter === "all" ? vehicles[0].id : vehicleFilter));
     setDialogOpen(true);
   };
   const openTemplate = (tpl: ServiceTemplate) => {
     if (vehicles.length === 0) return;
+    setSubmitted(false);
     setEditing(null);
     const today = todayIso();
     const lastOdo = (() => {
@@ -159,6 +162,7 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
     return Array.from(map, ([service_type, v]) => ({ service_type, ...v })).sort((a, b) => b.cents - a.cents);
   }, [records]);
   const openEdit = (r: CarRentalMaintenance) => {
+    setSubmitted(false);
     setEditing(r);
     setDraft({
       vehicle_id: r.vehicle_id,
@@ -178,12 +182,9 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
 
   const save = async () => {
     if (!draft.vehicle_id || !draft.description.trim()) return;
-    if (editing) {
-      await update(editing.id, draft);
-    } else {
-      await create(draft);
-    }
-    setDialogOpen(false);
+    setSubmitted(true);
+    const ok = editing ? await update(editing.id, draft) : Boolean(await create(draft));
+    if (ok) setDialogOpen(false);
   };
 
   const labelFor = (vid: string | null) => {
@@ -347,11 +348,11 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
                   </div>
                   <div className="flex items-center gap-2 sm:flex-col sm:items-end">
                     <span className="text-sm font-bold text-foreground">{formatMoney(r.cost_cents)}</span>
-                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(r.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(r.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -364,7 +365,7 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o && saving) return; setDialogOpen(o); }}>
         <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit record" : "Add maintenance record"}</DialogTitle>
@@ -417,8 +418,13 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
               <Switch checked={draft.took_vehicle_offline ?? false} onCheckedChange={(c) => setDraft({ ...draft, took_vehicle_offline: c })} />
             </div>
           </div>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={save} disabled={saving || !draft.vehicle_id || !draft.description.trim()}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               {editing ? "Save changes" : "Add record"}
@@ -427,15 +433,25 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o && saving) return; if (!o) setDeleteId(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete record?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">This removes the maintenance entry permanently.</p>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={async () => {
-              if (deleteId) { await remove(deleteId); setDeleteId(null); }
-            }}>Delete</Button>
+            <Button variant="ghost" onClick={() => setDeleteId(null)} disabled={saving}>Cancel</Button>
+            <Button variant="destructive" disabled={saving} onClick={async () => {
+              if (!deleteId) return;
+              setSubmitted(true);
+              if (await remove(deleteId)) setDeleteId(null);
+            }}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -503,6 +519,8 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
   const [reason, setReason] = useState("");
   const [category, setCategory] = useState<CarRentalBlackoutCategory>("maintenance");
   const [showPast, setShowPast] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [failMsg, setFailMsg] = useState<string | null>(null);
 
   const openCreate = () => {
     if (vehicles.length === 0) return;
@@ -514,17 +532,21 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
     setEndsAt(iso.replace("T09:00", "T17:00"));
     setReason("");
     setCategory("maintenance");
+    setSubmitted(false);
+    setFailMsg(null);
     setOpen(true);
   };
 
   const save = async () => {
     if (selectedVehicleIds.size === 0 || !startsAt || !endsAt) return;
+    setSubmitted(true);
+    setFailMsg(null);
     const startsIso = new Date(startsAt).toISOString();
     const endsIso = new Date(endsAt).toISOString();
     // Create one blackout per selected vehicle so the operator can holiday-block the whole
-    // fleet in one go. If any single create fails, the rest still try (best-effort batch).
+    // fleet in one go. Best-effort batch: every selected vehicle is attempted even if some fail.
     const ids = Array.from(selectedVehicleIds);
-    let ok = 0;
+    const failed: string[] = [];
     for (const vid of ids) {
       const created = await onCreate({
         vehicle_id: vid,
@@ -533,9 +555,21 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
         reason: reason || null,
         category,
       });
-      if (created) ok++;
+      if (!created) failed.push(vid);
     }
-    if (ok > 0) setOpen(false);
+    // Close only when EVERY selected vehicle was blocked. On a partial/total failure keep the
+    // dialog open, narrow the selection to just the vehicles that failed (so a retry re-attempts
+    // only those — re-blocking the already-saved ones would itself overlap-fail), and explain.
+    if (failed.length === 0) {
+      setOpen(false);
+      return;
+    }
+    setSelectedVehicleIds(new Set(failed));
+    setFailMsg(
+      failed.length === ids.length
+        ? "Couldn't block any of the selected vehicles — the dates may overlap existing blackouts. Adjust the dates and retry."
+        : `Blocked ${ids.length - failed.length} of ${ids.length} vehicles. The remaining ${failed.length} couldn't be saved (dates may overlap existing blackouts). The selection now shows only those — adjust and retry.`,
+    );
   };
 
   const labelFor = (vid: string) => {
@@ -612,7 +646,7 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
                     </p>
                     {b.reason && <p className="truncate text-[11px] text-muted-foreground">{b.reason}</p>}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive opacity-0 transition-opacity group-hover:opacity-100" onClick={() => onDelete(b.id)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive transition-opacity sm:opacity-0 sm:group-hover:opacity-100" onClick={() => void onDelete(b.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </li>
@@ -623,7 +657,7 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => { if (!o && saving) return; setOpen(o); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Block dates</DialogTitle>
@@ -711,8 +745,13 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
               <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Brake job at City Auto" />
             </Field>
           </div>
+          {submitted && (failMsg || error) && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {failMsg || error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={save} disabled={saving || selectedVehicleIds.size === 0 || !startsAt || !endsAt}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               Block {selectedVehicleIds.size > 1 ? `${selectedVehicleIds.size} vehicles` : "dates"}

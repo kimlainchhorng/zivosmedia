@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { toast } from "sonner";
 import { X, Printer, ChevronDown, Clock, Wrench, PauseCircle, CheckCircle2, PackageCheck, User, Activity, Timer } from "lucide-react";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 interface Props {
   open: boolean;
@@ -135,14 +136,14 @@ export default function BuildROStatusDialog({
   };
 
   const print = () => {
-    const html = `<html><head><title>Tech Assignment ${roNumber || ""}</title>
+    const html = `<html><head><title>Tech Assignment ${escapeHtml(roNumber || "")}</title>
       <style>body{font-family:system-ui,sans-serif;padding:28px;color:#111}h1{font-size:18px}
       .row{margin:8px 0}.k{color:#666;display:inline-block;width:200px}</style></head><body>
-      <h1>Technician Assignment${roNumber ? ` — RO ${roNumber}` : ""}</h1>
-      <div class="row"><span class="k">Main Technician:</span><b>${technician || "Unassigned"}</b></div>
-      <div class="row"><span class="k">Status:</span>${status}</div>
+      <h1>Technician Assignment${roNumber ? ` — RO ${escapeHtml(roNumber)}` : ""}</h1>
+      <div class="row"><span class="k">Main Technician:</span><b>${escapeHtml(technician || "Unassigned")}</b></div>
+      <div class="row"><span class="k">Status:</span>${escapeHtml(status)}</div>
       <div class="row"><span class="k">Total Sold Hours:</span>${soldHours.toFixed(1)}</div>
-      <div class="row"><span class="k">Estimated Completion Time:</span>${eta}</div>
+      <div class="row"><span class="k">Estimated Completion Time:</span>${escapeHtml(eta)}</div>
       </body></html>`;
     const w = window.open("", "_blank");
     if (!w) { toast.error("Pop-up blocked"); return; }

@@ -63,7 +63,8 @@ export default function CarRentalSettingsCard({ storeId }: Props) {
   };
 
   const submit = async () => {
-    await save(draft);
+    const ok = await save(draft);
+    if (!ok) return;
     setDirty(false);
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 2000);
