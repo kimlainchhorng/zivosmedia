@@ -21,12 +21,19 @@ import { toast } from "sonner";
 interface Props { storeId: string }
 const CATEGORIES = ["Beans", "Dairy", "Bakery", "Supplies", "Rent", "Utilities", "Marketing", "Equipment", "Repairs", "Other"];
 
+// Local YYYY-MM-DD. toISOString().slice(0,10) is the UTC day, which for Cambodia
+// (UTC+7, no DST) reads as yesterday before 07:00 ICT. Worse, building the month
+// start via new Date(y, m, 1).toISOString() lands on the last day of the previous
+// month, so the month-to-date cutoff would always swallow that extra day.
+const ymdLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 const blankExpense = (): CafeExpenseDraft => ({
   category: "Beans",
   vendor: null,
   description: null,
   amount_cents: 0,
-  expense_date: new Date().toISOString().slice(0, 10),
+  expense_date: ymdLocal(new Date()),
   payment_method: "cash",
   is_recurring: false,
   receipt_url: null,
@@ -41,7 +48,7 @@ export default function CafeExpensesSection({ storeId }: Props) {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const mtdCutoff = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const mtdCutoff = ymdLocal(new Date(now.getFullYear(), now.getMonth(), 1));
     let mtd = 0, ytd = 0;
     const byCat = new Map<string, number>();
     for (const e of expenses) {
