@@ -18,6 +18,7 @@ import {
   BarChart, Bar, Legend,
 } from "recharts";
 import { Trophy, TrendingUp, DollarSign, Gauge, Save, Loader2, AlertTriangle } from "lucide-react";
+import { format } from "date-fns";
 import { PerformanceChartSkeleton, BreakdownTableSkeleton, LedgerListSkeleton } from "@/components/admin/ads/MarketingSkeletons";
 import MarketingEmptyState from "@/components/admin/ads/MarketingEmptyState";
 import { useIsMobilePreview } from "@/components/admin/ads/useResponsiveWidth";
@@ -86,7 +87,10 @@ export default function AdsStudioDashboard({ storeId }: Props) {
   const load = async () => {
     setLoading(true);
     try {
-      const since = new Date(Date.now() - days * 86400_000).toISOString().slice(0, 10);
+      // Local YYYY-MM-DD (browser runs in Cambodia, UTC+7, no DST). toISOString() is the
+      // UTC day, which reads as yesterday before 07:00 ICT — that would shift the rolling
+      // window edge by a day. spend_date is a DATE column holding the local calendar date.
+      const since = format(new Date(Date.now() - days * 86400_000), "yyyy-MM-dd");
       const [{ data: b }, { data: s }, { data: w }] = await Promise.all([
         supabase.from("ads_studio_budgets" as any).select("*").eq("store_id", storeId),
         supabase.from("ads_studio_daily_spend" as any).select("spend_date,platform,spend_cents,impressions,clicks,conversions").eq("store_id", storeId).gte("spend_date", since).order("spend_date", { ascending: true }),
@@ -169,7 +173,9 @@ export default function AdsStudioDashboard({ storeId }: Props) {
 
   // Today's spend per platform → pacing meter
   const todayByPlat = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    // Local day, not the UTC slice: before 07:00 ICT the UTC day is yesterday, which would
+    // make the pacing meter show yesterday's spend as "today" and $0 for the real today.
+    const today = format(new Date(), "yyyy-MM-dd");
     const map: Record<string, number> = {};
     for (const r of spend) if (r.spend_date === today) map[r.platform] = (map[r.platform] || 0) + r.spend_cents;
     return map;
