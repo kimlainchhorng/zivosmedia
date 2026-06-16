@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
 import CalendarClock from "lucide-react/dist/esm/icons/calendar-clock";
 import Car from "lucide-react/dist/esm/icons/car";
 import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
@@ -53,7 +54,10 @@ export default function TodayPlanWidget() {
     if (!user?.id) return;
     let cancelled = false;
     const load = async () => {
-      const todayISO = new Date().toISOString().slice(0, 10);
+      // Local YYYY-MM-DD: toISOString() returns the UTC day, which in Cambodia
+      // (UTC+7) reads as yesterday during 00:00–07:00 local — so an early-morning
+      // user would see yesterday's plan and miss a flight/check-in dated today.
+      const todayISO = format(new Date(), "yyyy-MM-dd");
       const next: PlanEntry[] = [];
 
       const sb = supabase as any;
