@@ -59,7 +59,7 @@ export default function SurgePricingMap() {
     })));
   }, 15000);
 
-  const avgSurge = zones.reduce((s, z) => s + z.multiplier, 0) / zones.length;
+  const avgSurge = zones.length ? zones.reduce((s, z) => s + z.multiplier, 0) / zones.length : 0;
 
   return (
     <div className="rounded-2xl bg-card border border-border/40 overflow-hidden">
