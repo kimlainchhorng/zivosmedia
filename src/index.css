@@ -3762,3 +3762,40 @@ html.underline-links a:not([class*="no-underline"]):not(button) {
   border: 0 !important;
   background: #ffffff !important;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Cross-tab swipe navigation — directional page slide (Home ⇄ Feed → Reels).
+   Driven by useTabSwipeNavigation via document.startViewTransition(); the
+   [data-swipe-nav] attribute on <html> sets the slide direction and is only
+   present for the duration of a swipe-triggered navigation. Other navigations
+   (taps, links) don't set it, so they animate normally / instantly.
+   ────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-swipe-nav="left"]::view-transition-old(root) {
+    animation: zivo-tab-slide-out-left 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  html[data-swipe-nav="left"]::view-transition-new(root) {
+    animation: zivo-tab-slide-in-left 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  html[data-swipe-nav="right"]::view-transition-old(root) {
+    animation: zivo-tab-slide-out-right 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  html[data-swipe-nav="right"]::view-transition-new(root) {
+    animation: zivo-tab-slide-in-right 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+}
+
+/* swipe left = advancing forward: old page exits left, new enters from right */
+@keyframes zivo-tab-slide-out-left {
+  to { transform: translateX(-26%); opacity: 0.55; }
+}
+@keyframes zivo-tab-slide-in-left {
+  from { transform: translateX(26%); opacity: 0.55; }
+}
+/* swipe right = going back: old page exits right, new enters from left */
+@keyframes zivo-tab-slide-out-right {
+  to { transform: translateX(26%); opacity: 0.55; }
+}
+@keyframes zivo-tab-slide-in-right {
+  from { transform: translateX(-26%); opacity: 0.55; }
+}

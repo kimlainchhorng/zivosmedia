@@ -48,6 +48,8 @@ const STICKER_PACK_BY_STICKER_ID = new Map(
 
 interface Props {
   post: ChannelPost;
+  channelName?: string;
+  channelAvatarUrl?: string | null;
   /** True if the viewer can pin/delete posts on this channel. */
   canManage?: boolean;
   /** True if the viewer can comment (subscribed or manager). */
@@ -283,17 +285,16 @@ function PostMediaStatsOverlay({ views, time, pill = false }: { views: number; t
   return (
     <span
       className={cn(
-        "pointer-events-none absolute bottom-1.5 right-2 inline-flex items-center gap-1.5 leading-none text-white",
+        "pointer-events-none absolute inline-flex items-center leading-none text-white",
         // Stickers have no bubble behind them, so plain white text reads poorly
         // over light artwork — wrap it in a dark Telegram-style pill instead.
         pill
-          ? "rounded-full bg-black/45 px-2 py-1 text-[12px] font-medium backdrop-blur-sm"
-          : "text-[17px] font-medium",
+          ? "bottom-1.5 right-2 gap-1.5 rounded-full bg-black/45 px-2 py-1 text-[12px] font-medium backdrop-blur-sm"
+          : "bottom-1 right-1.5 gap-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[11px] font-semibold shadow-sm backdrop-blur-sm",
       )}
-      style={pill ? undefined : { textShadow: "0 1px 2px rgba(0,0,0,.55)" }}
     >
       <span>{formatViewCount(views)}</span>
-      <Eye className={cn("fill-white/30 stroke-[2.4]", pill ? "h-3.5 w-3.5" : "h-5 w-5")} />
+      <Eye className={cn("fill-white/30 stroke-[2.4]", pill ? "h-3.5 w-3.5" : "h-3 w-3")} />
       {time && <span>{time}</span>}
     </span>
   );
@@ -362,6 +363,8 @@ function MeetPreviewArtwork() {
 
 export function ChannelPostCard({
   post,
+  channelName,
+  channelAvatarUrl,
   canManage = false,
   canComment = true,
   protectContent = false,
@@ -819,7 +822,21 @@ export function ChannelPostCard({
     musicItems.length === 0 &&
     fileItems.length === 0 &&
     media.length === 0;
-  const showBottomFooter = !compactBubble && (!hasVisualContent || visibleReactions.length > 0);
+  const firstMedia = media[0];
+  const singleMediaIsVideo = !!firstMedia && isVideo(firstMedia);
+  const singleMediaPost =
+    media.length === 1 &&
+    !linkPreview &&
+    !pollAttachment &&
+    voiceItems.length === 0 &&
+    musicItems.length === 0 &&
+    fileItems.length === 0 &&
+    stickerItems.length === 0;
+  const singleMediaPreviewText =
+    messageText.trim() || firstMedia?.name?.trim() || (singleMediaIsVideo ? "Video" : "Photo");
+  const singleMediaAvatarUrl = channelAvatarUrl || null;
+  const channelInitial = (channelName || "Channel").trim().charAt(0).toUpperCase();
+  const showBottomFooter = !compactBubble && !singleMediaPost && (!hasVisualContent || visibleReactions.length > 0);
 
   return (
     <>
@@ -866,6 +883,9 @@ export function ChannelPostCard({
                   : "bg-[#d9fdd3] ring-emerald-200/70 dark:bg-emerald-950/60 dark:ring-emerald-900/70",
                 compactBubble ? "max-w-[min(26rem,78%)] px-2.5 py-1.5" : "max-w-[min(30rem,calc(100%-4.75rem))] px-3 py-2 pb-1.5",
               ],
+          singleMediaPost &&
+            !compactBubble &&
+            "w-[min(21rem,78vw)] max-w-[calc(100%-4.75rem)] bg-[#d7ecff] p-1.5 ring-sky-300/70 after:bg-[#d7ecff]",
           highlight && "ring-2 ring-sky-400 ring-offset-2 ring-offset-[#dcefdc] dark:ring-offset-zinc-950",
         )}
       >
@@ -916,7 +936,7 @@ export function ChannelPostCard({
             </div>
           </div>
         ) : (
-          hasBody && (
+          hasBody && !singleMediaPost && (
             <p
               className={cn(
                 "whitespace-pre-wrap break-words text-slate-950",
@@ -1117,8 +1137,28 @@ export function ChannelPostCard({
           </div>
         )}
 
+        {!editing && singleMediaPost && (
+          <div className="mb-1.5 flex min-w-0 items-center gap-2 rounded-t-[14px] rounded-b-md border-l-[3px] border-emerald-500 bg-[#eaf5ff] px-2 py-1.5 text-left ring-1 ring-sky-200/80">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-sky-100 text-sm font-bold text-sky-700">
+              {singleMediaAvatarUrl ? (
+                <img src={singleMediaAvatarUrl} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+              ) : (
+                channelInitial
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[14px] font-bold leading-5 text-emerald-600">
+                {channelName || "Channel"}
+              </span>
+              <span className="block truncate text-[14px] leading-5 text-slate-950">
+                {singleMediaPreviewText}
+              </span>
+            </span>
+          </div>
+        )}
+
         {media.length > 0 && (
-          <div className={`mt-3 grid gap-1.5 ${gridClass}`}>
+          <div className={cn("grid gap-1.5", singleMediaPost && !editing ? "mt-0" : "mt-3", gridClass)}>
             {media.slice(0, 6).map((m, i) => {
               const isFirstOfThree = media.length === 3 && i === 0;
               const isOverflow = media.length > 6 && i === 5;
@@ -1127,9 +1167,10 @@ export function ChannelPostCard({
                 <button type="button"
                   key={i}
                   onClick={() => setLightboxIdx(i)}
-                  className={`relative overflow-hidden rounded-xl bg-muted ${
-                    isFirstOfThree ? "col-span-2 aspect-[2/1]" : "aspect-square"
-                  }`}
+                  className={cn(
+                    "relative overflow-hidden rounded-xl bg-muted",
+                    isFirstOfThree ? "col-span-2 aspect-[2/1]" : media.length === 1 && video ? "aspect-[9/16]" : "aspect-square",
+                  )}
                   aria-label={video ? `Play video ${i + 1}` : `Open image ${i + 1}`}
                   onContextMenu={blockSaveGestures}
                   onContextMenuCapture={blockSaveGestures}
@@ -1145,7 +1186,7 @@ export function ChannelPostCard({
                         preload="metadata"
                         controlsList={protectContent ? "nodownload noplaybackrate noremoteplayback" : undefined}
                         disablePictureInPicture={protectContent}
-                        className="pointer-events-none h-full w-full object-cover"
+                        className={cn("pointer-events-none h-full w-full", media.length === 1 ? "bg-black object-contain" : "object-cover")}
                         onContextMenu={blockSaveGestures}
                         onContextMenuCapture={blockSaveGestures}
                         onDragStartCapture={blockSaveGestures}
@@ -1181,10 +1222,43 @@ export function ChannelPostCard({
                       +{media.length - 6}
                     </div>
                   )}
-                  {i === Math.min(media.length, 6) - 1 && <PostMediaStatsOverlay views={post.view_count} time={postTimeLabel} />}
+                  {i === Math.min(media.length, 6) - 1 && !singleMediaPost && <PostMediaStatsOverlay views={post.view_count} time={postTimeLabel} />}
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {!editing && singleMediaPost && hasBody && (
+          <div className="px-2 pb-0.5 pt-2 text-[15px] leading-5 text-slate-950">
+            {renderMessageText(messageText)}
+          </div>
+        )}
+
+        {!editing && singleMediaPost && (
+          <div className="mt-1 flex items-end justify-between gap-2 px-2 pb-0.5">
+            <div className="flex min-w-0 flex-wrap gap-1">
+              {visibleReactions.map(({ emoji, count, mine }) => (
+                <button
+                  type="button"
+                  key={emoji}
+                  onClick={() => react(emoji)}
+                  disabled={reacting}
+                  className={cn(
+                    "inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60",
+                    mine ? "bg-white/75 text-sky-700 ring-1 ring-sky-300/70" : "bg-sky-100/85 text-sky-700 hover:bg-sky-100",
+                  )}
+                >
+                  <span>{emoji}</span>
+                  {count > 0 && <span className="ml-1 font-semibold">{count}</span>}
+                </button>
+              ))}
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-medium leading-none text-slate-500">
+              <span>{formatViewCount(post.view_count)}</span>
+              <Eye className="h-3.5 w-3.5 fill-slate-400/30 stroke-[2.4]" />
+              {postTimeLabel && <span>{postTimeLabel}</span>}
+            </span>
           </div>
         )}
 

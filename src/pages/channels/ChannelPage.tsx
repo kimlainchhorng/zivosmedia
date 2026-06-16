@@ -509,6 +509,8 @@ export default function ChannelPage() {
             <ChannelPostCard
               key={item.post.id}
               post={item.post}
+              channelName={channel.name}
+              channelAvatarUrl={channel.avatar_url}
               canManage={canPost}
               canComment={canViewComments}
               protectContent={!canPost && channel.restrict_saving_content !== false}

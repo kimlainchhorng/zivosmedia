@@ -163,18 +163,31 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
       data-zivo-mobile-nav
       className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe pointer-events-none"
     >
-      {/* Big floating frosted pill — wide (near full-width) but rounded on all
-          sides and floating above the bottom with side + bottom margins. */}
-      <div className="px-3 pb-3">
+      {/* Instagram-style floating glass bar — clean frosted capsule, icon-only,
+          with a soft neutral pill behind the active icon. No rainbow accents. */}
+      <div className="relative px-3 pb-3">
         <div
           className={cn(
-            "pointer-events-auto flex w-full items-stretch gap-1 px-2 py-2",
-            "rounded-[30px] bg-white/90 backdrop-blur-2xl",
-            "border border-black/[0.06]",
-            "shadow-[0_12px_40px_rgba(0,0,0,0.16),0_1px_0_rgba(255,255,255,0.7)_inset]",
-            "dark:bg-zinc-900/90 dark:border-white/10 dark:shadow-[0_14px_44px_rgba(0,0,0,0.6)]",
+            "pointer-events-auto relative flex w-full items-stretch px-1.5 py-2",
+            "rounded-[26px]",
+            /* Instagram-style frosted surface — present enough to stay a stable
+               bright bar in light mode (so the active pill always reads), while
+               blur+saturate still let content bleed softly through. */
+            "bg-white/[0.45] backdrop-blur-3xl backdrop-saturate-[2]",
+            /* Rim-light border — bright specular edge */
+            "border border-white/40",
+            /* Specular highlights (bright top, faint bottom) + soft diffuse float */
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),inset_0_-0.5px_0_rgba(255,255,255,0.1),0_8px_40px_rgba(0,0,0,0.1),0_2px_12px_rgba(0,0,0,0.05)]",
+            /* Dark mode glass */
+            "dark:bg-zinc-900/[0.55] dark:border-white/[0.10]",
+            "dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-0.5px_0_rgba(255,255,255,0.02),0_8px_40px_rgba(0,0,0,0.5),0_2px_12px_rgba(0,0,0,0.25)]",
           )}
         >
+        {/* Glassy sheen — diagonal highlight catch */}
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[26px] bg-gradient-to-br from-white/[0.12] via-transparent to-transparent dark:from-white/[0.04] dark:via-transparent dark:to-transparent"
+          aria-hidden
+        />
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -203,72 +216,62 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                 }
               }}
               className={cn(
-                "group relative flex flex-1 min-h-[58px] min-w-[44px] touch-manipulation flex-col items-center justify-center gap-1",
-                "rounded-2xl px-1 transition-colors duration-150 active:scale-[0.92]",
+                "group relative flex flex-1 min-h-[52px] min-w-[44px] touch-manipulation items-center justify-center",
+                "rounded-2xl px-0.5 transition-all duration-200 ease-out active:scale-[0.92]",
                 isActive
-                  ? "text-white"
-                  : "text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300",
+                  ? "text-zinc-900 dark:text-white"
+                  : "text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300",
               )}
               aria-label={label}
               aria-current={isActive ? "page" : undefined}
             >
-              {/* Active highlight — plain divs, NOT framer-motion layoutId.
-                  Shared-layout layoutId loops ("Maximum update depth") when
+              {/* Instagram-style active pill — a soft neutral lozenge behind the
+                  selected icon. Plain CSS transition (no framer-motion layoutId):
+                  shared-layout layoutId loops ("Maximum update depth") when
                   ZivoMobileNav is mounted more than once on a page (e.g. MorePage
-                  renders its own instance), because duplicate layoutIds make the
-                  layout system re-measure endlessly. */}
-              {isActive && (
-                <>
-                  <div
-                    className="absolute inset-x-3 bottom-1 -z-0 h-4 rounded-full bg-pink-500/40 blur-lg"
-                    aria-hidden
-                  />
-                  <div
-                    className="absolute inset-x-1 inset-y-1 rounded-2xl bg-ig-gradient shadow-[0_4px_16px_rgba(236,72,153,0.35)]"
-                    aria-hidden
-                  />
-                </>
-              )}
+                  renders its own instance). */}
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-x-1.5 inset-y-1.5 rounded-[16px] transition-all duration-300 ease-out",
+                  isActive
+                    ? "scale-100 opacity-100 bg-black/[0.08] shadow-[inset_0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/[0.12] dark:shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.06)]"
+                    : "scale-90 opacity-0",
+                )}
+                aria-hidden
+              />
 
               {/* Icon / avatar */}
               {isAccountWithAvatar ? (
-                <div className={cn(
-                  "relative z-10 shrink-0 rounded-full transition-all duration-150",
-                  isActive ? "p-[1.5px] bg-white/40 shadow-sm" : "",
-                )}>
-                  <Avatar className="block h-7 w-7">
+                <div className="relative z-10 shrink-0 rounded-full transition-all duration-300">
+                  <Avatar className={cn("block transition-all duration-200", isActive ? "h-7 w-7" : "h-6 w-6")}>
                     <AvatarImage
                       src={profile?.avatar_url || user.user_metadata?.avatar_url || undefined}
                       alt="Account"
                       className="object-cover"
                     />
                     <AvatarFallback className={cn(
-                      "text-[11px] font-semibold",
-                      isActive ? "bg-white text-foreground" : "bg-muted text-foreground",
+                      "text-[10px] font-bold",
+                      isActive
+                        ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white"
+                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
                     )}>
                       {(profile?.full_name?.[0] || user.email?.[0] || "Z").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </div>
               ) : (
-                <Icon
-                  className="relative z-10 h-[25px] w-[25px] shrink-0"
-                  strokeWidth={isActive ? 2.4 : 1.7}
-                  fill={isActive && tab.fillable ? "currentColor" : "none"}
-                  aria-hidden
-                />
+                <div className="relative z-10 shrink-0">
+                  <Icon
+                    className={cn(
+                      "h-[22px] w-[22px] transition-all duration-200",
+                      isActive && "scale-[1.08] drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]",
+                    )}
+                    strokeWidth={isActive ? 2.4 : 1.6}
+                    fill={isActive && tab.fillable ? "currentColor" : "none"}
+                    aria-hidden
+                  />
+                </div>
               )}
-
-              {/* Always-visible label */}
-              <span
-                className={cn(
-                  "relative z-10 max-w-full truncate text-[11px] font-bold tracking-tight",
-                  isActive ? "text-white" : "",
-                )}
-                aria-hidden
-              >
-                {label}
-              </span>
 
               {/* Badge */}
               {typeof tab.badge === "number" && tab.badge > 0 && (
@@ -277,11 +280,9 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 520, damping: 22 }}
                   className={cn(
-                    "absolute right-[22%] top-1 z-20 flex h-[16px] min-w-[16px] items-center justify-center",
-                    "rounded-full px-[3px] text-[9px] font-black leading-none ring-2",
-                    isActive
-                      ? "bg-white text-rose-500 ring-transparent"
-                      : "bg-destructive text-destructive-foreground ring-background",
+                    "absolute right-[16%] top-0 z-20 flex h-[15px] min-w-[15px] items-center justify-center",
+                    "rounded-full px-[4px] text-[8px] font-black leading-none",
+                    "bg-rose-500 text-white shadow-[0_2px_6px_rgba(244,63,94,0.35)]",
                   )}
                 >
                   {tab.badge > 99 ? "99+" : tab.badge}

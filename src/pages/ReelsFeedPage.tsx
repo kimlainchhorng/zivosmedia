@@ -1810,10 +1810,39 @@ export default function ReelsFeedPage() {
             onTouchStart={handleFeedSwipeStart}
             onTouchEnd={handleFeedSwipeEnd}
           >
-            <div className="zivo-pt-safe-sticky zivo-feed-mobile-header-panel zivo-social-header-glass rounded-[1.5rem] overflow-hidden">
+            <div
+              className={cn(
+                "zivo-pt-safe-sticky zivo-feed-mobile-header-panel relative rounded-[1.5rem] overflow-hidden",
+                /* ── Liquid Glass — mirrors the bottom nav (ZivoMobileNav): clear
+                      frost so feed content bleeds through as it scrolls behind.
+                      Opacity nudged 0.15→0.20 since the header is larger / sits
+                      over lighter content. DeepSeek + MiMo. ── */
+                "bg-white/[0.20] backdrop-blur-3xl backdrop-saturate-[2]",
+                "border border-white/25",
+                "shadow-[inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-0.5px_0_rgba(255,255,255,0.1),0_8px_40px_rgba(0,0,0,0.08),0_2px_12px_rgba(0,0,0,0.04)]",
+                "dark:bg-zinc-950/[0.40] dark:border-white/[0.08]",
+                "dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-0.5px_0_rgba(255,255,255,0.02),0_8px_40px_rgba(0,0,0,0.5),0_2px_12px_rgba(0,0,0,0.25)]",
+              )}
+            >
+              {/* A — diagonal specular sheen (glossy highlight catch), matches nav */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.12] via-transparent to-transparent dark:from-white/[0.04] dark:via-transparent dark:to-transparent"
+              />
+              {/* B — faint cool self-tint: just enough material temperature for the
+                    top-of-feed case (white behind), without killing content bleed */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-[60%] bg-gradient-to-b from-slate-200/[0.10] to-transparent dark:from-zinc-800/20"
+              />
+              {/* C — bottom separation hairline: grounds the floating panel */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-black/[0.07] to-transparent dark:via-white/10"
+              />
               <div
                 className={cn(
-                  "overflow-hidden transition-all duration-300 ease-out",
+                  "relative z-10 overflow-hidden transition-all duration-300 ease-out",
                   "max-h-[200px] opacity-100",
                   headerHidden && "shadow-sm"
                 )}
@@ -1995,7 +2024,7 @@ export default function ReelsFeedPage() {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <h1 className="text-base font-extrabold shrink-0 bg-ig-gradient bg-clip-text text-transparent">Feed</h1>
+                  <h1 className="text-base font-extrabold shrink-0 text-foreground">Feed</h1>
                   <div className="flex-1 relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                     <input
@@ -2058,7 +2087,7 @@ export default function ReelsFeedPage() {
                           className={cn(
                             "shrink-0 h-[34px] rounded-full px-3.5 text-[11px] font-black tracking-[-0.01em] whitespace-nowrap transition-colors duration-150 touch-manipulation focus-visible:outline-none",
                             feedTab === label
-                              ? "bg-ig-gradient text-white shadow-[0_2px_10px_rgba(236,72,153,0.28)]"
+                              ? "bg-zinc-900 text-white shadow-[0_2px_10px_rgba(0,0,0,0.18)] dark:bg-white dark:text-zinc-900"
                               : "text-muted-foreground/80 bg-muted/40 hover:bg-muted hover:text-foreground"
                           )}
                         >

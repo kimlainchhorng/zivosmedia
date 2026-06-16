@@ -32,6 +32,7 @@ const CreatorSubscribeSheet = lazy(() => import("@/components/creator/CreatorSub
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useVerificationRealtime } from "@/hooks/useVerificationRealtime";
 import { useOTAUpdate } from "@/hooks/useOTAUpdate";
+import { useTabSwipeNavigation } from "@/hooks/useTabSwipeNavigation";
 // OTA banner pulls framer-motion — keep it out of the root chunk; it only
 // renders on native when an update is queued.
 const OTAUpdateBanner = lazy(() => import("@/components/shared/OTAUpdateBanner"));
@@ -1200,6 +1201,11 @@ function RoutePerfTracker() {
   return null;
 }
 
+function TabSwipeNavigator() {
+  useTabSwipeNavigation();
+  return null;
+}
+
 function NativeDeepLinkHandler() {
   const navigate = useNavigate();
 
@@ -1674,6 +1680,7 @@ const App = () => (
                 <ZivoEmployeeHostGate />
                 <ZivoTravel3DProvider />
                 <RoutePerfTracker />
+                <TabSwipeNavigator />
                 <NativeDeepLinkHandler />
                 <OTAUpdateBootstrap />
                 <Suspense fallback={null}><NavigationProgressBar /></Suspense>
