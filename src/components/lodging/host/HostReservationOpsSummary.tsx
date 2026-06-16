@@ -1,12 +1,17 @@
 import { AlertTriangle, CalendarCheck2, CalendarDays, CreditCard, LifeBuoy, PlaneLanding, PlaneTakeoff, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 import type { LodgeReservation } from "@/hooks/lodging/useLodgeReservations";
 import type { ReservationChangeRequest } from "@/hooks/lodging/useReservationChangeRequests";
 import type { LodgingRefundDispute } from "@/hooks/lodging/useLodgingRefundDisputes";
 
 interface Props { reservations: LodgeReservation[]; requests?: ReservationChangeRequest[]; disputes?: LodgingRefundDispute[]; onFilter?: (value: string) => void; }
 
-const today = () => new Date().toISOString().slice(0, 10);
+// Local YYYY-MM-DD. toISOString().slice(0,10) is the UTC day, which in Cambodia
+// (UTC+7) reads as yesterday before 07:00 local — "Arrivals/Departures today"
+// would then show yesterday's reservations and miss today's, since check_in /
+// check_out are stored as local calendar dates.
+const today = () => format(new Date(), "yyyy-MM-dd");
 
 export default function HostReservationOpsSummary({ reservations, requests = [], disputes = [], onFilter }: Props) {
   const t = today();
