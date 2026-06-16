@@ -74,7 +74,18 @@ function tokenize(text: string): Segment[] {
     } else if (hashtagGroup) {
       segments.push({ type: "hashtag", value: `#${hashtagGroup}`, token: hashtagGroup });
     } else if (mentionGroup) {
-      segments.push({ type: "mention", value: `@${mentionGroup}`, token: mentionGroup });
+      // Usernames may contain dots ("john.doe") but never end in one; a trailing
+      // dot in prose ("thanks @john.") is sentence punctuation, not the handle.
+      // Strip it (mirroring the URL trailing-punctuation handling above) so the
+      // resolver looks up the real username instead of failing on "@john.".
+      const cleaned = mentionGroup.replace(/\.+$/g, "");
+      if (cleaned) {
+        segments.push({ type: "mention", value: `@${cleaned}`, token: cleaned });
+        const trail = mentionGroup.slice(cleaned.length);
+        if (trail) segments.push({ type: "text", value: trail });
+      } else {
+        segments.push({ type: "text", value: raw });
+      }
     }
     lastIdx = idx + raw.length;
   }
