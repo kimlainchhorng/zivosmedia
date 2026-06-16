@@ -23,6 +23,14 @@ interface SuggestedUsersCarouselProps {
   variant?: "default" | "inline";
 }
 
+// Compact follower counts. Stored counts reach millions for popular creators,
+// so a thousands-only format would render "5200.0k" instead of "5.2M".
+function formatFollowerCount(count: number) {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(count >= 10_000_000 ? 0 : 1)}M`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(count >= 10_000 ? 0 : 1)}k`;
+  return String(count);
+}
+
 const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCarouselProps>(function SuggestedUsersCarousel({ variant = "default" }, ref) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -322,7 +330,7 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                 {/* Follower / posts hint */}
                 <p className="zivo-social-chip mx-auto mb-1 mt-1 w-fit rounded-full px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
                   {profile.follower_count > 0
-                    ? `${profile.follower_count >= 1000 ? `${(profile.follower_count / 1000).toFixed(1)}k` : profile.follower_count} followers`
+                    ? `${formatFollowerCount(profile.follower_count)} followers`
                     : profile.posts_count > 0
                     ? `${profile.posts_count} posts`
                     : "New member"}
