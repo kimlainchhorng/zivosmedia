@@ -32,6 +32,15 @@ describe("isSafeProtocol", () => {
   it("is case-insensitive", () => {
     expect(isSafeProtocol("JavaScript:alert(1)")).toBe(false);
   });
+  it("rejects schemes split by an embedded tab", () => {
+    expect(isSafeProtocol("java" + String.fromCharCode(9) + "script:alert(1)")).toBe(false);
+  });
+  it("rejects schemes split by an embedded newline", () => {
+    expect(isSafeProtocol("java" + String.fromCharCode(10) + "script:alert(1)")).toBe(false);
+  });
+  it("rejects a scheme hidden behind a leading control char", () => {
+    expect(isSafeProtocol(String.fromCharCode(1) + "javascript:alert(1)")).toBe(false);
+  });
 });
 
 describe("isPunycodeHost", () => {

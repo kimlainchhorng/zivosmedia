@@ -112,7 +112,11 @@ const ZIVO_OWNED_HOSTS = ['zivosmedia.com', 'myzivo.lovable.app'];
  * Blocks javascript:, data:, vbscript:, file:, etc.
  */
 export function isSafeProtocol(url: string): boolean {
-  const trimmed = url.trim().toLowerCase();
+  // Browsers strip ASCII tabs/newlines and leading C0 control chars from a URL
+  // before resolving its scheme, so "java\tscript:" and "\x01javascript:" still
+  // execute. Strip those same characters before the prefix check — matching on
+  // the raw string alone is trivially bypassed.
+  const trimmed = url.replace(/[\u0000-\u001F\u007F]/g, '').trim().toLowerCase();
   if (
     trimmed.startsWith('javascript:') ||
     trimmed.startsWith('data:') ||
