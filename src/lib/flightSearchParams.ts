@@ -67,12 +67,24 @@ export function validateDateString(dateStr: string | null): string | null {
     return null;
   }
   
-  // Check it's a valid date
+  // Parse as a LOCAL-time date (the T00:00:00 suffix avoids UTC interpretation).
   const date = new Date(dateStr + 'T00:00:00');
   if (isNaN(date.getTime())) {
     return null;
   }
-  
+
+  // Strict calendar check: V8 rolls overflowing days over (Feb 30 -> Mar 2),
+  // so confirm the parsed date round-trips back to the supplied y/m/d. Use the
+  // local getters to match the local-time parse above.
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() + 1 !== month ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
   // Return validated date string
   return dateStr;
 }

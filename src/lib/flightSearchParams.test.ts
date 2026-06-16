@@ -6,10 +6,10 @@
  * the results page. Expected values were ground-truthed against the documented
  * rules and an independent node probe of V8's Date / URLSearchParams behavior
  * (not by calling the module). NOTE on validateDateString: it enforces the
- * YYYY-MM-DD shape and rejects out-of-range months, but V8's Date rolls
- * overflowing days over (Feb 30 -> valid), so it is NOT a strict calendar check.
- * That boundary is pinned below intentionally; tightening it is a separate,
- * owner-visible change.
+ * YYYY-MM-DD shape, rejects out-of-range months, and now performs a strict
+ * calendar check that round-trips the parsed date back to the supplied y/m/d,
+ * so overflowing days (Feb 30, Apr 31, non-leap Feb 29) are rejected rather
+ * than silently rolled over by V8's Date.
  *
  * (extractIataCode / parseFlightSearchParams depend on the airport DB and the
  * deep-link resolver and are out of scope for this pure-logic suite.)
@@ -42,9 +42,10 @@ describe("validateDateString", () => {
     expect(validateDateString("2026-00-10")).toBeNull();
   });
 
-  it("tolerates an overflowing day (documented V8 rollover, not strict calendar)", () => {
-    expect(validateDateString("2026-02-30")).toBe("2026-02-30");
-    expect(validateDateString("2026-04-31")).toBe("2026-04-31");
+  it("rejects an overflowing day instead of rolling it over (strict calendar)", () => {
+    expect(validateDateString("2026-02-30")).toBeNull();
+    expect(validateDateString("2026-04-31")).toBeNull();
+    expect(validateDateString("2027-02-29")).toBeNull(); // non-leap year
   });
 });
 
