@@ -56,7 +56,10 @@ export default function TravelItineraryCard() {
         .from("trip_itineraries")
         .select("id, title, destination, start_date, end_date, status")
         .eq("user_id", user.id)
-        .gte("start_date", new Date().toISOString().split("T")[0])
+        // Local YYYY-MM-DD. toISOString() is the UTC day, which in Cambodia
+        // (UTC+7) reads as yesterday before 07:00 local — an early-morning user
+        // would otherwise see a trip that already started yesterday as "upcoming".
+        .gte("start_date", format(new Date(), "yyyy-MM-dd"))
         .order("start_date", { ascending: true })
         .limit(1);
 
