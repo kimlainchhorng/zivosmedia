@@ -10,10 +10,23 @@ import {
   type PaymentsSeriesPoint,
 } from "./paymentsCalculations";
 
+// CSV formula injection (CWE-1236): user-entered free-text (customer name,
+// payment reference, method, store name) reaches these cells; a value beginning
+// with = + - @ tab or CR would execute as a formula in Excel/Sheets/LibreOffice.
+// Neutralize with a leading apostrophe before RFC-4180 quoting, leaving legit
+// negative numbers (e.g. "-5.00") intact.
+const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+const NUMERIC_LITERAL = /^-?\d+(\.\d+)?$/;
 const escape = (v: unknown): string => {
   if (v === null || v === undefined) return "";
-  const s = String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  let s = String(v);
+  if (FORMULA_TRIGGERS.test(s) && !NUMERIC_LITERAL.test(s)) {
+    s = `'${s}`;
+  }
+  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
 };
 const buildCsv = (rows: (string | number)[][]): string =>
   rows.map((r) => r.map(escape).join(",")).join("\n");
