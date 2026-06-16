@@ -11,8 +11,15 @@ export interface AuditRow {
   note?: string | null;
 }
 
+// CSV formula injection (CWE-1236): actor_name / note are user-entered free
+// text; a value starting with = + - @ tab or CR executes as a formula in
+// Excel/Sheets/LibreOffice. Prefix with an apostrophe (leaving legit negative
+// numbers intact) before RFC-4180 quoting.
+const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+const NUMERIC_LITERAL = /^-?\d+(\.\d+)?$/;
 const escape = (v: unknown): string => {
-  const s = v == null ? "" : String(v);
+  let s = v == null ? "" : String(v);
+  if (FORMULA_TRIGGERS.test(s) && !NUMERIC_LITERAL.test(s)) s = `'${s}`;
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 };
