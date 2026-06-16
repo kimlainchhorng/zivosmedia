@@ -11,6 +11,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 
+// date-fns formatDistanceToNow throws a RangeError on an Invalid Date, which
+// would crash the entire ledger render if a tip's created_at is missing or
+// malformed. Return an empty label instead of throwing.
+function safeTimeAgo(value: string): string {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "" : formatDistanceToNow(d, { addSuffix: true });
+}
+
 interface Props {
   creatorId: string;
 }
@@ -188,7 +196,7 @@ export default function CreatorTipsLedger({ creatorId }: Props) {
                   <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 italic">"{r.message}"</p>
                 )}
                 <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                  {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                  {safeTimeAgo(r.created_at)}
                   {r.last_payment_error && (
                     <span className="ml-1.5 text-foreground" title={r.last_payment_error}>· {r.last_payment_error.slice(0, 40)}</span>
                   )}
