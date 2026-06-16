@@ -68,6 +68,12 @@ interface Props { storeId: string }
 const CATEGORIES = ["parts", "rent", "utilities", "supplies", "tools", "marketing", "insurance", "payroll", "other"] as const;
 const fmt = (cents: number) => `$${((cents ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+// Local YYYY-MM-DD for the default expense date. new Date().toISOString().slice(0,10)
+// is the UTC day, which in Cambodia (UTC+7, no DST) reads as yesterday before 07:00
+// ICT — so an early-morning expense would default to the wrong calendar day.
+const ymdLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 type Item = { part_number: string; name: string; quantity: string; unit_price: string };
 const emptyItem = (): Item => ({ part_number: "", name: "", quantity: "1", unit_price: "" });
 
@@ -76,7 +82,7 @@ const blankForm = () => ({
   vendor: "",
   description: "",
   invoice_number: "",
-  expense_date: new Date().toISOString().slice(0, 10),
+  expense_date: ymdLocal(new Date()),
   hour: "12",
   minute: "00",
   ampm: "PM" as "AM" | "PM",
@@ -166,7 +172,7 @@ function buildScannedExpenseForm(inv: any, receiptRef: string | null): ExpenseFo
     vendor: String(inv?.vendor || "").trim(),
     invoice_number: String(inv?.invoice_number || "").trim(),
     description: "",
-    expense_date: /^\d{4}-\d{2}-\d{2}$/.test(String(inv?.date || "")) ? inv.date : new Date().toISOString().slice(0, 10),
+    expense_date: /^\d{4}-\d{2}-\d{2}$/.test(String(inv?.date || "")) ? inv.date : ymdLocal(new Date()),
     hour: t.h,
     minute: t.m,
     ampm: t.ap,
