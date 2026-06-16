@@ -58,6 +58,7 @@ const CookieConsent = () => {
     // or on auth screens where it can block form fields on mobile.
     if (Capacitor.isNativePlatform() || isAuthRoute) {
       setIsVisible(false);
+      setShowDetails(false);
       return;
     }
 
@@ -69,6 +70,7 @@ const CookieConsent = () => {
     }
 
     setIsVisible(false);
+    setShowDetails(false);
   }, [isAuthRoute]);
 
   const handleAcceptAll = () => {
@@ -129,6 +131,13 @@ const CookieConsent = () => {
     <AnimatePresence>
       {isVisible && (
         <motion.div
+          role="region"
+          aria-label="Cookie consent"
+          onKeyDown={(e) => {
+            // Non-modal banner: Escape dismisses it the same way the X does
+            // (reject non-essential). No focus trap — the page stays usable.
+            if (e.key === "Escape") handleRejectAll();
+          }}
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
@@ -150,10 +159,11 @@ const CookieConsent = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Reject all cookies"
                         className="h-8 w-8 rounded-lg"
                         onClick={handleRejectAll}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -204,10 +214,11 @@ const CookieConsent = () => {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Reject all cookies"
                           className="shrink-0 min-h-[40px] min-w-[40px] rounded-xl hover:bg-destructive/10 active:scale-90 transition-all duration-200 touch-manipulation"
                           onClick={handleRejectAll}
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </motion.div>
                     </div>
