@@ -1650,21 +1650,21 @@ const Profile = () => {
                       ) : (
                         <div className="lg:hidden mt-2 grid grid-cols-4 gap-1.5">
                           {[
-                            { label: "Shop", icon: Store, tone: "from-emerald-500/18 to-teal-500/8", onClick: openShopDashboard },
-                            { label: "Employees", icon: Users, tone: "from-sky-500/18 to-blue-500/8", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
-                            { label: "Mode", icon: Repeat, tone: "from-violet-500/18 to-fuchsia-500/8", onClick: () => { selectionChanged(); setModeOpen(true); } },
-                            { label: "Earn", icon: DollarSign, tone: "from-amber-500/20 to-orange-500/8", onClick: () => { selectionChanged(); navigate("/monetization"); } },
+                            { label: "Shop", icon: Store, tone: "from-emerald-500/18 to-teal-500/8", iconColor: "text-emerald-600 dark:text-emerald-400", chipBorder: "border-emerald-500/30", onClick: openShopDashboard },
+                            { label: "Employees", icon: Users, tone: "from-sky-500/18 to-blue-500/8", iconColor: "text-sky-600 dark:text-sky-400", chipBorder: "border-sky-500/30", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
+                            { label: "Mode", icon: Repeat, tone: "from-violet-500/18 to-fuchsia-500/8", iconColor: "text-violet-600 dark:text-violet-400", chipBorder: "border-violet-500/30", onClick: () => { selectionChanged(); setModeOpen(true); } },
+                            { label: "Earn", icon: DollarSign, tone: "from-amber-500/18 to-orange-500/8", iconColor: "text-amber-700 dark:text-amber-400", chipBorder: "border-amber-500/30", onClick: () => { selectionChanged(); navigate("/monetization"); } },
                           ].map((a) => (
                             <button type="button"
                               key={a.label}
                               onClick={a.onClick}
                               className={cn(
-                                "flex min-h-[46px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-border/50 bg-gradient-to-br px-1 py-1.5 text-[9px] font-extrabold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+                                "flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-border/50 bg-gradient-to-br px-1.5 py-2 text-[10px] font-extrabold leading-tight text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
                                 a.tone
                               )}
                             >
-                              <span className="grid h-6 w-6 place-items-center rounded-lg border border-border/50 bg-background/85 shadow-sm">
-                                <a.icon className="h-3 w-3 text-foreground" />
+                              <span className={cn("grid h-9 w-9 place-items-center rounded-xl border bg-background/85 shadow-sm", a.chipBorder)}>
+                                <a.icon className={cn("h-5 w-5", a.iconColor)} />
                               </span>
                               <span className="truncate">{a.label}</span>
                             </button>
