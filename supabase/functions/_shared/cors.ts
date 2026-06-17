@@ -46,9 +46,6 @@ const ALLOWED_ORIGINS = new Set<string>([
   "https://zivodriver.com",
   "https://www.zivodriver.com",
   "https://zivo-web.myzivo.workers.dev",
-  "https://myzivo.com",
-  "https://www.myzivo.com",
-  "https://app.myzivo.com",
   // Supabase Studio (used by edge-function test runner)
   "https://supabase.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGINS"),
@@ -61,7 +58,6 @@ const ALLOWED_ORIGIN_SUFFIXES = [
   ".zivosoftware.com",
   ".zivostravel.com",
   ".zivodriver.com",
-  ".myzivo.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];
 

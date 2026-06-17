@@ -1571,12 +1571,12 @@ const Profile = () => {
                             onClick={() => { selectionChanged(); navigate("/creator/subscribers"); }}
                             className="border-r border-border/50 px-3 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
                           >
-                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">Subscribers</span>
+                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">Subscribers</span>
                           </button>
                           <span className="px-3 py-2 text-center">
-                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">Posts</span>
+                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">Posts</span>
                           </span>
                         </div>
                       ) : (
@@ -1587,8 +1587,8 @@ const Profile = () => {
                             onClick={() => setSocialModal({ open: true, tab: "followers" })}
                             className="border-r border-border/50 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">{followerCount === 1 ? "Follower" : "Followers"}</span>
+                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">{followerCount === 1 ? "Follower" : "Followers"}</span>
                           </button>
                           <button
                             type="button"
@@ -1596,12 +1596,12 @@ const Profile = () => {
                             onClick={() => setSocialModal({ open: true, tab: "following" })}
                             className="border-r border-border/50 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">Following</span>
+                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">Following</span>
                           </button>
-                          <span className="border-r border-border/50 bg-muted/10 px-2 py-2 text-center">
-                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">{postsCount === 1 ? "Post" : "Posts"}</span>
+                          <span className="border-r border-border/50 bg-muted/25 px-2 py-2 text-center">
+                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">{postsCount === 1 ? "Post" : "Posts"}</span>
                           </span>
                           <button
                             type="button"
@@ -1609,8 +1609,8 @@ const Profile = () => {
                             onClick={() => setSocialModal({ open: true, tab: "friends" })}
                             className="px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-[13px] font-black leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[8px] font-bold uppercase tracking-wide text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
+                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">{friendCount === 1 ? "Friend" : "Friends"}</span>
                           </button>
                         </div>
                       )}

@@ -44,6 +44,8 @@ import Zap from "lucide-react/dist/esm/icons/zap";
 import Wifi from "lucide-react/dist/esm/icons/wifi";
 import Cloud from "lucide-react/dist/esm/icons/cloud";
 import Activity from "lucide-react/dist/esm/icons/activity";
+import CircleDashed from "lucide-react/dist/esm/icons/circle-dashed";
+import UserRound from "lucide-react/dist/esm/icons/user-round";
 
 import Check from "lucide-react/dist/esm/icons/check";
 import SquarePen from "lucide-react/dist/esm/icons/square-pen";
@@ -56,11 +58,14 @@ import Video from "lucide-react/dist/esm/icons/video";
 import Keyboard from "lucide-react/dist/esm/icons/keyboard";
 import Pin from "lucide-react/dist/esm/icons/pin";
 import BellOff from "lucide-react/dist/esm/icons/bell-off";
+import VolumeX from "lucide-react/dist/esm/icons/volume-x";
 import Archive from "lucide-react/dist/esm/icons/archive";
 import ArchiveRestore from "lucide-react/dist/esm/icons/archive-restore";
 import Share2 from "lucide-react/dist/esm/icons/share-2";
 import MapPinned from "lucide-react/dist/esm/icons/map-pinned";
 import Bookmark from "lucide-react/dist/esm/icons/bookmark";
+import Star from "lucide-react/dist/esm/icons/star";
+import WalletCards from "lucide-react/dist/esm/icons/wallet-cards";
 import MoreVertical from "lucide-react/dist/esm/icons/more-vertical";
 import HardDrive from "lucide-react/dist/esm/icons/hard-drive";
 import BotIcon from "lucide-react/dist/esm/icons/bot";
@@ -156,7 +161,7 @@ function ChatRowAvatar({
     <div className={cn(
       "flex items-center justify-center overflow-hidden",
       variant === "archived"
-        ? "w-10 h-10 rounded-xl bg-muted ring-2 ring-border/20"
+        ? "h-14 w-14 rounded-full bg-slate-100 ring-1 ring-slate-200/80"
         : [
             "rounded-full",
             embedded ? "h-[40px] w-[40px]" : "w-[46px] h-[46px]",
@@ -558,6 +563,24 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   }, []);
 
   const [showArchived, setShowArchived] = useState(false);
+  useEffect(() => {
+    if (active !== "personal") setShowArchived(false);
+  }, [active]);
+  const [showBirthdayBanner, setShowBirthdayBanner] = useState(() => {
+    try {
+      return localStorage.getItem("zivo:chat-birthday-banner-dismissed") !== "true";
+    } catch {
+      return true;
+    }
+  });
+  const dismissBirthdayBanner = useCallback(() => {
+    setShowBirthdayBanner(false);
+    try { localStorage.setItem("zivo:chat-birthday-banner-dismissed", "true"); } catch {}
+  }, []);
+  const closeChatHubMenuToggle = useCallback(() => {
+    const menuToggle = document.getElementById("chat-hub-menu-toggle") as HTMLInputElement | null;
+    if (menuToggle) menuToggle.checked = false;
+  }, []);
   const [showChatMenu, setShowChatMenu] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -1633,6 +1656,42 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 
   const sortedVisible = sortChatHubRowsByPinAndDate(visibleList as any[], isPinned);
   const archivedUnread = archivedList.reduce((s: number, c: any) => s + (c.unread || 0), 0);
+  const archivedScreenOpen = showArchived && active === "personal" && search.trim().length === 0;
+  const archivedSummaryCount = archivedUnread || archivedList.length;
+  const archivedSummaryRow = search.trim().length === 0 && archivedList.length > 0 && active === "personal" ? (
+    <button
+      type="button"
+      onClick={() => setShowArchived(true)}
+      className="flex min-h-[6rem] w-full items-center gap-4 px-4 py-2.5 text-left transition-colors hover:bg-[#e7f2ff] active:bg-[#d9ecff] dark:hover:bg-white/5 dark:active:bg-white/10"
+    >
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm">
+        <Archive className="h-7 w-7" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[20px] font-bold leading-tight text-slate-950 dark:text-slate-50">
+          Archived Chats
+        </p>
+        <p className="mt-1 truncate text-[18px] leading-snug text-slate-500 dark:text-slate-400">
+          {archivedList.map((chat: any) => chat.name).filter(Boolean).join(", ")}
+        </p>
+      </div>
+      <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-[#b7c3cf] px-2 text-[17px] font-bold leading-none text-white dark:bg-slate-600">
+        {archivedSummaryCount > 99 ? "99+" : archivedSummaryCount}
+      </span>
+    </button>
+  ) : null;
+  const chatHeaderAvatarStack = sortedVisible.slice(0, 3).map((chat: any) => ({
+    id: String(chat.id),
+    name: String(chat.name || "Chat"),
+    avatar: chat.avatar || null,
+  }));
+  if (chatHeaderAvatarStack.length < 3 && (chatMenuAvatar || chatMenuDisplayName)) {
+    chatHeaderAvatarStack.push({
+      id: "current-user",
+      name: chatMenuDisplayName,
+      avatar: chatMenuAvatar || null,
+    });
+  }
 
   const { searchingProfiles, filtered, displayList } = useChatHubSearchResults({
     active,
@@ -2447,10 +2506,11 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         !embedded && "zivo-chat-surface",
       )}
     >
-      {showListShell && (
-        <>
-          <div
-            className={cn(
+	      {showListShell && (
+	        <>
+	          {!archivedScreenOpen && (
+	          <div
+	            className={cn(
               "shrink-0",
               embedded
                 ? "border-b border-border/15 bg-background/95 backdrop-blur-2xl"
@@ -2463,138 +2523,161 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
             )}
           >
             {!embedded ? (
-              <div className={cn(
-                "px-4 py-1.5 flex items-center gap-3",
-                desktopTwoColumn && sidebarCollapsed && "lg:px-2 lg:flex-col lg:items-stretch lg:gap-1"
-              )}>
+	              <div className={cn(
+	                "flex min-h-[4.75rem] items-center gap-2.5 bg-[#eaf5ff]/95 px-3 py-2.5 text-slate-950 dark:bg-slate-900/95 dark:text-slate-50 sm:gap-3 md:min-h-0 md:bg-transparent md:px-4 md:py-1.5",
+	                desktopTwoColumn && sidebarCollapsed && "lg:flex-col lg:items-stretch lg:gap-1 lg:px-2"
+	              )}>
                 <div className={cn(
                   "flex shrink-0 items-center gap-3",
                   desktopTwoColumn && sidebarCollapsed && "lg:flex-col lg:gap-1"
                 )}>
                   {selectionMode ? (
-                    <button type="button"
-                      onClick={clearSelectionMode}
-                      className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all"
-                      aria-label="Exit selection"
-                      title="Exit selection"
-                    >
-                      <X className="w-5 h-5 text-foreground" />
-                    </button>
+	                    <button type="button"
+	                      onClick={clearSelectionMode}
+	                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-600 transition-all hover:bg-white/60 active:scale-90 dark:text-slate-300 dark:hover:bg-white/10 md:h-9 md:w-9 md:text-foreground"
+	                      aria-label="Exit selection"
+	                      title="Exit selection"
+	                    >
+	                      <X className="h-6 w-6 md:h-5 md:w-5" />
+	                    </button>
                   ) : (
                     <div className="relative">
                       <input id="chat-hub-menu-toggle" type="checkbox" className="peer sr-only" />
-                      <label
-                        htmlFor="chat-hub-menu-toggle"
-                        className="zivo-chat-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded-full active:scale-90 transition-all"
-                        aria-label="Chat menu"
-                        title="Chat menu"
-                      >
-                        <Menu className="w-5 h-5 text-foreground" />
-                      </label>
-                      <div className="absolute left-0 top-full z-[2200] mt-2 hidden max-h-[75vh] w-[min(92vw,420px)] flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white text-zinc-950 shadow-2xl shadow-black/20 backdrop-blur-0 peer-checked:flex dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50">
-                        <div className="border-b border-zinc-200 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-                          <div className="flex items-center justify-between">
-                            <label htmlFor="chat-hub-menu-toggle" className="zivo-chat-icon-button flex h-9 w-9 cursor-pointer items-center justify-center rounded-full active:scale-95" aria-label="Close chat menu" title="Close">
-                              <X className="h-5 w-5" />
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => navigate("/account/settings")}
-                              className="zivo-chat-icon-button flex h-9 w-9 items-center justify-center rounded-full active:scale-95"
-                              aria-label="Open account settings"
-                              title="Settings"
-                            >
-                              <Settings className="h-5 w-5" />
-                            </button>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => navigate("/account/profile-edit")}
-                            className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-2 text-left shadow-sm active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900"
-                          >
-                            <div className="zivo-chat-avatar-ring flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-lg font-bold text-primary">
-                              {chatMenuAvatar ? (
-                                <img src={chatMenuAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                              ) : (
-                                <span>{chatMenuInitial}</span>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex min-w-0 items-center gap-1.5">
-                                <p className="truncate text-base font-bold text-foreground">{chatMenuDisplayName}</p>
-                                {chatMenuProfile?.is_verified && <VerifiedBadge className="h-4 w-4 shrink-0" interactive={false} />}
-                              </div>
-                              <p className="truncate text-xs text-muted-foreground">Edit profile</p>
-                            </div>
-                          </button>
-                          <div className="mt-3 grid gap-1.5">
-                            {chatMenuPhone && (
-                              <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900">
-                                <Phone className="h-4 w-4 text-muted-foreground" />
-                                <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuPhone}</span>
-                                <span className="text-xs text-muted-foreground">Phone</span>
-                              </div>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => navigate("/account/username")}
-                              className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2 text-left text-sm active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900"
-                            >
-                              <AtSign className="h-4 w-4 text-muted-foreground" />
-                              <span className="min-w-0 flex-1 truncate font-medium text-foreground">{chatMenuUsername}</span>
-                              <span className="text-xs text-muted-foreground">Username</span>
-                            </button>
-                          </div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto bg-white px-3 py-3 dark:bg-zinc-950">
-                          {active === "personal" && !search && (
-                            <button type="button" onClick={() => setShowAddContact(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
-                              <SquarePen className="h-5 w-5 text-muted-foreground" />
-                              <span>New message</span>
-                            </button>
-                          )}
-                          {active === "personal" && user && !zivoOFMode && (
-                            <button type="button" onClick={() => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false })} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
-                              <Bookmark className="h-5 w-5 text-muted-foreground" />
-                              <span>Saved Messages</span>
-                            </button>
-                          )}
-                          {active === "personal" && !search && !zivoOFMode && (
-                            <button type="button" onClick={() => setSelectionMode(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
-                              <CheckSquare className="h-5 w-5 text-muted-foreground" />
-                              <span>Select chats</span>
-                            </button>
-                          )}
-                          {active === "personal" && !zivoOFMode && (
-                            <>
-                              <button type="button" onClick={() => void handleMarkAllPersonalRead()} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
-                                <CheckCheck className="h-5 w-5 text-muted-foreground" />
-                                <span>Mark all as read</span>
-                              </button>
-                              <button type="button" onClick={() => navigate("/chat/contacts")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
-                                <UserPlus className="h-5 w-5 text-muted-foreground" />
-                                <span>Contacts</span>
-                              </button>
-                              <button type="button" onClick={() => setShowCreateGroup(true)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
-                                <Users className="h-5 w-5 text-muted-foreground" />
-                                <span>New group</span>
-                              </button>
-                              <div className="my-2 h-px bg-border/25" />
-                              {personalHubMenu.map((item) => (
-                                <button key={item.action} type="button" onClick={() => handlePersonalHubMenuAction(item.action)} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
-                                  <item.icon className="h-5 w-5 text-muted-foreground" />
-                                  <span>{item.label}</span>
-                                </button>
-                              ))}
-                            </>
-                          )}
-                          <div className="my-2 h-px bg-border/25" />
-                          <button type="button" onClick={() => navigate("/notifications")} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold hover:bg-muted/60">
-                            <Bell className="h-5 w-5 text-muted-foreground" />
-                            <span>Notifications</span>
-                          </button>
-                        </div>
-                      </div>
+	                      <label
+	                        htmlFor="chat-hub-menu-toggle"
+	                        className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-600 transition-all hover:bg-white/60 active:scale-90 dark:text-slate-300 dark:hover:bg-white/10 md:h-9 md:w-9 md:text-foreground"
+	                        aria-label="Chat menu"
+	                        title="Chat menu"
+	                      >
+	                        <Menu className="h-7 w-7 md:h-5 md:w-5" />
+	                      </label>
+	                      <label
+	                        htmlFor="chat-hub-menu-toggle"
+	                        className="fixed inset-0 z-[2190] hidden cursor-default bg-sky-200/55 backdrop-blur-[1px] peer-checked:block dark:bg-slate-950/60"
+	                        aria-label="Close chat menu"
+	                      />
+		                      <div className="fixed left-[15px] top-[6.45rem] z-[2200] hidden max-h-[calc(100dvh-7rem)] w-[min(calc(100vw-30px),23.5rem)] flex-col overflow-hidden rounded-[24px] border border-sky-200/45 bg-[#dceeff]/95 text-slate-950 shadow-[0_22px_50px_rgba(30,64,175,0.20)] backdrop-blur-xl peer-checked:flex dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-50">
+		                        <div className="flex-1 overflow-y-auto py-2">
+		                          <button
+		                            type="button"
+	                            onClick={() => {
+	                              closeChatHubMenuToggle();
+	                              navigate("/account/profile-edit");
+	                            }}
+		                            className="flex h-[4.25rem] w-full items-center gap-6 px-5 text-left text-[21px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                          >
+		                            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-500 text-lg font-bold leading-none text-white ring-2 ring-sky-400 ring-offset-2 ring-offset-[#dceeff] dark:ring-offset-slate-900">
+		                              {chatMenuAvatar ? (
+		                                <img src={chatMenuAvatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+		                              ) : (
+	                                <span>{chatMenuInitial}</span>
+	                              )}
+	                            </div>
+	                            <span className="min-w-0 flex-1 truncate">{chatMenuDisplayName}</span>
+	                          </button>
+	                          <button
+	                            type="button"
+	                            onClick={() => {
+	                              closeChatHubMenuToggle();
+	                              navigate("/login");
+	                            }}
+		                            className="flex h-[3.75rem] w-full items-center gap-7 px-8 text-left text-[20px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                          >
+		                            <Plus className="h-8 w-8 shrink-0 stroke-[1.9] text-slate-800 dark:text-slate-100" />
+		                            <span className="min-w-0 flex-1 truncate">Add Account</span>
+		                          </button>
+		                          <div className="h-px bg-slate-300/60 dark:bg-white/10" />
+		                          {active === "personal" && user && !zivoOFMode && (
+		                            <button
+		                              type="button"
+	                              onClick={() => {
+	                                closeChatHubMenuToggle();
+	                                setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false });
+	                              }}
+		                              className="flex h-[3.75rem] w-full items-center gap-7 px-8 text-left text-[20px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                            >
+		                              <Bookmark className="h-8 w-8 shrink-0 stroke-[1.9] text-slate-800 dark:text-slate-100" />
+		                              <span className="min-w-0 flex-1 truncate">Saved Messages</span>
+		                            </button>
+		                          )}
+	                          {active === "personal" && !zivoOFMode && (
+	                            <button
+	                              type="button"
+	                              onClick={() => {
+	                                closeChatHubMenuToggle();
+	                                setShowArchived(true);
+	                              }}
+		                              className="flex h-[3.75rem] w-full items-center gap-7 px-8 text-left text-[20px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                            >
+		                              <Archive className="h-8 w-8 shrink-0 stroke-[1.9] text-slate-800 dark:text-slate-100" />
+		                              <span className="min-w-0 truncate">Archived Chats</span>
+		                              {archivedSummaryCount > 0 && (
+		                                <span className="shrink-0 text-[20px] font-medium text-slate-500 dark:text-slate-300">
+		                                  {archivedSummaryCount > 99 ? "99+" : archivedSummaryCount}
+		                                </span>
+		                              )}
+	                            </button>
+	                          )}
+	                          <button
+	                            type="button"
+	                            onClick={() => {
+	                              closeChatHubMenuToggle();
+	                              navigate("/profile");
+	                            }}
+		                            className="flex h-[3.75rem] w-full items-center gap-7 px-8 text-left text-[20px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                          >
+		                            <CircleDashed className="h-8 w-8 shrink-0 stroke-[1.9] text-slate-800 dark:text-slate-100" />
+		                            <span className="min-w-0 flex-1 truncate">My Stories</span>
+		                          </button>
+	                          <button
+	                            type="button"
+	                            onClick={() => {
+	                              closeChatHubMenuToggle();
+	                              navigate("/chat/contacts");
+	                            }}
+		                            className="flex h-[3.75rem] w-full items-center gap-7 px-8 text-left text-[20px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                          >
+		                            <UserRound className="h-8 w-8 shrink-0 stroke-[1.9] text-slate-800 dark:text-slate-100" />
+		                            <span className="min-w-0 flex-1 truncate">Contacts</span>
+		                          </button>
+		                          <div className="h-px bg-slate-300/60 dark:bg-white/10" />
+		                          <button
+		                            type="button"
+		                            onClick={() => {
+	                              closeChatHubMenuToggle();
+	                              navigate("/account/wallet");
+	                            }}
+		                            className="flex h-[3.75rem] w-full items-center gap-7 px-8 text-left text-[20px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                          >
+		                            <WalletCards className="h-8 w-8 shrink-0 stroke-[1.9] text-slate-800 dark:text-slate-100" />
+		                            <span className="min-w-0 flex-1 truncate">Wallet</span>
+		                          </button>
+		                          <div className="h-px bg-slate-300/60 dark:bg-white/10" />
+		                          <button
+		                            type="button"
+		                            onClick={() => {
+	                              closeChatHubMenuToggle();
+	                              navigate("/account/settings");
+	                            }}
+		                            className="flex h-[3.75rem] w-full items-center gap-7 px-8 text-left text-[20px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                          >
+		                            <Settings className="h-8 w-8 shrink-0 stroke-[1.9] text-slate-800 dark:text-slate-100" />
+		                            <span className="min-w-0 flex-1 truncate">Settings</span>
+		                          </button>
+	                          <button
+	                            type="button"
+	                            onClick={() => {
+	                              closeChatHubMenuToggle();
+	                              navigate("/more");
+	                            }}
+		                            className="flex h-[3.75rem] w-full items-center gap-7 px-8 text-left text-[20px] font-bold transition hover:bg-white/25 active:bg-white/45 dark:hover:bg-white/10"
+		                          >
+		                            <MoreVertical className="h-8 w-8 shrink-0 stroke-[1.9] text-slate-800 dark:text-slate-100" />
+		                            <span className="min-w-0 flex-1 truncate">More</span>
+		                            <ChevronRight className="h-7 w-7 shrink-0 text-slate-400" />
+	                          </button>
+	                        </div>
+	                      </div>
                     </div>
                   )}
                   {/* Desktop-only collapse toggle. Visible only when the
@@ -2612,38 +2695,68 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         : <PanelLeftClose className="w-5 h-5 text-muted-foreground" />}
                     </button>
                   )}
-                  <div className={cn(desktopTwoColumn && sidebarCollapsed && "lg:hidden")}>
-                    <h1 className="text-xl font-bold text-ig-gradient">
-                      {selectionMode ? `${selectedChatIds.size} selected` : "Chat"}
-                    </h1>
-                  </div>
+	                  <div className={cn(!selectionMode && "hidden", desktopTwoColumn && sidebarCollapsed && "lg:hidden")}>
+	                    <h1 className="whitespace-nowrap text-xl font-bold text-slate-950 dark:text-slate-50 md:text-ig-gradient">
+	                      {selectionMode ? `${selectedChatIds.size} selected` : "Chat"}
+	                    </h1>
+	                  </div>
                 </div>
-                <div className={cn("relative min-w-0 flex-1", collapsedRail && "lg:hidden")}>
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Search conversations..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="zivo-chat-search w-full rounded-2xl py-2.5 pl-9 pr-10 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
-                  />
-                  {search ? (
-                    <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Clear search" title="Clear search">
-                      <X className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
-                  ) : (
-                    <span
-                      className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/50 text-[10px] font-mono text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+	                <div className={cn("relative min-w-0 flex-1", collapsedRail && "lg:hidden")}>
+	                  <Search className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-400 dark:text-slate-500 md:left-3 md:h-3.5 md:w-3.5" />
+	                  <input
+	                    ref={searchInputRef}
+	                    type="text"
+	                    placeholder="Search"
+	                    value={search}
+	                    onChange={(e) => setSearch(e.target.value)}
+	                    className="h-12 w-full rounded-full border-0 bg-white/70 py-0 pl-14 pr-[7.25rem] text-[20px] font-normal text-slate-700 shadow-inner shadow-sky-950/5 outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-300/70 dark:bg-white/10 dark:text-slate-50 dark:placeholder:text-slate-400 dark:focus:bg-white/15 md:h-auto md:rounded-2xl md:py-2.5 md:pl-9 md:pr-10 md:text-sm md:text-foreground md:placeholder:text-muted-foreground md:focus:ring-primary/30"
+	                  />
+	                  {search ? (
+	                    <button type="button" onClick={() => setSearch("")} className="absolute right-4 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200/70 active:scale-95 dark:text-slate-300 dark:hover:bg-white/10 md:right-3 md:h-auto md:w-auto" aria-label="Clear search" title="Clear search">
+	                      <X className="h-4 w-4 md:h-3.5 md:w-3.5" />
+	                    </button>
+	                  ) : chatHeaderAvatarStack.length > 0 ? (
+	                    <div className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center -space-x-3 md:hidden" aria-hidden="true">
+	                      {chatHeaderAvatarStack.map((item, index) => (
+	                        <div
+	                          key={`${item.id}-${index}`}
+	                          className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-sky-100 text-[11px] font-black leading-none text-sky-700 ring-2 ring-white shadow-sm dark:bg-slate-800 dark:text-sky-200 dark:ring-slate-900"
+	                        >
+	                          {item.avatar ? (
+	                            <img src={item.avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+	                          ) : (
+	                            <span className="leading-none">{item.name.slice(0, 1).toUpperCase()}</span>
+	                          )}
+	                        </div>
+	                      ))}
+	                    </div>
+	                  ) : (
+	                    <span
+	                      className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted/50 text-[10px] font-mono text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
                       title="Press / to focus search"
                     >
                       /
-                    </span>
-                  )}
-                </div>
-                <div
-                  className={cn(
-                    "hidden shrink-0 items-center justify-end gap-1",
+	                    </span>
+	                  )}
+	                </div>
+	                {active === "personal" && !selectionMode && !zivoOFMode && (
+	                  <button
+	                    type="button"
+	                    onClick={() => {
+	                      if (!user) return;
+	                      setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false });
+	                    }}
+	                    disabled={!user}
+	                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sky-500 transition hover:bg-white/60 active:scale-95 disabled:pointer-events-none disabled:opacity-50 dark:text-sky-300 dark:hover:bg-white/10 md:h-9 md:w-9"
+	                    aria-label="Saved Messages"
+	                    title="Saved Messages"
+	                  >
+	                    <Star className="h-7 w-7 fill-current md:h-5 md:w-5" />
+	                  </button>
+	                )}
+	                <div
+	                  className={cn(
+	                    "hidden shrink-0 items-center justify-end gap-1",
                     "md:flex md:basis-auto md:overflow-visible md:pt-0",
                     collapsedRail && "lg:hidden"
                   )}
@@ -2758,9 +2871,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               </div>
             ) : null}
 
-          </div>
+	          </div>
+	          )}
 
-          {/* Start a group call entry — shown only on the Groups folder */}
+	          {/* Start a group call entry — shown only on the Groups folder */}
           {folder === "groups" && active === "personal" && !zivoOFMode && !selectionMode && (
             <div className={cn("px-5 pt-3 pb-3 border-b border-border/20", embedded && "px-3 pt-2 pb-2", collapsedRail && "lg:hidden")}>
               <div className="zivo-chat-card flex items-center gap-3 rounded-2xl p-3">
@@ -3860,7 +3974,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	          >
             <AnimatePresence mode="wait">
               <motion.div
-                key={active}
+	                key={`${active}-${archivedScreenOpen ? "archived" : "list"}`}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
@@ -3917,12 +4031,90 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   )}
                 </div>
 
-                {!embedded && !search && active === "personal" && !selectionMode && !zivoOFMode && !desktopTwoColumn && (
-                  <ChatStories />
-                )}
+		                {!embedded && !search && !archivedScreenOpen && active === "personal" && !selectionMode && !zivoOFMode && !desktopTwoColumn && (
+		                  <div className="-mx-4 bg-white px-3 pb-3 pt-3 dark:bg-slate-950">
+		                    <AnimatePresence initial={false}>
+		                      {showBirthdayBanner && (
+		                        <motion.div
+		                          key="telegram-birthday-banner"
+		                          initial={{ opacity: 0, height: 0 }}
+		                          animate={{ opacity: 1, height: "auto" }}
+		                          exit={{ opacity: 0, height: 0 }}
+		                          transition={{ duration: 0.18 }}
+		                          className="mb-3 overflow-hidden rounded-none border-b border-slate-200/80 bg-white/70 px-0 py-0 text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-50"
+		                        >
+		                          <div className="relative px-2 py-2.5">
+		                            <button
+		                              type="button"
+		                              onClick={() => navigate("/account/profile-edit")}
+		                              className="min-w-0 w-full pr-10 text-left"
+		                            >
+		                              <p className="truncate text-[20px] font-bold leading-tight text-slate-950 dark:text-slate-50">
+		                                Add your birthday! <span aria-hidden="true">🎂</span>
+		                              </p>
+		                              <p className="mt-1 text-[17px] leading-snug text-slate-500 dark:text-slate-400">
+		                                Let your contacts know when you&apos;re celebrating.
+		                              </p>
+		                            </button>
+		                            <button
+		                              type="button"
+		                              onClick={dismissBirthdayBanner}
+		                              className="absolute right-1.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200/70 active:scale-95 dark:text-slate-300 dark:hover:bg-white/10"
+		                              aria-label="Dismiss birthday prompt"
+		                              title="Dismiss"
+		                            >
+		                              <X className="h-6 w-6" />
+		                            </button>
+		                          </div>
+		                        </motion.div>
+		                      )}
+		                    </AnimatePresence>
+		                    <div className="rounded-[2rem] bg-white p-1 shadow-[0_8px_22px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/70 dark:bg-white/10 dark:ring-white/10">
+		                      <div className="grid grid-cols-2">
+		                        {([
+		                          { id: "all", label: "All", unread: (folderUnreadMap.all || 0) + (folderUnreadMap.groups || 0) },
+		                          { id: "personal", label: "Personal", unread: folderUnreadMap.personal || 0 },
+		                        ] as const).map((tab) => {
+		                          const isActiveSegment = folder === tab.id;
+		                          return (
+		                            <button
+		                              key={tab.id}
+		                              type="button"
+		                              onClick={() => setFolder(tab.id)}
+		                              aria-label={`Show ${tab.label} chats`}
+		                              aria-pressed={isActiveSegment}
+		                              className={cn(
+		                                "flex h-14 items-center justify-center gap-2 rounded-[1.7rem] text-[20px] font-bold transition-colors active:scale-[0.99]",
+		                                isActiveSegment
+		                                  ? "bg-[#eaf5ff] text-sky-500 shadow-sm shadow-sky-200/60 dark:bg-sky-500/15 dark:text-sky-300 dark:shadow-none"
+		                                  : "text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/10",
+		                              )}
+		                            >
+		                              <span>{tab.label}</span>
+		                              {tab.unread > 0 && (
+		                                <span className={cn(
+		                                  "flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[18px] font-bold leading-none shadow-sm",
+		                                  isActiveSegment
+		                                    ? "bg-sky-500 text-white"
+		                                    : "bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-200",
+		                                )}>
+		                                  {tab.unread > 99 ? "99+" : tab.unread}
+		                                </span>
+		                              )}
+		                            </button>
+		                          );
+		                        })}
+		                      </div>
+		                    </div>
+	                  </div>
+	                )}
 
-                {/* Active Now strip — online contacts */}
-                {!embedded && !search && active === "personal" && onlineIds.size > 0 && !zivoOFMode && (
+		                {!embedded && !search && !archivedScreenOpen && !showBirthdayBanner && active === "personal" && !selectionMode && !zivoOFMode && !desktopTwoColumn && (
+		                  <ChatStories />
+		                )}
+
+	                {/* Active Now strip — online contacts */}
+	                {!embedded && !search && !archivedScreenOpen && active === "personal" && onlineIds.size > 0 && !zivoOFMode && (
                   <div className="zivo-chat-card mb-3 rounded-3xl p-3">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -3958,7 +4150,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   </div>
                 )}
 
-                <div className={cn("flex gap-2 pb-3 pr-2 overflow-x-auto overscroll-x-contain scrollbar-hide", embedded && "gap-1.5 pb-2 pr-1", collapsedRail && "lg:hidden")}>
+	                {!archivedScreenOpen && (
+	                <div className={cn("flex gap-2 pb-3 pr-2 overflow-x-auto overscroll-x-contain scrollbar-hide", embedded && "gap-1.5 pb-2 pr-1", collapsedRail && "lg:hidden", showBirthdayBanner && !embedded && active === "personal" && !search && !selectionMode && !zivoOFMode && !desktopTwoColumn && (folder === "all" || folder === "personal") && "hidden md:flex")}>
                   <button type="button"
                     onClick={() => navigate('/chat/folders')}
                     className={cn(
@@ -3998,18 +4191,153 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       </button>
                     );
                   })}
-                </div>
+	                </div>
+	                )}
 
-                {searchingProfiles && active === "personal" && filtered.length === 0 ? (
+	                {archivedScreenOpen ? (
+	                  <section
+	                    data-testid="archived-chats-screen"
+	                    className={cn(
+	                      "-mx-4 -mt-2 min-h-[calc(100dvh-8rem)] overflow-hidden bg-white text-slate-950 shadow-sm ring-1 ring-slate-200/70 dark:bg-slate-950 dark:text-slate-50 dark:ring-white/10",
+	                      embedded ? "mx-0 mt-0 rounded-3xl" : "rounded-none sm:rounded-[1.75rem]",
+	                    )}
+	                  >
+	                    <div className="sticky top-0 z-10 flex min-h-[5.95rem] items-center gap-5 border-b border-slate-100 bg-white px-5 text-slate-950 dark:border-white/10 dark:bg-slate-950 dark:text-slate-50">
+	                      <button
+	                        type="button"
+	                        onClick={() => setShowArchived(false)}
+	                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95 dark:text-slate-300 dark:hover:bg-white/10"
+	                        aria-label="Back to chats"
+	                      >
+	                        <ArrowLeft className="h-8 w-8 stroke-[1.75]" />
+	                      </button>
+	                      <h2 className="min-w-0 flex-1 truncate text-[28px] font-bold leading-none tracking-normal">
+	                        Archived Chats
+	                      </h2>
+	                      <DropdownMenu>
+	                        <DropdownMenuTrigger asChild>
+	                          <button
+	                            type="button"
+	                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95 dark:text-slate-300 dark:hover:bg-white/10"
+	                            aria-label="Archived chats options"
+	                          >
+	                            <MoreVertical className="h-7 w-7 stroke-[2.4]" />
+	                          </button>
+	                        </DropdownMenuTrigger>
+	                        <DropdownMenuContent align="end">
+	                          <DropdownMenuItem
+	                            onClick={() => {
+	                              const nextArchived = { ...(prefs.archived || {}) };
+	                              archivedList.forEach((chat: any) => {
+	                                delete nextArchived[chat.id];
+	                              });
+	                              setPrefs({ ...prefs, archived: nextArchived });
+	                              toast.success("Archived chats restored");
+	                            }}
+	                          >
+	                            <ArchiveRestore className="mr-2 h-4 w-4" />
+	                            Unarchive all
+	                          </DropdownMenuItem>
+	                        </DropdownMenuContent>
+	                      </DropdownMenu>
+	                    </div>
+	                    <div className="min-h-[calc(100dvh-6rem)] bg-white dark:bg-slate-950">
+	                      {archivedList.length === 0 ? (
+	                        <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+	                          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-50 text-sky-500 dark:bg-sky-500/10">
+	                            <Archive className="h-7 w-7" />
+	                          </div>
+	                          <p className="text-base font-bold text-slate-900 dark:text-slate-50">No archived chats</p>
+	                          <p className="mt-1 max-w-[15rem] text-sm text-slate-500 dark:text-slate-400">Archived conversations will appear here.</p>
+	                        </div>
+	                      ) : (
+	                        archivedList.map((chat: any) => {
+	                          const muted = isMuted(chat.id);
+	                          const preview = parseRichMessagePreview(chat.lastMessage || "") || "No messages";
+	                          const openArchivedChat = () => {
+	                            if (isMarkedUnread(chat.id)) setMarkedUnread(chat.id, false);
+	                            if ((chat as any).isGroup) {
+	                              setOpenGroupChat({ id: chat.id, name: chat.name, avatar: chat.avatar });
+	                            } else {
+	                              setOpenPersonalChat({ id: chat.id, name: chat.name, avatar: chat.avatar, isVerified: (chat as any).isVerified === true });
+	                            }
+	                          };
+	                          return (
+	                            <SwipeableRow
+	                              key={`archived-screen-${chat.id}`}
+	                              className="rounded-none"
+	                              rightActions={[
+	                                {
+	                                  key: "unarchive",
+	                                  label: "Unarchive",
+	                                  icon: <ArchiveRestore className="h-4 w-4" />,
+	                                  onPress: () => { toggleArchive(chat.id); toast.success("Unarchived"); },
+	                                  className: "bg-sky-500 text-white",
+	                                },
+	                                {
+	                                  key: "delete",
+	                                  label: "Delete",
+	                                  icon: <Trash2 className="h-4 w-4" />,
+	                                  onPress: () => setDeleteConfirm({ id: chat.id, name: chat.name, category: active, isGroup: !!chat.isGroup }),
+	                                  className: "bg-destructive text-destructive-foreground",
+	                                },
+	                              ]}
+	                            >
+	                              <button
+	                                type="button"
+	                                onClick={openArchivedChat}
+	                                className="flex min-h-[5.05rem] w-full items-center gap-4 bg-white px-4 py-2.5 text-left transition hover:bg-[#e7f2ff] active:bg-[#d9ecff] dark:bg-slate-950 dark:hover:bg-white/5 dark:active:bg-white/10"
+	                              >
+	                                <ChatRowAvatar
+	                                  avatar={chat.avatar}
+	                                  name={chat.name}
+	                                  isGroup={!!(chat as any).isGroup}
+	                                  active={active}
+	                                  variant="archived"
+	                                />
+	                                <div className="min-w-0 flex-1">
+	                                  <div className="flex items-start justify-between gap-3">
+		                                    <span className="flex min-w-0 items-center gap-1.5 text-[20px] font-bold leading-tight text-slate-950 dark:text-slate-50">
+	                                      <span className="truncate">{chat.name}</span>
+	                                      {isBlueVerified((chat as any).isVerified) && (
+	                                        <VerifiedBadge size={14} interactive={false} />
+	                                      )}
+	                                      {muted && <VolumeX className="h-[18px] w-[18px] shrink-0 text-slate-400" />}
+	                                    </span>
+	                                    <span className="shrink-0 pt-0.5 text-[17px] font-medium tabular-nums text-slate-500 dark:text-slate-400">
+	                                      {formatChatTime(chat.lastTime)}
+	                                    </span>
+	                                  </div>
+	                                  <div className="mt-1.5 flex items-center justify-between gap-3">
+	                                    <span className="min-w-0 flex-1 truncate text-[18px] leading-snug text-slate-500 dark:text-slate-400">
+	                                      {preview}
+	                                    </span>
+	                                    {chat.unread > 0 && (
+	                                      <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-[#b7c3cf] px-2 text-[16px] font-bold leading-none text-white dark:bg-slate-600">
+	                                        {chat.unread > 99 ? "99+" : chat.unread}
+	                                      </span>
+	                                    )}
+	                                  </div>
+	                                </div>
+	                              </button>
+	                            </SwipeableRow>
+	                          );
+	                        })
+	                      )}
+	                    </div>
+	                  </section>
+	                ) : searchingProfiles && active === "personal" && filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20">
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3" />
                     <p className="text-sm text-muted-foreground">Searching users...</p>
                   </div>
-                ) : displayList.length === 0 ? (
-                  <div className={cn(
-                    "flex flex-col items-center text-center",
-                    embedded ? "py-8" : "py-10"
-                  )}>
+	                ) : displayList.length === 0 ? (
+	                  <div className={cn("space-y-1.5", embedded && "px-1")}>
+	                    {archivedSummaryRow}
+	                    <div className={cn(
+	                      "flex flex-col items-center text-center",
+	                      embedded ? "py-8" : "py-10"
+	                    )}>
                     <div className="zivo-chat-card mb-3 flex h-20 w-20 items-center justify-center rounded-[1.75rem] text-4xl">{currentCategory.emptyIcon}</div>
                     <p className="text-base font-bold text-foreground mb-1">
                       {active === "personal" && search.trim().length >= 2 ? "No conversations found" : currentCategory.emptyTitle}
@@ -4075,9 +4403,10 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           </>
                         )}
                       </div>
-                    )}
-                  </div>
-                ) : (
+	                    )}
+	                    </div>
+	                  </div>
+	                ) : (
                   <div className={cn("space-y-1.5", embedded && "px-1")}>
                     {/* Contact Requests notification row */}
                     {!search && active === "personal" && pendingRequests.length > 0 && (
@@ -4105,27 +4434,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       </button>
                     )}
 
-                    {/* Archived chats row */}
-                    {!search && archivedList.length > 0 && active === "personal" && (
-                      <button type="button"
-                        onClick={() => setShowArchived((v) => !v)}
-                        className="zivo-chat-row flex w-full items-center gap-3 px-3 py-2.5 transition-all active:scale-[0.99]"
-                      >
-                        <div className="zivo-chat-icon-button flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-full">
-                          <Archive className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <p className="text-sm font-semibold text-foreground">Archived chats</p>
-                          <p className="text-[11px] text-muted-foreground">{archivedList.length} conversation{archivedList.length === 1 ? "" : "s"}</p>
-                        </div>
-                        {archivedUnread > 0 && (
-                          <span className="zivo-chat-chip flex h-[22px] min-w-[22px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-foreground">
-                            {archivedUnread > 99 ? "99+" : archivedUnread}
-                          </span>
-                        )}
-                        <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform", showArchived && "rotate-90")} />
-                      </button>
-                    )}
+                    {archivedSummaryRow}
 
                     {/* Channels strip — subscribed channels with quick access */}
                     {!search && active === "personal" && (folder === "all" || folder === "personal") && !zivoOFMode && !desktopTwoColumn && (
@@ -4456,49 +4765,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                         </div>
                       );
                     })}
-
-                    {/* Expanded archived chats list */}
-                    {showArchived && archivedList.length > 0 && active === "personal" && (
-                      <div className="mt-2 space-y-2 border-t border-border/30 px-1 pt-2">
-                        <div className="flex items-center gap-1.5 px-2 pt-1">
-                          <Archive className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Archived</span>
-                        </div>
-                        {archivedList.map((chat: any) => (
-                          <button type="button"
-                            key={`archived-${chat.id}`}
-                            onClick={() => {
-                              if ((chat as any).isGroup) {
-                                setOpenGroupChat({ id: chat.id, name: chat.name, avatar: chat.avatar });
-                              } else {
-                                setOpenPersonalChat({ id: chat.id, name: chat.name, avatar: chat.avatar, isVerified: (chat as any).isVerified === true });
-                              }
-                            }}
-                            className="zivo-chat-row flex w-full items-center gap-3 rounded-2xl p-2.5 transition-all active:scale-[0.98]"
-                          >
-                            <ChatRowAvatar
-                              avatar={chat.avatar}
-                              name={chat.name}
-                              isGroup={!!(chat as any).isGroup}
-                              active={active}
-                              variant="archived"
-                            />
-                            <div className="flex-1 text-left min-w-0">
-                              <p className="text-sm font-semibold text-foreground truncate">{chat.name}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{parseRichMessagePreview(chat.lastMessage || "")}</p>
-                            </div>
-                            <button type="button"
-                              onClick={(e) => { e.stopPropagation(); toggleArchive(chat.id); toast.success("Unarchived"); }}
-                              className="zivo-chat-icon-button flex h-8 w-8 items-center justify-center rounded-full active:scale-90"
-                              aria-label="Unarchive"
-                              title="Unarchive"
-                            >
-                              <ArchiveRestore className="w-4 h-4 text-muted-foreground" />
-                            </button>
-                          </button>
-                        ))}
-                      </div>
-                    )}
 
                     {/* People you may know — Suggested Contacts */}
                     {!search && active === "personal" && !selectionMode && !zivoOFMode && (

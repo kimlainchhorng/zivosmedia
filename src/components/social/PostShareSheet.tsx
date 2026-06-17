@@ -67,7 +67,7 @@ const escapeSvgText = (value: string) =>
 const storyFallbackImage = (title: string, url: string) => {
   const heading = escapeSvgText(clampStoryText(title || "ZIVO post", 72));
   const host = (() => {
-    try { return new URL(url).host; } catch { return "myzivo.app"; }
+    try { return new URL(url).host; } catch { return "zivosmedia.com"; }
   })();
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">

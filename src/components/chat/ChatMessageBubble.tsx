@@ -2502,11 +2502,20 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
 
   const hasMedia = !!preview.mediaUrl;
 
-  // Check if this is an internal ZIVO link
+  // Check if this is an internal ZIVO link. Exact/suffix host match — a
+  // substring check (e.g. hostname.includes("hizovo")) trusts attacker hosts
+  // like hizovo.evil.com or evil-lovable.com, letting them skip the external
+  // link warning and in-app navigate to an attacker-chosen path.
   const isInternalLink = (() => {
     try {
       const u = new URL(url);
-      return u.hostname.includes("lovable") || u.hostname.includes("hizovo") || u.hostname === window.location.hostname;
+      if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+      const host = u.hostname.toLowerCase();
+      const internalHosts = ["lovable.app", "hizovo.com"];
+      return (
+        host === window.location.hostname.toLowerCase() ||
+        internalHosts.some((h) => host === h || host.endsWith(`.${h}`))
+      );
     } catch { return false; }
   })();
 

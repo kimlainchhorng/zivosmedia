@@ -57,7 +57,7 @@ export default function LegalAcknowledgment({ version, documents, onChange, clas
           p_role: "customer",
           p_document_key: d.href.replace(/^\/legal\//, ""),
           p_document_version: version,
-          p_meta: { client: "myzivo", path: typeof window !== "undefined" ? window.location.pathname : null },
+          p_meta: { client: "zivosmedia", path: typeof window !== "undefined" ? window.location.pathname : null },
         })
       )).catch(() => { /* non-fatal */ });
     }

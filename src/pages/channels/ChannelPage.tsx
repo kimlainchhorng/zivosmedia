@@ -1,6 +1,23 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type TouchEvent } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Bell, ChevronDown, ChevronLeft, Compass, Copy, Info, Pin, Share2, Users, X } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  Compass,
+  Copy,
+  Gift,
+  MoreVertical,
+  Pin,
+  Search,
+  Share2,
+  Trash2,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
 import { useChannel, type ChannelPost, type ChannelServiceEvent } from "@/hooks/useChannel";
 import { supabase } from "@/integrations/supabase/client";
 import { ChannelInfoSheet } from "@/components/channels/ChannelInfoSheet";
@@ -62,6 +79,7 @@ export default function ChannelPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [swipeProgress, setSwipeProgress] = useState(0);
   const [showJumpToBottom, setShowJumpToBottom] = useState(false);
   const [dismissedPinnedPostId, setDismissedPinnedPostId] = useState<string | null>(null);
@@ -187,6 +205,15 @@ export default function ChannelPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
+
   const scrollToPost = (postId: string) => {
     window.setTimeout(() => {
       document.getElementById(`channel-post-${postId}`)?.scrollIntoView({
@@ -268,6 +295,48 @@ export default function ChannelPage() {
       // fall through to clipboard fallback
     }
     await copyChannelLink();
+  };
+
+  const openChannelMenuSearch = () => {
+    setMenuOpen(false);
+    setInfoOpen(true);
+  };
+
+  const toggleChannelNotifications = async () => {
+    setMenuOpen(false);
+    if (!isSubscribed && !canPost) {
+      toast.error("Join the channel to manage alerts.");
+      return;
+    }
+    try {
+      await setNotifications(!notificationsOn);
+      toast.success(notificationsOn ? "Channel muted" : "Channel unmuted");
+    } catch (error: any) {
+      toast.error(error?.message || "Couldn't update notifications");
+    }
+  };
+
+  const showComingSoon = (label: string) => {
+    setMenuOpen(false);
+    toast.message(`${label} is coming soon`);
+  };
+
+  const leaveChannelFromMenu = async () => {
+    setMenuOpen(false);
+    if (isOwner) {
+      toast.message("Owners can manage this channel from settings.");
+      return;
+    }
+    if (!isSubscribed) {
+      toast.message("You're not subscribed to this channel.");
+      return;
+    }
+    try {
+      await unsubscribe();
+      toast.success("Left channel");
+    } catch (error: any) {
+      toast.error(error?.message || "Couldn't leave channel");
+    }
   };
 
   const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate("/channels"));
@@ -410,6 +479,18 @@ export default function ChannelPage() {
           <button
             type="button"
             onClick={() => setInfoOpen(true)}
+            className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/80 text-xs font-bold text-sky-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
+            aria-label="Open channel info"
+          >
+            {channel.avatar_url ? (
+              <img src={channel.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center bg-sky-100">{channel.name.slice(0, 2).toUpperCase()}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setInfoOpen(true)}
             className="min-w-0 flex-1 rounded-full bg-white/80 px-4 py-1.5 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
             aria-label="Open channel info"
           >
@@ -422,20 +503,60 @@ export default function ChannelPage() {
           </button>
           <button
             type="button"
-            onClick={() => setInfoOpen(true)}
-            className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/80 text-xs font-bold text-sky-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
-            aria-label="Open channel info"
-          >
-            {channel.avatar_url ? (
-              <img src={channel.avatar_url} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center bg-sky-100">{channel.name.slice(0, 2).toUpperCase()}</span>
+            onClick={() => setMenuOpen((value) => !value)}
+            className={cn(
+              "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-slate-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white active:scale-95",
+              menuOpen && "bg-white text-slate-950 ring-sky-300",
             )}
-            <span className="absolute bottom-0 right-0 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200">
-              <Info className="h-2.5 w-2.5" />
-            </span>
+            aria-label="Open channel menu"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+          >
+            <MoreVertical className="h-6 w-6" />
           </button>
         </div>
+
+        {menuOpen && (
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-30 cursor-default bg-transparent"
+              aria-label="Close channel menu"
+              onClick={() => setMenuOpen(false)}
+              tabIndex={-1}
+            />
+            <div
+              role="menu"
+              aria-label="Channel menu"
+              className="fixed right-3 top-[calc(var(--zivo-safe-top,0px)+4.9rem)] z-50 w-[min(19.5rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.45rem] bg-[#d9ecff]/96 py-1.5 text-slate-950 shadow-2xl ring-2 ring-sky-400/80 backdrop-blur-xl"
+            >
+              <button type="button" role="menuitem" onClick={openChannelMenuSearch} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+                <Search className="h-7 w-7 shrink-0 stroke-[2.25]" />
+                <span>Search</span>
+              </button>
+              <button type="button" role="menuitem" onClick={() => void toggleChannelNotifications()} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+                {notificationsOn ? <BellOff className="h-7 w-7 shrink-0 stroke-[2.25]" /> : <Bell className="h-7 w-7 shrink-0 stroke-[2.25]" />}
+                <span>{notificationsOn ? "Mute" : "Unmute"}</span>
+              </button>
+              <button type="button" role="menuitem" onClick={() => showComingSoon("Select Messages")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+                <CheckCircle2 className="h-7 w-7 shrink-0 stroke-[2.25]" />
+                <span>Select Messages</span>
+              </button>
+              <button type="button" role="menuitem" onClick={() => showComingSoon("Send a Gift")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+                <Gift className="h-7 w-7 shrink-0 stroke-[2.25]" />
+                <span>Send a Gift</span>
+              </button>
+              <button type="button" role="menuitem" onClick={() => showComingSoon("Boost Channel")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+                <Zap className="h-7 w-7 shrink-0 stroke-[2.25]" />
+                <span>Boost Channel</span>
+              </button>
+              <button type="button" role="menuitem" onClick={() => void leaveChannelFromMenu()} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none text-rose-500 transition hover:bg-white/35 active:bg-white/50">
+                <Trash2 className="h-7 w-7 shrink-0 stroke-[2.25]" />
+                <span>Leave Channel</span>
+              </button>
+            </div>
+          </>
+        )}
 
       </div>
 
