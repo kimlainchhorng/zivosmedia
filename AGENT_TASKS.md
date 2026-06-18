@@ -9,6 +9,7 @@ One agent per file/page. Run `npm run update` before moving anything to **Done**
 ---
 
 ## In progress
+ - **Auto Repair Build R.O. print + VIN vehicle decode repair** — fix print modal actions and prevent bad VIN decode/model/transmission binding on Add Vehicle. — @codex, 2026-06-17
  - **Channel X video import** (`/c/:handle` composer + Supabase Edge Function) — native MP4 media import for X status URLs so channel posts render as video instead of share links. — @codex, 2026-06-15
  - Add travel surface styling to booking list pages (`/flights`, `/hotels`, `/cars`, `/bus`) with existing `.zivo-travel-3d` components and responsive layout sweep. — @codex, 2026-06-12
  - **Public storefronts — salon sub-cluster** premium interaction pass — ✅ **COMPLETE**. All 6 `src/pages/salon/Public*` leaf pages done (see In review): ✅ `PublicReviewSubmitPage.tsx` + ✅ `PublicSalonMembershipPage.tsx` + ✅ `PublicSalonCheckinPage.tsx` + ✅ `PublicSalonBookingDetailPage.tsx` + ✅ `PublicStylistDayPage.tsx` + ✅ `PublicStylistEarningsPage.tsx`. Same hard rule honored throughout (className-only, DeepSeek+MiMo each, build-gate green, verify-protocol with preview-contention caveat). Salon public leaf cluster ready for owner to commit. — @claude, 2026-06-13

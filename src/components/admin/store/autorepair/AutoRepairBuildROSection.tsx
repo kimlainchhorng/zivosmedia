@@ -76,11 +76,24 @@ type GarageVehicle = {
   model: string;
   vin?: string | null;
   plate?: string | null;
+  plate_state?: string | null;
   color?: string | null;
   mileage?: number | null;
+  engine?: string | null;
+  transmission?: string | null;
+  drive_type?: string | null;
   notes?: string | null;
   created_at: string;
 };
+
+const usefulVehiclePart = (value?: string | null) => {
+  const clean = (value ?? "").trim();
+  return clean && !/^unknown\b/i.test(clean) && clean !== "—" ? clean : "";
+};
+const noteVehicleSpec = (notes: string | null | undefined, label: "Engine" | "Trans") =>
+  notes?.match(new RegExp(`${label}:\\s*([^·\\n]+)`, "i"))?.[1]?.trim() ?? "";
+const vehicleDisplayLabel = (v: GarageVehicle) =>
+  [v.year, usefulVehiclePart(v.make), usefulVehiclePart(v.model)].filter(Boolean).join(" ");
 
 interface Props {
   storeId: string;
@@ -651,13 +664,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       customer_last_name: (v.owner_name ?? "").includes(" ") ? (v.owner_name ?? "").split(" ").slice(-1)[0] : "",
       customer_phone: v.owner_phone ?? "",
       customer_email: v.owner_email ?? "",
-      vehicle_label: [v.year, v.make, v.model].filter(Boolean).join(" "),
+      vehicle_label: vehicleDisplayLabel(v),
       vehicle_year: v.year ? String(v.year) : "",
       vehicle_make: v.make ?? "",
-      vehicle_model: v.model ?? "",
-      vehicle_transmission: "",
-      vehicle_engine: v.notes?.match(/Engine:\s*([^·]+)/)?.[1]?.trim() ?? "",
+      vehicle_model: usefulVehiclePart(v.model),
+      vehicle_transmission: usefulVehiclePart(v.transmission) || noteVehicleSpec(v.notes, "Trans"),
+      vehicle_engine: usefulVehiclePart(v.engine) || noteVehicleSpec(v.notes, "Engine"),
       license_plate: v.plate ?? "",
+      plate_state: v.plate_state ?? h.plate_state,
       vehicle_color: v.color ?? "",
       mileage_in: v.mileage ? String(v.mileage) : h.mileage_in,
     }));
@@ -739,10 +753,13 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         owner_email: header.customer_email.trim() || null,
         year, make, model,
         plate: header.license_plate.trim() || null,
+        plate_state: header.plate_state.trim() || null,
+        engine: header.vehicle_engine.trim() || null,
+        transmission: header.vehicle_transmission.trim() || null,
         color: header.vehicle_color.trim().toLowerCase() || null,
         mileage: header.mileage_in ? parseInt(header.mileage_in, 10) : 0,
       };
-      const { data, error } = await supabase.from("ar_customer_vehicles").insert(payload).select("*").single();
+      const { data, error } = await supabase.from("ar_customer_vehicles").insert(payload as any).select("*").single();
       if (error) throw error;
       return data as unknown as GarageVehicle;
     },
@@ -1715,13 +1732,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   };
 
   const printRO = async () => {
-    if (!lines.length) { toast.error("Add at least one line first"); return; }
-    const rows = lines
-      .map(
-        (l) =>
-          `<tr><td>${KIND_META[l.kind].label}</td><td>${escapeHtml(l.description || "—")}${l.misc ? ` <span style="color:#888">(${escapeHtml(l.misc)})</span>` : ""}</td><td class="r">${l.qty}</td><td class="r">${money(l.unit_cents)}</td><td class="r">${money(lineTotalCents(l))}</td></tr>`,
-      )
-      .join("");
+    const rows = lines.length
+      ? lines
+          .map(
+            (l) =>
+              `<tr><td>${KIND_META[l.kind].label}</td><td>${escapeHtml(l.description || "—")}${l.misc ? ` <span style="color:#888">(${escapeHtml(l.misc)})</span>` : ""}</td><td class="r">${l.qty}</td><td class="r">${money(l.unit_cents)}</td><td class="r">${money(lineTotalCents(l))}</td></tr>`,
+          )
+          .join("")
+      : `<tr><td colspan="5" style="padding:18px 8px;color:#666;text-align:center">No line items yet</td></tr>`;
     const html = `<html><head><title>RO ${escapeHtml(header.number || "")}</title><style>
       body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:20px;margin:0}
       table{width:100%;border-collapse:collapse;margin-top:14px}th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}
@@ -1804,7 +1822,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   const toolbarHandlers = {
     onNew: () => { resetAll(); setView("builder"); },
     onHub: () => { closeTransientBuildROUi(); setView("hub"); },
-    onPrint: printRO,
+    onPrint: () => setPrintModalOpen(true),
     onNavigate: openSectionTab,
     onNavigateMain: onNavigate, // client-side switch the main window (e.g. open the Settings page)
     onProfit: () => setOpenGP(true),
@@ -2700,7 +2718,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
             </Button>
             {/* Print Estimate */}
             <Button className="w-full bg-red-600 hover:bg-red-700 text-white gap-2"
-              onClick={() => { const copies = printCopies; handlePrintModalOpenChange(false); for (let i = 0; i < copies; i++) printRO(); }}>
+              onClick={async () => {
+                const copies = printCopies;
+                for (let i = 0; i < copies; i++) await printRO();
+                handlePrintModalOpenChange(false);
+              }}>
               <Printer className="h-4 w-4" /> Print Estimate
             </Button>
             {/* Copies */}
@@ -2714,7 +2736,6 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               {/* Download Estimate */}
               <button className="flex items-center gap-1 text-primary hover:underline"
                 onClick={async () => {
-                  if (!lines.length) { toast.error("Add at least one line first"); return; }
                   try {
                     const blob = await generateDocumentPdf({
                       doc: {

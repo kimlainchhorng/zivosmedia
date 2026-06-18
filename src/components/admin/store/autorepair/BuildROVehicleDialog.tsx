@@ -30,6 +30,9 @@ const inp =
   "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[#1e90ff] focus:outline-none focus:ring-2 focus:ring-[#1e90ff]/20";
 const lbl = "text-[11px] font-semibold uppercase tracking-wide text-slate-500";
 
+const decodedText = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+const isMissingVehicleValue = (value: string) => !value || /^unknown\b/i.test(value) || value === "—" || value === "-";
+
 export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owner, ownerMemo, onSaved }: Props) {
   const [f, setF] = useState(blank);
   const [decoding, setDecoding] = useState(false);
@@ -65,8 +68,32 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
     try {
       const { data, error } = await supabase.functions.invoke("vin-decode", { body: { vin: v } });
       if (error || !data?.ok) throw new Error(data?.error || "VIN decode failed");
-      setF((s) => ({ ...s, vin: v, make: data.make || s.make, model: data.model || s.model, year: data.year ? String(data.year) : s.year, engine: data.engine || s.engine, transmission: data.transmission || s.transmission }));
-      toast.success("VIN decoded — details filled in");
+      const next = {
+        year: data.year ? String(data.year) : "",
+        make: decodedText(data.make),
+        model: decodedText(data.model),
+        engine: decodedText(data.engine),
+        transmission: decodedText(data.transmission),
+      };
+      setF((s) => ({
+        ...s,
+        vin: v,
+        make: isMissingVehicleValue(next.make) ? s.make : next.make,
+        model: isMissingVehicleValue(next.model) ? s.model : next.model,
+        year: next.year || s.year,
+        engine: isMissingVehicleValue(next.engine) ? s.engine : next.engine,
+        transmission: isMissingVehicleValue(next.transmission) ? s.transmission : next.transmission,
+      }));
+      const missing = [
+        isMissingVehicleValue(next.model) ? "model" : "",
+        isMissingVehicleValue(next.engine) ? "engine" : "",
+        isMissingVehicleValue(next.transmission) ? "transmission" : "",
+      ].filter(Boolean);
+      if (missing.length) {
+        toast.info(`VIN decoded partial details — enter ${missing.join(", ")} if available`);
+      } else {
+        toast.success("VIN decoded — details filled in");
+      }
     } catch (e: any) {
       toast.error(`VIN decode failed: ${e.message}`);
     } finally {
@@ -103,7 +130,8 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!f.make.trim() || !f.model.trim()) throw new Error("Make and model are required");
+      if (!f.make.trim()) throw new Error("Make is required");
+      const model = f.model.trim() || "Unknown model";
       const noteParts = [
         f.engine.trim() ? `Engine: ${f.engine.trim()}` : "",
         f.transmission.trim() ? `Trans: ${f.transmission.trim()}` : "",
@@ -117,9 +145,12 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
         owner_email: owner.email.trim() || null,
         year: f.year ? parseInt(f.year, 10) : null,
         make: f.make.trim(),
-        model: f.model.trim(),
+        model,
+        engine: f.engine.trim() || null,
+        transmission: f.transmission.trim() || null,
         vin: f.vin.trim() || null,
         plate: f.plate.trim() || null,
+        plate_state: f.plateState.trim() || null,
         mileage: f.mileage ? parseInt(f.mileage, 10) : 0,
         oil_capacity: f.oil_capacity.trim() || null,
         oil_viscosity: f.oil_viscosity.trim() || null,
@@ -200,19 +231,19 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
               </div>
               <div className="space-y-1">
                 <label className={lbl}>Make <span className="text-rose-500">*</span></label>
-                <input className={inp} placeholder="Ford" value={f.make} onChange={(e) => set({ make: e.target.value })} />
+                <input className={inp} placeholder="e.g. Volkswagen" value={f.make} onChange={(e) => set({ make: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className={lbl}>Model <span className="text-rose-500">*</span></label>
-                <input className={inp} placeholder="F-150" value={f.model} onChange={(e) => set({ model: e.target.value })} />
+                <input className={inp} placeholder="Model if known" value={f.model} onChange={(e) => set({ model: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className={lbl}>Engine</label>
-                <input className={inp} placeholder="3.5L V6" value={f.engine} onChange={(e) => set({ engine: e.target.value })} />
+                <input className={inp} placeholder="Engine if known" value={f.engine} onChange={(e) => set({ engine: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className={lbl}>Transmission</label>
-                <input className={inp} placeholder="e.g. 6-speed Automatic" value={f.transmission} onChange={(e) => set({ transmission: e.target.value })} />
+                <input className={inp} placeholder="Transmission if known" value={f.transmission} onChange={(e) => set({ transmission: e.target.value })} />
               </div>
               <div className="space-y-1">
                 <label className={lbl}>VIN</label>
