@@ -144,9 +144,9 @@ export default function FeedSidebar() {
   const hasOwnedShopIdentity = isStoreOwner || ownerStores.length > 0 || hasBrandShopIdentity;
   const canOpenShopDashboard = !!user;
   const primaryOwnerStore = ownerStores[0];
-  const shopDashboardPath = primaryOwnerStore
-    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id).path
-    : "/shop-dashboard";
+  const shopDashboard = primaryOwnerStore
+    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id)
+    : null;
 
   const hasDashboard = isAdmin || canOpenShopDashboard || isDriver || isRestaurantOwner || isHotelOwner || isSupport || isModerator || isOperations;
 
@@ -264,8 +264,13 @@ export default function FeedSidebar() {
               const subtitle = placeholder
                 ? "Tap to complete your business"
                 : store.normalizedCategory;
+              const dashboard = resolveBusinessDashboardRoute(store.category, store.id);
               const handleClick = () => {
-                navigate(resolveBusinessDashboardRoute(store.category, store.id).path);
+                if (dashboard.externalUrl) {
+                  window.location.assign(dashboard.externalUrl);
+                  return;
+                }
+                navigate(dashboard.path);
               };
               return (
                 <button type="button"
@@ -434,7 +439,11 @@ export default function FeedSidebar() {
                   <button type="button"
                     onClick={() => {
                       setShowSwitch(false);
-                      navigate(shopDashboardPath);
+                      if (shopDashboard?.externalUrl) {
+                        window.location.assign(shopDashboard.externalUrl);
+                        return;
+                      }
+                      if (shopDashboard) navigate(shopDashboard.path);
                     }}
                     className="zivo-social-module-tile w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.99]"
                   >
