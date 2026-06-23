@@ -821,8 +821,8 @@ export default function ReelsFeedPage() {
   const { unreadCount: notificationUnread } = useNotifications(20);
   const { data: ownerStores = [] } = useOwnerStores();
   const primaryOwnerStore = ownerStores[0];
-  const myBusinessPath = primaryOwnerStore
-    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id).path
+  const myBusinessDashboard = primaryOwnerStore
+    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id)
     : null;
   const hasMultipleBusinesses = ownerStores.length > 1;
   const [businessSwitcherOpen, setBusinessSwitcherOpen] = useState(false);
@@ -1877,7 +1877,7 @@ export default function ReelsFeedPage() {
                         </SheetDescription>
                       </SheetHeader>
                       <div className="p-3 space-y-3">
-                        {userId && myBusinessPath && (
+                        {userId && myBusinessDashboard && (
                           hasMultipleBusinesses ? (
                             <div className="zivo-social-module rounded-[1.25rem] overflow-hidden">
                               <button
@@ -1903,7 +1903,14 @@ export default function ReelsFeedPage() {
                                     <button
                                       key={store.id}
                                       type="button"
-                                      onClick={() => navigate(resolveBusinessDashboardRoute(store.category, store.id).path)}
+                                      onClick={() => {
+                                        const dashboard = resolveBusinessDashboardRoute(store.category, store.id);
+                                        if (dashboard.externalUrl) {
+                                          window.location.assign(dashboard.externalUrl);
+                                          return;
+                                        }
+                                        navigate(dashboard.path);
+                                      }}
                                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-all hover:bg-white/55 active:scale-[0.99]"
                                     >
                                       <Avatar className="zivo-social-avatar-ring h-8 w-8 shrink-0">
@@ -1927,7 +1934,13 @@ export default function ReelsFeedPage() {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => navigate(myBusinessPath)}
+                              onClick={() => {
+                                if (myBusinessDashboard.externalUrl) {
+                                  window.location.assign(myBusinessDashboard.externalUrl);
+                                  return;
+                                }
+                                navigate(myBusinessDashboard.path);
+                              }}
                               className="zivo-social-module group flex w-full items-center gap-3 rounded-[1.25rem] px-3 py-3 text-left transition-all active:scale-[0.98]"
                             >
                               <span className="zivo-social-share-orb flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-primary">
