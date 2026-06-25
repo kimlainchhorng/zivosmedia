@@ -74,7 +74,7 @@ serve(withSecurity("send-test-notification", async (req, ctx) => {
   // Provider configuration diagnostic — surfaced in the response so admins
   // can immediately see why a channel might silently no-op.
   const diagnostics = {
-    fcm:    !!Deno.env.get("FCM_SERVER_KEY"),
+    fcm:    !!Deno.env.get("FCM_SERVICE_ACCOUNT_JSON"),
     apns:   !!(Deno.env.get("APNS_KEY_ID") && Deno.env.get("APNS_TEAM_ID") && Deno.env.get("APNS_PRIVATE_KEY")),
     vapid:  !!(Deno.env.get("VAPID_PUBLIC_KEY") && Deno.env.get("VAPID_PRIVATE_KEY") && Deno.env.get("VAPID_SUBJECT")),
     resend: !!Deno.env.get("RESEND_API_KEY"),

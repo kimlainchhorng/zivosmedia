@@ -98,7 +98,6 @@ serve(withSecurity("notify-app-update", async (req, ctx) => {
     );
 
     let sentCount = 0;
-    const fcmKey = Deno.env.get("FCM_SERVER_KEY");
 
     // Send notifications in batches
     for (let i = 0; i < tokensToNotify.length; i += BATCH_SIZE) {
