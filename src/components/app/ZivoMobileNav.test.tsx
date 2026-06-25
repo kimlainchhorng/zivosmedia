@@ -21,10 +21,6 @@ vi.mock("@/hooks/useLiveActivityCount", () => ({
   useLiveActivityCount: () => ({ total: 0 }),
 }));
 
-vi.mock("@/hooks/useChatPrefs", () => ({
-  useChatPrefs: () => ({ prefs: { unread: {} } }),
-}));
-
 vi.mock("@/hooks/useHaptics", () => ({
   useHaptics: () => ({ impact: vi.fn() }),
 }));
@@ -40,18 +36,6 @@ vi.mock("@/hooks/useI18n", () => ({
         "nav.account": "Account",
       })[key] ?? key,
   }),
-}));
-
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-        })),
-      })),
-    })),
-  },
 }));
 
 vi.mock("framer-motion", () => ({
@@ -105,17 +89,17 @@ describe("ZivoMobileNav", () => {
     expect(screen.getByLabelText("current path")).toHaveTextContent("/reels");
   });
 
-  it("keeps private chat and account tabs behind login for anonymous users", () => {
-    const chatRender = renderMobileNav();
-
-    fireEvent.click(screen.getByLabelText("Chat"));
-    expect(screen.getByLabelText("current path")).toHaveTextContent("/login?redirect=%2Fchat");
-
-    chatRender.unmount();
-
+  it("keeps the account tab behind login for anonymous users", () => {
     renderMobileNav();
+
     fireEvent.click(screen.getByLabelText("Account"));
     expect(screen.getByLabelText("current path")).toHaveTextContent("/login?redirect=%2Fprofile");
+  });
+
+  it("no longer shows a Chat tab (chat moved to the dedicated ZIVO Chat app)", () => {
+    renderMobileNav();
+
+    expect(screen.queryByLabelText("Chat")).not.toBeInTheDocument();
   });
 
   it("does not show the old center create button", () => {
@@ -125,7 +109,6 @@ describe("ZivoMobileNav", () => {
     expect(screen.getByLabelText("Home")).toBeInTheDocument();
     expect(screen.getByLabelText("Feed")).toBeInTheDocument();
     expect(screen.getByLabelText("Reels")).toBeInTheDocument();
-    expect(screen.getByLabelText("Chat")).toBeInTheDocument();
     expect(screen.getByLabelText("Account")).toBeInTheDocument();
   });
 });

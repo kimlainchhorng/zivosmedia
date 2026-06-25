@@ -3,16 +3,15 @@
  * Contains navigation shortcuts, services, and account switching
  */
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import {
   Car, UtensilsCrossed, MapPin, Plane, Hotel, CarFront,
-  Package, Compass, ShoppingBag, Heart, MessageCircle,
+  Package, Compass, ShoppingBag, Heart,
   Users, Bookmark, Clock, Settings, TrendingUp, Calendar,
   ArrowLeftRight, Shield, Store, LayoutDashboard,
   Handshake, CarTaxiFront, ChefHat, Building2,
   Headphones, Eye, Wrench, X as XIcon, BadgeCheck, ChevronRight, Lock,
   Crown, LogOut, Gift, Radio, Film, Bell, Star, Mic2, ShoppingCart,
-  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,10 +31,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
-
-const ChatHubPage = lazy(() => import("@/pages/ChatHubPage"));
 
 const NAV_ITEMS = [
   { label: "Live", icon: Radio, path: "/live", color: "text-red-500" },
@@ -89,7 +84,6 @@ export default function FeedSidebar() {
   const { unreadCount: socialUnread = 0 } = useSocialNotifications();
   const [showSwitch, setShowSwitch] = useState(false);
   const [showAllStores, setShowAllStores] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const goToItem = (path: string, authRequired?: boolean) => {
     if (authRequired && !user) {
       navigate(`/login?redirect=${encodeURIComponent(path)}`);
@@ -97,31 +91,6 @@ export default function FeedSidebar() {
     }
     navigate(path);
   };
-
-  // Manage chat panel state without dispatching events during render/state calculation
-  const setChatOpen = useCallback((open: boolean) => {
-    setShowChat(open);
-  }, []);
-
-  const toggleChat = useCallback(() => {
-    setShowChat((prev) => !prev);
-  }, []);
-
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent("zivo-chat-state", { detail: { open: showChat } }));
-  }, [showChat]);
-
-  // Listen for global "open chat" event from NavBar
-  useEffect(() => {
-    const handleOpen = () => setChatOpen(true);
-    const handleToggle = () => toggleChat();
-    window.addEventListener("zivo-open-chat", handleOpen);
-    window.addEventListener("zivo-toggle-chat", handleToggle);
-    return () => {
-      window.removeEventListener("zivo-open-chat", handleOpen);
-      window.removeEventListener("zivo-toggle-chat", handleToggle);
-    };
-  }, [setChatOpen, toggleChat]);
 
   const avatarUrl = optimizeAvatar(profile?.avatar_url, 80) || profile?.avatar_url || user?.user_metadata?.avatar_url;
   const toTitle = (s: string) => s.replace(/\b([a-z])/g, (m) => m.toUpperCase());
@@ -326,21 +295,6 @@ export default function FeedSidebar() {
         {/* Main nav */}
         <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">Navigate</p>
         {NAV_ITEMS.map((item) => renderNavRow(item, { tier: "primary" }))}
-        {/* Chat — opens slide panel; highlights while open */}
-        <button type="button"
-          onClick={() => user ? setShowChat(true) : navigate(`/login?redirect=${encodeURIComponent("/chat")}`)}
-          aria-pressed={showChat}
-          className={cn(
-            "zivo-social-sheet-row group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all active:scale-[0.99]",
-            showChat ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "text-foreground",
-          )}
-        >
-          {showChat && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" aria-hidden="true" />}
-          <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-primary">
-            <MessageCircle className="h-4 w-4" />
-          </span>
-          <span className="min-w-0 flex-1 truncate text-left">Chat</span>
-        </button>
 
         {/* Social */}
         <p className="px-3 pb-1 pt-4 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground/60">Social</p>
@@ -576,55 +530,6 @@ export default function FeedSidebar() {
         </SheetContent>
       </Sheet>
     </aside>
-      {/* Inline Chat Panel — right side, responsive */}
-      {showChat && (
-        <>
-          {/* Backdrop for mobile/tablet */}
-          <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[1290] lg:hidden"
-            onClick={() => setChatOpen(false)}
-          />
-          <div className="zivo-social-composer-panel fixed right-0 top-0 bottom-0 z-[1300] flex w-full flex-col overflow-hidden sm:w-[420px] md:w-[440px] lg:top-[4.5rem] lg:bottom-0 lg:w-[400px] lg:border-l lg:border-border/20 xl:w-[420px] 2xl:w-[440px] rounded-l-2xl sm:rounded-l-2xl lg:rounded-none">
-            {/* Close / Back header */}
-            <div className="zivo-social-header-glass m-2 flex shrink-0 items-center justify-between rounded-[1.25rem] px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="zivo-social-share-orb flex h-8 w-8 items-center justify-center rounded-full">
-                  <MessageCircle className="h-5 w-5 text-primary" />
-                </span>
-                <h2 className="text-base font-semibold text-foreground">Messages</h2>
-              </div>
-              <div className="flex items-center gap-1">
-                <button type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent("zivo-chat-new-group"))}
-                  className="zivo-social-icon-button relative flex h-8 w-8 items-center justify-center rounded-full active:scale-90 transition-all"
-                  aria-label="New group"
-                  title="New group"
-                >
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <Plus className="h-2.5 w-2.5 text-primary absolute bottom-0.5 right-0.5" />
-                </button>
-                <button type="button"
-                  onClick={() => setChatOpen(false)}
-                  className="zivo-social-icon-button flex h-8 w-8 items-center justify-center rounded-full active:scale-90 transition-all"
-                  aria-label="Close chat"
-                >
-                  <XIcon className="h-4.5 w-4.5 text-muted-foreground" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <Suspense fallback={
-                <div className="flex flex-col items-center justify-center h-64 gap-3">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Loading chats…</span>
-                </div>
-              }>
-                <ChatHubPage embedded />
-              </Suspense>
-            </div>
-          </div>
-        </>
-      )}
     </>
   );
 }

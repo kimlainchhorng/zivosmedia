@@ -29,7 +29,6 @@ import Check from "lucide-react/dist/esm/icons/check";
 import Newspaper from "lucide-react/dist/esm/icons/newspaper";
 import Film from "lucide-react/dist/esm/icons/film";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
-import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import Rss from "lucide-react/dist/esm/icons/rss";
 import Search from "lucide-react/dist/esm/icons/search";
 import { useState, useRef, useEffect } from "react";
@@ -74,7 +73,6 @@ const serviceNavItems = [
 const directNavItems = [
   { label: "Feed", href: "/feed", icon: Newspaper, cssVar: "var(--flights)" },
   { label: "Reels", href: "/reels", icon: Film, cssVar: "var(--eats)" },
-  { label: "Chat", href: "/chat", icon: MessageCircle, cssVar: "var(--rides)" },
 ];
 
 // On zivostravel.com the top nav shows travel services instead of the social pills.
@@ -88,7 +86,6 @@ const travelNavItems = [
 const communityNavItems = [
   { label: "Feed", description: "Posts & updates", href: "/feed", icon: Newspaper, color: "text-blue-500" },
   { label: "Reels", description: "Short videos", href: "/reels", icon: Film, color: "text-pink-500" },
-  { label: "Chat", description: "Messages & conversations", href: "/chat", icon: MessageCircle, color: "text-emerald-500" },
   { label: "Map", description: "Explore nearby stores", href: "/store-map", icon: MapPin, color: "text-orange-500" },
 ];
 
@@ -273,7 +270,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                 {/* Direct nav pills: Feed, Reels */}
                 {(isTravel ? travelNavItems : directNavItems).map((item) => {
                   const isActive = location.pathname.startsWith(item.href);
-                  const targetPath = item.label === "Chat" && !user ? withRedirectParam("/login", "/chat") : item.href;
+                  const targetPath = item.href;
                   return (
                     <motion.div
                       key={item.href}

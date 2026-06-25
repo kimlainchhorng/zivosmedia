@@ -42,6 +42,7 @@ const ScrollRestoration = lazy(() => import("@/components/app/ScrollRestoration"
 
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import ZivoChatRedirectGuard from "@/components/cross-app/ZivoChatRedirectGuard";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RemoteConfigProvider } from "@/contexts/RemoteConfigContext";
@@ -1686,6 +1687,7 @@ const App = () => (
                 <OTAUpdateBootstrap />
                 <Suspense fallback={null}><NavigationProgressBar /></Suspense>
                 <Suspense fallback={null}><ScrollRestoration /></Suspense>
+                <ZivoChatRedirectGuard />
                 <Suspense fallback={null}><PostShareSheet /></Suspense>
                 <DeferredRoutePrefetcher />
                 <PaymentReturnBootstrap />

@@ -6,8 +6,7 @@
 import { forwardRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, MessageCircle, User, Film, Newspaper, Car, Compass, Luggage, Wallet, CreditCard, UserRound } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Home, User, Film, Newspaper, Car, Compass, Luggage, Wallet, CreditCard, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -16,8 +15,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useLiveActivityCount } from "@/hooks/useLiveActivityCount";
-import { useChatPrefs } from "@/hooks/useChatPrefs";
-import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
 import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
@@ -69,39 +66,15 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
   const { notifications } = useNotifications(20);
   const liveActivity = useLiveActivityCount();
 
-  const { data: unreadChatIds } = useQuery({
-    queryKey: ["nav-chat-unread", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("direct_messages")
-        .select("sender_id")
-        .eq("receiver_id", user!.id)
-        .eq("is_read", false);
-      return new Set((data ?? []).map((r: { sender_id: string }) => r.sender_id));
-    },
-    enabled: !!user,
-    refetchInterval: 30000,
-    staleTime: 15000,
-  });
-
   const { prefetch } = useRoutePrefetch();
 
-  const { prefs: chatPrefs } = useChatPrefs(user?.id);
-  const chatUnread = (() => {
-    const real = unreadChatIds ?? new Set<string>();
-    let manualOnly = 0;
-    for (const id of Object.keys(chatPrefs.unread)) {
-      if (!real.has(id)) manualOnly++;
-    }
-    return real.size + manualOnly;
-  })();
   const accountUnread = useMemo(
     () => notifications.filter((n) => !n.is_read && !isChatNotification(n)).length,
     [notifications],
   );
 
   // On the Zivo Travel host (or `?zt=1` preview) the bottom nav becomes a
-  // travel-only tab set — never the social Feed/Reels/Ride/Chat tabs.
+  // travel-only tab set — never the social Feed/Reels/Ride tabs.
   const isTravel = typeof window !== "undefined" && isZivoTravelHost();
 
   const gated = (path: string) =>
@@ -112,7 +85,6 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     { id: "feed",    labelKey: "nav.feed",    icon: Newspaper,     path: SOCIAL_ROUTE_PATHS.feed },
     { id: "reels",   labelKey: "nav.reel",    icon: Film,          path: SOCIAL_ROUTE_PATHS.reels },
     { id: "ride",    labelKey: "nav.ride",    icon: Car,           path: "/rides/hub" },
-    { id: "chat",    labelKey: "nav.chat",    icon: MessageCircle, path: gated(SOCIAL_ROUTE_PATHS.chat),        badge: chatUnread,         fillable: true },
     { id: "account", labelKey: "nav.account", icon: User,          path: gated(SOCIAL_ROUTE_PATHS.profile),    badge: accountUnread },
   ];
 
@@ -141,7 +113,6 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     if (path.startsWith(SOCIAL_ROUTE_PATHS.reels)) return "reels";
     if (path.startsWith("/rides")) return "ride";
     if (path.startsWith(SOCIAL_ROUTE_PATHS.feed)) return "feed";
-    if (path.startsWith(SOCIAL_ROUTE_PATHS.chat)) return "chat";
     if (
       path.startsWith("/account") ||
       path.startsWith(SOCIAL_ROUTE_PATHS.profile) ||

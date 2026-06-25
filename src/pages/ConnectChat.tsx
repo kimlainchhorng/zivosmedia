@@ -7,7 +7,7 @@
  * If the user has a live ZIVO session we mint a single-use login token and
  * redirect back to the (allow-listed) return target with it:
  *   web:    <https return>#ott=<token_hash>&state=<nonce>          (fragment)
- *   native: zivochat://connect/zivo?ott=<token_hash>&state=<nonce> (custom scheme)
+ *   native: com.zivo.chat://connect/zivo?ott=<token_hash>&state=<nonce> (custom scheme)
  *
  * If the user is not signed in, we route through ZIVO login and resume here.
  *
@@ -20,10 +20,17 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
+import { ZIVO_CHAT_HOSTS } from "@/config/zivoChatDomain";
 
-// Origins permitted to receive a ZIVO session. Set the real ZIVO Chat
-// production origin here or via VITE_CHAT_ORIGINS (comma-separated).
-const STATIC_ALLOWED_ORIGINS = ["https://chat.zivosmedia.com"];
+// Origins permitted to receive a ZIVO session. The canonical ZIVO Chat origins
+// are derived from the shared host allow-list (zivoschat.com) so this can't
+// drift from where the Chat tab/redirects actually send users. The legacy
+// chat.zivosmedia.com origin is kept for back-compat. Extra origins can also be
+// supplied via VITE_CHAT_ORIGINS (comma-separated).
+const STATIC_ALLOWED_ORIGINS = [
+  "https://chat.zivosmedia.com",
+  ...Array.from(ZIVO_CHAT_HOSTS, (host) => `https://${host}`),
+];
 
 function allowedOrigins(): string[] {
   const fromEnv = (import.meta.env.VITE_CHAT_ORIGINS || "")
@@ -42,7 +49,7 @@ type ReturnTarget = { kind: "web"; url: URL } | { kind: "deeplink"; base: string
 const ALLOWED_DEEPLINK_RETURNS = ["com.zivo.chat://connect/zivo"];
 
 function validateReturn(returnUrl: string): ReturnTarget | null {
-  // Native app custom-scheme deep link, e.g. zivochat://connect/zivo?redirect=…
+  // Native app custom-scheme deep link, e.g. com.zivo.chat://connect/zivo?redirect=…
   for (const base of ALLOWED_DEEPLINK_RETURNS) {
     if (returnUrl === base || returnUrl.startsWith(base + "?")) {
       return { kind: "deeplink", base: returnUrl };
