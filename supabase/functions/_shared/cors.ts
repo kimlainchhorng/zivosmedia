@@ -61,6 +61,16 @@ const ALLOWED_ORIGIN_SUFFIXES = [
   ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];
 
+// Native WebView origins for our own Capacitor shells. iOS WKWebView serves the
+// app from capacitor://localhost; Ionic's older scheme is ionic://localhost.
+// (Android uses https://localhost, already covered by isLocalDevelopmentOrigin.)
+// Strict-CORS routes still enforce a bearer JWT + app_integrations checks, so
+// this only opens the browser preflight gate to our own native apps.
+const NATIVE_APP_ORIGINS = new Set<string>([
+  "capacitor://localhost",
+  "ionic://localhost",
+]);
+
 function isPrivateLanHost(hostname: string): boolean {
   if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]") return true;
   if (hostname.startsWith("192.168.")) return true;
@@ -83,6 +93,7 @@ function isLocalDevelopmentOrigin(origin: string | null): boolean {
 export function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.has(origin)) return true;
+  if (NATIVE_APP_ORIGINS.has(origin)) return true;
   if (isLocalDevelopmentOrigin(origin)) return true;
   try {
     const url = new URL(origin);

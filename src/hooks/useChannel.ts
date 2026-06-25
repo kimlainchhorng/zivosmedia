@@ -211,22 +211,24 @@ export function useChannel(handle: string | undefined) {
 
   const subscribe = async () => {
     if (!channel || !userId) return;
-    await supabase.from("channel_subscribers").upsert({
+    const { error } = await supabase.from("channel_subscribers").upsert({
       channel_id: channel.id,
       user_id: userId,
       role: channel.channel_join_approval_required ? "pending" : "sub",
     } as any, { onConflict: "channel_id,user_id" });
+    if (error) throw error;
     void logChannelAction(channel.id, userId, "member_joined");
     await refresh();
   };
 
   const unsubscribe = async () => {
     if (!channel || !userId) return;
-    await supabase
+    const { error } = await supabase
       .from("channel_subscribers")
       .delete()
       .eq("channel_id", channel.id)
       .eq("user_id", userId);
+    if (error) throw error;
     void logChannelAction(channel.id, userId, "member_left");
     await refresh();
   };

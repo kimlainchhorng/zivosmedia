@@ -316,6 +316,14 @@ export default function ChannelPage() {
     }
   };
 
+  const joinChannel = async () => {
+    try {
+      await subscribe();
+    } catch (error: any) {
+      toast.error(error?.message || "Couldn't subscribe to this channel");
+    }
+  };
+
   const showComingSoon = (label: string) => {
     setMenuOpen(false);
     toast.message(`${label} is coming soon`);
@@ -471,7 +479,7 @@ export default function ChannelPage() {
           <button
             type="button"
             onClick={goBack}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -479,7 +487,7 @@ export default function ChannelPage() {
           <button
             type="button"
             onClick={() => setInfoOpen(true)}
-            className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/80 text-xs font-bold text-sky-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
+            className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-white/80 text-xs font-bold text-sky-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Open channel info"
           >
             {channel.avatar_url ? (
@@ -491,7 +499,7 @@ export default function ChannelPage() {
           <button
             type="button"
             onClick={() => setInfoOpen(true)}
-            className="min-w-0 flex-1 rounded-full bg-white/80 px-4 py-1.5 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white"
+            className="min-w-0 flex-1 rounded-full bg-white/80 px-4 py-1.5 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Open channel info"
           >
             <span className="block min-w-0 text-center">
@@ -505,7 +513,7 @@ export default function ChannelPage() {
             type="button"
             onClick={() => setMenuOpen((value) => !value)}
             className={cn(
-              "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-slate-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white active:scale-95",
+              "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-slate-700 shadow-sm ring-1 ring-white/80 backdrop-blur transition hover:bg-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
               menuOpen && "bg-white text-slate-950 ring-sky-300",
             )}
             aria-label="Open channel menu"
@@ -530,27 +538,27 @@ export default function ChannelPage() {
               aria-label="Channel menu"
               className="fixed right-3 top-[calc(var(--zivo-safe-top,0px)+4.9rem)] z-50 w-[min(19.5rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.45rem] bg-[#d9ecff]/96 py-1.5 text-slate-950 shadow-2xl ring-2 ring-sky-400/80 backdrop-blur-xl"
             >
-              <button type="button" role="menuitem" onClick={openChannelMenuSearch} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+              <button type="button" role="menuitem" onClick={openChannelMenuSearch} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
                 <Search className="h-7 w-7 shrink-0 stroke-[2.25]" />
                 <span>Search</span>
               </button>
-              <button type="button" role="menuitem" onClick={() => void toggleChannelNotifications()} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+              <button type="button" role="menuitem" onClick={() => void toggleChannelNotifications()} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
                 {notificationsOn ? <BellOff className="h-7 w-7 shrink-0 stroke-[2.25]" /> : <Bell className="h-7 w-7 shrink-0 stroke-[2.25]" />}
                 <span>{notificationsOn ? "Mute" : "Unmute"}</span>
               </button>
-              <button type="button" role="menuitem" onClick={() => showComingSoon("Select Messages")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+              <button type="button" role="menuitem" onClick={() => showComingSoon("Select Messages")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
                 <CheckCircle2 className="h-7 w-7 shrink-0 stroke-[2.25]" />
                 <span>Select Messages</span>
               </button>
-              <button type="button" role="menuitem" onClick={() => showComingSoon("Send a Gift")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+              <button type="button" role="menuitem" onClick={() => showComingSoon("Send a Gift")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
                 <Gift className="h-7 w-7 shrink-0 stroke-[2.25]" />
                 <span>Send a Gift</span>
               </button>
-              <button type="button" role="menuitem" onClick={() => showComingSoon("Boost Channel")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50">
+              <button type="button" role="menuitem" onClick={() => showComingSoon("Boost Channel")} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none transition hover:bg-white/35 active:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
                 <Zap className="h-7 w-7 shrink-0 stroke-[2.25]" />
                 <span>Boost Channel</span>
               </button>
-              <button type="button" role="menuitem" onClick={() => void leaveChannelFromMenu()} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none text-rose-500 transition hover:bg-white/35 active:bg-white/50">
+              <button type="button" role="menuitem" onClick={() => void leaveChannelFromMenu()} className="flex h-14 w-full items-center gap-5 px-5 text-left text-[20px] font-semibold leading-none text-rose-500 transition hover:bg-white/35 active:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-inset">
                 <Trash2 className="h-7 w-7 shrink-0 stroke-[2.25]" />
                 <span>Leave Channel</span>
               </button>
@@ -566,7 +574,7 @@ export default function ChannelPage() {
             <button
               type="button"
               onClick={() => scrollToPost(pinnedPost.id)}
-              className="flex min-w-0 flex-1 items-center gap-2.5 text-left transition hover:bg-white/45 dark:hover:bg-zinc-800/45"
+              className="flex min-w-0 flex-1 items-center gap-2.5 text-left transition hover:bg-white/45 dark:hover:bg-zinc-800/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
               aria-label="Open pinned message"
             >
               <span className="flex w-12 shrink-0 items-center justify-center self-stretch border-r border-sky-200/70 bg-sky-50/45 text-slate-500 dark:border-sky-950 dark:bg-sky-950/30">
@@ -592,7 +600,7 @@ export default function ChannelPage() {
             <button
               type="button"
               onClick={() => setDismissedPinnedPostId(pinnedPost.id)}
-              className="flex w-12 shrink-0 items-center justify-center text-slate-500 transition hover:bg-white/55 hover:text-slate-800 dark:hover:bg-zinc-800"
+              className="flex w-12 shrink-0 items-center justify-center text-slate-500 transition hover:bg-white/55 hover:text-slate-800 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
               aria-label="Hide pinned message"
             >
               <X className="h-6 w-6" />
@@ -688,20 +696,20 @@ export default function ChannelPage() {
                 </div>
               )}
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                <button type="button" onClick={shareChannel} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/55 px-3 text-sm font-semibold text-slate-950 shadow-sm ring-1 ring-white/70 backdrop-blur transition hover:bg-white/75">
+                <button type="button" onClick={shareChannel} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/55 px-3 text-sm font-semibold text-slate-950 shadow-sm ring-1 ring-white/70 backdrop-blur transition hover:bg-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                   <Share2 className="h-3.5 w-3.5" />
                   Send channel
                 </button>
-                <button type="button" onClick={() => void copyChannelLink()} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/35 px-3 text-sm font-semibold text-slate-950 ring-1 ring-white/45 backdrop-blur transition hover:bg-white/60">
+                <button type="button" onClick={() => void copyChannelLink()} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/35 px-3 text-sm font-semibold text-slate-950 ring-1 ring-white/45 backdrop-blur transition hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                   <Copy className="h-3.5 w-3.5" />
                   Copy link
                 </button>
                 {!isSubscribed && !canPost && !showInlineJoin && (
-                  <button type="button" onClick={subscribe} disabled={joinPending} className="inline-flex h-9 items-center rounded-full bg-sky-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 disabled:opacity-60">
+                  <button type="button" onClick={joinChannel} disabled={joinPending} className="inline-flex h-9 items-center rounded-full bg-sky-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                     {joinPending ? "Request sent" : channel.channel_join_approval_required ? "Request to join" : "Join Channel"}
                   </button>
                 )}
-                <button type="button" onClick={() => navigate("/channels")} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/35 px-3 text-sm font-semibold text-slate-950 ring-1 ring-white/45 backdrop-blur transition hover:bg-white/60">
+                <button type="button" onClick={() => navigate("/channels")} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white/35 px-3 text-sm font-semibold text-slate-950 ring-1 ring-white/45 backdrop-blur transition hover:bg-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                   <Compass className="h-3.5 w-3.5" />
                   Discover
                 </button>
@@ -716,7 +724,7 @@ export default function ChannelPage() {
               <p className="text-[12px] font-semibold truncate">{joinPending ? "Request pending" : `Join @${channel.handle}`}</p>
               <p className="text-[11px] text-muted-foreground truncate">{joinPending ? "Waiting for admin approval." : "Get new posts and channel updates."}</p>
             </div>
-            <Button onClick={subscribe} disabled={joinPending} className="shrink-0">
+            <Button onClick={joinChannel} disabled={joinPending} className="shrink-0">
               {joinPending ? "Sent" : channel.channel_join_approval_required ? "Request" : "Join"}
             </Button>
           </div>
@@ -730,7 +738,7 @@ export default function ChannelPage() {
               <p className="text-[12px] font-semibold truncate">{joinPending ? "Request pending" : `Join @${channel.handle}`}</p>
               <p className="text-[11px] text-muted-foreground truncate">{joinPending ? "Waiting for admin approval." : "Get new posts and channel updates."}</p>
             </div>
-            <Button onClick={subscribe} disabled={joinPending} className="shrink-0">
+            <Button onClick={joinChannel} disabled={joinPending} className="shrink-0">
               {joinPending ? "Sent" : channel.channel_join_approval_required ? "Request" : "Join"}
             </Button>
           </div>
@@ -750,7 +758,7 @@ export default function ChannelPage() {
           type="button"
           onClick={scrollToLatest}
           className={cn(
-            "fixed right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-lg ring-1 ring-white/80 backdrop-blur transition hover:bg-white active:scale-95",
+            "fixed right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-lg ring-1 ring-white/80 backdrop-blur transition hover:bg-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             canPost ? "bottom-[calc(var(--zivo-safe-bottom,0px)+9.5rem)]" : "bottom-[calc(var(--zivo-safe-bottom,0px)+5.5rem)]",
           )}
           aria-label="Jump to latest message"
@@ -768,7 +776,7 @@ export default function ChannelPage() {
         joinPending={joinPending}
         canManage={canPost}
         notificationsOn={notificationsOn}
-        onSubscribe={subscribe}
+        onSubscribe={joinChannel}
         onSetNotifications={setNotifications}
         onShareToChat={shareChannel}
         onCopyLink={copyChannelLink}

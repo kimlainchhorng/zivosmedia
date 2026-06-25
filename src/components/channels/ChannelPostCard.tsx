@@ -338,8 +338,8 @@ function PostActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left text-base font-medium last:border-b-0 disabled:opacity-45",
-        destructive ? "text-rose-500" : "text-slate-950",
+        "flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left text-base font-medium last:border-b-0 disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset",
+        destructive ? "text-rose-500 focus-visible:ring-destructive/50" : "text-slate-950 focus-visible:ring-primary/40",
       )}
     >
       <Icon className="h-5 w-5 shrink-0" />
@@ -925,7 +925,7 @@ export function ChannelPostCard({
                 type="button"
                 onClick={() => { setEditing(false); setEditBody(localBody ?? post.body ?? ""); }}
                 disabled={savingEdit}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted/40"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 Cancel
               </button>
@@ -933,7 +933,7 @@ export function ChannelPostCard({
                 type="button"
                 onClick={saveEdit}
                 disabled={savingEdit}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ig-gradient text-white text-xs font-bold disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ig-gradient text-white text-xs font-bold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                 Save
@@ -1013,7 +1013,7 @@ export function ChannelPostCard({
                   href={firstUrl ?? undefined}
                   target="_blank"
                   rel="noreferrer"
-                  className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/20"
+                  className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   Open
                 </a>
@@ -1037,7 +1037,7 @@ export function ChannelPostCard({
               target="_blank"
               rel="noreferrer"
               className={cn(
-                "block overflow-hidden rounded-lg bg-emerald-100/60 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70",
+                "block overflow-hidden rounded-lg bg-emerald-100/60 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset",
                 hasBody ? "mt-1.5" : "mt-0",
               )}
             >
@@ -1104,7 +1104,7 @@ export function ChannelPostCard({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50"
+                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700">
                   <Music className="h-4 w-4" />
@@ -1127,7 +1127,7 @@ export function ChannelPostCard({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50"
+                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/55 text-emerald-700">
                   <FileText className="h-4 w-4" />
@@ -1173,7 +1173,7 @@ export function ChannelPostCard({
                   key={i}
                   onClick={() => setLightboxIdx(i)}
                   className={cn(
-                    "relative overflow-hidden rounded-xl bg-muted",
+                    "relative overflow-hidden rounded-xl bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset",
                     isFirstOfThree ? "col-span-2 aspect-[2/1]" : media.length === 1 && video ? "aspect-[9/16]" : "aspect-square",
                   )}
                   aria-label={video ? `Play video ${i + 1}` : `Open image ${i + 1}`}
@@ -1256,7 +1256,7 @@ export function ChannelPostCard({
                   onClick={() => react(emoji)}
                   disabled={reacting}
                   className={cn(
-                    "inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60",
+                    "inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     mine ? "bg-white/75 text-sky-700 ring-1 ring-sky-300/70" : "bg-sky-100/85 text-sky-700 hover:bg-sky-100",
                   )}
                 >
@@ -1284,7 +1284,7 @@ export function ChannelPostCard({
                   key={emoji}
                   onClick={() => react(emoji)}
                   disabled={reacting}
-                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 ${
+                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                     mine
                       ? "bg-white/75 ring-1 ring-primary/40 text-foreground"
                       : "bg-white/45 hover:bg-white/70"
@@ -1376,7 +1376,7 @@ export function ChannelPostCard({
                     }}
                     disabled={reacting}
                     className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-full text-xl transition active:scale-95 disabled:opacity-50",
+                      "flex h-10 w-10 items-center justify-center rounded-full text-xl transition active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                       myReaction === emoji ? "bg-sky-100" : "hover:bg-slate-50",
                     )}
                     aria-label={`React ${emoji}`}
@@ -1452,7 +1452,7 @@ export function ChannelPostCard({
               <button
                 type="button"
                 onClick={() => { setStickerPackOpen(null); setPreviewSticker(null); }}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 aria-label="Close sticker pack"
               >
                 <X className="h-5 w-5 stroke-[2.2]" />
@@ -1467,7 +1467,7 @@ export function ChannelPostCard({
               </div>
               <button
                 type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 aria-label="Sticker pack options"
               >
                 <span className="text-2xl leading-none">⋮</span>
@@ -1501,7 +1501,7 @@ export function ChannelPostCard({
                   key={sticker.id}
                   type="button"
                   className={cn(
-                    "flex aspect-square items-center justify-center rounded-2xl transition hover:bg-slate-100 active:scale-95",
+                    "flex aspect-square items-center justify-center rounded-2xl transition hover:bg-slate-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     previewSticker?.id === sticker.id && "bg-sky-50 ring-2 ring-sky-300",
                   )}
                   aria-label={sticker.alt}
@@ -1522,7 +1522,7 @@ export function ChannelPostCard({
               <button
                 type="button"
                 className={cn(
-                  "flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wide shadow-sm transition active:scale-[.99]",
+                  "flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wide shadow-sm transition active:scale-[.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   stickerPackInstalled
                     ? "bg-emerald-500 text-white hover:bg-emerald-600"
                     : "bg-[#3390ec] text-white hover:bg-[#2484df]",
@@ -1547,7 +1547,7 @@ export function ChannelPostCard({
               e.stopPropagation();
               setLightboxIdx(null);
             }}
-            className="absolute right-4 top-[var(--zivo-safe-top-overlay)] rounded-full bg-card/80 p-2 text-foreground hover:bg-card"
+            className="absolute right-4 top-[var(--zivo-safe-top-overlay)] rounded-full bg-card/80 p-2 text-foreground hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -1558,7 +1558,7 @@ export function ChannelPostCard({
                 e.stopPropagation();
                 setLightboxIdx(lightboxIdx - 1);
               }}
-              className="absolute left-4 rounded-full bg-card/80 p-2 text-foreground hover:bg-card"
+              className="absolute left-4 rounded-full bg-card/80 p-2 text-foreground hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="Previous"
             >
               <ChevronLeft className="h-6 w-6" />
@@ -1570,7 +1570,7 @@ export function ChannelPostCard({
                 e.stopPropagation();
                 setLightboxIdx(lightboxIdx + 1);
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-card/80 p-2 text-foreground hover:bg-card"
+              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-card/80 p-2 text-foreground hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="Next"
             >
               <ChevronRight className="h-6 w-6" />
@@ -1634,7 +1634,7 @@ export function ChannelPostCard({
                 type="button"
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
-                className="px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-muted/50"
+                className="px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 Cancel
               </button>
@@ -1642,7 +1642,7 @@ export function ChannelPostCard({
                 type="button"
                 onClick={deletePost}
                 disabled={deleting}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-rose-500 text-white text-sm font-bold disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-rose-500 text-white text-sm font-bold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 Delete

@@ -131,9 +131,18 @@ function getItemLabel(item: any, url: string): string {
 }
 
 function getItemDuration(item: any): number | null {
-  const duration = item?.duration_ms ?? item?.durationMs ?? item?.duration;
-  if (typeof duration !== "number" || !Number.isFinite(duration)) return null;
-  return duration > 1000 ? duration : duration * 1000;
+  // Fields explicitly named in milliseconds are already ms — trust them as-is.
+  // The live channel voice bubble stores `duration_ms` and renders it with
+  // Math.floor(ms / 1000), so a sub-second clip (e.g. 900) is 900ms, NOT seconds;
+  // passing it through the seconds-heuristic below would mis-scale it ×1000.
+  const explicitMs = item?.duration_ms ?? item?.durationMs;
+  if (typeof explicitMs === "number" && Number.isFinite(explicitMs)) return explicitMs;
+  // The bare `duration` field is ambiguous (seconds OR ms depending on source),
+  // so keep the heuristic: a value <= 1000 is implausible as ms for real media
+  // (<= 1s) but plausible as seconds, so scale it up to ms.
+  const ambiguous = item?.duration;
+  if (typeof ambiguous !== "number" || !Number.isFinite(ambiguous)) return null;
+  return ambiguous > 1000 ? ambiguous : ambiguous * 1000;
 }
 
 function classifyMediaItem(item: any, url: string): ChannelMediaTab {

@@ -24,7 +24,7 @@ export default function MyChannelsStrip() {
         <motion.button type="button"
           whileTap={{ scale: 0.92 }}
           onClick={() => nav("/channels")}
-          className="bg-ig-gradient rounded-full px-2.5 py-0.5 text-[10px] font-black text-white shadow-[0_2px_8px_rgba(236,72,153,0.25)] transition-opacity active:opacity-80"
+          className="bg-ig-gradient rounded-full px-2.5 py-0.5 text-[10px] font-black text-white shadow-[0_2px_8px_rgba(236,72,153,0.25)] transition-opacity active:opacity-80 outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
         >
           Discover
         </motion.button>
@@ -43,7 +43,7 @@ export default function MyChannelsStrip() {
         {!loading && channels.length === 0 && (
           <button type="button"
             onClick={() => nav("/channels")}
-            className="zivo-chat-row flex items-center gap-2 rounded-2xl px-4 py-2.5 text-[12px] font-bold text-muted-foreground whitespace-nowrap active:scale-95 transition-transform"
+            className="zivo-chat-row flex items-center gap-2 rounded-2xl px-4 py-2.5 text-[12px] font-bold text-muted-foreground whitespace-nowrap active:scale-95 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           >
             <Compass className="w-4 h-4" />
             Find channels to follow
@@ -54,7 +54,7 @@ export default function MyChannelsStrip() {
             key={c.id}
             whileTap={{ scale: 0.92 }}
             onClick={() => nav(`/c/${c.handle}`)}
-            className="flex flex-col items-center gap-1 w-[58px] shrink-0"
+            className="flex flex-col items-center gap-1 w-[58px] shrink-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           >
             <Avatar className="zivo-chat-avatar-ring w-10 h-10">
               <AvatarImage src={c.avatar_url ?? undefined} />
@@ -75,7 +75,7 @@ export default function MyChannelsStrip() {
         <motion.button type="button"
           whileTap={{ scale: 0.92 }}
           onClick={() => nav("/channels")}
-          className="flex flex-col items-center gap-1 w-[58px] shrink-0"
+          className="flex flex-col items-center gap-1 w-[58px] shrink-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
         >
           <div className="zivo-chat-icon-button flex h-10 w-10 items-center justify-center rounded-full">
             <Compass className="w-4 h-4 text-muted-foreground" />

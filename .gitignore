@@ -49,6 +49,7 @@ playwright-report/
 # Native build caches
 ios/DerivedData/
 ios/App/build/
+/build/
 
 # Auto Repair desktop installer output. Keep generated apps/installers out of
 # normal GitHub source changes; publish these as release/storage artifacts.

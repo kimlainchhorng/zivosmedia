@@ -787,7 +787,7 @@ export function ChannelInfoSheet({
               <button
                 type="button"
                 onClick={() => (canManage ? setView("edit") : onExternalShare())}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/45 hover:text-slate-800 active:scale-95"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/45 hover:text-slate-800 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 aria-label={canManage ? "Edit channel info" : "Share channel"}
               >
                 <Pencil className="h-6 w-6" />
@@ -816,7 +816,7 @@ export function ChannelInfoSheet({
                   <button
                     type="button"
                     onClick={() => void onCopyLink()}
-                    className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                    className="flex min-w-0 flex-1 items-center gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
                     aria-label="Copy channel invite link"
                   >
                     <LinkIcon className="h-7 w-7 shrink-0 text-slate-500" />
@@ -830,7 +830,7 @@ export function ChannelInfoSheet({
                     onClick={() => {
                       setQrOpen(true);
                     }}
-                    className="grid h-10 w-10 shrink-0 grid-cols-2 gap-1 rounded-full p-1.5 text-slate-500 transition hover:bg-sky-50 hover:text-sky-500 active:scale-95"
+                    className="grid h-10 w-10 shrink-0 grid-cols-2 gap-1 rounded-full p-1.5 text-slate-500 transition hover:bg-sky-50 hover:text-sky-500 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     aria-label="Open channel QR code"
                   >
                     <span className="rounded-[3px] border-2 border-current" />
@@ -850,7 +850,7 @@ export function ChannelInfoSheet({
                     void onSetNotifications(!notificationsOn);
                   }}
                   disabled={joinPending}
-                  className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50/70 disabled:opacity-60"
+                  className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50/70 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
                 >
                   {notificationsOn ? <Bell className="h-7 w-7 shrink-0 text-slate-500" /> : <BellOff className="h-7 w-7 shrink-0 text-slate-500" />}
                   <span className="min-w-0 flex-1">
@@ -884,7 +884,7 @@ export function ChannelInfoSheet({
                         type="button"
                         onClick={() => setProfileTab(tab.id)}
                         className={cn(
-                          "flex h-12 min-w-0 items-center justify-center rounded-[1.35rem] px-1.5 text-[15px] font-semibold transition min-[380px]:text-[16px]",
+                          "flex h-12 min-w-0 items-center justify-center rounded-[1.35rem] px-1.5 text-[15px] font-semibold transition min-[380px]:text-[16px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset",
                           active ? "bg-sky-50 text-sky-500" : "text-slate-500 hover:bg-slate-50",
                         )}
                       >
@@ -944,7 +944,7 @@ export function ChannelInfoSheet({
                       <button
                         type="button"
                         onClick={() => setView("members")}
-                        className="w-full px-4 py-3 text-left text-sm font-semibold text-sky-500"
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
                       >
                         Manage members
                       </button>
@@ -1210,7 +1210,7 @@ function ChannelQrPreview({
               ref={qrCardRef}
               type="button"
               onClick={() => runTapAction(onCopy)}
-              className="pointer-events-auto relative mx-auto flex aspect-square w-full max-w-[11.5rem] items-center justify-center rounded-[1.35rem] bg-white transition active:scale-[.99]"
+              className="pointer-events-auto relative mx-auto flex aspect-square w-full max-w-[11.5rem] items-center justify-center rounded-[1.35rem] bg-white transition active:scale-[.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
               aria-label="Copy invite link from QR code"
             >
               <QRCodeSVG
@@ -1241,7 +1241,7 @@ function ChannelQrPreview({
             <button
               type="button"
               onClick={() => runTapAction(onClose)}
-              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/55 hover:text-slate-800 active:scale-95"
+              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/55 hover:text-slate-800 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="Close QR code"
             >
               <X className="h-6 w-6" />
@@ -1253,7 +1253,7 @@ function ChannelQrPreview({
             <button
               type="button"
               onClick={() => runTapAction(cycleTheme)}
-              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/55 hover:text-slate-800 active:scale-95"
+              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/55 hover:text-slate-800 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="Change QR theme"
             >
               <MoonStar className="h-6 w-6" />
@@ -1265,7 +1265,7 @@ function ChannelQrPreview({
               type="button"
               onClick={() => runTapAction(onCopy)}
               aria-label="Copy invite link"
-              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95"
+              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <Copy className="h-4 w-4" />
               <span className="max-w-full truncate text-[11px] font-bold">Copy</span>
@@ -1274,7 +1274,7 @@ function ChannelQrPreview({
               type="button"
               onClick={() => runTapAction(shareInvite)}
               aria-label="Share invite link"
-              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95"
+              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <ExternalLink className="h-4 w-4" />
               <span className="max-w-full truncate text-[11px] font-bold">Share</span>
@@ -1283,7 +1283,7 @@ function ChannelQrPreview({
               type="button"
               onClick={() => runTapAction(saveQrSvg)}
               aria-label="Save QR code"
-              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95"
+              className="pointer-events-auto flex min-w-0 flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-white/85 px-2 py-2 text-sky-700 shadow-sm ring-1 ring-sky-100 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <Download className="h-4 w-4" />
               <span className="max-w-full truncate text-[11px] font-bold">Save</span>
@@ -1301,7 +1301,7 @@ function ChannelQrPreview({
                 type="button"
                 onClick={() => runTapAction(() => setActiveThemeLabel(theme.label))}
                 className={cn(
-                  "pointer-events-auto relative h-[4.35rem] w-[4.35rem] shrink-0 snap-start overflow-hidden rounded-[1.05rem] bg-gradient-to-br p-2 text-left shadow-sm ring-1 ring-white/80 transition active:scale-95",
+                  "pointer-events-auto relative h-[4.35rem] w-[4.35rem] shrink-0 snap-start overflow-hidden rounded-[1.05rem] bg-gradient-to-br p-2 text-left shadow-sm ring-1 ring-white/80 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                   theme.bg,
                   activeThemeLabel === theme.label && "ring-2 ring-emerald-500 ring-offset-2 ring-offset-[#edf7ff]",
                 )}
@@ -1328,7 +1328,7 @@ function ChannelQrPreview({
             type="button"
             onClick={() => runTapAction(onCopy)}
             aria-label="Copy channel invite link"
-            className="pointer-events-auto flex h-11 w-full min-w-0 items-center gap-3 rounded-2xl bg-slate-50 px-3 text-left text-slate-700 ring-1 ring-slate-200 transition hover:bg-sky-50 active:scale-[.99]"
+            className="pointer-events-auto flex h-11 w-full min-w-0 items-center gap-3 rounded-2xl bg-slate-50 px-3 text-left text-slate-700 ring-1 ring-slate-200 transition hover:bg-sky-50 active:scale-[.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
           >
             <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
               <Copy className="h-4 w-4" />
@@ -1395,7 +1395,7 @@ function MemberPickerSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4">
-          <button type="button" onClick={onClose} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow">
+          <button type="button" onClick={onClose} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
             Cancel
           </button>
           <h3 className="text-base font-bold text-slate-950">{title}</h3>
@@ -1409,7 +1409,7 @@ function MemberPickerSheet({
               onChange={(event) => onQueryChange(event.target.value)}
               autoFocus
               placeholder="Search people"
-              className="min-w-0 flex-1 bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400"
+              className="min-w-0 flex-1 bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             />
           </label>
         </div>
@@ -1430,7 +1430,7 @@ function MemberPickerSheet({
                     type="button"
                     onClick={() => onPick(member)}
                     disabled={addingId === member.user_id}
-                    className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 disabled:opacity-55"
+                    className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 disabled:opacity-55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
                   >
                     <Avatar className="h-11 w-11">
                       <AvatarImage src={member.avatar_url || undefined} alt={member.display_name || "Profile"} />
@@ -1492,7 +1492,7 @@ function InviteLinksSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4">
-          <button type="button" onClick={onClose} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow">
+          <button type="button" onClick={onClose} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
             Done
           </button>
           <h3 className="text-base font-bold text-slate-950">Invite Links</h3>
@@ -1503,7 +1503,7 @@ function InviteLinksSheet({
             type="button"
             onClick={onCreate}
             disabled={creating}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-sky-500 px-4 text-sm font-bold text-white shadow-lg shadow-sky-500/20 disabled:opacity-60"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-sky-500 px-4 text-sm font-bold text-white shadow-lg shadow-sky-500/20 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <LinkIcon className="h-5 w-5" />
             {creating ? "Creating..." : "Create Invite Link"}
@@ -1520,7 +1520,7 @@ function InviteLinksSheet({
                   const url = getInviteUrl(link.code);
                   return (
                     <div key={link.id} className="border-b border-slate-100 px-4 py-3 last:border-b-0">
-                      <button type="button" onClick={() => onCopy(link.code)} className="flex w-full items-start gap-3 text-left">
+                      <button type="button" onClick={() => onCopy(link.code)} className="flex w-full items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
                         <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-500">
                           <LinkIcon className="h-5 w-5" />
                         </span>
@@ -1537,7 +1537,7 @@ function InviteLinksSheet({
                           type="button"
                           onClick={() => onRevoke(link.id)}
                           disabled={busyId === link.id}
-                          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-rose-50 px-3 text-xs font-bold text-rose-500 disabled:opacity-60"
+                          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-rose-50 px-3 text-xs font-bold text-rose-500 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
                         >
                           <Trash2 className="h-4 w-4" />
                           {busyId === link.id ? "Revoking..." : "Revoke"}
@@ -1646,7 +1646,7 @@ function TelegramSubview({
   return (
     <div className="flex h-full flex-col bg-[#f1f1f6]">
       <div className="flex shrink-0 items-center justify-between px-4 pb-3 pt-[calc(var(--zivo-safe-top,0px)+0.75rem)]">
-        <button type="button" onClick={onBack} className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg shadow-slate-900/10" aria-label="Back">
+        <button type="button" onClick={onBack} className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg shadow-slate-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" aria-label="Back">
           <ChevronLeft className="h-5 w-5" />
         </button>
         <h2 className="text-center text-base font-bold text-slate-950">{titleMap[view]}</h2>
@@ -1654,7 +1654,7 @@ function TelegramSubview({
           <button
             type="button"
             onClick={view === "members" ? () => setMembersEditing((value) => !value) : view === "edit" ? onClose : onBack}
-            className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-lg shadow-slate-900/10"
+            className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-lg shadow-slate-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {view === "members" ? membersEditing ? "Done" : "Edit" : "Done"}
           </button>
@@ -1870,7 +1870,7 @@ function EditSettingsView({
           type="button"
           onClick={() => photoInputRef.current?.click()}
           disabled={uploadingPhoto}
-          className="mt-3 text-sm font-semibold text-sky-500 disabled:opacity-60"
+          className="mt-3 text-sm font-semibold text-sky-500 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           {uploadingPhoto ? "Uploading..." : "Set New Photo"}
         </button>
@@ -1882,7 +1882,7 @@ function EditSettingsView({
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={80}
-            className="w-full bg-transparent text-base text-slate-950 outline-none"
+            className="w-full bg-transparent text-base text-slate-950 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Channel name"
           />
           <div className="my-3 h-px bg-slate-100" />
@@ -1892,7 +1892,7 @@ function EditSettingsView({
             maxLength={240}
             rows={2}
             placeholder="Description"
-            className="w-full resize-none bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400"
+            className="w-full resize-none bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Channel description"
           />
         </div>
@@ -1902,13 +1902,13 @@ function EditSettingsView({
         type="button"
         onClick={() => void save()}
         disabled={saving || !hasProfileChanges}
-        className="w-full rounded-full bg-sky-500 px-4 py-3 text-base font-bold text-white shadow-xl transition active:scale-[0.98] disabled:bg-sky-300 disabled:opacity-70"
+        className="w-full rounded-full bg-sky-500 px-4 py-3 text-base font-bold text-white shadow-xl transition active:scale-[0.98] disabled:bg-sky-300 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {saving ? "Saving..." : hasProfileChanges ? "Save Changes" : "Saved"}
       </button>
 
       <InfoSection>
-        <button type="button" onClick={() => void copyChannelLink()} className="flex w-full items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50">
+        <button type="button" onClick={() => void copyChannelLink()} className="flex w-full items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
           <span className="flex min-w-0 items-center gap-3">
             <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-500">
               <LinkIcon className="h-4 w-4" />
@@ -1941,7 +1941,7 @@ function EditSettingsView({
       <button
         type="button"
         onClick={() => setDeleteOpen(true)}
-        className="w-full rounded-2xl bg-white px-4 py-4 text-left text-base text-rose-500"
+        className="w-full rounded-2xl bg-white px-4 py-4 text-left text-base text-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-inset"
       >
         Delete Channel
       </button>
@@ -1978,7 +1978,7 @@ function EditSettingsView({
                   type="button"
                   onClick={() => setDeleteOpen(false)}
                   disabled={deleting}
-                  className="h-12 rounded-full bg-slate-100 text-sm font-bold text-slate-700 disabled:opacity-60"
+                  className="h-12 rounded-full bg-slate-100 text-sm font-bold text-slate-700 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   Cancel
                 </button>
@@ -1986,7 +1986,7 @@ function EditSettingsView({
                   type="button"
                   onClick={() => void deleteChannel()}
                   disabled={deleting || deleteConfirm.trim() !== channel.name}
-                  className="h-12 rounded-full bg-rose-500 text-sm font-bold text-white shadow-lg shadow-rose-500/20 disabled:opacity-45"
+                  className="h-12 rounded-full bg-rose-500 text-sm font-bold text-white shadow-lg shadow-rose-500/20 disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>
@@ -2081,7 +2081,7 @@ function GroupTypeView({
       </InfoSection>
       <p className="-mt-3 px-4 text-xs leading-5 text-slate-500">Public channels can be found in search and anyone can join.</p>
       <InfoSection>
-        <button type="button" onClick={() => void copyShareUrl()} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50">
+        <button type="button" onClick={() => void copyShareUrl()} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
           <span className="min-w-0 truncate text-base text-slate-950">{shareUrl.replace(/^https?:\/\//, "")}</span>
           <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-sky-500">
             <Copy className="h-4 w-4" />
@@ -2206,7 +2206,7 @@ function AppearanceView({ channel, onRefresh }: { channel: Channel; onRefresh?: 
               onClick={() => void setWallpaper(style)}
               disabled={!!savingWallpaper}
               className={cn(
-                "relative aspect-[3/4] overflow-hidden rounded-xl border p-2 text-center text-[10px] font-semibold text-slate-600 transition disabled:opacity-60",
+                "relative aspect-[3/4] overflow-hidden rounded-xl border p-2 text-center text-[10px] font-semibold text-slate-600 transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                 currentWallpaper === style ? "border-sky-500 ring-2 ring-sky-200" : "border-slate-200",
               )}
               style={CHANNEL_WALLPAPERS[style].shell}
@@ -2345,7 +2345,7 @@ function MembersView({
                   type="button"
                   onClick={() => onRemove(member)}
                   disabled={memberBusyId === member.user_id}
-                  className="mr-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-rose-500 transition active:scale-95 disabled:opacity-50"
+                  className="mr-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-rose-500 transition active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
                   aria-label={`Remove ${member.display_name || "member"}`}
                 >
                   <MinusCircle className="h-6 w-6 fill-rose-500 text-white" />
@@ -2485,7 +2485,7 @@ function PermissionsView({
                 type="button"
                 onClick={() => void setSlowMode(option.seconds)}
                 disabled={savingSlowMode !== null}
-                className={cn("rounded-full py-1 font-semibold transition disabled:opacity-60", currentSlowMode === option.seconds && "bg-sky-50 text-sky-600")}
+                className={cn("rounded-full py-1 font-semibold transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40", currentSlowMode === option.seconds && "bg-sky-50 text-sky-600")}
               >
                 {savingSlowMode === option.seconds ? "..." : option.label}
               </button>
@@ -2597,7 +2597,7 @@ function AdminsView({
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4">
-              <button type="button" onClick={() => setPickerOpen(false)} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow">
+              <button type="button" onClick={() => setPickerOpen(false)} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                 Cancel
               </button>
               <h3 className="text-base font-bold text-slate-950">Members</h3>
@@ -2627,7 +2627,7 @@ function AdminsView({
                       setPickerOpen(false);
                     }}
                     disabled={memberBusyId === member.user_id}
-                    className="flex w-full items-center gap-3 border-b border-slate-200/70 bg-white px-5 py-3 text-left last:border-b-0 disabled:opacity-50"
+                    className="flex w-full items-center gap-3 border-b border-slate-200/70 bg-white px-5 py-3 text-left last:border-b-0 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
                   >
                     <Avatar className="h-11 w-11">
                       <AvatarImage src={member.avatar_url || undefined} alt={member.display_name || "Member"} />
@@ -2666,7 +2666,7 @@ function RemovedUsersView({
   return (
     <>
       <InfoSection>
-        <button type="button" onClick={() => toast.message("Choose a member from Members to remove them")} className="w-full px-4 py-4 text-left text-base text-sky-500">
+        <button type="button" onClick={() => toast.message("Choose a member from Members to remove them")} className="w-full px-4 py-4 text-left text-base text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
           Remove User
         </button>
       </InfoSection>
@@ -2695,7 +2695,7 @@ function RemovedUsersView({
                   type="button"
                   onClick={() => void onAllowRejoin(user)}
                   disabled={busyId === user.user_id}
-                  className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600 transition hover:bg-sky-100 disabled:opacity-50"
+                  className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600 transition hover:bg-sky-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   {busyId === user.user_id ? "Updating..." : "Allow rejoin"}
                 </button>
@@ -2742,7 +2742,7 @@ function ChannelSearchView({ posts }: { posts: ChannelPost[] }) {
             onChange={(event) => setQuery(event.target.value)}
             autoFocus
             placeholder="Search messages"
-            className="min-w-0 flex-1 bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400"
+            className="min-w-0 flex-1 bg-transparent text-base text-slate-950 outline-none placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           />
         </label>
       </InfoSection>
@@ -2773,7 +2773,7 @@ function SearchResultRow({ post, query }: { post: ChannelPost; query: string }) 
   return (
     <a
       href={`#channel-post-${post.id}`}
-      className="block border-b border-slate-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-slate-50"
+      className="block border-b border-slate-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
     >
       <span className="block line-clamp-2 text-base font-semibold text-slate-950">{preview}</span>
       <span className="mt-1 block text-sm text-slate-500">{formatInfoDate(post.published_at || post.created_at)}</span>
@@ -3027,7 +3027,7 @@ function RecentActionsView({
             <button
               type="button"
               onClick={() => setFilterOpen(false)}
-              className="absolute left-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-950 shadow-lg"
+              className="absolute left-4 top-4 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-950 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="Close filters"
             >
               <X className="h-6 w-6" />
@@ -3119,7 +3119,7 @@ function RecentActionsView({
                   setFilterOpen(false);
                   toast.success("Recent action filter applied");
                 }}
-                className="pointer-events-auto w-full rounded-full bg-sky-500 px-4 py-3 text-base font-bold text-white shadow-xl"
+                className="pointer-events-auto w-full rounded-full bg-sky-500 px-4 py-3 text-base font-bold text-white shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 Apply Filter
               </button>
@@ -3159,10 +3159,10 @@ function ActionFilterGroup({
 }) {
   return (
     <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0">
-      <button type="button" onClick={onToggleChecked} aria-label={`Toggle ${label}`}>
+      <button type="button" onClick={onToggleChecked} aria-label={`Toggle ${label}`} className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
         <ActionCheck checked={checked} />
       </button>
-      <button type="button" onClick={onToggleExpanded} className="flex min-w-0 flex-1 items-center justify-between text-left">
+      <button type="button" onClick={onToggleExpanded} className="flex min-w-0 flex-1 items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
         <span className="truncate text-base font-medium text-slate-950">{label}</span>
         <span className="ml-2 inline-flex items-center gap-1 text-sm font-bold text-slate-950">
           {count}
@@ -3185,7 +3185,7 @@ function ActionFilterChild({
   avatar?: string;
 }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0">
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
       <ActionCheck checked={checked} />
       {avatar && (
         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-400 text-sm font-bold text-white">
@@ -3221,7 +3221,7 @@ function SettingsRow({
   onClick?: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-white/70">
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sky-50 text-sky-500"><Icon className="h-4 w-4" /></span>
       <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-slate-950">{label}</span>
       {value && <span className="shrink-0 text-sm text-slate-400">{value}</span>}
@@ -3255,7 +3255,7 @@ function SwitchRow({
         type="button"
         onClick={onClick}
         aria-pressed={checked}
-        className="flex w-full items-center justify-between border-b border-slate-100 px-4 py-3 text-left last:border-b-0"
+        className="flex w-full items-center justify-between border-b border-slate-100 px-4 py-3 text-left last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
       >
         {content}
       </button>
@@ -3270,7 +3270,7 @@ function SwitchRow({
 
 function ChoiceRow({ label, selected = false, onClick }: { label: string; selected?: boolean; onClick?: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0">
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
       <span className="h-5 w-5 text-sky-500">{selected && <Check className="h-5 w-5" />}</span>
       <span className="text-base text-slate-950">{label}</span>
     </button>
@@ -3318,8 +3318,8 @@ function MemberLine({
               onClick={action.onClick}
               disabled={busy}
               className={cn(
-                "rounded-full px-3 py-1 text-xs font-semibold transition disabled:opacity-50",
-                action.destructive ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-sky-50 text-sky-600 hover:bg-sky-100",
+                "rounded-full px-3 py-1 text-xs font-semibold transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2",
+                action.destructive ? "bg-rose-50 text-rose-600 hover:bg-rose-100 focus-visible:ring-destructive/50" : "bg-sky-50 text-sky-600 hover:bg-sky-100 focus-visible:ring-primary/40",
               )}
             >
               {busy ? "Working..." : action.label}
@@ -3349,7 +3349,7 @@ function QuickAction({
   return (
     <button
       type="button"
-      className="inline-flex h-11 min-w-max items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white/86 px-3 text-[11px] font-semibold text-sky-600 shadow-sm ring-1 ring-white/75 transition hover:bg-white active:scale-[0.98] disabled:opacity-60"
+      className="inline-flex h-11 min-w-max items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-white/86 px-3 text-[11px] font-semibold text-sky-600 shadow-sm ring-1 ring-white/75 transition hover:bg-white active:scale-[0.98] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       onClick={onClick}
       disabled={disabled}
     >
@@ -3368,7 +3368,7 @@ function MediaTile({ item }: { item: ChannelMediaItem }) {
       href={item.url}
       target="_blank"
       rel="noreferrer"
-      className="group relative aspect-square overflow-hidden rounded-md bg-slate-100"
+      className="group relative aspect-square overflow-hidden rounded-md bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
       aria-label={`Open ${item.label}`}
     >
       {isVideo ? (
@@ -3397,7 +3397,7 @@ function InfoItemRow({ item }: { item: ChannelMediaItem }) {
       href={item.url}
       target="_blank"
       rel="noreferrer"
-      className="flex items-center gap-3 rounded-xl bg-white/70 p-3 transition-colors hover:bg-white"
+      className="flex items-center gap-3 rounded-xl bg-white/70 p-3 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
     >
       <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
         <Icon className="h-5 w-5" />

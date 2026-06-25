@@ -188,6 +188,17 @@ export default function HotelsLandingPage() {
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc" | "rating" | "near_me">(initial.sort);
   const [maxBudget, setMaxBudget] = useState<number | null>(initial.budget); // USD per night, null = no limit
+  const showSoftwareBridge =
+    typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+  const hotelWorkspaceUrl = useMemo(() => {
+    const params = new URLSearchParams({
+      category: "hotel",
+      ci: format(checkIn, "yyyy-MM-dd"),
+      co: format(checkOut, "yyyy-MM-dd"),
+      source: "zivosmedia",
+    });
+    return `http://127.0.0.1:5173/workspace?${params.toString()}`;
+  }, [checkIn, checkOut]);
   const [savedOnly, setSavedOnly] = useState(initial.saved);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const heroSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -824,6 +835,20 @@ export default function HotelsLandingPage() {
             <p className="mt-1 text-[13px] text-white/90 drop-shadow-md">
               Hotels, resorts and guesthouses across Cambodia.
             </p>
+            {showSoftwareBridge ? (
+              <a
+                href={hotelWorkspaceUrl}
+                onClick={(event) => {
+                  event.preventDefault();
+                  window.location.assign(hotelWorkspaceUrl);
+                }}
+                className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-white/25 bg-white/18 px-4 text-[12px] font-extrabold text-white shadow-lg backdrop-blur transition hover:bg-white/28"
+              >
+                <HotelIcon className="h-4 w-4" />
+                Manage in ZIVO Software
+                <ChevronRight className="h-4 w-4" />
+              </a>
+            ) : null}
           </div>
 
           {/* Search */}

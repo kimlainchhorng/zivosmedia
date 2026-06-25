@@ -227,7 +227,7 @@ function SettingRow({
       {...(onClick ? { type: "button", onClick } : {})}
       className={cn(
         "flex w-full items-center gap-3 px-3.5 py-3 text-left",
-        onClick && "transition-colors hover:bg-muted/50 active:bg-muted",
+        onClick && "transition-colors hover:bg-muted/50 active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset",
       )}
     >
       <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", tint ?? "bg-muted text-foreground")}>
@@ -251,7 +251,7 @@ function ActionPill({ icon: Icon, label, onClick }: {
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-card py-2.5 text-primary transition-colors hover:bg-muted/50 active:scale-[0.98]"
+      className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-card py-2.5 text-primary transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
       <Icon className="h-5 w-5" />
       <span className="text-[11px] font-semibold">{label}</span>
@@ -554,28 +554,31 @@ export default function ManageChannelPage() {
 
   const setRole = async (uid: string, role: string) => {
     if (!channel) return;
-    await supabase
+    const { error } = await supabase
       .from("channel_subscribers")
       .update({ role: role as any })
       .eq("channel_id", channel.id)
       .eq("user_id", uid);
+    if (error) { toast.error(error.message || "Couldn't update role"); return; }
     void logChannelAction(channel.id, userId, "role_changed", { targetUserId: uid, meta: { role } });
     loadMembers();
   };
 
   const removeMember = async (uid: string) => {
     if (!channel) return;
-    await supabase
+    const { error } = await supabase
       .from("channel_subscribers")
       .delete()
       .eq("channel_id", channel.id)
       .eq("user_id", uid);
+    if (error) { toast.error(error.message || "Couldn't remove member"); return; }
     // Record the removal so the user shows under "Removed users" and can't
     // re-subscribe (enforced by the channel_subscribers insert RLS policy).
     if (userId) {
-      await (supabase as any)
+      const { error: banError } = await (supabase as any)
         .from("channel_removed_users")
         .upsert({ channel_id: channel.id, user_id: uid, removed_by: userId }, { onConflict: "channel_id,user_id" });
+      if (banError) toast.error(banError.message || "Member removed, but couldn't block rejoin");
     }
     void logChannelAction(channel.id, userId, "member_removed", { targetUserId: uid });
     loadMembers();
@@ -596,8 +599,9 @@ export default function ManageChannelPage() {
   };
 
   const cancelScheduled = async (id: string) => {
+    const { error } = await supabase.from("channel_posts").delete().eq("id", id);
+    if (error) { toast.error(error.message || "Couldn't cancel scheduled post"); return; }
     if (channel) void logChannelAction(channel.id, userId, "post_canceled", { meta: { post_id: id } });
-    await supabase.from("channel_posts").delete().eq("id", id);
     loadScheduled();
   };
 
@@ -679,7 +683,7 @@ export default function ManageChannelPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 bg-background/85 backdrop-blur-xl border-b border-border/40 pt-safe px-3 py-3 flex items-center gap-2">
-        <button type="button" onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/60" aria-label="Back">
+        <button type="button" onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" aria-label="Back">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <h1 className="text-base font-semibold flex-1 truncate">Manage @{channel.handle}</h1>
@@ -718,7 +722,7 @@ export default function ManageChannelPage() {
           <button
             type="button"
             onClick={() => void copyChannelLink()}
-            className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3 text-left transition-colors hover:bg-muted/50"
+            className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Link2 className="h-4 w-4" />
@@ -973,7 +977,7 @@ export default function ManageChannelPage() {
             <AlertDialogTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left transition-colors hover:bg-destructive/10"
+                className="flex w-full items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-3.5 py-3 text-left transition-colors hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-inset"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
                   <Trash2 className="h-4 w-4" />
@@ -1014,7 +1018,7 @@ export default function ManageChannelPage() {
                   key={o.value}
                   type="button"
                   onClick={() => { setReactionPolicy(o.value); setSheet(null); void patch({ reaction_policy: o.value }); }}
-                  className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted/50"
+                  className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold">{o.label}</div>
@@ -1039,7 +1043,7 @@ export default function ManageChannelPage() {
                   type="button"
                   onClick={() => { setWallpaperStyle(w.value); setSheet(null); void patch({ wallpaper_style: w.value }); }}
                   className={cn(
-                    "flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors",
+                    "flex flex-col items-center gap-2 rounded-2xl border p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset",
                     wallpaperStyle === w.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50",
                   )}
                 >
@@ -1062,7 +1066,7 @@ export default function ManageChannelPage() {
                   key={o.value}
                   type="button"
                   onClick={() => { setSlowMode(o.value); setSheet(null); void patch({ slow_mode_seconds: o.value }); }}
-                  className="flex w-full items-center justify-between px-3.5 py-3 text-left transition-colors hover:bg-muted/50"
+                  className="flex w-full items-center justify-between px-3.5 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
                 >
                   <span className="text-sm font-semibold">{o.label}</span>
                   {slowMode === o.value && <Check className="h-4 w-4 shrink-0 text-primary" />}
@@ -1187,7 +1191,7 @@ export default function ManageChannelPage() {
             <div className="mt-3 max-h-[45vh] space-y-2 overflow-y-auto">
               {inviteLinks.map((l) => (
                 <div key={l.id} className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2.5">
-                  <button type="button" onClick={() => copyInviteLink(l.code)} className="min-w-0 flex-1 text-left">
+                  <button type="button" onClick={() => copyInviteLink(l.code)} className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset">
                     <div className="truncate text-sm font-medium text-primary">{getPublicOrigin().replace(/^https?:\/\//, "")}/c/{channel.handle}?invite={l.code}</div>
                     <div className="text-[11px] text-muted-foreground">{l.uses} use{l.uses === 1 ? "" : "s"} · tap to copy</div>
                   </button>

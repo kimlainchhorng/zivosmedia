@@ -9,6 +9,7 @@
  * default — tap "Insights" to expand.
  */
 import { useEffect, useState } from "react";
+import { format } from "date-fns";
 import { BarChart3, Eye, Heart, MessageCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ChannelPost } from "@/hooks/useChannel";
@@ -58,13 +59,18 @@ export default function ChannelPostInsights({ post, open: openProp, onOpenChange
           const uniq = new Set((views ?? []).map((v: any) => v.user_id));
           setUniqueViewers(uniq.size);
 
+          // Bucket by local calendar day (date-fns format), not the raw UTC
+          // slice: in Cambodia (UTC+7) a view before 07:00 local has a UTC date
+          // of the previous day, so a UTC slice would attribute it to the wrong
+          // bar. Keys and the viewed_at lookup both use the local formatter so
+          // they stay consistent.
           const buckets = new Map<string, number>();
           for (let i = 6; i >= 0; i--) {
             const d = new Date(Date.now() - i * 86400_000);
-            buckets.set(d.toISOString().slice(0, 10), 0);
+            buckets.set(format(d, "yyyy-MM-dd"), 0);
           }
           for (const v of views ?? []) {
-            const day = String(v.viewed_at).slice(0, 10);
+            const day = format(new Date(v.viewed_at), "yyyy-MM-dd");
             if (buckets.has(day)) buckets.set(day, (buckets.get(day) ?? 0) + 1);
           }
           setDaily(Array.from(buckets.entries()).map(([day, count]) => ({ day, count })));
