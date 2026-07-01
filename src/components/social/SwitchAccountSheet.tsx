@@ -48,6 +48,29 @@ export default function SwitchAccountSheet({
     if (switching) return;
     setSwitching(account.email);
     try {
+      // Snapshot the CURRENT account's live session first. Two reasons:
+      // 1. Supabase rotates refresh tokens on every auto-refresh, so the
+      //    saved entry for the outgoing account goes stale — re-save the
+      //    live tokens now so switching back stays one-tap.
+      // 2. auth-js wipes the stored session (and emits SIGNED_OUT) when
+      //    refreshSession() fails with a non-retryable error, so we need
+      //    the snapshot to restore the active session on failure.
+      const { data: { session: prevSession } } = await supabase.auth.getSession();
+      const prevEmail = prevSession?.user?.email;
+      if (prevSession && prevEmail) {
+        const existing = accounts.find((a) => a.email.toLowerCase() === prevEmail.toLowerCase());
+        saveAccount({
+          email: prevEmail,
+          fullName: existing?.fullName || currentName || prevEmail.split("@")[0],
+          avatarUrl: existing?.avatarUrl ?? currentAvatar ?? null,
+          role: existing?.role ?? null,
+          lastLoginAt: existing?.lastLoginAt ?? new Date().toISOString(),
+          refreshToken: prevSession.refresh_token,
+          accessToken: prevSession.access_token,
+          expiresAt: prevSession.expires_at ?? null,
+        });
+      }
+
       if (account.refreshToken) {
         const { data, error } = await supabase.auth.refreshSession({
           refresh_token: account.refreshToken,
@@ -65,6 +88,16 @@ export default function SwitchAccountSheet({
           // new session — the Facebook/Instagram account-switch behaviour.
           window.location.assign("/feed");
           return;
+        }
+        // Exchange failed — a non-retryable error wiped the stored session,
+        // so restore the active account before falling back to login. The
+        // snapshot's refresh_token is still valid (the failed exchange never
+        // consumed it).
+        if (prevSession) {
+          await supabase.auth.setSession({
+            access_token: prevSession.access_token,
+            refresh_token: prevSession.refresh_token,
+          });
         }
       }
       // No trusted token (or it was rejected) — fall back to an explicit login.

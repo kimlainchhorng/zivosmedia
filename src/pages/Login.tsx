@@ -4,7 +4,7 @@
  * - Full email+password form for new/other accounts
  * - Remember me saves avatar/name to localStorage for quick re-login
  */
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink, ShieldCheck, Wrench, CalendarCheck, BadgeCheck, CheckCircle2 } from "lucide-react";
 import { supabase, setRememberMePreference } from "@/integrations/supabase/client";
@@ -360,6 +360,29 @@ const Login = () => {
   // Edit mode — toggled by the "..." button in picker, surfaces the X delete
   // buttons on each avatar. Default off so the picker feels clean (FB/IG).
   const [editingAccounts, setEditingAccounts] = useState(false);
+
+  // Honor ?email= handoffs (e.g. SwitchAccountSheet falls back here when a
+  // saved refresh token is rejected): preselect the matching saved account in
+  // password mode, or prefill the full form for an unknown address. Mount-only
+  // — we deliberately skip the one-tap refreshSession retry since the token
+  // was just rejected upstream.
+  const emailParamHandledRef = useRef(false);
+  useEffect(() => {
+    if (emailParamHandledRef.current) return;
+    const target = params.get("email")?.trim().toLowerCase();
+    if (!target) { emailParamHandledRef.current = true; return; }
+    emailParamHandledRef.current = true;
+    const match = accounts.find((a) => a.email.toLowerCase() === target);
+    if (match) {
+      setSelectedAccount(match);
+      setEmail(match.email);
+      setMode("password");
+    } else {
+      setEmail(target);
+      setMode("full");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const activeEmail = (mode === "password" ? selectedAccount?.email ?? "" : email).trim().toLowerCase();
   const forgotPasswordHref = useMemo(() => {
     const forgotParams = new URLSearchParams();

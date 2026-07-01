@@ -912,6 +912,7 @@ export default function ReelsFeedPage() {
   const [sidebarContacts, setSidebarContacts] = useState<Array<{ id: string; name: string; avatar: string | null; lastSeen: string | null }>>([]);
   const [trendingTags, setTrendingTags] = useState<Array<{ tag: string; count: number }>>([]);
   const [birthdaysToday, setBirthdaysToday] = useState<Array<{ id: string; name: string; avatar: string | null }>>([]);
+  const [birthdaysLoaded, setBirthdaysLoaded] = useState(false);
   const [upcomingEvents, setUpcomingEvents] = useState<Array<{ id: string; title: string; startTime: string; location: string | null }>>([]);
   const { isPlus, isLoading: plusLoading } = useZivoPlus();
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
@@ -1071,7 +1072,7 @@ export default function ReelsFeedPage() {
         .eq("status", "accepted")
         .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
         .limit(500);
-      if (!fships?.length) return;
+      if (!fships?.length) { setBirthdaysLoaded(true); return; }
       const fIds = fships.map((r: any) => r.user_id === userId ? r.friend_id : r.user_id);
       setFriendIds(new Set(fIds));
       const { data: profs } = await supabase
@@ -1083,21 +1084,34 @@ export default function ReelsFeedPage() {
 
       // Friends with a birthday today — real data (profiles.date_of_birth is
       // populated at signup). Compare month/day as strings to avoid TZ drift.
-      const { data: dobProfs } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, avatar_url, date_of_birth")
-        .in("user_id", fIds.slice(0, 200))
-        .not("date_of_birth", "is", null);
-      if (dobProfs) {
+      // Chunked so friend lists >150 don't overflow the PostgREST URL limit.
+      const dobChunks = [];
+      for (let i = 0; i < fIds.length; i += 150) dobChunks.push(fIds.slice(i, i + 150));
+      const dobResults = await Promise.all(dobChunks.map((chunk) =>
+        supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url, date_of_birth")
+          .in("user_id", chunk)
+          .not("date_of_birth", "is", null)
+      ));
+      const dobProfs = dobResults.flatMap((r) => (r.data as any[]) || []);
+      {
         const now = new Date();
         const todayMonthDay = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const y = now.getFullYear();
+        const isLeap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
         setBirthdaysToday(
-          (dobProfs as any[])
-            .filter((p) => (p.date_of_birth || "").slice(5, 10) === todayMonthDay)
+          dobProfs
+            .filter((p) => {
+              const md = (p.date_of_birth || "").slice(5, 10);
+              // Leap-day birthdays are celebrated on Feb 28 in non-leap years.
+              return md === todayMonthDay || (!isLeap && md === "02-29" && todayMonthDay === "02-28");
+            })
             .slice(0, 3)
             .map((p) => ({ id: p.user_id, name: p.full_name || "User", avatar: p.avatar_url || null }))
         );
       }
+      setBirthdaysLoaded(true);
     })();
     (async () => {
       const { data: flData } = await (supabase as any)
@@ -1126,6 +1140,27 @@ export default function ReelsFeedPage() {
       );
     })();
   }, [userId, sidebarDataReady]);
+
+  // Keep contact presence fresh: re-pull last_seen every 45s so online dots
+  // both appear and expire (a one-time fetch would freeze them). Keyed on the
+  // contact-id list so lastSeen-only updates don't reset the interval.
+  const sidebarContactIdsKey = sidebarContacts.map((c) => c.id).join(",");
+  useEffect(() => {
+    if (!sidebarContactIdsKey) return;
+    const ids = sidebarContactIdsKey.split(",");
+    const tick = async () => {
+      if (document.visibilityState === "hidden") return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, last_seen")
+        .in("user_id", ids);
+      if (!data) return;
+      const byId = new Map((data as any[]).map((p) => [p.user_id, p.last_seen || null]));
+      setSidebarContacts((prev) => prev.map((c) => byId.has(c.id) ? { ...c, lastSeen: byId.get(c.id) } : c));
+    };
+    const interval = window.setInterval(tick, 45_000);
+    return () => window.clearInterval(interval);
+  }, [sidebarContactIdsKey]);
 
   // Upcoming events for the right rail — social_events is publicly readable,
   // so this also works for logged-out visitors. Self-hides when empty.
@@ -3064,59 +3099,56 @@ export default function ReelsFeedPage() {
               orphaned heading in the right rail. */}
           {userId && sidebarDataReady && (
             <Suspense fallback={null}>
-              <SuggestedUsersCarousel />
+              <SuggestedUsersCarousel variant="rail" />
             </Suspense>
           )}
 
           {/* Contacts */}
           {sidebarContacts.length > 0 && (
-            <div className="zivo-social-module rounded-[1.75rem] border border-border/45 bg-background/84 p-4 shadow-[0_24px_60px_-42px_hsl(var(--foreground)/0.35)] backdrop-blur-2xl">
-              <div className="mb-3 flex items-center justify-between px-1">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/65">People</p>
-                  <h3 className="mt-1 text-sm font-black text-foreground">Contacts</h3>
-                </div>
-                <button type="button" onClick={() => navigate("/chat/contacts")} className="rounded-full border border-border/45 bg-background/70 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-muted/45">See all</button>
+            <div className="rounded-2xl border border-border/40 bg-card p-3">
+              <div className="mb-1.5 flex items-center justify-between px-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Contacts</p>
+                <button type="button" onClick={() => navigate("/chat/contacts")} className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">See all</button>
               </div>
-              <div className="space-y-1.5">
-                {sidebarContacts.map((c) => (
-                  <button type="button"
-                    key={c.id}
-                    onClick={() => navigate(`/user/${c.id}`)}
-                    className="zivo-social-module-tile w-full flex items-center gap-3 rounded-[1.15rem] border border-border/35 bg-background/72 px-3 py-2.5 text-left transition-all active:scale-[0.99] hover:border-border/60 hover:bg-muted/35"
-                  >
-                    <div className="relative shrink-0">
-                      <div className="zivo-social-avatar-ring h-8 w-8 rounded-full overflow-hidden">
-                        {c.avatar ? (
-                          <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center text-[11px] font-bold text-primary">
-                            {c.name[0]?.toUpperCase()}
-                          </div>
+              <div className="space-y-0.5">
+                {sidebarContacts.map((c) => {
+                  // Real presence: same 60s last_seen threshold as chat's UserBadge.
+                  const online = !!c.lastSeen && Date.now() - new Date(c.lastSeen).getTime() < 60_000;
+                  return (
+                    <button type="button"
+                      key={c.id}
+                      onClick={() => navigate(`/user/${c.id}`)}
+                      className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                    >
+                      <div className="relative shrink-0">
+                        <div className="h-9 w-9 rounded-full overflow-hidden bg-muted">
+                          {c.avatar ? (
+                            <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-[11px] font-semibold text-foreground/70">
+                              {c.name[0]?.toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        {online && (
+                          <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" aria-label="Online" />
                         )}
                       </div>
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
-                    </div>
-                    <span className="text-sm font-medium text-foreground truncate">{c.name}</span>
-                  </button>
-                ))}
+                      <span className="text-[14px] font-medium text-foreground truncate">{c.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* Trending */}
           {trendingTags.length > 0 && (
-            <div className="zivo-social-module rounded-[1.75rem] border border-border/45 bg-background/84 p-4 shadow-[0_24px_60px_-42px_hsl(var(--foreground)/0.35)] backdrop-blur-2xl">
-              <div className="mb-3 flex items-center gap-2 px-1">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <TrendingUp className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/65">Discover</p>
-                  <h3 className="text-sm font-black text-foreground">Trending</h3>
-                </div>
+            <div className="rounded-2xl border border-border/40 bg-card p-3">
+              <div className="mb-1.5 px-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Trending</p>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-0.5">
                 {trendingTags.map(({ tag, count }) => {
                   const cleanTag = tag.replace("#", "");
                   const active = selectedHashtag === cleanTag;
@@ -3126,14 +3158,20 @@ export default function ReelsFeedPage() {
                       onClick={() => {
                         setSelectedHashtag(active ? null : cleanTag);
                       }}
+                      aria-pressed={active}
                       className={cn(
-                        "zivo-social-module-tile w-full flex items-center gap-2 rounded-[1rem] border border-border/35 bg-background/72 px-3 py-2 transition-all text-left active:scale-[0.99] hover:border-border/60 hover:bg-muted/35",
-                        active && "zivo-social-chip-active"
+                        "w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                        active ? "bg-muted font-semibold" : "hover:bg-muted/50"
                       )}
                     >
-                      <Hash className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-sm text-foreground truncate flex-1">{cleanTag}</span>
-                      <span className="text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">
+                      <span className={cn(
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-full",
+                        active ? "bg-background ring-1 ring-border/60" : "bg-muted/60"
+                      )}>
+                        <Hash className="h-4 w-4 text-muted-foreground" />
+                      </span>
+                      <span className="text-[14px] text-foreground truncate flex-1">{cleanTag}</span>
+                      <span className="text-[11px] font-medium text-muted-foreground shrink-0 tabular-nums">
                         {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}
                       </span>
                     </button>
@@ -3143,67 +3181,106 @@ export default function ReelsFeedPage() {
             </div>
           )}
 
-          {/* ZIVO+ upgrade card */}
-          {userId && (
-            <div className="zivo-social-module overflow-hidden rounded-[1.75rem] border border-amber-300/30 bg-[linear-gradient(180deg,hsl(41_100%_97%),hsl(var(--background)/0.95))] p-4 shadow-[0_24px_60px_-42px_hsl(40_90%_45%/0.4)] backdrop-blur-2xl dark:bg-[linear-gradient(180deg,hsl(40_25%_14%),hsl(var(--background)/0.95))]">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
+          {/* ZIVO+ upgrade card — hidden for existing members (and while the
+              membership check is still loading, to avoid an upsell flash). */}
+          {userId && !plusLoading && !isPlus && (
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-3.5">
+              <div className="mb-1.5 flex items-center gap-2.5">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-amber-500/15 text-amber-600">
                   <Crown className="h-4 w-4" />
                 </span>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700/75 dark:text-amber-300/80">Upgrade</p>
-                  <h3 className="text-sm font-black text-foreground">ZIVO+</h3>
-                </div>
+                <p className="text-[15px] font-semibold text-foreground">ZIVO+</p>
               </div>
-              <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">Unlock exclusive features, locked content, chat tools, and more.</p>
+              <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">Unlock exclusive features, locked content, chat tools, and more.</p>
               <button type="button"
                 onClick={() => navigate("/zivo-plus")}
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-primary py-2 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 active:scale-95"
+                className="w-full rounded-xl bg-foreground py-2 text-[13px] font-semibold text-background transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               >
                 Upgrade to ZIVO+
               </button>
             </div>
           )}
 
-          {/* Birthdays */}
-          <button type="button"
-            onClick={() => navigate("/friends")}
-            className="zivo-social-module group rounded-[1.75rem] border border-border/45 bg-background/84 p-4 text-left shadow-[0_24px_60px_-42px_hsl(var(--foreground)/0.35)] transition-all active:scale-[0.99] backdrop-blur-2xl hover:border-border/60"
-          >
-            <div className="mb-2 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/15">
-                <Gift className="h-4 w-4 text-rose-500" />
-              </span>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/65">Friends</p>
-                <h3 className="text-sm font-black text-foreground">Birthdays</h3>
+          {/* Birthdays — real friends-with-a-birthday-today data; falls back
+              to a simple link card when nobody's birthday is today. */}
+          {userId && (
+            <div className="rounded-2xl border border-border/40 bg-card p-3">
+              <div className="mb-1.5 flex items-center justify-between px-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Birthdays</p>
+                <button type="button" onClick={() => navigate("/friends")} className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">See all</button>
               </div>
+              {birthdaysToday.length > 0 ? (
+                <div className="space-y-0.5">
+                  {birthdaysToday.map((b) => (
+                    <button type="button"
+                      key={b.id}
+                      onClick={() => navigate(`/user/${b.id}`)}
+                      className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                    >
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-500/15">
+                        <Gift className="h-4 w-4 text-rose-500" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-medium text-foreground">{b.name}</span>
+                        <span className="block text-[12px] text-muted-foreground">Birthday today 🎂</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : birthdaysLoaded ? (
+                <button type="button"
+                  onClick={() => navigate("/friends")}
+                  className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-500/15">
+                    <Gift className="h-4 w-4 text-rose-500" />
+                  </span>
+                  <span className="text-[13px] text-muted-foreground">No birthdays today</span>
+                </button>
+              ) : null}
             </div>
-            <p className="text-[12px] text-muted-foreground mb-1.5 leading-snug">See which friends have birthdays today.</p>
-            <span className="text-[12px] font-semibold text-rose-500 group-hover:translate-x-0.5 inline-block transition-transform">
-              View birthdays →
-            </span>
-          </button>
+          )}
 
-          {/* Upcoming Events */}
-          <button type="button"
-            onClick={() => navigate("/explore")}
-            className="zivo-social-module group rounded-[1.75rem] border border-border/45 bg-background/84 p-4 text-left shadow-[0_24px_60px_-42px_hsl(var(--foreground)/0.35)] transition-all active:scale-[0.99] backdrop-blur-2xl hover:border-border/60"
-          >
-            <div className="mb-2 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/15">
-                <Calendar className="h-4 w-4 text-blue-500" />
-              </span>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/65">Explore</p>
-                <h3 className="text-sm font-black text-foreground">Events</h3>
-              </div>
+          {/* Upcoming Events — real social_events rows; links to /events (the
+              actual events page), with a link-card fallback when none exist. */}
+          <div className="rounded-2xl border border-border/40 bg-card p-3">
+            <div className="mb-1.5 flex items-center justify-between px-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Events</p>
+              <button type="button" onClick={() => navigate("/events")} className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">See all</button>
             </div>
-            <p className="text-[12px] text-muted-foreground mb-1.5 leading-snug">Discover events happening near you.</p>
-            <span className="text-[12px] font-semibold text-blue-500 group-hover:translate-x-0.5 inline-block transition-transform">
-              Browse events →
-            </span>
-          </button>
+            {upcomingEvents.length > 0 ? (
+              <div className="space-y-0.5">
+                {upcomingEvents.map((e) => (
+                  <button type="button"
+                    key={e.id}
+                    onClick={() => navigate("/events")}
+                    className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-500/15">
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-medium text-foreground">{e.title}</span>
+                      <span className="block truncate text-[12px] text-muted-foreground">
+                        {format(new Date(e.startTime), "EEE, MMM d · h:mm a")}
+                        {e.location ? ` · ${e.location}` : ""}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button type="button"
+                onClick={() => navigate("/events")}
+                className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-500/15">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                </span>
+                <span className="text-[13px] text-muted-foreground">Discover upcoming events</span>
+              </button>
+            )}
+          </div>
 
           <p className="mt-auto px-2 pt-2 text-[10px] text-muted-foreground/60">© ZIVO LLC · zivosmedia.com</p>
         </aside>

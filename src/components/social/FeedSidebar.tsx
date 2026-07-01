@@ -52,7 +52,7 @@ const SERVICE_ITEMS = [
 const SOCIAL_ITEMS = [
   { label: "Friends", icon: Users, path: "/friends" },
   { label: "Groups", icon: Users, path: "/communities" },
-  { label: "Events", icon: Calendar, path: "/explore" },
+  { label: "Events", icon: Calendar, path: "/events" },
   { label: "Marketplace", icon: ShoppingBag, path: "/marketplace" },
   { label: "Spaces", icon: Mic2, path: "/spaces" },
   { label: "Dating", icon: Heart, path: "/dating" },
@@ -281,7 +281,7 @@ export default function FeedSidebar() {
         {user && (
           <div className="space-y-0.5 mt-auto px-1 pt-3 border-t border-border/40">
             <button type="button"
-              onClick={() => navigate(isMember ? "/account/membership" : "/membership")}
+              onClick={() => navigate(isMember ? "/account/membership" : "/zivo-plus")}
               className={cn(ROW_BASE, "font-medium text-amber-600 hover:bg-amber-500/10")}
             >
               <span className={cn(CHIP_BASE, "bg-amber-500/10 text-amber-600")}>

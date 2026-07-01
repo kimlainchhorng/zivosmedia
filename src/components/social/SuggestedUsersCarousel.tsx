@@ -19,8 +19,11 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SuggestedUsersCarouselProps {
-  /** Compact inline version for between-post injection */
-  variant?: "default" | "inline";
+  /**
+   * "inline" — compact version for between-post injection.
+   * "rail" — flat vertical list matching the desktop right rail's calm cards.
+   */
+  variant?: "default" | "inline" | "rail";
 }
 
 // Compact follower counts. Stored counts reach millions for popular creators,
@@ -107,6 +110,59 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
       ? `${verifiedCount} verified picks`
       : "Fresh discovery";
   const SignalIcon = mutualTotal > 0 ? Handshake : verifiedCount > 0 ? UserCheck : Compass;
+
+  // Rail variant — flat vertical list matching the right rail's refined cards
+  if (variant === "rail") {
+    const railVisible = visible.slice(0, 4);
+    return (
+      <div ref={ref} className="rounded-2xl border border-border/40 bg-card p-3">
+        <div className="mb-1.5 px-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Suggested for you</p>
+        </div>
+        <div className="space-y-0.5">
+          {railVisible.map((profile: any) => (
+            <div key={profile.id} className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 transition-colors hover:bg-muted/50">
+              <button
+                type="button"
+                onClick={() => navigate(`/user/${profile.id}`)}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-lg"
+              >
+                <Avatar className="h-9 w-9 shrink-0">
+                  <AvatarImage src={optimizeAvatar(profile.avatar_url, 40)} loading="lazy" />
+                  <AvatarFallback className="bg-muted text-[11px] font-semibold text-foreground/70">
+                    {profile.full_name?.[0]?.toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1">
+                    <span className="truncate text-[14px] font-medium text-foreground">{profile.full_name || "User"}</span>
+                    {isBlueVerified(profile.is_verified) && <VerifiedBadge size={12} interactive={false} />}
+                  </span>
+                  <MutualFollowsBadge mutual={mutualMap?.get(profile.id)} className="mt-0.5" />
+                </span>
+              </button>
+              <button type="button"
+                onClick={() => handleFollow(profile.id)}
+                disabled={following.has(profile.id)}
+                aria-label={
+                  following.has(profile.id)
+                    ? `Already following ${profile.full_name || "this user"}`
+                    : `Follow ${profile.full_name || "this user"}`
+                }
+                className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 ${
+                  following.has(profile.id)
+                    ? "bg-muted text-muted-foreground"
+                    : "bg-foreground text-background hover:opacity-90"
+                }`}
+              >
+                {following.has(profile.id) ? "Added" : "Follow"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Inline variant — compact row for between-post injection
   if (variant === "inline") {
