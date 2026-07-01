@@ -60,15 +60,6 @@ function PollPostCardInner({
     : voted || isExpired
       ? `${leadingPercent}% chose the leader`
       : `${totalVotes} already joined`;
-  const votePulse =
-    totalVotes === 0
-      ? { label: "Open floor", detail: "First vote can set the tone", width: "18%" }
-      : leadingPercent >= 70
-        ? { label: "Clear favorite", detail: `${leadingPercent}% behind option ${leadingOptionIndex + 1}`, width: `${leadingPercent}%` }
-        : voted || isExpired
-          ? { label: "Close read", detail: "Results are still competitive", width: `${Math.max(36, leadingPercent)}%` }
-          : { label: "Momentum building", detail: `${totalVotes} vote${totalVotes === 1 ? "" : "s"} in progress`, width: `${Math.min(88, Math.max(32, totalVotes * 12))}%` };
-
   // Check if user already voted
   useQuery({
     queryKey: ["poll-vote", id, user?.id],
@@ -130,9 +121,9 @@ function PollPostCardInner({
   };
 
   return (
-    <div className="zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.25rem]">
+    <div className="mx-3 my-2.5 overflow-hidden rounded-2xl border border-border/30 bg-background/92 shadow-sm transition-colors duration-200 hover:border-border/50">
       {/* Header */}
-      <div className="zivo-social-header-glass mx-3 mt-3 flex items-center gap-3 rounded-[1.15rem] px-3 py-2.5">
+      <div className="flex items-center gap-3 px-4 pt-3 pb-2">
         <Avatar className="zivo-social-avatar-ring h-10 w-10">
           <AvatarImage src={authorAvatar || ""} />
           <AvatarFallback className="bg-transparent text-xs font-bold text-primary">{authorName[0]}</AvatarFallback>
@@ -157,8 +148,8 @@ function PollPostCardInner({
       </div>
 
       <div className="mx-4 mb-3 grid grid-cols-3 gap-2">
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className="flex items-center gap-2 rounded-xl border border-border/30 bg-muted/20 px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground/70">
             <Users className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0">
@@ -166,8 +157,8 @@ function PollPostCardInner({
             <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Votes</p>
           </div>
         </div>
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+        <div className="flex items-center gap-2 rounded-xl border border-border/30 bg-muted/20 px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground/70">
             <Trophy className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0">
@@ -175,8 +166,8 @@ function PollPostCardInner({
             <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Leader</p>
           </div>
         </div>
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
-          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${isExpired ? "bg-muted text-muted-foreground" : "bg-fuchsia-500/10 text-fuchsia-500"}`}>
+        <div className="flex items-center gap-2 rounded-xl border border-border/30 bg-muted/20 px-3 py-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground/70">
             <Clock className="h-3.5 w-3.5" />
           </span>
           <div className="min-w-0">
@@ -207,29 +198,6 @@ function PollPostCardInner({
           {voted || isExpired ? `${leadingPercent}%` : pollType === "quiz" ? "Quiz" : "Vote"}
         </span>
       </div>
-      <div className="zivo-social-module-tile mx-4 mb-3 rounded-2xl px-3 py-2.5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="zivo-social-share-orb flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl">
-              <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-foreground">{votePulse.label}</span>
-              <span className="block truncate text-[11px] font-semibold text-muted-foreground">{votePulse.detail}</span>
-            </span>
-          </div>
-          <span className="rounded-full border border-primary/15 bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase text-primary">
-            Pulse
-          </span>
-        </div>
-        <div className="zivo-social-chip mt-2 h-1.5 overflow-hidden rounded-full p-0">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-primary via-emerald-400 to-fuchsia-500 transition-[width] duration-300"
-            style={{ width: votePulse.width }}
-          />
-        </div>
-      </div>
-
       {/* Options */}
       <div className="px-4 pb-3 space-y-2">
         {localOptions.map((opt, i) => {
@@ -249,11 +217,11 @@ function PollPostCardInner({
                   : `Vote for ${opt.text}`
               }
               className={cn(
-                "zivo-social-module-tile group relative w-full overflow-hidden rounded-2xl text-left transition-all",
+                "group relative w-full overflow-hidden rounded-xl border border-border/30 bg-muted/20 text-left transition-all",
                 voted ? "cursor-default" : "cursor-pointer active:scale-[0.98]",
                 isSelected && isCorrect && "ring-2 ring-emerald-500/70",
                 isSelected && !isCorrect && pollType === "quiz" && "ring-2 ring-destructive/70",
-                isLeader && "border-primary/40 shadow-lg shadow-primary/10",
+                isLeader && "border-primary/40",
                 !voted && !isExpired && "hover:-translate-y-0.5 hover:border-primary/40",
               )}
               whileTap={!voted ? { scale: 0.98 } : {}}
@@ -266,7 +234,7 @@ function PollPostCardInner({
                   transition={{ duration: 0.5, ease: "easeOut" }}
                   className={cn(
                     "absolute inset-y-0 left-0 rounded-2xl",
-                    isSelected ? "bg-primary/15" : isLeader ? "bg-primary/10" : "bg-white/55"
+                    isSelected ? "bg-primary/15" : isLeader ? "bg-primary/10" : "bg-muted"
                   )}
                 />
               )}
@@ -293,7 +261,7 @@ function PollPostCardInner({
       </div>
 
       {/* Footer */}
-      <div className="zivo-social-engagement-summary mx-4 mb-4 flex items-center justify-between gap-3 rounded-2xl px-3 py-2 text-xs text-muted-foreground">
+      <div className="zivo-social-engagement-summary mt-1 flex items-center justify-between gap-3 px-4 py-2 text-xs text-muted-foreground">
         <div className="flex min-w-0 items-center gap-1.5">
           <Users className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="truncate font-semibold">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>

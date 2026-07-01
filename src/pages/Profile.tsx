@@ -49,6 +49,7 @@ import ProfileStories from "@/components/profile/ProfileStories";
 import SocialListModal from "@/components/profile/SocialListModal";
 // Wallet, Completeness, Referral & QuickLinks cards moved to /more page
 import ProfileTripsCard from "@/components/profile/ProfileTripsCard";
+import FeedSidebar from "@/components/social/FeedSidebar";
 import { useBookingHistory } from "@/hooks/useBookingHistory";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -1186,12 +1187,14 @@ const Profile = () => {
           swipeStartY.current = null;
         }}
       >
-        <div className={cn(
-          // No mobile top padding: the cover photo slides under the transparent
-          // fixed header (Facebook-style). The cover's own top scrim keeps the
-          // status bar / notch area legible in the native app.
-          "px-2.5 lg:px-4 lg:pt-20 max-w-none lg:max-w-3xl mx-auto"
-        )}>
+        <div className="lg:flex lg:pt-[60px] transition-all duration-300">
+          <FeedSidebar />
+          <div className={cn(
+            // No mobile top padding: the cover photo slides under the transparent
+            // fixed header (Facebook-style). The cover's own top scrim keeps the
+            // status bar / notch area legible in the native app.
+            "w-full px-2.5 lg:px-4 max-w-none lg:max-w-3xl mx-auto"
+          )}>
 
           {profileLoading ? (
             <div className="flex items-center justify-center py-20">
@@ -1839,6 +1842,7 @@ const Profile = () => {
 
             </div>
           )}
+          </div>
         </div>
       </div>
 

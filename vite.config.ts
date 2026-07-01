@@ -108,7 +108,7 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     host: "::",
-    port: 8081,
+    port: Number(process.env.PORT) || 8081,
     allowedHosts: ["zivosoftware.com", "www.zivosoftware.com", "zivodriver.com", "www.zivodriver.com"],
     headers: {
       "Cache-Control": "no-store, max-age=0",

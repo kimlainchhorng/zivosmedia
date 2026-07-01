@@ -522,21 +522,18 @@ const StreakCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
 
 const SectionHeader = ({ icon: Icon, iconColor, title, badge, actionLabel, onSeeAll }: { icon: LucideIcon; iconColor: string; title: string; badge?: string; actionLabel?: string; onSeeAll: () => void }) => (
   <div className="flex items-center justify-between mb-4">
-    <h2 className="text-sm font-bold text-foreground flex items-center gap-2.5">
-      <motion.div
-        whileHover={{ scale: 1.1, rotateY: 10 }}
-        className="w-7 h-7 rounded-xl bg-gradient-to-br from-muted/80 to-muted/40 flex items-center justify-center shadow-sm icon-3d-pop"
-      >
+    <h2 className="text-sm font-semibold text-foreground flex items-center gap-2.5">
+      <div className="w-7 h-7 rounded-full bg-muted/20 border border-border/30 flex items-center justify-center">
         <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
-      </motion.div>
+      </div>
       {title}
       {badge && (
-        <Badge variant="secondary" className="text-[9px] font-bold bg-primary/10 text-primary border-0 px-1.5 py-0">
+        <Badge variant="secondary" className="text-[10px] font-semibold bg-primary/10 text-primary border-0 px-1.5 py-0">
           {badge}
         </Badge>
       )}
     </h2>
-    <button type="button" onClick={onSeeAll} className="text-xs text-primary font-bold touch-manipulation active:scale-95 min-w-[44px] min-h-[32px] flex items-center gap-0.5 hover:gap-1.5 transition-all">
+    <button type="button" onClick={onSeeAll} className="text-xs text-primary font-semibold touch-manipulation active:scale-95 min-w-[44px] min-h-[32px] flex items-center gap-0.5 hover:gap-1.5 transition-all">
       {actionLabel}
       <ChevronRight className="w-3.5 h-3.5" />
     </button>
@@ -806,18 +803,18 @@ const AppHome = () => {
               className={`flex items-center justify-between px-5 pb-4 ${isNativeApp ? "pt-safe" : "pt-3"}`}
             >
               <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-3 touch-manipulation active:opacity-75 transition-opacity">
-                <div className="shrink-0 p-[2px] rounded-full bg-ig-gradient shadow-md">
+                <div className="shrink-0 p-[2px] rounded-full bg-ig-gradient">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt={userName} width={44} height={44} className="w-11 h-11 rounded-full object-cover block" loading="lazy" decoding="async" />
                   ) : (
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/40 to-primary/15 flex items-center justify-center">
-                      <span className="text-base font-black text-primary">{initials}</span>
+                    <div className="w-11 h-11 rounded-full bg-primary/12 flex items-center justify-center">
+                      <span className="text-base font-semibold text-primary">{initials}</span>
                     </div>
                   )}
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-muted-foreground leading-none mb-1">{greeting()}</p>
-                  <p className="text-[17px] font-black text-foreground leading-none tracking-tight">{userName}</p>
+                  <p className="text-[17px] font-bold text-foreground leading-none tracking-tight">{userName}</p>
                 </div>
               </button>
               <div className="flex items-center gap-2">
@@ -835,7 +832,7 @@ const AppHome = () => {
                   type="button"
                   aria-label="Activity"
                   onClick={() => navigate("/activity")}
-                  className="relative w-10 h-10 rounded-full bg-muted/60 border border-border/30 flex items-center justify-center touch-manipulation active:scale-90 transition-transform shadow-sm"
+                  className="relative w-10 h-10 rounded-full bg-muted/20 border border-border/30 flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
                 >
                   <Bell className="w-[18px] h-[18px] text-foreground" strokeWidth={1.8} />
                 </button>
@@ -851,13 +848,13 @@ const AppHome = () => {
             className={cn("pb-5", user ? "pt-1" : "pt-safe")}
           >
             <div className="flex items-center justify-between mb-3 px-5">
-              <h2 className="text-[17px] font-black text-ig-gradient">{t("home.more_services")}</h2>
+              <h2 className="text-[17px] font-bold text-foreground">{t("home.more_services")}</h2>
               <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
                 <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
               </button>
             </div>
             {/* Row 1 */}
-            <div className="grid grid-cols-4 gap-3 px-5 pb-3 preserve-3d">
+            <div className="grid grid-cols-4 gap-3 px-5 pb-3">
               {([
                 { label: t("home.ride"), image: zivoRideIcon, href: "/rides/hub", badge: null, badgeVariant: "promo" as const },
                 { label: t("home.eats"), image: zivoEatsIcon, href: "/eats", badge: null, badgeVariant: "promo" as const },
@@ -870,7 +867,6 @@ const AppHome = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.12 + i * 0.06 }}
                   whileTap={{ scale: 0.91 }}
-                  whileHover={{ y: -4 }}
                   onPointerDown={() => prefetch(s.href)}
                   onClick={() => navigate(s.href)}
                   className="flex flex-col items-center gap-2 touch-manipulation relative group"
@@ -885,7 +881,7 @@ const AppHome = () => {
                       {s.badge}
                     </div>
                   )}
-                  <div className="w-[64px] h-[64px] rounded-[20px] bg-gradient-to-b from-card to-card/90 border border-border/20 shadow-md flex items-center justify-center icon-3d-pop group-active:scale-95 group-hover:border-primary/20 group-hover:shadow-lg transition-all duration-200">
+                  <div className="w-[64px] h-[64px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center group-active:scale-95 group-hover:border-border/50 transition-all duration-200">
                     <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
                   </div>
                   <span className="text-[11px] font-semibold text-muted-foreground text-center leading-tight group-hover:text-foreground transition-colors">{s.label}</span>
@@ -893,7 +889,7 @@ const AppHome = () => {
               ))}
             </div>
             {/* Row 2 */}
-            <div className="grid grid-cols-4 gap-3 px-5 pb-2 preserve-3d">
+            <div className="grid grid-cols-4 gap-3 px-5 pb-2">
               {(([
                 { label: t("home.rental_cars"), image: zivoRentalCarIcon, icon: null, href: "/rent-car", badge: null },
                 { label: "Bus", image: null, icon: Bus, href: "/bus", badge: null },
@@ -908,7 +904,6 @@ const AppHome = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.28 + (idx2 * 0.06) }}
                     whileTap={{ scale: 0.91 }}
-                    whileHover={{ y: -4 }}
                     onPointerDown={() => prefetch(s.href)}
                     onClick={() => navigate(s.href)}
                     className="flex flex-col items-center gap-2 touch-manipulation relative group"
@@ -918,7 +913,7 @@ const AppHome = () => {
                         {s.badge}
                       </div>
                     )}
-                    <div className="w-[64px] h-[64px] rounded-[20px] bg-gradient-to-b from-card to-card/90 border border-border/20 shadow-md flex items-center justify-center icon-3d-pop group-active:scale-95 group-hover:border-primary/20 group-hover:shadow-lg transition-all duration-200">
+                    <div className="w-[64px] h-[64px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center group-active:scale-95 group-hover:border-border/50 transition-all duration-200">
                       {s.image ? (
                         <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
                       ) : SvcIcon ? (

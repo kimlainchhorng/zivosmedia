@@ -5664,7 +5664,8 @@ export default function FeedPage() {
         className="absolute inset-x-0 z-50 mx-auto md:max-w-[420px] pointer-events-none lg:hidden"
         style={{ top: "calc(var(--zivo-safe-top, 0px) + 8px)" }}
       >
-      <div data-testid="feed-floating-actions" className="flex justify-end gap-2 sm:gap-2.5 px-3 sm:px-4">
+      <div data-testid="feed-floating-actions" className="flex justify-end px-3 sm:px-4">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-[28px] border border-white/14 bg-black/42 px-2.5 py-2 shadow-[0_20px_45px_-28px_rgba(0,0,0,0.9)] backdrop-blur-2xl sm:gap-2.5 sm:px-3">
         {/* Live entry — also reachable via the bottom nav, so hide on the
             smallest phones (<sm) where the row would collide with center tabs. */}
         <button
@@ -5672,7 +5673,7 @@ export default function FeedPage() {
           onClick={() => navigate("/live")}
           aria-label="Watch live"
           title="Live"
-          className="zivo-feed-action-orb pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
+          className="zivo-feed-action-orb hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <Radio className="w-5 h-5 text-red-400" />
         </button>
@@ -5683,7 +5684,7 @@ export default function FeedPage() {
           onClick={() => setShowDiscover(true)}
           aria-label="Discover people"
           title="Discover people"
-          className="zivo-feed-action-orb pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
+          className="zivo-feed-action-orb hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <UserPlus className="w-5 h-5 text-white" />
         </button>
@@ -5692,7 +5693,7 @@ export default function FeedPage() {
           onClick={() => setShowSearch(true)}
           aria-label="Search"
           title="Search"
-          className="zivo-feed-action-orb pointer-events-auto w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center"
+          className="zivo-feed-action-orb w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center"
         >
           <Search className="w-5 h-5 text-white" />
         </button>
@@ -5702,7 +5703,7 @@ export default function FeedPage() {
             onClick={() => openReelComposer({ mode: "reel" })}
             aria-label="Create post"
             title="Create"
-            className="zivo-feed-action-orb zivo-feed-primary-orb pointer-events-auto w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center"
+            className="zivo-feed-action-orb zivo-feed-primary-orb w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center"
           >
             <Plus className="w-5 h-5 text-primary-foreground" />
           </button>
@@ -5717,7 +5718,7 @@ export default function FeedPage() {
           onClick={() => window.dispatchEvent(new CustomEvent("zivo-reel-open-speed"))}
           aria-label="Playback speed"
           title="Playback speed"
-          className="zivo-feed-action-orb pointer-events-auto hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
+          className="zivo-feed-action-orb hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
         >
           <Gauge className="w-5 h-5 text-white" />
         </button>
@@ -5732,6 +5733,7 @@ export default function FeedPage() {
         >
           <PictureInPicture className="w-5 h-5 text-white" />
         </button>
+        </div>
       </div>
       </div>
 
