@@ -65,20 +65,20 @@ export default function ConciergeLauncher() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border bg-card overflow-hidden"
+        className="rounded-2xl border border-border/30 bg-background/92 shadow-sm overflow-hidden"
       >
         {/* Top row */}
         <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-ig-gradient">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
             <Sparkles className="w-3 h-3" /> Concierge
           </span>
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60 border border-border/50 rounded-full px-1.5 py-0.5">
+          <span className="text-[10px] font-semibold text-muted-foreground/60 border border-border/30 rounded-full px-1.5 py-0.5">
             Beta
           </span>
           <button
             type="button"
             onClick={() => open()}
-            className="ml-auto inline-flex items-center gap-1 rounded-full bg-ig-gradient text-white px-3 py-1.5 text-[11px] font-bold touch-manipulation active:opacity-80 transition-opacity"
+            className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-[11px] font-semibold touch-manipulation active:opacity-80 transition-opacity"
           >
             Start <ArrowRight className="w-3 h-3" />
           </button>
@@ -91,7 +91,7 @@ export default function ConciergeLauncher() {
               key={s}
               whileTap={{ scale: 0.96 }}
               onClick={() => open(s)}
-              className="shrink-0 snap-start min-h-[34px] rounded-full border border-border bg-muted/30 px-3 py-1.5 text-[11px] font-semibold text-foreground active:bg-muted transition-colors touch-manipulation"
+              className="shrink-0 snap-start min-h-[34px] rounded-full border border-border/30 bg-muted/20 px-3 py-1.5 text-[11px] font-semibold text-foreground active:bg-muted/40 transition-colors touch-manipulation"
             >
               {s}
             </motion.button>

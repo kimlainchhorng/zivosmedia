@@ -127,58 +127,16 @@ const isChatNotification = (notification: ProfileNotificationLike) => {
 
 type ProfileCompletionMissingKind = "username" | "avatar" | "cover" | "bio";
 
-/* ── 3D tilt hook ── */
-function use3DTilt(ref: React.RefObject<HTMLElement | null>, intensity = 8) {
-  const [style, setStyle] = useState({ rotateX: 0, rotateY: 0 });
-
-  const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    const x = (clientX - rect.left) / rect.width - 0.5;
-    const y = (clientY - rect.top) / rect.height - 0.5;
-    setStyle({ rotateX: -y * intensity, rotateY: x * intensity });
-  }, [ref, intensity]);
-
-  const handleLeave = useCallback(() => setStyle({ rotateX: 0, rotateY: 0 }), []);
-
-  return { style, handleMove, handleLeave };
-}
-
-/* ── Animated bokeh particle ── */
-const BokehParticle = ({ delay, size, x, y, color }: { delay: number; size: number; x: string; y: string; color: string }) => (
-  <motion.div
-    className="absolute rounded-full pointer-events-none"
-    style={{ width: size, height: size, left: x, top: y, background: color, filter: `blur(${size * 0.4}px)` }}
-    animate={{ opacity: [0.15, 0.4, 0.15], scale: [0.8, 1.2, 0.8], y: [0, -20, 0] }}
-    transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut", delay }}
-  />
-);
-
 /* ── Parallax section wrapper ── */
 const ParallaxSection = ({ children, index }: { children: React.ReactNode; index: number }) => (
   <motion.div
-    initial={{ opacity: 0, y: 50, rotateX: 8 }}
-    whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+    initial={{ opacity: 0, y: 16 }}
+    whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: "-30px" }}
-    transition={{ duration: 0.6, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
-    style={{ perspective: "1200px" }}
+    transition={{ duration: 0.4, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
   >
     {children}
   </motion.div>
-);
-
-/* ── 3D Glass Card wrapper ── */
-const GlassCard3D = ({ children, className = "", glow = false }: { children: React.ReactNode; className?: string; glow?: boolean }) => (
-  <div className={`relative rounded-3xl overflow-hidden ${className}`}>
-    {/* Glassmorphism layers */}
-    <div className="absolute inset-0 bg-card/70 backdrop-blur-2xl" />
-    <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-primary/[0.02]" />
-    <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]" />
-    {glow && <div className="pointer-events-none absolute -inset-px rounded-3xl bg-gradient-to-br from-primary/20 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />}
-    <div className="relative z-10">{children}</div>
-  </div>
 );
 
 const Profile = () => {
@@ -419,7 +377,6 @@ const Profile = () => {
   const [safeLinkPrompt, setSafeLinkPrompt] = useState<string | null>(null);
   const coverDragRef = useRef<{ startY: number; startPos: number } | null>(null);
 
-  const profileTilt = use3DTilt(profileCardRef);
 
   // Social-graph counts unified into a single React Query instead of 4 ad-hoc
   // useState + manual visibility-change listeners. React Query handles focus
@@ -739,21 +696,7 @@ const Profile = () => {
       </div>
 
       {/* ── Background: clean Facebook-style on mobile, parallax on desktop ── */}
-      <motion.div style={{ y: bgParallax }} className="pointer-events-none fixed inset-0 z-0 hidden lg:block">
-        {/* Base gradient (desktop only) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-background to-primary/[0.04]" />
-        {/* Radial glows */}
-        <div className="absolute top-[-25%] right-[-15%] w-[70vw] h-[70vw] rounded-full bg-primary/[0.07] blur-[120px]" />
-        <div className="absolute bottom-[5%] left-[-20%] w-[60vw] h-[60vw] rounded-full bg-primary/[0.05] blur-[100px]" />
-        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[40vw] h-[40vw] rounded-full bg-primary/[0.03] blur-[80px]" />
-        {/* Bokeh particles */}
-        <BokehParticle delay={0} size={60} x="10%" y="15%" color="hsl(var(--primary) / 0.08)" />
-        <BokehParticle delay={1.5} size={40} x="75%" y="25%" color="hsl(var(--primary) / 0.06)" />
-        <BokehParticle delay={2.8} size={80} x="85%" y="60%" color="hsl(var(--primary) / 0.05)" />
-        <BokehParticle delay={0.8} size={35} x="20%" y="70%" color="hsl(var(--primary) / 0.07)" />
-        <BokehParticle delay={3.5} size={50} x="55%" y="85%" color="hsl(var(--primary) / 0.04)" />
-        <BokehParticle delay={1.2} size={45} x="40%" y="10%" color="hsl(var(--primary) / 0.06)" />
-      </motion.div>
+      <div className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-muted/20" />
 
       {/* ── Mobile sticky compact header (Facebook-style) ──
           Portaled to <body> so the position:fixed element escapes the
@@ -1227,19 +1170,8 @@ const Profile = () => {
                   No ParallaxSection here: the hero card must paint immediately
                   to avoid a giant blank area at the top of the viewport. */}
               <div>
-                <motion.div
-                  ref={profileCardRef}
-                  onMouseMove={profileTilt.handleMove as any}
-                  onMouseLeave={profileTilt.handleLeave}
-                  animate={{ rotateX: profileTilt.style.rotateX, rotateY: profileTilt.style.rotateY }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  style={{ perspective: "1200px", transformStyle: "preserve-3d" }}
-                  className="group"
-                >
-                  <div className="relative overflow-hidden rounded-[22px] border border-border/50 bg-card/95 shadow-[0_4px_24px_rgba(15,23,42,0.06)] lg:shadow-2xl lg:shadow-primary/[0.08]">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-accent/[0.02] rounded-[22px]" />
-                    <div className="pointer-events-none absolute inset-0 rounded-[22px] ring-1 ring-inset ring-white/[0.06]" />
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary/40 via-accent/30 to-transparent rounded-t-[22px]" />
+                <div ref={profileCardRef} className="group">
+                  <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-background/92 shadow-sm">
                     <div className="relative z-10">
                     {/* Cover photo sits below the fixed mobile header so content never collides with the notch. */}
                     <div
@@ -1396,7 +1328,7 @@ const Profile = () => {
 
                     {/* Name & status */}
                     <div className="px-3 sm:px-4 pb-2 pt-1 text-left">
-                      <CardTitle translate="no" className="flex items-center justify-start gap-1.5 text-[16px] sm:text-[18px] font-black leading-tight tracking-tight">
+                      <CardTitle translate="no" className="flex items-center justify-start gap-1.5 text-[16px] sm:text-[18px] font-bold leading-tight tracking-tight">
                         <span>{headerName || t("profile.set_name")}</span>
                         {profile?.is_verified && <VerifiedBadge size={22} />}
                       </CardTitle>
@@ -1529,7 +1461,7 @@ const Profile = () => {
                         <button
                           type="button"
                           onClick={() => { selectionChanged(); navigate("/account/profile-edit"); }}
-                          className="flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-background/80 text-[12px] font-extrabold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border/30 bg-background/80 text-[12px] font-semibold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <Pencil className="h-3.5 w-3.5 text-foreground" />
                           <span>Edit profile</span>
@@ -1567,44 +1499,44 @@ const Profile = () => {
                       {/* Stats row — OF mode shows subscribers + posts only,
                           default mode shows the full social signals. */}
                       {zivoOFMode ? (
-                        <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-[12px] border border-border/50 bg-card/70 shadow-sm">
+                        <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
                           <button
                             type="button"
                             aria-label={`View ${ofSubscribersCount} subscribers`}
                             onClick={() => { selectionChanged(); navigate("/creator/subscribers"); }}
-                            className="border-r border-border/50 px-3 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
+                            className="border-r border-border/15 px-3 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
                           >
-                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">Subscribers</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Subscribers</span>
                           </button>
                           <span className="px-3 py-2 text-center">
-                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">Posts</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Posts</span>
                           </span>
                         </div>
                       ) : (
-                        <div className="mt-2 grid grid-cols-4 overflow-hidden rounded-[12px] border border-border/50 bg-card/70 shadow-sm">
+                        <div className="mt-2 grid grid-cols-4 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
                           <button
                             type="button"
                             aria-label={`View ${followerCount} followers`}
                             onClick={() => setSocialModal({ open: true, tab: "followers" })}
-                            className="border-r border-border/50 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="border-r border-border/15 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">{followerCount === 1 ? "Follower" : "Followers"}</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{followerCount === 1 ? "Follower" : "Followers"}</span>
                           </button>
                           <button
                             type="button"
                             aria-label={`View ${followingCount} following`}
                             onClick={() => setSocialModal({ open: true, tab: "following" })}
-                            className="border-r border-border/50 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="border-r border-border/15 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">Following</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Following</span>
                           </button>
-                          <span className="border-r border-border/50 bg-muted/25 px-2 py-2 text-center">
-                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">{postsCount === 1 ? "Post" : "Posts"}</span>
+                          <span className="border-r border-border/15 bg-muted/25 px-2 py-2 text-center">
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{postsCount === 1 ? "Post" : "Posts"}</span>
                           </span>
                           <button
                             type="button"
@@ -1612,8 +1544,8 @@ const Profile = () => {
                             onClick={() => setSocialModal({ open: true, tab: "friends" })}
                             className="px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-sm font-black leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-normal text-foreground/60">{friendCount === 1 ? "Friend" : "Friends"}</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
                           </button>
                         </div>
                       )}
@@ -1626,7 +1558,7 @@ const Profile = () => {
                           <button
                             type="button"
                             onClick={() => { selectionChanged(); navigate("/monetization"); }}
-                            className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-bold text-white shadow-md shadow-[#00AEEF]/30 bg-gradient-to-r from-[#00AEEF] to-[#0099D9] hover:from-[#00B8F5] hover:to-[#00A3E5] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
+                            className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white bg-[#00AEEF] hover:bg-[#00A3E5] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
                           >
                             <Lock className="h-4 w-4" />
                             <span>{zivoOFMode ? "ZIVO OF · Subscribe & Monetize" : "Subscribe & Monetize"}</span>
@@ -1653,20 +1585,17 @@ const Profile = () => {
                       ) : (
                         <div className="lg:hidden mt-2 grid grid-cols-4 gap-1.5">
                           {[
-                            { label: "Shop", icon: Store, tone: "from-emerald-500/18 to-teal-500/8", iconColor: "text-emerald-600 dark:text-emerald-400", chipBorder: "border-emerald-500/30", onClick: openShopDashboard },
-                            { label: "Employees", icon: Users, tone: "from-sky-500/18 to-blue-500/8", iconColor: "text-sky-600 dark:text-sky-400", chipBorder: "border-sky-500/30", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
-                            { label: "Mode", icon: Repeat, tone: "from-violet-500/18 to-fuchsia-500/8", iconColor: "text-violet-600 dark:text-violet-400", chipBorder: "border-violet-500/30", onClick: () => { selectionChanged(); setModeOpen(true); } },
-                            { label: "Earn", icon: DollarSign, tone: "from-amber-500/18 to-orange-500/8", iconColor: "text-amber-700 dark:text-amber-400", chipBorder: "border-amber-500/30", onClick: () => { selectionChanged(); navigate("/monetization"); } },
+                            { label: "Shop", icon: Store, chipTint: "bg-emerald-500/12", iconColor: "text-emerald-600 dark:text-emerald-400", onClick: openShopDashboard },
+                            { label: "Employees", icon: Users, chipTint: "bg-sky-500/12", iconColor: "text-sky-600 dark:text-sky-400", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
+                            { label: "Mode", icon: Repeat, chipTint: "bg-violet-500/12", iconColor: "text-violet-600 dark:text-violet-400", onClick: () => { selectionChanged(); setModeOpen(true); } },
+                            { label: "Earn", icon: DollarSign, chipTint: "bg-amber-500/12", iconColor: "text-amber-700 dark:text-amber-400", onClick: () => { selectionChanged(); navigate("/monetization"); } },
                           ].map((a) => (
                             <button type="button"
                               key={a.label}
                               onClick={a.onClick}
-                              className={cn(
-                                "flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-border/50 bg-gradient-to-br px-1.5 py-2 text-[10px] font-extrabold leading-tight text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
-                                a.tone
-                              )}
+                              className="flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-border/30 bg-muted/20 px-1.5 py-2 text-[10px] font-semibold leading-tight text-foreground transition-colors hover:border-border/50 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                             >
-                              <span className={cn("grid h-9 w-9 place-items-center rounded-xl border bg-background/85 shadow-sm", a.chipBorder)}>
+                              <span className={cn("grid h-9 w-9 place-items-center rounded-full", a.chipTint)}>
                                 <a.icon className={cn("h-5 w-5", a.iconColor)} />
                               </span>
                               <span className="truncate">{a.label}</span>
@@ -1738,7 +1667,7 @@ const Profile = () => {
                     </div>
                   </div>
 
-                </motion.div>
+                </div>
               </div>
 
               {/* ZIVO+ upgrade moved to /more page */}
@@ -1768,7 +1697,7 @@ const Profile = () => {
                         See all
                       </button>
                     </div>
-                    <div className="rounded-2xl border border-border/40 bg-card overflow-hidden">
+                    <div className="rounded-2xl border border-border/30 bg-background/92 shadow-sm overflow-hidden">
                       {recentActivity.map((item, i) => (
                         <button
                           type="button"
@@ -1801,7 +1730,7 @@ const Profile = () => {
               {!profile?.phone?.trim() && (
                 <ParallaxSection index={1.5}>
                   <div
-                    className="rounded-[14px] border border-destructive/20 bg-destructive/5 p-3 flex items-center gap-2.5 cursor-pointer active:scale-[0.98] transition-transform"
+                    className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 flex items-center gap-2.5 cursor-pointer active:scale-[0.98] transition-transform"
                     onClick={() => navigate("/account/profile-edit?focus=phone")}
                   >
                     <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
@@ -1818,7 +1747,7 @@ const Profile = () => {
 
               {/* ── Stories Row ── */}
               <ParallaxSection index={2}>
-                <div className="rounded-[18px] border border-border/50 bg-card/80 px-2.5 py-1.5 shadow-sm">
+                <div className="rounded-2xl border border-border/30 bg-background/92 px-2.5 py-1.5 shadow-sm">
                   <ProfileStories />
                 </div>
               </ParallaxSection>
@@ -1875,7 +1804,7 @@ const Profile = () => {
         <SheetContent side="bottom" className="z-[1500] max-h-[88vh] overflow-y-auto rounded-t-[28px] border-border/70 bg-background px-4 pb-10 pt-3">
           <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
           <SheetHeader className="pb-3 text-left">
-            <SheetTitle className="text-xl font-black tracking-tight">Switch mode</SheetTitle>
+            <SheetTitle className="text-xl font-bold tracking-tight">Switch mode</SheetTitle>
             <p className="text-sm text-muted-foreground">Choose the workspace you want to use right now.</p>
           </SheetHeader>
           <div className="grid gap-2">
@@ -1927,7 +1856,7 @@ const Profile = () => {
                     else if (m.route && m.id !== "personal") navigate(m.route);
                   }}
                   className={cn(
-                    "flex items-center gap-3 rounded-[22px] border px-3 py-3 text-left shadow-sm transition-all active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    "flex items-center gap-3 rounded-xl border px-3 py-3 text-left shadow-sm transition-all active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     active ? "border-border bg-muted/55" : "border-border/60 bg-card hover:bg-muted/35"
                   )}
                 >
@@ -1938,7 +1867,7 @@ const Profile = () => {
                     <Icon className={cn("h-5 w-5", active ? "text-primary" : "text-foreground")} />
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-black text-foreground">{m.label}</span>
+                    <span className="block text-sm font-semibold text-foreground">{m.label}</span>
                     <span className="block truncate text-[12px] font-medium text-muted-foreground">{m.desc}</span>
                   </span>
                   {active && <BadgeCheck className="h-5 w-5 shrink-0 text-primary" />}
@@ -1950,7 +1879,7 @@ const Profile = () => {
           {workflowMode === "personal" && (
             <div className="mt-5 border-t border-border/40 pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Personal controls</span>
+                <span className="text-[13px] font-semibold text-muted-foreground">Personal controls</span>
                 <button
                   type="button"
                   onClick={() => { setModeOpen(false); navigate("/settings"); }}
@@ -1997,7 +1926,7 @@ const Profile = () => {
           {workflowMode === "creator" && (
             <div className="mt-5 border-t border-border/40 pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="text-[13px] font-semibold text-muted-foreground">
                   {zivoOFMode ? "ZIVO OF tools" : "Creator tools"}
                 </span>
                 <button
@@ -2047,7 +1976,7 @@ const Profile = () => {
           {workflowMode === "fan" && (
             <div className="mt-5 border-t border-border/40 pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">My fan activity</span>
+                <span className="text-[13px] font-semibold text-muted-foreground">My fan activity</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[

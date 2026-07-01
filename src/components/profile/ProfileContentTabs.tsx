@@ -317,6 +317,9 @@ export default function ProfileContentTabs({
   const [profilePublicId, setProfilePublicId] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<FeedItem | null>(null);
   const [showPostMenu, setShowPostMenu] = useState(false);
+  // True when the "…" menu was opened straight from a card — selectedPost is
+  // then only the menu's data source and the full-screen viewer must not mount.
+  const [menuOnly, setMenuOnly] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
   const [editCaptionValue, setEditCaptionValue] = useState("");
   const [showLive, setShowLive] = useState(false);
@@ -1072,9 +1075,16 @@ export default function ProfileContentTabs({
     setSelectedPost(null);
     setShowPostMenu(false);
     writeLocalPosts(localPostsKey, readLocalPosts(localPostsKey).filter((p) => p.id !== postId));
-    if (user?.id) {
+    if (user?.id && !isLocalDraftPostId(postId)) {
       const storageKey = parseUserPostStorageKey(targetPost?.url);
-      try { await (supabase as any).from("user_posts").delete().eq("id", postId); } catch {}
+      const { error } = await (supabase as any).from("user_posts").delete().eq("id", postId);
+      if (error) {
+        // Rollback: restore the post so it doesn't silently reappear on refresh.
+        if (targetPost) setFeed((prev) => (prev.some((p) => p.id === postId) ? prev : [targetPost, ...prev]));
+        logProfileActionError("post.delete", { postId, userId: user?.id }, error);
+        toast.error(error?.message || "Could not delete post");
+        return;
+      }
       if (storageKey?.startsWith(`${user.id}/`)) {
         try { await supabase.storage.from("user-posts").remove([storageKey]); } catch {}
       }
@@ -1089,8 +1099,13 @@ export default function ProfileContentTabs({
     setEditingCaption(false);
     setShowPostMenu(false);
     writeLocalPosts(localPostsKey, readLocalPosts(localPostsKey).map((p) => p.id === postId ? { ...p, caption: newCaption } : p));
-    if (user?.id) {
-      try { await (supabase as any).from("user_posts").update({ caption: newCaption }).eq("id", postId); } catch {}
+    if (user?.id && !isLocalDraftPostId(postId)) {
+      const { error } = await (supabase as any).from("user_posts").update({ caption: newCaption }).eq("id", postId);
+      if (error) {
+        logProfileActionError("caption.update", { postId, userId: user?.id }, error);
+        toast.error(error?.message || "Could not update caption");
+        return;
+      }
     }
     toast.success("Caption updated");
   }, [localPostsKey, user?.id]);
@@ -1170,11 +1185,11 @@ export default function ProfileContentTabs({
   return (
     <div className="space-y-3 pb-10">
       {/* Create Post Bar */}
-      <div className="w-full rounded-[24px] border border-border/70 bg-card p-2.5 shadow-sm">
+      <div className="w-full rounded-2xl border border-border/30 bg-background/92 p-2.5 shadow-sm">
         <button
           type="button"
           onClick={() => openCreatePost()}
-          className="min-w-0 flex w-full items-center gap-2.5 rounded-[18px] bg-muted/30 px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="min-w-0 flex w-full items-center gap-2.5 rounded-full border border-border/30 bg-muted/20 px-2.5 py-2 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-background bg-muted shadow-sm">
             {currentProfileAvatar ? (
@@ -1194,7 +1209,7 @@ export default function ProfileContentTabs({
             aria-label="Create photo post"
             title="Photo"
             onClick={() => openCreatePost("photo")}
-            className="flex min-h-10 items-center justify-center gap-1.5 rounded-2xl border border-emerald-500/15 bg-emerald-500/8 px-2 text-[11px] font-black text-emerald-700 transition hover:bg-emerald-500/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:text-emerald-300"
+            className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-500/15 bg-emerald-500/10 px-2 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 dark:text-emerald-300"
           >
             <Image className="h-3.5 w-3.5 text-emerald-600" />
             <span>Photo</span>
@@ -1204,7 +1219,7 @@ export default function ProfileContentTabs({
             aria-label="Create reel"
             title="Reel"
             onClick={() => openCreatePost("reel")}
-            className="flex min-h-10 items-center justify-center gap-1.5 rounded-2xl border border-blue-500/15 bg-blue-500/8 px-2 text-[11px] font-black text-blue-700 transition hover:bg-blue-500/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-blue-300"
+            className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-blue-500/15 bg-blue-500/10 px-2 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 dark:text-blue-300"
           >
             <Film className="h-3.5 w-3.5 text-blue-600" />
             <span>Reel</span>
@@ -1214,7 +1229,7 @@ export default function ProfileContentTabs({
             aria-label="Go live from camera"
             title="Live camera"
             onClick={openLiveBroadcast}
-            className="flex min-h-10 items-center justify-center gap-1.5 rounded-2xl border border-orange-500/15 bg-orange-500/8 px-2 text-[11px] font-black text-orange-700 transition hover:bg-orange-500/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 dark:text-orange-300"
+            className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-orange-500/15 bg-orange-500/10 px-2 text-[11px] font-semibold text-orange-700 transition hover:bg-orange-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 dark:text-orange-300"
           >
             <Camera className="h-3.5 w-3.5 text-orange-600" />
             <span>Live</span>
@@ -1223,7 +1238,7 @@ export default function ProfileContentTabs({
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1 rounded-[22px] border border-border/70 bg-card p-1 shadow-sm">
+      <div className="flex items-center gap-1 rounded-2xl border border-border/30 bg-background/92 p-1 shadow-sm">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
@@ -1233,7 +1248,7 @@ export default function ProfileContentTabs({
               data-testid={`profile-tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-[17px] px-2 text-xs font-extrabold transition-all",
+                "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-semibold transition-all",
                 active
                   ? "bg-foreground text-background shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1302,7 +1317,7 @@ export default function ProfileContentTabs({
               isBookmarked={bookmarkedPosts.has(toUserPostInteractionId(item.id))}
               onToggleLike={(feedItem) => void handleLikeToggle(feedItem as any)}
               onToggleBookmark={(feedItem) => void handleBookmarkToggle(feedItem as any)}
-              onOpenMenu={(feedItem) => { setSelectedPost(feedItem as any); setShowPostMenu(true); }}
+              onOpenMenu={(feedItem) => { setSelectedPost(feedItem as any); setMenuOnly(true); setShowPostMenu(true); }}
               onShare={(postId) => {
                 track("share_button_tapped", { post_id: postId, author_id: profileOwnerId, surface: "profile_feed" });
                 const p = feed.find((x) => x.id === postId);
@@ -1324,7 +1339,16 @@ export default function ProfileContentTabs({
                   },
                 });
               }}
-              onSelectPost={(feedItem) => setSelectedPost(feedItem as any)}
+              onSelectPost={(feedItem) => { setMenuOnly(false); setSelectedPost(feedItem as any); }}
+              onCommentsCountChange={(count) => {
+                setFeed((prev) => {
+                  const prevItem = prev.find((p) => p.id === item.id);
+                  if (prevItem && count > prevItem.comments) {
+                    track("post_comment_added", { post_id: item.id, author_id: profileOwnerId, total: count, surface: "profile_feed" });
+                  }
+                  return prev.map((p) => (p.id === item.id ? { ...p, comments: count } : p));
+                });
+              }}
             />
           ))}
         </div>
@@ -1341,7 +1365,7 @@ export default function ProfileContentTabs({
                 key={item.id}
                 data-testid={`profile-post-thumb-${item.id}`}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedPost(item)}
+                onClick={() => { setMenuOnly(false); setSelectedPost(item); }}
                 className={cn(
                   "relative bg-muted/40 group cursor-pointer overflow-hidden",
                   item.type === "reel" ? "aspect-[9/14]" : "aspect-square"
@@ -1388,7 +1412,7 @@ export default function ProfileContentTabs({
       {/* Post Detail Viewer */}
       {createPortal(
         <AnimatePresence>
-          {selectedPost && (
+          {selectedPost && !menuOnly && (
             <ProfilePostViewerOverlay
               onClose={() => { setSelectedPost(null); setShowPostMenu(false); setEditingCaption(false); }}
             >
@@ -1497,24 +1521,15 @@ export default function ProfileContentTabs({
                 <div className="flex items-center gap-5">
                   <button type="button"
                     className="flex items-center gap-1.5 transition-colors"
-                    onClick={() => {
-                      const postId = selectedPost.id;
-                      const isLiked = likedPosts.has(postId);
-                      setLikedPosts((prev) => {
-                        const next = new Set(prev);
-                        if (isLiked) next.delete(postId); else next.add(postId);
-                        return next;
-                      });
-                      setFeed((prev) => prev.map((p) => p.id === postId ? { ...p, likes: p.likes + (isLiked ? -1 : 1) } : p));
-                      setSelectedPost((prev) => prev ? { ...prev, likes: prev.likes + (isLiked ? -1 : 1) } : prev);
-                      // Update DB
-                      supabase.from("user_posts").update({ likes_count: selectedPost.likes + (isLiked ? -1 : 1) }).eq("id", postId).then(() => {});
-                    }}
+                    onClick={() => { void handleLikeToggle(selectedPost); }}
                   >
                     <Heart className={cn("w-6 h-6", likedPosts.has(selectedPost.id) ? "fill-red-500 text-red-500" : "text-white/70 hover:text-white")} />
-                    {selectedPost.likes > 0 && (
-                      <span className="text-sm font-medium text-white/90">{selectedPost.likes}</span>
-                    )}
+                    {(() => {
+                      const liveLikes = feed.find((p) => p.id === selectedPost.id)?.likes ?? selectedPost.likes;
+                      return liveLikes > 0 ? (
+                        <span className="text-sm font-medium text-white/90">{liveLikes}</span>
+                      ) : null;
+                    })()}
                   </button>
                   <button type="button" onClick={() => openComments(selectedPost)} className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors">
                     <MessageCircle className="w-6 h-6" />
@@ -1600,7 +1615,7 @@ export default function ProfileContentTabs({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black/50 z-[9998]"
-                onClick={() => setShowPostMenu(false)}
+                onClick={() => { setShowPostMenu(false); if (menuOnly) { setSelectedPost(null); setMenuOnly(false); } }}
               />
               <motion.div
                 initial={{ y: "100%" }}
@@ -1658,7 +1673,7 @@ export default function ProfileContentTabs({
                 </div>
 
                 <AccessibleMenuSheet
-                  onClose={() => setShowPostMenu(false)}
+                  onClose={() => { setShowPostMenu(false); if (menuOnly) { setSelectedPost(null); setMenuOnly(false); } }}
                   labelledById="profile-post-menu-title"
                   testId="profile-post-menu-sheet"
                   className="py-2"
@@ -1794,6 +1809,7 @@ export default function ProfileContentTabs({
                         onClick={() => {
                           setEditCaptionValue(selectedPost.caption);
                           setEditingCaption(true);
+                          setMenuOnly(false);
                           setShowPostMenu(false);
                         }}
                         className="w-full flex items-center gap-4 px-5 py-3.5 min-h-[48px] text-sm text-foreground hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-none transition-colors"

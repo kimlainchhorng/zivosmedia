@@ -45,14 +45,14 @@ export default function PlanTripBundle() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border bg-card overflow-hidden"
+        className="rounded-2xl border border-border/30 bg-background/92 shadow-sm overflow-hidden"
       >
         {/* Top row: label + CTA */}
         <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-ig-gradient flex items-center gap-1">
+          <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
             <Sparkles className="w-3 h-3" /> Trip Bundle
           </span>
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60 border border-border/50 rounded-full px-1.5 py-0.5">
+          <span className="text-[10px] font-semibold text-muted-foreground/60 border border-border/30 rounded-full px-1.5 py-0.5">
             New
           </span>
           <div className="ml-auto flex items-center gap-1.5">
@@ -60,14 +60,14 @@ export default function PlanTripBundle() {
               whileTap={{ scale: 0.95 }}
               onClick={shareTripBundle}
               aria-label="Share trip bundle"
-              className="h-7 w-7 inline-flex items-center justify-center rounded-full border border-border/50 text-muted-foreground active:opacity-70 touch-manipulation"
+              className="h-7 w-7 inline-flex items-center justify-center rounded-full border border-border/30 text-muted-foreground active:opacity-70 touch-manipulation"
             >
               <Share2 className="w-3 h-3" />
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate("/flights?bundle=1")}
-              className="inline-flex items-center gap-1 rounded-full bg-ig-gradient text-white px-3 py-1.5 text-[11px] font-bold touch-manipulation active:opacity-80"
+              className="inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-[11px] font-semibold touch-manipulation active:opacity-80"
             >
               Start <ArrowRight className="w-3 h-3" />
             </motion.button>
@@ -83,7 +83,7 @@ export default function PlanTripBundle() {
                 key={s.label}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate(s.to)}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-3 py-1.5 text-[11px] font-semibold text-foreground touch-manipulation active:bg-muted transition-colors"
+                className="flex items-center gap-1.5 rounded-full border border-border/30 bg-muted/20 px-3 py-1.5 text-[11px] font-semibold text-foreground touch-manipulation active:bg-muted/40 transition-colors"
               >
                 <Icon className="w-3 h-3 text-muted-foreground shrink-0" strokeWidth={1.8} />
                 {s.label}
