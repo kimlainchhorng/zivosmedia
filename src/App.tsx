@@ -163,6 +163,7 @@ import { ZivoTravel3DProvider } from "@/components/zivo-travel/ZivoTravel3DProvi
 const Login = lazy(() => import("./pages/Login"));
 const DevBuildRO = lazy(() => import("./pages/__DevBuildRO"));
 const Signup = lazy(() => import("./pages/Signup"));
+const EcosystemPrototype = lazy(() => import("./pages/prototype/EcosystemPrototype"));
 const ConnectCallback = lazy(() => import("./pages/ConnectCallback"));
 const OAuthForwarder = lazy(() => import("./pages/OAuthForwarder"));
 const ConnectChat = lazy(() => import("./pages/ConnectChat"));
@@ -1716,6 +1717,7 @@ const App = () => (
                             <Route path="/__dev_buildro/:storeId" element={<DevBuildRO />} />
                             <Route path="/login" element={<Login />} />
                             <Route path="/signup" element={<Signup />} />
+                            <Route path="/prototype/ecosystem" element={<EcosystemPrototype />} />
                             <Route path="/unsubscribe" element={<Unsubscribe />} />
                             <Route path="/connect/callback" element={<ConnectCallback />} />
                             <Route path="/auth/meta/callback" element={<OAuthForwarder />} />
