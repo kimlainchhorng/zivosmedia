@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ZIVO Ecosystem — Integration Review Hub (Run 5, v1)</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#12151a; --muted:#5b6470; --line:#e4e7ec;
+    --ok:#0f7b4a; --warn:#a9701a; --block:#b0261e; --accent:#2456c9;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0e1116; --card:#171b22; --ink:#eef1f5; --muted:#9aa4b2; --line:#262c36;
+      --ok:#3fbb7f; --warn:#e0b25a; --block:#f0736a; --accent:#7aa2f7; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 18px 60px}
+  h1{font-size:1.5rem;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 22px}
+  .grid{display:grid;gap:12px}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .card h3{margin:0 0 6px;font-size:.95rem}
+  .card p{margin:0;color:var(--muted);font-size:.82rem}
+  .pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid}
+  .p-ok{color:var(--ok);border-color:var(--ok)}
+  .p-warn{color:var(--warn);border-color:var(--warn)}
+  .p-block{color:var(--block);border-color:var(--block)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-size:.85rem}
+  th{background:rgba(127,127,127,.06);font-weight:600}
+  tr:last-child td{border-bottom:0}
+  h2{font-size:1.05rem;margin:30px 0 10px}
+  code{background:rgba(127,127,127,.12);padding:1px 5px;border-radius:5px;font-size:.85em}
+  .note{border-left:3px solid var(--warn);padding:8px 12px;background:rgba(169,112,26,.07);border-radius:0 8px 8px 0;color:var(--muted);font-size:.85rem}
+  .ok-note{border-left-color:var(--ok);background:rgba(15,123,74,.07)}
+  footer{margin-top:30px;color:var(--muted);font-size:.78rem;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ZIVO Ecosystem — Integration Review Hub</h1>
+  <p class="sub">Run 5 · cross-app identity / navigation / events / notifications / deep links · contract <strong>v1</strong> · branch <code>integration/zivo-ecosystem-user-flow-v1</code></p>
+
+  <div class="note"><strong>This is a static, in-repo artifact — not a deployed Preview.</strong> Vercel/Cloudflare CLIs are unavailable in this environment, so a stable Preview URL and a hosted Review Hub are <span class="pill p-block">BLOCKED</span> pending an authorized deploy. Live cross-app journeys against real accounts are <span class="pill p-block">PENDING</span> (unauthenticated Supabase + production-data rule). The contracts below are <span class="pill p-ok">verified offline</span> (17/17 tests).</div>
+
+  <h2>Integration gates</h2>
+  <div class="grid cards">
+    <div class="card"><h3>Identity <span class="pill p-ok">CONTRACT</span></h3><p>Canonical subject + verified-link state machine. No silent merge; email insufficient.</p></div>
+    <div class="card"><h3>App switcher <span class="pill p-ok">CONTRACT</span></h3><p>Shows only accessible products; Admin gated to staff/admin.</p></div>
+    <div class="card"><h3>Events <span class="pill p-ok">CONTRACT</span></h3><p>Versioned envelope; financial ⇒ correlation + idempotency; safe metadata.</p></div>
+    <div class="card"><h3>Notifications <span class="pill p-ok">CONTRACT</span></h3><p>No financial payload in push; quiet hours / locale / role.</p></div>
+    <div class="card"><h3>Deep links <span class="pill p-ok">CONTRACT</span></h3><p>Allowlist only; no auto-pay/refund/transfer/role-change.</p></div>
+    <div class="card"><h3>Wallet handoff <span class="pill p-warn">GUARDED</span></h3><p>Finalization stays provider-verified in Wallet; contract carries facts only.</p></div>
+    <div class="card"><h3>Live deploy <span class="pill p-block">BLOCKED</span></h3><p>No vercel/wrangler; needs authorized Preview.</p></div>
+    <div class="card"><h3>Live journeys <span class="pill p-block">PENDING</span></h3><p>Needs deployed apps + authorized test accounts.</p></div>
+  </div>
+
+  <h2>Cross-app journeys (offline contract tests)</h2>
+  <table>
+    <tr><th>Journey</th><th>Contract-level</th><th>Live runtime</th></tr>
+    <tr><td>Travel → Wallet → booking</td><td><span class="pill p-ok">PASS</span></td><td><span class="pill p-block">PENDING</span></td></tr>
+    <tr><td>Driver → Wallet → earnings (transfer vs payout)</td><td><span class="pill p-ok">PASS</span></td><td><span class="pill p-block">PENDING</span></td></tr>
+    <tr><td>Software/Sales → Wallet → invoice/payment</td><td><span class="pill p-ok">PASS</span></td><td><span class="pill p-block">PENDING</span></td></tr>
+    <tr><td>Media → Chat → authorized entity</td><td><span class="pill p-ok">PASS</span></td><td><span class="pill p-block">PENDING</span></td></tr>
+    <tr><td>Admin → redacted health/incident (unauth blocked)</td><td><span class="pill p-ok">PASS</span></td><td><span class="pill p-block">PENDING</span></td></tr>
+  </table>
+
+  <h2>Products in scope</h2>
+  <table>
+    <tr><th>Product</th><th>Supabase ref</th><th>Role in flow</th></tr>
+    <tr><td>Wallet</td><td><code>kcflqpfiuwcclkcctuji</code></td><td>ledger authority / provider finalizer</td></tr>
+    <tr><td>Driver</td><td><code>yiedlgoxwjmansszdypf</code></td><td>trips/deliveries, earnings handoff</td></tr>
+    <tr><td>Travel</td><td><code>xbllvmpomorawkcrtbcq</code></td><td>booking → Wallet handoff</td></tr>
+    <tr><td>Software</td><td><code>ydxztoresbdeoeijhxww</code></td><td>invoices/orders → Wallet</td></tr>
+    <tr><td>Chat</td><td><code>slirphzzwcogdbkeicff</code></td><td>conversations, authorized entities</td></tr>
+    <tr><td>Media</td><td><code>slirphzzwcogdbkeicff</code></td><td>content, discovery → Chat</td></tr>
+    <tr><td>Admin</td><td><code>wtdlbzgryuelpylijnkd</code></td><td>redacted health/incident ops</td></tr>
+  </table>
+
+  <div class="note ok-note" style="margin-top:18px"><strong>Guardrails honored:</strong> no refresh-token sharing between products; email alone never merges accounts; Wallet financial ownership unchanged; no link auto-pays/refunds/transfers or changes a role; no financial payload in push; no secrets in events. All verified by <code>node --test zivo-ecosystem/*.test.mjs</code>.</div>
+
+  <footer>ZIVO Ecosystem Run 5 · contract v1 · generated as a static review artifact. To unblock: install/authorize <code>vercel</code> or <code>wrangler</code> for Preview, authenticate the Supabase MCP, and provision the Run 7 test accounts against a non-production environment.</footer>
+</div>
+</body>
+</html>
