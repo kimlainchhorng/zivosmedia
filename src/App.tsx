@@ -37,6 +37,8 @@ import SwipeNavHint from "@/components/app/SwipeNavHint";
 // OTA banner pulls framer-motion — keep it out of the root chunk; it only
 // renders on native when an update is queued.
 const OTAUpdateBanner = lazy(() => import("@/components/shared/OTAUpdateBanner"));
+// Isolated external-review surface (self-contained, presentation-only, fictional data).
+const ReviewApp = lazy(() => import("@/review/ReviewApp"));
 const NavigationProgressBar = lazy(() => import("@/components/app/NavigationProgressBar"));
 const ScrollRestoration = lazy(() => import("@/components/app/ScrollRestoration"));
 
@@ -1707,6 +1709,8 @@ const App = () => (
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
                             <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : isCurrentZivoDriverHost() ? <ZivoDriverLandingPage /> : isCurrentZivoBusinessHost() ? <ZivoBusinessHome /> : isCurrentZivoEmployeeHost() ? <ZivoEmployeeHome /> : <Index />} />
+                            {/* Isolated external-review surface — presentation-only, fictional data, no real actions. */}
+                            <Route path="/review/*" element={<ReviewApp />} />
                             <Route path="/zivo-travel" element={<ZivoTravelHome />} />
                             {/* Travel utility pages — host-agnostic preview paths (also usable on the travel host). */}
                             <Route path="/zivo-travel/my-trips" element={<ZivoTravelMyTrips />} />
