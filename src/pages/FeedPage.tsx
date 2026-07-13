@@ -17,6 +17,7 @@ import TrendingHashtags from "@/components/social/TrendingHashtags";
 import { postHasHashtag } from "@/lib/social/hashtags";
 import { EmptyState } from "@/components/ui/empty-state";
 import MentionPicker from "@/components/social/MentionPicker";
+import SwipeableSheet from "@/components/social/SwipeableSheet";
 import { applyMention, detectMention } from "@/lib/social/mentionText";
 import { usePostActions, type PostActionTarget } from "@/hooks/usePostActions";
 import { usePostReactions } from "@/hooks/usePostReactions";
@@ -77,7 +78,7 @@ import Car from "lucide-react/dist/esm/icons/car";
 import Briefcase from "lucide-react/dist/esm/icons/briefcase";
 import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag";
 import Plus from "lucide-react/dist/esm/icons/plus";
-import { motion, AnimatePresence, MotionConfig, useDragControls, type PanInfo } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import type * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { createPortal } from "react-dom";
@@ -255,9 +256,6 @@ const getFeedPostSource = (post: Pick<FeedPost, "id" | "source">): "store" | "us
 
 const getFeedPostBookmarkKey = (post: Pick<FeedPost, "id" | "source">): string =>
   `${getFeedPostSource(post)}:${getFeedPostRawId(post)}`;
-
-const shouldDismissBottomSheet = (info: PanInfo) =>
-  info.offset.y > 64 || info.velocity.y > 520;
 
 /* ── Scrolling music ticker ───────────────────────────────────── */
 /**
@@ -516,10 +514,6 @@ function ReelCard({
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isPipToggling, setIsPipToggling] = useState(false);
   const [isPinningProfile, setIsPinningProfile] = useState(false);
-  const moreSheetDragControls = useDragControls();
-  const speedSheetDragControls = useDragControls();
-  const moreSheetPointerStartY = useRef<number | null>(null);
-  const speedSheetPointerStartY = useRef<number | null>(null);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -619,6 +613,11 @@ function ReelCard({
     try { localStorage.setItem("zivo_reel_speed", String(playbackSpeed)); } catch {}
   }, [playbackSpeed]);
   const [showSpeedPicker, setShowSpeedPicker] = useState(false);
+  // Stable onClose identities — SwipeableSheet's focus-trap effect depends on
+  // onClose, and ReelCard re-renders every timeupdate while the video plays,
+  // so inline arrows would re-arm the trap (and yank focus) several times/sec.
+  const closeMoreMenu = useCallback(() => setShowMoreMenu(false), []);
+  const closeSpeedPicker = useCallback(() => setShowSpeedPicker(false), []);
   const fastForwardTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressNextClickRef = useRef(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -2363,66 +2362,28 @@ function ReelCard({
         )}
       </AnimatePresence>
 
-      {/* More-options bottom sheet */}
-      <AnimatePresence>
-        {showMoreMenu && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowMoreMenu(false)}
-              className="zivo-social-sheet-backdrop fixed inset-0 z-[1499]"
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 320 }}
-              drag="y"
-              dragControls={moreSheetDragControls}
-              dragListener={false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 0.45 }}
-              dragTransition={{ bounceStiffness: 380, bounceDamping: 28, power: 0.18, timeConstant: 220 }}
-              onDragEnd={(_, info) => {
-                if (shouldDismissBottomSheet(info)) setShowMoreMenu(false);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Reel actions"
-              className="zivo-social-sheet-panel fixed inset-x-0 bottom-0 z-[1500] flex max-h-[86dvh] flex-col overflow-hidden rounded-t-[1.75rem]"
-            >
-              <div
-                onPointerDown={(e) => {
-                  moreSheetPointerStartY.current = e.clientY;
-                  try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-                  moreSheetDragControls.start(e);
-                }}
-                onPointerUp={(e) => {
-                  const startY = moreSheetPointerStartY.current;
-                  moreSheetPointerStartY.current = null;
-                  if (startY !== null && e.clientY - startY > 48) setShowMoreMenu(false);
-                }}
-                onPointerCancel={() => {
-                  moreSheetPointerStartY.current = null;
-                }}
-                style={{ touchAction: "none" }}
-                className="flex shrink-0 cursor-grab justify-center pb-1 pt-3 active:cursor-grabbing"
-              >
-                <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
-              </div>
-              <div className="flex shrink-0 items-center justify-between border-b border-border/35 px-5 pb-3 pt-1">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Reel tools</p>
-                  <h3 className="text-base font-black tracking-tight text-foreground">Actions</h3>
-                </div>
-                <span className="rounded-full border border-white/45 bg-white/55 px-3 py-1 text-[11px] font-black text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-                  {playbackSpeed}×
-                </span>
-              </div>
-              <div className="space-y-1 overflow-y-auto overscroll-contain px-2 py-2 pb-[max(0.75rem,var(--zivo-safe-bottom,0px))] [&>button]:rounded-2xl [&>button]:transition-colors [&>button:hover]:bg-white/58 [&>button:hover]:shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+      {/* More-options bottom sheet. Rendered via SwipeableSheet, which portals
+          to <body> — inside the reel snap-scroller the hand-rolled fixed panel's
+          drag-to-dismiss never engaged, so the sheet couldn't be swiped away. */}
+      <SwipeableSheet
+        open={showMoreMenu}
+        onClose={closeMoreMenu}
+        ariaLabel="Reel actions"
+        maxHeightVh={86}
+        zIndex={1600}
+        title={
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Reel tools</p>
+            <h3 className="text-base font-black tracking-tight text-foreground">Actions</h3>
+          </div>
+        }
+        headerAction={
+          <span className="rounded-full border border-white/45 bg-white/55 px-3 py-1 text-[11px] font-black text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+            {playbackSpeed}×
+          </span>
+        }
+      >
+        <div className="space-y-1 px-2 py-2 [&>button]:rounded-2xl [&>button]:transition-colors [&>button:hover]:bg-white/58 [&>button:hover]:shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
                 <button type="button"
                   onClick={() => {
                     setShowMoreMenu(false);
@@ -2628,71 +2589,28 @@ function ReelCard({
                   <span className="text-sm font-medium text-destructive">Report</span>
                 </button>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      </SwipeableSheet>
 
       {/* Speed-picker bottom sheet */}
-      <AnimatePresence>
-        {showSpeedPicker && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSpeedPicker(false)}
-              className="zivo-social-sheet-backdrop fixed inset-0 z-[1499]"
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 320 }}
-              drag="y"
-              dragControls={speedSheetDragControls}
-              dragListener={false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 0.45 }}
-              dragTransition={{ bounceStiffness: 380, bounceDamping: 28, power: 0.18, timeConstant: 220 }}
-              onDragEnd={(_, info) => {
-                if (shouldDismissBottomSheet(info)) setShowSpeedPicker(false);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Playback speed"
-              className="zivo-social-sheet-panel fixed inset-x-0 bottom-0 z-[1500] flex max-h-[86dvh] flex-col overflow-hidden rounded-t-[1.75rem]"
-            >
-              <div
-                onPointerDown={(e) => {
-                  speedSheetPointerStartY.current = e.clientY;
-                  try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-                  speedSheetDragControls.start(e);
-                }}
-                onPointerUp={(e) => {
-                  const startY = speedSheetPointerStartY.current;
-                  speedSheetPointerStartY.current = null;
-                  if (startY !== null && e.clientY - startY > 48) setShowSpeedPicker(false);
-                }}
-                onPointerCancel={() => {
-                  speedSheetPointerStartY.current = null;
-                }}
-                style={{ touchAction: "none" }}
-                className="flex shrink-0 cursor-grab justify-center pb-1 pt-3 active:cursor-grabbing"
-              >
-                <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25 shadow-[0_0_14px_hsl(var(--foreground)/0.12)]" />
-              </div>
-              <div className="flex shrink-0 items-center justify-between border-b border-border/35 px-5 pb-3 pt-1">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Playback</p>
-                  <h3 className="text-base font-black tracking-tight text-foreground">Speed control</h3>
-                </div>
-                <span className="rounded-full border border-white/45 bg-white/55 px-3 py-1 text-[11px] font-black text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-                  {playbackSpeed}× active
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-2 overflow-y-auto overscroll-contain px-3 py-3">
+      <SwipeableSheet
+        open={showSpeedPicker}
+        onClose={closeSpeedPicker}
+        ariaLabel="Playback speed"
+        maxHeightVh={86}
+        zIndex={1600}
+        title={
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-500">Playback</p>
+            <h3 className="text-base font-black tracking-tight text-foreground">Speed control</h3>
+          </div>
+        }
+        headerAction={
+          <span className="rounded-full border border-white/45 bg-white/55 px-3 py-1 text-[11px] font-black text-muted-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+            {playbackSpeed}× active
+          </span>
+        }
+      >
+              <div className="grid grid-cols-4 gap-2 px-3 py-3">
                 {[0.5, 1.0, 1.5, 2.0].map((rate) => {
                   const active = Math.abs(playbackSpeed - rate) < 0.01;
                   return (
@@ -2711,15 +2629,12 @@ function ReelCard({
                   );
                 })}
               </div>
-              <div className="shrink-0 px-5 pb-[max(0.9rem,var(--zivo-safe-bottom,0px))]">
+              <div className="shrink-0 px-5 pb-3">
                 <p className="zivo-social-module-tile rounded-2xl px-3 py-2 text-[11px] font-semibold leading-5 text-muted-foreground">
                   Tip: tap and hold the video for a quick 2× boost.
                 </p>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      </SwipeableSheet>
 
       {/* Speed badge — tappable shortcut to the speed picker. Shown whenever
           playback isn't 1× and the user isn't long-pressing (FF badge wins). */}
@@ -4965,6 +4880,9 @@ export default function FeedPage() {
 
   // ── Pull-to-refresh: simple touch-driven swipe-down at the top ─────────────
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Touches inside an open sheet/dialog belong to the sheet (portal events
+    // still bubble here through the React tree) — never start a pull from them.
+    if ((e.target as HTMLElement).closest?.('[role="dialog"]')) return;
     // Only begin pull if we're already at the top of the scroll container
     const scroller = (e.currentTarget as HTMLDivElement);
     if (scroller.scrollTop > 0) return;
