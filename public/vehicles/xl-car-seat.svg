@@ -16,12 +16,15 @@
   <!-- Front wheel -->
   <circle cx="210" cy="96" r="15" fill="#1a1a1a"/>
   <circle cx="210" cy="96" r="6" fill="#777"/>
-  <!-- Body: tall boxy SUV -->
+  <!-- Body: tall SUV -->
   <path d="M42,95 Q42,80 55,80 L58,80 Q58,72 62,68 L72,52 Q78,44 90,40 L120,34 Q140,30 165,30 Q190,30 210,34 L228,40 Q238,46 242,55 L245,80 L250,80 Q258,80 258,95 Z" fill="url(#bodyGrad)"/>
-  <!-- Roof: flat top -->
+  <!-- Roof flat top -->
   <path d="M90,40 L120,34 Q140,30 165,30 Q190,30 210,34 L226,40 Q215,36 190,34 Q165,32 140,32 Q112,32 90,40 Z" fill="#111827"/>
   <!-- Window rear -->
   <path d="M96,44 L118,37 L142,36 L142,53 L96,56 Z" fill="rgba(160,185,210,0.45)"/>
+  <!-- Child seat in rear window -->
+  <rect x="103" y="40" width="11" height="10" rx="3" fill="#E8A040"/>
+  <ellipse cx="108" cy="39" rx="4.5" ry="2.5" fill="#D09030"/>
   <!-- Window front -->
   <path d="M144,36 L175,36 L192,43 L190,55 L144,53 Z" fill="rgba(160,185,210,0.45)"/>
   <!-- Step board -->

@@ -1,41 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120">
   <defs>
-    <linearGradient id="shareBody" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#F0F2FF"/>
-      <stop offset="100%" stop-color="#C8CAD6"/>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ECEEF8"/>
+      <stop offset="100%" stop-color="#C8CAD8"/>
     </linearGradient>
-    <radialGradient id="shareShadow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="rgba(0,0,0,0.28)"/>
-      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-    </radialGradient>
+    <filter id="shadow" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="3.5"/>
+    </filter>
   </defs>
   <!-- Drop shadow -->
-  <ellipse cx="100" cy="91" rx="76" ry="7" fill="url(#shareShadow)"/>
+  <ellipse cx="140" cy="108" rx="65" ry="6" fill="rgba(0,0,0,0.15)" filter="url(#shadow)"/>
   <!-- Rear wheel -->
-  <circle cx="146" cy="76" r="12" fill="#2a2a3a"/>
-  <circle cx="146" cy="76" r="5.5" fill="#888898"/>
-  <circle cx="146" cy="76" r="2" fill="#2a2a3a"/>
+  <circle cx="88" cy="97" r="11" fill="#1a1a1a"/>
+  <circle cx="88" cy="97" r="4" fill="#888"/>
   <!-- Front wheel -->
-  <circle cx="57" cy="76" r="12" fill="#2a2a3a"/>
-  <circle cx="57" cy="76" r="5.5" fill="#888898"/>
-  <circle cx="57" cy="76" r="2" fill="#2a2a3a"/>
-  <!-- Compact body (slightly narrower, shorter roofline) -->
-  <rect x="26" y="55" width="150" height="23" rx="9" fill="url(#shareBody)"/>
-  <!-- Cabin (shorter roofline than economy) -->
-  <path d="M 66,55 L 80,27 L 132,27 L 146,55 Z" fill="#2d2d44"/>
-  <!-- Roof highlight streak -->
-  <path d="M 84,28 L 130,28 L 130,30 L 84,30 Z" fill="rgba(255,255,255,0.10)"/>
-  <!-- Front window -->
-  <path d="M 72,54 L 85,29 L 110,29 L 110,54 Z" fill="rgba(190,210,240,0.55)"/>
-  <!-- Rear window -->
-  <path d="M 113,54 L 113,29 L 130,29 L 143,54 Z" fill="rgba(190,210,240,0.50)"/>
-  <!-- Window reflections -->
-  <path d="M 75,50 L 82,35 L 86,35 L 79,50 Z" fill="rgba(255,255,255,0.16)"/>
+  <circle cx="195" cy="97" r="11" fill="#1a1a1a"/>
+  <circle cx="195" cy="97" r="4" fill="#888"/>
+  <!-- Body: compact sedan -->
+  <path d="M62,96 Q62,85 72,85 L77,85 Q82,65 90,61 L118,47 Q134,39 157,39 Q175,39 192,44 L213,56 Q220,62 224,69 L228,85 L235,85 Q244,85 244,96 Z" fill="url(#bodyGrad)"/>
+  <!-- Roof -->
+  <path d="M118,47 Q134,39 157,39 Q175,39 192,44 L208,55 Q198,48 178,44 Q155,40 133,42 Q118,44 118,47 Z" fill="#2A2C40"/>
+  <!-- Window rear -->
+  <path d="M122,50 L135,44 L154,43 L154,56 L122,58 Z" fill="rgba(190,215,235,0.45)"/>
+  <!-- Window front -->
+  <path d="M156,43 L178,44 L190,50 L188,58 L156,56 Z" fill="rgba(190,215,235,0.45)"/>
   <!-- Door line -->
-  <line x1="110" y1="55" x2="110" y2="78" stroke="rgba(80,80,100,0.15)" stroke-width="1.5"/>
-  <!-- Headlight -->
-  <ellipse cx="30" cy="63" rx="3.5" ry="2.5" fill="rgba(255,248,200,0.90)"/>
-  <ellipse cx="30" cy="63" rx="1.8" ry="1.2" fill="rgba(255,255,220,1)"/>
+  <line x1="156" y1="56" x2="156" y2="85" stroke="rgba(0,0,0,0.12)" stroke-width="1.2"/>
   <!-- Taillight -->
-  <rect x="172" y="61" width="4" height="7" rx="1.5" fill="rgba(200,50,50,0.80)"/>
+  <rect x="70" y="70" width="5" height="9" rx="2" fill="#CC3333" opacity="0.85"/>
+  <!-- Headlight -->
+  <rect x="224" y="66" width="6" height="7" rx="2" fill="#FFFFCC" opacity="0.85"/>
 </svg>

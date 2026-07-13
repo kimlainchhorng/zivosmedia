@@ -1,58 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120">
   <defs>
-    <linearGradient id="wavBody" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ADBFC2"/>
-      <stop offset="100%" stop-color="#7D8FA2"/>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#A8BECF"/>
+      <stop offset="100%" stop-color="#7A94A8"/>
     </linearGradient>
-    <radialGradient id="wavShadow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="rgba(0,0,0,0.30)"/>
-      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-    </radialGradient>
+    <filter id="shadow" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="4.5"/>
+    </filter>
   </defs>
-  <!-- Drop shadow (wider for van) -->
-  <ellipse cx="100" cy="91" rx="84" ry="8" fill="url(#wavShadow)"/>
+  <!-- Drop shadow -->
+  <ellipse cx="140" cy="109" rx="90" ry="8" fill="rgba(0,0,0,0.20)" filter="url(#shadow)"/>
   <!-- Rear wheel -->
-  <circle cx="152" cy="74" r="14" fill="#2a2a3a"/>
-  <circle cx="152" cy="74" r="6.5" fill="#888898"/>
-  <circle cx="152" cy="74" r="2.5" fill="#2a2a3a"/>
+  <circle cx="72" cy="96" r="14" fill="#1a1a1a"/>
+  <circle cx="72" cy="96" r="5.5" fill="#888"/>
   <!-- Front wheel -->
-  <circle cx="50" cy="74" r="14" fill="#2a2a3a"/>
-  <circle cx="50" cy="74" r="6.5" fill="#888898"/>
-  <circle cx="50" cy="74" r="2.5" fill="#2a2a3a"/>
-  <!-- Van main body (tall) -->
-  <rect x="20" y="26" width="162" height="50" rx="9" fill="url(#wavBody)"/>
-  <!-- Roof band (dark flat roof) -->
-  <rect x="20" y="14" width="162" height="16" rx="7" fill="#111827"/>
-  <!-- Roof-body blend -->
-  <rect x="20" y="26" width="162" height="6" rx="0" fill="#111827"/>
-  <rect x="20" y="26" width="162" height="6" rx="0" fill="url(#wavBody)" opacity="0.5"/>
-  <!-- Front windshield (large, upright van-style) -->
-  <rect x="24" y="17" width="26" height="18" rx="3" fill="rgba(140,180,210,0.55)"/>
-  <!-- Side passenger windows (long row) -->
-  <rect x="54" y="17" width="88" height="15" rx="4" fill="rgba(140,180,210,0.50)"/>
-  <!-- Rear window -->
-  <rect x="148" y="17" width="28" height="15" rx="4" fill="rgba(140,180,210,0.45)"/>
-  <!-- Window frame separation -->
-  <line x1="90" y1="17" x2="90" y2="32" stroke="rgba(17,24,39,0.4)" stroke-width="2"/>
-  <line x1="120" y1="17" x2="120" y2="32" stroke="rgba(17,24,39,0.4)" stroke-width="2"/>
+  <circle cx="208" cy="96" r="14" fill="#1a1a1a"/>
+  <circle cx="208" cy="96" r="5.5" fill="#888"/>
+  <!-- Body: tall boxy minivan -->
+  <path d="M38,95 Q38,80 50,80 L54,80 L54,35 Q54,28 62,28 L220,28 Q228,28 232,35 L238,55 L245,80 L252,80 Q260,80 260,95 Z" fill="url(#bodyGrad)"/>
+  <!-- Roof: flat top -->
+  <rect x="54" y="28" width="178" height="8" rx="4" fill="#111827"/>
+  <!-- Side windows (3 small) -->
+  <rect x="60" y="38" width="35" height="22" rx="3" fill="rgba(160,190,215,0.45)"/>
+  <rect x="102" y="38" width="40" height="22" rx="3" fill="rgba(160,190,215,0.45)"/>
+  <rect x="150" y="38" width="35" height="22" rx="3" fill="rgba(160,190,215,0.45)"/>
+  <!-- Front window -->
+  <path d="M192,37 L220,30 L230,37 L228,55 L192,58 Z" fill="rgba(160,190,215,0.45)"/>
   <!-- Sliding door line -->
-  <line x1="133" y1="26" x2="133" y2="76" stroke="rgba(0,0,0,0.18)" stroke-width="2"/>
-  <!-- Door handle recess -->
-  <rect x="110" y="54" width="18" height="3" rx="1.5" fill="rgba(0,0,0,0.18)"/>
-  <!-- Accessibility symbol (wheelchair figure) -->
+  <line x1="148" y1="30" x2="148" y2="80" stroke="#8090A0" stroke-width="1.5"/>
+  <line x1="132" y1="60" x2="146" y2="60" stroke="#8090A0" stroke-width="1.5"/>
+  <!-- Rear step -->
+  <rect x="46" y="88" width="14" height="5" rx="1" fill="#607080" opacity="0.7"/>
+  <!-- Accessibility symbol in sliding door area -->
   <!-- Head -->
-  <circle cx="98" cy="44" r="4.5" fill="none" stroke="rgba(255,255,255,0.38)" stroke-width="1.8"/>
-  <!-- Body line -->
-  <path d="M 98,48.5 L 97,56 L 102,56 L 106,63" stroke="rgba(255,255,255,0.38)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Wheel of wheelchair -->
-  <circle cx="103" cy="64.5" r="4" fill="none" stroke="rgba(255,255,255,0.38)" stroke-width="1.8"/>
-  <!-- Arm extended -->
-  <path d="M 98,51 L 104,49" stroke="rgba(255,255,255,0.38)" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-  <!-- Headlight -->
-  <ellipse cx="25" cy="50" rx="4" ry="3" fill="rgba(255,248,200,0.85)"/>
-  <ellipse cx="25" cy="50" rx="2" ry="1.5" fill="rgba(255,255,220,1)"/>
+  <circle cx="125" cy="47" r="4" fill="rgba(255,255,255,0.6)"/>
+  <!-- Body/wheelchair shape -->
+  <path d="M122,53 Q120,60 124,64 Q128,68 133,66 Q136,63 134,58 L128,54 Z" fill="rgba(255,255,255,0.5)"/>
   <!-- Taillight -->
-  <rect x="174" y="46" width="5" height="14" rx="2" fill="rgba(200,50,50,0.80)"/>
-  <!-- Front bumper -->
-  <rect x="20" y="68" width="8" height="3" rx="1.5" fill="rgba(255,255,255,0.15)"/>
+  <rect x="45" y="55" width="7" height="18" rx="2" fill="#CC3333" opacity="0.9"/>
+  <!-- Headlight -->
+  <rect x="234" y="58" width="7" height="12" rx="2" fill="#FFFFCC" opacity="0.9"/>
 </svg>

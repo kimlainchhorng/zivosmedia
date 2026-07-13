@@ -1,45 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120">
   <defs>
-    <linearGradient id="csBody" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#C8D4E0"/>
-      <stop offset="100%" stop-color="#98A4B0"/>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D8DADF"/>
+      <stop offset="100%" stop-color="#B0B3BB"/>
     </linearGradient>
-    <radialGradient id="csShadow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="rgba(0,0,0,0.30)"/>
-      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-    </radialGradient>
+    <filter id="shadow" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
   </defs>
   <!-- Drop shadow -->
-  <ellipse cx="100" cy="91" rx="80" ry="7" fill="url(#csShadow)"/>
+  <ellipse cx="140" cy="108" rx="80" ry="7" fill="rgba(0,0,0,0.18)" filter="url(#shadow)"/>
   <!-- Rear wheel -->
-  <circle cx="148" cy="76" r="13" fill="#2a2a3a"/>
-  <circle cx="148" cy="76" r="6" fill="#888898"/>
-  <circle cx="148" cy="76" r="2.5" fill="#2a2a3a"/>
+  <circle cx="80" cy="96" r="13" fill="#1a1a1a"/>
+  <circle cx="80" cy="96" r="5" fill="#888"/>
   <!-- Front wheel -->
-  <circle cx="55" cy="76" r="13" fill="#2a2a3a"/>
-  <circle cx="55" cy="76" r="6" fill="#888898"/>
-  <circle cx="55" cy="76" r="2.5" fill="#2a2a3a"/>
-  <!-- Car lower body -->
-  <rect x="22" y="54" width="158" height="24" rx="9" fill="url(#csBody)"/>
-  <!-- Cabin / roof -->
-  <path d="M 62,54 L 78,23 L 136,23 L 150,54 Z" fill="#1a1a2e"/>
-  <!-- Roof highlight -->
-  <path d="M 82,24 L 134,24 L 134,26 L 82,26 Z" fill="rgba(255,255,255,0.08)"/>
-  <!-- Front window -->
-  <path d="M 69,53 L 83,25 L 110,25 L 110,53 Z" fill="rgba(178,205,230,0.55)"/>
-  <!-- Rear window (with car seat detail visible) -->
-  <path d="M 113,53 L 113,25 L 133,25 L 147,53 Z" fill="rgba(178,205,230,0.50)"/>
-  <!-- Child car seat silhouette in rear window -->
-  <rect x="119" y="36" width="9" height="14" rx="3" fill="rgba(210,140,80,0.65)" stroke="rgba(170,100,40,0.5)" stroke-width="1"/>
-  <!-- Car seat headrest bump -->
-  <rect x="120" y="34" width="7" height="5" rx="3" fill="rgba(210,140,80,0.65)"/>
-  <!-- Window reflections -->
-  <path d="M 72,49 L 80,32 L 84,32 L 76,49 Z" fill="rgba(255,255,255,0.14)"/>
+  <circle cx="200" cy="96" r="13" fill="#1a1a1a"/>
+  <circle cx="200" cy="96" r="5" fill="#888"/>
+  <!-- Body -->
+  <path d="M45,95 Q45,83 55,83 L63,83 Q68,62 80,58 L110,42 Q130,32 155,32 Q175,32 195,38 L220,52 Q230,58 235,65 L240,83 L248,83 Q258,83 258,95 Z" fill="url(#bodyGrad)"/>
+  <!-- Roof -->
+  <path d="M110,42 Q130,32 155,32 Q175,32 195,38 L215,52 Q205,44 185,40 Q160,36 135,38 Q115,40 110,42 Z" fill="#1E2030"/>
+  <!-- Window rear -->
+  <path d="M115,45 L130,38 L150,37 L150,52 L115,55 Z" fill="rgba(180,210,230,0.45)"/>
+  <!-- Child seat in rear window: orange headrest -->
+  <rect x="121" y="41" width="10" height="9" rx="3" fill="#E8A040"/>
+  <!-- Headrest hump -->
+  <ellipse cx="126" cy="40" rx="4" ry="2.5" fill="#D09030"/>
+  <!-- Window front -->
+  <path d="M152,37 L178,38 L192,45 L190,54 L152,52 Z" fill="rgba(180,210,230,0.45)"/>
+  <line x1="116" y1="44" x2="130" y2="38" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
   <!-- Door line -->
-  <line x1="110" y1="54" x2="110" y2="78" stroke="rgba(0,0,0,0.14)" stroke-width="1.5"/>
-  <!-- Headlight -->
-  <ellipse cx="27" cy="63" rx="4" ry="3" fill="rgba(255,248,200,0.90)"/>
-  <ellipse cx="27" cy="63" rx="2" ry="1.5" fill="rgba(255,255,220,1)"/>
+  <line x1="152" y1="52" x2="152" y2="83" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>
   <!-- Taillight -->
-  <rect x="171" y="60" width="5" height="8" rx="2" fill="rgba(200,50,50,0.85)"/>
+  <rect x="52" y="68" width="6" height="10" rx="2" fill="#CC3333" opacity="0.9"/>
+  <!-- Headlight -->
+  <rect x="235" y="65" width="7" height="8" rx="2" fill="#FFFFCC" opacity="0.9"/>
 </svg>

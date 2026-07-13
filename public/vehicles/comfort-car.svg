@@ -1,46 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 120">
   <defs>
-    <linearGradient id="comfortBody" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#E0E4EE"/>
-      <stop offset="100%" stop-color="#B4B8C2"/>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#DDE0EA"/>
+      <stop offset="100%" stop-color="#B8BCCA"/>
     </linearGradient>
-    <radialGradient id="comfortShadow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="rgba(0,0,0,0.30)"/>
-      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-    </radialGradient>
+    <filter id="shadow" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
   </defs>
   <!-- Drop shadow -->
-  <ellipse cx="100" cy="91" rx="82" ry="7" fill="url(#comfortShadow)"/>
+  <ellipse cx="140" cy="109" rx="88" ry="7" fill="rgba(0,0,0,0.15)" filter="url(#shadow)"/>
   <!-- Rear wheel -->
-  <circle cx="150" cy="76" r="13" fill="#2a2a3a"/>
-  <circle cx="150" cy="76" r="6" fill="#888898"/>
-  <circle cx="150" cy="76" r="2.5" fill="#2a2a3a"/>
+  <circle cx="72" cy="95" r="14" fill="#1a1a1a"/>
+  <circle cx="72" cy="95" r="5.5" fill="#888"/>
   <!-- Front wheel -->
-  <circle cx="53" cy="76" r="13" fill="#2a2a3a"/>
-  <circle cx="53" cy="76" r="6" fill="#888898"/>
-  <circle cx="53" cy="76" r="2.5" fill="#2a2a3a"/>
-  <!-- Premium elongated body (slightly longer hood) -->
-  <rect x="20" y="54" width="162" height="24" rx="9" fill="url(#comfortBody)"/>
-  <!-- Chrome-like window trim accent -->
-  <rect x="62" y="53" width="91" height="2" rx="1" fill="#A8B0C0"/>
-  <!-- Cabin (sleeker, slightly longer) -->
-  <path d="M 62,54 L 76,22 L 138,22 L 152,54 Z" fill="#1C1C2E"/>
-  <!-- Roof highlight streak -->
-  <path d="M 80,23 L 136,23 L 136,25 L 80,25 Z" fill="rgba(255,255,255,0.10)"/>
-  <!-- Front window -->
-  <path d="M 69,53 L 82,24 L 112,24 L 112,53 Z" fill="rgba(182,210,235,0.55)"/>
-  <!-- Rear window -->
-  <path d="M 115,53 L 115,24 L 136,24 L 149,53 Z" fill="rgba(182,210,235,0.50)"/>
-  <!-- Window reflections -->
-  <path d="M 72,49 L 80,30 L 84,30 L 76,49 Z" fill="rgba(255,255,255,0.15)"/>
-  <!-- Door line -->
-  <line x1="112" y1="54" x2="112" y2="78" stroke="rgba(0,0,0,0.13)" stroke-width="1.5"/>
-  <!-- Headlight (elongated premium style) -->
-  <rect x="22" y="60" width="8" height="4" rx="2" fill="rgba(255,248,200,0.90)"/>
-  <rect x="23" y="61" width="4" height="2" rx="1" fill="rgba(255,255,220,1)"/>
-  <!-- Taillight (sleek horizontal) -->
-  <rect x="172" y="59" width="6" height="9" rx="2" fill="rgba(200,50,50,0.80)"/>
-  <!-- Chrome door handle hints -->
-  <rect x="93" y="66" width="10" height="2" rx="1" fill="rgba(200,210,220,0.6)"/>
-  <rect x="124" y="66" width="10" height="2" rx="1" fill="rgba(200,210,220,0.6)"/>
+  <circle cx="210" cy="95" r="14" fill="#1a1a1a"/>
+  <circle cx="210" cy="95" r="5.5" fill="#888"/>
+  <!-- Body: long low premium sedan -->
+  <path d="M38,94 Q38,81 50,81 L56,81 Q62,60 72,56 L100,40 Q122,30 152,29 Q178,28 205,35 L228,48 Q238,54 244,62 L248,81 L258,81 Q268,81 268,94 Z" fill="url(#bodyGrad)"/>
+  <!-- Roof -->
+  <path d="M100,40 Q122,30 152,29 Q178,28 205,35 L224,47 Q212,40 188,36 Q158,31 128,33 Q108,35 100,40 Z" fill="#18192A"/>
+  <!-- Window rear -->
+  <path d="M106,43 L122,36 L148,35 L148,50 L106,53 Z" fill="rgba(175,200,225,0.45)"/>
+  <line x1="107" y1="42" x2="122" y2="36" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/>
+  <!-- Window mid -->
+  <path d="M150,35 L178,35 L190,41 L188,52 L150,50 Z" fill="rgba(175,200,225,0.45)"/>
+  <!-- Window rear quarter -->
+  <path d="M95,47 L104,42 L106,53 L95,56 Z" fill="rgba(175,200,225,0.35)"/>
+  <!-- Chrome trim line -->
+  <line x1="56" y1="75" x2="248" y2="75" stroke="#9AA4B8" stroke-width="1" opacity="0.7"/>
+  <!-- Door lines -->
+  <line x1="150" y1="50" x2="150" y2="81" stroke="rgba(0,0,0,0.12)" stroke-width="1.2"/>
+  <line x1="190" y1="52" x2="190" y2="81" stroke="rgba(0,0,0,0.12)" stroke-width="1.2"/>
+  <!-- Taillight -->
+  <rect x="45" y="65" width="7" height="11" rx="2" fill="#CC3333" opacity="0.9"/>
+  <!-- Headlight -->
+  <rect x="244" y="62" width="8" height="9" rx="2" fill="#FFFFCC" opacity="0.9"/>
 </svg>

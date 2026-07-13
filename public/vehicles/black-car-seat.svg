@@ -16,22 +16,23 @@
   <!-- Front wheel -->
   <circle cx="215" cy="95" r="15" fill="#111111"/>
   <circle cx="215" cy="95" r="6" fill="#555"/>
-  <!-- Body: longest lowest luxury sedan -->
+  <!-- Body -->
   <path d="M30,94 Q30,80 44,80 L50,80 Q56,57 66,53 L95,36 Q118,25 152,24 Q182,23 212,31 L238,45 Q250,52 255,61 L260,80 L270,80 Q276,80 276,94 Z" fill="url(#bodyGrad)"/>
   <!-- Roof -->
   <path d="M95,36 Q118,25 152,24 Q182,23 212,31 L234,44 Q220,36 192,31 Q160,26 128,28 Q106,30 95,36 Z" fill="#090A12"/>
-  <!-- Window rear (dark tint) -->
-  <path d="M100,40 L118,32 L148,31 L148,47 L100,50 Z" fill="rgba(30,40,80,0.7)"/>
-  <!-- Chrome window trim rear -->
+  <!-- Window rear (slightly lighter to show seat) -->
+  <path d="M100,40 L118,32 L148,31 L148,47 L100,50 Z" fill="rgba(40,55,100,0.55)"/>
   <path d="M100,40 L118,32 L148,31 L148,47 L100,50 Z" fill="none" stroke="#3A3C50" stroke-width="0.8"/>
+  <!-- Child seat: amber headrest visible through window -->
+  <rect x="107" y="35" width="10" height="9" rx="3" fill="#E8A040" opacity="0.9"/>
+  <ellipse cx="112" cy="34" rx="4" ry="2.5" fill="#D09030" opacity="0.9"/>
   <!-- Window front (dark tint) -->
   <path d="M150,31 L185,32 L200,39 L198,49 L150,47 Z" fill="rgba(30,40,80,0.7)"/>
   <path d="M150,31 L185,32 L200,39 L198,49 L150,47 Z" fill="none" stroke="#3A3C50" stroke-width="0.8"/>
-  <!-- DRL daytime running light -->
+  <!-- DRL -->
   <line x1="248" y1="58" x2="256" y2="55" stroke="#C0C8D0" stroke-width="1.5" stroke-linecap="round"/>
   <!-- Door lines -->
   <line x1="150" y1="47" x2="150" y2="80" stroke="rgba(80,82,100,0.4)" stroke-width="1"/>
-  <line x1="200" y1="49" x2="200" y2="80" stroke="rgba(80,82,100,0.4)" stroke-width="1"/>
   <!-- Taillight -->
   <rect x="38" y="63" width="7" height="12" rx="2" fill="#880000" opacity="0.9"/>
   <!-- Headlight -->
