@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryOrderAgain - Shows previously purchased items for quick reorder
  * Pulls from Supabase shopping_orders + localStorage cache
  */
@@ -188,7 +188,7 @@ export function GroceryOrderAgain({ store, onAdd, cartProductIds }: GroceryOrder
                     onClick={() => handleAdd(item)}
                     className={`h-7 w-7 rounded-lg flex items-center justify-center transition-all ${
                       inCart || justAdded
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-ig-gradient text-white shadow-sm"
                         : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/15"
                     }`}
                   >

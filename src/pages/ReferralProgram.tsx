@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReferralProgram Page
  * Dedicated landing page for referral program
  */
@@ -153,7 +153,7 @@ export default function ReferralProgram() {
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                       <step.icon className="w-8 h-8 text-primary" />
                     </div>
-                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-ig-gradient text-white text-sm font-bold flex items-center justify-center">
                       {index + 1}
                     </span>
                   </div>

@@ -32,6 +32,7 @@ export default function BuildROIntakeQueueDialog({ open, onOpenChange, storeId, 
         .from("ar_estimates" as any)
         .select("*")
         .eq("store_id", storeId)
+        .is("deleted_at", null)
         .in("appointment_type", ["Drop Off", "Towed In"])
         .order("created_at", { ascending: false })
         .limit(200);

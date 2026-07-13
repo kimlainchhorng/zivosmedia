@@ -145,7 +145,6 @@ const StickerKeyboard = lazy(() => import("./StickerKeyboard"));
 // Phase 3B–3D wired components
 import MessageReactionsBar from "./MessageReactionsBar";
 import PinnedMessageBanner from "./PinnedMessageBanner";
-import SmartReplyChips from "./SmartReplyChips";
 import Flame from "lucide-react/dist/esm/icons/flame";
 const ForwardPickerSheet = lazy(() => import("./ForwardPickerSheet"));
 const ScheduledMessagesSheet = lazy(() => import("./ScheduledMessagesSheet"));
@@ -563,41 +562,43 @@ function DirectChatIntroCard({
   onOpenInfo: () => void;
 }) {
   return (
-    <div className="mx-auto my-3 w-full max-w-[280px] overflow-hidden rounded-lg border border-border/15 bg-background/80 text-center shadow-sm backdrop-blur-xl">
+    <div className="mx-auto my-3 w-full max-w-[260px] overflow-hidden rounded-[1.25rem] border border-border/50 bg-card text-center shadow-lg">
       <button
         type="button"
         onClick={onOpenInfo}
-        className="flex w-full flex-col items-center px-4 pb-3 pt-4 text-center transition-colors hover:bg-muted/30"
+        className="flex w-full flex-col items-center px-4 pb-2.5 pt-3.5 text-center transition-colors hover:bg-muted/20"
       >
-        <Avatar className="h-14 w-14 ring-2 ring-background/80">
-          <AvatarImage src={avatar || undefined} />
-          <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
-        </Avatar>
-        <span className="mt-2 inline-flex max-w-full items-center justify-center gap-1 text-[15px] font-bold text-foreground">
+        <div className="ring-ig-gradient rounded-full p-[2px] shadow-[0_2px_12px_rgba(236,72,153,0.2)]">
+          <Avatar className="h-12 w-12 ring-[2px] ring-background/80">
+            <AvatarImage src={avatar || undefined} />
+            <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">{initials}</AvatarFallback>
+          </Avatar>
+        </div>
+        <span className="mt-2 inline-flex max-w-full items-center justify-center gap-1 text-[14px] font-bold text-foreground">
           <span className="truncate">{name}</span>
-          {isBlueVerified(isVerified) && <VerifiedBadge size={14} interactive={false} />}
+          {isBlueVerified(isVerified) && <VerifiedBadge size={13} interactive={false} />}
         </span>
-        <span className="mt-0.5 text-[12px] font-medium text-muted-foreground">
+        <span className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">
           {isSavedContact ? "In contacts" : "Not a contact"}
         </span>
       </button>
-      <div className="grid grid-cols-2 border-t border-border/15 text-[12px] font-semibold">
+      <div className="grid grid-cols-2 border-t border-border/15 text-[11.5px] font-bold">
         <button
           type="button"
           onClick={isSavedContact ? onOpenInfo : onAddContact}
-          className="px-3 py-2.5 text-primary transition-colors hover:bg-primary/5"
+          className="bg-ig-gradient px-3 py-2 text-white transition-opacity active:opacity-80"
         >
           {isSavedContact ? "View Profile" : "Add Contact"}
         </button>
         <button
           type="button"
           onClick={onOpenInfo}
-          className="border-l border-border/15 px-3 py-2.5 text-muted-foreground transition-colors hover:bg-muted/40"
+          className="border-l border-border/15 px-3 py-2 text-muted-foreground transition-colors hover:bg-muted/40"
         >
           Info
         </button>
       </div>
-      <div className="border-t border-border/15 px-3 py-2 text-[11px] font-medium text-muted-foreground">
+      <div className="border-t border-border/15 px-3 py-1.5 text-[10px] font-medium text-muted-foreground/70">
         {isBlueVerified(isVerified) ? "Verified ZIVO account" : "Not an official account"}
       </div>
     </div>
@@ -609,6 +610,10 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const { isOFMode: zivoOFMode } = useZivoOFMode();
   const { contacts, add: addContact, loading: contactsLoading } = useContacts();
   const navigate = useNavigate();
+  // Notch safe-area padding on the sticky chat header is only needed in the
+  // installed native app; on the website it leaves an empty bar at the top.
+  // `zivo-safe-top-none` opts the header out of the global safe-top rule on web.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
   const isSelfChat = !!user?.id && recipientId === user.id;
   const displayName = isSelfChat ? "Saved Messages" : recipientName;
   const [galleryState, setGalleryState] = useState<{ open: boolean; images: { id: string; url: string; type: "image" | "video"; protected?: boolean }[]; index: number }>({ open: false, images: [], index: 0 });
@@ -3374,7 +3379,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       transition={inline ? { duration: 0.12 } : { type: "tween", duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       {/* Header */}
-      <div className="zivo-chat-header-glass sticky top-0 z-10">
+      <div className={cn("zivo-chat-header-glass sticky top-0 z-10", !isNativeApp && "zivo-safe-top-none")}>
         <div className="px-2 py-2.5 flex items-center gap-3">
           <button type="button" onClick={onClose} className="zivo-chat-icon-button flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-transform active:scale-90" aria-label="Back" title="Back">
             <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -4167,17 +4172,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
       {/* Smart reply suggestions — chips above the composer */}
       <div className="zivo-chat-header-glass relative px-2.5 py-2 [padding-bottom:max(var(--zivo-safe-bottom,0px),0.5rem)]">
-          {/* AI smart-reply chips — appears when latest visible message is from
-              the other side and the composer is empty. Tap a chip to seed the
-              composer (does not auto-send so the user can edit). */}
-          {!editingId && (
-            <SmartReplyChips
-              recent={messages.slice(-12).map((m) => ({ text: m.message ?? "", isMe: m.sender_id === user?.id }))}
-              composerHasText={input.trim().length > 0}
-              onPick={(text) => { setInput(text); inputRef.current?.focus(); }}
-            />
-          )}
-
           {/* Sticker auto-suggestions (Telegram parity) — shown when the user types an emoji
               and there are matching illustrated stickers. Hidden during slash mode so the popovers don't fight. */}
           {stickerSuggestions.length > 0 && slashQuery == null && !editingId && (

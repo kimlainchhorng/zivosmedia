@@ -106,13 +106,38 @@ describe("groupPaymentsSeries", () => {
   });
 
   it("sorts dates ascending even when input is shuffled", () => {
+    // Noon UTC keeps the local calendar day stable across CI and Cambodia
+    // offsets (the day bucket keys off the local day), so this exercises sort
+    // order — not timezone bucketing, which is pinned separately below.
     const shuffled = [
-      mkPayment({ amount_cents: 50, paid_at: "2026-05-10T00:00:00Z" }),
-      mkPayment({ amount_cents: 50, paid_at: "2026-05-01T00:00:00Z" }),
-      mkPayment({ amount_cents: 50, paid_at: "2026-05-05T00:00:00Z" }),
+      mkPayment({ amount_cents: 50, paid_at: "2026-05-10T12:00:00Z" }),
+      mkPayment({ amount_cents: 50, paid_at: "2026-05-01T12:00:00Z" }),
+      mkPayment({ amount_cents: 50, paid_at: "2026-05-05T12:00:00Z" }),
     ];
     const dates = groupPaymentsSeries(shuffled, "day").map((s) => s.date);
     expect(dates).toEqual(["2026-05-01", "2026-05-05", "2026-05-10"]);
+  });
+});
+
+describe("groupPaymentsSeries — local-day bucketing", () => {
+  // The day bucket must key off the LOCAL calendar day, like the week/month
+  // buckets — not the UTC day. A payment late in the UTC day falls on the next
+  // local day east of UTC (e.g. Cambodia UTC+7), so a UTC-sliced day key would
+  // disagree with the local month/week keys across midnight. Re-derive the local
+  // formula here so the assertion is deterministic regardless of the test
+  // machine's timezone.
+  const localYmd = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  it("buckets a late-UTC payment on its local day, consistent with the month bucket", () => {
+    const paidAt = "2026-05-31T22:00:00Z"; // already 2026-06-01 in any UTC+ zone
+    const payment = mkPayment({ amount_cents: 100, paid_at: paidAt });
+    const day = groupPaymentsSeries([payment], "day");
+    const month = groupPaymentsSeries([payment], "month");
+    expect(day[0].date).toBe(localYmd(paidAt));
+    expect(day[0].date.slice(0, 7)).toBe(month[0].date);
   });
 });
 

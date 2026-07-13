@@ -85,7 +85,7 @@ export default function CreatorTipsPage() {
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 bg-background/85 backdrop-blur border-b border-border/40 safe-area-top">
         <div className="flex items-center gap-3 px-3 h-14 max-w-3xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-base font-bold flex items-center gap-1.5">
@@ -149,7 +149,7 @@ export default function CreatorTipsPage() {
                     type="button"
                     onClick={() => !t.is_anonymous && navigate(`/user/${t.tipper_id}`)}
                     disabled={!!t.is_anonymous}
-                    className="shrink-0"
+                    className="shrink-0 rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label={t.is_anonymous ? "Anonymous tipper" : `View ${name}`}
                   >
                     {t.is_anonymous ? (

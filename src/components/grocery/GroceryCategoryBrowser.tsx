@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryCategoryBrowser - Massive category browser with lazy-loaded product carousels
  * 200+ categories, lazy fetch via IntersectionObserver, 3 pages per category
  */
@@ -650,7 +650,7 @@ function CategorySection({ category, store, onAdd, cartProductIds, onBrowse, onS
                           onClick={() => handleAdd(p)}
                           className={`h-7 w-7 rounded-lg flex items-center justify-center transition-all duration-200 ${
                             inCart || justAdded
-                              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                              ? "bg-ig-gradient text-white shadow-sm shadow-primary/25"
                               : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/15"
                           }`}
                         >

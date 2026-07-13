@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -193,7 +193,7 @@ export const PayLater = ({ className, totalAmount = 1299 }: PayLaterProps) => {
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                        i === 0 ? "bg-primary text-primary-foreground" : "bg-muted"
+                        i === 0 ? "bg-ig-gradient text-white" : "bg-muted"
                       )}>
                         {i + 1}
                       </div>

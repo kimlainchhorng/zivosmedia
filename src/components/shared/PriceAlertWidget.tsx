@@ -81,13 +81,24 @@ const PriceAlertWidget = ({ className }: PriceAlertWidgetProps) => {
     if (!alert) return;
     const newActive = !alert.isActive;
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, isActive: newActive } : a));
-    await supabase.from("price_alerts").update({ is_active: newActive }).eq("id", id);
+    const { error } = await supabase.from("price_alerts").update({ is_active: newActive }).eq("id", id);
+    if (error) {
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, isActive: alert.isActive } : a));
+      toast.error("Couldn't update alert");
+      return;
+    }
     toast.success("Alert updated");
   };
 
   const removeAlert = async (id: string) => {
+    const prevAlerts = alerts;
     setAlerts(prev => prev.filter(a => a.id !== id));
-    await supabase.from("price_alerts").update({ is_active: false }).eq("id", id);
+    const { error } = await supabase.from("price_alerts").update({ is_active: false }).eq("id", id);
+    if (error) {
+      setAlerts(prevAlerts);
+      toast.error("Couldn't remove alert");
+      return;
+    }
     toast.success("Alert removed");
   };
 

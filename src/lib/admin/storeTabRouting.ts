@@ -111,7 +111,7 @@ export const CAFE_TAB_IDS = [
   "cafe-expenses",
   "cafe-reports",
 ] as const;
-export const BASE_TAB_IDS = ["profile", "orders", "products", "payment", "settings", "customers", "marketing", "livestream", "software", "employees", "payroll", "employee-schedule", "time-clock", "attendance", "training", "documents", "employee-rules", "customer-bookings"] as const;
+export const BASE_TAB_IDS = ["profile", "orders", "products", "payment", "settings", "customers", "marketing", "livestream", "software", "subscriptions", "employees", "payroll", "employee-schedule", "time-clock", "attendance", "training", "documents", "employee-rules", "customer-bookings"] as const;
 
 export type LodgingTabId = typeof LODGING_TAB_IDS[number];
 export type AutoRepairTabId = typeof AUTO_REPAIR_TAB_IDS[number];

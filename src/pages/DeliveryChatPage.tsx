@@ -98,7 +98,8 @@ export default function DeliveryChatPage() {
           <div className="flex items-center gap-2.5 px-4 pt-safe pb-3">
             <button type="button"
               onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform"
+              aria-label="Back"
+              className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -147,13 +148,14 @@ export default function DeliveryChatPage() {
                 }
               }}
               placeholder="Message your driver…"
-              className="flex-1 bg-transparent outline-none text-[14px]"
+              className="flex-1 bg-transparent outline-none text-[14px] rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <button type="button"
               onClick={() => void send()}
               disabled={!input.trim() || sending}
+              aria-label="Send message"
               className={cn(
-                "w-9 h-9 rounded-full flex items-center justify-center transition-all",
+                "w-9 h-9 rounded-full flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 input.trim() && !sending
                   ? "bg-violet-500 text-white active:scale-90"
                   : "bg-muted text-muted-foreground"

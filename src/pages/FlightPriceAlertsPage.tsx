@@ -173,7 +173,7 @@ export default function FlightPriceAlertsPage() {
                       type="button"
                       aria-label="Remove"
                       onClick={() => remove(a.id)}
-                      className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors"
+                      className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

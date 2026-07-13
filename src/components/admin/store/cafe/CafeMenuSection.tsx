@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CafeMenuSection — manage categories + menu items in one screen.
  * Modifiers live in their own tab (CafeModifiersSection); items can be
  * linked to modifier groups inline from the row's expand panel.
@@ -440,7 +440,7 @@ export default function CafeMenuSection({ storeId }: Props) {
                     key={c.id} type="button" onClick={() => setActiveCategoryId(c.id)}
                     className={cn(
                       "rounded-full px-3 py-1.5 text-sm border transition-colors",
-                      active ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:bg-muted"
+                      active ? "bg-ig-gradient text-white border-primary" : "bg-card text-foreground border-border hover:bg-muted"
                     )}
                   >
                     {c.name}
@@ -455,7 +455,7 @@ export default function CafeMenuSection({ storeId }: Props) {
                   type="button" onClick={() => setActiveCategoryId(null)}
                   className={cn(
                     "rounded-full px-3 py-1.5 text-sm border transition-colors",
-                    visibleCategoryId === null ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:bg-muted"
+                    visibleCategoryId === null ? "bg-ig-gradient text-white border-primary" : "bg-card text-foreground border-border hover:bg-muted"
                   )}
                 >
                   Uncategorized

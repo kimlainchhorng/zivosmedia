@@ -160,7 +160,7 @@ export default function MyChallengeSubmissionsPage() {
                   whileTap={{ scale: 0.985 }}
                   onClick={() => navigate("/challenges")}
                   className={cn(
-                    "w-full flex gap-3 p-3 rounded-2xl bg-card border text-left hover:bg-secondary/40 transition-colors",
+                    "w-full flex gap-3 p-3 rounded-2xl bg-card border text-left hover:bg-secondary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     s.is_winner ? "border-amber-400/50 bg-amber-500/[0.03]" : "border-border",
                   )}
                 >

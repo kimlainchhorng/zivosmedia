@@ -69,8 +69,8 @@ export default function MyApplicationsPage() {
         {/* Status filter chips */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           {STATUS_OPTIONS.map(s => (
-            <button type="button" key={s} onClick={() => setFilterStatus(s)}
-              className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+            <button type="button" key={s} aria-pressed={filterStatus === s} onClick={() => setFilterStatus(s)}
+              className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 filterStatus === s ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/80")}>
               {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
@@ -87,7 +87,7 @@ export default function MyApplicationsPage() {
           </Card>
         )}
         {filteredApps.map(a => (
-          <Card key={a.id} className="cursor-pointer p-3 transition-colors hover:bg-accent"
+          <Card key={a.id} className="cursor-pointer p-3 transition-all hover:bg-accent active:scale-[0.98]"
             onClick={() => navigate(`/personal/jobs/${a.career_jobs?.id}`)}>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
@@ -103,7 +103,7 @@ export default function MyApplicationsPage() {
                 </span>
                 {a.status !== "withdrawn" && a.status !== "hired" && (
                   <button type="button"
-                    className="text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-colors"
+                    className="rounded text-[10px] font-medium text-rose-500 hover:text-rose-600 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={(e) => handleWithdraw(a.id, e)}>
                     Withdraw
                   </button>

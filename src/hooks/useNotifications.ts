@@ -41,7 +41,7 @@ interface UseNotificationsResult {
   fetchNotifications: () => Promise<void>;
   markAsRead: (notificationIds: string[]) => Promise<void>;
   markAllAsRead: () => Promise<void>;
-  deleteNotifications: (notificationIds: string[]) => Promise<void>;
+  deleteNotifications: (notificationIds: string[]) => Promise<boolean>;
   clearAll: () => Promise<void>;
   snoozeNotification: (notificationId: string, durationMs: number) => Promise<void>;
 }
@@ -158,8 +158,8 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     }
   }, [toast]);
 
-  const deleteNotifications = useCallback(async (notificationIds: string[]) => {
-    if (notificationIds.length === 0) return;
+  const deleteNotifications = useCallback(async (notificationIds: string[]): Promise<boolean> => {
+    if (notificationIds.length === 0) return false;
     const prevSnapshot = notifications;
     const removed = prevSnapshot.filter(n => notificationIds.includes(n.id));
     const removedUnread = removed.filter(n => !n.is_read).length;
@@ -168,6 +168,7 @@ export function useNotifications(limit = 50): UseNotificationsResult {
 
     try {
       await deleteNotificationsById(notificationIds);
+      return true;
     } catch (err: any) {
       setNotifications(prevSnapshot);
       setUnreadCount(prev => prev + removedUnread);
@@ -177,6 +178,7 @@ export function useNotifications(limit = 50): UseNotificationsResult {
         description: 'Failed to delete notification',
         variant: 'destructive',
       });
+      return false;
     }
   }, [notifications, toast]);
 

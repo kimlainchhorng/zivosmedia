@@ -46,9 +46,6 @@ const ALLOWED_ORIGINS = new Set<string>([
   "https://zivodriver.com",
   "https://www.zivodriver.com",
   "https://zivo-web.myzivo.workers.dev",
-  "https://myzivo.com",
-  "https://www.myzivo.com",
-  "https://app.myzivo.com",
   // Supabase Studio (used by edge-function test runner)
   "https://supabase.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGINS"),
@@ -61,9 +58,18 @@ const ALLOWED_ORIGIN_SUFFIXES = [
   ".zivosoftware.com",
   ".zivostravel.com",
   ".zivodriver.com",
-  ".myzivo.com",
   ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
 ];
+
+// Native WebView origins for our own Capacitor shells. iOS WKWebView serves the
+// app from capacitor://localhost; Ionic's older scheme is ionic://localhost.
+// (Android uses https://localhost, already covered by isLocalDevelopmentOrigin.)
+// Strict-CORS routes still enforce a bearer JWT + app_integrations checks, so
+// this only opens the browser preflight gate to our own native apps.
+const NATIVE_APP_ORIGINS = new Set<string>([
+  "capacitor://localhost",
+  "ionic://localhost",
+]);
 
 function isPrivateLanHost(hostname: string): boolean {
   if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]") return true;
@@ -87,6 +93,7 @@ function isLocalDevelopmentOrigin(origin: string | null): boolean {
 export function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.has(origin)) return true;
+  if (NATIVE_APP_ORIGINS.has(origin)) return true;
   if (isLocalDevelopmentOrigin(origin)) return true;
   try {
     const url = new URL(origin);

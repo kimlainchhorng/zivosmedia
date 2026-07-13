@@ -102,7 +102,7 @@ export default function SavedLocationsPage() {
                     <p className="text-sm font-bold text-foreground line-clamp-1 capitalize">{l.label}</p>
                     <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{l.address}</p>
                   </div>
-                  <button type="button" aria-label="Remove" onClick={() => remove(l.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" aria-label="Remove" onClick={() => remove(l.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="h-3.5 w-3.5" /></button>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </motion.div>
               );

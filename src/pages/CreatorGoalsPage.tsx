@@ -213,7 +213,7 @@ export default function CreatorGoalsPage() {
                       type="button"
                       aria-label={`Edit ${card.label} goal`}
                       onClick={() => startEdit(card.key)}
-                      className="shrink-0 h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary transition-colors"
+                      className="shrink-0 h-9 w-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Pencil className="h-4 w-4 text-muted-foreground" />
                     </button>
@@ -238,7 +238,7 @@ export default function CreatorGoalsPage() {
                         type="button"
                         aria-label="Save goal"
                         onClick={commitEdit}
-                        className="h-9 w-9 rounded-full bg-ig-gradient flex items-center justify-center text-white shadow-sm active:scale-95 transition-transform"
+                        className="h-9 w-9 rounded-full bg-ig-gradient flex items-center justify-center text-white shadow-sm active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Check className="h-4 w-4" strokeWidth={3} />
                       </button>
@@ -246,7 +246,7 @@ export default function CreatorGoalsPage() {
                         type="button"
                         aria-label="Cancel edit"
                         onClick={cancelEdit}
-                        className="h-9 w-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-95 transition-all"
+                        className="h-9 w-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <X className="h-4 w-4" />
                       </button>

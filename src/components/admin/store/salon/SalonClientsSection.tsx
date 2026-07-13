@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SalonClientsSection — manage the salon's client book (address book).
  * Bookings later attach to a client_id so service history rolls up here.
  */
@@ -241,7 +241,7 @@ export default function SalonClientsSection({ storeId, onJumpToTab }: SalonClien
                   className={cn(
                     "rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors",
                     activeTagFilter === t
-                      ? "border-primary bg-primary text-primary-foreground"
+                      ? "border-primary bg-ig-gradient text-white"
                       : "border-border bg-card text-foreground/80 hover:bg-muted"
                   )}
                 >

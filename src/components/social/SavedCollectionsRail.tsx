@@ -7,9 +7,11 @@ import Check from "lucide-react/dist/esm/icons/check";
 import Gauge from "lucide-react/dist/esm/icons/gauge";
 import Layers3 from "lucide-react/dist/esm/icons/layers-3";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles";
+import X from "lucide-react/dist/esm/icons/x";
 import { toast } from "sonner";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -234,20 +236,28 @@ export default function SavedCollectionsRail({ selectedId, onSelect }: Props) {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="zivo-social-sheet-panel overflow-hidden border-0 p-0 sm:max-w-md">
+        <DialogContent hideClose className="zivo-social-sheet-panel overflow-hidden border-0 p-0 sm:max-w-md">
           <div className="px-3 pt-3">
             <DialogHeader className="zivo-social-header-glass rounded-[1.25rem] px-4 py-3 text-left">
-              <DialogTitle className="flex items-center gap-3 text-base font-bold">
-                <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
-                  <Folder className="h-4 w-4 text-primary" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate">New collection</span>
-                  <DialogDescription className="block truncate text-[11px] font-medium text-muted-foreground">
-                    Group saved posts into a named folder.
-                  </DialogDescription>
-                </span>
-              </DialogTitle>
+              <div className="flex items-center justify-between gap-3">
+                <DialogTitle className="flex items-center gap-3 text-base font-bold">
+                  <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
+                    <Folder className="h-4 w-4 text-primary" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate">New collection</span>
+                    <DialogDescription className="block truncate text-[11px] font-medium text-muted-foreground">
+                      Group saved posts into a named folder.
+                    </DialogDescription>
+                  </span>
+                </DialogTitle>
+                <DialogClose
+                  aria-label="Close"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <X className="h-4 w-4" />
+                </DialogClose>
+              </div>
             </DialogHeader>
           </div>
 

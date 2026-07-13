@@ -202,7 +202,7 @@ export default function DevicesPage() {
                     aria-label="Remove this device"
                     onClick={() => { if (confirm(`Sign out ${labels.primary}?`)) removeMutation.mutate(d.id); }}
                     disabled={removeMutation.isPending}
-                    className="shrink-0 h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
+                    className="shrink-0 h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -217,7 +217,7 @@ export default function DevicesPage() {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-foreground">Don't recognize a device?</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              Remove it, then change your password from <button type="button" onClick={() => navigate("/account/settings")} className="text-ig-gradient font-bold underline-offset-2 hover:underline">account settings</button>.
+              Remove it, then change your password from <button type="button" onClick={() => navigate("/account/settings")} className="text-ig-gradient font-bold underline-offset-2 hover:underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">account settings</button>.
             </p>
           </div>
         </div>

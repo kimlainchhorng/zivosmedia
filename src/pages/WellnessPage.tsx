@@ -1,4 +1,4 @@
-/**
+﻿/**
  * WellnessPage — ZIVO Health & Wellness hub
  * Single page with sub-sections routed via URL: /wellness, /wellness/activity,
  * /wellness/workouts, /wellness/vitals, /wellness/mindfulness, /wellness/telehealth,
@@ -6,7 +6,7 @@
  */
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowLeft, Activity, Dumbbell, Heart, Brain, Stethoscope, Pill,
@@ -95,15 +95,15 @@ const SECTION_TITLES: Record<SectionKey, string> = {
   goals: "Wellness Goals",
 };
 
-const HUB_CARDS: { key: SectionKey; icon: any; label: string; desc: string; gradient: string }[] = [
-  { key: "activity", icon: Activity, label: "Activity", desc: "Steps, calories & moves", gradient: "from-muted to-muted" },
-  { key: "workouts", icon: Dumbbell, label: "Workouts", desc: "Plans & guides", gradient: "from-muted to-muted" },
-  { key: "vitals", icon: Heart, label: "Vitals", desc: "HR, BP & sleep", gradient: "from-muted to-muted" },
-  { key: "mindfulness", icon: Brain, label: "Mindfulness", desc: "Meditation & calm", gradient: "from-muted to-muted" },
-  { key: "telehealth", icon: Stethoscope, label: "Telehealth", desc: "Talk to a doctor", gradient: "from-muted to-muted" },
-  { key: "meds", icon: Pill, label: "Medications", desc: "Reminders & refills", gradient: "from-muted to-muted" },
-  { key: "nutrition", icon: UtensilsCrossed, label: "Nutrition", desc: "Meals & macros", gradient: "from-lime-500 via-green-500 to-emerald-500" },
-  { key: "goals", icon: Trophy, label: "Goals", desc: "Targets & streaks", gradient: "from-yellow-500 via-amber-400 to-orange-400" },
+const HUB_CARDS: { key: SectionKey; icon: any; label: string; desc: string; surface: string; ring: string; chip: string }[] = [
+  { key: "activity",    icon: Activity,        label: "Activity",    desc: "Steps, calories & moves", surface: "from-sky-500/10 to-blue-500/5",      ring: "border-sky-500/20",    chip: "bg-sky-500/15 text-sky-600 dark:text-sky-400" },
+  { key: "workouts",    icon: Dumbbell,        label: "Workouts",    desc: "Plans & guides",          surface: "from-orange-500/10 to-red-500/5",    ring: "border-orange-500/20", chip: "bg-orange-500/15 text-orange-600 dark:text-orange-400" },
+  { key: "vitals",      icon: Heart,           label: "Vitals",      desc: "HR, BP & sleep",          surface: "from-rose-500/10 to-pink-500/5",     ring: "border-rose-500/20",   chip: "bg-rose-500/15 text-rose-600 dark:text-rose-400" },
+  { key: "mindfulness", icon: Brain,           label: "Mindfulness", desc: "Meditation & calm",       surface: "from-violet-500/10 to-purple-500/5", ring: "border-violet-500/20", chip: "bg-violet-500/15 text-violet-600 dark:text-violet-400" },
+  { key: "telehealth",  icon: Stethoscope,     label: "Telehealth",  desc: "Talk to a doctor",        surface: "from-teal-500/10 to-cyan-500/5",     ring: "border-teal-500/20",   chip: "bg-teal-500/15 text-teal-600 dark:text-teal-400" },
+  { key: "meds",        icon: Pill,            label: "Medications", desc: "Reminders & refills",     surface: "from-indigo-500/10 to-blue-500/5",   ring: "border-indigo-500/20", chip: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400" },
+  { key: "nutrition",   icon: UtensilsCrossed, label: "Nutrition",   desc: "Meals & macros",          surface: "from-green-500/10 to-emerald-500/5", ring: "border-green-500/20",  chip: "bg-green-500/15 text-green-600 dark:text-green-400" },
+  { key: "goals",       icon: Trophy,          label: "Goals",       desc: "Targets & streaks",       surface: "from-amber-500/10 to-yellow-500/5",  ring: "border-amber-500/20",  chip: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
 ];
 
 function resolveSection(slug?: string): SectionKey {
@@ -157,6 +157,7 @@ export default function WellnessPage() {
 /* ─────────────────────────  Hub  ───────────────────────── */
 function HubView() {
   const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
   const { day, update } = useWellnessDay();
   const [showWaterLog, setShowWaterLog] = useState(false);
 
@@ -207,19 +208,21 @@ function HubView() {
       </motion.div>
 
       {/* Sub-sections */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {HUB_CARDS.map((card, i) => (
           <Link key={card.key} to={`/wellness/${card.key}`} className="contents">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.04, type: "spring", stiffness: 280, damping: 22 }}
+              transition={{ delay: reduceMotion ? 0 : i * 0.04, type: "spring", stiffness: 280, damping: 22 }}
               className={cn(
-                "rounded-2xl bg-gradient-to-br p-4 h-[112px] flex flex-col justify-between shadow-md active:scale-95 transition-transform",
-                card.gradient,
+                "group rounded-2xl bg-gradient-to-br p-4 h-[112px] flex flex-col justify-between border shadow-sm hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all",
+                card.surface, card.ring,
               )}
             >
-              <card.icon className="w-5 h-5 text-foreground" />
+              <span className={cn("inline-flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-110", card.chip)}>
+                <card.icon className="w-[18px] h-[18px]" />
+              </span>
               <div>
                 <p className="text-foreground font-bold text-[14px] leading-tight">{card.label}</p>
                 <p className="text-muted-foreground text-[11px] mt-0.5">{card.desc}</p>
@@ -529,7 +532,7 @@ function VitalsView() {
                   <button type="button"
                     key={v.type}
                     onClick={() => setForm({ type: v.type, value: "", unit: v.unit })}
-                    className={cn("text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors", form.type === v.type ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50")}
+                    className={cn("text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors", form.type === v.type ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:border-primary/50")}
                   >
                     {v.type}
                   </button>

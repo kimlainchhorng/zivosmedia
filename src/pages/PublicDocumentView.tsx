@@ -218,7 +218,7 @@ export default function PublicDocumentView() {
               </div>
             </div>
 
-            <div className="border-t border-border pt-4">
+            <div className="border-t border-border pt-4 overflow-x-auto print:overflow-visible">
               <table className="w-full text-sm">
                 <thead className="text-[10px] uppercase tracking-wide text-muted-foreground">
                   <tr className="border-b border-border">

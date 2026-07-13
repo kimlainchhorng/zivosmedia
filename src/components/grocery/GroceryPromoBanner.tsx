@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryPromoBanner - Bold, eye-catching service info banners
  * GroceryPromoInput - Validates promo codes via Supabase RPC
  */
@@ -184,7 +184,7 @@ export function GroceryPromoInput({
                 whileTap={{ scale: 0.95 }}
                 onClick={handleApply}
                 disabled={status === "checking" || !code.trim()}
-                className="h-9 px-4 rounded-xl bg-primary text-primary-foreground text-[11px] font-bold disabled:opacity-50 transition-opacity"
+                className="h-9 px-4 rounded-xl bg-ig-gradient text-white text-[11px] font-bold disabled:opacity-50 transition-opacity"
               >
                 {status === "checking" ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Crown, CreditCard, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -211,7 +211,7 @@ export default function SubscribeInAppSheet({ open, onClose, creatorId, creatorN
       {open && (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+          className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
           onClick={onClose}
         >
           <motion.div

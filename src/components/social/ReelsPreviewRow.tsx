@@ -113,7 +113,7 @@ export default function ReelsPreviewRow({ fullBleed = true }: Props) {
           )}
           <div className="min-w-0">
             <h2 className={fullBleed ? "text-xl sm:text-2xl md:text-3xl font-extrabold text-white drop-shadow tracking-tight" : "truncate text-[13px] font-bold text-foreground tracking-tight"}>Trending Reels</h2>
-            <p className={fullBleed ? "text-xs sm:text-sm text-white/60 mt-0.5" : "mt-0.5 truncate text-[11px] font-medium text-muted-foreground"}>Most-watched videos this week</p>
+            <p className={fullBleed ? "text-xs sm:text-sm text-white/60 mt-0.5" : "mt-0.5 truncate text-[11px] font-medium text-muted-foreground"}>Most-watched videos</p>
           </div>
         </div>
         <button type="button"
@@ -138,7 +138,7 @@ export default function ReelsPreviewRow({ fullBleed = true }: Props) {
               </span>
               <span className="min-w-0">
                 <span className={fullBleed ? "block truncate text-xs font-black tabular-nums text-white" : "block truncate text-xs font-black tabular-nums text-foreground"}>{reels.length}</span>
-                <span className={fullBleed ? "block truncate text-[10px] font-semibold text-white/60" : "block truncate text-[10px] font-semibold text-muted-foreground"}>Reels</span>
+                <span className={fullBleed ? "block truncate text-[10px] font-semibold text-white/60" : "block truncate text-[10px] font-semibold text-muted-foreground"}>Showing</span>
               </span>
             </div>
           </div>
@@ -293,7 +293,8 @@ export default function ReelsPreviewRow({ fullBleed = true }: Props) {
                   <Play className="h-10 w-10 text-white/40" />
                 </div>
               )}
-              {!fullBleed && (
+              {/* "Hot" is earned, not decoration — top-3 by views only. */}
+              {!fullBleed && index < 3 && reel.views > 0 && (
                 <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/35 px-2 py-1 text-[10px] font-black text-white backdrop-blur-md">
                   <Flame className="h-3 w-3 fill-orange-300 text-orange-300" aria-hidden="true" />
                   Hot

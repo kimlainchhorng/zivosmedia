@@ -29,7 +29,6 @@ import Check from "lucide-react/dist/esm/icons/check";
 import Newspaper from "lucide-react/dist/esm/icons/newspaper";
 import Film from "lucide-react/dist/esm/icons/film";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
-import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import Rss from "lucide-react/dist/esm/icons/rss";
 import Search from "lucide-react/dist/esm/icons/search";
 import { useState, useRef, useEffect } from "react";
@@ -74,7 +73,6 @@ const serviceNavItems = [
 const directNavItems = [
   { label: "Feed", href: "/feed", icon: Newspaper, cssVar: "var(--flights)" },
   { label: "Reels", href: "/reels", icon: Film, cssVar: "var(--eats)" },
-  { label: "Chat", href: "/chat", icon: MessageCircle, cssVar: "var(--rides)" },
 ];
 
 // On zivostravel.com the top nav shows travel services instead of the social pills.
@@ -88,7 +86,6 @@ const travelNavItems = [
 const communityNavItems = [
   { label: "Feed", description: "Posts & updates", href: "/feed", icon: Newspaper, color: "text-blue-500" },
   { label: "Reels", description: "Short videos", href: "/reels", icon: Film, color: "text-pink-500" },
-  { label: "Chat", description: "Messages & conversations", href: "/chat", icon: MessageCircle, color: "text-emerald-500" },
   { label: "Map", description: "Explore nearby stores", href: "/store-map", icon: MapPin, color: "text-orange-500" },
 ];
 
@@ -110,7 +107,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const isTravel = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
   const { isActive: isMember } = useMembership();
   const { data: ownerStores = [] } = useOwnerStores();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -194,6 +191,10 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
     }
     navigate("/feed?search=1");
   };
+  const desktopNavItems = isTravel ? travelNavItems : directNavItems;
+  const desktopSearchHint = isTravel
+    ? "Flights, stays, cars, and support"
+    : "Apps, rides, food, creators";
 
   return (
     <>
@@ -206,14 +207,13 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
             : "bg-transparent"
         )}
         style={{
-          perspective: "1200px",
           paddingTop: "var(--zivo-safe-top-sticky)",
         }}
       >
         <motion.header
           ref={ref}
-          initial={{ rotateX: -3, y: -10, opacity: 0 }}
-          animate={{ rotateX: 0, y: 0, opacity: 1 }}
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 25, delay: 0.1 }}
           className={cn(
             "transition-all duration-500 origin-top",
@@ -227,28 +227,15 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                 ? "bg-transparent"
                 : "bg-background/90 backdrop-blur-2xl border-b border-border/15 shadow-[0_4px_20px_-4px_hsl(var(--foreground)/0.04)]"
           )}
-          style={{
-            transformStyle: "preserve-3d",
-          }}
         >
-          {/* Holographic rainbow accent line */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-[2px] opacity-60"
-            style={{
-              background: "linear-gradient(90deg, hsl(var(--flights)), hsl(var(--hotels)), hsl(var(--cars)), hsl(var(--rides)), hsl(var(--eats)), hsl(var(--flights)))",
-              backgroundSize: "200% 100%",
-              animation: "navRainbowShift 6s linear infinite",
-            }}
-          />
-          <div className="mx-auto px-2 sm:px-4 max-w-[1400px]">
-            <div className="flex items-center gap-3 h-[60px]">
+          <div className="mx-auto max-w-[1400px] px-2 sm:px-4">
+            <div className="flex min-h-[72px] items-center gap-3 py-2">
               {/* Logo — 3D float */}
               <motion.div
                 className="cursor-pointer shrink-0"
                 onClick={() => navigate("/")}
-                whileHover={{ scale: 1.05, z: 20, rotateY: 3 }}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                style={{ transformStyle: "preserve-3d" }}
               >
                 {isTravel ? (
                   <span className="flex items-center gap-1.5">
@@ -263,83 +250,93 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                 )}
               </motion.div>
 
-              {/* Center: Page title + nav pills */}
-              <nav
-                className="hidden lg:flex items-center gap-3 px-1 py-1"
-                role="tablist"
-                aria-label="Navigation"
-              >
+              <div className="hidden min-w-0 flex-1 items-center gap-4 lg:flex">
+                <nav
+                  className="flex min-w-0 flex-1 items-center gap-1.5 rounded-[28px] border border-border/55 bg-background/88 px-2 py-2 shadow-[0_20px_50px_-34px_hsl(var(--foreground)/0.32)] backdrop-blur-2xl"
+                  role="tablist"
+                  aria-label="Navigation"
+                >
+                    {desktopNavItems.map((item) => {
+                      const isActive = location.pathname.startsWith(item.href);
+                      const targetPath = item.href;
+                      return (
+                        <motion.div
+                          key={item.href}
+                          whileHover={{ y: -2, scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                          transition={{ type: "spring", stiffness: 420, damping: 24 }}
+                        >
+                          <Link
+                            to={targetPath}
+                            onMouseEnter={() => prefetchIfEligible(targetPath)}
+                            onFocus={() => prefetchIfEligible(targetPath)}
+                            onTouchStart={() => prefetchIfEligible(targetPath)}
+                            className={cn(
+                              "flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold tracking-wide transition-all duration-300 whitespace-nowrap border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                              isActive
+                                ? ""
+                                : "border-transparent bg-transparent text-foreground/72 hover:border-border/60 hover:bg-muted/65 hover:text-foreground"
+                            )}
+                            style={
+                              isActive
+                                ? {
+                                    background: `linear-gradient(135deg, hsl(${item.cssVar} / 0.2), hsl(${item.cssVar} / 0.09))`,
+                                    borderColor: `hsl(${item.cssVar} / 0.32)`,
+                                    boxShadow: `inset 0 1px 0 hsl(var(--background) / 0.68), 0 12px 24px -18px hsl(${item.cssVar} / 0.92)`,
+                                    color: `hsl(${item.cssVar})`,
+                                  }
+                                : undefined
+                            }
+                          >
+                            <item.icon className="h-4 w-4" style={isActive ? undefined : { color: `hsl(${item.cssVar})` }} />
+                            {item.label}
+                          </Link>
+                        </motion.div>
+                      );
+                    })}
+                  </nav>
 
-                {/* Direct nav pills: Feed, Reels */}
-                {(isTravel ? travelNavItems : directNavItems).map((item) => {
-                  const isActive = location.pathname.startsWith(item.href);
-                  const targetPath = item.label === "Chat" && !user ? withRedirectParam("/login", "/chat") : item.href;
-                  return (
-                    <motion.div
-                      key={item.href}
-                      whileHover={{ y: -2, scale: 1.04 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                    >
-                      <Link
-                        to={targetPath}
-                        onMouseEnter={() => prefetchIfEligible(targetPath)}
-                        onFocus={() => prefetchIfEligible(targetPath)}
-                        onTouchStart={() => prefetchIfEligible(targetPath)}
-                        className={cn(
-                          "flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold tracking-wide transition-all duration-300 whitespace-nowrap border",
-                          isActive
-                            ? ""
-                            : "text-foreground/70 hover:text-foreground border-border/40 hover:border-border/70 hover:bg-muted/40"
-                        )}
-                        style={
-                          isActive
-                            ? {
-                                background: `linear-gradient(135deg, hsl(${item.cssVar} / 0.18), hsl(${item.cssVar} / 0.08))`,
-                                borderColor: `hsl(${item.cssVar} / 0.35)`,
-                                boxShadow: `0 2px 12px -3px hsl(${item.cssVar} / 0.3)`,
-                                color: `hsl(${item.cssVar})`,
-                              }
-                            : undefined
-                        }
-                      >
-                        <item.icon className="w-4 h-4" style={isActive ? undefined : { color: `hsl(${item.cssVar})` }} />
-                        {item.label}
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </nav>
-
-              {/* Search Bar */}
-              <div className="hidden lg:flex flex-1 max-w-md ml-auto mr-3 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <input
-                  placeholder="Search apps, rides, food..."
-                  className="w-full pl-9 pr-4 py-2 rounded-full bg-muted/40 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                <button
+                  type="button"
                   onClick={openFeedSearch}
-                  onFocus={openFeedSearch}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
                       openFeedSearch();
                     }
                   }}
-                  readOnly
-                  role="button"
+                  className="group flex min-w-[290px] max-w-[390px] flex-1 items-center gap-3 rounded-[28px] border border-border/55 bg-muted/[0.28] px-4 py-3 text-left shadow-[0_20px_50px_-34px_hsl(var(--foreground)/0.32)] transition-all duration-300 hover:-translate-y-0.5 hover:border-border/75 hover:bg-muted/[0.38] hover:shadow-[0_24px_60px_-30px_hsl(var(--foreground)/0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   aria-label="Open search"
-                />
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background/92 text-muted-foreground shadow-sm transition-colors group-hover:text-foreground">
+                    <Search className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-foreground/90">
+                      {desktopSearchHint}
+                    </span>
+                    <span className="block text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
+                      Quick search
+                    </span>
+                  </span>
+                  <span className="hidden rounded-full border border-border/55 bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground xl:inline-flex">
+                    Enter
+                  </span>
+                </button>
               </div>
 
               {/* Right: Language, Currency, Auth */}
-              <div className="hidden md:flex items-center gap-2" style={{ transformStyle: "preserve-3d" }}>
+              <div
+                className="ml-auto hidden items-center gap-2 md:flex lg:gap-1.5 lg:rounded-[26px] lg:border lg:border-border/40 lg:bg-background/76 lg:px-2 lg:py-1.5 lg:shadow-[0_16px_40px_-30px_hsl(var(--foreground)/0.3)] lg:backdrop-blur-2xl"
+                style={{ transformStyle: "preserve-3d" }}
+              >
                 {/* Notification bell — desktop entry point for /account/notifications.
                     Mobile gets a bell in the FeedPage sticky header instead. */}
                 {user && (
                   <button
                     type="button"
                     onClick={() => navigate("/notifications")}
-                    className="hidden lg:flex relative w-9 h-9 rounded-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors active:scale-95"
+                    className="relative hidden h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-95 hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:flex"
                     aria-label={notificationUnread > 0 ? `Notifications, ${notificationUnread} unread` : "Notifications"}
                     title="Notifications"
                   >
@@ -352,17 +349,23 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                   </button>
                 )}
                 {/* ZIVO app switcher — jump across the app network (one identity) */}
-                <AppSwitcher />
+                <AppSwitcher className="rounded-full border border-transparent bg-transparent hover:border-border/40 hover:bg-muted/50" />
+                <div className="hidden xl:block">
+                  <CurrencySelector
+                    variant="dropdown"
+                    className="h-9 rounded-full border border-transparent bg-transparent px-3 text-muted-foreground hover:border-border/40 hover:bg-muted/50 hover:text-foreground"
+                  />
+                </div>
                 <Popover open={isLangOpen} onOpenChange={setIsLangOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
                       className={cn(
-                        "gap-1.5 px-2 h-8 rounded-full transition-all duration-200",
+                        "h-9 gap-1.5 rounded-full px-3 transition-all duration-200",
                         scrolled || !isHomePage
-                          ? "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                          : "text-foreground/85 hover:text-foreground hover:bg-foreground/5"
+                          ? "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                          : "text-foreground/85 hover:bg-foreground/5 hover:text-foreground"
                       )}
                     >
                       <Globe className="w-3.5 h-3.5" />
@@ -421,13 +424,12 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                 {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <motion.button
-                        whileHover={{ scale: 1.05, z: 10 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="lg:hidden flex items-center gap-2 px-2 py-1.5 rounded-full transition-all duration-200 group"
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 rounded-full border border-border/40 px-2 py-1.5 transition-all duration-200 hover:scale-[1.02] hover:border-border/70 hover:bg-muted/40 active:scale-95 group"
                         style={{
-                          background: "hsl(var(--muted) / 0.3)",
-                          boxShadow: "0 2px 10px -2px hsl(var(--foreground) / 0.06), inset 0 1px 1px hsl(var(--background) / 0.4)",
+                          background: "hsl(var(--background) / 0.72)",
+                          boxShadow: "0 10px 24px -18px hsl(var(--foreground) / 0.2), inset 0 1px 1px hsl(var(--background) / 0.55)",
                         }}
                       >
                         <div className="relative">
@@ -453,8 +455,16 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                             </div>
                           )}
                         </div>
-                        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors lg:hidden" />
-                      </motion.button>
+                        <div className="hidden min-w-0 text-left xl:block">
+                          <p className="max-w-[120px] truncate text-xs font-semibold text-foreground/90">
+                            {userName || user.email?.split("@")[0] || "Account"}
+                          </p>
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                            {isMember ? "ZIVO+ member" : "Account"}
+                          </p>
+                        </div>
+                        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground transition-colors group-hover:text-foreground" />
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="end"
@@ -469,9 +479,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                         background: "hsl(var(--card) / 0.9)",
                       }}
                     >
-                      {/* Email + My Profile + My Trips — mobile only.
-                          On lg+ the sidebar already shows identity + profile actions. */}
-                      <div className="lg:hidden">
+                      <div>
                         <div className="px-3 py-2.5 mb-1">
                           <p className="text-sm font-semibold text-foreground truncate">{user.email}</p>
                           {isMember && (
@@ -488,10 +496,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                           <Briefcase className="w-4 h-4 text-muted-foreground" /> My Trips
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                      </div>
-                      {/* Business Pages, Membership, Sign out — shown on mobile only.
-                          On lg+ these live in the left FeedSidebar to avoid duplication. */}
-                      <div className="lg:hidden">
+
                         <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                           Your Business Pages
                         </div>

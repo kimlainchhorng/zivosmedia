@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoreMapPage — Clean white map with store pins
  * Features: light tiles, category filters, user GPS dot, search bar,
  *           expandable nearby sheet, radius filter + map circle,
@@ -3000,7 +3000,7 @@ export default function StoreMapPage() {
                   onClick={() => { setActiveCategory("all"); setActiveGroup(""); setTrendingOnly(false); setSmartFilterActive(false); setSelectedStore(null); }}
                   className={`min-h-[40px] px-4 py-2 rounded-full text-[12px] font-semibold transition-all whitespace-nowrap border backdrop-blur-sm touch-manipulation ${
                     activeCategory === "all" && !activeGroup && !trendingOnly
-                      ? "bg-primary text-primary-foreground border-primary shadow-md"
+                      ? "bg-ig-gradient text-white border-primary shadow-md"
                       : "bg-card/90 text-muted-foreground border-border/30 shadow-sm"
                   }`}
                 >
@@ -3100,7 +3100,7 @@ export default function StoreMapPage() {
                       aria-label={`${cat.label} category — ${count} stores`}
                       onClick={() => { setActiveCategory(isActive ? "all" : cat.value); setTrendingOnly(false); setSmartFilterActive(false); setSelectedStore(null); }}
                       className={`min-h-[40px] px-4 py-2 rounded-full text-[12px] font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 border backdrop-blur-sm touch-manipulation ${
-                        isActive ? "bg-primary text-primary-foreground border-primary shadow-md" : "bg-card/90 text-muted-foreground border-border/30 shadow-sm"
+                        isActive ? "bg-ig-gradient text-white border-primary shadow-md" : "bg-card/90 text-muted-foreground border-border/30 shadow-sm"
                       }`}
                     >
                       <span className="text-[13px]">{getCategoryIcon(cat.value)}</span>
@@ -3277,7 +3277,7 @@ export default function StoreMapPage() {
                           onClick={action.run}
                           className={`min-h-[34px] rounded-full px-3.5 text-[12px] font-bold shadow-sm ${
                             action.primary
-                              ? "bg-primary text-primary-foreground"
+                              ? "bg-ig-gradient text-white"
                               : "border border-border/40 bg-muted/50 text-foreground"
                           }`}
                         >
@@ -4072,7 +4072,7 @@ export default function StoreMapPage() {
                     {selectedStore.category === "auto-repair" && (
                       <div className="grid grid-cols-2 gap-2 mb-2">
                         <button type="button"
-                          className="h-10 rounded-lg bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+                          className="h-10 rounded-lg bg-ig-gradient text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5"
                           onClick={(e) => { e.stopPropagation(); navigate(`/book/${selectedStore.slug}`); }}
                         >
                           <Wrench className="w-3.5 h-3.5" /> Book Service
@@ -4100,7 +4100,7 @@ export default function StoreMapPage() {
                         </select>
                         <div className="grid grid-cols-2 gap-2 mt-2">
                           <button type="button"
-                            className="h-9 rounded-lg bg-primary text-primary-foreground text-xs font-semibold"
+                            className="h-9 rounded-lg bg-ig-gradient text-white text-xs font-semibold"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate("/reels", {

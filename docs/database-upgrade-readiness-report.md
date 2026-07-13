@@ -1,21 +1,37 @@
 # Database Upgrade Readiness Report
 
+<<<<<<< HEAD
 Generated: 2026-06-08T21:42:48.127Z
+=======
+Generated: 2026-06-12T21:34:29.446Z
+>>>>>>> origin/main
 
 ## Summary
 
 - Supabase CLI: 2.105.0
+<<<<<<< HEAD
 - Local migrations: 1112
+=======
+- Local migrations: 1122
+>>>>>>> origin/main
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 6
 - Duplicate SQL hashes: 0
+<<<<<<< HEAD
 - Last linked drift report: local=1112, remote=1561, matched=1, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=495, unmatchedRemote=944, localAfterRemoteRange=14, sharedDays=90, remoteError=no, generated=2026-06-08T21:42:46.617Z
 - Pending local migration gates: createsTables=1, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
 - Public tables created in migrations: 932
+=======
+- Last linked drift report: local=1122, remote=1570, matched=1, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=505, unmatchedRemote=953, localAfterRemoteRange=19, sharedDays=92, remoteError=no, generated=2026-06-12T21:34:26.712Z
+- Pending local migration gates: createsTables=1, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
+- Postgres 17 unsupported extensions found: 0
+- Public tables created in migrations: 933
+>>>>>>> origin/main
 - Public tables needing RLS review: 0
 - Recent public tables needing Data API grant review: 12
 - Views needing security_invoker review: 0

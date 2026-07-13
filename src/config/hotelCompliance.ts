@@ -1,5 +1,5 @@
 /**
- * HIZIVO HOTELS - LOCKED COMPLIANCE TEXT
+ * ZIVO HOTELS - LOCKED COMPLIANCE TEXT
  * 
  * DO NOT MODIFY WITHOUT LEGAL APPROVAL
  * These texts are required for partner compliance
@@ -133,7 +133,7 @@ export const HOTEL_ERROR_MESSAGES = {
 // ============================================
 
 export const HOTEL_TRACKING_PARAMS = {
-  utm_source: 'hizivo',
+  utm_source: 'zivosmedia',
   utm_medium: 'partner',
   utm_campaign: 'hotels',
 } as const;

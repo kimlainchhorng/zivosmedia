@@ -16,8 +16,10 @@ export default function CoinPurchaseSuccess() {
   const queryClient = useQueryClient();
   const sessionId = params.get("session_id");
   const rawReturn = params.get("return_to") || "/wallet";
-  // Only allow safe same-origin paths
-  const returnTo = rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "/wallet";
+  // Only allow safe same-origin paths. Collapse backslashes first: browsers treat "\"
+  // as "/", so "/\evil.com" would resolve to the authority //evil.com (off-origin).
+  const returnProbe = rawReturn.replace(/\\/g, "/");
+  const returnTo = returnProbe.startsWith("/") && !returnProbe.startsWith("//") ? rawReturn : "/wallet";
   const isLiveReturn = returnTo.startsWith("/live/") || returnTo.startsWith("/go-live");
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "error">("loading");
   const [coins, setCoins] = useState<number>(0);
@@ -100,7 +102,7 @@ export default function CoinPurchaseSuccess() {
             {isLiveReturn && (
               <button type="button"
                 onClick={() => navigate("/wallet")}
-                className="mt-3 text-xs text-muted-foreground underline"
+                className="mt-3 text-xs text-muted-foreground underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Go to Wallet instead
               </button>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PublicCarDealershipDetailPage — customer-facing vehicle detail view.
  *
  * Route: /car-dealership/:slug/v/:vehicleId
@@ -169,9 +169,9 @@ function PaymentCalculator({ vehiclePriceCents }: PaymentCalcProps) {
               type="button"
               onClick={() => setTermMonths(t)}
               className={cn(
-                "flex-1 rounded-md py-1 text-xs font-medium transition-colors",
+                "flex-1 rounded-md py-1 text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 termMonths === t
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted text-muted-foreground hover:bg-muted/70",
               )}
             >
@@ -235,7 +235,7 @@ function SimilarVehiclesGrid({ vehicles, storeSlug }: SimilarVehiclesProps) {
           <Link
             key={v.id}
             to={`/car-dealership/${storeSlug}/v/${v.id}`}
-            className="block group"
+            className="block group rounded-lg transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="aspect-[16/10] rounded-lg overflow-hidden bg-muted relative">
               {v.photo_url ? (
@@ -306,7 +306,7 @@ function Lightbox({ photos, initialIndex, onClose }: LightboxProps) {
     <div className="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center" onClick={onClose}>
       <button
         type="button"
-        className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-colors"
+        className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
         onClick={(e) => { e.stopPropagation(); onClose(); }}
         aria-label="Close"
       >
@@ -324,7 +324,7 @@ function Lightbox({ photos, initialIndex, onClose }: LightboxProps) {
         <>
           <button
             type="button"
-            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white"
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
             onClick={(e) => { e.stopPropagation(); prev(); }}
             aria-label="Previous"
           >
@@ -332,7 +332,7 @@ function Lightbox({ photos, initialIndex, onClose }: LightboxProps) {
           </button>
           <button
             type="button"
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white"
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
             onClick={(e) => { e.stopPropagation(); next(); }}
             aria-label="Next"
           >
@@ -746,7 +746,7 @@ export default function PublicCarDealershipDetailPage() {
           {slug && (
             <Link
               to={`/car-dealership/${slug}`}
-              className="mt-4 inline-block text-primary underline"
+              className="mt-4 inline-block text-primary underline transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
             >
               ← Back to inventory
             </Link>
@@ -778,7 +778,7 @@ export default function PublicCarDealershipDetailPage() {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <Link to={`/car-dealership/${store.slug}`} className="text-base font-bold hover:text-primary transition-colors truncate block">
+            <Link to={`/car-dealership/${store.slug}`} className="text-base font-bold hover:text-primary transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm truncate block">
               {store.name}
             </Link>
             {cityState && (
@@ -790,7 +790,7 @@ export default function PublicCarDealershipDetailPage() {
           {store.phone && (
             <a
               href={`tel:${store.phone}`}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border bg-background hover:bg-muted px-3 py-1.5 text-sm font-medium transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border bg-background hover:bg-muted px-3 py-1.5 text-sm font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Phone className="h-3.5 w-3.5" />
               {store.phone}
@@ -804,7 +804,7 @@ export default function PublicCarDealershipDetailPage() {
         <button
           type="button"
           onClick={() => navigate(`/car-dealership/${store.slug}`)}
-          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
         >
           <ArrowLeft className="h-3.5 w-3.5" />Back to inventory
         </button>
@@ -856,7 +856,7 @@ export default function PublicCarDealershipDetailPage() {
                 <button
                   type="button"
                   onClick={() => setLightboxIdx(activePhoto)}
-                  className="block w-full aspect-[16/10] rounded-xl overflow-hidden bg-muted relative group"
+                  className="block w-full aspect-[16/10] rounded-xl overflow-hidden bg-muted relative group transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <img
                     src={photos[activePhoto]}
@@ -877,7 +877,7 @@ export default function PublicCarDealershipDetailPage() {
                         type="button"
                         onClick={() => setActivePhoto(i)}
                         className={cn(
-                          "aspect-[4/3] rounded-md overflow-hidden border-2 relative transition-all",
+                          "aspect-[4/3] rounded-md overflow-hidden border-2 relative transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           i === activePhoto ? "border-primary" : "border-transparent opacity-70 hover:opacity-100",
                         )}
                       >
@@ -918,7 +918,7 @@ export default function PublicCarDealershipDetailPage() {
                 {store.phone && (
                   <a
                     href={`tel:${store.phone}`}
-                    className="flex items-center justify-center w-full gap-1.5 rounded-md border border-border bg-background hover:bg-muted px-3 py-2 text-sm font-medium transition-colors"
+                    className="flex items-center justify-center w-full gap-1.5 rounded-md border border-border bg-background hover:bg-muted px-3 py-2 text-sm font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Phone className="h-4 w-4" />
                     {store.phone}
@@ -1020,7 +1020,7 @@ export default function PublicCarDealershipDetailPage() {
             <p className="font-semibold">{store.name}</p>
             <div className="flex items-center gap-4 text-muted-foreground">
               {store.phone && (
-                <a href={`tel:${store.phone}`} className="flex items-center gap-1 hover:text-foreground">
+                <a href={`tel:${store.phone}`} className="flex items-center gap-1 hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">
                   <Phone className="h-3.5 w-3.5" />{store.phone}
                 </a>
               )}

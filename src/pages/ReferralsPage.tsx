@@ -226,7 +226,7 @@ export default function ReferralsPage() {
                   type="button"
                   aria-label="Cancel"
                   onClick={() => setCreating(false)}
-                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground"
+                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -239,8 +239,9 @@ export default function ReferralsPage() {
                       key={d}
                       type="button"
                       onClick={() => setDuration(d)}
+                      aria-pressed={duration === d}
                       className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-bold transition-all",
+                        "px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         duration === d ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                       )}
                     >
@@ -347,14 +348,14 @@ export default function ReferralsPage() {
                     <button
                       type="button"
                       onClick={() => copy(url)}
-                      className="flex-1 h-9 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                      className="flex-1 h-9 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Copy className="h-3.5 w-3.5" /> Copy
                     </button>
                     <button
                       type="button"
                       onClick={() => share(l)}
-                      className="flex-1 h-9 rounded-lg bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 hover:opacity-90 transition-all"
+                      className="flex-1 h-9 rounded-lg bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 active:scale-95 hover:opacity-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Share2 className="h-3.5 w-3.5" /> Share
                     </button>
@@ -363,7 +364,7 @@ export default function ReferralsPage() {
                       aria-label={l.is_active ? "Deactivate" : "Reactivate"}
                       onClick={() => toggleMutation.mutate({ id: l.id, isActive: !!l.is_active })}
                       className={cn(
-                        "h-9 px-3 rounded-lg text-xs font-bold inline-flex items-center justify-center active:scale-95 transition-all",
+                        "h-9 px-3 rounded-lg text-xs font-bold inline-flex items-center justify-center active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         l.is_active ? "bg-secondary hover:bg-muted text-foreground" : "bg-ig-gradient text-white",
                       )}
                     >
@@ -373,7 +374,7 @@ export default function ReferralsPage() {
                       type="button"
                       aria-label="Delete link"
                       onClick={() => { if (confirm("Delete this link?")) deleteMutation.mutate(l.id); }}
-                      className="h-9 w-9 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
+                      className="h-9 w-9 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

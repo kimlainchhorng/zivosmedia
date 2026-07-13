@@ -170,7 +170,8 @@ export default function SupportCenterPage() {
             <button type="button"
               key={f.id}
               onClick={() => setStatusFilter(f.id)}
-              className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all duration-200 touch-manipulation ${
+              aria-pressed={statusFilter === f.id}
+              className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all duration-200 touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 statusFilter === f.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
               }`}
             >
@@ -191,7 +192,7 @@ export default function SupportCenterPage() {
                 const meta = getServiceMeta(ticket.service_type);
                 return (
                   <motion.div key={ticket.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                    <Link to={`/support/${ticket.id}`}>
+                    <Link to={`/support/${ticket.id}`} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Card className="hover:shadow-lg transition-all duration-300 border-border/40 hover:border-primary/15 group">
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">

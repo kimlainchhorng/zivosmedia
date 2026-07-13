@@ -1,4 +1,4 @@
-/**
+﻿/**
  * JobPostingDetailPage — /jobs-hub/:id
  *
  * Detail view for a gig-hub job_postings row. Three states:
@@ -133,7 +133,7 @@ export default function JobPostingDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4 max-w-2xl">
+      <main className="pb-24 container mx-auto px-4 max-w-2xl" style={{ paddingTop: "calc(var(--zivo-safe-top-sticky, 64px) + 3.5rem)" }}>
         <button
           type="button"
           onClick={() => navigate("/jobs-hub")}
@@ -245,7 +245,7 @@ export default function JobPostingDetailPage() {
                   myApplication
                     ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 cursor-default"
                     : user
-                      ? "bg-primary text-primary-foreground hover:opacity-90"
+                      ? "bg-ig-gradient text-white hover:opacity-90"
                       : "bg-muted/50 text-muted-foreground cursor-not-allowed",
                 )}
               >

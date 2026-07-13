@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AdminLodgingWiringCheckPage
  * End-to-end wiring check for the lodging booking workflow.
  * Calls `lodging_wiring_report()` (admin-only RPC) and renders pass/fail per check
@@ -393,7 +393,7 @@ export default function AdminLodgingWiringCheckPage() {
                               target="_blank"
                               rel="noreferrer"
                               onClick={() => logRemediation("open_sql_editor", c, { editor_url: c.editor_url! })}
-                              className="inline-flex items-center gap-1 h-6 px-2 rounded-lg text-[10px] bg-primary text-primary-foreground hover:opacity-90"
+                              className="inline-flex items-center gap-1 h-6 px-2 rounded-lg text-[10px] bg-ig-gradient text-white hover:opacity-90"
                             >
                               <ExternalLink className="h-3 w-3" /> Open in editor
                             </a>
@@ -472,13 +472,13 @@ export default function AdminLodgingWiringCheckPage() {
             <div className="inline-flex rounded-lg border border-border overflow-hidden">
               <button type="button"
                 onClick={() => setHistoryTab("runs")}
-                className={`text-[11px] px-2.5 py-1 inline-flex items-center gap-1 ${historyTab === "runs" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-accent"}`}
+                className={`text-[11px] px-2.5 py-1 inline-flex items-center gap-1 ${historyTab === "runs" ? "bg-ig-gradient text-white" : "bg-background text-muted-foreground hover:bg-accent"}`}
               >
                 <History className="h-3 w-3" /> Runs
               </button>
               <button type="button"
                 onClick={() => setHistoryTab("actions")}
-                className={`text-[11px] px-2.5 py-1 inline-flex items-center gap-1 ${historyTab === "actions" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-accent"}`}
+                className={`text-[11px] px-2.5 py-1 inline-flex items-center gap-1 ${historyTab === "actions" ? "bg-ig-gradient text-white" : "bg-background text-muted-foreground hover:bg-accent"}`}
               >
                 <ListChecks className="h-3 w-3" /> Actions ({actions.length})
               </button>

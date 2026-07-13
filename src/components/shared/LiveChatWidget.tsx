@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { MessageCircle, X, Send, Bot, User, Headphones, Loader2, Sparkles, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { streamZivoAiChat } from "@/lib/zivoAiChat";
 import { toast } from "sonner";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 
@@ -30,8 +31,6 @@ const ESCALATION_CATEGORIES = [
   { value: "booking", label: "Booking Help" },
   { value: "other", label: "Other" },
 ];
-
-const CHAT_URL = `${SUPABASE_URL}/functions/v1/ai-support-chat`;
 
 const LiveChatWidget = () => {
   const location = useLocation();
@@ -87,91 +86,23 @@ const LiveChatWidget = () => {
       content: m.content,
     }));
 
-    const resp = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({ messages: apiMessages }),
-      signal: controller.signal,
-    });
-
-    if (!resp.ok) {
-      const errorData = await resp.json().catch(() => ({}));
-      if (resp.status === 429) {
-        toast.error("AI is busy, please try again in a moment");
-      } else if (resp.status === 402) {
-        toast.error("Service temporarily unavailable");
-      } else {
-        toast.error(errorData.error || "Something went wrong");
-      }
-      throw new Error(errorData.error || "Stream failed");
-    }
-
-    if (!resp.body) throw new Error("No response body");
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
     let assistantContent = "";
     const assistantId = Date.now() + 1;
-
     setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-
-      let newlineIdx: number;
-      while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-        let line = buffer.slice(0, newlineIdx);
-        buffer = buffer.slice(newlineIdx + 1);
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
-
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") break;
-
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const delta = parsed.choices?.[0]?.delta?.content;
-          if (delta) {
-            assistantContent += delta;
-            const snapshot = assistantContent;
-            setMessages((prev) =>
-              prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
-            );
-          }
-        } catch {
-          buffer = line + "\n" + buffer;
-          break;
-        }
-      }
-    }
-
-    if (buffer.trim()) {
-      for (let raw of buffer.split("\n")) {
-        if (!raw) continue;
-        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-        if (!raw.startsWith("data: ")) continue;
-        const jsonStr = raw.slice(6).trim();
-        if (jsonStr === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const delta = parsed.choices?.[0]?.delta?.content;
-          if (delta) {
-            assistantContent += delta;
-            const snapshot = assistantContent;
-            setMessages((prev) =>
-              prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
-            );
-          }
-        } catch { /* ignore */ }
-      }
-    }
+    await streamZivoAiChat({
+      mode: "support",
+      provider: "auto",
+      messages: apiMessages,
+      signal: controller.signal,
+      onDelta: (delta) => {
+        assistantContent += delta;
+        const snapshot = assistantContent;
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
+        );
+      },
+    });
   };
 
   const sendMessage = async (text: string) => {
@@ -193,6 +124,7 @@ const LiveChatWidget = () => {
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
         console.error("Chat error:", e);
+        toast.error(e instanceof Error ? e.message : "AI is unavailable");
       }
     } finally {
       setIsStreaming(false);
@@ -368,7 +300,7 @@ const LiveChatWidget = () => {
                     className={`max-w-[78%] p-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${
                       msg.role === "assistant"
                         ? "bg-muted/60 rounded-tl-sm"
-                        : "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-ig-gradient text-white rounded-tr-sm"
                     }`}
                   >
                     {msg.content || (isStreaming && msg.role === "assistant" ? (
@@ -393,7 +325,7 @@ const LiveChatWidget = () => {
                       onClick={() => setEscalationCategory(cat.value)}
                       className={`px-2.5 py-1 text-xs rounded-full border transition-all duration-200 ${
                         escalationCategory === cat.value
-                          ? "bg-primary text-primary-foreground border-primary"
+                          ? "bg-ig-gradient text-white border-primary"
                           : "bg-muted border-border hover:bg-muted/80"
                       }`}
                     >

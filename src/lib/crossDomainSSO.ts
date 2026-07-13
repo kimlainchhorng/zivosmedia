@@ -1,52 +1,96 @@
-import { supabase } from "@/integrations/supabase/client";
+import { authSupabase } from "@/integrations/supabase/client";
 
 // zivosmedia.com and zivostravel.com are different apex domains but are served
 // by the same build and authenticate against the same Supabase project
 // (slirphzzwcogdbkeicff). Browser storage is per-origin, so a session on one
 // domain is invisible to the other. This module bridges that gap with a
-// short-lived token handoff: the source domain hands the current session to the
-// target via the URL *hash* (never the query — the hash is not sent to servers
-// or written to access logs), and the receiver (/auth/handoff) calls
-// supabase.auth.setSession() then wipes the hash.
-//
-// Hardened follow-up (no refresh_token in the URL): mint a one-time magic-link
-// OTP server-side via admin.generateLink and consume it with verifyOtp, mirroring
-// the existing /connect/media flow. That needs an edge function deploy; this
-// client-only version intentionally does not.
+// one-time magic-link token hash minted server-side. The hash rides in the URL
+// fragment, never as query params, and the receiver consumes it with verifyOtp.
 
 export const SSO_HANDOFF_PATH = "/auth/handoff";
+const SSO_HANDOFF_FUNCTION = "mint-sso-handoff";
+const ALLOWED_HANDOFF_ORIGINS = new Set([
+  "https://zivosmedia.com",
+  "https://www.zivosmedia.com",
+  "https://preview.zivosmedia.com",
+  "https://zivostravel.com",
+  "https://www.zivostravel.com",
+]);
+
+type HandoffMintResponse = {
+  token_hash?: string;
+};
 
 /** Only allow same-site relative paths, to prevent open-redirect abuse. */
 export function sanitizeNextPath(next: string | null | undefined): string {
   if (!next) return "/";
-  // Must be a root-relative path. Reject absolute URLs ("https://…"),
+  // Must be a root-relative path. Reject absolute URLs ("https://..."),
   // protocol-relative ("//evil.com"), and anything not starting with "/".
-  if (!next.startsWith("/") || next.startsWith("//")) return "/";
+  // Browsers normalize "\" to "/" for http(s), so "/\evil.com" parses as the
+  // authority //evil.com; collapse backslashes before the protocol-relative gate.
+  const probe = next.replace(/\\/g, "/");
+  if (!probe.startsWith("/") || probe.startsWith("//")) return "/";
   return next;
+}
+
+function normalizeTargetOrigin(targetOrigin: string): string | null {
+  try {
+    const url = new URL(targetOrigin);
+    const origin = url.origin;
+    if (ALLOWED_HANDOFF_ORIGINS.has(origin)) return origin;
+
+    if (import.meta.env.DEV) {
+      const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+      if (isLocalhost && (url.protocol === "http:" || url.protocol === "https:")) {
+        return origin;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function buildPlainTargetUrl(targetOrigin: string, nextPath: string): string {
+  try {
+    return new URL(nextPath, targetOrigin).toString();
+  } catch {
+    return nextPath;
+  }
 }
 
 /**
  * Build a cross-domain SSO handoff URL to `targetOrigin`. When the user has an
- * active session, the access/refresh tokens ride in the URL hash so the target
- * origin can adopt the session. Falls back to a plain link when signed out.
+ * active session, the target receives only a single-use OTP hash. Falls back to
+ * a plain link when signed out or when the mint function is unavailable.
  */
 export async function buildHandoffUrl(targetOrigin: string, nextPath = "/"): Promise<string> {
   const next = sanitizeNextPath(nextPath);
+  const target = normalizeTargetOrigin(targetOrigin);
+  const plainUrl = target ? buildPlainTargetUrl(target, next) : next;
+
+  if (!target) return plainUrl;
+
   try {
-    const { data } = await supabase.auth.getSession();
-    const session = data.session;
-    if (session?.access_token && session?.refresh_token) {
-      const hash = new URLSearchParams({
-        at: session.access_token,
-        rt: session.refresh_token,
-        next,
-      });
-      return `${targetOrigin}${SSO_HANDOFF_PATH}#${hash.toString()}`;
+    const { data } = await authSupabase.auth.getSession();
+    if (data.session?.access_token) {
+      const { data: handoff, error } = await authSupabase.functions.invoke<HandoffMintResponse>(
+        SSO_HANDOFF_FUNCTION,
+        { body: { targetOrigin: target } },
+      );
+      const tokenHash = handoff?.token_hash;
+      if (!error && tokenHash) {
+        const hash = new URLSearchParams({
+          ott: tokenHash,
+          next,
+        });
+        return `${target}${SSO_HANDOFF_PATH}#${hash.toString()}`;
+      }
     }
   } catch {
-    // Fall through to a plain link if the session can't be read.
+    // Fall through to a plain link if auth or the handoff function is unavailable.
   }
-  return `${targetOrigin}${next}`;
+  return plainUrl;
 }
 
 /** Navigate the browser to `targetOrigin`, carrying the session when present. */

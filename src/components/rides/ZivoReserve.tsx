@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ZivoReserve — Uber Reserve-style ride scheduling with 3 screens:
  * 1. Landing (hero + benefits)
  * 2. Date/Time picker (scroll wheel style)
@@ -188,7 +188,7 @@ export default function ZivoReserve({ onReserve }: { onReserve?: () => void } = 
 
               {/* CTA */}
               <Button
-                className="w-full h-11 rounded-2xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-xl shadow-primary/30 shrink-0"
+                className="w-full h-11 rounded-2xl text-sm font-bold bg-ig-gradient text-white hover:bg-primary/90 active:scale-[0.98] transition-all shadow-xl shadow-primary/30 shrink-0"
                 onClick={handleReserve}
               >
                 <Calendar className="w-5 h-5 mr-2" />

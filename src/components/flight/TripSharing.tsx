@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,7 +142,7 @@ export const TripSharing = ({
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-all",
                   visibility === option.value
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -248,7 +248,7 @@ export const TripSharing = ({
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm transition-all flex items-center gap-1",
                   invitePermission === 'view'
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "text-muted-foreground"
                 )}
               >
@@ -260,7 +260,7 @@ export const TripSharing = ({
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm transition-all flex items-center gap-1",
                   invitePermission === 'edit'
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "text-muted-foreground"
                 )}
               >

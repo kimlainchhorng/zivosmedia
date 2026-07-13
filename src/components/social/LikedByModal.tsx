@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LikedByModal
  * ------------
  * IG/FB-style "people who liked this" sheet. Tap from a post's engagement bar
@@ -10,9 +10,9 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Heart, Loader2, Search, Sparkles, UserCheck, UserPlus, UsersRound } from "lucide-react";
+import { Heart, Loader2, Search, Sparkles, UserCheck, UserPlus, UsersRound, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -152,19 +152,27 @@ export default function LikedByModal({ open, onOpenChange, postId, source, total
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="zivo-social-sheet-panel flex max-h-[72vh] flex-col overflow-hidden rounded-t-[1.75rem] px-0 pb-0">
+      <SheetContent side="bottom" hideClose className="zivo-social-sheet-panel flex max-h-[72vh] flex-col overflow-hidden rounded-t-[1.75rem] px-0 pb-0">
         <SheetHeader className="zivo-social-header-glass m-2 rounded-[1.25rem] px-4 py-3 text-left">
-          <SheetTitle className="flex items-center gap-2.5 text-base">
-            <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl">
-              <Heart className="h-4 w-4 fill-red-500 text-red-500" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate leading-tight">Likes</span>
-              <span className="block truncate text-[11px] font-medium text-muted-foreground">
-                {displayCount > 0 ? `${displayCount} people reacted` : "People who liked this post"}
+          <div className="flex items-center justify-between gap-3">
+            <SheetTitle className="flex items-center gap-2.5 text-base">
+              <span className="zivo-social-share-orb flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl">
+                <Heart className="h-4 w-4 fill-red-500 text-red-500" />
               </span>
-            </span>
-          </SheetTitle>
+              <span className="min-w-0">
+                <span className="block truncate leading-tight">Likes</span>
+                <span className="block truncate text-[11px] font-medium text-muted-foreground">
+                  {displayCount > 0 ? `${displayCount} people reacted` : "People who liked this post"}
+                </span>
+              </span>
+            </SheetTitle>
+            <SheetClose
+              aria-label="Close"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <X className="h-4 w-4" />
+            </SheetClose>
+          </div>
         </SheetHeader>
 
         <div className="px-3 pb-2 pt-1">
@@ -315,7 +323,7 @@ export default function LikedByModal({ open, onOpenChange, postId, source, total
                         "min-w-[94px] rounded-full px-3 py-2 text-xs font-semibold transition-all active:scale-95 disabled:opacity-50",
                         r.is_following
                           ? "zivo-social-chip text-foreground"
-                          : "bg-primary text-primary-foreground shadow-lg shadow-primary/20",
+                          : "bg-ig-gradient text-white shadow-lg shadow-primary/20",
                       )}
                     >
                       {busyId === r.user_id ? (

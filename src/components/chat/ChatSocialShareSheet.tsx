@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatSocialShareSheet — Bottom sheet to share an external social profile link
  * inside a chat (Facebook, OnlyFans, Instagram, X, TikTok, YouTube, Snapchat,
  * Telegram, LinkedIn). Prefills the user's saved handle from their profile and
@@ -419,7 +419,7 @@ export default function ChatSocialShareSheet({ open, onClose, onShareLink, onSha
                       <button type="button"
                         onClick={handleSendAsCard}
                         disabled={!finalUrl}
-                        className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+                        className="w-full py-3 rounded-xl bg-ig-gradient text-white font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
                       >
                         Send card
                       </button>
@@ -435,7 +435,7 @@ export default function ChatSocialShareSheet({ open, onClose, onShareLink, onSha
                       <button type="button"
                         onClick={handleShare}
                         disabled={!finalUrl}
-                        className={`flex-1 py-3 rounded-xl ${onShareSocialCard ? "bg-muted/60 text-foreground" : "bg-primary text-primary-foreground"} font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform`}
+                        className={`flex-1 py-3 rounded-xl ${onShareSocialCard ? "bg-muted/60 text-foreground" : "bg-ig-gradient text-white"} font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform`}
                       >
                         Add to text
                       </button>

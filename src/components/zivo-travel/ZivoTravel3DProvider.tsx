@@ -30,7 +30,7 @@ export function ZivoTravel3DProvider({
   force?: boolean;
 }) {
   useEffect(() => {
-    const active = force || (typeof window !== "undefined" && isZivoTravelHost(window.location.hostname));
+    const active = force || (typeof window !== "undefined" && isZivoTravelHost());
     if (!active) return;
 
     const root = document.documentElement;

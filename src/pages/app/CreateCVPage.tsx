@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreateCVPage — Professional CV/Resume builder with Supabase persistence.
  * Features: Photo cloud upload, templates, PDF download, share link, auto-save, progress tips.
  */
@@ -1823,7 +1823,7 @@ const CreateCVPage = () => {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="h-9 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-bold touch-manipulation active:scale-95 transition-transform flex items-center gap-1.5 disabled:opacity-60 shadow-sm"
+            className="h-9 px-4 rounded-xl bg-ig-gradient text-white text-xs font-bold touch-manipulation active:scale-95 transition-transform flex items-center gap-1.5 disabled:opacity-60 shadow-sm"
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             {saving ? "Saving…" : "Save"}
@@ -1873,7 +1873,7 @@ const CreateCVPage = () => {
                   onClick={() => openWorkflowStep(step.key)}
                   className={cn(
                     "shrink-0 h-10 rounded-full border px-3 text-[11px] font-bold flex items-center gap-1.5 touch-manipulation active:scale-95 transition-all",
-                    active ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/40 bg-background text-foreground/75"
+                    active ? "border-primary bg-ig-gradient text-white shadow-sm" : "border-border/40 bg-background text-foreground/75"
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -1901,7 +1901,7 @@ const CreateCVPage = () => {
           {cvList.map(cv => (
             <button type="button" key={cv.id} onClick={() => switchCv(cv.id)}
               className={cn("shrink-0 h-8 px-3 rounded-full border text-[11px] font-semibold touch-manipulation active:scale-95 transition-all truncate max-w-[150px]",
-                cv.id === cvId ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/40 text-foreground/70 bg-card")}>
+                cv.id === cvId ? "border-primary bg-ig-gradient text-white shadow-sm" : "border-border/40 text-foreground/70 bg-card")}>
               {cv.full_name || "Untitled CV"}
             </button>
           ))}
@@ -1922,7 +1922,7 @@ const CreateCVPage = () => {
               Preview
             </button>
             <button type="button" onClick={() => setShowDesignPanel(v => !v)}
-              className="h-9 px-3 rounded-xl bg-primary text-primary-foreground text-[11px] font-bold touch-manipulation active:scale-95 transition-transform">
+              className="h-9 px-3 rounded-xl bg-ig-gradient text-white text-[11px] font-bold touch-manipulation active:scale-95 transition-transform">
               {showDesignPanel ? "Hide" : "Edit"}
             </button>
           </div>
@@ -2494,7 +2494,7 @@ const CreateCVPage = () => {
           {/* Primary row */}
           <div className="grid grid-cols-2 gap-2.5">
             <button type="button" onClick={handleSave} disabled={saving}
-              className="h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 touch-manipulation active:scale-[0.97] transition-all shadow-md disabled:opacity-60">
+              className="h-12 rounded-xl bg-ig-gradient text-white font-bold text-sm flex items-center justify-center gap-2 touch-manipulation active:scale-[0.97] transition-all shadow-md disabled:opacity-60">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? "Saving…" : "Save CV"}
             </button>
@@ -2534,7 +2534,7 @@ const CreateCVPage = () => {
                     disabled={downloading}
                     className={cn(
                       "h-[70px] rounded-xl border text-left px-2.5 py-2 touch-manipulation active:scale-[0.97] transition-all disabled:opacity-60",
-                      active ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/40 bg-background text-foreground"
+                      active ? "border-primary bg-ig-gradient text-white shadow-sm" : "border-border/40 bg-background text-foreground"
                     )}
                   >
                     <div className="flex items-center justify-between">

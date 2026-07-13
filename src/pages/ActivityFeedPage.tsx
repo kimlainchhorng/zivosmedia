@@ -146,7 +146,8 @@ export default function ActivityFeedPage() {
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {filters.map((f) => (
-            <Badge key={f} variant={filter === f ? "default" : "outline"} className="cursor-pointer capitalize shrink-0"
+            <Badge key={f} variant={filter === f ? "default" : "outline"} className="cursor-pointer capitalize shrink-0 transition-all active:scale-[0.97]"
+              aria-pressed={filter === f}
               onClick={() => setFilter(f)}>
               {f}
             </Badge>

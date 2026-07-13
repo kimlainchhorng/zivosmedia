@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TripTimeline Component
  * Premium 2026-era visual journey flow from Flight → Hotel
  */
@@ -192,7 +192,7 @@ export function TripTimeline() {
           </p>
           <Link 
             to="/hotels"
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-2xl font-bold text-sm hover:scale-105 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] shadow-lg"
+            className="inline-flex items-center gap-2 bg-ig-gradient text-white px-6 py-3 rounded-2xl font-bold text-sm hover:scale-105 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] shadow-lg"
           >
             <Plane className="w-4 h-4" />
             Browse Destinations

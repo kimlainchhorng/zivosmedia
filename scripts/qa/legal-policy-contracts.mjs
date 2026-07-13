@@ -521,10 +521,10 @@ const contracts = [
 
       requireContains(this.id, app, 'path="/delete-account"', appPath);
       requireContains(this.id, app, 'path="/account-deletion"', appPath);
-      requireContains(this.id, deletion, 'canonical="https://hizivo.com/delete-account"', deletionPath);
+      requireContains(this.id, deletion, 'canonical="https://zivosmedia.com/delete-account"', deletionPath);
       requireContains(this.id, deletion, 'to="/legal/privacy"', deletionPath);
       requireContains(this.id, deletion, 'to="/legal/data-retention"', deletionPath);
-      requireContains(this.id, deletion, "privacy@hizivo.com?subject=Delete%20my%20ZIVO%20account", deletionPath);
+      requireContains(this.id, deletion, "privacy@zivosmedia.com?subject=Delete%20my%20ZIVO%20account", deletionPath);
       requireContains(this.id, cookie, 'to="/legal/privacy"', cookiePath);
       requireContains(this.id, cookie, 'to="/account/data-rights#cookies"', cookiePath);
       requireContains(this.id, cookie, 'to="/legal/terms"', cookiePath);
@@ -668,7 +668,7 @@ const contracts = [
         requireNotMatch(this.id, combined, legacyPattern, files.join(", "));
       }
 
-      requireContains(this.id, combined, "support@hizivo.com", files.join(", "));
+      requireContains(this.id, combined, "support@zivosmedia.com", files.join(", "));
       requireContains(this.id, test, "legal policy page related links", testPath);
     },
   },
@@ -774,13 +774,14 @@ const contracts = [
       const combined = [terms, privacy, refunds, cookies, damage, storeMarketing].join("\n");
       const test = source(testPath);
 
-      requireContains(this.id, terms, 'canonical="https://hizivo.com/legal/terms"', termsPath);
-      requireContains(this.id, privacy, 'canonical="https://hizivo.com/legal/privacy"', privacyPath);
-      requireContains(this.id, refunds, 'canonical="https://hizivo.com/legal/refunds"', refundsPath);
-      requireContains(this.id, cookies, 'canonical="https://hizivo.com/legal/cookies"', cookiesPath);
+      requireContains(this.id, terms, 'canonical="https://zivosmedia.com/legal/terms"', termsPath);
+      requireContains(this.id, privacy, 'canonical="https://zivosmedia.com/legal/privacy"', privacyPath);
+      requireContains(this.id, refunds, 'canonical="https://zivosmedia.com/legal/refunds"', refundsPath);
+      requireContains(this.id, cookies, 'canonical="https://zivosmedia.com/legal/cookies"', cookiesPath);
       requireContains(this.id, damage, 'to="/legal/cancellation"', damagePath);
-      requireContains(this.id, storeMarketing, "https://hizivo.com/store/", storeMarketingPath);
-      requireContains(this.id, storeMarketing, "https://hizivo.com/book/", storeMarketingPath);
+      requireContains(this.id, storeMarketing, "ZIVO_MEDIA_ORIGIN", storeMarketingPath);
+      requireContains(this.id, storeMarketing, "${publicOrigin}/store/${slug}", storeMarketingPath);
+      requireContains(this.id, storeMarketing, "${publicOrigin}/book/${slug}", storeMarketingPath);
 
       for (const legacyPattern of [
         /canonical="https:\/\/hizivo\.com\/terms"/,
@@ -1122,7 +1123,7 @@ const contracts = [
       requireContains(this.id, privacy, "payments, gifts", privacyPath);
       requireContains(this.id, privacy, "live streaming", privacyPath);
       requireContains(this.id, privacy, "payout features", privacyPath);
-      requireContains(this.id, privacy, "privacy@hizivo.com", privacyPath);
+      requireContains(this.id, privacy, "privacy@zivosmedia.com", privacyPath);
       requireNotMatch(this.id, privacy, /privacy@zivo\.com/, privacyPath);
 
       requireContains(this.id, preview, "You must be at least 13 to create a personal account", previewPath);
@@ -1265,7 +1266,7 @@ const contracts = [
         "Optional analytics and marketing collection",
         "Do Not Sell or Share controls",
         "aggregated, anonymized, or de-identified",
-        "privacy@hizivo.com",
+        "privacy@zivosmedia.com",
       ]) {
         requireContains(this.id, genericLegal, needle, genericLegalPath);
       }
@@ -1337,7 +1338,7 @@ const contracts = [
         "confirmation phrase DELETE MY ACCOUNT",
         "deletes user-owned records where permitted",
         "legal, tax, fraud prevention, payment, dispute",
-        "privacy@hizivo.com or support@hizivo.com",
+        "privacy@zivosmedia.com or support@zivosmedia.com",
       ]) {
         requireContains(this.id, genericLegal, needle, genericLegalPath);
       }
@@ -1351,7 +1352,7 @@ const contracts = [
         "categorized as dsar_request or consent_change",
         "GDPR requests are generally handled within 30 days",
         "CCPA requests follow applicable legal timeframes",
-        "privacy@hizivo.com",
+        "privacy@zivosmedia.com",
       ]) {
         requireContains(this.id, genericLegal, needle, genericLegalPath);
       }
@@ -1410,7 +1411,7 @@ const contracts = [
         "pickup and drop-off locations with drivers",
         "delivery addresses with merchants and couriers",
         "Data Retention Policy",
-        "privacy@hizivo.com",
+        "privacy@zivosmedia.com",
       ]) {
         requireContains(this.id, genericLegal, needle, genericLegalPath);
       }
@@ -1440,7 +1441,7 @@ const contracts = [
         "does not use facial recognition to identify people in public posts",
         "sell face geometry",
         "disable camera permissions in device settings",
-        "privacy@hizivo.com",
+        "privacy@zivosmedia.com",
       ]) {
         requireContains(this.id, genericLegal, needle, genericLegalPath);
       }

@@ -13,7 +13,7 @@ import { useStoreMarketingOverview } from "@/hooks/useStoreMarketingOverview";
 
 type Channel = "push" | "email" | "sms" | "inapp" | "multi";
 
-export default function MarketingOverviewHeader({ storeId }: { storeId: string }) {
+export default function MarketingOverviewHeader({ storeId, storeName, storeCategory, onCampaignCreated }: { storeId: string; storeName?: string; storeCategory?: string; onCampaignCreated?: () => void }) {
   const { data, isLoading } = useStoreMarketingOverview(storeId);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -77,6 +77,9 @@ export default function MarketingOverviewHeader({ storeId }: { storeId: string }
         onClose={() => setWizardOpen(false)}
         storeId={storeId}
         defaultChannel={chosenChannel}
+        storeName={storeName}
+        storeCategory={storeCategory}
+        onCreated={onCampaignCreated}
       />
     </div>
   );

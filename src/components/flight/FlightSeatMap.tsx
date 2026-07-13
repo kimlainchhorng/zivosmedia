@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Armchair, Crown, Star, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ const FlightSeatMap = () => {
 
   const getSeatColor = (type: string, status: string) => {
     if (status === "occupied") return "bg-muted/50 text-muted-foreground cursor-not-allowed";
-    if (status === "selected") return "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background";
+    if (status === "selected") return "bg-ig-gradient text-white ring-2 ring-primary ring-offset-2 ring-offset-background";
     
     switch (type) {
       case "first": return "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30";

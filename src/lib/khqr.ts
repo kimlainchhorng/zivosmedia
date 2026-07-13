@@ -127,9 +127,19 @@ export function buildDynamicKhqr(
 
   // Reassemble in canonical order.
   const order = ["00", "01", "29", "30", "31", "52", "53", "54", "58", "59", "60", "62"];
+  const emitted = new Set(order);
   let out = "";
   for (const tag of order) {
     if (fields[tag] !== undefined) out += tlv(tag, fields[tag]);
+  }
+  // Preserve any merchant tags outside the canonical list (a custom merchant QR
+  // may carry account/info tags like 15, 26–51, 61, 64). Source their order from
+  // the original entries — an object map reorders integer-like keys — so we don't
+  // silently drop a custom merchant's account fields and produce an invalid QR.
+  for (const [tag] of parseTlvEntries(body)) {
+    if (emitted.has(tag) || fields[tag] === undefined) continue;
+    emitted.add(tag);
+    out += tlv(tag, fields[tag]);
   }
 
   // Append CRC placeholder, compute over full string ending in "6304".

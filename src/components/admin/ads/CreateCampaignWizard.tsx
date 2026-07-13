@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreateCampaignWizard — 4-step (Goal → Audience → Creative → Budget) wizard
  * inside a ResponsiveModal. Same data shape as the original single-form.
  */
@@ -205,7 +205,7 @@ export default function CreateCampaignWizard({
                   i < step
                     ? "bg-emerald-500 text-white"
                     : i === step
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted text-muted-foreground"
                 )}
               >

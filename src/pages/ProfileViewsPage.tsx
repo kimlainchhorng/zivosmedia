@@ -146,9 +146,10 @@ export default function ProfileViewsPage() {
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(idx, 20) * 0.015 }}
+                  whileTap={{ scale: 0.99 }}
                   onClick={() => v.viewer_id && navigate(`/user/${v.viewer_id}`)}
                   disabled={anon}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left disabled:cursor-not-allowed"
+                  className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {anon ? (
                     <div className="shrink-0 h-9 w-9 rounded-full bg-secondary flex items-center justify-center"><EyeOff className="h-4 w-4 text-muted-foreground" /></div>

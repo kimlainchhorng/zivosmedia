@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ImportProductPage - Detail view for a cross-border product.
  */
 import { useState } from "react";
@@ -68,7 +68,7 @@ export default function ImportProductPage() {
         <Button variant="ghost" size="icon" aria-label="View cart" className="h-9 w-9 relative" onClick={() => navigate("/shop/cart")}>
           <ShoppingCart className="h-5 w-5" />
           {itemCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+            <span className="absolute -top-0.5 -right-0.5 bg-ig-gradient text-white text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
               {itemCount}
             </span>
           )}

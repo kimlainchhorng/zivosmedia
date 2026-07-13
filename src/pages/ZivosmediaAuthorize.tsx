@@ -24,6 +24,24 @@ type IssueCodeResponse = {
   error?: string;
 };
 
+async function readFunctionError(error: unknown): Promise<string | null> {
+  const context = error && typeof error === "object" && "context" in error
+    ? (error as { context?: unknown }).context
+    : null;
+  if (context instanceof Response) {
+    const text = await context.clone().text().catch(() => "");
+    if (!text) return null;
+    try {
+      const body = JSON.parse(text) as { error?: unknown; message?: unknown };
+      if (typeof body.error === "string") return body.error;
+      if (typeof body.message === "string") return body.message;
+    } catch {
+      return text.slice(0, 240);
+    }
+  }
+  return error instanceof Error ? error.message : null;
+}
+
 export default function ZivosmediaAuthorize() {
   const navigate = useNavigate();
   const ran = useRef(false);
@@ -72,7 +90,8 @@ export default function ZivosmediaAuthorize() {
       );
 
       if (fnError || !data?.code || !data?.redirect_uri) {
-        setError(data?.error || fnError?.message || "Authorization was declined.");
+        const detail = data?.error || await readFunctionError(fnError);
+        setError(detail || "Authorization was declined.");
         return;
       }
 

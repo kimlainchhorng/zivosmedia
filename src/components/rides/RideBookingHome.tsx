@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideBookingHome — Complete ride booking flow
  * Flow: home → search → route-preview → ride-options → confirm-ride → searching → driver-assigned → driver-en-route → trip-in-progress → trip-complete
  */
@@ -629,7 +629,7 @@ function StripePaymentForm({ onSuccess, isSubmitting, price, vehicleName }: {
       )}
       <Button
         type="submit"
-        className="w-full h-14 rounded-2xl text-base font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg gap-2"
+        className="w-full h-14 rounded-2xl text-base font-bold bg-ig-gradient text-white hover:bg-primary/90 shadow-lg gap-2"
         disabled={!stripe || processing || isSubmitting}
       >
         <Shield className="w-5 h-5" />
@@ -1627,16 +1627,20 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
     setPromoError(null);
     const code = promoInput.trim().toUpperCase();
 
-    // FREE promo: 100% off, USA rides only
-    if (code === "FREE") {
+    const isLocalTestPromo =
+      code === "TEST100FREE" &&
+      ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+
+    // Free promos: 100% off, USA rides only. TEST100FREE is local-preview only.
+    if (code === "FREE" || isLocalTestPromo) {
       if (useKm) {
         setPromoError("This promo code is only available for rides in the USA");
         setPromoValidating(false);
         return;
       }
-      setAppliedPromo({ code: "FREE", description: "100% discount — Free ride!" });
+      setAppliedPromo({ code, description: "100% discount — Free ride!" });
       setPromoDiscount(currentPrice);
-      toast.success("FREE promo applied — enjoy your free ride!");
+      toast.success(`${code} promo applied — enjoy your free ride!`);
       setPromoValidating(false);
       return;
     }
@@ -1661,7 +1665,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
     } finally {
       setPromoValidating(false);
     }
-  }, [promoInput, currentPrice, user?.id, user?.email]);
+  }, [promoInput, currentPrice, useKm, user?.id]);
 
   /* ─── Back navigation ─── */
   const handleBack = () => {
@@ -2435,7 +2439,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
             </p>
             <Button
               onClick={handleAllowLocation}
-              className="w-full h-14 rounded-2xl text-base font-bold bg-primary text-primary-foreground shadow-lg"
+              className="w-full h-14 rounded-2xl text-base font-bold bg-ig-gradient text-white shadow-lg"
               disabled={isGettingLocation}
             >
               {isGettingLocation ? (
@@ -2711,7 +2715,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                     onClick={handleConfirmPinPlacement}
                     disabled={isLoadingRoute || (pinPlacementMode === "pickup" ? !pickup : pinPlacementMode === "destination" ? (!destination && destinationDisplay.trim().length < 3) : !stops.find(s => s.id === placingStopId)?.place)}
                     className={cn(
-                      "h-12 rounded-2xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20",
+                      "h-12 rounded-2xl text-sm font-bold bg-ig-gradient text-white hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20",
                       pinPlacementMode === "destination" && destination && stops.length < MAX_STOPS ? "flex-1" : "w-full"
                     )}
                   >
@@ -2946,7 +2950,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                 <Button
                   onClick={handleConfirmSearch}
                   disabled={!pickup || (!destination && destinationDisplay.trim().length < 3) || isLoadingRoute}
-                  className="w-full h-14 rounded-2xl text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20"
+                  className="w-full h-14 rounded-2xl text-lg font-bold bg-ig-gradient text-white hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20"
                   size="lg"
                 >
                   {isLoadingRoute ? (
@@ -3120,7 +3124,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                     setViewStep("search");
                   }}
                   disabled={isReversingGeocode}
-                  className="w-full h-14 rounded-2xl text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20"
+                  className="w-full h-14 rounded-2xl text-lg font-bold bg-ig-gradient text-white hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20"
                   size="lg"
                 >
                   {isReversingGeocode ? t("ride.locating") : destinationDisplay ? t("ride.choose_ride") : t("ride.search_destination")}
@@ -3323,7 +3327,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                   </div>
                 ) : (
                   <Button
-                    className="w-full h-14 rounded-2xl text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20"
+                    className="w-full h-14 rounded-2xl text-lg font-bold bg-ig-gradient text-white hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20"
                     onClick={() => { if (useKm) { setRiderName(userProfile?.full_name || ""); const ph = userProfile?.phone || ""; setRiderPhone(ph.startsWith("+855") ? ph : ""); setViewStep("rider-info"); } else { setViewStep("ride-options"); } }}
                   >
                     {t("ride.choose_ride")}
@@ -3343,7 +3347,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                 >
                   <p className="text-sm text-muted-foreground mb-4">{t("ride.browse_available_rides")}</p>
                   <Button
-                    className="w-full h-12 rounded-2xl text-base font-bold bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="w-full h-12 rounded-2xl text-base font-bold bg-ig-gradient text-white hover:bg-primary/90"
                     onClick={() => { if (useKm) { setRiderName(userProfile?.full_name || ""); const ph = userProfile?.phone || ""; setRiderPhone(ph.startsWith("+855") ? ph : ""); setViewStep("rider-info"); } else { setViewStep("ride-options"); } }}
                   >
                     {t("ride.see_ride_options")}
@@ -3438,7 +3442,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
           {/* Continue Button */}
           <div className="px-5 pb-5 shrink-0" style={{ paddingBottom: `calc(20px + ${SAFE_BOTTOM})` }}>
             <Button
-              className="w-full h-14 rounded-2xl text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+              className="w-full h-14 rounded-2xl text-lg font-bold bg-ig-gradient text-white hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
               disabled={!riderName.trim() || !riderPhone.trim()}
               onClick={() => setViewStep("ride-options")}
             >
@@ -3661,7 +3665,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
           {/* Confirm button */}
           <div className="shrink-0 px-5 pt-1" style={{ paddingBottom: `calc(16px + ${SAFE_BOTTOM})` }}>
             <Button
-              className="w-full h-14 rounded-2xl text-base font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-[0.97] transition-all duration-200"
+              className="w-full h-14 rounded-2xl text-base font-bold bg-ig-gradient text-white hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-[0.97] transition-all duration-200"
               onClick={() => { setPaymentStep("idle"); setViewStep("confirm-ride"); }}
             >
               {t("ride.confirm")} {getVehicleName(selectedVehicle, currentVehicle.name, isCambodiaCountry)} · {useKm ? `${toKHR(appliedPromo ? Math.max(0, currentPrice - promoDiscount) : currentPrice)} ($${(appliedPromo ? Math.max(0, currentPrice - promoDiscount) : currentPrice).toFixed(2)})` : `$${(appliedPromo ? Math.max(0, currentPrice - promoDiscount) : currentPrice).toFixed(2)}`}
@@ -3875,7 +3879,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                 ) : (
                   <Button
                     size="sm"
-                    className="h-8 px-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-semibold text-[12px]"
+                    className="h-8 px-3 bg-ig-gradient text-white hover:bg-primary/90 rounded-md font-semibold text-[12px]"
                     disabled={!promoInput.trim() || promoValidating}
                     onClick={handleApplyPromo}
                   >
@@ -3913,7 +3917,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
                         <p className="text-xs text-muted-foreground">This ride is completely free with your promo code!</p>
                       </div>
                       <Button
-                        className="w-full h-14 rounded-2xl text-lg font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+                        className="w-full h-14 rounded-2xl text-lg font-bold bg-ig-gradient text-white hover:bg-primary/90 active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
                         disabled={isSubmitting}
                         onClick={() => handleRequestRide()}
                       >
@@ -3983,7 +3987,7 @@ export default function RideBookingHome({ initialSchedule = false, initialDestin
 
             {/* Confirm payment button */}
             <Button
-              className="w-full h-12 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+              className="w-full h-12 rounded-xl font-bold bg-ig-gradient text-white hover:bg-primary/90 gap-2"
               onClick={async () => {
                 const pendingId = rideRequestId || sessionStorage.getItem("aba_pending_ride_id");
                 if (pendingId) {

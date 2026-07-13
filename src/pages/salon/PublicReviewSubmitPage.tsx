@@ -168,7 +168,7 @@ export default function PublicReviewSubmitPage() {
                           aria-label={`${n} star${n === 1 ? "" : "s"}`}
                           onClick={() => setRating(n)}
                           onMouseEnter={() => setHover(n)}
-                          className="rounded-full p-1 transition-transform hover:scale-110"
+                          className="rounded-full p-1 transition-transform hover:scale-110 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Star className={cn("h-9 w-9", filled ? "fill-amber-400 text-amber-500" : "text-muted-foreground/40")} />
                         </button>

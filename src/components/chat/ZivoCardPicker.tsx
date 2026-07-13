@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ZivoCardPicker — bottom sheet for sharing planning cards into a chat.
  *
  * Two-step flow:
@@ -354,7 +354,7 @@ export default function ZivoCardPicker({ open, onClose, onPick }: Props) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-[180] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-[1450] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Share a ZIVO card"
@@ -482,7 +482,7 @@ export default function ZivoCardPicker({ open, onClose, onPick }: Props) {
                   type="button"
                   onClick={submitFlight}
                   disabled={!flightReady}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
+                  className="w-full h-11 rounded-xl bg-ig-gradient text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
                 >
                   <Send className="w-4 h-4" />
                   Send flight card
@@ -566,7 +566,7 @@ export default function ZivoCardPicker({ open, onClose, onPick }: Props) {
                   type="button"
                   onClick={submitHotel}
                   disabled={!hotelReady}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
+                  className="w-full h-11 rounded-xl bg-ig-gradient text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
                 >
                   <Send className="w-4 h-4" />
                   Send hotel card
@@ -605,7 +605,7 @@ export default function ZivoCardPicker({ open, onClose, onPick }: Props) {
                   type="button"
                   onClick={submitEats}
                   disabled={!eatsReady}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
+                  className="w-full h-11 rounded-xl bg-ig-gradient text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
                 >
                   <Send className="w-4 h-4" />
                   Send Eats card
@@ -644,7 +644,7 @@ export default function ZivoCardPicker({ open, onClose, onPick }: Props) {
                   type="button"
                   onClick={submitRide}
                   disabled={!rideReady}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
+                  className="w-full h-11 rounded-xl bg-ig-gradient text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
                 >
                   <Send className="w-4 h-4" />
                   Send ride card
@@ -719,7 +719,7 @@ export default function ZivoCardPicker({ open, onClose, onPick }: Props) {
                   type="button"
                   onClick={submitTrip}
                   disabled={!tripReady}
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
+                  className="w-full h-11 rounded-xl bg-ig-gradient text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.99] transition"
                 >
                   <Send className="w-4 h-4" />
                   Send trip card
@@ -752,7 +752,7 @@ export default function ZivoCardPicker({ open, onClose, onPick }: Props) {
                     onClick={submitFreeText}
                     disabled={!text.trim()}
                     aria-label="Send card"
-                    className="absolute right-1 top-1 h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition"
+                    className="absolute right-1 top-1 h-9 w-9 rounded-lg bg-ig-gradient text-white flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition"
                   >
                     <Send className="w-4 h-4" />
                   </button>

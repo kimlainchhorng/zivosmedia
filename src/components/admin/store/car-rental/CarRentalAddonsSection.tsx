@@ -45,6 +45,7 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
   const [editing, setEditing] = useState<CarRentalAddon | null>(null);
   const [draft, setDraft] = useState<CarRentalAddonDraft>(EMPTY);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const [salesByAddon, setSalesByAddon] = useState<Map<string, { revenue: number; count: number }>>(new Map());
 
   // Fetch lifetime sales per addon. `car_rental_reservation_addons.addon_id` is the
@@ -88,8 +89,9 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
     return TEMPLATES.filter((t) => !existing.has(t.name.toLowerCase()));
   }, [addons]);
 
-  const openCreate = () => { setEditing(null); setDraft(EMPTY); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); setDraft(EMPTY); setSubmitted(false); setDialogOpen(true); };
   const openEdit = (a: CarRentalAddon) => {
+    setSubmitted(false);
     setEditing(a);
     setDraft({
       name: a.name, description: a.description, price_cents: a.price_cents,
@@ -99,9 +101,9 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
   };
   const save = async () => {
     if (!draft.name.trim()) return;
-    if (editing) await update(editing.id, draft);
-    else await create(draft);
-    setDialogOpen(false);
+    setSubmitted(true);
+    const ok = editing ? await update(editing.id, draft) : Boolean(await create(draft));
+    if (ok) setDialogOpen(false);
   };
   const addTemplate = async (t: typeof TEMPLATES[number]) => {
     await create({ name: t.name, description: t.description, price_cents: t.price, billing: t.billing, is_active: true, sort_order: addons.length });
@@ -210,11 +212,11 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
                         aria-label={a.is_active ? "Deactivate" : "Activate"}
                         title={a.is_active ? "Click to deactivate" : "Click to activate"}
                       />
-                      <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(a)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(a.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(a.id); }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -228,7 +230,7 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o && saving) return; setDialogOpen(o); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing ? "Edit add-on" : "Add an extra"}</DialogTitle>
@@ -259,8 +261,13 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
               <Switch checked={draft.is_active ?? true} onCheckedChange={(c) => setDraft({ ...draft, is_active: c })} />
             </div>
           </div>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={save} disabled={saving || !draft.name.trim()}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               {editing ? "Save changes" : "Add"}
@@ -269,15 +276,25 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o && saving) return; if (!o) setDeleteId(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete add-on?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Reservations that already included this add-on keep their snapshot.</p>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={async () => {
-              if (deleteId) { await remove(deleteId); setDeleteId(null); }
-            }}>Delete</Button>
+            <Button variant="ghost" onClick={() => setDeleteId(null)} disabled={saving}>Cancel</Button>
+            <Button variant="destructive" disabled={saving} onClick={async () => {
+              if (!deleteId) return;
+              setSubmitted(true);
+              if (await remove(deleteId)) setDeleteId(null);
+            }}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

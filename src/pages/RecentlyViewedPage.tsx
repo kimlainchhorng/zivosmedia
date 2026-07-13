@@ -128,7 +128,7 @@ export default function RecentlyViewedPage() {
 
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           {tabs.map((t) => (
-            <button key={t.id} type="button" onClick={() => setTab(t.id)} className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5", tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>
+            <button key={t.id} type="button" onClick={() => setTab(t.id)} aria-pressed={tab === t.id} className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring inline-flex items-center gap-1.5", tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>
               <span>{t.label}</span>
               <span className={cn("text-[10px] font-extrabold px-1.5 py-0.5 rounded-full", tab === t.id ? "bg-white/20" : "bg-background/60")}>{t.count}</span>
             </button>
@@ -172,7 +172,7 @@ export default function RecentlyViewedPage() {
                     <p className="text-sm font-bold text-foreground line-clamp-1 mt-0.5">{name}</p>
                     <p className="text-[11px] text-muted-foreground inline-flex items-center gap-0.5 mt-0.5"><Clock className="h-2.5 w-2.5" /> {formatRelative(v.viewed_at)}</p>
                   </div>
-                  <button type="button" aria-label="Remove" onClick={() => remove(v.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center transition-colors">
+                  <button type="button" aria-label="Remove" onClick={() => remove(v.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </motion.div>

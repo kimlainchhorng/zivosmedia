@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalExpensesSection — categorized expense log.
  */
 import { useMemo, useState } from "react";
@@ -61,6 +61,9 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
   const [editing, setEditing] = useState<CarRentalExpense | null>(null);
   const [draft, setDraft] = useState<CarRentalExpenseDraft>(EMPTY);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  // `submitted` gates the in-dialog error banner so a stale hook error can't
+  // flash when a dialog re-opens (the dialogs stay mounted). Set on confirm-click.
+  const [submitted, setSubmitted] = useState(false);
 
   const filtered = useMemo(() => {
     if (categoryFilter === "all") return expenses;
@@ -107,8 +110,9 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
     return Array.from(map, ([key, v]) => ({ key, ...v })).sort((a, b) => b.cents - a.cents).slice(0, 5);
   }, [expenses, vehicles]);
 
-  const openCreate = () => { setEditing(null); setDraft({ ...EMPTY }); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); setDraft({ ...EMPTY }); setSubmitted(false); setDialogOpen(true); };
   const openEdit = (e: CarRentalExpense) => {
+    setSubmitted(false);
     setEditing(e);
     setDraft({
       vehicle_id: e.vehicle_id, category: e.category, description: e.description,
@@ -119,9 +123,12 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
   };
   const save = async () => {
     if (!draft.description.trim()) return;
-    if (editing) await update(editing.id, draft);
-    else await create(draft);
-    setDialogOpen(false);
+    setSubmitted(true);
+    // Close only when the write actually succeeded — a failed create/update
+    // keeps the dialog (and the operator's typed entry) open with the inline
+    // error, instead of discarding it and hiding the reason behind the modal.
+    const ok = editing ? await update(editing.id, draft) : Boolean(await create(draft));
+    if (ok) setDialogOpen(false);
   };
 
   const catMeta = (c: string) => CATEGORIES.find((x) => x.value === c) ?? CATEGORIES[CATEGORIES.length - 1];
@@ -156,14 +163,14 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
             <div className="flex flex-wrap gap-1.5">
               <button type="button" onClick={() => setCategoryFilter("all")} className={cn(
                 "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                categoryFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                categoryFilter === "all" ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
               )}>
                 All · {formatMoney(expenses.reduce((s, e) => s + e.amount_cents, 0))}
               </button>
               {byCategory.map((c) => (
                 <button key={c.value} type="button" onClick={() => setCategoryFilter(c.value)} className={cn(
                   "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                  categoryFilter === c.value ? "bg-primary text-primary-foreground border-primary" : c.color,
+                  categoryFilter === c.value ? "bg-ig-gradient text-white border-primary" : c.color,
                 )}>
                   {c.label} · {formatMoney(c.cents)}
                 </button>
@@ -271,7 +278,7 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(e)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(e.id)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(e.id); }}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -289,7 +296,7 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o && saving) return; setDialogOpen(o); }}>
         <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit expense" : "Add expense"}</DialogTitle>
@@ -328,8 +335,13 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
               <Textarea rows={2} value={draft.notes ?? ""} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} />
             </Field>
           </div>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={save} disabled={saving || !draft.description.trim()}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               {editing ? "Save" : "Add expense"}
@@ -338,15 +350,27 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o && saving) return; if (!o) setDeleteId(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Delete expense?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">This removes the expense entry permanently.</p>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={async () => {
-              if (deleteId) { await remove(deleteId); setDeleteId(null); }
-            }}>Delete</Button>
+            <Button variant="ghost" onClick={() => setDeleteId(null)} disabled={saving}>Cancel</Button>
+            <Button variant="destructive" disabled={saving} onClick={async () => {
+              if (!deleteId) return;
+              setSubmitted(true);
+              // Keep the dialog open if the delete failed so the error is visible
+              // (the row is rolled back into the list by the hook on failure).
+              if (await remove(deleteId)) setDeleteId(null);
+            }}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

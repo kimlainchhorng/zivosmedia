@@ -1,13 +1,15 @@
-import { useState } from "react";
+﻿import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Search from "lucide-react/dist/esm/icons/search";
 import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag";
 import Check from "lucide-react/dist/esm/icons/check";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import PackageSearch from "lucide-react/dist/esm/icons/package-search";
 import PackageCheck from "lucide-react/dist/esm/icons/package-check";
+import Plus from "lucide-react/dist/esm/icons/plus";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import X from "lucide-react/dist/esm/icons/x";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useStoreProductSearch } from "@/hooks/usePostProducts";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +35,7 @@ export default function ProductPickerSheet({
   max = 8,
 }: Props) {
   const [query, setQuery] = useState("");
+  const navigate = useNavigate();
   const { data: products = [], isLoading } = useStoreProductSearch(storeId, query);
   const selectedProducts = products.filter((product) => selectedIds.includes(product.id));
   const inStockCount = products.filter((product) => product.in_stock !== false).length;
@@ -58,22 +61,30 @@ export default function ProductPickerSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="zivo-social-sheet-panel flex h-[82vh] flex-col overflow-hidden rounded-t-[1.75rem] p-0">
+      <SheetContent side="bottom" hideClose className="zivo-social-sheet-panel flex h-[82vh] flex-col overflow-hidden rounded-t-[1.75rem] p-0">
         <SheetHeader className="zivo-social-header-glass m-2 rounded-[1.25rem] px-4 py-3">
-          <SheetTitle className="flex items-center gap-2.5 text-left text-base">
-            <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
-              <ShoppingBag className="h-4 w-4 text-primary" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate leading-tight">Tag products</span>
-              <span className="block truncate text-[11px] font-medium text-muted-foreground">
-                Add shoppable products to this post
+          <div className="flex items-center justify-between gap-3">
+            <SheetTitle className="flex min-w-0 flex-1 items-center gap-2.5 text-left text-base">
+              <span className="zivo-social-share-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
+                <ShoppingBag className="h-4 w-4 text-primary" />
               </span>
-            </span>
-            <span className="zivo-social-chip-active rounded-full px-3 py-1.5 text-[11px] font-bold">
-              {selectedIds.length}/{max}
-            </span>
-          </SheetTitle>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate leading-tight">Tag products</span>
+                <span className="block truncate text-[11px] font-medium text-muted-foreground">
+                  Add shoppable products to this post
+                </span>
+              </span>
+              <span className="zivo-social-chip-active rounded-full px-3 py-1.5 text-[11px] font-bold">
+                {selectedIds.length}/{max}
+              </span>
+            </SheetTitle>
+            <SheetClose
+              aria-label="Close"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <X className="h-4 w-4" />
+            </SheetClose>
+          </div>
         </SheetHeader>
 
         <div className="space-y-2 px-3 pb-2 pt-1">
@@ -203,11 +214,19 @@ export default function ProductPickerSheet({
         <div className="flex-1 overflow-y-auto px-3 pb-6 scrollbar-none">
           {!storeId ? (
             <div className="zivo-social-module mx-0 my-3 flex flex-col items-center rounded-[1.25rem] px-6 py-10 text-center">
-              <span className="zivo-social-share-orb mb-3 flex h-12 w-12 items-center justify-center rounded-2xl">
-                <ShoppingBag className="h-5 w-5 text-primary" />
-              </span>
-              <p className="text-sm font-semibold text-foreground">Select a store first</p>
-              <p className="mt-1 text-xs text-muted-foreground">Then you can tag products from that catalog.</p>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400/20 via-pink-500/20 to-purple-600/20 ring-1 ring-white/10 shadow-[0_4px_24px_rgba(236,72,153,0.10)]">
+                <ShoppingBag className="h-7 w-7 text-primary" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">No store linked</p>
+              <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">Create a store first, then you can tag products from your catalog on any post.</p>
+              <button
+                type="button"
+                onClick={() => { onOpenChange(false); navigate("/app/shop"); }}
+                className="mt-4 flex items-center gap-2 rounded-full bg-ig-gradient px-5 py-2 text-[13px] font-semibold text-white shadow-[0_4px_16px_rgba(236,72,153,0.30)] transition-transform active:scale-95"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Create your store
+              </button>
             </div>
           ) : isLoading ? (
             <div className="zivo-social-module mx-0 my-3 flex flex-col items-center justify-center rounded-[1.25rem] py-10 text-muted-foreground">
@@ -216,15 +235,27 @@ export default function ProductPickerSheet({
             </div>
           ) : products.length === 0 ? (
             <div className="zivo-social-module mx-0 my-3 flex flex-col items-center rounded-[1.25rem] px-6 py-10 text-center">
-              <span className="zivo-social-share-orb mb-3 flex h-12 w-12 items-center justify-center rounded-2xl">
-                <PackageSearch className="h-5 w-5 text-primary" />
-              </span>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400/20 via-pink-500/20 to-purple-600/20 ring-1 ring-white/10 shadow-[0_4px_24px_rgba(236,72,153,0.10)]">
+                <PackageSearch className="h-7 w-7 text-primary" />
+              </div>
               <p className="text-sm font-semibold text-foreground">
                 {query ? "No product match" : "No products yet"}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {query ? `Nothing matched "${query}".` : "This store has no products to tag yet."}
+              <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">
+                {query
+                  ? `Nothing matched "${query}". Try a different search.`
+                  : "Your store has no products. Add some first so you can tag them on posts."}
               </p>
+              {!query && (
+                <button
+                  type="button"
+                  onClick={() => { onOpenChange(false); navigate("/app/shop/products"); }}
+                  className="mt-4 flex items-center gap-2 rounded-full bg-ig-gradient px-5 py-2 text-[13px] font-semibold text-white shadow-[0_4px_16px_rgba(236,72,153,0.30)] transition-transform active:scale-95"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add products to your store
+                </button>
+              )}
             </div>
           ) : (
             <ul className="space-y-1.5">
@@ -276,7 +307,7 @@ export default function ProductPickerSheet({
                         </div>
                       </div>
                       <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
-                        isSel ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
+                        isSel ? "border-primary bg-ig-gradient text-white" : "border-muted-foreground/30"
                       }`}>
                         {isSel && <Check className="h-3.5 w-3.5" />}
                       </div>

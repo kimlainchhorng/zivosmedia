@@ -117,6 +117,16 @@ describe("auth redirect safety", () => {
     ).toBe("/");
   });
 
+  it("blocks protocol-relative and backslash-authority redirects", () => {
+    // "//evil.com" and the backslash variants all parse to host evil.com once the
+    // browser normalizes them, so the sanitizer must reject them like any off-origin URL.
+    expect(getSafeRedirectTargetForHost("//evil.com", "zivosmedia.com")).toBe("/");
+    expect(getSafeRedirectTargetForHost("/\\evil.com", "zivosmedia.com")).toBe("/");
+    expect(getSafeRedirectTargetForHost("/\\/evil.com", "zivosmedia.com")).toBe("/");
+    // A backslash mid-path is same-origin (normalizes to "/foo/bar"), so it stays allowed.
+    expect(getSafeRedirectTargetForHost("/foo\\bar", "zivosmedia.com")).toBe("/foo\\bar");
+  });
+
   it("normalizes same-host absolute URLs to internal paths", () => {
     expect(
       getSafeRedirectTargetForHost("https://zivosmedia.com/account?tab=security", "zivosmedia.com"),

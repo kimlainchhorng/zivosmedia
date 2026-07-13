@@ -149,6 +149,8 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.send-otp-email]
     verify_jwt = false
+  [functions.mint-sso-handoff]
+    verify_jwt = true
   [functions.target-search]
     verify_jwt = false
   [functions.wallet-summary]
@@ -170,4 +172,8 @@ project_id = "slirphzzwcogdbkeicff"
   [functions.zivo-domain-summary]
     verify_jwt = false
   [functions.zivosmedia-health]
+    verify_jwt = false
+  [functions.zivosmedia-auth-issue-code]
+    verify_jwt = true
+  [functions.zivosmedia-auth-validate-code]
     verify_jwt = false

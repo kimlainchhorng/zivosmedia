@@ -54,6 +54,8 @@ export default function HotelAskChat({ storeId, storeName }: Props) {
           store_id: storeId,
           question: trimmed,
           history: messages.slice(-8),
+          provider: "deepseek",
+          model: "deepseek-v4-flash",
         },
       });
       if (fnErr) throw new Error(fnErr.message || "Could not reach assistant");

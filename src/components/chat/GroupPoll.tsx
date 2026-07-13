@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroupPoll — in-chat poll for groups ("Where should we eat tonight?")
  * Renders question + options with vote bars, calls onVote with selected option.
  */
@@ -67,7 +67,7 @@ export default function GroupPoll({ poll, onVote, disabled }: Props) {
               <div className="relative flex items-center justify-between gap-2 text-sm">
                 <div className="flex items-center gap-2 min-w-0">
                   {isMine && (
-                    <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground shrink-0">
+                    <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-ig-gradient text-white shrink-0">
                       <Check className="w-2.5 h-2.5" />
                     </span>
                   )}

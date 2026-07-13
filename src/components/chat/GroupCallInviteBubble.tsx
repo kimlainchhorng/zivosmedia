@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroupCallInviteBubble — Chat message bubble for group call invitations
  */
 import Phone from "lucide-react/dist/esm/icons/phone";
@@ -70,7 +70,7 @@ export default function GroupCallInviteBubble({
         <div className="px-4 pb-3">
           <button type="button"
             onClick={onJoin}
-            className="w-full py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="w-full py-2 rounded-xl bg-ig-gradient text-white text-sm font-semibold hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
             <CallIcon className="h-4 w-4" />
             Join {callType === "video" ? "Video" : "Call"}

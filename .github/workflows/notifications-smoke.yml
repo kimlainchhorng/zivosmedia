@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Deno
         uses: denoland/setup-deno@v2
@@ -42,7 +42,7 @@ jobs:
           deno-version: v2.x
 
       - name: Cache Deno dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/deno
           key: ${{ runner.os }}-deno-notifications-${{ hashFiles('supabase/functions/**/*.ts', 'supabase/functions/**/*.json', 'supabase/config.toml') }}

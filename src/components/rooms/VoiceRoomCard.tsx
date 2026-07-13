@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VoiceRoomCard — Clubhouse-style live voice room tile.
  * Shows host, topic, listener count + Join CTA.
  */
@@ -56,7 +56,7 @@ export default function VoiceRoomCard({ room, onJoin }: Props) {
         </div>
         <button type="button"
           onClick={() => onJoin?.(room.id)}
-          className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold active:scale-95 transition"
+          className="px-3 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold active:scale-95 transition"
         >
           Join
         </button>

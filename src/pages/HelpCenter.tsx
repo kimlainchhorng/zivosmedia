@@ -352,8 +352,8 @@ const HelpCenter = () => {
               <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {[
                   { icon: MessageCircle, title: "Live Chat", desc: "Chat with a support agent", badge: "24/7", gradient: "from-primary to-teal-400", action: "Start Chat" },
-                  { icon: Phone, title: "Phone", desc: "Speak with our team", badge: "1-800-ZIVO", gradient: "from-muted to-muted", action: "Call Now" },
-                  { icon: Mail, title: "Email", desc: "Response within 24h", badge: "support@zivo.com", gradient: "from-muted to-muted", action: "Send Email" },
+                  { icon: Phone, title: "Phone", desc: "Speak with our team", badge: "1-800-ZIVO", gradient: "from-sky-500 to-blue-600", action: "Call Now" },
+                  { icon: Mail, title: "Email", desc: "Response within 24h", badge: "support@zivosmedia.com", gradient: "from-violet-500 to-purple-600", action: "Send Email" },
                 ].map((contact, index) => (
                   <Card key={contact.title} className="border-0 bg-gradient-to-br from-card/90 to-card shadow-xl hover:shadow-2xl transition-all">
                     <CardContent className="p-4 sm:p-6 text-center">

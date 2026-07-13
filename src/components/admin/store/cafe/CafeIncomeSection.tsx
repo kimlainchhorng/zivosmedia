@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CafeIncomeSection — daily revenue + tickets bars over the last 30 days,
  * plus channel split. Driven by useCafeAnalytics over completed orders.
  */
@@ -34,7 +34,7 @@ export default function CafeIncomeSection({ storeId }: Props) {
           {([7, 30, 90] as const).map((d) => (
             <button key={d} type="button" onClick={() => setDays(d)} className={cn(
               "px-3 py-1 text-xs",
-              days === d ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+              days === d ? "bg-ig-gradient text-white" : "hover:bg-muted",
             )}>{d}d</button>
           ))}
         </div>

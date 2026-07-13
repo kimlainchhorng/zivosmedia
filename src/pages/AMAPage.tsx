@@ -234,8 +234,9 @@ export default function AMAPage() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
+              aria-pressed={tab === t.id}
               className={cn(
-                "flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5",
+                "flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
@@ -291,8 +292,9 @@ export default function AMAPage() {
                   <button
                     type="button"
                     onClick={() => toggleExpand(s.id)}
-                    className="w-full text-left hover:bg-secondary/40 transition-colors"
-                    aria-label={`${s.title}, ${isExpanded ? "collapse" : "expand"}`}
+                    className="w-full text-left hover:bg-secondary/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    aria-label={s.title}
+                    aria-expanded={isExpanded}
                   >
                     {/* Cover */}
                     {s.cover_url && (
@@ -415,8 +417,9 @@ export default function AMAPage() {
                                 <button
                                   type="button"
                                   onClick={() => setAnonymous((prev) => ({ ...prev, [s.id]: !prev[s.id] }))}
+                                  aria-pressed={!!anonymous[s.id]}
                                   className={cn(
-                                    "inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10px] font-bold transition-all",
+                                    "inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[10px] font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                     anonymous[s.id] ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                                   )}
                                 >
@@ -426,7 +429,7 @@ export default function AMAPage() {
                                   type="button"
                                   onClick={() => submitQuestion(s.id)}
                                   disabled={submittingId === s.id || (draft[s.id] ?? "").trim().length < 6}
-                                  className="h-8 px-4 rounded-full bg-ig-gradient text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                                  className="h-8 px-4 rounded-full bg-ig-gradient text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                   {submittingId === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                                   Ask

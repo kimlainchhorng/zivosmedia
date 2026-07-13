@@ -2,6 +2,14 @@
 
 Brief for AI coding agents (Codex, Claude Code, etc.) working in this repo. Read this before building. Keep it updated when architecture changes.
 
+## Multi-agent workflow (read first)
+Three agents work this repo **together**: **Claude Code**, **Codex**, and **DeepSeek**. To avoid collisions:
+- **Coordination rules + roles:** [`docs/agent-workflow.md`](docs/agent-workflow.md).
+- **Shared task board (claim work here before editing):** [`AGENT_TASKS.md`](AGENT_TASKS.md).
+- **One verify gate before "done":** `npm run update` (type-check + worker type-check + production build — must pass).
+- **DeepSeek** runs as an advisor via `npm run agent:deepseek -- --task "…"` (it proposes plans/diffs; a human/Claude/Codex applies them). It is fed this file automatically by the runner.
+- One agent per file/page; re-check `git status` before editing a shared file; owner commits & deploys.
+
 ## Repo at a glance
 - One **Vite + React + TypeScript SPA** serves **many apex domains from a single build** (zivosmedia.com, zivostravel.com, zivosoftware.com, zivoschat.com, …). Runtime **host-gating** decides what renders per domain.
 - Wrapped for native via **Capacitor** (iOS/Android) and **Electron**. A **Cloudflare Worker** (`cloudflare/worker.ts`) fronts the web app: security headers/CSP, R2 media, host-specific robots/sitemap.
@@ -92,5 +100,7 @@ Coordinate here; re-check `git status` before editing a shared page.
 **Site-wide travel shell (make ALL pages look travel on zivostravel.com):** the generic zivosmedia shell currently leaks onto travel pages. Progress/TODO:
 - ✅ `GlobalDesktopNav` now returns null on the travel host (no Feed/Reels/Chat social nav on zivostravel.com; travel pages render their own header).
 - ✅ DONE: `<ZivoTravel3DProvider />` is mounted at the app root (`src/App.tsx`, beside the host gates). On the travel host it adds the `.zivo-travel-3d` scope to `<html>` site-wide AND runs a **title guard** (rewrites "ZIVO …" → "Zivo Travel …" in document titles, so utility pages like Wallet/My Trips get travel tab/SEO titles). No-op off the travel host. Also `Header.tsx`, `home/NavBar.tsx`, and `Footer.tsx` are now travel-host-aware (ZIVO TRAVEL / Zivo Travel branding).
-- TODO: hide/replace the mobile zivosmedia nav (`AppLayout`/bottom nav) on the travel host too.
-- TODO: travel-style shared utility pages (My Trips, Wallet, Payment Methods) via `.zivo-travel-3d`-scoped CSS once the provider is mounted.
+- ✅ DONE: the mobile bottom nav (`src/components/app/ZivoMobileNav.tsx`) now renders a **travel** tab set (Home/Trips/Wallet/Cards/Account) on the travel host instead of the social Feed/Reels/Ride/Chat tabs — mirrors the `TravelUtilityShell` nav, gated by `isZivoTravelHost`. No-op on zivosmedia.
+- ✅ DONE: travel-style shared utility pages — `src/pages/ZivoTravel{MyTrips,Wallet,PaymentMethods,Account}.tsx` in the `.zivo-travel-3d` `TravelUtilityShell` (own glass header + bottom nav), wired to real data. Routed host-agnostically at `/zivo-travel/*` (preview) + travel-host conditionals on `/my-trips`, `/wallet`, `/payment-methods`, `/account`.
+- ✅ DONE: `NavigationProgressBar` (top route-change bar) is now travel-host-aware — sky/blue gradient on the travel host instead of the IG social gradient (it lives at the app root, outside the `.zivo-travel-3d` scope, so the gradient is picked by host).
+- NOTE: remaining global overlays already gate on the travel host (`RouteAwareGlobalUI`, `DeferredPassiveChatOverlays`, `DesktopNavBootstrap` all early-return when `isCurrentZivoTravelHost()`). Toaster/Sonner are intentionally shared (travel pages fire toasts too).

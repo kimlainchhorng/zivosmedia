@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Search + status pills + sort menu for the doc list.
  */
 import { Input } from "@/components/ui/input";
@@ -79,7 +79,7 @@ export default function InvoiceFilterBar({
             onClick={() => onStatus(s.key)}
             className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition border ${
               status === s.key
-                ? "bg-primary text-primary-foreground border-primary"
+                ? "bg-ig-gradient text-white border-primary"
                 : "bg-background text-muted-foreground border-border hover:bg-muted"
             }`}
           >

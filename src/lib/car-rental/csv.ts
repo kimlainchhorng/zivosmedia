@@ -30,9 +30,16 @@ export interface CsvReservation {
   created_at: string;
 }
 
+// CSV formula injection (CWE-1236): customer name / email / phone / location /
+// cancellation reason are user-entered; a value starting with = + - @ tab or CR
+// executes as a formula in Excel/Sheets/LibreOffice. Prefix with an apostrophe
+// (leaving legit negative numbers intact) before RFC-4180 quoting.
+const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+const NUMERIC_LITERAL = /^-?\d+(\.\d+)?$/;
 function esc(v: unknown): string {
   if (v === null || v === undefined) return "";
-  const s = String(v);
+  let s = String(v);
+  if (FORMULA_TRIGGERS.test(s) && !NUMERIC_LITERAL.test(s)) s = `'${s}`;
   if (/[",\n\r]/.test(s)) {
     return `"${s.replace(/"/g, '""')}"`;
   }

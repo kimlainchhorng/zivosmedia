@@ -9,5 +9,6 @@ serve(withSecurity("software-subscription-past-due", async (req, ctx) => {
   allowedMethods: ["POST"],
   strictCors: true,
   skipBotDetection: true,
+  strictCors: true,
   skipWaf: true,
 }));

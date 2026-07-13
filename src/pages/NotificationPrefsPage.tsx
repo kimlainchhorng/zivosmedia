@@ -171,7 +171,7 @@ export default function NotificationPrefsPage() {
                   type="button"
                   onClick={() => toggleCategory(category, !allEnabled)}
                   className={cn(
-                    "text-[11px] font-bold rounded-full px-3 py-1 transition-all",
+                    "text-[11px] font-bold rounded-full px-3 py-1 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     allEnabled ? "bg-secondary text-muted-foreground hover:bg-muted" : "bg-ig-gradient text-white shadow-sm",
                   )}
                   aria-label={allEnabled ? "Mute all" : "Enable all"}
@@ -188,7 +188,7 @@ export default function NotificationPrefsPage() {
                       key={t.id}
                       type="button"
                       onClick={() => toggleTemplate(t.id, locked)}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/40 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground line-clamp-1">{t.name}</p>

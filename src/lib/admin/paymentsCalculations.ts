@@ -73,9 +73,16 @@ export function compareDelta(current: number, previous: number): DeltaResult {
 }
 
 // ─── Time series ───────────────────────────────────────────
+// Local YYYY-MM-DD. toISOString() is the UTC day, which in Cambodia (UTC+7)
+// reads as yesterday before 07:00 local. The month/week buckets below already
+// key off local calendar components, so the day bucket must too — otherwise
+// daily and weekly/monthly groupings disagree across midnight.
+const ymdLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 function bucketKey(dateIso: string, group: GroupBy): string {
   const d = new Date(dateIso);
-  if (group === "day") return d.toISOString().slice(0, 10);
+  if (group === "day") return ymdLocal(d);
   if (group === "month") return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNum = (tmp.getUTCDay() + 6) % 7;
@@ -145,7 +152,11 @@ export type PaymentsPreset = "today" | "week" | "month" | "quarter" | "this_mont
 
 export function paymentsPresetRange(preset: PaymentsPreset): { from: string; to: string } {
   const now = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  // Local day (see ymdLocal): "today" must mean the user's local today, not the
+  // UTC day — otherwise before 07:00 Cambodia time the filter silently shows
+  // yesterday's payments. The month-anchored cases (this_month/last_month/ytd)
+  // also need local slicing so new Date(y, m, 1) doesn't roll back a day in UTC.
+  const iso = ymdLocal;
   const to = iso(now);
   switch (preset) {
     case "today": return { from: to, to };

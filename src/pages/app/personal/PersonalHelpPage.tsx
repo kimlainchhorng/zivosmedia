@@ -52,7 +52,7 @@ export default function PersonalHelpPage() {
     <AppLayout title="Help & Support" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24 space-y-4">
         <div className="flex items-center gap-2.5">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform">
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-[17px]">Help & Support</h1>
@@ -68,7 +68,7 @@ export default function PersonalHelpPage() {
             const Icon = c.icon;
             return (
               <button type="button" key={c.label} onClick={c.action}
-                className="flex flex-col items-center gap-2 rounded-2xl border border-border/40 bg-card py-4 active:scale-95 transition-transform">
+                className="flex flex-col items-center gap-2 rounded-2xl border border-border/40 bg-card py-4 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${c.color}`}>
                   <Icon className="w-5 h-5" />
                 </div>
@@ -86,7 +86,7 @@ export default function PersonalHelpPage() {
           </div>
           {faqs.map((faq, i) => (
             <div key={i} className={i > 0 ? "border-t border-border/20" : ""}>
-              <button type="button" className="w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-muted/20 transition-colors"
+              <button type="button" aria-expanded={openFaq === i} className="w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-muted/20 transition-colors focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => setOpenFaq(openFaq === i ? null : i)}>
                 <span className="text-[13px] font-semibold text-foreground pr-3">{faq.q}</span>
                 {openFaq === i ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />}
@@ -117,7 +117,7 @@ export default function PersonalHelpPage() {
 
         {/* External docs */}
         <button type="button" onClick={() => navigate("/support")}
-          className="flex items-center justify-between p-4 rounded-2xl bg-card border border-border/40 active:bg-muted/20 transition-colors">
+          className="flex items-center justify-between p-4 rounded-2xl bg-card border border-border/40 active:bg-muted/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <span className="text-[13px] font-semibold text-foreground">Browse Help Center</span>
           <ExternalLink className="w-4 h-4 text-muted-foreground" />
         </button>

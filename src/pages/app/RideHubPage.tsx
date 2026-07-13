@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideHubPage - Central hub for all ride features
  */
 import { Suspense, useEffect, useState } from "react";
@@ -480,8 +480,9 @@ export default function RideHubPage() {
                 <button type="button"
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
+                  aria-pressed={isActive}
                   className={cn(
-                    "flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold whitespace-nowrap transition-all shrink-0",
+                    "flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold whitespace-nowrap transition-all shrink-0 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isActive ? "bg-foreground text-background" : "bg-transparent text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -517,10 +518,11 @@ export default function RideHubPage() {
                 <button type="button"
                   key={tab.id}
                   onClick={() => selectTab(tab.id)}
+                  aria-pressed={active}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0",
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     active
-                      ? "bg-primary text-primary-foreground shadow-md"
+                      ? "bg-ig-gradient text-white shadow-md"
                       : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   )}
                 >
@@ -612,7 +614,7 @@ export default function RideHubPage() {
                             <button type="button"
                               key={item.id}
                               onClick={() => goToFeature(item.id)}
-                              className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-card border border-border/40 hover:border-primary/30 hover:bg-primary/5 active:scale-95 transition-all"
+                              className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-card border border-border/40 hover:border-primary/30 hover:bg-primary/5 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", group.bgClass)}>
                                 <ItemIcon className={cn("w-4 h-4", group.iconClass)} />

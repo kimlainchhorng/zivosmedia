@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Star, CheckCircle, XCircle, Flag, Eye, Shield, AlertCircle,
@@ -159,7 +159,7 @@ export default function ReviewModerationDashboard() {
               className={cn(
                 "px-3 py-1.5 rounded-full border text-[12px] font-semibold transition-all",
                 filterStatus === status
-                  ? "bg-primary text-primary-foreground border-primary"
+                  ? "bg-ig-gradient text-white border-primary"
                   : "bg-muted/20 text-foreground border-border/20 hover:bg-muted/40"
               )}
             >

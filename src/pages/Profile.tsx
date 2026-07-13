@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo, Fragment } from "react";
+﻿import { useState, useRef, useCallback, useEffect, useMemo, Fragment } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -16,7 +16,7 @@ import {
   Shield, Star, ChevronRight, UserPlus, BadgeCheck,
   Wallet, Store, ExternalLink, Users, Globe, ChevronDown, Crown, MapPin, ShoppingBag,
   Handshake, Car, Wrench, UtensilsCrossed, Building2, Truck, Phone, AlertCircle, Bell, MoreHorizontal,
-  Pencil, RotateCcw, Share2, BarChart3, Link as LinkIcon,
+  Pencil, RotateCcw, Share2, BarChart3,
   Repeat, DollarSign, Briefcase, User as UserIcon,
   Heart, Lock, Gift, MessageCircle, Video, TrendingUp, Eye,
   Settings as SettingsIcon,
@@ -31,19 +31,15 @@ import UsernameShareSheet from "@/components/profile/UsernameShareSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile, useUpdateUserProfile, useUploadAvatar, useUploadCover } from "@/hooks/useUserProfile";
 import { useUsername } from "@/hooks/useUsername";
-import { useMerchantRole } from "@/hooks/useMerchantRole";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
-import { MERCHANT_APP_URL } from "@/lib/eatsTables";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import NavBar from "@/components/home/NavBar";
-import { motion, useScroll, useTransform, AnimatePresence, useMotionValueEvent } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getPublicOrigin } from "@/lib/getPublicOrigin";
 import { invalidateAllStoryCaches } from "@/lib/storiesCache";
-import { copyText } from "@/lib/native/clipboard";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { assessLinkSync } from "@/hooks/useLinkRisk";
 import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
@@ -53,9 +49,7 @@ import ProfileStories from "@/components/profile/ProfileStories";
 import SocialListModal from "@/components/profile/SocialListModal";
 // Wallet, Completeness, Referral & QuickLinks cards moved to /more page
 import ProfileTripsCard from "@/components/profile/ProfileTripsCard";
-import { useCoinBalance } from "@/hooks/useCoinBalance";
-import { useWalletSummary } from "@/hooks/useZivoWallet";
-import { useReferrals } from "@/hooks/useReferrals";
+import FeedSidebar from "@/components/social/FeedSidebar";
 import { useBookingHistory } from "@/hooks/useBookingHistory";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -133,58 +127,16 @@ const isChatNotification = (notification: ProfileNotificationLike) => {
 
 type ProfileCompletionMissingKind = "username" | "avatar" | "cover" | "bio";
 
-/* ── 3D tilt hook ── */
-function use3DTilt(ref: React.RefObject<HTMLElement | null>, intensity = 8) {
-  const [style, setStyle] = useState({ rotateX: 0, rotateY: 0 });
-
-  const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    const x = (clientX - rect.left) / rect.width - 0.5;
-    const y = (clientY - rect.top) / rect.height - 0.5;
-    setStyle({ rotateX: -y * intensity, rotateY: x * intensity });
-  }, [ref, intensity]);
-
-  const handleLeave = useCallback(() => setStyle({ rotateX: 0, rotateY: 0 }), []);
-
-  return { style, handleMove, handleLeave };
-}
-
-/* ── Animated bokeh particle ── */
-const BokehParticle = ({ delay, size, x, y, color }: { delay: number; size: number; x: string; y: string; color: string }) => (
-  <motion.div
-    className="absolute rounded-full pointer-events-none"
-    style={{ width: size, height: size, left: x, top: y, background: color, filter: `blur(${size * 0.4}px)` }}
-    animate={{ opacity: [0.15, 0.4, 0.15], scale: [0.8, 1.2, 0.8], y: [0, -20, 0] }}
-    transition={{ duration: 5 + delay, repeat: Infinity, ease: "easeInOut", delay }}
-  />
-);
-
 /* ── Parallax section wrapper ── */
 const ParallaxSection = ({ children, index }: { children: React.ReactNode; index: number }) => (
   <motion.div
-    initial={{ opacity: 0, y: 50, rotateX: 8 }}
-    whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+    initial={{ opacity: 0, y: 16 }}
+    whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: "-30px" }}
-    transition={{ duration: 0.6, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
-    style={{ perspective: "1200px" }}
+    transition={{ duration: 0.4, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
   >
     {children}
   </motion.div>
-);
-
-/* ── 3D Glass Card wrapper ── */
-const GlassCard3D = ({ children, className = "", glow = false }: { children: React.ReactNode; className?: string; glow?: boolean }) => (
-  <div className={`relative rounded-3xl overflow-hidden ${className}`}>
-    {/* Glassmorphism layers */}
-    <div className="absolute inset-0 bg-card/70 backdrop-blur-2xl" />
-    <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-primary/[0.02]" />
-    <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]" />
-    {glow && <div className="pointer-events-none absolute -inset-px rounded-3xl bg-gradient-to-br from-primary/20 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />}
-    <div className="relative z-10">{children}</div>
-  </div>
 );
 
 const Profile = () => {
@@ -193,7 +145,7 @@ const Profile = () => {
   const location = useLocation();
   const { t, currentLanguage, changeLanguage } = useI18n();
   
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { data: profile, isLoading: profileLoading, isError: hasProfileError } = useUserProfile();
   const { username: claimedUsername } = useUsername();
   // Brand-name override (e.g. "ZIVO" for staff/founder accounts) — falls back to legal name.
@@ -201,7 +153,6 @@ const Profile = () => {
   const titleCase = (s: string) => s.replace(/\b([a-z])/g, (m) => m.toUpperCase());
   const rawHeaderName = brandName || profile?.full_name || "";
   const headerName = brandName ? rawHeaderName : (rawHeaderName ? titleCase(rawHeaderName) : "");
-  const { data: merchantData } = useMerchantRole();
   const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
   const { notifications, isLoading: notifLoading, markAsRead } = useNotifications(20);
   const { data: latestVerificationRequest, isError: hasVerificationRequestError } = useQuery({
@@ -284,9 +235,6 @@ const Profile = () => {
   );
   const totalNotifCount = profileUnreadCount + socialCount;
   const { isPlus, plan } = useZivoPlus();
-  const { balance: coinBalance, loading: coinLoading } = useCoinBalance();
-  const { data: walletSummary, isLoading: walletLoading } = useWalletSummary();
-  const { referralCode, isLoading: referralsLoading, copyReferralLink, shareReferral } = useReferrals();
   const { bookings, isLoading: bookingsLoading } = useBookingHistory();
   const updateProfile = useUpdateUserProfile();
   const uploadAvatar = useUploadAvatar();
@@ -319,6 +267,11 @@ const Profile = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate("/feed");
   }, [impact, navigate]);
+
+  // The notch safe-area floor on the sticky header is only needed inside the
+  // installed native app. On the website there's no notch, so it just leaves an
+  // empty bar at the top — collapse it to a normal compact header on web.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
   const handleToggleNotif = useCallback(() => {
     selectionChanged();
     setShowLangPicker(false);
@@ -394,6 +347,8 @@ const Profile = () => {
   
   const [showLangPicker, setShowLangPicker] = useState(false);
   const profileCardRef = useRef<HTMLDivElement>(null);
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
 
   // Cover photo state
   const [coverUploading, setCoverUploading] = useState(false);
@@ -422,7 +377,6 @@ const Profile = () => {
   const [safeLinkPrompt, setSafeLinkPrompt] = useState<string | null>(null);
   const coverDragRef = useRef<{ startY: number; startPos: number } | null>(null);
 
-  const profileTilt = use3DTilt(profileCardRef);
 
   // Social-graph counts unified into a single React Query instead of 4 ad-hoc
   // useState + manual visibility-change listeners. React Query handles focus
@@ -467,7 +421,6 @@ const Profile = () => {
   const setFollowingCount = (_n: number) => { void refetchSocialCounts(); };
   const [socialModal, setSocialModal] = useState<{ open: boolean; tab: "friends" | "followers" | "following" }>({ open: false, tab: "friends" });
   const [shareOpen, setShareOpen] = useState(false);
-  const [profileLinkCopied, setProfileLinkCopied] = useState(false);
   const [modeOpen, setModeOpen] = useState(false);
   const [activeMode, setActiveMode] = useState<string>(() => {
     if (typeof window === "undefined") return "personal";
@@ -529,33 +482,6 @@ const Profile = () => {
     profile?.profile_completion_score,
     profile?.username,
   ]);
-  const profileShareUrl = useMemo(
-    () => {
-      const origin = getPublicOrigin();
-      if (claimedUsername) return `${origin}/u/${encodeURIComponent(claimedUsername)}`;
-      if (user?.id) return `${origin}/user/${encodeURIComponent(user.id)}`;
-      return "";
-    },
-    [claimedUsername, user?.id],
-  );
-
-  const handleCopyProfileLink = useCallback(async () => {
-    selectionChanged();
-    if (!claimedUsername && !user?.id) {
-      toast.error("Profile link is not ready yet");
-      return;
-    }
-    try {
-      await copyText(profileShareUrl);
-      setProfileLinkCopied(true);
-      toast.success("Profile link copied");
-      window.setTimeout(() => setProfileLinkCopied(false), 1600);
-    } catch {
-      setShareOpen(true);
-      toast.info("Copy failed, share options opened");
-    }
-  }, [claimedUsername, profileShareUrl, selectionChanged, user?.id]);
-
   const getShopDashboardPath = useCallback(() => {
     if (!ownerStore?.id) return "/shop-dashboard";
     return resolveBusinessDashboardRoute(ownerStore.category, ownerStore.id).path;
@@ -595,12 +521,22 @@ const Profile = () => {
   const coverY = useTransform(scrollY, [0, 240], [0, -60]);
   const coverScale = useTransform(scrollY, [-100, 0], [1.15, 1]);
   // Header is always pinned & visible. Toggle "over cover" styling vs solid bar
-  // once the user scrolls past the cover area for legibility.
+  // once the user scrolls past the cover area for legibility. A direct scroll
+  // listener (not framer's rAF-batched useScroll, which can stall in throttled
+  // tabs/webviews and leave the header stuck transparent). Capture phase + a
+  // defensive position read so it fires whether the document or a nested
+  // overflow container (e.g. PullToRefresh) is the actual scroller.
   const [overCover, setOverCover] = useState(true);
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    const nextOverCover = latest < 80;
-    setOverCover((current) => (current === nextOverCover ? current : nextOverCover));
-  });
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || document.scrollingElement?.scrollTop || 0;
+      const next = y < 80;
+      setOverCover((current) => (current === next ? current : next));
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", onScroll, { capture: true } as any);
+  }, []);
 
   const getInitials = () => {
     if (brandName) return brandName.slice(0, 2).toUpperCase();
@@ -693,12 +629,13 @@ const Profile = () => {
     staleTime: 60_000,
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("career_applications")
         .select("id, status, created_at, career_jobs!inner(title)")
         .eq("applicant_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
+      if (error) throw error;
       return (data ?? []) as Array<{ id: string; status: string; created_at: string; career_jobs: { title: string } | null }>;
     },
   });
@@ -759,21 +696,7 @@ const Profile = () => {
       </div>
 
       {/* ── Background: clean Facebook-style on mobile, parallax on desktop ── */}
-      <motion.div style={{ y: bgParallax }} className="pointer-events-none fixed inset-0 z-0 hidden lg:block">
-        {/* Base gradient (desktop only) */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-background to-primary/[0.04]" />
-        {/* Radial glows */}
-        <div className="absolute top-[-25%] right-[-15%] w-[70vw] h-[70vw] rounded-full bg-primary/[0.07] blur-[120px]" />
-        <div className="absolute bottom-[5%] left-[-20%] w-[60vw] h-[60vw] rounded-full bg-primary/[0.05] blur-[100px]" />
-        <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[40vw] h-[40vw] rounded-full bg-primary/[0.03] blur-[80px]" />
-        {/* Bokeh particles */}
-        <BokehParticle delay={0} size={60} x="10%" y="15%" color="hsl(var(--primary) / 0.08)" />
-        <BokehParticle delay={1.5} size={40} x="75%" y="25%" color="hsl(var(--primary) / 0.06)" />
-        <BokehParticle delay={2.8} size={80} x="85%" y="60%" color="hsl(var(--primary) / 0.05)" />
-        <BokehParticle delay={0.8} size={35} x="20%" y="70%" color="hsl(var(--primary) / 0.07)" />
-        <BokehParticle delay={3.5} size={50} x="55%" y="85%" color="hsl(var(--primary) / 0.04)" />
-        <BokehParticle delay={1.2} size={45} x="40%" y="10%" color="hsl(var(--primary) / 0.06)" />
-      </motion.div>
+      <div className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-muted/20" />
 
       {/* ── Mobile sticky compact header (Facebook-style) ──
           Portaled to <body> so the position:fixed element escapes the
@@ -785,18 +708,27 @@ const Profile = () => {
           aria-label="Profile quick navigation"
           data-testid="profile-sticky-header"
           style={{
-            height: "calc(var(--zivo-safe-top-sticky) + 2.75rem)",
-            paddingTop: "var(--zivo-safe-top-sticky)",
+            // Opted out of the global .fixed.top-0 safe-area guard (index.css)
+            // via zivo-safe-top-guard-off, so this header owns its top inset:
+            // real notch inset when present (native app or iOS PWA), otherwise a
+            // tight 0.5rem so the buttons sit at the very top in the browser.
+            height: isNativeApp
+              ? "calc(var(--zivo-safe-top-sticky) + 2.75rem)"
+              : "calc(2.75rem + max(env(safe-area-inset-top, 0px), 0.5rem))",
+            paddingTop: isNativeApp
+              ? "var(--zivo-safe-top-sticky)"
+              : "max(env(safe-area-inset-top, 0px), 0.5rem)",
           }}
-          className="lg:hidden fixed top-0 inset-x-0 z-40 px-2.5 flex items-start gap-2"
+          className="lg:hidden zivo-safe-top-guard-off fixed top-0 inset-x-0 z-40 px-2.5 flex items-start gap-2"
         >
-          {/* Adaptive background: gradient scrim over cover, solid blurred bar after scroll */}
+          {/* Adaptive background: fully transparent over the cover photo (page just
+              opened), solid blurred bar once the user scrolls past the cover. */}
           <div
             aria-hidden
             className={cn(
               "absolute inset-0 -z-10 transition-all duration-300",
               overCover
-                ? "bg-background/94 backdrop-blur-2xl border-b border-border/50 shadow-sm shadow-background/20"
+                ? "bg-transparent"
                 : "bg-background/92 backdrop-blur-2xl border-b border-border/50 shadow-sm shadow-background/20"
             )}
           />
@@ -813,19 +745,25 @@ const Profile = () => {
           >
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </motion.button>
-          <span aria-hidden="true">
+          {/* Mini identity fades in with the solid bar; over the cover it would
+              collide with the large profile avatar right below the header. */}
+          <span
+            aria-hidden="true"
+            className={cn("transition-opacity duration-300", overCover && "opacity-0")}
+          >
             <Avatar className="h-8 w-8 ring-2 ring-background shadow-sm">
               <AvatarImage src={profile?.avatar_url || undefined} alt="" />
               <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
             </Avatar>
           </span>
-          <div className="flex min-w-0 flex-1 items-center gap-1" aria-live="polite">
-            <span
-              translate="no"
-              className={cn(
-              "font-semibold text-sm truncate",
-              "text-foreground"
-            )}>
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-1 transition-opacity duration-300",
+              overCover && "opacity-0"
+            )}
+            aria-live="polite"
+          >
+            <span translate="no" className="font-semibold text-sm truncate text-foreground">
               {headerName || "Profile"}
             </span>
             {profile?.is_verified && <VerifiedBadge size={14} />}
@@ -931,22 +869,6 @@ const Profile = () => {
                 </>
               )}
             </AnimatePresence>
-          <motion.button
-            type="button"
-            onClick={handleCopyProfileLink}
-            aria-label={profileLinkCopied ? "Profile link copied" : "Copy profile link"}
-            aria-pressed={profileLinkCopied}
-            whileTap={{ scale: 0.86 }}
-            transition={{ type: "spring", stiffness: 400, damping: 22 }}
-            className={cn(
-              "h-9 w-9 flex items-center justify-center rounded-2xl border bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none",
-              profileLinkCopied
-                ? "border-emerald-500/30 bg-emerald-500/12 text-emerald-600"
-                : "border-border/60 hover:bg-muted/60 text-foreground"
-            )}
-          >
-            {profileLinkCopied ? <Check className="h-5 w-5" /> : <LinkIcon className="h-5 w-5" />}
-          </motion.button>
           <div className="relative">
           <motion.button
             ref={notifBellRef}
@@ -960,7 +882,7 @@ const Profile = () => {
             className={cn(
               "relative h-9 w-9 flex items-center justify-center rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               showNotifPanel
-                ? "bg-primary text-primary-foreground"
+                ? "bg-ig-gradient text-white"
                 : overCover
                   ? "hover:bg-muted/60 text-foreground"
                   : "hover:bg-muted/60 text-foreground"
@@ -1031,7 +953,7 @@ const Profile = () => {
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
                         notifFilter === f
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-ig-gradient text-white"
                           : "bg-muted/50 text-muted-foreground hover:bg-muted"
                       )}
                     >
@@ -1191,8 +1113,31 @@ const Profile = () => {
 
 
       {/* ── Scrollable content ── */}
-      <div className="relative z-10 min-h-screen pb-24 scroll-smooth bg-background no-scrollbar">
-        <div className="px-3 lg:px-4 pt-14 lg:pt-20 max-w-none lg:max-w-3xl mx-auto">
+      <div
+        className="relative z-10 min-h-screen pb-24 scroll-smooth bg-background no-scrollbar"
+        onTouchStart={(e) => {
+          swipeStartX.current = e.touches[0].clientX;
+          swipeStartY.current = e.touches[0].clientY;
+        }}
+        onTouchEnd={(e) => {
+          if (swipeStartX.current === null || swipeStartY.current === null) return;
+          const dx = e.changedTouches[0].clientX - swipeStartX.current;
+          const dy = Math.abs(e.changedTouches[0].clientY - swipeStartY.current);
+          if (dx > 70 && dy < 60 && (swipeStartX.current ?? 0) < 36 && !coverRepositioning) {
+            navigate(-1);
+          }
+          swipeStartX.current = null;
+          swipeStartY.current = null;
+        }}
+      >
+        <div className="lg:flex lg:pt-[60px] transition-all duration-300">
+          <FeedSidebar />
+          <div className={cn(
+            // No mobile top padding: the cover photo slides under the transparent
+            // fixed header (Facebook-style). The cover's own top scrim keeps the
+            // status bar / notch area legible in the native app.
+            "w-full px-2.5 lg:px-4 max-w-none lg:max-w-3xl mx-auto"
+          )}>
 
           {profileLoading ? (
             <div className="flex items-center justify-center py-20">
@@ -1211,7 +1156,7 @@ const Profile = () => {
               trackingContext="profile"
             />
           ) : (
-            <div className="space-y-3 pt-0 lg:pt-1">
+            <div className="space-y-2.5 pt-0 lg:pt-1">
               {hasProfileRefreshError && (
                 <DegradedDataBanner
                   className="px-4 lg:px-0 pt-2"
@@ -1225,19 +1170,8 @@ const Profile = () => {
                   No ParallaxSection here: the hero card must paint immediately
                   to avoid a giant blank area at the top of the viewport. */}
               <div>
-                <motion.div
-                  ref={profileCardRef}
-                  onMouseMove={profileTilt.handleMove as any}
-                  onMouseLeave={profileTilt.handleLeave}
-                  animate={{ rotateX: profileTilt.style.rotateX, rotateY: profileTilt.style.rotateY }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  style={{ perspective: "1200px", transformStyle: "preserve-3d" }}
-                  className="group"
-                >
-                  <div className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_18px_60px_rgba(15,23,42,0.08)] lg:shadow-2xl lg:shadow-primary/[0.08]">
-                    <div className="hidden lg:block absolute inset-0 bg-card/70 backdrop-blur-2xl rounded-3xl" />
-                    <div className="hidden lg:block absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-primary/[0.02] rounded-3xl" />
-                    <div className="hidden lg:block pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]" />
+                <div ref={profileCardRef} className="group">
+                  <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-background/92 shadow-sm">
                     <div className="relative z-10">
                     {/* Cover photo sits below the fixed mobile header so content never collides with the notch. */}
                     <div
@@ -1338,7 +1272,7 @@ const Profile = () => {
                           <div className="relative flex items-center gap-3 bg-background/90 backdrop-blur-xl rounded-full px-4 py-2 shadow-xl border border-border/50">
                             <MoveVertical className="h-4 w-4 text-muted-foreground" />
                             <span className="text-xs font-semibold text-foreground">Drag to reposition</span>
-                            <button type="button" onClick={saveCoverPosition} disabled={updateProfile.isPending} aria-label="Save cover position" className="p-1.5 rounded-full bg-primary text-primary-foreground transition active:scale-90 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
+                            <button type="button" onClick={saveCoverPosition} disabled={updateProfile.isPending} aria-label="Save cover position" className="p-1.5 rounded-full bg-ig-gradient text-white transition active:scale-90 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
                               {updateProfile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                             </button>
                             <button type="button" onClick={handleResetCover} aria-label="Reset cover position to center" className="p-1.5 rounded-full bg-muted/70 text-foreground hover:bg-muted transition active:scale-90 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
@@ -1355,7 +1289,7 @@ const Profile = () => {
 
 
                     {/* Avatar overlapping cover */}
-                    <div className="relative z-10 -mt-9 px-5 sm:-mt-11 sm:px-6">
+                    <div className="relative z-10 -mt-7 px-4 sm:-mt-8 sm:px-5">
                       <div className="flex justify-start">
                         <motion.div
                           className="relative group/avatar"
@@ -1370,7 +1304,7 @@ const Profile = () => {
                               ? "bg-gradient-to-tr from-[#0077B6] via-[#00AEEF] to-[#7CD6FF]"
                               : "bg-ig-gradient"
                           )} />
-                          <Avatar className="relative h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 ring-[5px] ring-card shadow-xl">
+                          <Avatar className="relative h-[56px] w-[56px] sm:h-[68px] sm:w-[68px] ring-[3px] ring-card shadow-lg">
                             <AvatarImage src={avatarPreview || profile?.avatar_url || undefined} alt="Profile" />
                             <AvatarFallback className="bg-muted text-foreground text-2xl font-bold">
                               {getInitials()}
@@ -1382,24 +1316,24 @@ const Profile = () => {
                             disabled={uploadAvatar.isPending}
                             aria-label="Change profile photo"
                             className={cn(
-                              "absolute bottom-0 right-0 p-1.5 sm:p-2 bg-primary text-primary-foreground rounded-full shadow-xl shadow-primary/40 ring-2 ring-card cursor-pointer active:scale-90 transition focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+                              "absolute bottom-0 right-0 p-1 sm:p-1.5 bg-ig-gradient text-white rounded-full shadow-lg shadow-primary/40 ring-[1.5px] ring-card cursor-pointer active:scale-90 transition focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
                               uploadAvatar.isPending && "opacity-50 pointer-events-none"
                             )}
                           >
-                            {uploadAvatar.isPending ? <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin" /> : <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
+                            {uploadAvatar.isPending ? <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" /> : <Camera className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
                           </button>
                         </motion.div>
                       </div>
                     </div>
 
                     {/* Name & status */}
-                    <div className="px-4 sm:px-6 pb-3 pt-1.5 text-left">
-                      <CardTitle translate="no" className="flex items-center justify-start gap-1.5 text-[22px] sm:text-2xl font-black leading-tight tracking-tight">
+                    <div className="px-3 sm:px-4 pb-2 pt-1 text-left">
+                      <CardTitle translate="no" className="flex items-center justify-start gap-1.5 text-[16px] sm:text-[18px] font-bold leading-tight tracking-tight">
                         <span>{headerName || t("profile.set_name")}</span>
                         {profile?.is_verified && <VerifiedBadge size={22} />}
                       </CardTitle>
                       {/* @username line — link or "set" CTA. Email never shown publicly. */}
-                      <div className="mt-0.5 text-[13px] text-muted-foreground">
+                      <div className="mt-0.5 text-[11px] text-muted-foreground">
                         {claimedUsername ? (
                           <span>@{claimedUsername}</span>
                         ) : (
@@ -1413,9 +1347,9 @@ const Profile = () => {
                         )}
                       </div>
                       {/* Email hidden — only visible to account owner in settings */}
-                      <div className="mt-2 flex flex-wrap items-center justify-start gap-1.5">
+                      <div className="mt-1.5 flex flex-wrap items-center justify-start gap-1.5">
                         {isPlus && (
-                          <Badge translate="no" className="h-8 bg-ig-gradient text-white border-0 font-bold rounded-full px-2.5 shadow-sm">
+                          <Badge translate="no" className="h-6 bg-ig-gradient text-white border-0 font-bold rounded-full px-2 text-[10px] shadow-sm">
                             <Crown className="w-3 h-3 mr-1" /> ZIVO+ {plan === "annual" ? "Annual" : "Monthly"}
                           </Badge>
                         )}
@@ -1424,7 +1358,7 @@ const Profile = () => {
                             type="button"
                             onClick={() => navigate("/account/verification")}
                             className={cn(
-                              "group inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md hover:-translate-y-0.5",
+                              "group inline-flex h-6 items-center gap-1 rounded-full border px-2.5 text-[10px] font-bold shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md hover:-translate-y-0.5",
                               latestVerificationRequest?.status === "pending"
                                 ? "border-border bg-muted text-foreground"
                                 : latestVerificationRequest?.status === "rejected"
@@ -1450,10 +1384,10 @@ const Profile = () => {
                       </div>
 
                       {/* Bio */}
-                      <div className="mt-1.5 max-w-sm">
+                      <div className="mt-1 max-w-sm">
                         {profile?.bio && !bioEditing ? (
                           <div className="flex items-start gap-2">
-                            <p className="flex-1 text-xs text-foreground/85 whitespace-pre-wrap break-words">
+                            <p className="flex-1 text-[11px] text-foreground/85 whitespace-pre-wrap break-words">
                               <SafeCaption text={profile.bio} />
                             </p>
                             <button
@@ -1523,11 +1457,11 @@ const Profile = () => {
                       </div>
 
                       {/* ── Edit Profile / Share / Analytics row ── */}
-                      <div className="mt-3 grid grid-cols-[1fr_38px_38px_38px] items-center gap-2">
+                      <div className="mt-2 grid grid-cols-[1fr_32px_32px_32px] items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => { selectionChanged(); navigate("/account/profile-edit"); }}
-                          className="flex h-10 min-w-0 items-center justify-center gap-2 rounded-2xl border border-border/70 bg-background text-[13px] font-extrabold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border/30 bg-background/80 text-[12px] font-semibold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <Pencil className="h-3.5 w-3.5 text-foreground" />
                           <span>Edit profile</span>
@@ -1537,7 +1471,7 @@ const Profile = () => {
                           whileTap={{ scale: 0.93 }}
                           onClick={() => { selectionChanged(); setShareOpen(true); }}
                           aria-label="Share profile"
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <Share2 className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1547,7 +1481,7 @@ const Profile = () => {
                           onClick={() => { if (user?.id) { selectionChanged(); navigate(`/user/${user.id}?from=profile&as=visitor`); } }}
                           aria-label="Preview public profile"
                           disabled={!user?.id}
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Eye className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1556,7 +1490,7 @@ const Profile = () => {
                           whileTap={{ scale: 0.93 }}
                           onClick={() => { selectionChanged(); navigate("/account/analytics"); }}
                           aria-label="Profile analytics"
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-background hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                         >
                           <BarChart3 className="h-4 w-4 text-foreground" />
                         </motion.button>
@@ -1565,53 +1499,53 @@ const Profile = () => {
                       {/* Stats row — OF mode shows subscribers + posts only,
                           default mode shows the full social signals. */}
                       {zivoOFMode ? (
-                        <div className="mt-2.5 grid grid-cols-2 overflow-hidden rounded-[18px] border border-border/70 bg-card shadow-sm">
+                        <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
                           <button
                             type="button"
                             aria-label={`View ${ofSubscribersCount} subscribers`}
                             onClick={() => { selectionChanged(); navigate("/creator/subscribers"); }}
-                            className="border-r border-border/60 px-3 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
+                            className="border-r border-border/15 px-3 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
                           >
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Subscribers</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Subscribers</span>
                           </button>
-                          <span className="px-3 py-2.5 text-center">
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Posts</span>
+                          <span className="px-3 py-2 text-center">
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Posts</span>
                           </span>
                         </div>
                       ) : (
-                        <div className="mt-2.5 grid grid-cols-4 overflow-hidden rounded-[18px] border border-border/70 bg-card shadow-sm">
+                        <div className="mt-2 grid grid-cols-4 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
                           <button
                             type="button"
                             aria-label={`View ${followerCount} followers`}
                             onClick={() => setSocialModal({ open: true, tab: "followers" })}
-                            className="border-r border-border/60 px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="border-r border-border/15 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{followerCount === 1 ? "Follower" : "Followers"}</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{followerCount === 1 ? "Follower" : "Followers"}</span>
                           </button>
                           <button
                             type="button"
                             aria-label={`View ${followingCount} following`}
                             onClick={() => setSocialModal({ open: true, tab: "following" })}
-                            className="border-r border-border/60 px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="border-r border-border/15 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">Following</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Following</span>
                           </button>
-                          <span className="border-r border-border/60 bg-muted/15 px-2 py-2.5 text-center">
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{postsCount === 1 ? "Post" : "Posts"}</span>
+                          <span className="border-r border-border/15 bg-muted/25 px-2 py-2 text-center">
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{postsCount === 1 ? "Post" : "Posts"}</span>
                           </span>
                           <button
                             type="button"
                             aria-label={`View ${friendCount} friends`}
                             onClick={() => setSocialModal({ open: true, tab: "friends" })}
-                            className="px-2 py-2.5 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            className="px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                           >
-                            <span className="block text-base font-black leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
-                            <span className="mt-1 block truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
                           </button>
                         </div>
                       )}
@@ -1620,11 +1554,11 @@ const Profile = () => {
                           OF mode: single OnlyFans-style monetization CTA.
                           Default: business shortcuts (Shop, Employees, Mode, Monetization). */}
                       {zivoOFMode ? (
-                        <div className="lg:hidden mt-3 space-y-2">
+                        <div className="lg:hidden mt-2 space-y-1.5">
                           <button
                             type="button"
                             onClick={() => { selectionChanged(); navigate("/monetization"); }}
-                            className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-bold text-white shadow-lg shadow-[#00AEEF]/30 bg-gradient-to-r from-[#00AEEF] to-[#0099D9] hover:from-[#00B8F5] hover:to-[#00A3E5] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
+                            className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white bg-[#00AEEF] hover:bg-[#00A3E5] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
                           >
                             <Lock className="h-4 w-4" />
                             <span>{zivoOFMode ? "ZIVO OF · Subscribe & Monetize" : "Subscribe & Monetize"}</span>
@@ -1649,23 +1583,20 @@ const Profile = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="lg:hidden mt-2.5 grid grid-cols-4 gap-2">
+                        <div className="lg:hidden mt-2 grid grid-cols-4 gap-1.5">
                           {[
-                            { label: "Shop", icon: Store, tone: "from-emerald-500/18 to-teal-500/8", onClick: openShopDashboard },
-                            { label: "Employees", icon: Users, tone: "from-sky-500/18 to-blue-500/8", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
-                            { label: "Mode", icon: Repeat, tone: "from-violet-500/18 to-fuchsia-500/8", onClick: () => { selectionChanged(); setModeOpen(true); } },
-                            { label: "Earn", icon: DollarSign, tone: "from-amber-500/20 to-orange-500/8", onClick: () => { selectionChanged(); navigate("/monetization"); } },
+                            { label: "Shop", icon: Store, chipTint: "bg-emerald-500/12", iconColor: "text-emerald-600 dark:text-emerald-400", onClick: openShopDashboard },
+                            { label: "Employees", icon: Users, chipTint: "bg-sky-500/12", iconColor: "text-sky-600 dark:text-sky-400", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
+                            { label: "Mode", icon: Repeat, chipTint: "bg-violet-500/12", iconColor: "text-violet-600 dark:text-violet-400", onClick: () => { selectionChanged(); setModeOpen(true); } },
+                            { label: "Earn", icon: DollarSign, chipTint: "bg-amber-500/12", iconColor: "text-amber-700 dark:text-amber-400", onClick: () => { selectionChanged(); navigate("/monetization"); } },
                           ].map((a) => (
                             <button type="button"
                               key={a.label}
                               onClick={a.onClick}
-                              className={cn(
-                                "flex min-h-[56px] min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border border-border/60 bg-gradient-to-br px-1.5 py-1.5 text-[9.5px] font-extrabold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
-                                a.tone
-                              )}
+                              className="flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-border/30 bg-muted/20 px-1.5 py-2 text-[10px] font-semibold leading-tight text-foreground transition-colors hover:border-border/50 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
                             >
-                              <span className="grid h-7 w-7 place-items-center rounded-xl border border-border/50 bg-background/85 shadow-sm">
-                                <a.icon className="h-3.5 w-3.5 text-foreground" />
+                              <span className={cn("grid h-9 w-9 place-items-center rounded-full", a.chipTint)}>
+                                <a.icon className={cn("h-5 w-5", a.iconColor)} />
                               </span>
                               <span className="truncate">{a.label}</span>
                             </button>
@@ -1700,7 +1631,7 @@ const Profile = () => {
                         ].filter(s => (profile as any)?.[s.key]);
 
                         return socials.length > 0 ? (
-                          <div className="flex items-center justify-center gap-3 mt-4">
+                          <div className="flex items-center justify-center gap-2 mt-2.5">
                             {socials.map((social) => (
                               <motion.button
                                 key={social.name}
@@ -1719,7 +1650,7 @@ const Profile = () => {
                                   setSafeLinkPrompt(cleaned);
                                 }}
                                 title={social.name}
-                                className={`w-10 h-10 rounded-full ${social.color} flex items-center justify-center shadow-md hover:shadow-lg transition-shadow`}
+                                className={`w-8 h-8 rounded-full ${social.color} flex items-center justify-center shadow-sm hover:shadow-md transition-shadow`}
                               >
                                 {social.icon}
                               </motion.button>
@@ -1731,12 +1662,12 @@ const Profile = () => {
                       {/* Add Friend & Follow buttons — only shown when viewing other users' profiles */}
                     </div>
 
-                    <CardContent className="px-6 pb-4 pt-2">
+                    <CardContent className="px-4 pb-2 pt-0">
                     </CardContent>
                     </div>
                   </div>
 
-                </motion.div>
+                </div>
               </div>
 
               {/* ZIVO+ upgrade moved to /more page */}
@@ -1758,30 +1689,30 @@ const Profile = () => {
               {/* ── Recent Activity ── */}
               {user && recentActivity.length > 0 && (
                 <ParallaxSection index={1.3}>
-                  <div className="mx-3 lg:mx-0">
-                    <div className="flex items-center justify-between mb-2 px-1">
-                      <h3 className="text-sm font-bold text-foreground">Recent Activity</h3>
+                  <div className="mx-0 lg:mx-0">
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                      <h3 className="text-[13px] font-bold text-foreground">Recent Activity</h3>
                       <button type="button" className="text-xs font-medium text-primary"
                         onClick={() => { selectionChanged(); navigate("/trips"); }}>
                         See all
                       </button>
                     </div>
-                    <div className="rounded-2xl border border-border/40 bg-card overflow-hidden">
+                    <div className="rounded-2xl border border-border/30 bg-background/92 shadow-sm overflow-hidden">
                       {recentActivity.map((item, i) => (
                         <button
                           type="button"
                           key={i}
                           onClick={() => { selectionChanged(); navigate(item.href); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-border/20 last:border-0 hover:bg-muted/30 active:bg-muted/40 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left border-b border-border/20 last:border-0 hover:bg-muted/30 active:bg-muted/40 transition-colors"
                         >
-                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
                             {item.iconType === "car"
                               ? <Car className="w-4 h-4 text-muted-foreground" />
                               : <Briefcase className="w-4 h-4 text-muted-foreground" />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{item.label}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-[12px] font-medium text-foreground truncate">{item.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
                               {(() => { try { return formatDistanceToNowStrict(new Date(item.date), { addSuffix: true }); } catch { return ""; } })()}
                             </p>
                           </div>
@@ -1799,15 +1730,15 @@ const Profile = () => {
               {!profile?.phone?.trim() && (
                 <ParallaxSection index={1.5}>
                   <div
-                    className="mx-3 lg:mx-0 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform"
+                    className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 flex items-center gap-2.5 cursor-pointer active:scale-[0.98] transition-transform"
                     onClick={() => navigate("/account/profile-edit?focus=phone")}
                   >
-                    <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                      <Phone className="w-5 h-5 text-destructive" />
+                    <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                      <Phone className="w-4 h-4 text-destructive" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-foreground">Phone number required</p>
-                      <p className="text-xs text-muted-foreground">Add your phone number to access rides, flights & more</p>
+                      <p className="font-semibold text-[12px] text-foreground">Phone number required</p>
+                      <p className="text-[11px] text-muted-foreground">Add your phone number to access rides, flights & more</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-destructive/50 shrink-0" />
                   </div>
@@ -1816,7 +1747,7 @@ const Profile = () => {
 
               {/* ── Stories Row ── */}
               <ParallaxSection index={2}>
-                <div className="rounded-[22px] border border-border/70 bg-card px-3 py-2 shadow-sm">
+                <div className="rounded-2xl border border-border/30 bg-background/92 px-2.5 py-1.5 shadow-sm">
                   <ProfileStories />
                 </div>
               </ParallaxSection>
@@ -1840,6 +1771,7 @@ const Profile = () => {
 
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -1872,7 +1804,7 @@ const Profile = () => {
         <SheetContent side="bottom" className="z-[1500] max-h-[88vh] overflow-y-auto rounded-t-[28px] border-border/70 bg-background px-4 pb-10 pt-3">
           <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
           <SheetHeader className="pb-3 text-left">
-            <SheetTitle className="text-xl font-black tracking-tight">Switch mode</SheetTitle>
+            <SheetTitle className="text-xl font-bold tracking-tight">Switch mode</SheetTitle>
             <p className="text-sm text-muted-foreground">Choose the workspace you want to use right now.</p>
           </SheetHeader>
           <div className="grid gap-2">
@@ -1924,7 +1856,7 @@ const Profile = () => {
                     else if (m.route && m.id !== "personal") navigate(m.route);
                   }}
                   className={cn(
-                    "flex items-center gap-3 rounded-[22px] border px-3 py-3 text-left shadow-sm transition-all active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    "flex items-center gap-3 rounded-xl border px-3 py-3 text-left shadow-sm transition-all active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     active ? "border-border bg-muted/55" : "border-border/60 bg-card hover:bg-muted/35"
                   )}
                 >
@@ -1935,7 +1867,7 @@ const Profile = () => {
                     <Icon className={cn("h-5 w-5", active ? "text-primary" : "text-foreground")} />
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-black text-foreground">{m.label}</span>
+                    <span className="block text-sm font-semibold text-foreground">{m.label}</span>
                     <span className="block truncate text-[12px] font-medium text-muted-foreground">{m.desc}</span>
                   </span>
                   {active && <BadgeCheck className="h-5 w-5 shrink-0 text-primary" />}
@@ -1947,7 +1879,7 @@ const Profile = () => {
           {workflowMode === "personal" && (
             <div className="mt-5 border-t border-border/40 pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Personal controls</span>
+                <span className="text-[13px] font-semibold text-muted-foreground">Personal controls</span>
                 <button
                   type="button"
                   onClick={() => { setModeOpen(false); navigate("/settings"); }}
@@ -1994,7 +1926,7 @@ const Profile = () => {
           {workflowMode === "creator" && (
             <div className="mt-5 border-t border-border/40 pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="text-[13px] font-semibold text-muted-foreground">
                   {zivoOFMode ? "ZIVO OF tools" : "Creator tools"}
                 </span>
                 <button
@@ -2044,7 +1976,7 @@ const Profile = () => {
           {workflowMode === "fan" && (
             <div className="mt-5 border-t border-border/40 pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">My fan activity</span>
+                <span className="text-[13px] font-semibold text-muted-foreground">My fan activity</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[

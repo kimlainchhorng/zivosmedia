@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FareComparisonTool - Compare ride tiers with price history graph
  * Now uses dynamic pricing from useCityPricing (admin DB) instead of hardcoded values.
  */
@@ -119,7 +119,7 @@ export default function FareComparisonTool({ city, distanceMiles = 5, durationMi
               )}
             >
               {tier.recommended && (
-                <div className="absolute -top-1 right-2 bg-primary text-primary-foreground text-[8px] font-black px-2 py-0.5 rounded-b-md">
+                <div className="absolute -top-1 right-2 bg-ig-gradient text-white text-[8px] font-black px-2 py-0.5 rounded-b-md">
                   BEST VALUE
                 </div>
               )}

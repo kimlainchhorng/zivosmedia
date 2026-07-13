@@ -42,8 +42,6 @@ window.addEventListener("unhandledrejection", onBootRejection);
 installMarketingRuntimeConfig();
 
 const LEGACY_CANONICAL_HOSTS = new Set([
-  "hizivo.com",
-  "www.hizivo.com",
   "zivollc.com",
   "www.zivollc.com",
 ]);

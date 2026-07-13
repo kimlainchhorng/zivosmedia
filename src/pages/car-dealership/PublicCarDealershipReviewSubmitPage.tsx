@@ -167,7 +167,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
             This review link doesn't match an active deal at this dealership.
           </p>
           {slug && (
-            <Link to={`/car-dealership/${slug}`} className="mt-4 inline-block text-primary underline">
+            <Link to={`/car-dealership/${slug}`} className="mt-4 inline-block text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               ← Back to inventory
             </Link>
           )}
@@ -186,7 +186,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
             Thanks — looks like a review for this deal has already been submitted.
           </p>
           {slug && (
-            <Link to={`/car-dealership/${slug}`} className="mt-4 inline-block text-primary underline">
+            <Link to={`/car-dealership/${slug}`} className="mt-4 inline-block text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               ← Back to inventory
             </Link>
           )}
@@ -217,7 +217,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <Link to={`/car-dealership/${store.slug}`} className="text-base font-bold truncate block hover:text-primary transition-colors">
+            <Link to={`/car-dealership/${store.slug}`} className="text-base font-bold truncate block rounded-sm hover:text-primary transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               {store.name}
             </Link>
             {cityState && (
@@ -229,7 +229,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
           {store.phone && (
             <a
               href={`tel:${store.phone}`}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border hover:bg-muted px-3 py-1.5 text-xs font-medium transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border hover:bg-muted px-3 py-1.5 text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Phone className="h-3.5 w-3.5" />
               {store.phone}
@@ -250,7 +250,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
               It'll appear on their public storefront once they confirm.
             </p>
             <Link to={`/car-dealership/${store.slug}`}>
-              <Button className="mt-2">Back to inventory</Button>
+              <Button className="mt-2 transition-transform active:scale-[0.98]">Back to inventory</Button>
             </Link>
           </Card>
         ) : (
@@ -288,7 +288,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
                       type="button"
                       onMouseEnter={() => setHoverRating(n)}
                       onClick={() => setRating(n)}
-                      className="transition-transform hover:scale-110"
+                      className="rounded-sm transition-all hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={`${n} star${n !== 1 ? "s" : ""}`}
                     >
                       <Star
@@ -350,7 +350,7 @@ export default function PublicCarDealershipReviewSubmitPage() {
               </p>
 
               <Button
-                className="w-full"
+                className="w-full transition-transform active:scale-[0.98]"
                 onClick={handleSubmit}
                 disabled={submitting || !name.trim() || !body.trim()}
               >

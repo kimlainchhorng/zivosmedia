@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Personal Schedule — 2026 Facebook-density style
  * Features: mini calendar strip, next shift countdown, hours progress, estimated earnings
  */
@@ -254,14 +254,14 @@ export default function PersonalSchedulePage() {
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/40 pt-safe">
           <div className="safe-area-top" />
           <div className="flex items-center gap-3 px-4 h-11">
-            <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform -ml-1">
+            <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform -ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ArrowLeft className="w-[18px] h-[18px] text-foreground" />
             </button>
             <h1 className="font-bold text-[15px] text-ig-gradient flex-1">My Schedule</h1>
             <button
               type="button"
               onClick={() => { setShowRequestSheet(true); setReqDone(false); setReqDate(""); setReqNote(""); }}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold active:scale-95 transition-transform"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus className="w-3 h-3" /> Request
             </button>
@@ -322,16 +322,16 @@ export default function PersonalSchedulePage() {
               {/* Week Navigator */}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-0 bg-muted/30 rounded-full p-[3px]">
-                  <button type="button" onClick={() => setWeekStart(subWeeks(weekStart, 1))} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-90 transition-all">
+                  <button type="button" onClick={() => setWeekStart(subWeeks(weekStart, 1))} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
                   <button type="button"
                     onClick={() => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-                    className="text-[11px] font-semibold h-7 px-3 rounded-full hover:bg-muted/60 active:scale-95 transition-all"
+                    className="text-[11px] font-semibold h-7 px-3 rounded-full hover:bg-muted/60 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Today
                   </button>
-                  <button type="button" onClick={() => setWeekStart(addWeeks(weekStart, 1))} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-90 transition-all">
+                  <button type="button" onClick={() => setWeekStart(addWeeks(weekStart, 1))} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-muted/60 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -355,7 +355,7 @@ export default function PersonalSchedulePage() {
                       </span>
                       <div className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold transition-all",
-                        isToday ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent text-foreground"
+                        isToday ? "bg-ig-gradient text-white shadow-sm" : "bg-transparent text-foreground"
                       )}>
                         {format(date, "d")}
                       </div>
@@ -454,7 +454,7 @@ export default function PersonalSchedulePage() {
                         <div className={cn(
                           "w-10 h-10 rounded-lg flex flex-col items-center justify-center shrink-0 transition-colors",
                           isToday
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "bg-ig-gradient text-white shadow-sm"
                             : info.type !== "none"
                               ? "bg-muted/40"
                               : "bg-transparent"
@@ -526,16 +526,16 @@ export default function PersonalSchedulePage() {
               <p className="font-semibold text-[14px]">Request sent!</p>
               <p className="text-[12px] text-muted-foreground">Your manager will review it and respond soon.</p>
               <button type="button" onClick={() => setShowRequestSheet(false)}
-                className="mt-2 text-sm text-primary font-semibold">Close</button>
+                className="mt-2 text-sm text-primary font-semibold rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Close</button>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Request type toggle */}
               <div className="flex gap-2">
                 {(["time_off", "swap"] as const).map((t) => (
-                  <button type="button" key={t} onClick={() => setReqType(t)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                      reqType === t ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+                  <button type="button" key={t} onClick={() => setReqType(t)} aria-pressed={reqType === t}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      reqType === t ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
                     }`}>
                     {t === "time_off" ? "Time Off" : "Shift Swap"}
                   </button>
@@ -572,7 +572,7 @@ export default function PersonalSchedulePage() {
               </div>
 
               <button type="button" disabled={!reqDate || reqSubmitting} onClick={submitRequest}
-                className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                className="w-full h-12 rounded-2xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <Send className="w-4 h-4" />
                 {reqSubmitting ? "Sending…" : "Submit Request"}
               </button>

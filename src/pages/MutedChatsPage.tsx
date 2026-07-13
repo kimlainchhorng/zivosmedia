@@ -129,7 +129,7 @@ export default function MutedChatsPage() {
                       {!m.muted_until ? "Muted forever" : expired ? "Expired" : `Until ${formatRelative(m.muted_until)}`}
                     </p>
                   </div>
-                  <button type="button" onClick={() => unmute(m.id)} className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center gap-1 active:scale-95 transition-all">
+                  <button type="button" onClick={() => unmute(m.id)} className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center gap-1 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Volume2 className="h-3 w-3" /> Unmute
                   </button>
                 </motion.div>

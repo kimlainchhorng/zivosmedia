@@ -60,6 +60,9 @@ export default function OnThisDay() {
         .from("user_posts")
         .select("id, caption, media_url, media_urls, media_type, created_at")
         .eq("user_id", user.id)
+        // Don't resurface moderated/unpublished posts as memories.
+        .is("hidden_at", null)
+        .eq("is_published", true)
         .or(orClause)
         .order("created_at", { ascending: false })
         .limit(10);

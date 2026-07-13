@@ -217,7 +217,7 @@ const AppMore = () => {
               <button
                 type="button"
                 onClick={() => setShowSwitchSheet(true)}
-                className="px-3.5 py-1.5 rounded-xl bg-primary/10 text-primary text-xs font-bold touch-manipulation active:scale-95 transition-transform"
+                className="px-3.5 py-1.5 rounded-xl bg-primary/10 text-primary text-xs font-bold touch-manipulation active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Switch Account
               </button>
@@ -281,21 +281,22 @@ const AppMore = () => {
           >
             <button type="button"
               onClick={copyProfileLink}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-border/40 bg-card text-sm font-semibold touch-manipulation active:scale-[0.97] transition-all shadow-sm"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-border/40 bg-card text-sm font-semibold touch-manipulation active:scale-[0.97] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
               {copied ? "Copied!" : "Copy Link"}
             </button>
             <button type="button"
               onClick={shareProfile}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-border/40 bg-card text-sm font-semibold touch-manipulation active:scale-[0.97] transition-all shadow-sm"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-border/40 bg-card text-sm font-semibold touch-manipulation active:scale-[0.97] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Share2 className="w-4 h-4 text-muted-foreground" />
               Share
             </button>
             <button type="button"
               onClick={() => navigate("/qr-profile")}
-              className="w-11 flex items-center justify-center rounded-2xl border border-border/40 bg-card touch-manipulation active:scale-[0.97] transition-all shadow-sm"
+              aria-label="Show profile QR code"
+              className="w-11 flex items-center justify-center rounded-2xl border border-border/40 bg-card touch-manipulation active:scale-[0.97] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <QrCode className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -320,7 +321,7 @@ const AppMore = () => {
                 <button type="button"
                   key={opt.label}
                   onClick={() => navigate(opt.href)}
-                  className="flex-shrink-0 flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-2xl border border-border/40 bg-card shadow-sm min-w-[80px] touch-manipulation active:scale-[0.96] transition-all"
+                  className="flex-shrink-0 flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-2xl border border-border/40 bg-card shadow-sm min-w-[80px] touch-manipulation active:scale-[0.96] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${opt.color} flex items-center justify-center shadow-md`}>
                     <opt.icon className="w-4.5 h-4.5 text-white" />
@@ -333,7 +334,7 @@ const AppMore = () => {
         )}
 
         {!isPlus && (
-          <Link to="/zivo-plus" className="block mb-4">
+          <Link to="/zivo-plus" className="block mb-4 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <motion.div whileTap={{ scale: 0.98 }} className="flex items-center justify-between gap-2 rounded-2xl border border-primary/15 bg-card px-3 py-3 shadow-sm">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -362,7 +363,7 @@ const AppMore = () => {
                 transition={{ delay: i * 0.04, duration: 0.3 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={isPartner ? () => setShowPartnerSheet(true) : undefined}
-                className="rounded-2xl bg-card border border-border/40 shadow-sm p-3 flex items-center gap-2.5 touch-manipulation cursor-pointer active:bg-muted/30 transition-colors"
+                className="rounded-2xl bg-card border border-border/40 shadow-sm p-3 flex items-center gap-2.5 touch-manipulation cursor-pointer active:bg-muted/30 transition-colors group-focus-visible:ring-2 group-focus-visible:ring-ring"
               >
                 <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", link.iconBg)}>
                   <link.icon className={cn("w-5 h-5", link.iconColor)} />
@@ -376,7 +377,7 @@ const AppMore = () => {
             );
 
             if (isPartner) return <Fragment key={link.label}>{card}</Fragment>;
-            return <Link key={link.label} to={link.href} className="contents">{card}</Link>;
+            return <Link key={link.label} to={link.href} className="contents group focus-visible:outline-none">{card}</Link>;
           })}
         </div>
 
@@ -387,7 +388,7 @@ const AppMore = () => {
               <button
                 type="button"
                 onClick={() => navigate("/shop-dashboard/employees")}
-                className="rounded-2xl bg-card border border-border/40 shadow-sm p-3 flex items-center gap-2.5 touch-manipulation active:bg-muted/30 transition-colors text-left"
+                className="rounded-2xl bg-card border border-border/40 shadow-sm p-3 flex items-center gap-2.5 touch-manipulation active:bg-muted/30 active:scale-[0.98] transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-secondary">
                   <Truck className="w-5 h-5 text-foreground" />
@@ -400,7 +401,7 @@ const AppMore = () => {
               <button
                 type="button"
                 onClick={() => navigate("/shop-dashboard/payroll")}
-                className="rounded-2xl bg-card border border-border/40 shadow-sm p-3 flex items-center gap-2.5 touch-manipulation active:bg-muted/30 transition-colors text-left"
+                className="rounded-2xl bg-card border border-border/40 shadow-sm p-3 flex items-center gap-2.5 touch-manipulation active:bg-muted/30 active:scale-[0.98] transition-all text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-emerald-500/10">
                   <Wallet className="w-5 h-5 text-emerald-500" />
@@ -417,8 +418,8 @@ const AppMore = () => {
         {/* Admin Button */}
         {isAdmin && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-4">
-            <Link to="/admin/analytics" className="contents">
-              <div className="w-full py-3.5 rounded-2xl border border-primary/20 bg-primary/5 text-primary font-bold text-sm touch-manipulation active:scale-[0.98] transition-all shadow-sm flex items-center justify-center gap-2">
+            <Link to="/admin/analytics" className="contents group focus-visible:outline-none">
+              <div className="w-full py-3.5 rounded-2xl border border-primary/20 bg-primary/5 text-primary font-bold text-sm touch-manipulation active:scale-[0.98] transition-all shadow-sm flex items-center justify-center gap-2 group-focus-visible:ring-2 group-focus-visible:ring-ring">
                 <Shield className="w-4 h-4" />
                 Admin Dashboard
               </div>
@@ -432,7 +433,7 @@ const AppMore = () => {
             <button
               type="button"
               onClick={() => signOut()}
-              className="w-full py-3.5 rounded-2xl border border-border/60 bg-card text-foreground font-bold text-sm touch-manipulation active:scale-[0.98] transition-all shadow-sm"
+              className="w-full py-3.5 rounded-2xl border border-border/60 bg-card text-foreground font-bold text-sm touch-manipulation active:scale-[0.98] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Sign out
             </button>
@@ -444,7 +445,7 @@ const AppMore = () => {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="text-muted-foreground text-sm font-medium touch-manipulation"
+            className="text-muted-foreground text-sm font-medium touch-manipulation rounded-md transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Close
           </button>
@@ -481,7 +482,7 @@ const AppMore = () => {
                       setShowPartnerSheet(false);
                       setShowDriverDownloadSheet(true);
                     }}
-                    className="w-full text-left flex items-center gap-3 p-3 rounded-2xl border border-border/30 bg-card/60 hover:bg-card/90 transition-colors touch-manipulation active:scale-[0.98]"
+                    className="w-full text-left flex items-center gap-3 p-3 rounded-2xl border border-border/30 bg-card/60 hover:bg-card/90 transition-colors touch-manipulation active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {commonInner}
                   </button>
@@ -492,7 +493,7 @@ const AppMore = () => {
                   key={opt.label}
                   to={opt.href}
                   onClick={() => setShowPartnerSheet(false)}
-                  className="flex items-center gap-3 p-3 rounded-2xl border border-border/30 bg-card/60 hover:bg-card/90 transition-colors touch-manipulation active:scale-[0.98]"
+                  className="flex items-center gap-3 p-3 rounded-2xl border border-border/30 bg-card/60 hover:bg-card/90 transition-colors touch-manipulation active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {commonInner}
                 </Link>
@@ -516,7 +517,7 @@ const AppMore = () => {
                   setShowSwitchSheet(false);
                   navigate(opt.href);
                 }}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl border border-border/30 bg-card/60 hover:bg-card/90 transition-colors touch-manipulation active:scale-[0.98] text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-2xl border border-border/30 bg-card/60 hover:bg-card/90 transition-colors touch-manipulation active:scale-[0.98] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${opt.color} flex items-center justify-center shadow-lg`}>
                   <opt.icon className="w-4.5 h-4.5 text-white" />

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NotificationToastCard — Premium branded toast card
  * Used for chat, ride, promo, and generic notifications via `notify.*` helpers
  */
@@ -72,7 +72,7 @@ const variantStyles: Record<NotificationVariant, VariantStyle> = {
     iconText: "text-primary",
     dot: "bg-primary",
     meta: "text-primary/90",
-    button: "bg-primary text-primary-foreground shadow-primary/30 dark:shadow-primary/40",
+    button: "bg-ig-gradient text-white shadow-primary/30 dark:shadow-primary/40",
   },
   promo: {
     ring: "ring-purple-500/25 dark:ring-purple-400/35",

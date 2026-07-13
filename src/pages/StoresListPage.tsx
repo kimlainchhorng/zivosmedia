@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoresListPage — Full list of nearby stores (See All from /store-map)
  * Features: skeletons + retry, GPS error banner, share toasts, favorites
  * filter + per-row heart, recenter button, shared store details drawer,
@@ -594,7 +594,7 @@ export default function StoresListPage() {
               else setDrawerStore(s);
             }
           }}
-          className="w-full p-3.5 flex items-center gap-3 text-left"
+          className="w-full p-3.5 flex items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           <StoreThumb store={s} isLive={isLive} />
           <div className="flex-1 min-w-0">
@@ -646,7 +646,7 @@ export default function StoresListPage() {
             <div className="flex flex-col gap-1.5 shrink-0">
               <button type="button"
                 onClick={(e) => { e.stopPropagation(); handleToggleFavorite(s); }}
-                className={`w-10 h-10 rounded-full inline-flex items-center justify-center transition touch-manipulation ${
+                className={`w-10 h-10 rounded-full inline-flex items-center justify-center transition touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   fav ? "bg-rose-50 text-rose-500" : "bg-muted/40 text-muted-foreground hover:bg-muted"
                 }`}
                 aria-label={fav ? "Remove from favorites" : "Add to favorites"}
@@ -655,7 +655,7 @@ export default function StoresListPage() {
               </button>
               <button type="button"
                 onClick={(e) => { e.stopPropagation(); navigate(`/store-map?focus=${s.id}`); }}
-                className="w-10 h-10 rounded-full inline-flex items-center justify-center bg-muted/40 text-muted-foreground hover:bg-muted transition touch-manipulation"
+                className="w-10 h-10 rounded-full inline-flex items-center justify-center bg-muted/40 text-muted-foreground hover:bg-muted transition touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Show on map"
                 title="Show on map"
               >
@@ -668,14 +668,14 @@ export default function StoresListPage() {
           <div className="flex border-t border-border/30">
             <button type="button"
               onClick={(e) => { e.stopPropagation(); handleRide(s); }}
-              className="flex-1 h-10 inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5 transition"
+              className="flex-1 h-10 inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5 transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Car className="w-3.5 h-3.5" /> Ride
             </button>
             <div className="w-px bg-border/30" />
             <button type="button"
               onClick={(e) => { e.stopPropagation(); shareStore(s, distMi); }}
-              className="flex-1 h-10 inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5 transition"
+              className="flex-1 h-10 inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5 transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Share2 className="w-3.5 h-3.5" /> Share
             </button>
@@ -684,7 +684,7 @@ export default function StoresListPage() {
                 <div className="w-px bg-border/30" />
                 <button type="button"
                   onClick={(e) => { e.stopPropagation(); window.open(`tel:${s.phone}`, "_self"); }}
-                  className="flex-1 h-10 inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5 transition"
+                  className="flex-1 h-10 inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5 transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Phone className="w-3.5 h-3.5" /> Call
                 </button>
@@ -731,7 +731,7 @@ export default function StoresListPage() {
               >
                 <button type="button"
                   onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
-                  className="w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition"
+                  className="w-9 h-9 -ml-1 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Close search"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -749,7 +749,7 @@ export default function StoresListPage() {
                 {searchQuery && (
                   <button type="button"
                     onClick={() => setSearchQuery("")}
-                    className="w-7 h-7 rounded-full flex items-center justify-center bg-muted/60 text-muted-foreground"
+                    className="w-7 h-7 rounded-full flex items-center justify-center bg-muted/60 text-muted-foreground active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Clear"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -766,7 +766,7 @@ export default function StoresListPage() {
               >
                 <button type="button"
                   onClick={manageMode ? exitManageMode : goBackToMap}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border/40 shadow-sm text-foreground hover:bg-muted transition"
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border/40 shadow-sm text-foreground hover:bg-muted transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={manageMode ? "Exit manage mode" : "Back to map"}
                 >
                   {manageMode ? <X className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
@@ -789,7 +789,7 @@ export default function StoresListPage() {
                 {!manageMode && favoriteIds.size > 0 && (
                   <button type="button"
                     onClick={enterManageMode}
-                    className="h-10 px-3 inline-flex items-center gap-1.5 rounded-full bg-card border border-border/40 shadow-sm text-foreground text-[12px] font-semibold"
+                    className="h-10 px-3 inline-flex items-center gap-1.5 rounded-full bg-card border border-border/40 shadow-sm text-foreground text-[12px] font-semibold active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Manage favorites"
                   >
                     <CheckSquare className="w-4 h-4" />
@@ -801,7 +801,7 @@ export default function StoresListPage() {
                     <button type="button"
                       onClick={() => requestGps()}
                       disabled={recentering}
-                      className="h-10 px-3 inline-flex items-center gap-1.5 rounded-full bg-card border border-border/40 shadow-sm text-foreground text-[12px] font-semibold disabled:opacity-60"
+                      className="h-10 px-3 inline-flex items-center gap-1.5 rounded-full bg-card border border-border/40 shadow-sm text-foreground text-[12px] font-semibold disabled:opacity-60 active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label="Recenter distance"
                       title="Re-fetch GPS and re-sort"
                     >
@@ -815,18 +815,18 @@ export default function StoresListPage() {
                     {/* Sort cycle button: distance → rating → name → open → distance */}
                     <button type="button"
                       onClick={() => setSortMode((m) => m === "distance" ? "rating" : m === "rating" ? "name" : m === "name" ? "open" : "distance")}
-                      className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border/40 shadow-sm text-muted-foreground hover:bg-muted transition relative"
+                      className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border/40 shadow-sm text-muted-foreground hover:bg-muted transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring relative"
                       aria-label="Sort stores"
                       title={`Sort: ${sortMode}`}
                     >
                       <ArrowUpDown className="w-[18px] h-[18px]" />
-                      <span className="absolute -bottom-0.5 -right-0.5 text-[8px] font-bold bg-primary text-primary-foreground rounded-full px-1 leading-4">
+                      <span className="absolute -bottom-0.5 -right-0.5 text-[8px] font-bold bg-ig-gradient text-white rounded-full px-1 leading-4">
                         {sortMode === "distance" ? "↔" : sortMode === "rating" ? "★" : sortMode === "name" ? "A" : "○"}
                       </span>
                     </button>
                     <button type="button"
                       onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 80); }}
-                      className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border/40 shadow-sm text-muted-foreground hover:bg-muted transition"
+                      className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border/40 shadow-sm text-muted-foreground hover:bg-muted transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label="Search"
                     >
                       <Search className="w-[18px] h-[18px]" />
@@ -841,7 +841,7 @@ export default function StoresListPage() {
           {pendingSyncCount > 0 && !manageMode && (
             <button type="button"
               onClick={handleSyncNow}
-              className="mt-2 w-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold rounded-full px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200"
+              className="mt-2 w-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold rounded-full px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               {pendingSyncCount} change{pendingSyncCount === 1 ? "" : "s"} pending sync · tap to retry
@@ -856,10 +856,11 @@ export default function StoresListPage() {
               <div className="flex gap-2 w-max">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
+                  aria-pressed={!showFavorites && !trendingOnly && activeCategory === "all"}
                   onClick={() => { setShowFavorites(false); setActiveCategory("all"); setTrendingOnly(false); }}
-                  className={`px-4 min-h-[40px] inline-flex items-center rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation ${
+                  className={`px-4 min-h-[40px] inline-flex items-center rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     !showFavorites && !trendingOnly && activeCategory === "all"
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      ? "bg-ig-gradient text-white border-primary shadow-sm"
                       : "bg-card text-foreground/80 border-border/40"
                   }`}
                 >
@@ -867,8 +868,9 @@ export default function StoresListPage() {
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
+                  aria-pressed={openNowOnly}
                   onClick={() => setOpenNowOnly((v) => !v)}
-                  className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation ${
+                  className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     openNowOnly
                       ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
                       : "bg-card text-foreground/80 border-border/40"
@@ -880,8 +882,9 @@ export default function StoresListPage() {
                 {trendingCount > 0 && (
                   <motion.button
                     whileTap={{ scale: 0.95 }}
+                    aria-pressed={trendingOnly}
                     onClick={() => { setTrendingOnly((v) => !v); setActiveCategory("all"); setShowFavorites(false); }}
-                    className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation ${
+                    className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       trendingOnly
                         ? "bg-orange-500 text-white border-orange-500 shadow-sm"
                         : "bg-card text-foreground/80 border-border/40"
@@ -893,8 +896,9 @@ export default function StoresListPage() {
                 )}
                 <motion.button
                   whileTap={{ scale: 0.95 }}
+                  aria-pressed={showFavorites}
                   onClick={() => { setShowFavorites((v) => !v); }}
-                  className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation ${
+                  className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     showFavorites
                       ? "bg-rose-500 text-white border-rose-500 shadow-sm"
                       : "bg-card text-foreground/80 border-border/40"
@@ -909,11 +913,12 @@ export default function StoresListPage() {
                   return (
                     <motion.button
                       whileTap={{ scale: 0.95 }}
+                      aria-pressed={isActive}
                       key={cat.value}
                       onClick={() => { setShowFavorites(false); setActiveCategory(isActive ? "all" : cat.value); }}
-                      className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation ${
+                      className={`px-4 min-h-[40px] inline-flex items-center gap-1.5 rounded-full text-[13px] font-semibold transition-all whitespace-nowrap border touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         isActive
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          ? "bg-ig-gradient text-white border-primary shadow-sm"
                           : "bg-card text-foreground/80 border-border/40"
                       }`}
                     >
@@ -944,14 +949,14 @@ export default function StoresListPage() {
               <button type="button"
                 onClick={() => requestGps()}
                 disabled={recentering}
-                className="min-h-[40px] px-3 inline-flex items-center gap-1 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 text-[12px] font-semibold disabled:opacity-60 touch-manipulation"
+                className="min-h-[40px] px-3 inline-flex items-center gap-1 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-900 text-[12px] font-semibold disabled:opacity-60 touch-manipulation transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {recentering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                 Try again
               </button>
               <button type="button"
                 onClick={() => setGpsBannerDismissed(true)}
-                className="min-h-[40px] px-3 inline-flex items-center justify-center rounded-full text-amber-800 text-[11px] font-semibold hover:bg-amber-100 touch-manipulation"
+                className="min-h-[40px] px-3 inline-flex items-center justify-center rounded-full text-amber-800 text-[11px] font-semibold hover:bg-amber-100 touch-manipulation transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Dismiss
               </button>

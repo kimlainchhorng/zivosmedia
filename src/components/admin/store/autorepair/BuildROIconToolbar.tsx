@@ -36,7 +36,13 @@ export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, 
   const settingsInfoLabel = isSoftwareDomain ? "Business Page Information" : "Store Information";
   const settingsVisibilityLabel = isSoftwareDomain ? "Business Page Visibility" : "Store Visibility";
   const partsCatalogLabel = isSoftwareDomain ? "Parts Catalog" : "Part Shop";
-  type Item = { icon: typeof Plus; label: string; onClick: () => void; accent?: string; submenu?: { label: string; tab: string; section?: string }[] };
+  type Item = {
+    icon: typeof Plus;
+    label: string;
+    onClick: () => void;
+    accent?: string;
+    submenu?: { label: string; tab: string; section?: string; popup?: boolean }[];
+  };
   const items: Item[] = [
     { icon: Plus, label: "New R.O.", onClick: onNew, accent: "text-emerald-600" },
     { icon: Home, label: "Start screen", onClick: onHub },
@@ -91,7 +97,7 @@ export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, 
         { label: "SEO & Discoverability", tab: "settings", section: "seo" },
         { label: "Notifications", tab: "settings", section: "notifications" },
         { label: "Account Information", tab: "settings", section: "account-information" },
-        { label: "Auto Repair Settings", tab: "settings", section: "auto-repair-settings" },
+        { label: "Auto Repair Settings", tab: "settings", popup: true },
         { label: "Danger Zone", tab: "settings", section: "danger-zone" },
       ],
     },
@@ -131,7 +137,9 @@ export default function BuildROIconToolbar({ onNew, onHub, onPrint, onNavigate, 
                   key={s.label}
                   className="text-sm"
                   onSelect={() => {
-                    if (s.section) {
+                    if (s.popup) {
+                      onNavigate?.(s.tab);
+                    } else if (s.section) {
                       // Open the full Settings page (main window) and scroll to the section.
                       try { sessionStorage.setItem("ar_settings_scroll", s.section); } catch { /* ignore */ }
                       onNavigateMain?.(s.tab);

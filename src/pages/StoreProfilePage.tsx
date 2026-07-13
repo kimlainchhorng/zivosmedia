@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoreProfilePage - Ultra-premium 3D/4D Spatial UI store profile
  * Immersive glassmorphic design with depth, perspective, holographic cards
  */
@@ -10,6 +10,7 @@ import { StarRating } from "@/components/shared/StarRating";
 import SafeCaption from "@/components/social/SafeCaption";
 import { track } from "@/lib/analytics";
 import { optimizeImage } from "@/lib/optimizeImage";
+import { isVideoUrl } from "@/lib/mediaType";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -424,12 +425,12 @@ export default function StoreProfilePage() {
   const [bookingRoom, setBookingRoom] = useState<LodgeRoom | null>(null);
   const [bookingPlan, setBookingPlan] = useState<{ rateCents: number; label: string; breakfastIncluded: boolean } | null>(null);
 
-  const handleAddToCart = (product: StoreProductItem, sizeVariant?: { size: string; price_khr: number; price_usd: number }) => {
+  const handleAddToCart = (product: StoreProductItem, sizeVariant?: { size: string; price_khr: number; price_usd: number }, priceOverride?: number) => {
     const displayName = localizedName(product.name, currentLanguage);
     cart.addItem({
       productId: sizeVariant ? `${product.id}__${sizeVariant.size}` : product.id,
       name: sizeVariant ? `${displayName} (${sizeVariant.size})` : displayName,
-      price: sizeVariant ? sizeVariant.price_usd : product.price,
+      price: priceOverride ?? (sizeVariant ? sizeVariant.price_usd : product.price),
       image: product.image_url || "",
       brand: product.brand || "",
       sizeLabel: sizeVariant?.size,
@@ -512,22 +513,39 @@ export default function StoreProfilePage() {
         return (
           <div className="relative w-full h-[270px] sm:h-[300px] lg:h-[320px] overflow-hidden bg-muted">
             {coverUrl ? (
-              <img
-                src={optimizeImage(coverUrl, 1024)}
-                alt={`${store.name} cover`}
-                className="w-full h-full object-cover"
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-                style={{ objectPosition: `center ${bannerPosition}%` }}
-                onError={(e) => {
-                  // If the cover image fails to load (broken URL, SW cache
-                  // corruption, etc.) hide the broken-image icon and let the
-                  // gradient parent show through instead of rendering the
-                  // alt text + question-mark glyph.
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
+              isVideoUrl(coverUrl) ? (
+                <video
+                  src={coverUrl}
+                  className="w-full h-full object-cover"
+                  style={{ objectPosition: `center ${bannerPosition}%` }}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-label={`${store.name} cover video`}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLVideoElement).style.display = "none";
+                  }}
+                />
+              ) : (
+                <img
+                  src={optimizeImage(coverUrl, 1024)}
+                  alt={`${store.name} cover`}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                  style={{ objectPosition: `center ${bannerPosition}%` }}
+                  onError={(e) => {
+                    // If the cover image fails to load (broken URL, SW cache
+                    // corruption, etc.) hide the broken-image icon and let the
+                    // gradient parent show through instead of rendering the
+                    // alt text + question-mark glyph.
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              )
             ) : null}
             <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/25 via-black/5 to-transparent pointer-events-none z-[1]" />
             <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-background via-background/45 to-transparent pointer-events-none z-[1]" />
@@ -538,7 +556,7 @@ export default function StoreProfilePage() {
                 whileTap={{ scale: 0.85 }}
                 onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/grocery")}
                 aria-label="Go back"
-                className="h-10 w-10 rounded-2xl bg-background/90 backdrop-blur-2xl flex items-center justify-center shadow-xl border border-border"
+                className="h-10 w-10 rounded-2xl bg-background/90 backdrop-blur-2xl flex items-center justify-center shadow-xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <ArrowLeft className="h-4 w-4 text-foreground" />
               </motion.button>
@@ -547,7 +565,7 @@ export default function StoreProfilePage() {
                   whileTap={{ scale: 0.85 }}
                   onClick={() => setChatOpen(true)}
                   aria-label={`Open chat with ${store.name}`}
-                  className="h-10 w-10 rounded-2xl bg-background/90 backdrop-blur-2xl flex items-center justify-center shadow-xl border border-border"
+                  className="h-10 w-10 rounded-2xl bg-background/90 backdrop-blur-2xl flex items-center justify-center shadow-xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <MessageCircle className="h-4 w-4 text-foreground" />
                 </motion.button>
@@ -555,14 +573,15 @@ export default function StoreProfilePage() {
                   <motion.button
                     whileTap={{ scale: 0.85 }}
                     onClick={() => setShowCart(true)}
-                    className="relative h-10 w-10 rounded-2xl bg-background/90 backdrop-blur-2xl flex items-center justify-center shadow-xl border border-border"
+                    aria-label="Shopping cart"
+                    className="relative h-10 w-10 rounded-2xl bg-background/90 backdrop-blur-2xl flex items-center justify-center shadow-xl border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <ShoppingCart className="h-4 w-4 text-foreground" />
                     {cart.itemCount > 0 && (
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center ring-2 ring-background shadow-lg shadow-primary/30"
+                        className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full bg-ig-gradient text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background shadow-lg shadow-primary/30"
                       >
                         {cart.itemCount}
                       </motion.span>
@@ -602,7 +621,7 @@ export default function StoreProfilePage() {
                 <button
                   type="button"
                   onClick={() => openPhotoLightboxForSrc(safeLogoUrl)}
-                  className="group h-full w-full cursor-zoom-in"
+                  className="group h-full w-full cursor-zoom-in rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={`View ${store.name} photo full screen`}
                 >
                   <img
@@ -692,7 +711,7 @@ export default function StoreProfilePage() {
                   }
                   navigate(`/rides/hub?${params.toString()}`);
                 }}
-                className="w-full h-12 rounded-full flex items-center justify-center gap-2 font-bold text-[15px] text-white shadow-lg"
+                className="w-full h-12 rounded-full flex items-center justify-center gap-2 font-bold text-[15px] text-white shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 style={{
                   background: "linear-gradient(180deg, hsl(152 70% 48%), hsl(152 72% 42%))",
                   boxShadow: "0 6px 18px -4px hsl(152 70% 45% / 0.5)",
@@ -732,7 +751,7 @@ export default function StoreProfilePage() {
                     e.preventDefault();
                     handleRefreshBooking();
                   }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 h-11 rounded-full bg-emerald-500/[0.06] border border-emerald-400/40 text-emerald-600 dark:text-emerald-300 text-[14px] font-semibold hover:bg-emerald-500/[0.10] transition-colors whitespace-nowrap"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 h-11 rounded-full bg-emerald-500/[0.06] border border-emerald-400/40 text-emerald-600 dark:text-emerald-300 text-[14px] font-semibold hover:bg-emerald-500/[0.10] transition-colors whitespace-nowrap active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Lock className="h-4 w-4 shrink-0" />
                   {isLodging && !hasPublishedRooms ? "Rooms not published yet" : t("store.booking_status.locked")}
@@ -763,7 +782,7 @@ export default function StoreProfilePage() {
                         });
                         toast.success(t("store.sms_draft_opened"), { duration: 4000 });
                       }}
-                      className="h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 border border-white/15 bg-white/[0.04] backdrop-blur-sm text-white hover:bg-white/[0.07] transition-colors"
+                      className="h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 border border-white/15 bg-white/[0.04] backdrop-blur-sm text-white hover:bg-white/[0.07] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <MessageCircle className="h-4 w-4" strokeWidth={2.2} />
                       <span className="text-[12px] font-semibold">{t("store.sms", "SMS")}</span>
@@ -787,7 +806,7 @@ export default function StoreProfilePage() {
                     }}
                     aria-disabled={callDisabled}
                     className={cn(
-                      "h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 border bg-white/[0.04] backdrop-blur-sm transition-colors",
+                      "h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 border bg-white/[0.04] backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       callDisabled
                         ? "border-white/10 text-white/35 cursor-not-allowed"
                         : "border-white/15 text-white hover:bg-white/[0.07]"
@@ -816,7 +835,7 @@ export default function StoreProfilePage() {
                     }}
                     disabled={chatDisabled}
                     className={cn(
-                      "h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 border bg-white/[0.04] backdrop-blur-sm transition-colors",
+                      "h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 border bg-white/[0.04] backdrop-blur-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       chatDisabled
                         ? "border-white/10 text-white/35 cursor-not-allowed"
                         : "border-white/15 text-white hover:bg-white/[0.07]"
@@ -889,7 +908,7 @@ export default function StoreProfilePage() {
                     /* user cancelled */
                   }
                 }}
-                className="h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 border border-white/15 bg-white/[0.04] backdrop-blur-sm text-white hover:bg-white/[0.07] transition-colors"
+                className="h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 border border-white/15 bg-white/[0.04] backdrop-blur-sm text-white hover:bg-white/[0.07] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Share2 className="h-4 w-4" strokeWidth={2.2} />
                 <span className="text-[12px] font-semibold">{t("store.share", "Share")}</span>
@@ -916,7 +935,7 @@ export default function StoreProfilePage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={s.label}
-                        className="h-9 w-9 rounded-full flex items-center justify-center border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-colors"
+                        className="h-9 w-9 rounded-full flex items-center justify-center border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-colors active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Icon className="h-4 w-4" style={{ color: s.color }} />
                       </a>
@@ -998,7 +1017,7 @@ export default function StoreProfilePage() {
               whileHover={{ y: -2, scale: 1.03 }}
               onClick={() => setSelectedCategory(undefined)}
               className={cn(
-                "relative px-5 py-2.5 rounded-xl text-[11px] font-extrabold whitespace-nowrap shrink-0 transition-all duration-200",
+                "relative px-5 py-2.5 rounded-xl text-[11px] font-extrabold whitespace-nowrap shrink-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 "border backdrop-blur-sm",
                 !selectedCategory
                   ? "bg-gradient-to-b from-primary via-primary to-primary/85 text-primary-foreground shadow-xl shadow-primary/30 border-primary/50 ring-1 ring-primary/20"
@@ -1018,7 +1037,7 @@ export default function StoreProfilePage() {
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={cn(
-                  "relative px-5 py-2.5 rounded-xl text-[11px] font-extrabold whitespace-nowrap shrink-0 transition-all duration-200",
+                  "relative px-5 py-2.5 rounded-xl text-[11px] font-extrabold whitespace-nowrap shrink-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   "border backdrop-blur-sm",
                   selectedCategory === cat
                     ? "bg-gradient-to-b from-primary via-primary to-primary/85 text-primary-foreground shadow-xl shadow-primary/30 border-primary/50 ring-1 ring-primary/20"
@@ -1239,7 +1258,7 @@ export default function StoreProfilePage() {
                                 onClick={() => {
                                   navigate(`/book/${slug}?service=${encodeURIComponent(service.name)}`);
                                 }}
-                                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-bold shadow-sm"
+                                className="px-3 py-1.5 rounded-lg bg-ig-gradient text-white text-[11px] font-bold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               >
                                 Book
                               </motion.button>
@@ -1398,7 +1417,8 @@ export default function StoreProfilePage() {
                     {/* Like button */}
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); toggleLike(product.id); }}
-                      className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-background/60 backdrop-blur flex items-center justify-center z-20"
+                      aria-label="Like product"
+                      className="absolute bottom-1 right-1 h-5 w-5 rounded-full bg-background/60 backdrop-blur flex items-center justify-center z-20 transition-transform active:scale-[0.9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Heart className={cn("h-2.5 w-2.5", isLiked ? "fill-rose-500 text-rose-500" : "text-muted-foreground/50")} />
                     </button>
@@ -1418,7 +1438,7 @@ export default function StoreProfilePage() {
                             key={sv.size}
                             onClick={(e) => { e.stopPropagation(); setSelectedSizes(prev => ({ ...prev, [product.id]: sIdx })); }}
                             className={cn(
-                              "h-4 px-1.5 rounded text-[7px] font-bold border transition-all",
+                              "h-4 px-1.5 rounded text-[7px] font-bold border transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                               selectedIdx === sIdx
                                 ? "bg-primary/15 border-primary/40 text-primary"
                                 : "bg-muted/10 border-border/30 text-muted-foreground/40"
@@ -1457,8 +1477,9 @@ export default function StoreProfilePage() {
                       {!cartItem && product.in_stock && (
                         <motion.button
                           whileTap={{ scale: 0.8 }}
-                          onClick={(e) => { e.stopPropagation(); handleAddToCart(product, activeVariant || undefined); }}
-                          className="h-6 w-6 shrink-0 rounded-full bg-primary flex items-center justify-center shadow-sm"
+                          onClick={(e) => { e.stopPropagation(); handleAddToCart(product, activeVariant || undefined, hasDiscount && !hasSizes && discountUsd != null ? discountUsd : undefined); }}
+                          aria-label="Add to cart"
+                          className="h-6 w-6 shrink-0 rounded-full bg-primary flex items-center justify-center shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Plus className="h-3 w-3 text-primary-foreground" />
                         </motion.button>
@@ -1470,14 +1491,16 @@ export default function StoreProfilePage() {
                       <div className="flex items-center justify-between bg-primary/[0.08] rounded-lg p-0.5 mt-1">
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); cart.updateQuantity(cartKey, cartItem.quantity - 1); }}
-                          className="h-5 w-5 rounded-md bg-background/80 flex items-center justify-center touch-manipulation"
+                          aria-label="Decrease quantity"
+                          className="h-5 w-5 rounded-md bg-background/80 flex items-center justify-center touch-manipulation transition-transform active:scale-[0.9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Minus className="h-2.5 w-2.5 text-foreground/60" />
                         </button>
                         <span className="text-[9px] font-black text-primary">{cartItem.quantity}</span>
                         <button type="button"
                           onClick={(e) => { e.stopPropagation(); cart.updateQuantity(cartKey, cartItem.quantity + 1); }}
-                          className="h-5 w-5 rounded-md bg-background/80 flex items-center justify-center touch-manipulation"
+                          aria-label="Increase quantity"
+                          className="h-5 w-5 rounded-md bg-background/80 flex items-center justify-center touch-manipulation transition-transform active:scale-[0.9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Plus className="h-2.5 w-2.5 text-foreground/60" />
                         </button>
@@ -1542,7 +1565,7 @@ export default function StoreProfilePage() {
           >
             <button type="button"
               onClick={() => setShowCart(true)}
-              className="w-full rounded-2xl bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground shadow-2xl shadow-primary/30 border border-primary/30 relative overflow-hidden active:scale-[0.98] transition-transform px-4 py-3"
+              className="w-full rounded-2xl bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground shadow-2xl shadow-primary/30 border border-primary/30 relative overflow-hidden active:scale-[0.98] transition-transform px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {/* Shine */}
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent pointer-events-none" />

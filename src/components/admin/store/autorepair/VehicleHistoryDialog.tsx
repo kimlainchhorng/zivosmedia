@@ -203,7 +203,7 @@ export default function VehicleHistoryDialog({ open, onOpenChange, storeId, vehi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Car className="w-4 h-4" />
@@ -226,7 +226,7 @@ export default function VehicleHistoryDialog({ open, onOpenChange, storeId, vehi
         </div>
 
         <Tabs defaultValue="wos" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="px-5 mx-0 rounded-none border-b bg-transparent justify-start gap-1 shrink-0 h-auto py-1.5">
+          <TabsList className="px-5 mx-0 rounded-none border-b bg-transparent justify-start gap-1 shrink-0 h-auto py-1.5 flex-wrap">
             <TabsTrigger value="wos" className="text-xs gap-1 h-7"><Wrench className="w-3 h-3" /> WOs ({workOrders.length})</TabsTrigger>
             <TabsTrigger value="ests" className="text-xs gap-1 h-7"><FileSignature className="w-3 h-3" /> Estimates ({estimates.length})</TabsTrigger>
             <TabsTrigger value="invs" className="text-xs gap-1 h-7"><Receipt className="w-3 h-3" /> Invoices ({invoices.length})</TabsTrigger>

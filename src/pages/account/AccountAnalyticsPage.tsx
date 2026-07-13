@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AccountAnalyticsPage — Profile visits, engagement stats, growth trends,
  * and Top Posts (today / this week) by likes / comments / shares / saves.
  */
@@ -185,7 +185,7 @@ export default function AccountAnalyticsPage() {
             type="button"
             aria-label="Back"
             onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/profile"); }}
-            className="h-10 w-10 flex items-center justify-center rounded-full border border-border/60 bg-muted/40 hover:bg-muted text-foreground active:scale-95 transition focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+            className="h-10 w-10 flex items-center justify-center rounded-full border border-border/60 bg-muted/40 hover:bg-muted text-foreground active:scale-95 transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -196,9 +196,10 @@ export default function AccountAnalyticsPage() {
             <button type="button"
               key={p}
               onClick={() => setPeriod(p)}
+              aria-pressed={period === p}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                period === p ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                "px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                period === p ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
               )}
             >
               {p === "7d" ? "7 Days" : p === "30d" ? "30 Days" : "90 Days"}
@@ -239,9 +240,10 @@ export default function AccountAnalyticsPage() {
                 <button type="button"
                   key={b.id}
                   onClick={() => setTopBucket(b.id)}
+                  aria-pressed={topBucket === b.id}
                   className={cn(
-                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                    topBucket === b.id ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                    "px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    topBucket === b.id ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
                   )}
                 >
                   {b.label}
@@ -257,8 +259,9 @@ export default function AccountAnalyticsPage() {
                   <button type="button"
                     key={m.id}
                     onClick={() => setTopMetric(m.id)}
+                    aria-pressed={active}
                     className={cn(
-                      "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all",
+                      "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       active ? cn(m.bg, m.color) : "bg-muted/40 text-muted-foreground"
                     )}
                   >
@@ -288,7 +291,7 @@ export default function AccountAnalyticsPage() {
               <button type="button"
                 key={post.id}
                 onClick={() => navigate(`/reels?post=${post.id}`)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 active:bg-muted/40 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 active:bg-muted/40 transition-colors text-left focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <span className="w-5 text-xs font-bold tabular-nums text-muted-foreground">{i + 1}</span>
                 <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center">

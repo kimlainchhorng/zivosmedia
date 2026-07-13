@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment, lazy, Suspense } from "react";
+﻿import { useState, useEffect, useCallback, Fragment, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -175,6 +175,7 @@ export default function NotificationCenterPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [loadError, setLoadError] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
   // Mute integration — same hooks the bell uses, so muting from this page
@@ -217,17 +218,23 @@ export default function NotificationCenterPage() {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
-    const { data, count } = await supabase
+    const { data, count, error } = await supabase
       .from("notifications")
       .select("id, title, body, category, is_read, created_at, action_url", { count: "exact" })
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .range(0, PAGE_SIZE - 1);
 
-    if (data) {
+    if (error) {
+      // Don't masquerade a failed fetch as "No notifications" — surface it so
+      // the empty view can offer Retry instead of implying the user has none.
+      console.error("Failed to load notifications:", error);
+      setLoadError(true);
+    } else if (data) {
       setNotifications(data.map(mapRow));
       setOffset(PAGE_SIZE);
       setHasMore((count ?? 0) > PAGE_SIZE);
+      setLoadError(false);
     }
     setLoading(false);
   }, [user]);
@@ -235,14 +242,17 @@ export default function NotificationCenterPage() {
   const loadMore = useCallback(async () => {
     if (!user || loadingMore) return;
     setLoadingMore(true);
-    const { data, count } = await supabase
+    const { data, count, error } = await supabase
       .from("notifications")
       .select("id, title, body, category, is_read, created_at, action_url", { count: "exact" })
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
 
-    if (data) {
+    if (error) {
+      console.error("Failed to load more notifications:", error);
+      toast.error("Couldn't load more notifications");
+    } else if (data) {
       setNotifications(prev => [...prev, ...data.map(mapRow)]);
       const newOffset = offset + PAGE_SIZE;
       setOffset(newOffset);
@@ -405,16 +415,17 @@ export default function NotificationCenterPage() {
               <button type="button"
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-manipulation ${
+                aria-pressed={isActive}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   isActive
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted/70"
                 }`}
               >
                 {tab.icon && <tab.icon className="h-3.5 w-3.5" />}
                 <span>{tab.label}</span>
                 {badge > 0 && (
-                  <span className={`text-[10px] font-bold rounded-full px-1.5 ${isActive ? "bg-primary-foreground/25 text-primary-foreground" : "bg-primary text-primary-foreground"}`}>
+                  <span className={`text-[10px] font-bold rounded-full px-1.5 ${isActive ? "bg-primary-foreground/25 text-primary-foreground" : "bg-ig-gradient text-white"}`}>
                     {badge}
                   </span>
                 )}
@@ -442,8 +453,25 @@ export default function NotificationCenterPage() {
 
         {!loading && filtered.length === 0 && (
           <div className="text-center py-20">
-            <Bell className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">No notifications</p>
+            {loadError ? (
+              <>
+                <AlertTriangle className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm mb-3">Couldn't load notifications</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full gap-2"
+                  onClick={() => { setLoading(true); void load(); }}
+                >
+                  Retry
+                </Button>
+              </>
+            ) : (
+              <>
+                <Bell className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">No notifications</p>
+              </>
+            )}
           </div>
         )}
 
@@ -537,14 +565,14 @@ export default function NotificationCenterPage() {
                                 setReplyText("");
                               }}
                               aria-label="Reply"
-                              className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 active:scale-90 transition-all"
+                              className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary/20 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               <CornerUpLeft className="h-4 w-4" />
                             </button>
                             <button type="button"
                               onClick={(e) => { e.stopPropagation(); setPreviewUserId(threadId!); }}
                               aria-label="Preview profile"
-                              className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground active:scale-90 transition-all flex items-center justify-center"
+                              className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground active:scale-90 transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               <UserCircle2 className="h-4 w-4" />
                             </button>
@@ -560,7 +588,7 @@ export default function NotificationCenterPage() {
                               }}
                               aria-label={rowMuted ? "Unmute" : "Mute"}
                               className={cn(
-                                "h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted active:scale-90 transition-all",
+                                "h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                                 rowMuted ? "bg-muted text-foreground" : "text-muted-foreground"
                               )}
                             >
@@ -577,7 +605,7 @@ export default function NotificationCenterPage() {
                             if (notif.count > 1) void deleteMany(notif.ids);
                             else void deleteNotif(notif.id);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-destructive/10 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           aria-label="Delete notification"
                         >
                           <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
@@ -617,7 +645,7 @@ export default function NotificationCenterPage() {
                             <button type="button"
                               onClick={() => { setReplyOpenFor(null); setReplyText(""); }}
                               disabled={replySending}
-                              className="shrink-0 h-9 px-3 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+                              className="shrink-0 h-9 px-3 text-[12px] font-medium text-muted-foreground hover:text-foreground active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               Cancel
                             </button>
@@ -625,7 +653,7 @@ export default function NotificationCenterPage() {
                               onClick={() => void sendReply()}
                               disabled={!replyText.trim() || replySending}
                               aria-label="Send reply"
-                              className="shrink-0 h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all"
+                              className="shrink-0 h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               {replySending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                             </button>
@@ -654,7 +682,7 @@ export default function NotificationCenterPage() {
                                   setMuteOpenFor(null);
                                   toast.success(`Muted · ${d.label.toLowerCase()}`);
                                 }}
-                                className="h-8 px-3 rounded-full bg-muted/70 hover:bg-muted text-foreground text-[12px] font-medium flex items-center justify-center"
+                                className="h-8 px-3 rounded-full bg-muted/70 hover:bg-muted text-foreground text-[12px] font-medium flex items-center justify-center active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               >
                                 {d.label}
                               </button>

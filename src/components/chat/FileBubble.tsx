@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FileBubble — generic file/document message bubble with thumbnail (if available),
  * filename, size, page count, and download / open actions.
  */
@@ -175,7 +175,7 @@ export default function FileBubble({ file, mine }: { file: FileBubbleData; mine?
               <button
                 type="button"
                 onClick={toggleAudio}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ig-gradient text-white transition-transform active:scale-95"
                 aria-label={`${playing ? "Pause" : "Play"} ${file.filename}`}
                 title={playing ? "Pause" : "Play"}
               >

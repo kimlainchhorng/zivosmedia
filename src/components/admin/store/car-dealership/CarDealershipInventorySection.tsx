@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Vehicle inventory section — list, search, filter, add, edit, delete.
  * Clicking a vehicle card opens a detail Sheet with its full cost history,
  * linked deals, and per-unit economics.
@@ -741,7 +741,7 @@ function CarDealershipInventorySectionInner({ storeId, storeName }: Props) {
                 className={cn(
                   "absolute top-2 right-2 z-10 grid h-6 w-6 place-items-center rounded transition-all",
                   isSelected
-                    ? "bg-primary text-primary-foreground shadow"
+                    ? "bg-ig-gradient text-white shadow"
                     : "bg-black/40 text-white opacity-0 group-hover:opacity-100 hover:bg-black/60",
                 )}
                 aria-label={isSelected ? "Deselect vehicle" : "Select vehicle"}
@@ -829,7 +829,7 @@ function CarDealershipInventorySectionInner({ storeId, storeName }: Props) {
       {/* ── Floating bulk-action bar ── */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 rounded-xl border bg-card shadow-lg flex items-center gap-2 px-3 py-2 max-w-[95vw] flex-wrap">
-          <Badge className="border-0 bg-primary text-primary-foreground">
+          <Badge className="border-0 bg-ig-gradient text-white">
             {selectedIds.size} selected
           </Badge>
 

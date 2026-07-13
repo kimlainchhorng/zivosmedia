@@ -137,6 +137,15 @@ describe("computeKpis", () => {
     expect(kpis.invoiced).toBe(5000);
   });
 
+  it("excludes voided invoices from outstanding receivables", () => {
+    // A void keeps total/paid intact; a never-paid void must not inflate `invoiced`.
+    const withVoid: InvoiceRow[] = [
+      ...invoices,
+      { id: "i3", total_cents: 9000, amount_paid_cents: 0, subtotal_cents: 9000, tax_cents: 0, status: "void", due_at: null, paid_at: null, created_at: "2026-05-04", customer_name: "Void Co", items: [] },
+    ];
+    expect(computeKpis(payments, expenses, withVoid).invoiced).toBe(5000);
+  });
+
   it("guards margin math when revenue is 0", () => {
     const kpis = computeKpis([], expenses, []);
     expect(kpis.grossMargin).toBe(0);
@@ -250,6 +259,13 @@ describe("computeAging", () => {
     const aging = computeAging([
       mkInvoice("i1", 1000, 1000, 45, "paid"),
     ]);
+    expect(aging.total).toBe(0);
+    expect(aging.topUnpaid).toEqual([]);
+  });
+
+  it("excludes voided invoices from aging", () => {
+    // An unpaid void carries a positive balance but is not a receivable.
+    const aging = computeAging([mkInvoice("i1", 1000, 0, 45, "void")]);
     expect(aging.total).toBe(0);
     expect(aging.topUnpaid).toEqual([]);
   });

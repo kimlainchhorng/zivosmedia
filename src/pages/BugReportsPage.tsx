@@ -142,7 +142,7 @@ export default function BugReportsPage() {
               type="button"
               disabled={submitting || description.trim().length < 20}
               onClick={submit}
-              className="h-10 px-5 rounded-full bg-ig-gradient text-white text-sm font-bold inline-flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90 active:scale-95 transition-all shadow-sm"
+              className="h-10 px-5 rounded-full bg-ig-gradient text-white text-sm font-bold inline-flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? "Sending…" : "Submit"}
@@ -179,7 +179,7 @@ export default function BugReportsPage() {
                       {b.page_url && (
                         <>
                           <span>·</span>
-                          <a href={b.page_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 hover:text-foreground">
+                          <a href={b.page_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 rounded hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <ExternalLink className="h-2.5 w-2.5" /> page
                           </a>
                         </>
@@ -187,7 +187,7 @@ export default function BugReportsPage() {
                       {b.screenshot_url && (
                         <>
                           <span>·</span>
-                          <a href={b.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 hover:text-foreground">
+                          <a href={b.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 rounded hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <ImageIcon className="h-2.5 w-2.5" /> screenshot
                           </a>
                         </>

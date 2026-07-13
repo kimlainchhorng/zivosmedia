@@ -39,7 +39,7 @@ const formatMoney = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export default function CarRentalCheckoutSection({ storeId }: Props) {
   const [date, setDate] = useState(todayIso());
-  const { reservations, loading, saving, update } = useCarRentalReservations({ storeId, date });
+  const { reservations, loading, saving, error, update } = useCarRentalReservations({ storeId, date });
   const [active, setActive] = useState<CarRentalReservation | null>(null);
 
   const eligible = useMemo(
@@ -115,11 +115,16 @@ export default function CarRentalCheckoutSection({ storeId }: Props) {
           reservation={active}
           onClose={() => setActive(null)}
           onConfirm={async (patch) => {
-            await update(active.id, {
+            const ok = await update(active.id, {
               ...patch,
               status: "picked_up",
               picked_up_at: new Date().toISOString(),
             });
+            // Pickup write failed: keep the dialog open so the operator keeps
+            // their captured inspection data and sees the inline error, and do
+            // NOT fire the balance capture against a reservation that was never
+            // marked picked up.
+            if (!ok) return;
 
             // Stripe is wired? Charge the outstanding balance off-session.
             // Failure is non-blocking — pickup already happened, the team
@@ -146,6 +151,7 @@ export default function CarRentalCheckoutSection({ storeId }: Props) {
             setActive(null);
           }}
           saving={saving}
+          error={error}
         />
       )}
     </div>
@@ -153,13 +159,15 @@ export default function CarRentalCheckoutSection({ storeId }: Props) {
 }
 
 function CheckoutDialog({
-  reservation: r, onClose, onConfirm, saving,
+  reservation: r, onClose, onConfirm, saving, error,
 }: {
   reservation: CarRentalReservation;
   onClose: () => void;
   onConfirm: (patch: Partial<CarRentalReservation>) => Promise<void>;
   saving: boolean;
+  error: string | null;
 }) {
+  const [submitted, setSubmitted] = useState(false);
   const [odometer, setOdometer] = useState<string>("");
   const [fuelLevel, setFuelLevel] = useState<number>(100);
   const [licenseVerified, setLicenseVerified] = useState(false);
@@ -200,7 +208,7 @@ function CheckoutDialog({
   const canConfirm = licenseVerified && allInspected && odoNumber !== null && !Number.isNaN(odoNumber);
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className="max-w-xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Check out — {r.customer_name}</DialogTitle>
@@ -296,16 +304,21 @@ function CheckoutDialog({
             <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything to remember…" />
           </Field>
         </div>
+        {submitted && error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+          </div>
+        )}
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button disabled={!canConfirm || saving} onClick={() => onConfirm({
+          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button disabled={!canConfirm || saving} onClick={() => { setSubmitted(true); onConfirm({
             pickup_odometer: odoNumber ?? undefined,
             pickup_fuel_level: fuelLevel,
             deposit_paid_cents: Math.round(depositCollected * 100),
             internal_notes: notes
               ? `${notes}\n\n[Pre-trip inspection: ${inspectionScore}/6 passed]`
               : `[Pre-trip inspection: ${inspectionScore}/6 passed]`,
-          })}>
+          }); }}>
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
             Hand over keys
           </Button>

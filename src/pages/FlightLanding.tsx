@@ -1,15 +1,17 @@
-/**
+﻿/**
  * Flight Search Page — /flights
  * Cinematic 3D/4D immersive flight search experience
  */
 
-import { useRef, useCallback, useMemo, useState, useEffect, lazy, Suspense } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useRef, useCallback, useMemo, useState, useEffect, lazy, Suspense, type ComponentType } from "react";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plane, Shield, Star, TrendingUp, Sparkles,
   Globe, Clock, Headphones, Loader2, Zap, ArrowRight,
-  Ticket, Radar, ChevronRight, RefreshCw, Heart, Share2, Check
+  Ticket, Radar, ChevronRight, RefreshCw, Heart, Share2, Check,
+  Bot, DollarSign, Route, SlidersHorizontal, MapPin,
+  CalendarDays, Luggage, CheckCircle2, WalletCards, Search
 } from "lucide-react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
@@ -19,14 +21,12 @@ import NativeBackButton from "@/components/shared/NativeBackButton";
 
 import siemReapImg from "@/assets/destinations/siem-reap.jpg";
 import sihanoukvilleImg from "@/assets/destinations/sihanoukville.jpg";
-import battambangImg from "@/assets/destinations/battambang.jpg";
 import bangkokImg from "@/assets/destinations/tropical-paradise.jpg";
 import singaporeImg from "@/assets/destinations/city-skyline-night.jpg";
 import tokyoImg from "@/assets/destinations/japan-sakura.jpg";
+import santoriniImg from "@/assets/dest-santorini.jpg";
 
 import heroFlights from "@/assets/svc-flights-premium.jpg";
-import heroHotels from "@/assets/svc-hotels-premium.jpg";
-import heroCars from "@/assets/svc-cars-premium.jpg";
 
 import Footer from "@/components/Footer";
 import AppLayout from "@/components/app/AppLayout";
@@ -37,14 +37,22 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FlightSearchFormPro } from "@/components/search";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 const AISmartDeals = lazy(() => import("@/components/home/AISmartDeals"));
 import { usePopularRoutePrices } from "@/hooks/usePopularRoutePrices";
 import { useTravelpayoutsPopularRoutes } from "@/hooks/useTravelpayoutsPopularRoutes";
 import { useFlightAppTrackingTransparencyPrompt } from "@/hooks/useFlightAppTrackingTransparencyPrompt";
 import { format, parseISO } from "date-fns";
 import { Calendar } from "lucide-react";
+import { getAirportByCode } from "@/data/airports";
+import {
+  buildFlightResultsSearch,
+  parseFlightDeepLinkInitial,
+  type FlightDeepLinkInitial,
+} from "@/lib/flightDeepLink";
 
 const ease3D = [0.16, 1, 0.3, 1] as const;
+type FlightIcon = ComponentType<{ className?: string }>;
 
 /* ─── 3D Tilt Hook ─── */
 function use3DTilt(maxTilt = 8) {
@@ -80,13 +88,6 @@ function ScrollReveal3D({ children, className, delay = 0 }: { children: React.Re
   );
 }
 
-/* ─── Cinematic hero backgrounds ─── */
-const heroSlides = [
-  { src: heroFlights, accent: "210 100% 55%", label: "Search & Compare Flights", sub: "500+ airlines, one search" },
-  { src: heroHotels, accent: "210 90% 55%", label: "Find Your Next Trip", sub: "Best fares, real-time pricing" },
-  { src: heroCars, accent: "210 80% 55%", label: "Fly Smarter with ZIVO", sub: "Trusted licensed partners" },
-];
-
 const routeImages: Record<string, string> = {
   "PNH-REP": siemReapImg,
   "PNH-KOS": sihanoukvilleImg,
@@ -102,6 +103,47 @@ const destinationImages: Record<string, string> = {
   BKK: bangkokImg,
   SIN: singaporeImg,
   NRT: tokyoImg,
+  JTR: santoriniImg,
+};
+
+const flightWorkflowSteps: Array<{ title: string; detail: string; icon: FlightIcon }> = [
+  { title: "Plan", detail: "AI picks the trip idea", icon: Sparkles },
+  { title: "Search", detail: "Prefill route + dates", icon: Search },
+  { title: "Compare", detail: "Review live partner fares", icon: SlidersHorizontal },
+  { title: "Book", detail: "Continue through checkout", icon: CheckCircle2 },
+];
+
+const providerStatuses: Array<{ label: string; value: string; icon: FlightIcon; tone: "teal" | "blue" | "rose" }> = [
+  { label: "ZIVO AI", value: "Auto route", icon: Bot, tone: "teal" },
+  { label: "DeepSeek", value: "Live travel", icon: Plane, tone: "blue" },
+  { label: "Fallback AI", value: "Optional", icon: Sparkles, tone: "rose" },
+];
+
+const destinationSpotlights: Record<string, { image: string; priceHint: string; season: string; routeHint: string }> = {
+  JTR: {
+    image: santoriniImg,
+    priceHint: "Often best via Athens",
+    season: "May-Oct",
+    routeHint: "Caldera stays, ferry links, sunset arrivals",
+  },
+  NRT: {
+    image: tokyoImg,
+    priceHint: "Watch weekday fares",
+    season: "Mar-May",
+    routeHint: "City rail, food walks, skyline nights",
+  },
+  REP: {
+    image: siemReapImg,
+    priceHint: "Short regional hops",
+    season: "Nov-Mar",
+    routeHint: "Temples, resorts, easy ground transfer",
+  },
+  SIN: {
+    image: singaporeImg,
+    priceHint: "Strong direct options",
+    season: "Year-round",
+    routeHint: "Stopover friendly with fast airport links",
+  },
 };
 
 type LiveRouteCard = {
@@ -259,20 +301,35 @@ function PopularRoutesSection({ className }: { className?: string }) {
   const [sharedKey, setSharedKey] = useState<string | null>(null);
   const handleShare = useCallback(async (route: LiveRouteCard, e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/flights/results?origin=${route.from}&destination=${route.to}&adults=1&cabinClass=economy`;
+    // Mirror handleRouteClick: carry the card's dates so a shared link lands on
+    // the same search the sharer saw (not a date-less default).
+    const dep = route.departureDate || (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split("T")[0]; })();
+    const ret = route.returnDate || (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split("T")[0]; })();
+    const url = `${window.location.origin}/flights/results?origin=${route.from}&destination=${route.to}&departureDate=${dep}&returnDate=${ret}&adults=1&cabinClass=economy`;
     const title = `Flights from ${route.fromCity} to ${route.toCity}`;
     const text = `${route.fromCity} → ${route.toCity} from ${route.price} on ZIVO`;
     const key = `${route.from}-${route.to}`;
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({ title, text, url });
-      } else if (navigator.clipboard?.writeText) {
+    const copyToClipboard = async () => {
+      if (!navigator.clipboard?.writeText) return;
+      try {
         await navigator.clipboard.writeText(url);
         setSharedKey(key);
         setTimeout(() => setSharedKey((k) => (k === key ? null : k)), 1800);
+      } catch {
+        // Clipboard blocked — nothing more we can do.
       }
-    } catch {
-      // User cancelled / permission denied — silent
+    };
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title, text, url });
+      } catch (err) {
+        // User cancelled the share sheet — stay silent. Any other failure
+        // (the sheet never opened, a browser error) falls back to copy.
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        await copyToClipboard();
+      }
+    } else {
+      await copyToClipboard();
     }
   }, []);
 
@@ -378,7 +435,7 @@ function PopularRoutesSection({ className }: { className?: string }) {
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition border",
                 active
-                  ? "bg-primary text-primary-foreground border-primary"
+                  ? "bg-ig-gradient text-white border-primary"
                   : "bg-background text-foreground border-border active:bg-muted",
               )}
             >
@@ -539,212 +596,314 @@ function WhyZivoSection({ className }: { className?: string }) {
   );
 }
 
-/* ─── Deep-link prefill: route params win; else ?from/?to/?start/?end/?travelers (Zivo Travel home) ─── */
+function getAirportLabel(code: string, fallback: string) {
+  const airport = getAirportByCode(code);
+  if (!airport) return fallback;
+  return `${airport.city} (${airport.code})`;
+}
+
+function getDestinationDetails(code: string) {
+  const airport = getAirportByCode(code);
+  const spotlight = destinationSpotlights[code];
+  const city = airport?.city || (code ? code : "anywhere");
+  const country = airport?.country || "Worldwide";
+  return {
+    code: code || "ANY",
+    city,
+    country,
+    airportName: airport?.name || "Choose a destination airport",
+    image: spotlight?.image || destinationImages[code] || heroFlights,
+    priceHint: spotlight?.priceHint || "Live fares after search",
+    season: spotlight?.season || "Flexible",
+    routeHint: spotlight?.routeHint || "Compare airlines, times, baggage, and checkout options",
+  };
+}
+
+function formatFlightDate(date: Date | undefined, fallback = "Flexible") {
+  return date ? format(date, "MMM d") : fallback;
+}
+
+/* ─── Deep-link prefill: route params win; then ?from/?to/?origin/?destination/?start/?end/?travelers ─── */
 function useFlightDeepLinkInitial(fromCity?: string, toCity?: string) {
   const [params] = useSearchParams();
-  return useMemo(() => {
-    const parseDate = (raw: string | null) => {
-      if (!raw) return undefined;
-      const d = new Date(`${raw}T00:00:00`);
-      return Number.isNaN(d.getTime()) ? undefined : d;
-    };
-    const travelers = Number.parseInt(params.get("travelers") || "", 10);
-    return {
-      initialFrom: fromCity ? decodeURIComponent(fromCity) : params.get("from") || "",
-      initialTo: toCity ? decodeURIComponent(toCity) : params.get("to") || "",
-      initialDepartDate: parseDate(params.get("start")),
-      initialReturnDate: parseDate(params.get("end")),
-      initialPassengers: Number.isFinite(travelers) && travelers > 0 ? travelers : undefined,
-    };
-  }, [params, fromCity, toCity]);
+  return useMemo(() => parseFlightDeepLinkInitial(params, fromCity, toCity), [params, fromCity, toCity]);
+}
+
+function useFlightDeepLinkResultsSearch(initial: FlightDeepLinkInitial) {
+  const [params] = useSearchParams();
+  return useMemo(() => buildFlightResultsSearch(initial, params), [initial, params]);
 }
 
 /* ─── Cinematic Desktop Hero ─── */
-function DesktopCinematicHero() {
-  const { fromCity, toCity } = useParams();
-  const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
-  const [currentSlide, setCurrentSlide] = useState(0);
+function DesktopCinematicHero({ flightInitial }: { flightInitial: FlightDeepLinkInitial }) {
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "14%"]);
   const formScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.98]);
+  const destination = useMemo(() => getDestinationDetails(flightInitial.initialTo), [flightInitial.initialTo]);
+  const hasPlannerHandoff = Boolean(
+    flightInitial.initialTo ||
+    flightInitial.initialFrom ||
+    flightInitial.initialDepartDate ||
+    flightInitial.initialReturnDate ||
+    flightInitial.initialPassengers,
+  );
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentSlide((p) => (p + 1) % heroSlides.length), 5000);
-    return () => clearInterval(timer);
-  }, []);
+  const tripWindow = flightInitial.initialDepartDate || flightInitial.initialReturnDate
+    ? `${formatFlightDate(flightInitial.initialDepartDate, "Open")} - ${formatFlightDate(flightInitial.initialReturnDate, "Open")}`
+    : "Flexible dates";
 
-  const currentAccent = heroSlides[currentSlide].accent;
+  const plannerParams = new URLSearchParams();
+  if (destination.city && destination.city !== "anywhere") plannerParams.set("destination", destination.city);
+  if (flightInitial.initialDepartDate) plannerParams.set("depart", format(flightInitial.initialDepartDate, "yyyy-MM-dd"));
+  if (flightInitial.initialReturnDate) plannerParams.set("return", format(flightInitial.initialReturnDate, "yyyy-MM-dd"));
+  if (flightInitial.initialPassengers) plannerParams.set("travelers", String(flightInitial.initialPassengers));
 
   return (
-    <div ref={containerRef} className="relative" style={{ perspective: "1400px" }}>
-      {/* ── Cinematic Background ── */}
-      <div className="absolute inset-0 h-[70vh] overflow-hidden">
-        {heroSlides.map((slide, i) => (
+    <div ref={containerRef} className="relative overflow-hidden border-b border-slate-200 bg-[#f6fbff]" style={{ perspective: "1400px" }}>
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.img
+          src={destination.image}
+          alt=""
+          className="h-full w-full object-cover opacity-30"
+          style={{ y: bgY }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-white/55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/65 via-transparent to-[#f6fbff]" />
+        <div
+          className="absolute inset-0 opacity-55"
+          style={{
+            backgroundImage:
+              "linear-gradient(90deg, rgba(15,23,42,0.045) 1px, transparent 1px), linear-gradient(rgba(15,23,42,0.045) 1px, transparent 1px)",
+            backgroundSize: "44px 44px",
+          }}
+        />
+      </div>
+
+      <div className="container relative z-10 mx-auto px-4">
+        <div className="grid min-h-[calc(100vh-5rem)] gap-8 py-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start lg:py-12">
           <motion.div
-            key={i}
-            className="absolute inset-0"
-            animate={{ opacity: i === currentSlide ? 1 : 0, scale: i === currentSlide ? 1.02 : 1.08 }}
-            transition={{ opacity: { duration: 1.6, ease: [0.4, 0, 0.2, 1] }, scale: { duration: 8, ease: "linear" } }}
-            style={{ zIndex: i === currentSlide ? 1 : 0 }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: ease3D }}
+            className="max-w-2xl"
           >
-            <motion.img src={slide.src} alt="" className="w-full h-full object-cover" style={{ y: bgY }} />
-          </motion.div>
-        ))}
-        {/* Depth overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background z-[2]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/50 z-[2]" />
-        {/* Accent color wash */}
-        <motion.div
-          className="absolute inset-0 z-[3] pointer-events-none"
-          animate={{ background: `radial-gradient(ellipse at 30% 40%, hsl(${currentAccent} / 0.12) 0%, transparent 70%)` }}
-          transition={{ duration: 1.5 }}
-        />
-      </div>
+            <div className="inline-flex items-center gap-2 rounded-lg border border-teal-200 bg-white/85 px-4 py-2 text-sm font-black text-teal-900 shadow-sm backdrop-blur">
+              <Sparkles className="h-4 w-4 text-teal-600" />
+              {hasPlannerHandoff ? "AI planner handoff" : "ZIVO Flights"}
+            </div>
+            <h1 className="mt-6 max-w-xl text-5xl font-black leading-[0.95] tracking-tight text-slate-950 lg:text-6xl">
+              Search Flights
+              {destination.city !== "anywhere" ? (
+                <> to <span className="text-teal-600">{destination.city}</span></>
+              ) : (
+                <> with <span className="text-teal-600">ZIVO</span></>
+              )}
+            </h1>
+            <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+              Your AI trip idea is now connected to the flight engine. Confirm the route, choose dates, then compare live partner fares without rebuilding the search.
+            </p>
 
-      {/* ── Floating 3D Elements ── */}
-      <div className="absolute inset-0 h-[70vh] z-[4] pointer-events-none overflow-hidden">
-        {/* Animated plane */}
-        <motion.div
-          animate={{ x: ["-5%", "105%"], y: [80, 50, 90], rotateZ: [0, 3, -2, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-          className="absolute top-20"
-        >
-          <Plane className="w-6 h-6 text-primary/20 rotate-45" />
-        </motion.div>
+            <div className="mt-7 grid gap-3 rounded-lg border border-white/70 bg-white/90 p-4 shadow-xl shadow-sky-900/10 backdrop-blur sm:grid-cols-3">
+              {providerStatuses.map((status) => (
+                <FlightProviderStatus key={status.label} {...status} />
+              ))}
+            </div>
 
-        {/* Floating orbs */}
-        <motion.div
-          animate={{ y: [0, -30, 0], x: [0, 15, 0], scale: [1, 1.1, 1] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-16 right-[20%] w-48 h-48 rounded-full blur-[80px]"
-          style={{ background: `hsl(${currentAccent} / 0.08)` }}
-        />
-        <motion.div
-          animate={{ y: [0, 20, 0], scale: [1.1, 0.9, 1.1] }}
-          transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-          className="absolute top-[40%] left-[10%] w-64 h-64 rounded-full bg-primary/5 blur-[100px]"
-        />
+            <div className="mt-4 grid gap-3 rounded-lg border border-white/70 bg-white/85 p-3 shadow-lg shadow-sky-900/10 backdrop-blur sm:grid-cols-2 xl:grid-cols-4">
+              <FlightHandoffTile icon={MapPin} label="Destination" value={getAirportLabel(flightInitial.initialTo, destination.code)} />
+              <FlightHandoffTile icon={CalendarDays} label="Dates" value={tripWindow} />
+              <FlightHandoffTile icon={Luggage} label="Travelers" value={`${flightInitial.initialPassengers || 1} traveler${(flightInitial.initialPassengers || 1) === 1 ? "" : "s"}`} />
+              <FlightHandoffTile icon={DollarSign} label="Fare mode" value="Live" />
+            </div>
 
-        {/* Decorative floating service icons removed per design feedback */}
-      </div>
-
-      {/* ── Content ── */}
-      <div className="relative z-10 pt-12 sm:pt-14">
-        <div className="container mx-auto px-4">
-          {/* Hero text */}
-          <motion.div className="max-w-3xl mx-auto text-center mb-6" style={{ y: textY }}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: ease3D }}
-            >
-              {/* Live badge */}
-              <motion.div className="flex justify-center mb-4">
-                <Badge className="px-4 py-2 bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-2 text-xs font-medium backdrop-blur-xl">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-full w-full bg-emerald-500" />
-                  </span>
-                  Live Prices • 500+ Airlines
-                </Badge>
-              </motion.div>
-
-              {/* Dynamic headline synced to slide */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentSlide}
-                  initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <h1 className="font-display text-3xl lg:text-5xl font-bold mb-2 leading-tight">
-                    <span className="text-ig-gradient">
-                      {heroSlides[currentSlide].label}
-                    </span>
-                  </h1>
-                  <p className="text-sm text-muted-foreground">{heroSlides[currentSlide].sub}</p>
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Slide indicators removed for a cleaner hero */}
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <Button
+                type="button"
+                className="h-12 gap-2 rounded-lg bg-slate-950 px-5 text-white hover:bg-slate-800"
+                onClick={() => document.getElementById("flight-live-routes")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                View live routes
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 gap-2 rounded-lg border-slate-200 bg-white/90 px-5"
+                onClick={() => navigate(`/ai-trip-planner${plannerParams.toString() ? `?${plannerParams.toString()}` : ""}`)}
+              >
+                Tune in planner
+                <SlidersHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
           </motion.div>
 
-          {/* ── Search Form — 3D floating card ── */}
           <motion.div
-            initial={{ opacity: 0, y: 40, rotateX: 10 }}
+            initial={{ opacity: 0, y: 32, rotateX: 5 }}
             animate={{ opacity: 1, y: 0, rotateX: 0 }}
-            transition={{ duration: 0.7, delay: 0.15, ease: ease3D }}
+            transition={{ duration: 0.6, delay: 0.08, ease: ease3D }}
             style={{ transformStyle: "preserve-3d", scale: formScale }}
-            className="max-w-3xl mx-auto relative"
+            className="rounded-lg border border-white/80 bg-white/95 p-4 shadow-2xl shadow-sky-950/15 backdrop-blur lg:p-5"
           >
-            {/* Outer glow — subtle */}
-            <motion.div
-              className="absolute -inset-1 rounded-3xl blur-lg opacity-20"
-              animate={{
-                background: [
-                  `linear-gradient(135deg, hsl(${currentAccent} / 0.25), hsl(var(--primary) / 0.15))`,
-                  `linear-gradient(225deg, hsl(var(--primary) / 0.25), hsl(${currentAccent} / 0.15))`,
-                ],
-              }}
-              transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
-            />
+            <FlightRoutePreview destination={destination} originCode={flightInitial.initialFrom} />
 
-            <div className="relative">
+            <div className="mt-4 grid gap-2 sm:grid-cols-4">
+              {flightWorkflowSteps.map((step, index) => (
+                <FlightWorkflowStep key={step.title} step={step} index={index} />
+              ))}
+            </div>
+
+            <div className="mt-4">
               <FlightSearchFormPro
                 initialFrom={flightInitial.initialFrom}
                 initialTo={flightInitial.initialTo}
                 initialDepartDate={flightInitial.initialDepartDate}
                 initialReturnDate={flightInitial.initialReturnDate}
                 initialPassengers={flightInitial.initialPassengers}
-                className="shadow-2xl shadow-primary/15 rounded-2xl border border-border/30 bg-card/95 backdrop-blur-xl"
+                initialCabin={flightInitial.initialCabin}
+                initialTripType={flightInitial.initialTripType}
+                className="rounded-lg border border-slate-200 bg-white shadow-none"
               />
             </div>
-          </motion.div>
 
-          {/* Trust strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="flex items-center justify-center gap-4 mt-6 text-[11px] text-muted-foreground"
-          >
-            {[
-              { icon: Sparkles, label: "500+ Airlines" },
-              { icon: Shield, label: "Secure Booking" },
-              { icon: Star, label: "Best Prices" },
-              { icon: Zap, label: "Instant Results" },
-            ].map((item, i) => (
-              <motion.span
-                key={item.label}
-                className="flex items-center gap-1.5"
-                whileHover={{ scale: 1.06, y: -1 }}
-                transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              >
-                {i > 0 && <span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/40 mr-3" />}
-                <item.icon className="w-3.5 h-3.5 text-primary/60" /> {item.label}
-              </motion.span>
-            ))}
+            <div className="mt-4 rounded-lg border border-teal-100 bg-teal-50 p-4">
+              <div className="flex items-center gap-2 text-sm font-black text-slate-950">
+                <Route className="h-5 w-5 text-teal-700" />
+                AI to booking workflow
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                DeepSeek powers live travel generation now. A fallback AI can join this same route when Anthropic API access is configured.
+              </p>
+            </div>
           </motion.div>
-
-          {/* Scroll-linked 3D sections */}
-          <div className="max-w-4xl mx-auto mt-16 space-y-16 pb-8">
-            <ScrollReveal3D>
-              <PopularRoutesSection />
-            </ScrollReveal3D>
-            <ScrollReveal3D>
-              <Suspense fallback={<div className="h-40 rounded-2xl bg-muted/30 animate-pulse" />}>
-                <AISmartDeals />
-              </Suspense>
-            </ScrollReveal3D>
-            <ScrollReveal3D>
-              <WhyZivoSection />
-            </ScrollReveal3D>
-          </div>
         </div>
+
+        <div id="flight-live-routes" className="mx-auto max-w-5xl space-y-16 pb-10">
+          <ScrollReveal3D>
+            <PopularRoutesSection />
+          </ScrollReveal3D>
+          <ScrollReveal3D>
+            <Suspense fallback={<div className="h-40 rounded-2xl bg-muted/30 animate-pulse" />}>
+              <AISmartDeals />
+            </Suspense>
+          </ScrollReveal3D>
+          <ScrollReveal3D>
+            <WhyZivoSection />
+          </ScrollReveal3D>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FlightProviderStatus({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: FlightIcon;
+  label: string;
+  value: string;
+  tone: "teal" | "blue" | "rose";
+}) {
+  const tones = {
+    teal: "bg-teal-50 text-teal-700",
+    blue: "bg-sky-50 text-sky-700",
+    rose: "bg-rose-50 text-rose-700",
+  };
+  return (
+    <div className="flex items-center gap-3 border-slate-200 sm:border-r sm:last:border-r-0">
+      <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", tones[tone])}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+        <p className="text-sm font-black text-slate-950">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function FlightHandoffTile({ icon: Icon, label, value }: { icon: FlightIcon; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</p>
+        <p className="truncate text-sm font-black text-slate-950">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function FlightWorkflowStep({
+  step,
+  index,
+}: {
+  step: { title: string; detail: string; icon: FlightIcon };
+  index: number;
+}) {
+  const Icon = step.icon;
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-xs font-black text-teal-700 shadow-sm">
+          {index + 1}
+        </span>
+        <Icon className="h-4 w-4 text-teal-600" />
+      </div>
+      <p className="mt-3 text-sm font-black text-slate-950">{step.title}</p>
+      <p className="mt-1 text-xs leading-5 text-slate-500">{step.detail}</p>
+    </div>
+  );
+}
+
+function FlightRoutePreview({
+  destination,
+  originCode,
+}: {
+  destination: ReturnType<typeof getDestinationDetails>;
+  originCode: string;
+}) {
+  const originLabel = originCode ? getAirportLabel(originCode, originCode) : "Choose origin";
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-950 text-white shadow-sm">
+      <img src={destination.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-55" />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/70 to-slate-950/25" />
+      <div className="relative grid gap-4 p-5 sm:grid-cols-[1fr_0.75fr] sm:items-end">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="rounded-lg bg-white text-slate-950">{destination.code}</Badge>
+            <span className="text-xs font-bold uppercase tracking-[0.16em] text-white/70">{destination.country}</span>
+          </div>
+          <h2 className="mt-4 text-2xl font-black tracking-tight">
+            {originCode ? `${originCode} to ${destination.code}` : `Any origin to ${destination.code}`}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-white/75">
+            {destination.airportName} · {destination.routeHint}
+          </p>
+        </div>
+        <div className="grid gap-2">
+          <FlightRouteMetric icon={Route} label="Route" value={originLabel} />
+          <FlightRouteMetric icon={CalendarDays} label="Season" value={destination.season} />
+          <FlightRouteMetric icon={WalletCards} label="Fare signal" value={destination.priceHint} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FlightRouteMetric({ icon: Icon, label, value }: { icon: FlightIcon; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 backdrop-blur">
+      <Icon className="h-4 w-4 text-teal-200" />
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">{label}</p>
+        <p className="truncate text-xs font-black text-white">{value}</p>
       </div>
     </div>
   );
@@ -817,10 +976,8 @@ function TravelTipBar() {
   );
 }
 
-/* ─── Mobile Flight Search ─── */
-function MobileFlightSearch() {
-  const { fromCity, toCity } = useParams();
-  const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
+/* ─── Mobile / Tablet Flight Search ─── */
+function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkInitial }) {
   const navigate = useNavigate();
   const [showBackToTop, setShowBackToTop] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -829,7 +986,6 @@ function MobileFlightSearch() {
     const onScroll = () => {
       const el = formRef.current;
       if (!el) return;
-      // Show once the form bottom has scrolled above the viewport top
       setShowBackToTop(el.getBoundingClientRect().bottom < -40);
     };
     onScroll();
@@ -837,9 +993,27 @@ function MobileFlightSearch() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const trustItems = [
+    { icon: Shield, title: "Free cancellation", sub: "On most flights", color: "emerald" },
+    { icon: Zap, title: "Instant confirmation", sub: "E-tickets in seconds", color: "amber" },
+    { icon: Star, title: "Transparent pricing", sub: "All fees shown upfront", color: "sky" },
+    { icon: Headphones, title: "24/7 support", sub: "Help anywhere, anytime", color: "purple" },
+  ] as const;
+  const colorMap: Record<string, string> = {
+    emerald: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    amber:   "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    sky:     "bg-sky-500/10 text-sky-600 border-sky-500/20",
+    purple:  "bg-purple-500/10 text-purple-600 border-purple-500/20",
+  };
+
   return (
-    <div className="flex flex-col gap-5 px-4 pb-10 pt-1" style={{ perspective: "1200px" }}>
+    <div
+      className="flex flex-col gap-5 px-4 md:px-6 pb-10 pt-1 md:max-w-2xl md:mx-auto"
+      style={{ perspective: "1200px" }}
+    >
       <GreetingHeader />
+
+      {/* Search form — 3D lifted card */}
       <motion.div
         ref={formRef}
         initial={{ opacity: 0, y: 40, rotateX: 12 }}
@@ -853,83 +1027,67 @@ function MobileFlightSearch() {
           initialDepartDate={flightInitial.initialDepartDate}
           initialReturnDate={flightInitial.initialReturnDate}
           initialPassengers={flightInitial.initialPassengers}
+          initialCabin={flightInitial.initialCabin}
+          initialTripType={flightInitial.initialTripType}
           className="shadow-xl shadow-primary/10 rounded-2xl border border-border/30"
         />
       </motion.div>
-      {/* Rotating travel tip — replaces the previously redundant trust strip */}
+
+      {/* Rotating travel tip */}
       <TravelTipBar />
 
-      {/* Quick actions */}
+      {/* Quick actions — 2 cols on phone, 4 cols on tablet */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35 }}
-        className="grid grid-cols-2 gap-2"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2"
       >
-        <button
-          type="button"
-          onClick={() => navigate("/flights/bookings")}
-          aria-label="My bookings — manage trips and e-tickets"
-          className="text-left flex items-center gap-2 rounded-2xl border border-border/40 bg-card p-3 active:scale-[0.98] transition shadow-sm"
-        >
-          <span className="w-9 h-9 shrink-0 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-            <Ticket className="w-4 h-4 text-sky-600" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-bold text-foreground leading-tight">My bookings</p>
-            <p className="text-[10px] text-muted-foreground leading-tight truncate">Manage trips & e-tickets</p>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate("/flights/live")}
-          aria-label="Flight status — track live departures"
-          className="text-left flex items-center gap-2 rounded-2xl border border-border/40 bg-card p-3 active:scale-[0.98] transition shadow-sm"
-        >
-          <span className="w-9 h-9 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <Radar className="w-4 h-4 text-emerald-600" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-bold text-foreground leading-tight">Flight status</p>
-            <p className="text-[10px] text-muted-foreground leading-tight truncate">Track live departures</p>
-          </div>
-        </button>
+        {[
+          { path: "/flights/bookings", icon: Ticket, color: "sky", title: "My bookings", sub: "Manage trips & e-tickets" },
+          { path: "/flights/live",     icon: Radar,  color: "emerald", title: "Flight status", sub: "Track live departures" },
+          { path: "/flight-price-alerts", icon: TrendingUp, color: "amber", title: "Price alerts", sub: "Get notified on drops" },
+          { path: "/support/travel-bookings", icon: Headphones, color: "purple", title: "Support", sub: "Travel help 24/7" },
+        ].map(({ path, icon: Icon, color, title, sub }) => (
+          <button
+            key={path}
+            type="button"
+            onClick={() => navigate(path)}
+            aria-label={title}
+            className="text-left flex items-center gap-2 rounded-2xl border border-border/40 bg-card p-3 active:scale-[0.98] transition-all duration-150 shadow-sm hover:shadow-md hover:border-border/60"
+          >
+            <span className={cn("w-9 h-9 shrink-0 rounded-xl border flex items-center justify-center", colorMap[color])}>
+              <Icon className="w-4 h-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-bold text-foreground leading-tight">{title}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight truncate">{sub}</p>
+            </div>
+          </button>
+        ))}
       </motion.div>
 
-      {/* Trust badges — conversion confidence row */}
+      {/* Trust badges — 2-col phone, 4-col tablet */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="grid grid-cols-2 gap-2"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2"
       >
-        {[
-          { icon: Shield, title: "Free cancellation", sub: "On most flights", color: "emerald" },
-          { icon: Zap, title: "Instant confirmation", sub: "E-tickets in seconds", color: "amber" },
-          { icon: Star, title: "Transparent pricing", sub: "All fees shown upfront", color: "sky" },
-          { icon: Headphones, title: "24/7 support", sub: "Help anywhere, anytime", color: "purple" },
-        ].map((item) => {
-          const colorMap: Record<string, string> = {
-            emerald: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-            amber: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-            sky: "bg-sky-500/10 text-sky-600 border-sky-500/20",
-            purple: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-          };
-          return (
-            <div
-              key={item.title}
-              className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/60 backdrop-blur p-2.5"
-            >
-              <span className={cn("w-8 h-8 shrink-0 rounded-xl border flex items-center justify-center", colorMap[item.color])}>
-                <item.icon className="w-4 h-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[12px] font-bold text-foreground leading-tight truncate">{item.title}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight truncate">{item.sub}</p>
-              </div>
+        {trustItems.map((item) => (
+          <div
+            key={item.title}
+            className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card/60 backdrop-blur p-2.5"
+          >
+            <span className={cn("w-8 h-8 shrink-0 rounded-xl border flex items-center justify-center", colorMap[item.color])}>
+              <item.icon className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] font-bold text-foreground leading-tight truncate">{item.title}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight truncate">{item.sub}</p>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </motion.div>
 
       <ScrollReveal3D><PopularRoutesSection /></ScrollReveal3D>
@@ -1078,7 +1236,7 @@ function MobileFlightSearch() {
         onClick={() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
         aria-label="Back to search"
         className={cn(
-          "fixed bottom-[calc(var(--zivo-safe-bottom,0px)+5rem)] right-4 z-40 h-12 px-4 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200",
+          "fixed bottom-[calc(var(--zivo-safe-bottom,0px)+5rem)] right-4 z-40 h-12 px-4 rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/30 inline-flex items-center gap-2 text-sm font-semibold transition-all duration-200",
           showBackToTop
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-4 pointer-events-none",
@@ -1108,24 +1266,42 @@ function Animated3DBackground() {
 /* ─── Main Component ─── */
 const FlightLanding = () => {
   useFlightAppTrackingTransparencyPrompt(true);
+  const { fromCity, toCity } = useParams();
+  const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
+  const flightResultsSearch = useFlightDeepLinkResultsSearch(flightInitial);
   const isMobile = useIsMobile();
+
+  if (flightResultsSearch) {
+    return <Navigate to={`/flights/results?${flightResultsSearch.toString()}`} replace />;
+  }
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
+  const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
+  const travelCanonicalHost = isTravelHost ? "https://zivostravel.com" : "https://zivosmedia.com";
+  const seoTitle = `Search Flights from Cambodia – ${seoBrand} | 500+ Airlines`;
+  const seoDescription = isTravelHost
+    ? "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops on Zivo Travel."
+    : "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops — all on ZIVO.";
 
   if (isMobile) {
     return (
       <>
         <SEOHead
-          title="Search Flights from Cambodia – ZIVO | 500+ Airlines"
-          description="Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops — all on ZIVO."
+          title={seoTitle}
+          description={seoDescription}
           canonical="/flights"
           ogImage="/og-flights.jpg"
           appLink="zivo://flights"
         />
-        <AppLayout title="Flights" headerRightAction={undefined}>
+        <AppLayout
+          title="Flights"
+          headerRightAction={undefined}
+          className={cn("zivo-travel-3d", isTravelHost && "zivo-travel-light")}
+        >
           <BundleProgressBanner step="flight" />
           <Flight3DSkyHeader className="-mt-1" />
-          <div className="relative overflow-hidden">
+          <div className={cn("relative overflow-hidden", isTravelHost && "zt-on-media")}>
             <Animated3DBackground />
-            <div className="relative z-10"><MobileFlightSearch /></div>
+            <div className="relative z-10"><MobileFlightSearch flightInitial={flightInitial} /></div>
           </div>
         </AppLayout>
       </>
@@ -1133,11 +1309,14 @@ const FlightLanding = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className={cn(
+      "min-h-screen bg-background relative overflow-hidden",
+      isTravelHost && "zivo-travel-3d zivo-travel-light",
+    )}>
       <BundleProgressBanner step="flight" />
       <SEOHead
-        title="Search Flights from Cambodia – ZIVO | 500+ Airlines"
-        description="Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines, book direct, and track price drops — all on ZIVO."
+        title={seoTitle}
+        description={seoDescription}
         canonical="/flights"
         ogImage="/og-flights.jpg"
         appLink="zivo://flights"
@@ -1145,13 +1324,13 @@ const FlightLanding = () => {
           {
             "@context": "https://schema.org",
             "@type": "WebPage",
-            "name": "Search Flights from Cambodia – ZIVO",
+            "name": `Search Flights from Cambodia – ${seoBrand}`,
             "description": "Find the best flight deals from Phnom Penh and Siem Reap. Compare 500+ airlines.",
-            "url": "https://zivosmedia.com/flights",
-            "isPartOf": { "@type": "WebSite", "url": "https://zivosmedia.com", "name": "ZIVO" },
+            "url": `${travelCanonicalHost}/flights`,
+            "isPartOf": { "@type": "WebSite", "url": travelCanonicalHost, "name": seoBrand },
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "https://zivosmedia.com/flights/results?origin={origin}&destination={destination}&date={date}",
+              "target": `${travelCanonicalHost}/flights/results?origin={origin}&destination={destination}&date={date}`,
               "query-input": "required name=origin required name=destination required name=date"
             }
           },
@@ -1159,34 +1338,35 @@ const FlightLanding = () => {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://zivosmedia.com/" },
-              { "@type": "ListItem", "position": 2, "name": "Flights", "item": "https://zivosmedia.com/flights" }
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": `${travelCanonicalHost}/` },
+              { "@type": "ListItem", "position": 2, "name": "Flights", "item": `${travelCanonicalHost}/flights` }
             ]
           },
           {
             "@context": "https://schema.org",
             "@type": "ItemList",
-            "name": "Popular flight destinations from Cambodia on ZIVO",
+            "name": `Popular flight destinations from Cambodia on ${seoBrand}`,
             "itemListOrder": "https://schema.org/ItemListOrderAscending",
             "itemListElement": [
-              { "@type": "ListItem", "position": 1,  "name": "Siem Reap",     "url": "https://zivosmedia.com/flights/to-siem-reap" },
-              { "@type": "ListItem", "position": 2,  "name": "Sihanoukville", "url": "https://zivosmedia.com/flights/to-sihanoukville" },
-              { "@type": "ListItem", "position": 3,  "name": "Bangkok",       "url": "https://zivosmedia.com/flights/to-bangkok" },
-              { "@type": "ListItem", "position": 4,  "name": "Singapore",     "url": "https://zivosmedia.com/flights/to-singapore" },
-              { "@type": "ListItem", "position": 5,  "name": "Kuala Lumpur",  "url": "https://zivosmedia.com/flights/to-kuala-lumpur" },
-              { "@type": "ListItem", "position": 6,  "name": "Hong Kong",     "url": "https://zivosmedia.com/flights/to-hong-kong" },
-              { "@type": "ListItem", "position": 7,  "name": "Tokyo",         "url": "https://zivosmedia.com/flights/to-tokyo" },
-              { "@type": "ListItem", "position": 8,  "name": "Seoul",         "url": "https://zivosmedia.com/flights/to-seoul" },
-              { "@type": "ListItem", "position": 9,  "name": "Ho Chi Minh",   "url": "https://zivosmedia.com/flights/to-ho-chi-minh" },
-              { "@type": "ListItem", "position": 10, "name": "Hanoi",         "url": "https://zivosmedia.com/flights/to-hanoi" }
+              { "@type": "ListItem", "position": 1,  "name": "Siem Reap",     "url": `${travelCanonicalHost}/flights/to-siem-reap` },
+              { "@type": "ListItem", "position": 2,  "name": "Sihanoukville", "url": `${travelCanonicalHost}/flights/to-sihanoukville` },
+              { "@type": "ListItem", "position": 3,  "name": "Bangkok",       "url": `${travelCanonicalHost}/flights/to-bangkok` },
+              { "@type": "ListItem", "position": 4,  "name": "Singapore",     "url": `${travelCanonicalHost}/flights/to-singapore` },
+              { "@type": "ListItem", "position": 5,  "name": "Kuala Lumpur",  "url": `${travelCanonicalHost}/flights/to-kuala-lumpur` },
+              { "@type": "ListItem", "position": 6,  "name": "Hong Kong",     "url": `${travelCanonicalHost}/flights/to-hong-kong` },
+              { "@type": "ListItem", "position": 7,  "name": "Tokyo",         "url": `${travelCanonicalHost}/flights/to-tokyo` },
+              { "@type": "ListItem", "position": 8,  "name": "Seoul",         "url": `${travelCanonicalHost}/flights/to-seoul` },
+              { "@type": "ListItem", "position": 9,  "name": "Ho Chi Minh",   "url": `${travelCanonicalHost}/flights/to-ho-chi-minh` },
+              { "@type": "ListItem", "position": 10, "name": "Hanoi",         "url": `${travelCanonicalHost}/flights/to-hanoi` }
             ]
           }
         ]}
       />
       <Header />
       <NativeBackButton />
-      <main className="pt-16 sm:pt-20">
-        <DesktopCinematicHero />
+      <main className={cn("pt-16 sm:pt-20", isTravelHost && "zt-on-media")}>
+        <div className="zt-aurora opacity-80" aria-hidden />
+        <DesktopCinematicHero flightInitial={flightInitial} />
       </main>
       <Footer />
     </div>

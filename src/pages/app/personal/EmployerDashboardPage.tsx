@@ -343,7 +343,7 @@ export default function EmployerDashboardPage() {
                   {jSkillsArr.map(s => (
                     <span key={s} className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-2.5 py-0.5 text-xs font-medium">
                       {s}
-                      <button type="button" aria-label={`Remove ${s}`} onClick={() => setJSkillsArr(prev => prev.filter(x => x !== s))}><X className="h-3 w-3 text-muted-foreground hover:text-foreground" /></button>
+                      <button type="button" aria-label={`Remove ${s}`} onClick={() => setJSkillsArr(prev => prev.filter(x => x !== s))} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="h-3 w-3 text-muted-foreground hover:text-foreground" /></button>
                     </span>
                   ))}
                   <input
@@ -399,7 +399,7 @@ export default function EmployerDashboardPage() {
                         {editJSkillsArr.map(s => (
                           <span key={s} className="inline-flex items-center gap-1 rounded-full bg-secondary border border-border px-2.5 py-0.5 text-xs font-medium">
                             {s}
-                            <button type="button" aria-label={`Remove ${s}`} onClick={() => setEditJSkillsArr(prev => prev.filter(x => x !== s))}><X className="h-3 w-3 text-muted-foreground hover:text-foreground" /></button>
+                            <button type="button" aria-label={`Remove ${s}`} onClick={() => setEditJSkillsArr(prev => prev.filter(x => x !== s))} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="h-3 w-3 text-muted-foreground hover:text-foreground" /></button>
                           </span>
                         ))}
                         <input
@@ -445,7 +445,7 @@ export default function EmployerDashboardPage() {
                   ) : (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate(`/personal/jobs/${j.id}`)}>
+                        <div className="min-w-0 flex-1 cursor-pointer transition-transform active:scale-[0.99]" onClick={() => navigate(`/personal/jobs/${j.id}`)}>
                           <div className="truncate text-sm font-semibold">{j.title}</div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-xs text-muted-foreground">{j.career_applications?.[0]?.count ?? 0} applicants</span>

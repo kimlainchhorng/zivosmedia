@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreateStorySheet — Facebook-style create-a-story bottom sheet.
  * Modes: pick photo/video, take photo (camera), or text on a colored background.
  * Optional music track. Real upload progress + retry + error states.
@@ -734,7 +734,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[130] bg-background/70 backdrop-blur-md flex items-end sm:items-center justify-center"
+              className="fixed inset-0 z-[1450] bg-background/70 backdrop-blur-md flex items-end sm:items-center justify-center"
               onClick={() => setShowMusicSheet(false)}
             >
               <motion.div
@@ -773,7 +773,7 @@ export default function CreateStorySheet({ open, onClose, onPublished }: Props) 
                       >
                         <button type="button"
                           onClick={() => toggleAudioPreview(track)}
-                          className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0"
+                          className="w-10 h-10 rounded-full bg-ig-gradient text-white flex items-center justify-center shrink-0"
                           aria-label={audioPreviewing && selected ? "Pause preview" : "Play preview"}
                         >
                           {audioPreviewing && selected ? (

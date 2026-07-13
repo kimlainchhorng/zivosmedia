@@ -150,7 +150,7 @@ export default function JobDetailPage() {
               {job.career_companies?.logo_url ? <img src={job.career_companies.logo_url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" /> : <Building2 className="h-5 w-5 text-muted-foreground" />}
             </div>
             <div className="min-w-0 flex-1">
-              <button type="button" className="text-sm font-semibold hover:underline" onClick={() => navigate(`/personal/companies/${job.career_companies?.id}`)}>
+              <button type="button" className="text-sm font-semibold hover:underline rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => navigate(`/personal/companies/${job.career_companies?.id}`)}>
                 {job.career_companies?.name ?? "Company"}
               </button>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -197,7 +197,7 @@ export default function JobDetailPage() {
             <div className="space-y-2">
               {similarJobs.map(j => (
                 <button type="button" key={j.id}
-                  className="w-full flex items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-accent transition-colors"
+                  className="w-full flex items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-accent transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => navigate(`/personal/jobs/${j.id}`)}>
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
                     {j.career_companies?.logo_url

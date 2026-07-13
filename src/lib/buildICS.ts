@@ -77,5 +77,14 @@ function formatICSDate(d: Date): string {
 }
 
 function escapeText(s: string): string {
-  return s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+  // Normalize every line break — CRLF, lone CR, lone LF — to the "\n" escape. A bare
+  // CR (0x0D) left in a property value is non-conformant (RFC 5545 §3.3.11/§3.1): CRLF
+  // is the content-line delimiter, so a raw CR from "\r\n" content (e.g. a pasted
+  // reservation note or merchant name) would corrupt the .ics line structure. The
+  // "\r\n" alternative is listed first so a CRLF pair collapses to a single "\n".
+  return s
+    .replace(/\\/g, "\\\\")
+    .replace(/\r\n|\r|\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
 }

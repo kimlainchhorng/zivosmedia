@@ -235,10 +235,22 @@ const parseDollarsToCents = (s: string): number | null => {
 };
 
 const parseDate = (s: string): string | null => {
-  if (!s.trim()) return null;
-  const d = new Date(s.trim());
+  const t = s.trim();
+  if (!t) return null;
+  // ISO date-only: return verbatim. new Date("2023-05-15") reads as UTC midnight,
+  // so a toISOString round-trip would shift it a day west of UTC.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const d = new Date(t);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  // Zoned timestamp (…Z or …+07:00) is an absolute instant — keep its UTC date.
+  if (/[Zz]$|[+-]\d{2}:\d{2}$/.test(t)) return d.toISOString().slice(0, 10);
+  // Else ("5/15/2023", "May 15 2023", zone-less ISO datetime) parses in LOCAL time;
+  // format from local components so the calendar day matches what the user typed —
+  // toISOString would shift it a day east of UTC (e.g. UTC+7). Mirrors formatLocalDay().
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
 
 const parseFeatures = (s: string): string[] => {

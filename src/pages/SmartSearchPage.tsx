@@ -152,7 +152,7 @@ export default function SmartSearchPage() {
               onBlur={() => { if (query.trim()) saveSearch(query.trim()); }}
               className="pl-9 pr-9" autoFocus />
             {query && (
-              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2">
+              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <X className="h-4 w-4 text-muted-foreground" />
               </button>
             )}
@@ -166,11 +166,11 @@ export default function SmartSearchPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Recent</h3>
-                <button type="button" onClick={clearRecent} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
+                <button type="button" onClick={clearRecent} className="text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Clear</button>
               </div>
               <div className="space-y-1">
                 {recentSearches.map((s, i) => (
-                  <button type="button" key={i} onClick={() => handleSelectSearch(s)} className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-accent text-sm text-foreground">
+                  <button type="button" key={i} onClick={() => handleSelectSearch(s)} className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-accent text-sm text-foreground transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Search className="h-3 w-3 text-muted-foreground" />
                     {s}
                   </button>
@@ -184,7 +184,7 @@ export default function SmartSearchPage() {
             </h3>
             <div className="flex flex-wrap gap-2">
               {(trendingTags.length > 0 ? trendingTags : ["#travel", "#photography", "#food", "#fitness", "#tech", "#music"]).map((tag) => (
-                <Badge key={tag} variant="outline" className="cursor-pointer" onClick={() => handleSelectSearch(tag.replace("#", ""))}>{tag}</Badge>
+                <Badge key={tag} variant="outline" className="cursor-pointer transition-all active:scale-[0.97]" onClick={() => handleSelectSearch(tag.replace("#", ""))}>{tag}</Badge>
               ))}
             </div>
           </div>

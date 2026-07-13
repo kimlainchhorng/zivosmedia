@@ -175,9 +175,10 @@ export default function FeedbackPage() {
                 <button
                   key={c.id}
                   type="button"
+                  aria-pressed={isActive}
                   onClick={() => setCategory(c.id)}
                   className={cn(
-                    "h-8 px-3 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 transition-all",
+                    "h-8 px-3 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isActive ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                   )}
                 >
@@ -216,7 +217,7 @@ export default function FeedbackPage() {
                   type="button"
                   aria-label={`${n} stars`}
                   onClick={() => setRating(n === rating ? 0 : n)}
-                  className="active:scale-90 transition-transform"
+                  className="active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Star
                     className={cn(
@@ -235,7 +236,7 @@ export default function FeedbackPage() {
               type="button"
               disabled={submitting || message.trim().length < 12}
               onClick={submit}
-              className="h-10 px-5 rounded-full bg-ig-gradient text-white text-sm font-bold inline-flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90 active:scale-95 transition-all shadow-sm"
+              className="h-10 px-5 rounded-full bg-ig-gradient text-white text-sm font-bold inline-flex items-center gap-1.5 disabled:opacity-50 hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? "Sending…" : "Send feedback"}

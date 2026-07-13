@@ -12,7 +12,7 @@
  * - Multi-city search support
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import tabFlightsBg from "@/assets/tab-flights-bg.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
@@ -45,9 +45,12 @@ import { MobileDatePickerSheet, MobileDateRangePickerSheet, MobilePassengerCabin
 import { useFlightFunnel } from "@/hooks/useFlightFunnel";
 import { useTranslation } from "@/hooks/useI18n";
 import { recordSearchAttempt } from "@/lib/recordSearchAttempt";
+import { resolveAirportSeed } from "@/lib/flightDeepLink";
 
 type TripType = "roundtrip" | "oneway" | "multicity";
 type CabinClass = "economy" | "premium" | "business" | "first";
+
+const TRIP_TYPES: TripType[] = ["roundtrip", "oneway", "multicity"];
 
 interface FlightSearchFormProProps {
   initialFrom?: string;
@@ -75,6 +78,7 @@ export default function FlightSearchFormPro({
   className,
 }: FlightSearchFormProProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const { search: searchAirports, getPopular, getByCode, allOptions } = useAirportSearch();
   const { trackSearchStarted } = useFlightFunnel();
@@ -82,6 +86,21 @@ export default function FlightSearchFormPro({
 
   // Trip type
   const [tripType, setTripType] = useState<TripType>(initialTripType);
+
+  // Swipe left/right to cycle trip types
+  const swipeTouchStartX = useRef<number | null>(null);
+  const onTripSwipeStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchStartX.current = e.touches[0].clientX;
+  }, []);
+  const onTripSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (swipeTouchStartX.current === null) return;
+    const diff = e.changedTouches[0].clientX - swipeTouchStartX.current;
+    swipeTouchStartX.current = null;
+    if (Math.abs(diff) < 55) return;
+    const idx = TRIP_TYPES.indexOf(tripType);
+    if (diff < 0 && idx < TRIP_TYPES.length - 1) setTripType(TRIP_TYPES[idx + 1]);
+    else if (diff > 0 && idx > 0) setTripType(TRIP_TYPES[idx - 1]);
+  }, [tripType]);
 
   // Location state
   const [fromOption, setFromOption] = useState<LocationOption | null>(null);
@@ -113,7 +132,7 @@ export default function FlightSearchFormPro({
   // Initialize from props
   useEffect(() => {
     if (initialFrom) {
-      const option = getByCode(initialFrom);
+      const option = getByCode(resolveAirportSeed(initialFrom));
       if (option) {
         setFromOption(option);
         setFromDisplay(option.label);
@@ -122,7 +141,7 @@ export default function FlightSearchFormPro({
       }
     }
     if (initialTo) {
-      const option = getByCode(initialTo);
+      const option = getByCode(resolveAirportSeed(initialTo));
       if (option) {
         setToOption(option);
         setToDisplay(option.label);
@@ -182,9 +201,25 @@ export default function FlightSearchFormPro({
       depart: departDateStr,
       passengers: String(passengers),
       cabin: cabin,
+      tripType,
     });
     if (returnDateStr) resultsParams.set("return", returnDateStr);
-    navigate(`/flights/results?${resultsParams.toString()}`);
+
+    [
+      "source",
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content",
+      "utm_term",
+      "creator",
+      "subid",
+    ].forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) resultsParams.set(key, value);
+    });
+
+    if (navigateOnSearch) navigate(`/flights/results?${resultsParams.toString()}`);
     if (onSearch) onSearch(resultsParams);
 
     // Telemetry: record this flight search for re-engagement / price alerts.
@@ -215,12 +250,17 @@ export default function FlightSearchFormPro({
   ];
 
   return (
-    <div className={cn(
-      "relative bg-card/80 backdrop-blur-2xl border border-border/20 rounded-3xl p-5 sm:p-7 overflow-hidden",
-      "shadow-[0_8px_40px_-8px_hsl(var(--primary)/0.12),0_2px_12px_-4px_hsl(var(--primary)/0.08)]",
-      "before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent before:pointer-events-none",
-      className
-    )} style={{ transformStyle: "preserve-3d" }}>
+    <div
+      className={cn(
+        "relative bg-card/80 backdrop-blur-2xl border border-border/20 rounded-3xl p-5 sm:p-7 overflow-hidden",
+        "shadow-[0_8px_40px_-8px_hsl(var(--primary)/0.12),0_2px_12px_-4px_hsl(var(--primary)/0.08)]",
+        "before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent before:pointer-events-none",
+        className
+      )}
+      style={{ transformStyle: "preserve-3d" }}
+      onTouchStart={onTripSwipeStart}
+      onTouchEnd={onTripSwipeEnd}
+    >
       {/* Background image */}
       <img
         src={tabFlightsBg}

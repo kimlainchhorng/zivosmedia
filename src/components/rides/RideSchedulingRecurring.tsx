@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideSchedulingRecurring — Scheduled rides, recurring commutes, calendar sync, multi-stop planning
  */
 import { useState } from "react";
@@ -181,7 +181,7 @@ export default function RideSchedulingRecurring() {
                   {/* Day selector */}
                   <div className="flex gap-1">
                     {allDays.map(day => (
-                      <div key={day} className={cn("flex-1 text-center py-1.5 rounded-lg text-[9px] font-bold transition-colors", ride.days.includes(day) ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground")}>
+                      <div key={day} className={cn("flex-1 text-center py-1.5 rounded-lg text-[9px] font-bold transition-colors", ride.days.includes(day) ? "bg-ig-gradient text-white" : "bg-muted/30 text-muted-foreground")}>
                         {day.slice(0, 1)}
                       </div>
                     ))}

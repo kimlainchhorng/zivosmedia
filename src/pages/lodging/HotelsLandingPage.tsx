@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HotelsLandingPage
  * Booking-style discovery: tighter hero, dates+guests, quick filters,
  * price/amenities/rating on cards, "Near me" sort.
@@ -6,6 +6,7 @@
  * Route: /hotels
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -66,6 +67,7 @@ interface DirectoryStore {
   is_verified?: boolean | null;
   latitude?: number | null;
   longitude?: number | null;
+  created_at?: string | null;
 }
 
 const FILTERS: Array<{ id: string; label: string; match: (cat: string) => boolean }> = [
@@ -113,7 +115,7 @@ export default function HotelsLandingPage() {
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { format: fmtPrice } = useCurrency();
-  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const seoOrigin = isTravelHost ? ZIVO_TRAVEL_ORIGIN : "https://zivosmedia.com";
   const seoBrand = isTravelHost ? "Zivo Travel" : "ZIVO";
   const seoTitle = `Hotels & Resorts - Find Your Stay | ${seoBrand}`;
@@ -186,6 +188,17 @@ export default function HotelsLandingPage() {
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc" | "rating" | "near_me">(initial.sort);
   const [maxBudget, setMaxBudget] = useState<number | null>(initial.budget); // USD per night, null = no limit
+  const showSoftwareBridge =
+    typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+  const hotelWorkspaceUrl = useMemo(() => {
+    const params = new URLSearchParams({
+      category: "hotel",
+      ci: format(checkIn, "yyyy-MM-dd"),
+      co: format(checkOut, "yyyy-MM-dd"),
+      source: "zivosmedia",
+    });
+    return `http://127.0.0.1:5173/workspace?${params.toString()}`;
+  }, [checkIn, checkOut]);
   const [savedOnly, setSavedOnly] = useState(initial.saved);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const heroSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -473,7 +486,7 @@ export default function HotelsLandingPage() {
     queryFn: async (): Promise<DirectoryStore[]> => {
       const { data, error } = await (supabase as any)
         .from("store_profiles")
-        .select("id, name, category, address, logo_url, banner_url, description, setup_complete, is_verified, latitude, longitude")
+        .select("id, name, category, address, logo_url, banner_url, description, setup_complete, is_verified, latitude, longitude, created_at")
         .in("category", LODGING_STORE_CATEGORIES)
         .order("setup_complete", { ascending: false })
         .order("name", { ascending: true })
@@ -664,6 +677,13 @@ export default function HotelsLandingPage() {
     );
   };
 
+  // If "Near me" is active (e.g. a ?sort=near_me deep link) but we have no
+  // location yet, prompt for it instead of silently showing a non-distance sort.
+  useEffect(() => {
+    if (sortBy === "near_me" && !coords) requestNearMe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, coords]);
+
   const featured = useMemo(
     () => {
       const completed = all.filter((s) => s.setup_complete);
@@ -706,7 +726,7 @@ export default function HotelsLandingPage() {
       if (savedOnly && !favorites.has(store.id)) return false;
       if (maxBudget !== null) {
         const cents = minRates[store.id]?.base;
-        if (typeof cents === "number" && cents / 100 > maxBudget) return false;
+        if (typeof cents !== "number" || cents / 100 > maxBudget) return false;
       }
       return true;
     });
@@ -736,7 +756,9 @@ export default function HotelsLandingPage() {
           return da - db;
         });
       }
-      return [...filtered].sort((a, b) => (favorites.has(a.id) ? 0 : 1) - (favorites.has(b.id) ? 0 : 1));
+      // No location yet: keep the default order rather than faking a distance
+      // sort (a useEffect requests location when near_me is active).
+      return filtered;
     }
     return filtered;
   }, [filtered, sortBy, minRates, favorites, reviewStats, coords]);
@@ -746,7 +768,8 @@ export default function HotelsLandingPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-background pb-24">
+    <div className={cn("min-h-dvh bg-background pb-24", isTravelHost && "zivo-travel-3d zivo-travel-light")}>
+      <ZivoMobileNav />
       <Helmet>
         <title>{seoTitle}</title>
         <meta name="description" content={seoDescription} />
@@ -778,8 +801,9 @@ export default function HotelsLandingPage() {
       {/* Hero — tightened. Background layers live in their own `overflow-hidden`
           wrapper so the search-autocomplete dropdown can spill out below the
           hero without being clipped. */}
-      <div className="relative">
+      <div className={cn("relative", isTravelHost && "zt-on-media")}>
         <div className="absolute inset-0 overflow-hidden">
+          <div className="zt-aurora opacity-80" aria-hidden />
           <img
             src={tabHotelsBg}
             alt=""
@@ -811,6 +835,20 @@ export default function HotelsLandingPage() {
             <p className="mt-1 text-[13px] text-white/90 drop-shadow-md">
               Hotels, resorts and guesthouses across Cambodia.
             </p>
+            {showSoftwareBridge ? (
+              <a
+                href={hotelWorkspaceUrl}
+                onClick={(event) => {
+                  event.preventDefault();
+                  window.location.assign(hotelWorkspaceUrl);
+                }}
+                className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-white/25 bg-white/18 px-4 text-[12px] font-extrabold text-white shadow-lg backdrop-blur transition hover:bg-white/28"
+              >
+                <HotelIcon className="h-4 w-4" />
+                Manage in ZIVO Software
+                <ChevronRight className="h-4 w-4" />
+              </a>
+            ) : null}
           </div>
 
           {/* Search */}
@@ -975,7 +1013,7 @@ export default function HotelsLandingPage() {
           <button
             type="button"
             onClick={submitSearch}
-            className="mt-2 w-full h-11 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg active:scale-[0.98] transition inline-flex items-center justify-center gap-2"
+            className="mt-2 w-full h-11 rounded-2xl bg-ig-gradient text-white font-bold text-sm shadow-lg active:scale-[0.98] transition inline-flex items-center justify-center gap-2"
           >
             <Search className="w-4 h-4" />
             Search hotels
@@ -991,7 +1029,7 @@ export default function HotelsLandingPage() {
           showStickyBar ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden border-0",
         )}
       >
-        <div className="px-3 py-2 flex items-center gap-2 safe-area-top">
+        <div className="px-3 py-2 flex items-center gap-2">
           <button
             type="button"
             onClick={smartBack}
@@ -1102,7 +1140,7 @@ export default function HotelsLandingPage() {
             className={cn(
               "shrink-0 inline-flex min-h-[40px] items-center gap-1 rounded-full px-3.5 py-2 text-[11px] font-semibold transition border shadow-sm touch-manipulation",
               coords
-                ? "bg-primary text-primary-foreground border-primary"
+                ? "bg-ig-gradient text-white border-primary"
                 : "bg-card text-foreground border-border/80 hover:bg-muted active:bg-muted",
             )}
           >
@@ -1117,7 +1155,7 @@ export default function HotelsLandingPage() {
               className={cn(
                 "shrink-0 inline-flex min-h-[40px] items-center gap-1 rounded-full px-3.5 py-2 text-[11px] font-semibold transition border shadow-sm touch-manipulation",
                 savedOnly
-                  ? "bg-primary text-primary-foreground border-primary"
+                  ? "bg-ig-gradient text-white border-primary"
                   : "bg-card text-foreground border-border/80 hover:bg-muted active:bg-muted",
               )}
             >
@@ -1136,7 +1174,7 @@ export default function HotelsLandingPage() {
                 className={cn(
                   "shrink-0 inline-flex min-h-[40px] items-center gap-1 rounded-full px-3.5 py-2 text-[11px] font-semibold transition border shadow-sm touch-manipulation",
                   active
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-card text-foreground border-border/80 hover:bg-muted active:bg-muted",
                 )}
               >
@@ -1234,10 +1272,18 @@ export default function HotelsLandingPage() {
               const isFav = favorites.has(store.id);
               const hasLeftMeta = typeof rating === "number" || ((store as any).created_at && (Date.now() - new Date((store as any).created_at).getTime()) < 30 * 24 * 60 * 60 * 1000);
               return (
-                <button type="button"
+                <div
                   key={store.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => openHotel(store.id)}
-                  className="shrink-0 w-[210px] rounded-2xl border border-border bg-card overflow-hidden text-left active:scale-[0.98] transition shadow-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openHotel(store.id);
+                    }
+                  }}
+                  className="shrink-0 w-[210px] rounded-2xl border border-border bg-card overflow-hidden text-left active:scale-[0.98] transition shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   aria-label={`Open ${store.name}`}
                 >
                   <div className="relative w-full h-28 bg-muted">
@@ -1298,7 +1344,7 @@ export default function HotelsLandingPage() {
                       ) : null}
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -1509,7 +1555,7 @@ export default function HotelsLandingPage() {
               className={
                 "shrink-0 min-h-[40px] rounded-full px-3.5 py-2 text-xs font-semibold transition touch-manipulation " +
                 (maxBudget === opt.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/70 text-muted-foreground active:bg-muted")
               }
             >
@@ -1529,7 +1575,7 @@ export default function HotelsLandingPage() {
                 className={
                   "shrink-0 min-h-[40px] rounded-full px-3.5 py-2 text-xs font-semibold transition touch-manipulation " +
                   (active
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted/70 text-muted-foreground active:bg-muted")
                 }
               >

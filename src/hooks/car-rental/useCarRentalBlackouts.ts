@@ -84,8 +84,9 @@ export function useCarRentalBlackouts(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const prev = blackouts;
     setBlackouts((p) => p.filter((b) => b.id !== id));
     const { error: err } = await supabase.functions.invoke("car-rental-blackout-manage", {
@@ -95,8 +96,11 @@ export function useCarRentalBlackouts(storeId: string | undefined) {
       console.error("[useCarRentalBlackouts] delete failed", err);
       setError("Couldn't delete blackout.");
       setBlackouts(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [blackouts]);
 
   return { blackouts, loading, saving, error, create, remove, refresh: load };

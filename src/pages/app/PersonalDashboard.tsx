@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PersonalDashboard — Employee + Career hub (Facebook-style compact layout).
  * Clock In/Out requires QR code scanning.
  */
@@ -1027,7 +1027,7 @@ const PersonalDashboard = () => {
                 <button
                   type="button"
                   onClick={() => setScannerOpen(true)}
-                  className="mt-2.5 w-full py-2 rounded-xl bg-primary text-primary-foreground text-[12px] font-bold flex items-center justify-center gap-1.5 touch-manipulation active:scale-[0.98] transition-all"
+                  className="mt-2.5 w-full py-2 rounded-xl bg-ig-gradient text-white text-[12px] font-bold flex items-center justify-center gap-1.5 touch-manipulation active:scale-[0.98] transition-all"
                 >
                   <QrCode className="w-3.5 h-3.5" /> Clock In Now
                 </button>
@@ -1414,7 +1414,7 @@ const PersonalDashboard = () => {
                     <p className="text-[11px] text-muted-foreground leading-tight">{item.description}</p>
                   </div>
                   {item.badge ? (
-                    <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                    <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-ig-gradient text-white text-[10px] font-bold flex items-center justify-center">
                       {item.badge}
                     </span>
                   ) : null}
@@ -1467,7 +1467,7 @@ const PersonalDashboard = () => {
               <button
                 type="button"
                 onClick={() => setShiftSummaryOpen(false)}
-                className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm touch-manipulation active:scale-[0.98] transition-all"
+                className="w-full py-3 rounded-xl bg-ig-gradient text-white font-semibold text-sm touch-manipulation active:scale-[0.98] transition-all"
               >
                 Done
               </button>

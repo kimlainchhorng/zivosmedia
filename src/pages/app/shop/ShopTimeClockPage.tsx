@@ -29,8 +29,15 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
+// Cambodia-local day (browser is UTC+7, no DST). toISOString().slice(0,10) is the UTC
+// day, which from 00:00–06:59 ICT is still yesterday — so the "today" boundary would roll
+// at 07:00 local instead of midnight, dropping an employee who clocked in before dawn out
+// of "currently clocked in" (and zeroing their hours) the moment UTC ticks over.
+const ymdLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 function todayStr() {
-  return new Date().toISOString().split("T")[0];
+  return ymdLocal(new Date());
 }
 
 export default function ShopTimeClockPage() {
@@ -59,7 +66,7 @@ export default function ShopTimeClockPage() {
     setShowForm(false);
   };
 
-  const todayEntries = entries.filter((e) => e.timestamp.startsWith(todayStr()));
+  const todayEntries = entries.filter((e) => ymdLocal(new Date(e.timestamp)) === todayStr());
 
   const clockedInNames = new Set<string>();
   todayEntries.forEach((e) => {
@@ -87,7 +94,7 @@ export default function ShopTimeClockPage() {
     <AppLayout title="Time Clock" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24 max-w-2xl mx-auto">
         <div className="flex items-center gap-2.5 mb-5">
-          <button type="button" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform">
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-[17px]">Time Clock</h1>
@@ -151,12 +158,12 @@ export default function ShopTimeClockPage() {
                     autoFocus
                   />
                   <Button size="sm" onClick={clockAction} disabled={!employeeName.trim()} className="h-10">Record</Button>
-                  <button type="button" onClick={() => setShowForm(false)} className="p-2 rounded-xl hover:bg-muted/60 text-muted-foreground text-sm">✕</button>
+                  <button type="button" aria-label="Close" onClick={() => setShowForm(false)} className="p-2 rounded-xl hover:bg-muted/60 text-muted-foreground text-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">✕</button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {[...clockedInNames].map((name) => (
                     <button type="button" key={name} onClick={() => setEmployeeName(name)}
-                      className="text-[11px] px-2 py-0.5 rounded-full border border-border hover:border-primary/50 text-muted-foreground transition-colors">
+                      className="text-[11px] px-2 py-0.5 rounded-full border border-border hover:border-primary/50 text-muted-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       {name}
                     </button>
                   ))}

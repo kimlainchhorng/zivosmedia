@@ -166,7 +166,7 @@ export default function LiveLocationsPage() {
                       type="button"
                       aria-label="Stop sharing"
                       onClick={() => stopShare(s.id)}
-                      className="shrink-0 h-9 px-3 rounded-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-bold inline-flex items-center gap-1 transition-colors"
+                      className="shrink-0 h-9 px-3 rounded-full bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-bold inline-flex items-center gap-1 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Square className="h-3 w-3" fill="currentColor" /> Stop
                     </button>

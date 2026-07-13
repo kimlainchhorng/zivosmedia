@@ -9,8 +9,8 @@ import { Sparkles } from "lucide-react";
 
 export function EngagementSkeleton() {
   return (
-    <div aria-hidden className="px-3 pb-2 pt-1">
-      <div className="zivo-social-share-preview mb-2 flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+    <div aria-hidden className="px-3 pb-3 pt-2 space-y-2">
+      <div className="flex items-center justify-between gap-3 rounded-[1.25rem] border border-border/35 bg-muted/[0.18] px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <Skeleton className="zivo-social-skeleton-chip h-7 w-7 shrink-0 rounded-xl" />
           <div className="min-w-0 space-y-1.5">
@@ -20,7 +20,7 @@ export function EngagementSkeleton() {
         </div>
         <Skeleton className="zivo-social-skeleton-chip h-6 w-14 shrink-0 rounded-full" />
       </div>
-      <div className="zivo-social-engagement-skeleton flex h-[52px] items-center gap-2.5 rounded-2xl px-2.5">
+      <div className="zivo-social-engagement-skeleton flex h-[52px] items-center gap-2.5 rounded-[1.35rem] px-2.5">
         <Skeleton className="zivo-social-skeleton-chip h-9 w-20 rounded-full" />
         <Skeleton className="zivo-social-skeleton-chip h-9 w-20 rounded-full" />
         <Skeleton className="zivo-social-skeleton-chip h-9 w-14 rounded-full" />

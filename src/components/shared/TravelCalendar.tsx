@@ -1,4 +1,4 @@
-import { Calendar, Sun, Cloud, Snowflake, Leaf, TrendingDown, TrendingUp, Info } from "lucide-react";
+﻿import { Calendar, Sun, Cloud, Snowflake, Leaf, TrendingDown, TrendingUp, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +60,7 @@ const TravelCalendar = () => {
                 )}
               >
                 {index === currentMonth && (
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary text-primary-foreground rounded-full text-[10px] font-medium">
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-ig-gradient text-white rounded-full text-[10px] font-medium">
                     Now
                   </div>
                 )}

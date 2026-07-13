@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Booking.com-grade Amenities & Policies editor.
  * - Categorized accordion with search
  * - Per-category select-all/clear
@@ -257,7 +257,7 @@ export default function LodgingAmenitiesSection({ storeId }: { storeId: string }
                 className={cn(
                   "text-[11px] h-7 px-2.5 rounded-full border transition-colors",
                   selected
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-card hover:bg-muted/40 border-border text-foreground",
                 )}
               >

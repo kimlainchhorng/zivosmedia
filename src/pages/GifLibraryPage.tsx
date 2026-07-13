@@ -195,9 +195,10 @@ export default function GifLibraryPage() {
             <button
               key={t}
               type="button"
+              aria-pressed={tab === t}
               onClick={() => setTab(t)}
               className={cn(
-                "flex-1 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                "flex-1 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring capitalize",
                 tab === t ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
@@ -223,9 +224,10 @@ export default function GifLibraryPage() {
               <button
                 key={c}
                 type="button"
+                aria-pressed={activeCategory === c}
                 onClick={() => setActiveCategory(c)}
                 className={cn(
-                  "shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-all capitalize",
+                  "shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring capitalize",
                   activeCategory === c ? "bg-foreground text-background" : "border border-border text-muted-foreground hover:bg-secondary",
                 )}
               >
@@ -276,7 +278,7 @@ export default function GifLibraryPage() {
                         disabled={saved || busy}
                         onClick={() => saveMutation.mutate(g)}
                         className={cn(
-                          "absolute top-1.5 right-1.5 h-7 w-7 rounded-full flex items-center justify-center transition-all active:scale-90",
+                          "absolute top-1.5 right-1.5 h-7 w-7 rounded-full flex items-center justify-center transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           saved ? "bg-ig-gradient text-white" : "bg-black/55 backdrop-blur-sm text-white hover:bg-black/70",
                         )}
                       >
@@ -320,7 +322,7 @@ export default function GifLibraryPage() {
                         aria-label="Remove from favorites"
                         disabled={busy}
                         onClick={() => unsaveMutation.mutate(g.id)}
-                        className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center hover:bg-destructive/80 active:scale-90 transition-all"
+                        className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/55 backdrop-blur-sm text-white flex items-center justify-center hover:bg-destructive/80 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>

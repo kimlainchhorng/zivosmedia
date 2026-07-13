@@ -4,7 +4,7 @@
  * - Full email+password form for new/other accounts
  * - Remember me saves avatar/name to localStorage for quick re-login
  */
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink, ShieldCheck, Wrench, CalendarCheck, BadgeCheck, CheckCircle2 } from "lucide-react";
 import { supabase, setRememberMePreference } from "@/integrations/supabase/client";
@@ -344,9 +344,10 @@ const Login = () => {
   const { accounts, remove, refresh } = useSavedAccounts();
 
   // "picker" = show saved accounts, "password" = selected an account (email locked),
+  // "expired" = session expired, show one-tap link login (no password shown),
   // "full" = show email+password form for a new account
   type Mode = "picker" | "password" | "full";
-  const [mode, setMode] = useState<Mode>(() => (accounts.length > 0 ? "picker" : "full"));
+  const [mode, setMode] = useState<Mode>("picker");
   const [selectedAccount, setSelectedAccount] = useState<SavedAccount | null>(null);
 
   const [email, setEmail] = useState("");
@@ -354,10 +355,34 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [quickSignInLabel, setQuickSignInLabel] = useState("Signing in...");
   // Edit mode — toggled by the "..." button in picker, surfaces the X delete
   // buttons on each avatar. Default off so the picker feels clean (FB/IG).
   const [editingAccounts, setEditingAccounts] = useState(false);
+
+  // Honor ?email= handoffs (e.g. SwitchAccountSheet falls back here when a
+  // saved refresh token is rejected): preselect the matching saved account in
+  // password mode, or prefill the full form for an unknown address. Mount-only
+  // — we deliberately skip the one-tap refreshSession retry since the token
+  // was just rejected upstream.
+  const emailParamHandledRef = useRef(false);
+  useEffect(() => {
+    if (emailParamHandledRef.current) return;
+    const target = params.get("email")?.trim().toLowerCase();
+    if (!target) { emailParamHandledRef.current = true; return; }
+    emailParamHandledRef.current = true;
+    const match = accounts.find((a) => a.email.toLowerCase() === target);
+    if (match) {
+      setSelectedAccount(match);
+      setEmail(match.email);
+      setMode("password");
+    } else {
+      setEmail(target);
+      setMode("full");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const activeEmail = (mode === "password" ? selectedAccount?.email ?? "" : email).trim().toLowerCase();
   const forgotPasswordHref = useMemo(() => {
     const forgotParams = new URLSearchParams();
@@ -402,9 +427,8 @@ const Login = () => {
   useEffect(() => {
     if (accounts.length === 0) {
       setEditingAccounts(false);
-      if (mode === "picker") setMode("full");
     }
-  }, [accounts.length, mode]);
+  }, [accounts.length]);
 
   const handleSelectAccount = async (account: SavedAccount) => {
     if (submitting) return;
@@ -437,7 +461,6 @@ const Login = () => {
         });
         refresh();
         setSubmitting(false);
-        toast.success(`Welcome back, ${account.fullName?.split(" ")[0] || ""}!`);
         finishAuthRedirect(redirect);
         return;
       }
@@ -471,7 +494,6 @@ const Login = () => {
           });
           refresh();
           setSubmitting(false);
-          toast.success(`Welcome back, ${account.fullName?.split(" ")[0] || ""}!`);
           finishAuthRedirect(redirect);
           return;
         }
@@ -480,12 +502,8 @@ const Login = () => {
       }
     }
 
-    // ── Step 3: password fallback ─────────────────────────────────────────
-    // If the saved token is missing or expired, the user can still continue
-    // with the password manager. The email sign-in link remains available from
-    // the password screen, but only when the user asks for it.
+    // ── Step 3: session fully expired — show password form ───────────────
     setSubmitting(false);
-    setQuickSignInLabel("Signing in...");
     setMode("password");
   };
 
@@ -500,7 +518,7 @@ const Login = () => {
   const handleBack = () => {
     setPassword("");
     setQuickSignInLabel("Signing in...");
-    setMode(accounts.length > 0 ? "picker" : "full");
+    setMode("picker");
   };
 
   // Webmail provider detection — used to label the secondary email-code option.
@@ -582,7 +600,7 @@ const Login = () => {
     if (submitting) return;
     const trimmedEmail = (mode === "password" ? selectedAccount!.email : email).trim();
     if (!trimmedEmail || !password) {
-      toast.error("Please enter your email and password.");
+      setFieldError("Please enter your email and password.");
       return;
     }
     setSubmitting(true);
@@ -606,25 +624,17 @@ const Login = () => {
       const facts = getLoginErrorFacts(error);
 
       if (facts.emailExists === false) {
-        toast.error("No account found for this email.", {
-          action: { label: "Sign Up", onClick: () => navigate(`/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`) },
-        });
+        setFieldError("No account found for this email.");
       } else if (facts.isEmailNotConfirmed) {
-        toast.error("Please verify your email before logging in.", {
-          description: "Check your inbox for the confirmation email.",
-        });
+        setFieldError("Please verify your email before logging in. Check your inbox.");
       } else if (facts.isBadCredentials) {
-        toast.error(facts.emailExists === true ? "Wrong password - please try again." : "Email or password is incorrect.", {
-          action: { label: "Forgot?", onClick: () => navigate(forgotPasswordHref) },
-        });
+        setFieldError(facts.emailExists === true ? "Wrong password — please try again." : "Email or password is incorrect.");
       } else if (facts.isRateLimited) {
-        toast.error("Too many login attempts. Please wait a moment and try again.");
+        setFieldError("Too many attempts. Please wait a moment and try again.");
       } else if (facts.isNetwork) {
-        toast.error("Connection issue. Please try again.", {
-          description: "Check your internet connection, then try again.",
-        });
+        setFieldError("Connection issue — check your internet and try again.");
       } else {
-        toast.error(facts.message || "Sign in failed. Please try again.");
+        setFieldError(facts.message || "Sign in failed. Please try again.");
       }
       return;
     }
@@ -656,7 +666,6 @@ const Login = () => {
     } catch {}
 
     setSubmitting(false);
-    toast.success("Welcome back!");
     finishAuthRedirect(redirect);
   };
 
@@ -762,7 +771,11 @@ const Login = () => {
               <p className={`text-center text-sm ${
                 isZivoSoftwareDomain ? "font-semibold text-[#66736d]" : "text-zinc-500 dark:text-zinc-400"
               }`}>
-                {editingAccounts ? "Tap × to remove an account" : "Log in as"}
+                {editingAccounts
+                  ? "Tap × to remove an account"
+                  : accounts.length > 0
+                  ? "Log in as"
+                  : "Your account will be saved for quick sign-in next time"}
               </p>
 
               <div className="flex justify-center gap-5 flex-wrap">
@@ -804,7 +817,7 @@ const Login = () => {
                   isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"
                 }`}
               >
-                Log into another account
+                {accounts.length > 0 ? "Log into another account" : "Sign in with email"}
               </button>
 
             </div>
@@ -902,33 +915,6 @@ const Login = () => {
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
               </button>
 
-              {/* OR divider — separates the two clear sign-in options */}
-              <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-                <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">OR</span>
-                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-              </div>
-
-              {/* Option 2: passwordless via email link/code */}
-              {(() => {
-                const provider = detectMailProvider(selectedAccount.email);
-                return (
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await sendEmailCode(selectedAccount.email);
-                      }}
-                      disabled={submitting}
-                      className="w-full h-10 rounded-lg text-xs font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      {provider ? `Email me a sign-in link for ${provider.name}` : "Email me a sign-in link"}
-                    </button>
-                  </div>
-                );
-              })()}
-
               <div className="flex items-center justify-between text-xs pt-1">
                 <Link to={forgotPasswordHref} className="inline-flex min-h-[40px] items-center font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white">
                   Forgot password?
@@ -945,7 +931,7 @@ const Login = () => {
                           remove(selectedAccount.email);
                           setSelectedAccount(null);
                           setPassword("");
-                          setMode(accounts.length > 1 ? "picker" : "full");
+                          setMode("picker");
                         },
                       },
                       cancel: { label: "Cancel", onClick: () => {} },
@@ -962,15 +948,13 @@ const Login = () => {
           {/* ── MODE: full email + password form ── */}
           {mode === "full" && (
             <form onSubmit={onSubmit} className="space-y-2.5">
-              {accounts.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition mb-1"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" /> Saved accounts
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition mb-1"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> {accounts.length > 0 ? "Saved accounts" : "Back"}
+              </button>
 
               <input
                 id="login-email"
@@ -982,7 +966,7 @@ const Login = () => {
                 spellCheck={false}
                 enterKeyHint="next"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setFieldError(null); }}
                 placeholder="Phone number, username, or email"
                 disabled={submitting}
                 className="w-full h-11 px-3 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
@@ -995,11 +979,11 @@ const Login = () => {
                   autoComplete="current-password"
                   enterKeyHint="go"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setFieldError(null); }}
                   {...passwordKeyHandlers}
                   placeholder="Password"
                   disabled={submitting}
-                  className="w-full h-11 px-3 pr-12 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
+                  className={`w-full h-11 px-3 pr-12 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition focus:border-zinc-400 dark:focus:border-zinc-500 ${fieldError ? "border-red-400 dark:border-red-500" : "border-zinc-200 dark:border-zinc-700"}`}
                 />
                 <button
                   type="button"
@@ -1010,6 +994,9 @@ const Login = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {fieldError && (
+                <p className="text-xs text-red-500 dark:text-red-400 -mt-1 px-0.5">{fieldError}</p>
+              )}
               {capsLockNotice}
 
               <button
@@ -1024,60 +1011,6 @@ const Login = () => {
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
               </button>
 
-              {/* OR divider — Instagram signature */}
-              <div className="flex items-center gap-4 py-3">
-                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-                <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">OR</span>
-                <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-              </div>
-
-              {/* Option 1: social SSO (Google / Apple) */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("google")}
-                  disabled={submitting}
-                  className="w-full h-11 rounded-lg text-sm font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 18 18" aria-hidden="true">
-                    <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z" />
-                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A9 9 0 0 0 9 18z" />
-                    <path fill="#FBBC05" d="M3.98 10.72a5.4 5.4 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.02-2.34z" />
-                    <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .96 4.94L3.98 7.28C4.68 5.16 6.66 3.58 9 3.58z" />
-                  </svg>
-                  Continue with Google
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("apple")}
-                  disabled={submitting}
-                  className="w-full h-11 rounded-lg text-sm font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M17.05 12.04c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.1-2.02-3.77-2.04-1.6-.16-3.13.94-3.94.94-.81 0-2.07-.92-3.4-.9-1.75.03-3.36 1.02-4.26 2.58-1.82 3.16-.46 7.84 1.3 10.41.86 1.26 1.89 2.68 3.23 2.63 1.3-.05 1.79-.84 3.36-.84 1.56 0 2 .84 3.37.81 1.39-.02 2.27-1.29 3.12-2.55.98-1.46 1.39-2.87 1.41-2.95-.03-.01-2.71-1.04-2.74-4.13z" />
-                    <path d="M14.5 4.5c.72-.87 1.2-2.08 1.07-3.29-1.03.04-2.28.69-3.02 1.56-.66.77-1.24 2-1.08 3.18 1.15.09 2.32-.58 3.03-1.45z" />
-                  </svg>
-                  Continue with Apple
-                </button>
-              </div>
-
-              {/* Option 2: passwordless via email link/code */}
-              {(() => {
-                const provider = detectMailProvider(email);
-                return (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await sendEmailCode(email);
-                    }}
-                    disabled={submitting || !email.trim()}
-                    className="w-full h-11 rounded-lg text-sm font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 active:scale-[0.99] disabled:opacity-40 transition flex items-center justify-center gap-2"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    {provider ? `Email me a sign-in link for ${provider.name}` : "Email me a sign-in link"}
-                  </button>
-                );
-              })()}
 
               <div className="text-center pt-2">
                 <Link to={forgotPasswordHref} className="inline-flex min-h-[40px] items-center px-1 text-xs font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white">
@@ -1087,6 +1020,39 @@ const Login = () => {
             </form>
           )}
         </div>
+
+        {/* SSO / OAuth entrypoints — Continue with Google / Apple */}
+        {!isZivoSoftwareDomain && (
+          <div className="mt-3">
+            <div className="flex items-center gap-3">
+              <span className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
+              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">or continue with</span>
+              <span className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleOAuthSignIn("google")}
+                disabled={submitting}
+                aria-label="Continue with Google"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
+              >
+                <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOAuthSignIn("apple")}
+                disabled={submitting}
+                aria-label="Continue with Apple"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
+              >
+                <svg className="h-[18px] w-[18px] text-zinc-900 dark:text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+                Apple
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Footer card — IG-style "Don't have an account?" */}
         <div className={`mt-2 ${

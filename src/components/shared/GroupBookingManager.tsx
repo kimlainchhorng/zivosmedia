@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { 
   Users, 
   UserPlus, 
@@ -163,7 +163,7 @@ const GroupBookingManager = ({
               <Avatar className="h-9 w-9">
                 <AvatarFallback className={cn(
                   "text-xs",
-                  member.id === "1" && "bg-primary text-primary-foreground"
+                  member.id === "1" && "bg-ig-gradient text-white"
                 )}>
                   {member.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>

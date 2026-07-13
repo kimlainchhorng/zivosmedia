@@ -82,7 +82,7 @@ export default function DataInsights() {
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         {/* Hero */}
         <section className="relative overflow-hidden pb-16">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10" />

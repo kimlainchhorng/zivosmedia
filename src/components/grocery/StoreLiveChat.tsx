@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoreLiveChat — Real-time in-app chat between customer and store
  * Supports admin mode: shows customer info, lists all chats, allows deletion
  */
@@ -305,7 +305,7 @@ function AdminChatList({
                     {chat.customer_name || chat.customer_email}
                   </p>
                   {(chat.unread_count ?? 0) > 0 && (
-                    <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                    <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-ig-gradient text-white text-[10px] font-bold flex items-center justify-center">
                       {chat.unread_count}
                     </span>
                   )}
@@ -676,7 +676,7 @@ export default function StoreLiveChat({ storeId, storeName, storeLogo, open, onC
                           <div
                             className={`max-w-[80%] px-3 py-2 rounded-2xl text-[13px] ${
                               isOwn
-                                ? "bg-primary text-primary-foreground rounded-br-md"
+                                ? "bg-ig-gradient text-white rounded-br-md"
                                 : "bg-muted text-foreground rounded-bl-md"
                             }`}
                           >
@@ -797,7 +797,7 @@ export default function StoreLiveChat({ storeId, storeName, storeLogo, open, onC
                     <button type="button"
                       onClick={sendMessage}
                       disabled={!input.trim() || sending}
-                      className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50 transition-opacity"
+                      className="h-10 w-10 rounded-full bg-ig-gradient text-white flex items-center justify-center shrink-0 disabled:opacity-50 transition-opacity"
                     >
                       {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </button>

@@ -21,7 +21,12 @@ import { runLodgingQa } from "@/lib/lodging/lodgingQa";
 import { exportFrontDeskQaPdf } from "@/lib/lodging/frontDeskQaReport";
 import WalkInBookingSheet from "./WalkInBookingSheet";
 
-function ymd(d: Date) { return d.toISOString().slice(0, 10); }
+// Local YYYY-MM-DD. toISOString().slice(0,10) is UTC, which in Cambodia (UTC+7)
+// reads as *yesterday* during the 00:00–07:00 shift — the front-desk "today" board
+// would then show the previous day's arrivals/departures to the early-morning clerk.
+function ymd(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 const timeRange = (r: LodgeReservation) => r.room?.check_in_time || r.room?.check_out_time ? `${r.room?.check_in_time || "15:00"} → ${r.room?.check_out_time || "11:00"}` : "Standard hotel times";
 const goTab = (tab: string) => window.dispatchEvent(new CustomEvent("lodge-set-tab", { detail: { tab } }));
 

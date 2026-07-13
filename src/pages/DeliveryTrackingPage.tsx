@@ -188,8 +188,9 @@ export default function DeliveryTrackingPage() {
       <div className="flex flex-col px-4 pt-3 pb-24">
         <div className="flex items-center gap-2.5 mb-4">
           <button type="button"
+            aria-label="Back"
             onClick={() => navigate("/delivery")}
-            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -224,8 +225,9 @@ export default function DeliveryTrackingPage() {
                   {delivery.status.replace(/_/g, " ")}
                 </span>
                 <button type="button"
+                  aria-label="Copy tracking ID"
                   onClick={copyId}
-                  className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Copy className="w-3 h-3" /> {delivery.id.slice(0, 8)}
                 </button>
@@ -281,7 +283,7 @@ export default function DeliveryTrackingPage() {
                 {delivery.driver_user_id && (
                   <button type="button"
                     onClick={messageDriver}
-                    className="flex-1 h-11 rounded-xl bg-violet-500 text-white font-semibold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+                    className="flex-1 h-11 rounded-xl bg-violet-500 text-white font-semibold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <MessageCircle className="w-4 h-4" /> Message driver
                   </button>
@@ -289,7 +291,7 @@ export default function DeliveryTrackingPage() {
                 {canCancel && (
                   <button type="button"
                     onClick={cancelDelivery}
-                    className="h-11 px-4 rounded-xl border border-destructive/30 text-destructive font-semibold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+                    className="h-11 px-4 rounded-xl border border-destructive/30 text-destructive font-semibold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <X className="w-4 h-4" /> Cancel
                   </button>
@@ -309,7 +311,7 @@ export default function DeliveryTrackingPage() {
                       href={signedProofs.pickup}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block"
+                      className="block rounded-xl transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <img
                         src={signedProofs.pickup}
@@ -326,7 +328,7 @@ export default function DeliveryTrackingPage() {
                       href={signedProofs.delivery}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block"
+                      className="block rounded-xl transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <img
                         src={signedProofs.delivery}
@@ -361,7 +363,8 @@ export default function DeliveryTrackingPage() {
                 {delivery.pickup_location?.phone && (
                   <a
                     href={`tel:${delivery.pickup_location.phone}`}
-                    className="w-9 h-9 rounded-full bg-violet-500 text-white flex items-center justify-center"
+                    aria-label="Call driver"
+                    className="w-9 h-9 rounded-full bg-violet-500 text-white flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Phone className="w-4 h-4" />
                   </a>

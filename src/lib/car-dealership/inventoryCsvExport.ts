@@ -13,9 +13,16 @@ import type { DealershipVehicle } from "@/hooks/car-dealership/useDealershipInve
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 /** Escape a single CSV cell value (wraps in quotes, doubles internal quotes). */
+// CSV formula injection (CWE-1236): make / model / VIN / colors / engine /
+// location etc. are dealer-entered free text; a value starting with = + - @ tab
+// or CR executes as a formula in Excel/Sheets/LibreOffice. Prefix with an
+// apostrophe (leaving legit negative numbers intact) before RFC-4180 quoting.
+const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+const NUMERIC_LITERAL = /^-?\d+(\.\d+)?$/;
 function csvCell(value: string | number | boolean | null | undefined): string {
   if (value == null) return "";
-  const str = String(value);
+  let str = String(value);
+  if (FORMULA_TRIGGERS.test(str) && !NUMERIC_LITERAL.test(str)) str = `'${str}`;
   if (str.includes(",") || str.includes('"') || str.includes("\n")) {
     return `"${str.replace(/"/g, '""')}"`;
   }

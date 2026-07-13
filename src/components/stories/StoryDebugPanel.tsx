@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoryDebugPanel — floating in-app diagnostic for the Stories pipeline.
  *
  * Shows in real time:
@@ -226,7 +226,7 @@ export default function StoryDebugPanel() {
               invalidateAllStoryCaches(queryClient, user.id);
               refetchDb();
             }}
-            className="w-full h-9 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-2"
+            className="w-full h-9 rounded-full bg-ig-gradient text-white text-xs font-bold flex items-center justify-center gap-2"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Force refresh all
           </button>

@@ -143,7 +143,14 @@ export function ReelViewer({
     const tryResume = () => {
       const v = videoRef.current;
       if (!v || document.visibilityState !== "visible" || !v.paused || userPausedRef.current) return;
-      void v.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      void v.play().then(() => setIsPlaying(true)).catch(() => {
+        // Browsers block UNMUTED autoplay without a direct user gesture, which
+        // leaves the reel frozen on its first frame. Mute and retry so playback
+        // always starts; the user can unmute with the speaker button.
+        v.muted = true;
+        setIsMuted(true);
+        void v.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      });
     };
 
     const onVisibilityChange = () => tryResume();

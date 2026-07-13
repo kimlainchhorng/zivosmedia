@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CafeReviewsSection — list customer reviews, reply, hide/show, delete,
  * and seed paper-form reviews via a manual "Add review" dialog.
  */
@@ -120,7 +120,7 @@ export default function CafeReviewsSection({ storeId }: Props) {
                 {(["all", "unreplied", "low"] as const).map((k) => (
                   <button key={k} onClick={() => setFilter(k)} type="button" className={cn(
                     "px-3 py-1 text-xs capitalize",
-                    filter === k ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                    filter === k ? "bg-ig-gradient text-white" : "hover:bg-muted",
                   )}>{k === "low" ? "1–2 ★" : k}</button>
                 ))}
               </div>

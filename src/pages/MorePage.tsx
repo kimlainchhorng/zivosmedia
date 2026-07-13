@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MorePage — ZIVO Signature Design (2026)
  * Full hub with real user profile, quick actions, 70+ links, and organic design.
  */
@@ -16,20 +16,20 @@ import {
   Sparkles, Car, UtensilsCrossed, Store, Wrench, Building2, Truck, Shield, DollarSign,
   Heart, Bell, HelpCircle, Lock, Users, Globe, Bookmark, Eye, FileText,
   Award, Briefcase, Palette, Music, Headphones, QrCode, BarChart3,
-  Camera, Video, Megaphone, Gift, Crown, Zap, Star, Calendar, MessageCircle,
+  Camera, Video, Megaphone, Gift, Crown, Zap, Star, Calendar,
   BookOpen, Plane, Coffee, Radio, BadgeCheck, Smartphone, Download,
   TrendingUp, Target, Lightbulb, PenTool, Share2, Compass, ArrowRight,
   Gem, Rocket, Layers, CircleDot, User, CreditCard, Map as MapIcon, Package,
   Clock, Receipt, Ticket, ShieldCheck, Flame, AlertCircle, Inbox,
   Search, Vote, Clapperboard, GraduationCap, Trophy, Banknote, ArrowLeft,
-  Sun, Moon, Trash2, X, Phone, Hash, Tv, Mic, Activity, Dumbbell, Brain,
-  Languages, Database, KeyRound, UserPlus, Film, MessageSquare, Hotel,
+  Sun, Moon, Trash2, X, Hash, Tv, Mic, Activity, Dumbbell, Brain,
+  Languages, Database, UserPlus, Film, MessageSquare, Hotel,
   Hammer, Sliders, FileSignature, Cookie, BookMarked, Stethoscope,
   ClipboardList, Building, Tag, ScrollText, History, ArrowDownToLine,
   Fingerprint, Pin, AtSign, Image as ImageIcon, MicVocal, Volume2,
-  Mailbox, ExternalLink, Boxes, Hourglass, Pencil, ListChecks,
+  ExternalLink, Boxes, Hourglass, Pencil, ListChecks,
   Headset, MessagesSquare, BarChart, Cpu, GanttChart, Network, Pill,
-  Info, Newspaper, MapPinned, Bug, Code, Server, ShieldAlert, Ban,
+  Info, Newspaper, MapPinned, Bug, Code, Server, ShieldAlert,
   HandHeart, Mountain, Wifi, Sparkle, Globe2, Box, Banknote as BanknoteIcon,
   AlarmClock, FileBadge, GitBranch, RefreshCw, Mail, Scale, Users2,
 } from "lucide-react";
@@ -122,7 +122,6 @@ const quickActions = [
   { icon: Gift, label: "Invite", href: "/referrals", accent: "hsl(199 89% 48%)" },
   { icon: Plane, label: "Trips", href: "/my-trips", accent: "hsl(199 89% 48%)" },
   { icon: Bell, label: "Alerts", href: "/notification-center", accent: "hsl(45 93% 58%)" },
-  { icon: MessageCircle, label: "Chat", href: "/chat", accent: "hsl(221 83% 53%)" },
   { icon: Search, label: "Search", href: "/smart-search", accent: "hsl(263 70% 58%)" },
 ];
 
@@ -203,7 +202,9 @@ const sameStringList = (a: string[], b: string[]) =>
 
 const normalizeInternalHref = (href: string) => {
   const value = href.trim();
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+  // "\" is normalized to "/" by browsers, so "/\evil.com" → authority //evil.com.
+  const probe = value.replace(/\\/g, "/");
+  return value && probe.startsWith("/") && !probe.startsWith("//") ? value : null;
 };
 
 const formatToolCount = (count: number) => `${count} ${count === 1 ? "tool" : "tools"}`;
@@ -259,7 +260,6 @@ const quickLinksCreator: QuickLink[] = [
   { icon: Share2, label: "Link Hub", href: "/link-hub", description: "All your links", accent: "hsl(221 83% 53%)" },
   { icon: Sparkles, label: "Creator Setup", href: "/creator/setup", description: "Get started", accent: "hsl(263 70% 58%)" },
   { icon: DollarSign, label: "Live Earnings", href: "/creator/live-earnings", description: "Real-time payouts", accent: "hsl(142 71% 45%)" },
-  { icon: Hash, label: "Channels", href: "/channels", description: "Build your channel", accent: "hsl(221 83% 53%)" },
   { icon: ImageIcon, label: "Media Library", href: "/media-library", description: "All your assets", accent: "hsl(199 89% 48%)" },
   { icon: MicVocal, label: "Sound Library", href: "/explore", description: "Trending audio", accent: "hsl(340 75% 55%)" },
   { icon: Megaphone, label: "Promote Posts", href: "/promote", description: "Boost reach", accent: "hsl(38 92% 50%)" },
@@ -306,27 +306,15 @@ const quickLinksSocial: QuickLink[] = [
   { icon: Users, label: "Communities", href: "/communities", description: "Groups", accent: "hsl(263 70% 58%)" },
   { icon: Radio, label: "Audio Spaces", href: "/spaces", description: "Live rooms", accent: "hsl(300 70% 55%)" },
   { icon: Camera, label: "Reels", href: "/reels", description: "Short videos", accent: "hsl(340 75% 55%)" },
-  { icon: MessageCircle, label: "Chat Hub", href: "/chat", description: "Messages", accent: "hsl(221 83% 53%)" },
   { icon: Share2, label: "Share Profile", href: "/qr-profile", description: "QR & link", accent: "hsl(142 71% 45%)" },
   { icon: Megaphone, label: "Events", href: "/events", description: "Upcoming", accent: "hsl(38 92% 50%)" },
   { icon: Star, label: "Leaderboard", href: "/leaderboard", description: "Top creators", accent: "hsl(45 93% 58%)" },
   { icon: Clapperboard, label: "Watch Party", href: "/watch-party", description: "Watch together", accent: "hsl(199 89% 48%)" },
   { icon: Bookmark, label: "Bookmarks", href: "/saved", description: "Saved posts", accent: "hsl(25 95% 53%)" },
   { icon: Heart, label: "Dating", href: "/dating", description: "Find connections", accent: "hsl(340 75% 55%)" },
-  { icon: UserPlus, label: "Find Contacts", href: "/chat/find-contacts", description: "Add friends", accent: "hsl(142 71% 45%)" },
-  { icon: Phone, label: "Group Calls", href: "/chat/contacts", description: "Voice & video", accent: "hsl(199 89% 48%)" },
-  { icon: MapPin, label: "Nearby Chat", href: "/chat/nearby", description: "People around you", accent: "hsl(38 92% 50%)" },
-  { icon: Lock, label: "Secret Chats", href: "/chat/contacts", description: "Encrypted", accent: "hsl(142 71% 45%)" },
-  { icon: Mailbox, label: "Broadcasts", href: "/chat/broadcasts", description: "Send to many", accent: "hsl(45 93% 58%)" },
   { icon: Search, label: "Smart Search", href: "/smart-search", description: "AI search", accent: "hsl(263 70% 58%)", badge: "AI" },
   { icon: Pencil, label: "Whiteboard", href: "/whiteboard", description: "Collaborate", accent: "hsl(199 89% 48%)" },
   { icon: Tv, label: "Live Stream", href: "/live", description: "Watch live", accent: "hsl(0 84% 60%)" },
-  { icon: ListChecks, label: "Chat Folders", href: "/chat/folders", description: "Organize chats", accent: "hsl(263 70% 58%)" },
-  { icon: Search, label: "Search Chats", href: "/chat/search", description: "Find messages", accent: "hsl(199 89% 48%)" },
-  { icon: UserPlus, label: "Contact Requests", href: "/chat/contacts/requests", description: "Pending invites", accent: "hsl(45 93% 58%)" },
-  { icon: Ban, label: "Blocked Contacts", href: "/chat/blocked", description: "Manage blocks", accent: "hsl(0 84% 60%)" },
-  { icon: Hash, label: "Create Channel", href: "/channels/new", description: "Build community", accent: "hsl(221 83% 53%)" },
-  { icon: Mailbox, label: "New Broadcast", href: "/chat/broadcasts/new", description: "Announce updates", accent: "hsl(45 93% 58%)" },
 ];
 
 const quickLinksBusiness: QuickLink[] = [
@@ -397,12 +385,7 @@ const quickLinksAccount: QuickLink[] = [
   { icon: BarChart3, label: "Account Analytics", href: "/account/analytics", description: "Your stats", accent: "hsl(198 93% 59%)" },
   { icon: History, label: "Account Activity", href: "/account/activity-log", description: "Full audit trail", accent: "hsl(215 16% 47%)" },
   { icon: ArrowDownToLine, label: "Export Data", href: "/account/export", description: "Download your data", accent: "hsl(199 89% 48%)" },
-  { icon: Database, label: "Storage", href: "/chat/settings/storage", description: "Manage space", accent: "hsl(263 70% 58%)" },
-  { icon: KeyRound, label: "Passcode", href: "/chat/settings/passcode", description: "Lock app", accent: "hsl(142 71% 45%)" },
   { icon: Fingerprint, label: "Biometrics", href: "/account/security", description: "Face & fingerprint", accent: "hsl(263 70% 58%)" },
-  { icon: Bell, label: "Login Alerts", href: "/chat/settings/login-alerts", description: "New device alerts", accent: "hsl(45 93% 58%)" },
-  { icon: Shield, label: "Privacy Hub", href: "/chat/settings/privacy-hub", description: "All controls", accent: "hsl(199 89% 48%)" },
-  { icon: ShieldCheck, label: "Two-Step Setup", href: "/chat/settings/two-step", description: "Enable 2FA", accent: "hsl(142 71% 45%)" },
   { icon: Cookie, label: "Cookie Settings", href: "/account/cookies", description: "Tracking prefs", accent: "hsl(38 92% 50%)" },
   { icon: Languages, label: "Translation", href: "/account/translation", description: "Auto-translate", accent: "hsl(172 66% 50%)" },
   { icon: Sliders, label: "Accessibility", href: "/account/accessibility", description: "Adjust UI", accent: "hsl(263 70% 58%)" },
@@ -443,7 +426,6 @@ const quickLinksLive: QuickLink[] = [
   { icon: Film, label: "Feed", href: "/feed", description: "Posts & updates", accent: "hsl(263 70% 58%)" },
   { icon: Mic, label: "Podcasts", href: "/podcasts", description: "Listen on the go", accent: "hsl(45 93% 58%)" },
   { icon: Megaphone, label: "Events", href: "/events", description: "Upcoming streams", accent: "hsl(38 92% 50%)" },
-  { icon: Hash, label: "Channels Directory", href: "/channels", description: "Discover channels", accent: "hsl(221 83% 53%)" },
   { icon: Volume2, label: "Sound Effects", href: "/sounds", description: "Audio library", accent: "hsl(172 66% 50%)" },
   { icon: DollarSign, label: "Stream Earnings", href: "/creator/live-earnings", description: "Tips & gifts", accent: "hsl(142 71% 45%)" },
   { icon: Pencil, label: "Whiteboard", href: "/whiteboard", description: "Draw together", accent: "hsl(199 89% 48%)" },
@@ -563,8 +545,8 @@ const sections = [
   { title: "Essentials", description: "Profile, orders, wallet, rewards, and daily account tasks.", icon: Layers, links: quickLinksMain },
   { title: "Creator Studio", description: "Content, analytics, monetization, and creator growth tools.", icon: Sparkles, links: quickLinksCreator },
   { title: "Travel & Orders", description: "Trips, bookings, rides, groceries, marketplace, and delivery.", icon: Plane, links: quickLinksTravel },
-  { title: "Social", description: "Friends, chat, communities, channels, bookmarks, and discovery.", icon: Users, links: quickLinksSocial },
-  { title: "Live & Streaming", description: "Live video, spaces, watch parties, reels, and channels.", icon: Tv, links: quickLinksLive },
+  { title: "Social", description: "Friends, communities, events, bookmarks, and discovery.", icon: Users, links: quickLinksSocial },
+  { title: "Live & Streaming", description: "Live video, spaces, watch parties, and reels.", icon: Tv, links: quickLinksLive },
   { title: "Workplace & Jobs", description: "Jobs, schedules, timesheets, applications, and employee tools.", icon: Briefcase, links: quickLinksJobs },
   { title: "Business", description: "Shop, driver, restaurant, hotel, payroll, and merchant tools.", icon: Building2, links: quickLinksBusiness },
   { title: "Health & Wellness", description: "Activity, workouts, health, mindfulness, nutrition, and care.", icon: Heart, links: quickLinksWellness },
@@ -768,14 +750,6 @@ export default function MorePage() {
     });
   };
 
-  const focusDirectorySearch = useCallback(() => {
-    setExpandedSection(null);
-    setAllExpanded(false);
-    requestAnimationFrame(() => {
-      document.getElementById("more-directory")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.setTimeout(() => directorySearchRef.current?.focus(), 260);
-    });
-  }, []);
   const clearDirectorySearch = useCallback(() => {
     setSearch("");
     requestAnimationFrame(() => directorySearchRef.current?.focus());
@@ -1059,7 +1033,6 @@ export default function MorePage() {
     if (pendingRequestsCount > 0) {
       const v = pendingRequestsCount > 99 ? "99+" : String(pendingRequestsCount);
       m["/notifications?tab=requests"] = v;
-      m["/chat/contacts/requests"] = v;
     }
     return m;
   }, [unreadNotifCount, pendingRequestsCount]);
@@ -1268,34 +1241,6 @@ export default function MorePage() {
     ]);
   }, [queryClient, user?.id]);
 
-  // ===== Suggested next action (computed from user state) =====
-  // Declared here (not earlier) because it depends on account state and query counts.
-  const suggestedAction = useMemo(() => {
-    if (!user) return null;
-    if (!isEmailVerified) {
-      return { icon: Mail, title: "Verify your email", desc: "Secure your account in 30s", href: "/account/contact", accent: "hsl(45 93% 58%)" };
-    }
-    if (completion < 50) {
-      return { icon: User, title: "Complete your profile", desc: "Add photo, bio, and more", href: "/account/profile-edit", accent: "hsl(263 70% 58%)" };
-    }
-    if (activeOrdersCount > 0) {
-      return { icon: Package, title: "Track active orders", desc: `${activeOrdersCount} order${activeOrdersCount === 1 ? "" : "s"} in progress`, href: "/grocery/orders", accent: "hsl(38 92% 50%)" };
-    }
-    if (upcomingFlightCount > 0) {
-      return { icon: Plane, title: "Review upcoming trips", desc: `${upcomingFlightCount} trip${upcomingFlightCount === 1 ? "" : "s"} on your calendar`, href: "/my-trips", accent: "hsl(199 89% 48%)" };
-    }
-    if (unreadNotifCount > 0) {
-      return { icon: Bell, title: "Review account alerts", desc: `${unreadNotifCount > 99 ? "99+" : unreadNotifCount} unread update${unreadNotifCount === 1 ? "" : "s"}`, href: "/notification-center", accent: "hsl(45 93% 58%)" };
-    }
-    if (!isPlus) {
-      return { icon: Crown, title: "Review ZIVO Plus", desc: "Compare membership benefits", href: "/zivo-plus", accent: "hsl(45 93% 58%)" };
-    }
-    if (pinnedHrefs.length === 0) {
-      return { icon: Pin, title: "Pin important tools", desc: "Keep your best links near the top", href: "#", accent: "hsl(263 70% 58%)" };
-    }
-    return { icon: Sparkles, title: "Try the AI Trip Planner", desc: "Plan a full itinerary in 30s", href: "/ai-trip-planner", accent: "hsl(199 89% 48%)" };
-  }, [user, isEmailVerified, completion, activeOrdersCount, upcomingFlightCount, unreadNotifCount, isPlus, pinnedHrefs.length]);
-
   const VerifiedCheck = ({ size = 18 }: { size?: number }) => (
     <VerifiedBadge size={size} />
   );
@@ -1381,39 +1326,6 @@ export default function MorePage() {
   const latestHubActivityLabel = hubActivity[0]?.created_at
     ? formatActivityTime(hubActivity[0].created_at)
     : null;
-  const hubStatusItems = [
-    {
-      label: "Security",
-      value: isEmailVerified ? "Protected" : "Verify",
-      href: isEmailVerified ? "/account/security" : "/account/contact",
-      ariaLabel: isEmailVerified ? "Open account security" : "Open email verification",
-      icon: isEmailVerified ? ShieldCheck : AlertCircle,
-      className: isEmailVerified
-        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    },
-    {
-      label: "Activity",
-      value: hubActivitySyncAvailable ? latestHubActivityLabel || "Ready" : "Retry",
-      href: "/account/activity-log?filter=account_hub",
-      ariaLabel: "Open account hub activity log",
-      icon: hubActivitySyncAvailable ? History : AlertCircle,
-      className: hubActivitySyncAvailable
-        ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
-        : "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-    },
-    {
-      label: "Support",
-      value: isOnline ? "Online" : "Offline",
-      href: "/support/tickets",
-      ariaLabel: "Open support tickets",
-      icon: Headset,
-      className: isOnline
-        ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
-        : "bg-muted text-muted-foreground",
-    },
-  ];
-
   /* --- Account Hub Card --- */
   const renderProfileCard = () => (
     <motion.div
@@ -1490,31 +1402,6 @@ export default function MorePage() {
           ))}
         </div>
 
-        {!zivoOFMode && completion < 100 && (
-          <Link
-            to="/account/profile-edit"
-            aria-label={`Complete profile setup, ${completion}% done`}
-            onClick={() => trackRecent("/account/profile-edit")}
-            className="mt-3 block rounded-2xl border border-primary/15 bg-primary/5 p-3 active:scale-[0.99] transition-transform"
-          >
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <ListChecks className="h-4 w-4 text-primary" />
-                <p className="text-[12px] font-bold">Profile setup</p>
-              </div>
-              <p className="text-[12px] font-extrabold text-primary">{completion}%</p>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-background">
-              <motion.div
-                className="h-full rounded-full bg-primary"
-                initial={{ width: 0 }}
-                animate={{ width: `${completion}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              />
-            </div>
-          </Link>
-        )}
-
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Link
             to="/profile"
@@ -1534,22 +1421,6 @@ export default function MorePage() {
             <Pencil className="h-4 w-4" />
             Edit
           </Link>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-muted-foreground">
-          <span className="flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1">
-            <Wallet className="h-3.5 w-3.5 text-emerald-500" />
-            <span className={blurClass}>{formatCount(coinBalance) || "0"} coins</span>
-          </span>
-          <span className="flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1">
-            <Pin className="h-3.5 w-3.5 text-primary" />
-            {formatShortcutCount(pinnedHrefs.length, "pinned")}
-          </span>
-          {connectedProviders.length > 0 && (
-            <span className="min-w-0 truncate rounded-full bg-muted/50 px-2.5 py-1">
-              {connectedProviders.slice(0, 2).join(" + ")}
-            </span>
-          )}
         </div>
 
         {!isEmailVerified && (
@@ -1595,23 +1466,15 @@ export default function MorePage() {
         transition={{ delay: 0.05 }}
         role="region"
         aria-labelledby="more-quick-actions-title"
-        className="mb-5 rounded-[1.5rem] border border-border/55 bg-card/70 p-3"
+        className="mb-4 rounded-2xl border border-border/50 bg-card/70 p-2.5"
       >
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 id="more-quick-actions-title" className="text-[14px] font-extrabold">Quick actions</h2>
-            <p className="text-[10px] font-semibold text-muted-foreground">Common account tasks.</p>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5">
+            <h2 id="more-quick-actions-title" className="text-[12px] font-extrabold">Quick actions</h2>
+            <p className="text-[10px] font-medium text-muted-foreground">Common tasks.</p>
           </div>
-          <button
-            type="button"
-            onClick={focusDirectorySearch}
-            aria-label="Search More tools"
-            className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-foreground active:scale-95 transition-transform"
-          >
-            Search tools
-          </button>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
           {priorityActions.map((action, i) => {
             const badge = getActionBadge(action.href);
             return (
@@ -1620,10 +1483,10 @@ export default function MorePage() {
                 to={action.href}
                 aria-label={badge ? `Open ${action.label}, ${badge}` : `Open ${action.label}`}
                 onClick={() => trackRecent(action.href)}
-                className="group relative rounded-2xl bg-muted/35 p-3 active:scale-[0.97] transition-transform"
+                className="group relative rounded-xl bg-muted/35 p-2 active:scale-[0.97] transition-transform"
               >
                 {badge && (
-                  <span className="absolute right-2 top-2 max-w-[54px] truncate rounded-full bg-foreground px-1.5 py-0.5 text-center text-[9px] font-bold leading-none text-background">
+                  <span className="absolute right-1.5 top-1.5 max-w-[54px] truncate rounded-full bg-foreground px-1.5 py-0.5 text-center text-[9px] font-bold leading-none text-background">
                     {badge}
                   </span>
                 )}
@@ -1631,12 +1494,12 @@ export default function MorePage() {
                   initial={{ scale: 0.86, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: i * 0.03, type: "spring", stiffness: 300, damping: 22 }}
-                  className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl"
+                  className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-lg"
                   style={{ background: `${action.accent}14`, color: action.accent }}
                 >
-                  <action.icon className="h-[18px] w-[18px]" />
+                  <action.icon className="h-4 w-4" />
                 </motion.div>
-                <span className="block truncate text-[11px] font-extrabold leading-tight">{action.label}</span>
+                <span className="block truncate text-[10px] font-extrabold leading-tight">{action.label}</span>
               </Link>
             );
           })}
@@ -2126,33 +1989,6 @@ export default function MorePage() {
           {/* Profile Card */}
           {user && renderProfileCard()}
 
-          {user && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              role="region"
-              aria-labelledby="more-status-summary-title"
-              className="mb-4 grid grid-cols-3 gap-2"
-            >
-              <h2 id="more-status-summary-title" className="sr-only">Account status summary</h2>
-              {hubStatusItems.map((item) => (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  aria-label={`${item.ariaLabel}: ${item.value}`}
-                  onClick={() => trackRecent(item.href)}
-                  className="min-w-0 rounded-[1.25rem] border border-border/55 bg-card/75 px-2.5 py-3 shadow-sm active:scale-[0.97] transition-transform hover:bg-card"
-                >
-                  <div className={cn("mb-2 flex h-8 w-8 items-center justify-center rounded-xl", item.className)}>
-                    <item.icon className="h-4 w-4" />
-                  </div>
-                  <p className="truncate text-[12px] font-extrabold leading-tight">{item.value}</p>
-                  <p className="truncate text-[9px] font-semibold text-muted-foreground">{item.label}</p>
-                </Link>
-              ))}
-            </motion.div>
-          )}
-
           {/* Guest empty state */}
           {!user && (
             <motion.div
@@ -2176,7 +2012,7 @@ export default function MorePage() {
                   <Link
                     to="/login"
                     aria-label="Sign in to ZIVO"
-                    className="flex-1 py-2.5 rounded-full bg-primary text-primary-foreground font-bold text-[13px] text-center active:scale-95 transition-transform"
+                    className="flex-1 py-2.5 rounded-full bg-ig-gradient text-white font-bold text-[13px] text-center active:scale-95 transition-transform"
                   >
                     Sign in
                   </Link>
@@ -2197,94 +2033,6 @@ export default function MorePage() {
                   Or download the app
                 </Link>
               </div>
-            </motion.div>
-          )}
-
-          {/* Action center */}
-          {user && (suggestedAction || upcomingFlightCount > 0 || activeOrdersCount > 0) && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              role="region"
-              aria-labelledby="more-action-center-title"
-              className="mb-4 rounded-[1.5rem] border border-border/55 bg-card/70 p-3"
-            >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h2 id="more-action-center-title" className="text-[14px] font-extrabold">Action center</h2>
-                  <p className="text-[10px] font-semibold text-muted-foreground">What needs attention now.</p>
-                </div>
-                {(upcomingFlightCount > 0 || activeOrdersCount > 0) && (
-                  <span className="rounded-full bg-muted/60 px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
-                    {upcomingFlightCount + activeOrdersCount} active
-                  </span>
-                )}
-              </div>
-
-              {suggestedAction && !zivoOFMode && (
-                <Link
-                  to={suggestedAction.href.startsWith("/") ? suggestedAction.href : "#"}
-                  aria-label={`Open suggested action: ${suggestedAction.title}`}
-                  className="block"
-	                  onClick={(e) => {
-	                    if (suggestedAction.href === "#") {
-	                      e.preventDefault();
-	                      setExpandedSection(null);
-	                      setAllExpanded(false);
-	                      requestAnimationFrame(() => {
-	                        document.getElementById("more-directory")?.scrollIntoView({ behavior: "smooth", block: "start" });
-	                      });
-                    } else {
-                      trackRecent(suggestedAction.href);
-                    }
-                  }}
-                >
-                  <div className={cn(
-                    "flex items-center gap-3 rounded-[1.15rem] border-l-4 bg-muted/35 p-3 active:scale-[0.99] transition-transform",
-                    getAccentClasses(suggestedAction.accent).border,
-                  )}>
-                    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", getAccentClasses(suggestedAction.accent).bg)}>
-                      <suggestedAction.icon className={cn("h-5 w-5", getAccentClasses(suggestedAction.accent).text)} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-extrabold">{suggestedAction.title}</p>
-                      <p className="truncate text-[11px] font-medium text-muted-foreground">{suggestedAction.desc}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30" />
-                  </div>
-                </Link>
-              )}
-
-              {(upcomingFlightCount > 0 || activeOrdersCount > 0) && (
-                <div className={cn("grid gap-2", suggestedAction && !zivoOFMode ? "mt-2 grid-cols-2" : "grid-cols-2")}>
-                  <Link
-                    to="/my-trips"
-                    aria-label={`Open trips, ${upcomingFlightCount} upcoming`}
-                    onClick={() => trackRecent("/my-trips")}
-                    className="rounded-[1.15rem] bg-muted/35 p-3 active:scale-[0.97] transition-transform"
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <Plane className="h-4 w-4 text-sky-500" />
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Trips</p>
-                    </div>
-                    <p className="text-2xl font-extrabold leading-none">{upcomingFlightCount}</p>
-                    <p className="mt-1 truncate text-[10px] font-medium text-muted-foreground">Upcoming</p>
-                  </Link>
-                  <Link
-                    to="/grocery/orders"
-                    aria-label={`Open orders, ${activeOrdersCount} in progress`}
-                    onClick={() => trackRecent("/grocery/orders")}
-                    className="rounded-[1.15rem] bg-amber-500/10 p-3 active:scale-[0.97] transition-transform"
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <Package className="h-4 w-4 text-amber-500" />
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Orders</p>
-                    </div>
-                    <p className="text-2xl font-extrabold leading-none">{activeOrdersCount}</p>
-                    <p className="mt-1 truncate text-[10px] font-medium text-muted-foreground">In progress</p>
-                  </Link>
-                </div>
-              )}
             </motion.div>
           )}
 
@@ -2372,272 +2120,6 @@ export default function MorePage() {
             </motion.div>
           )}
 
-          {/* Notifications preview (last 3 unread) */}
-          {user && notifPreview.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              role="region"
-              aria-labelledby="more-latest-alerts-title"
-              className="mb-5"
-            >
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                    <Bell className="w-3.5 h-3.5 text-foreground" strokeWidth={1.8} />
-                  </div>
-                  <h2 id="more-latest-alerts-title" className="font-bold text-[15px]">Latest alerts</h2>
-                  <span className="text-[10px] text-muted-foreground/60 font-medium bg-muted/40 px-1.5 py-0.5 rounded-full">
-                    {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
-                  </span>
-                </div>
-                <Link to="/notification-center" aria-label="See all latest alerts" className="text-[11px] font-semibold text-primary">
-                  See all
-                </Link>
-              </div>
-              <div className="space-y-1.5">
-                {notifPreview.map((n) => (
-                  <Link
-                    key={n.id}
-                    to={n.action_url || "/notification-center"}
-                    aria-label={`Open alert: ${formatNotificationText(n.title) || "Notification"}`}
-                    className="zivo-card-organic flex items-start gap-2.5 p-3 active:scale-[0.98] transition-transform"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-foreground mt-1.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[12px] leading-tight truncate">{n.title}</p>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
-                        {formatNotificationText(n.body)}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground/30 shrink-0 mt-0.5" />
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Directory */}
-          <section
-            id="more-directory"
-            role="region"
-            aria-labelledby="more-directory-title"
-            className="mb-4 rounded-[1.75rem] border border-border/60 bg-card p-3 shadow-sm [scroll-margin-top:88px]"
-          >
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <h2 id="more-directory-title" className="truncate text-[15px] font-extrabold">Directory</h2>
-                  <span className="shrink-0 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-extrabold text-background">
-                    {formatToolCount(totalLinks)}
-                  </span>
-                </div>
-                <p className="truncate text-[11px] font-medium text-muted-foreground">
-                  Search settings, support, orders, travel, and account tools.
-                </p>
-              </div>
-              {!searchResults && (
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="rounded-full bg-muted/55 px-2 py-1 text-[10px] font-bold text-muted-foreground">
-                    {formatSectionCount(sections.length)}
-                  </span>
-                  <button type="button"
-                    onClick={toggleAll}
-                    aria-pressed={allExpanded}
-                    aria-label={allExpanded ? "Collapse all directory sections" : "Expand all directory sections"}
-                    className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-foreground active:scale-95 transition-transform"
-                  >
-                    {allExpanded ? "Collapse" : "All"}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div role="search" aria-label="More directory search" className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                ref={directorySearchRef}
-                type="search"
-                aria-label="Search More tools"
-                placeholder="Search More"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onBlur={() => recordSearch(search)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    recordSearch(search);
-                    if (searchResults?.length === 1) {
-                      e.preventDefault();
-                      openDirectoryResult(searchResults[0].link);
-                    }
-                  }
-                  if (e.key === "Escape") clearDirectorySearch();
-                }}
-                className="h-11 rounded-2xl border-border/50 bg-muted/45 pl-9 pr-16 text-sm"
-              />
-              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
-                {search && (
-                  <button type="button"
-                    onClick={clearDirectorySearch}
-                    aria-label={`Clear search for ${search}`}
-                    className="rounded-full p-1 hover:bg-muted active:scale-90 transition-transform"
-                  >
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                )}
-                {speechRef && (
-                  <button type="button"
-                    onClick={startVoiceSearch}
-                    aria-label="Voice search"
-                    className={cn(
-                      "rounded-full p-1.5 active:scale-90 transition-transform",
-                      isListening ? "bg-rose-500/15" : "hover:bg-muted",
-                    )}
-                  >
-                    <Mic className={cn(
-                      "h-4 w-4",
-                      isListening ? "text-rose-500 animate-pulse" : "text-muted-foreground",
-                    )} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {!search && searchHistory.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span
-                  title={formatSearchCount(searchHistory.length)}
-                  className="mr-0.5 max-w-[8.5rem] truncate text-[10px] font-bold uppercase tracking-wide text-muted-foreground/70"
-                >
-                  {formatSearchCount(searchHistory.length)}
-                </span>
-                {searchHistory.slice(0, 4).map((q) => (
-                  <button type="button"
-                    key={q}
-                    aria-label={`Search for ${q}`}
-                    title={q}
-                    onClick={() => {
-                      setSearch(q);
-                      recordSearch(q);
-                      requestAnimationFrame(() => directorySearchRef.current?.focus());
-                    }}
-                    className="max-w-[9rem] truncate rounded-full bg-muted/60 px-2.5 py-1 text-[11px] font-semibold text-foreground/80 active:scale-95 transition"
-                  >
-                    {q}
-                  </button>
-                ))}
-                <button type="button"
-                  onClick={() => {
-                    setSearchHistory([]);
-                    persistStoredStringList(SEARCH_HISTORY_KEY, [], 5);
-                    toast.success("Search history cleared");
-                  }}
-                  aria-label={`Clear ${formatSearchCount(searchHistory.length)}`}
-                  className="px-1 text-[10px] font-bold text-muted-foreground/70 hover:text-foreground transition-colors"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
-
-            {!searchResults && (
-              <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
-                {sections.map((s) => (
-                  <button type="button"
-                    key={s.title}
-                    aria-pressed={isDirectoryChipActive(s.title)}
-                    aria-label={`${isDirectoryChipActive(s.title) ? "Showing" : "Open"} ${s.title}, ${formatToolCount(s.links.length)}`}
-                    title={`${s.title} · ${formatToolCount(s.links.length)}`}
-                    onClick={() => {
-                      setExpandedSection(s.title);
-                      setAllExpanded(false);
-                      requestAnimationFrame(() => {
-                        const el = document.getElementById(`more-section-${s.title.replace(/\s+/g, "-").toLowerCase()}`);
-                        el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      });
-                    }}
-                    className={cn(
-                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-95",
-                      isDirectoryChipActive(s.title)
-                        ? "bg-foreground text-background"
-                        : "bg-muted/60 text-muted-foreground",
-                    )}
-                  >
-                    <s.icon className="h-3 w-3" />
-                    <span className="max-w-[8.5rem] truncate">{s.title}</span>
-                    <span className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[9px] leading-none",
-                      isDirectoryChipActive(s.title)
-                        ? "bg-background/20 text-background"
-                        : "bg-background/70 text-muted-foreground",
-                    )}>
-                      {s.links.length}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {!searchResults && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="mt-2 flex items-center justify-between gap-2 rounded-2xl bg-muted/30 px-3 py-2"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <Compass className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <p className="truncate text-[11px] font-extrabold text-foreground">
-                    {activeDirectoryLabel}
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full bg-background/75 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                  {formatToolCount(activeDirectoryCount)}
-                </span>
-              </div>
-            )}
-
-            {!searchResults && (
-              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-3">
-                <div className="flex items-center gap-2">
-                  <button type="button"
-                    onClick={() => {
-                      const next = density === "compact" ? "comfortable" : "compact";
-                      setDensity(next);
-                      try { window.localStorage.setItem(DENSITY_KEY, next); } catch {}
-                      void logAccountHubActivity("more_preference_density", `${location.pathname}${location.search}#density-${next}`);
-                      toast.message(`Directory set to ${next}`);
-                    }}
-                    aria-pressed={density === "compact"}
-                    aria-label={`Directory density is ${density}. Switch to ${density === "compact" ? "comfortable" : "compact"} view`}
-                    className="flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
-                  >
-                    <Layers className="h-3.5 w-3.5" />
-                    {density === "compact" ? "Compact" : "Comfort"}
-                  </button>
-                  <button type="button"
-                    onClick={togglePrivacy}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold active:scale-95 transition-transform",
-                      privacyMode ? "bg-rose-500/10 text-rose-500" : "bg-muted/50 text-muted-foreground",
-                    )}
-                    aria-pressed={privacyMode}
-                    aria-label={privacyMode ? "Turn privacy mode off" : "Turn privacy mode on"}
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    {privacyMode ? "Private" : "Privacy"}
-                  </button>
-                </div>
-                <button type="button"
-                  onClick={() => user ? setShowShareProfile(true) : shareApp()}
-                  className="flex items-center gap-1.5 rounded-full bg-muted/50 px-2.5 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
-                  aria-label={user ? "Share your profile" : "Share ZIVO"}
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  {user ? "Profile" : "Share"}
-                </button>
-              </div>
-            )}
-          </section>
 
           {/* Shortcuts */}
           {!searchResults && shortcutLinks.length > 0 && (

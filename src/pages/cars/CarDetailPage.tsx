@@ -63,7 +63,7 @@ export default function CarDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-16 container mx-auto px-4">
+        <main className="pt-safe-header pb-16 container mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <Skeleton className="aspect-[16/10] rounded-xl" />
@@ -82,7 +82,7 @@ export default function CarDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-16 container mx-auto px-4 text-center">
+        <main className="pt-safe-header pb-16 container mx-auto px-4 text-center">
           <Car className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h1 className="text-2xl font-bold mb-2">Vehicle Not Found</h1>
           <p className="text-muted-foreground mb-4">This vehicle is no longer available.</p>

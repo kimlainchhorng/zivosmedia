@@ -171,7 +171,7 @@ export function useCarRentalVehicles(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<CarRentalVehicleDraft & { status: CarRentalVehicleStatus; current_odometer: number }>) => {
+  const update = useCallback(async (id: string, patch: Partial<CarRentalVehicleDraft & { status: CarRentalVehicleStatus; current_odometer: number }>): Promise<boolean> => {
     setSaving(true);
     setError(null);
     setVehicles((prev) => prev.map((v) => (v.id === id ? ({ ...v, ...patch } as CarRentalVehicle) : v)));
@@ -180,16 +180,20 @@ export function useCarRentalVehicles(storeId: string | undefined) {
     });
     if (err) {
       console.error("[useCarRentalVehicles] update failed", err);
-      setError("Couldn't save changes — refreshing.");
-      await load();
-    } else if (data?.vehicle) {
+      await load(); // roll the optimistic patch back to server truth …
+      setError("Couldn't save changes — please retry."); // … then set the message (load() can clear it)
+      setSaving(false);
+      return false;
+    }
+    if (data?.vehicle) {
       const updated = data.vehicle as CarRentalVehicle;
       setVehicles((prev) => prev.map((v) => (v.id === id ? updated : v)));
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
     setError(null);
     const prev = vehicles;
@@ -201,8 +205,11 @@ export function useCarRentalVehicles(storeId: string | undefined) {
       console.error("[useCarRentalVehicles] delete failed", err);
       setError("Couldn't delete vehicle.");
       setVehicles(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [vehicles]);
 
   return { vehicles, loading, saving, error, create, update, remove, refresh: load };

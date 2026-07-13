@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StorageManagerPage - Telegram-style data and storage controls.
  * Preferences are device-local today and exposed through useChatStoragePrefs so
  * chat media surfaces can share one policy.
@@ -374,14 +374,14 @@ export default function StorageManagerPage() {
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-20 border-b border-border/40 bg-background/90 px-3 py-3 pt-safe backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={goBack} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted/70" aria-label="Back">
+          <button type="button" onClick={goBack} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted/70 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Back">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-bold leading-tight">Data and Storage</h1>
             <p className="text-xs text-muted-foreground">{refreshing ? "Refreshing cache" : `${formatBytes(effectiveUsageBytes)} used on this device`}</p>
           </div>
-          <button type="button" onClick={resetPrefs} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted/70" aria-label="Reset storage settings">
+          <button type="button" onClick={resetPrefs} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted/70 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Reset storage settings">
             <RotateCcw className="h-4 w-4" />
           </button>
         </div>
@@ -423,7 +423,8 @@ export default function StorageManagerPage() {
                     key={bucket}
                     type="button"
                     onClick={() => toggleBucket(bucket)}
-                    className={`min-h-[82px] rounded-[8px] border px-3 py-3 text-left transition ${
+                    aria-pressed={selected}
+                    className={`min-h-[82px] rounded-[8px] border px-3 py-3 text-left transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       selected ? "border-primary bg-primary/10" : "border-border/60 bg-background hover:bg-muted/50"
                     }`}
                   >
@@ -445,7 +446,7 @@ export default function StorageManagerPage() {
               <button
                 type="button"
                 onClick={() => setSelectedBuckets(new Set(ALL_CACHE_BUCKETS))}
-                className="h-10 rounded-full border border-border px-4 text-sm font-semibold"
+                className="h-10 rounded-full border border-border px-4 text-sm font-semibold transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Select all
               </button>
@@ -453,7 +454,7 @@ export default function StorageManagerPage() {
                 type="button"
                 onClick={clearSelected}
                 disabled={clearing || selectedBuckets.size === 0}
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-destructive px-4 text-sm font-bold text-destructive-foreground disabled:opacity-50"
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-destructive px-4 text-sm font-bold text-destructive-foreground disabled:opacity-50 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Trash2 className="h-4 w-4" />
                 {clearing ? "Clearing" : `Clear ${formatBytes(selectedClearableTotal)}`}
@@ -488,7 +489,7 @@ export default function StorageManagerPage() {
                 type="button"
                 onClick={clearLockedPreviews}
                 disabled={clearingLockedPreviews || lockedCacheTotals.previewEntries === 0}
-                className="h-9 rounded-full border border-border px-3 text-xs font-bold disabled:opacity-50"
+                className="h-9 rounded-full border border-border px-3 text-xs font-bold disabled:opacity-50 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {clearingLockedPreviews ? "Clearing" : "Clear previews"}
               </button>
@@ -503,8 +504,9 @@ export default function StorageManagerPage() {
                 key={option.value}
                 type="button"
                 onClick={() => setPrefs((current) => ({ ...current, keepMedia: option.value }))}
-                className={`min-h-[64px] rounded-[8px] border px-2 py-2 text-center transition ${
-                  prefs.keepMedia === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"
+                aria-pressed={prefs.keepMedia === option.value}
+                className={`min-h-[64px] rounded-[8px] border px-2 py-2 text-center transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  prefs.keepMedia === option.value ? "border-primary bg-ig-gradient text-white" : "border-border bg-background"
                 }`}
               >
                 <span className="block text-xs font-bold">{option.label}</span>
@@ -524,7 +526,8 @@ export default function StorageManagerPage() {
                   key={item.value}
                   type="button"
                   onClick={() => setSelectedConnection(item.value)}
-                  className={`h-9 rounded-[7px] text-sm font-bold transition ${
+                  aria-pressed={selectedConnection === item.value}
+                  className={`h-9 rounded-[7px] text-sm font-bold transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     selectedConnection === item.value ? "bg-background shadow-sm" : "text-muted-foreground"
                   }`}
                 >

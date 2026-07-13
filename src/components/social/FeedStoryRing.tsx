@@ -187,18 +187,23 @@ export default function FeedStoryRing() {
 
   return (
     <>
-      <div className="zivo-feed-story-strip mx-2 mt-3 flex gap-3 overflow-x-auto px-1.5 py-1.5 scrollbar-none lg:gap-2 lg:px-1 lg:py-1">
+      <div className="mx-3 mt-3 overflow-x-auto rounded-2xl border border-border/30 bg-background/92 px-2.5 py-3 shadow-sm scrollbar-none">
+        <div className="mb-2.5 flex items-center justify-between px-1.5">
+          <span className="text-[13px] font-semibold text-foreground">Stories</span>
+          <span className="text-[11px] font-medium text-muted-foreground/60">24h</span>
+        </div>
+        <div className="zivo-feed-story-strip flex gap-3 overflow-x-auto px-1 py-1 scrollbar-none lg:gap-2">
         {/* Your story (Instagram-style) */}
         <button type="button"
           onClick={handleOwnRingClick}
-          className="group flex w-[76px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 transition-transform active:scale-95 lg:w-[66px]"
+          className="group flex w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-xl border border-border/30 bg-background/72 px-2 py-2 transition-transform active:scale-95 lg:w-[76px]"
           aria-label={hasMyStory ? "View or add to your story" : "Create your story"}
         >
           <div className="relative">
             <div className={cn(
               "h-[64px] w-[64px] rounded-full p-[2.5px] box-border lg:h-14 lg:w-14",
               hasMyStory
-                ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_14px_-3px_hsl(160_84%_45%/0.6)]"
+                ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))]"
                 : "zivo-social-nav-pill"
             )}>
               <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border-2 border-card bg-card shadow-inner">
@@ -237,7 +242,7 @@ export default function FeedStoryRing() {
                 <Plus className="h-3 w-3 text-white" strokeWidth={3} />
               )}
             </div>
-            <span className="zivo-social-chip absolute -left-1 -top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-primary">
+            <span className="zivo-social-chip absolute -left-1 -top-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-primary">
               {hasMyStory ? "Live" : "Add"}
             </span>
           </div>
@@ -248,10 +253,10 @@ export default function FeedStoryRing() {
 
         {totalStoryCount > 0 && (
           <div
-            className="zivo-social-module-tile flex w-[132px] shrink-0 flex-col justify-center rounded-2xl px-3 py-2 text-left lg:w-[118px]"
+            className="flex w-[152px] shrink-0 flex-col justify-center rounded-xl border border-border/30 bg-background/72 px-3 py-3 text-left lg:w-[132px]"
             aria-label={`${unseenStoryCount} unseen ${unseenStoryCount === 1 ? "story" : "stories"} across ${otherGroups.length} creators. ${freshStoryCount} fresh this hour.`}
           >
-            <span className="mb-1 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-primary">
+            <span className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
               <Radio className="h-3 w-3" aria-hidden="true" />
               Story radar
             </span>
@@ -278,15 +283,15 @@ export default function FeedStoryRing() {
         {otherGroups.length === 0 && (
           <a
             href="/explore"
-            className="group flex w-[92px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 text-center transition-transform active:scale-95 lg:w-[76px]"
+            className="group flex w-[92px] shrink-0 flex-col items-center gap-1.5 rounded-xl border border-border/30 bg-background/72 px-2 py-2 text-center transition-transform active:scale-95 lg:w-[82px]"
             aria-label="Find creators with stories"
           >
-            <div className="zivo-social-nav-pill relative flex h-[64px] w-[64px] items-center justify-center rounded-full p-[2.5px] transition-transform group-hover:-translate-y-0.5 lg:h-14 lg:w-14">
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-card text-primary">
+            <div className="relative flex h-[64px] w-[64px] items-center justify-center rounded-full p-[2.5px] bg-[conic-gradient(from_140deg,hsl(263_70%_60%),hsl(220_80%_65%),hsl(290_70%_62%),hsl(263_70%_60%))] transition-transform group-hover:-translate-y-0.5 lg:h-14 lg:w-14">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-card text-purple-500">
                 <UserRoundPlus className="h-5 w-5" strokeWidth={2.25} />
               </div>
             </div>
-            <span className="max-w-[82px] text-[11px] font-bold leading-tight text-primary lg:max-w-[68px] lg:text-[10px]">
+            <span className="max-w-[82px] text-[11px] font-bold leading-tight text-purple-500 lg:max-w-[68px] lg:text-[10px]">
               Find stories
             </span>
           </a>
@@ -299,14 +304,14 @@ export default function FeedStoryRing() {
           return (
             <button type="button"
               key={g.userId}
-              className="group flex w-[76px] shrink-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 transition-transform active:scale-95 lg:w-[66px]"
+              className="group flex w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-xl border border-border/30 bg-background/72 px-2 py-2 transition-transform active:scale-95 lg:w-[76px]"
               onClick={() => handleRingClick(g)}
               aria-label={`${g.userName}'s ${storyCount === 1 ? "story" : `${storyCount} stories`}${hasUnviewed ? ", new" : ""}`}
             >
               <div className={cn(
                 "relative h-[64px] w-[64px] rounded-full p-[2.5px] lg:h-14 lg:w-14",
                 hasUnviewed
-                  ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_12px_-3px_hsl(160_84%_45%/0.55)]"
+                  ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))]"
                   : "zivo-social-nav-pill"
               )}>
                 <div className="h-full w-full overflow-hidden rounded-full border-2 border-card bg-card shadow-inner">
@@ -323,7 +328,7 @@ export default function FeedStoryRing() {
                   </Avatar>
                 </div>
                 {hasUnviewed && (
-                  <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-primary-foreground shadow-lg">
+                  <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground shadow-sm">
                     New
                   </span>
                 )}
@@ -342,6 +347,7 @@ export default function FeedStoryRing() {
             </button>
           );
         })}
+        </div>
       </div>
 
       {/* Own-ring action sheet: View or Add */}

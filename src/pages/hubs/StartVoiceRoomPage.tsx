@@ -7,10 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import HubFormShell, { Field, fieldClass } from "@/components/hubs/HubFormShell";
 import Mic from "lucide-react/dist/esm/icons/mic";
-import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 
 const dbFrom = (table: string): unknown =>
   (supabase as unknown as { from: (t: string) => unknown }).from(table);
@@ -43,20 +41,24 @@ export default function StartVoiceRoomPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4 max-w-md">
-        <h1 className="text-2xl font-bold mb-1 inline-flex items-center gap-2"><Mic className="w-6 h-6 text-primary" />Start a voice room</h1>
-        <p className="text-sm text-muted-foreground mb-6">Anyone can listen; you control who speaks.</p>
-        <div className="space-y-3">
-          <input autoFocus value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="What's the topic?" className="w-full px-3 py-3 rounded-xl bg-muted/40 border border-border/30 text-base font-medium outline-none focus:ring-2 focus:ring-primary/30" />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add a description (optional)" rows={3} className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
-          <button type="button" onClick={() => void start()} disabled={busy || !topic} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl text-white font-bold text-base disabled:opacity-50 bg-foreground">
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "🎙 Go live"}
-          </button>
-        </div>
-      </main>
-      <Footer />
-    </div>
+    <HubFormShell
+      backTo="/voice-rooms"
+      backLabel="Voice rooms"
+      badge="Go live"
+      badgeIcon={Mic}
+      title="Start a voice room"
+      subtitle="Anyone can listen; you control who speaks."
+      submitLabel="Go live"
+      onSubmit={() => void start()}
+      busy={busy}
+      canSubmit={!!topic}
+    >
+      <Field label="Topic" htmlFor="vr-topic" required>
+        <input id="vr-topic" autoFocus value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="What's the topic?" className={fieldClass} />
+      </Field>
+      <Field label="Description" htmlFor="vr-desc" optional>
+        <textarea id="vr-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add a description" rows={3} className={`${fieldClass} resize-none`} />
+      </Field>
+    </HubFormShell>
   );
 }

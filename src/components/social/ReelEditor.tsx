@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReelEditor — In-app video editor with trim, text overlay, filters, speed
  */
 import { useState, useRef, useEffect } from "react";
@@ -186,7 +186,7 @@ export default function ReelEditor({ videoUrl, onSave, onClose }: ReelEditorProp
                   onClick={() => setFilter(i)}
                   className={cn(
                     "shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all active:scale-95",
-                    filter === i ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" : "bg-white/10 text-white/70 hover:bg-white/14"
+                    filter === i ? "bg-ig-gradient text-white shadow-lg shadow-primary/25" : "bg-white/10 text-white/70 hover:bg-white/14"
                   )}
                   aria-pressed={filter === i}
                 >
@@ -204,7 +204,7 @@ export default function ReelEditor({ videoUrl, onSave, onClose }: ReelEditorProp
                   onClick={() => setSpeed(s.value)}
                   className={cn(
                     "rounded-full px-5 py-2.5 text-sm font-extrabold transition-all active:scale-95",
-                    speed === s.value ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" : "bg-white/10 text-white/70 hover:bg-white/14"
+                    speed === s.value ? "bg-ig-gradient text-white shadow-lg shadow-primary/25" : "bg-white/10 text-white/70 hover:bg-white/14"
                   )}
                   aria-pressed={speed === s.value}
                 >

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 
 /**
  * NavigationProgressBar — slim 2px gradient bar that animates at the top of
@@ -53,6 +54,12 @@ export default function NavigationProgressBar() {
     };
   }, [pathname, search]);
 
+  // This bar lives outside the `.zivo-travel-3d` scope (app root, fixed top),
+  // so it can't inherit travel tokens — pick the brand gradient by host. On the
+  // travel host the IG pink/purple social gradient is an off-brand flash, so use
+  // the sky/blue travel gradient instead (don't hide it — the feedback is useful).
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
+
   return (
     <div
       aria-hidden
@@ -60,14 +67,19 @@ export default function NavigationProgressBar() {
       style={{ opacity: visible ? 1 : 0, transition: "opacity 220ms ease" }}
     >
       <div
-        className="h-full bg-ig-gradient"
+        className={isTravel ? "h-full" : "h-full bg-ig-gradient"}
         style={{
           width: `${progress}%`,
           transition:
             progress === 0
               ? "none"
               : "width 240ms cubic-bezier(0.4, 0, 0.2, 1)",
-          boxShadow: "0 0 6px rgba(255, 76, 158, 0.45)",
+          ...(isTravel
+            ? {
+                backgroundImage: "linear-gradient(90deg, #0ea5e9, #3b82f6, #22d3ee)",
+                boxShadow: "0 0 6px rgba(14, 165, 233, 0.45)",
+              }
+            : { boxShadow: "0 0 6px rgba(255, 76, 158, 0.45)" }),
         }}
       />
     </div>

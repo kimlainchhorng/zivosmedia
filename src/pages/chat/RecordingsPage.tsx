@@ -166,7 +166,7 @@ export default function RecordingsPage() {
       <header className="sticky top-0 z-10 bg-background/85 backdrop-blur-xl border-b border-border/40 px-3 py-2 flex items-center gap-2">
         <button type="button"
           onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/chat"))}
-          className="p-2 -ml-2 rounded-full hover:bg-muted"
+          className="p-2 -ml-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Back"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -212,7 +212,7 @@ export default function RecordingsPage() {
                     type="button"
                     onClick={() => play(r)}
                     disabled={busyId === r.id}
-                    className="p-2 rounded-full hover:bg-muted disabled:opacity-50"
+                    className="p-2 rounded-full hover:bg-muted disabled:opacity-50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Play"
                   >
                     {busyId === r.id ? (
@@ -224,7 +224,7 @@ export default function RecordingsPage() {
                   <button
                     type="button"
                     onClick={() => download(r)}
-                    className="p-2 rounded-full hover:bg-muted"
+                    className="p-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Download"
                   >
                     <Download className="w-4 h-4" />
@@ -232,7 +232,7 @@ export default function RecordingsPage() {
                   <button
                     type="button"
                     onClick={() => remove(r)}
-                    className="p-2 rounded-full hover:bg-destructive/10 text-destructive"
+                    className="p-2 rounded-full hover:bg-destructive/10 text-destructive transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Delete"
                   >
                     <Trash2 className="w-4 h-4" />

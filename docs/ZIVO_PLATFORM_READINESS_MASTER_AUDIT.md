@@ -40,7 +40,7 @@ Ran each script independently (the `platform:audit` chain stops at first failure
 | Script | Why it fails | Owner / follow-up PR |
 |--------|--------------|----------------------|
 | `qa:sso-auth-contracts` | `src/pages/Login.tsx` missing `handleOAuthSignIn`, `signInWithOAuth`, `provider:"google"/"apple"`, `redirectTo: getEmailRedirectTo()`; e2e `auth-sso-role-matrix.spec.ts` missing SSO-callback/role-redirect coverage | **PR 8** (Continue with Zivosmedia entrypoints) |
-| `qa:legal-policy-contracts` | `BusinessLandingPage.tsx` (WIP) missing `marketing-interest-submit` + `/legal/privacy`/`/legal/terms` links; legal pages missing `privacy@hizivo.com` string; `privacy-request-submit` fn missing `withSecurity(...)` wrapper | **PR 6/29** (business landing + legal polish) |
+| `qa:legal-policy-contracts` | `BusinessLandingPage.tsx` (WIP) missing `marketing-interest-submit` + `/legal/privacy`/`/legal/terms` links; legal pages missing `privacy@zivosmedia.com` string; `privacy-request-submit` fn missing `withSecurity(...)` wrapper | **PR 6/29** (business landing + legal polish) |
 | `qa:storage-media-contracts` | `supabase/functions/shop-ops-record-manage/index.ts` missing `withSecurity("shop-ops-record-manage")` wrapper | **PR 30** (release-gate cleanup) |
 
 **27 passing** include: platform-readiness matrix, workflow coverage/test-plan, frontend-visual, native-app, push-notification, email-marketing, payments-refunds, payouts-earnings, api-operations, database-storage, security-anti-abuse, ads-monetization, customer-booking, shop-owner, client-staff contracts, safe-area, perf media report, and the two secret scanners (`security:check-secrets`, `…token-fragments` — **no secrets leaked**).

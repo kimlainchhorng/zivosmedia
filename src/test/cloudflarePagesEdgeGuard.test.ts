@@ -20,6 +20,121 @@ const cloudflareEnv = {
   ZIVO_MEDIA: {},
 };
 
+const zivosmediaIndexHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <title>ZIVO - Free Super-App</title>
+    <meta name="description" content="All-in-one free app for travel, social, shop, jobs, and creators." />
+    <meta name="keywords" content="ZIVO, super app, social network" />
+    <meta name="application-name" content="ZIVO" />
+    <meta name="apple-mobile-web-app-title" content="ZIVO" />
+    <meta name="apple-itunes-app" content="app-id=6759480121, app-argument=https://zivosmedia.com" />
+    <meta name="theme-color" content="#0D0D0F" />
+    <link rel="canonical" href="https://zivosmedia.com/" />
+    <meta property="og:title" content="ZIVO" />
+    <meta property="og:url" content="https://zivosmedia.com/" />
+    <meta property="og:image" content="https://zivosmedia.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://zivosmedia.com/og-image.png" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"ZIVO","url":"https://zivosmedia.com"}</script>
+  </head>
+  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+</html>`;
+
+const cloudflareHtmlEnv = {
+  ...cloudflareEnv,
+  ASSETS: {
+    fetch: async () =>
+      new Response(zivosmediaIndexHtml, {
+        headers: {
+          "content-length": String(zivosmediaIndexHtml.length),
+          "content-type": "text/html; charset=utf-8",
+        },
+      }),
+  },
+};
+
+type TestHtmlElement = {
+  append(content: string, options?: { html?: boolean }): void;
+  remove(): void;
+};
+
+type TestHtmlHandler = {
+  element(element: TestHtmlElement): void | Promise<void>;
+};
+
+function testTagAttribute(tag: string, name: string) {
+  const match = tag.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
+  return (match?.[2] || match?.[3] || match?.[4] || "").toLowerCase();
+}
+
+function removeHtmlForSelector(html: string, selector: string) {
+  if (selector === "title") {
+    return html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "");
+  }
+  if (selector === 'link[rel="canonical"]') {
+    return html.replace(/<link\b[^>]*>/gi, (tag) =>
+      testTagAttribute(tag, "rel") === "canonical" ? "" : tag,
+    );
+  }
+  if (selector === 'link[rel="alternate"][hreflang]') {
+    return html.replace(/<link\b[^>]*>/gi, (tag) =>
+      testTagAttribute(tag, "rel") === "alternate" && testTagAttribute(tag, "hreflang") ? "" : tag,
+    );
+  }
+  if (selector === 'script[type="application/ld+json"]') {
+    return html.replace(
+      /<script\b(?=[^>]*\btype\s*=\s*["']application\/ld\+json["'])[^>]*>[\s\S]*?<\/script>/gi,
+      "",
+    );
+  }
+
+  const metaName = selector.match(/^meta\[name="([^"]+)"\]$/i)?.[1]?.toLowerCase();
+  if (metaName) {
+    return html.replace(/<meta\b[^>]*>/gi, (tag) => (testTagAttribute(tag, "name") === metaName ? "" : tag));
+  }
+
+  const metaProperty = selector.match(/^meta\[property="([^"]+)"\]$/i)?.[1]?.toLowerCase();
+  if (metaProperty) {
+    return html.replace(/<meta\b[^>]*>/gi, (tag) =>
+      testTagAttribute(tag, "property") === metaProperty ? "" : tag,
+    );
+  }
+
+  return html;
+}
+
+class TestHTMLRewriter {
+  private handlers: { selector: string; handler: TestHtmlHandler }[] = [];
+
+  on(selector: string, handler: TestHtmlHandler) {
+    this.handlers.push({ selector, handler });
+    return this;
+  }
+
+  async transform(response: Response) {
+    let html = await response.text();
+
+    for (const { selector, handler } of this.handlers) {
+      await handler.element({
+        append(content) {
+          if (selector !== "head") return;
+          html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${content}\n</head>`) : `${html}\n${content}`;
+        },
+        remove() {
+          html = removeHtmlForSelector(html, selector);
+        },
+      });
+    }
+
+    const headers = new Headers(response.headers);
+    headers.delete("content-length");
+    return new Response(html, { status: response.status, statusText: response.statusText, headers });
+  }
+}
+
+(globalThis as typeof globalThis & { HTMLRewriter: typeof TestHTMLRewriter }).HTMLRewriter = TestHTMLRewriter;
+
 function request(path: string, init: RequestInit = {}) {
   const host = String(init.headers?.["host"] ?? "zivosmedia.com");
   return new Request(`https://${host}${path}`, {
@@ -149,6 +264,75 @@ describe("Cloudflare Pages edge guard", () => {
     expect(loginDashboard.status).toBe(302);
     expect(loginDashboard.headers.get("location")).toBe(expected);
     expect(accountLogin.status).toBe(200);
+  });
+
+  it("rewrites static HTML SEO for public Zivo Travel routes before React runs", async () => {
+    const response = await cloudflareWorker.fetch(
+      request("/flights", { headers: { host: "zivostravel.com" } }),
+      cloudflareHtmlEnv as any,
+    );
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-length")).toBeNull();
+    expect(response.headers.get("content-security-policy")).toContain(
+      "report-uri https://xbllvmpomorawkcrtbcq.supabase.co/functions/v1/csp-report",
+    );
+    expect(html).toContain("<title>Zivo Travel Flights | Search and Book Flights</title>");
+    expect(html).toContain('content="Search flights, compare fares, and book secure trips through Zivo Travel."');
+    expect(html).toContain('rel="canonical" href="https://zivostravel.com/flights"');
+    expect(html).toContain('property="og:image" content="https://zivostravel.com/og-zivo-travel.jpg"');
+    expect(html).toContain('"name":"Zivo Travel"');
+    expect(html).not.toContain("https://zivosmedia.com/og-image.png");
+    expect(html).not.toContain('app-argument=https://zivosmedia.com');
+  });
+
+  it("marks private or result Zivo Travel HTML as noindex", async () => {
+    const response = await cloudflareWorker.fetch(
+      request("/flights/results?from=PNH", { headers: { host: "zivostravel.com" } }),
+      cloudflareHtmlEnv as any,
+    );
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain('name="robots" content="noindex,nofollow"');
+    expect(html).toContain('rel="canonical" href="https://zivostravel.com/flights/results"');
+  });
+
+  it("serves a deeper public Zivo Travel sitemap without private funnels", async () => {
+    const response = await cloudflareWorker.fetch(
+      request("/sitemap.xml", { headers: { host: "zivostravel.com" } }),
+      cloudflareEnv as any,
+    );
+    const xml = await response.text();
+    const locs = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => match[1]);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/xml");
+    expect(locs.length).toBeGreaterThan(80);
+    expect(new Set(locs).size).toBe(locs.length);
+    expect(locs.every((loc) => loc.startsWith("https://zivostravel.com/"))).toBe(true);
+    expect(xml).toContain("<loc>https://zivostravel.com/flights/phnom-penh-to-bangkok</loc>");
+    expect(xml).toContain("<loc>https://zivostravel.com/flights/new-york-to-paris</loc>");
+    expect(xml).toContain("<loc>https://zivostravel.com/flights/to/siem-reap</loc>");
+    expect(xml).toContain("<loc>https://zivostravel.com/flights/cities/bangkok</loc>");
+    expect(xml).toContain("<loc>https://zivostravel.com/destinations/siem-reap/hotels</loc>");
+    expect(xml).toContain("<loc>https://zivostravel.com/destinations/siem-reap/activities</loc>");
+    expect(xml).not.toContain("https://zivostravel.com/wallet");
+    expect(xml).not.toContain("https://zivostravel.com/payment-methods");
+    expect(xml).not.toContain("https://zivostravel.com/my-trips");
+    expect(xml).not.toContain("https://zivostravel.com/flights/results");
+    expect(xml).not.toContain("https://zivostravel.com/travel/checkout");
+  });
+
+  it("does not rewrite zivosmedia HTML into travel metadata", async () => {
+    const response = await cloudflareWorker.fetch(request("/", { headers: { host: "zivosmedia.com" } }), cloudflareHtmlEnv as any);
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("<title>ZIVO - Free Super-App</title>");
+    expect(html).toContain('href="https://zivosmedia.com/"');
+    expect(html).not.toContain("Zivo Travel Flights");
   });
 
   it("blocks common secret and scanner paths before hitting static assets", async () => {

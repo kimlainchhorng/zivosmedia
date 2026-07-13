@@ -44,6 +44,20 @@ export default function BuildROHub({
     [recent],
   );
   const lastOpened = recent[0];
+  const handleSmsOpenChange = (open: boolean) => {
+    setSmsOpen(open);
+    if (!open) setSmsPhone("");
+  };
+  const sendInfoSms = () => {
+    const phone = smsPhone.trim();
+    if (!phone) return;
+    onRequestInfoSms(phone);
+    handleSmsOpenChange(false);
+  };
+  const handleSearchModeChange = (mode: "estimate" | "invoice") => {
+    setSearchMode(mode);
+    setSearchQ("");
+  };
 
   return (
     <div className="mx-auto max-w-xl space-y-3 py-2">
@@ -122,6 +136,8 @@ export default function BuildROHub({
         <button
           type="button"
           onClick={() => setShowTickets((v) => !v)}
+          aria-expanded={showTickets}
+          aria-controls="build-ro-open-tickets"
           className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-muted/40"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#16596b]/10 text-[#16596b] dark:bg-[#16596b]/20 dark:text-cyan-300">
@@ -135,7 +151,7 @@ export default function BuildROHub({
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${showTickets ? "rotate-180" : ""}`} />
         </button>
         {showTickets && (
-          <div className="max-h-60 space-y-1 overflow-y-auto border-t p-1.5">
+          <div id="build-ro-open-tickets" className="max-h-60 space-y-1 overflow-y-auto border-t p-1.5">
             {openTickets.length === 0 ? (
               <p className="px-3 py-6 text-center text-xs text-muted-foreground">No open tickets right now.</p>
             ) : (
@@ -171,7 +187,9 @@ export default function BuildROHub({
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <button
           type="button"
-          onClick={() => setSmsOpen((v) => !v)}
+          onClick={() => handleSmsOpenChange(!smsOpen)}
+          aria-expanded={smsOpen}
+          aria-controls="build-ro-request-info"
           className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition hover:bg-muted/40"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#16596b]/10 text-[#16596b] dark:bg-[#16596b]/20 dark:text-cyan-300">
@@ -184,19 +202,19 @@ export default function BuildROHub({
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${smsOpen ? "rotate-180" : ""}`} />
         </button>
         {smsOpen && (
-          <div className="flex items-center gap-2 border-t p-2.5">
+          <div id="build-ro-request-info" className="flex items-center gap-2 border-t p-2.5">
             <Input
               className="h-9 flex-1 text-sm"
               type="tel"
               placeholder="Customer mobile number"
               value={smsPhone}
               onChange={(e) => setSmsPhone(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && smsPhone.trim()) { onRequestInfoSms(smsPhone.trim()); setSmsPhone(""); setSmsOpen(false); } }}
+              onKeyDown={(e) => { if (e.key === "Enter") sendInfoSms(); }}
             />
             <button
               type="button"
               disabled={!smsPhone.trim()}
-              onClick={() => { onRequestInfoSms(smsPhone.trim()); setSmsPhone(""); setSmsOpen(false); }}
+              onClick={sendInfoSms}
               className="flex items-center gap-1.5 rounded-lg bg-[#16596b] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#124a59] disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" /> Send
@@ -242,7 +260,7 @@ export default function BuildROHub({
 
       {/* ── Search ── */}
       <div className="flex items-center gap-2 rounded-xl border bg-card p-2 shadow-sm">
-        <Select value={searchMode} onValueChange={(v: "estimate" | "invoice") => setSearchMode(v)}>
+        <Select value={searchMode} onValueChange={(v: "estimate" | "invoice") => handleSearchModeChange(v)}>
           <SelectTrigger className="h-10 w-32 shrink-0 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="estimate">Estimate #</SelectItem>

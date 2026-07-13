@@ -1,5 +1,13 @@
+// VIN decode — NHTSA vPIC (DecodeVinValuesExtended) for make/model/year/engine/
+// transmission/etc. When NHTSA omits transmission (very common), fall back to the
+// DOE Fuel Economy API and parse it from the trim/engine option text.
+//
+// NOTE: deployed self-contained (no _shared) with verify_jwt disabled — keep in
+// sync with the live function (supabase get_edge_function vin-decode).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+
+const FUELECONOMY = "https://www.fueleconomy.gov/ws/rest";
 
 type VpicResult = {
   ErrorCode?: string;
@@ -75,6 +83,78 @@ const buildTransmission = (r: VpicResult) => {
   return [speeds, style].filter(Boolean).join(" ").trim();
 };
 
+// ── DOE Fuel Economy transmission fallback ──────────────────────────────────
+// Parse the <menuItem> list returned by the Fuel Economy options endpoint, e.g.
+// <menuItem><text>Auto 9-spd, 4 cyl, 1.5 L, Turbo</text><value>40269</value></menuItem>
+function parseXmlMenuItems(xml: string): Array<{ text: string; value: string }> {
+  const out: Array<{ text: string; value: string }> = [];
+  const re = /<menuItem><text>([^<]*)<\/text><value>([^<]*)<\/value><\/menuItem>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) out.push({ text: m[1], value: m[2] });
+  return out;
+}
+
+// "Auto 9-spd, 4 cyl, 1.5 L, Turbo" → "Automatic 9-speed"
+// "Manual 6-spd, 4 cyl, 2.0 L"      → "Manual 6-speed"
+// "Auto (S6), 4 cyl, 2.4 L"         → "Automatic (S6)"
+function extractTransFromOptionText(text: string): string {
+  const part = (text.split(",")[0] || "").trim();
+  return part
+    .replace(/^auto\b\s*/i, "Automatic ")
+    .replace(/^manual\b\s*/i, "Manual ")
+    .replace(/-spd\b/gi, "-speed")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function fetchTransmissionFromFuelEcon(
+  year: string,
+  make: string,
+  model: string,
+  dispL: string,
+  driveAbbr: string,
+): Promise<string> {
+  // Fuel Economy model names often carry the drive-type suffix ("Terrain FWD").
+  const variants = driveAbbr ? [`${model} ${driveAbbr}`, model] : [model];
+  for (const mv of variants) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      let optText = "";
+      try {
+        const res = await fetch(
+          `${FUELECONOMY}/vehicle/menu/options?year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(mv)}`,
+          { headers: { "User-Agent": "zivosmedia-vin-decode/1.0" }, signal: controller.signal },
+        );
+        if (res.ok) optText = await res.text();
+      } finally {
+        clearTimeout(timer);
+      }
+      if (!optText) continue;
+      const items = parseXmlMenuItems(optText);
+      if (items.length === 0) continue;
+
+      // Prefer the option whose displacement matches the decoded engine.
+      let best = items[0];
+      if (dispL) {
+        const dispNum = parseFloat(dispL);
+        if (!Number.isNaN(dispNum)) {
+          const hit = items.find((it) => it.text.includes(`${dispNum} L`));
+          if (hit) best = hit;
+        }
+      }
+      const trany = extractTransFromOptionText(best.text);
+      if (trany) {
+        console.log("[vin-decode] FuelEcon transmission", { model: mv, option: best.text, trany });
+        return trany;
+      }
+    } catch (e) {
+      console.warn("[vin-decode] FuelEcon variant failed", { mv, error: (e as Error)?.message });
+    }
+  }
+  return "";
+}
+
 Deno.serve(withSecurity("vin-decode", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   try {
@@ -117,8 +197,18 @@ Deno.serve(withSecurity("vin-decode", async (req, ctx) => {
     const model = r.Model || "";
     const trim = r.Trim || r.Series || r.Series2 || "";
     const engine = buildEngine(r);
-    const transmission = buildTransmission(r);
     const driveType = normalizeDriveType(r.DriveType || "");
+    let transmission = buildTransmission(r);
+
+    // NHTSA frequently omits transmission — fall back to DOE Fuel Economy.
+    if (!transmission && year && make && model) {
+      try {
+        transmission = await fetchTransmissionFromFuelEcon(year, make, model, r.DisplacementL || "", driveType);
+      } catch (e) {
+        console.warn("[vin-decode] transmission fallback threw", (e as Error)?.message);
+      }
+    }
+
     const bodyClass = r.BodyClass ? toTitle(r.BodyClass) : "";
     const doors = r.Doors || "";
     const fuel = r.FuelTypePrimary || "";
@@ -160,9 +250,6 @@ Deno.serve(withSecurity("vin-decode", async (req, ctx) => {
     });
   }
 }, {
-  strictCors: true,
   allowedMethods: ["POST"],
-  rateLimit: "api_general",
-  trackNetwork: "suspicious",
-  blockNetworkRiskAt: 80,
+  strictCors: true,
 }));

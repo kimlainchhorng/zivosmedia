@@ -592,7 +592,7 @@ const PrivacyPolicy = () => {
 
               <h4 className="font-semibold text-foreground mt-6">Exercising Your Rights</h4>
               <p>
-                To exercise your rights, contact us at privacy@hizivo.com or use the privacy settings in your
+                To exercise your rights, contact us at privacy@zivosmedia.com or use the privacy settings in your
                 account. We will respond within 30 days (or as required by law).
               </p>
             </AccordionContent>
@@ -705,7 +705,7 @@ const PrivacyPolicy = () => {
               <p className="mt-4">
                 If we learn that we have collected information from a child under the permitted age, we will
                 delete it promptly. If you believe we have collected information from a child, please contact
-                us at privacy@hizivo.com.
+                us at privacy@zivosmedia.com.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -745,9 +745,9 @@ const PrivacyPolicy = () => {
               If you have questions about this Privacy Policy or wish to exercise your privacy rights, contact us:
             </p>
             <div className="space-y-2">
-              <p><strong>Email:</strong> privacy@hizivo.com</p>
-              <p><strong>Support:</strong> support@hizivo.com</p>
-              <p><strong>Data Protection Officer:</strong> dpo@hizivo.com</p>
+              <p><strong>Email:</strong> privacy@zivosmedia.com</p>
+              <p><strong>Support:</strong> support@zivosmedia.com</p>
+              <p><strong>Data Protection Officer:</strong> dpo@zivosmedia.com</p>
               <p><strong>Address:</strong> {companyName}, 123 Innovation Drive, Wilmington, DE 19801, USA</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">

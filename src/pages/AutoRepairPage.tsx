@@ -105,7 +105,7 @@ export default function AutoRepairPage() {
       {/* Mobile header */}
       <div className="md:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/20 safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-full hover:bg-muted/60 transition-colors touch-manipulation">
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-full hover:bg-muted/60 transition-all touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">
@@ -149,9 +149,10 @@ export default function AutoRepairPage() {
           {SERVICE_FILTERS.map((f) => (
             <button type="button"
               key={f}
+              aria-pressed={activeFilter === f}
               onClick={() => setActiveFilter(f)}
               className={cn(
-                "shrink-0 min-h-[40px] px-4 py-2 rounded-full text-xs font-semibold transition-all whitespace-nowrap touch-manipulation",
+                "shrink-0 min-h-[40px] px-4 py-2 rounded-full text-xs font-semibold transition-all whitespace-nowrap touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeFilter === f
                   ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -192,7 +193,7 @@ export default function AutoRepairPage() {
             <Wrench className="h-12 w-12 text-muted-foreground/20" />
             <p className="text-sm font-semibold text-foreground">No shops found</p>
             <p className="text-xs text-muted-foreground">Try a different search or filter</p>
-            <button type="button" onClick={() => { setSearch(""); setActiveFilter("All"); }} className="text-xs text-primary font-semibold">Clear filters</button>
+            <button type="button" onClick={() => { setSearch(""); setActiveFilter("All"); }} className="text-xs text-primary font-semibold rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Clear filters</button>
           </div>
         ) : (
           <AnimatePresence mode="wait">

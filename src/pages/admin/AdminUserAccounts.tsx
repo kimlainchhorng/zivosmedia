@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin User Accounts — Support staff can create new user accounts with just a username
  */
 import { useEffect, useRef, useState } from "react";
@@ -1736,7 +1736,7 @@ function ProfileCard({
                     if (didPost) setShowPostModal(false);
                   }}
                   disabled={isPosting || (!newPostCaption.trim() && newPostMedia.length === 0)}
-                  className="w-full h-10 rounded-lg bg-primary text-primary-foreground text-sm font-bold disabled:opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                  className="w-full h-10 rounded-lg bg-ig-gradient text-white text-sm font-bold disabled:opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                 >
                   {isPosting ? (
                     <span className="flex items-center gap-2">
@@ -1994,7 +1994,7 @@ function ProfileCard({
                         type="button"
                         disabled={submittingComment || !newComment.trim()}
                         onClick={handleAddComment}
-                        className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-40 hover:opacity-90 transition-opacity"
+                        className="h-8 px-3 rounded-lg bg-ig-gradient text-white text-xs font-semibold disabled:opacity-40 hover:opacity-90 transition-opacity"
                       >
                         {submittingComment ? <Loader2 className="h-3 w-3 animate-spin" /> : "Post"}
                       </button>

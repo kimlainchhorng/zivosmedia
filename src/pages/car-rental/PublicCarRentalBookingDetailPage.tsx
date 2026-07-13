@@ -224,7 +224,7 @@ export default function PublicCarRentalBookingDetailPage() {
                   <Search className="mr-1 h-4 w-4" /> Look up booking
                 </Button>
               </form>
-              <Link to="/" className="mt-4 block text-center text-sm text-primary underline">Back to home</Link>
+              <Link to="/" className="mt-4 block text-center text-sm text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Back to home</Link>
             </CardContent>
           </Card>
         </main>
@@ -272,7 +272,12 @@ export default function PublicCarRentalBookingDetailPage() {
     const rentalDays = Math.max(1, Math.ceil((newDropoff.getTime() - newPickup.getTime()) / (24 * 60 * 60 * 1000)));
     const newBase = r.daily_rate_cents * rentalDays;
     const newTotal = newBase + r.addons_total_cents + r.insurance_total_cents + r.taxes_cents + r.fees_cents - r.discount_cents;
-    const { error: err } = await supabase
+    // Guard on status: this page is reached via a long-lived link, so `r` can be
+    // stale (second tab, or the merchant moved the booking on after load). Only
+    // reschedule while still pending/confirmed; a 0-row result means it no longer
+    // qualifies — surface that and re-fetch the true state instead of silently
+    // rewriting dates on an already picked-up / returned / cancelled rental.
+    const { data, error: err } = await supabase
       .from("car_rental_reservations")
       .update({
         pickup_at: newPickup.toISOString(),
@@ -281,10 +286,18 @@ export default function PublicCarRentalBookingDetailPage() {
         base_total_cents: newBase,
         total_cents: newTotal,
       } as never)
-      .eq("id", r.id);
+      .eq("id", r.id)
+      .in("status", ["pending", "confirmed"])
+      .select("id");
     setRescheduling(false);
     if (err) {
       toast.error("Couldn't reschedule — please contact the rental team directly.");
+      return;
+    }
+    if (!data || data.length === 0) {
+      toast.error("This booking can no longer be changed online. Please contact the rental team.");
+      setRescheduleOpen(false);
+      void lookup(r.confirmation_code);
       return;
     }
     toast.success("Dates updated");
@@ -430,7 +443,7 @@ export default function PublicCarRentalBookingDetailPage() {
                         href={directionsUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         Directions <ExternalLink className="h-3 w-3" />
                       </a>
@@ -572,7 +585,7 @@ export default function PublicCarRentalBookingDetailPage() {
           </Card>
         )}
 
-        <Link to="/" className="block text-center text-sm text-primary underline">Back to home</Link>
+        <Link to="/" className="block text-center text-sm text-primary underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Back to home</Link>
       </main>
 
       <Dialog open={cancelOpen} onOpenChange={(o) => !cancelling && setCancelOpen(o)}>
@@ -608,17 +621,29 @@ export default function PublicCarRentalBookingDetailPage() {
               setCancelling(true);
               const reasonLabel = "Customer self-cancelled";
               const reason = cancelReason.trim() ? `${reasonLabel} — ${cancelReason.trim()}` : reasonLabel;
-              const { error: err } = await supabase
+              // Guard on status so a stale page (long-lived link, second tab, or a
+              // merchant-side change after load) can't cancel a car that's already
+              // been picked up / returned / cancelled. A 0-row result means it no
+              // longer qualified — tell the customer and re-fetch the true state.
+              const { data, error: err } = await supabase
                 .from("car_rental_reservations")
                 .update({
                   status: "cancelled",
                   cancellation_reason: reason,
                   cancelled_at: new Date().toISOString(),
                 } as never)
-                .eq("id", r.id);
+                .eq("id", r.id)
+                .in("status", ["pending", "confirmed"])
+                .select("id");
               setCancelling(false);
               if (err) {
                 toast.error("Couldn't cancel — please contact the rental team directly.");
+                return;
+              }
+              if (!data || data.length === 0) {
+                toast.error("This booking can no longer be cancelled online. Please contact the rental team.");
+                setCancelOpen(false);
+                void lookup(r.confirmation_code);
                 return;
               }
               toast.success("Booking cancelled");

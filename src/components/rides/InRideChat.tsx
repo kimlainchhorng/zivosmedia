@@ -1,4 +1,4 @@
-/**
+﻿/**
  * InRideChat — Enhanced with voice notes, photo sharing, arrival countdown, typing indicator
  */
 import { useState, useRef, useEffect } from "react";
@@ -178,7 +178,7 @@ export default function InRideChat({
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 scroll-momentum">
         {messages.map((msg) => (
           <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex", msg.sender === "user" ? "justify-end" : "justify-start")}>
-            <div className={cn("max-w-[80%] rounded-2xl px-3 py-2", msg.sender === "user" ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted/40 text-foreground rounded-bl-md")}>
+            <div className={cn("max-w-[80%] rounded-2xl px-3 py-2", msg.sender === "user" ? "bg-ig-gradient text-white rounded-br-md" : "bg-muted/40 text-foreground rounded-bl-md")}>
               {msg.type === "location" && (
                 <div className="flex items-center gap-1.5 mb-1"><MapPin className="w-3.5 h-3.5" /><span className="text-[10px] font-bold">Location shared</span></div>
               )}

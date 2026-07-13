@@ -116,7 +116,7 @@ export default function InstallAppCard() {
               <Smartphone className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold">Get the hiZIVO App</h3>
+              <h3 className="font-semibold">Get the ZIVO App</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Install for instant alerts, faster loading, and a smoother experience on your phone.
               </p>
@@ -170,7 +170,7 @@ export default function InstallAppCard() {
         <SheetContent side="bottom" className="rounded-t-3xl">
           <SheetHeader className="text-left">
             <SheetTitle className="flex items-center gap-2">
-              <Apple className="w-5 h-5" /> Add hiZIVO to your Home Screen
+              <Apple className="w-5 h-5" /> Add ZIVO to your Home Screen
             </SheetTitle>
             <SheetDescription>
               iPhone & iPad users — follow these 3 quick steps in Safari.
@@ -200,7 +200,7 @@ export default function InstallAppCard() {
             <li className="flex items-start gap-3 p-3 rounded-2xl bg-muted/40">
               <Step n={3} />
               <div className="flex-1 text-sm">
-                Tap <strong>Add</strong> in the top-right. Done — open hiZIVO from your home screen.
+                Tap <strong>Add</strong> in the top-right. Done — open ZIVO from your home screen.
                 <Check className="w-3.5 h-3.5 inline ml-1 text-primary" />
               </div>
             </li>

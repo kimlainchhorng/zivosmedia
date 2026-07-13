@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Wake-up Calls.
  * Schedule, track, and manage wake-up call requests per room.
  */
@@ -49,7 +49,13 @@ const STATUS_ICON: Record<CallStatus, any> = {
   cancelled: XCircle,
 };
 
-function ymd(d: Date) { return d.toISOString().slice(0, 10); }
+// Local YYYY-MM-DD. toISOString().slice(0,10) is UTC, which in Cambodia (UTC+7)
+// reads as *yesterday* during the 00:00–07:00 window — the exact pre-dawn hours
+// when wake-up calls fire, so the board would default to yesterday's (already
+// done) calls and new calls would be scheduled for the wrong day.
+function ymd(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 const BLANK = {
   room_number: "", guest_name: "", call_date: ymd(new Date()),
@@ -187,7 +193,7 @@ export default function LodgingWakeupCallsSection({ storeId }: { storeId: string
           <div className="flex gap-1.5 flex-wrap">
             {(["all", "scheduled", "completed", "missed", "cancelled"] as const).map(s => (
               <button type="button" key={s} onClick={() => setFilterStatus(s as any)}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
                 {s}
               </button>
             ))}

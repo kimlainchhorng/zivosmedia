@@ -11,6 +11,7 @@
  * Used by the bottom nav and AppMore tab to show a red dot / count badge.
  */
 import { useEffect, useState } from "react";
+import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -50,7 +51,11 @@ export function useLiveActivityCount(): LiveActivity {
         if (!cancelled) setState(ZERO);
         return;
       }
-      const today = new Date().toISOString().slice(0, 10);
+      // Cambodia-local day (browser is UTC+7, no DST). toISOString().slice(0,10) is the
+      // UTC day, which from 00:00–06:59 ICT is still yesterday — the .gte filters below
+      // would then count yesterday's already-departed flights / checked-in hotels as
+      // "upcoming". date-fns format uses the local day, matching the user's calendar.
+      const today = format(new Date(), "yyyy-MM-dd");
       const fetchCount = async (request: Promise<{ count: number | null; error?: unknown }>) => {
         try {
           const { count, error } = await request;

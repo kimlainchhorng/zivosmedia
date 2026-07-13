@@ -144,7 +144,7 @@ export default function CreatorSubscribersPage() {
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 bg-background/85 backdrop-blur border-b border-border/40 safe-area-top">
         <div className="flex items-center gap-3 px-3 h-14 max-w-3xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-base font-bold flex items-center gap-1.5">
@@ -186,7 +186,8 @@ export default function CreatorSubscribersPage() {
           <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 -mx-1 px-1 scrollbar-none">
             <button type="button"
               onClick={() => setTierFilter(null)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all ${
+              aria-pressed={!tierFilter}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 !tierFilter ? "bg-foreground text-background" : "bg-muted/50 text-muted-foreground"
               }`}
             >
@@ -196,7 +197,8 @@ export default function CreatorSubscribersPage() {
               <button type="button"
                 key={t.id}
                 onClick={() => setTierFilter(tierFilter === t.id ? null : t.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all flex items-center gap-1 ${
+                aria-pressed={tierFilter === t.id}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center gap-1 ${
                   tierFilter === t.id ? "text-white" : "bg-muted/50 text-muted-foreground"
                 }`}
                 style={tierFilter === t.id ? { backgroundColor: t.color } : undefined}
@@ -213,7 +215,8 @@ export default function CreatorSubscribersPage() {
             <button type="button"
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+              aria-pressed={tab === t}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 tab === t ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
               }`}
             >
@@ -263,7 +266,7 @@ export default function CreatorSubscribersPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/user/${r.subscriber_id}`)}
-                    className="w-full flex items-center gap-3 p-3 text-left active:bg-muted/30 transition-colors"
+                    className="w-full flex items-center gap-3 p-3 text-left active:bg-muted/30 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                   >
                     <Avatar className="h-12 w-12 shrink-0">
                       <AvatarImage src={r.subscriber?.avatar_url || undefined} />
@@ -320,7 +323,7 @@ export default function CreatorSubscribersPage() {
                           },
                         });
                       }}
-                      className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+                      className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 rounded-sm transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <MessageCircle className="h-3 w-3" />
                       Message

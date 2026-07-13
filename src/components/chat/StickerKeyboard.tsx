@@ -536,7 +536,7 @@ function SupabaseStoreTab({ search }: { search: string }) {
                   toggleMutation.mutate({ packId: pack.id, installed });
                 }}
                 disabled={toggleMutation.isPending}
-                className={`h-8 px-4 rounded-full text-xs font-bold shadow-lg transition-all ${
+                className={`h-8 px-4 rounded-full text-xs font-bold shadow-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                   installed
                     ? "bg-white/20 text-white backdrop-blur"
                     : "bg-white text-gray-900 hover:bg-white/90"
@@ -936,7 +936,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
         <div className="sticky top-0 bg-background/95 backdrop-blur-xl border-b border-border/20 px-3 pt-1 pb-1.5 z-10 shrink-0">
           <button
             type="button"
-            className="mx-auto mb-2 flex h-7 w-24 touch-none items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60 active:bg-muted"
+            className="mx-auto mb-2 flex h-7 w-24 touch-none items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60 active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             onPointerDown={(event) => dragControls.start(event)}
             aria-label="Drag sticker drawer down to close"
             title="Drag down to close"
@@ -958,9 +958,10 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
               ]).map((tab) => (
                 <button type="button"
                   key={tab.key}
+                  aria-pressed={activeTab === tab.key}
                   onClick={() => { setActiveTab(tab.key); setSearch(""); }}
                   className={cn(
-                    "min-w-[66px] rounded-xl px-1.5 py-1.5 flex flex-col items-center gap-0 transition-all",
+                    "min-w-[66px] rounded-xl px-1.5 py-1.5 flex flex-col items-center gap-0 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     activeTab === tab.key
                       ? "bg-background text-primary shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
@@ -975,7 +976,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
               type="button"
               onClick={onClose}
               aria-label="Close stickers"
-              className="text-primary text-sm font-bold px-3 py-2 rounded-xl hover:bg-primary/10 shrink-0"
+              className="text-primary text-sm font-bold px-3 py-2 rounded-xl hover:bg-primary/10 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               Done
             </button>
@@ -990,7 +991,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={searchPlaceholders[activeTab]}
-                  className="w-full h-8 rounded-full bg-muted/30 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60"
+                  className="w-full h-8 rounded-full bg-muted/30 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 />
               </div>
             </div>
@@ -1011,7 +1012,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                     onClick={() => setActivePack(-1)}
                     title="Recent"
                     className={cn(
-                      "h-10 w-10 rounded-2xl grid place-items-center shrink-0 transition-all border",
+                      "h-10 w-10 rounded-2xl grid place-items-center shrink-0 transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                       activePack === -1
                         ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
                         : "text-muted-foreground border-transparent hover:bg-muted/40"
@@ -1026,7 +1027,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                     onClick={() => setActivePack(1000 + i)}
                     title={pack.name}
                     className={cn(
-                      "h-10 w-10 rounded-2xl grid place-items-center shrink-0 transition-all border overflow-hidden",
+                      "h-10 w-10 rounded-2xl grid place-items-center shrink-0 transition-all border overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                       activePack === 1000 + i
                         ? "bg-primary/10 border-primary/30 shadow-sm scale-110"
                         : "border-transparent hover:bg-muted/40"
@@ -1088,7 +1089,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                             onContextMenu={(e) => { e.preventDefault(); setPreviewSticker(sticker); }}
                             onClick={() => sendSticker(stickerPayload)}
                             style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
-                            className="group relative aspect-square overflow-visible rounded-2xl hover:bg-muted/30 transition-colors p-0"
+                            className="group relative aspect-square overflow-visible rounded-2xl hover:bg-muted/30 transition-colors p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
                           >
                             <LiveIllustratedStickerArt sticker={{ ...sticker, animatedSrc: getAnimatedStickerUrl(sticker.id) }} index={idx} />
                           </motion.button>
@@ -1103,7 +1104,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                   <div className="grid grid-cols-8 gap-0.5">
                     {(activePack === -1 ? recentStickers : filteredStickers).map((sticker, i) => (
                       <button type="button" key={`${sticker}-${i}`} onClick={() => sendSticker(sticker)}
-                        className="aspect-square flex items-center justify-center text-2xl rounded-lg hover:bg-muted/60 active:scale-90 transition-all">
+                        className="aspect-square flex items-center justify-center text-2xl rounded-lg hover:bg-muted/60 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40">
                         {sticker}
                       </button>
                     ))}
@@ -1125,15 +1126,15 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
               <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
                 {(["All", ...GIF_CATEGORIES] as const).map((cat) => (
                   <button type="button" key={cat} onClick={() => setGifCategory(cat)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                      gifCategory === cat ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                      gifCategory === cat ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
                     }`}>{cat}</button>
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {filteredGifs.map((gif, gIdx) => (
                   <button type="button" key={`${gif.id}-${gIdx}`} onClick={() => quickSend(`[GIF] ${gif.label}: ${gif.url}`, "gif")}
-                    className="relative rounded-xl overflow-hidden border border-border/20 hover:border-primary/40 transition-all active:scale-95 aspect-square bg-muted/20">
+                    className="relative rounded-xl overflow-hidden border border-border/20 hover:border-primary/40 transition-all active:scale-95 aspect-square bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40">
 	                    <img src={gif.url} alt={gif.altText} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
                       <p className="text-[11px] font-semibold text-white">{gif.label}</p>
@@ -1164,7 +1165,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
               </div>
               <div className="grid grid-cols-4 gap-3">
                 {AVATAR_MOODS.filter((m) => !search.trim() || m.label.toLowerCase().includes(search.trim().toLowerCase())).map((mood) => (
-                  <button type="button" key={mood.label} onClick={() => quickSend(`${mood.emoji} ${mood.label}`)} className="flex flex-col items-center gap-2 group">
+                  <button type="button" key={mood.label} onClick={() => quickSend(`${mood.emoji} ${mood.label}`)} className="flex flex-col items-center gap-2 group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                     <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${mood.color} ring-2 ${mood.ring} flex items-center justify-center text-3xl group-hover:scale-110 transition-transform`}>
                       {mood.emoji}
                     </div>
@@ -1184,17 +1185,17 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                 <div className="flex items-center gap-1 rounded-full bg-muted/40 p-0.5">
                   <button type="button"
                     onClick={() => setMusicSubtab("charts")}
-                    className={`h-7 px-3 rounded-full text-xs font-semibold transition ${musicSubtab === "charts" && !search.trim() ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
+                    className={`h-7 px-3 rounded-full text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${musicSubtab === "charts" && !search.trim() ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
                   >Top Charts</button>
                   <button type="button"
                     onClick={() => setMusicSubtab("originals")}
-                    className={`h-7 px-3 rounded-full text-xs font-semibold transition ${musicSubtab === "originals" && !search.trim() ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
+                    className={`h-7 px-3 rounded-full text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${musicSubtab === "originals" && !search.trim() ? "bg-background shadow text-foreground" : "text-muted-foreground"}`}
                   >Originals</button>
                 </div>
                 <select
                   value={musicCountry}
                   onChange={(e) => setMusicCountry(e.target.value as CountryCode)}
-                  className="h-7 rounded-full bg-muted/40 px-2 text-xs font-semibold text-foreground"
+                  className="h-7 rounded-full bg-muted/40 px-2 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   aria-label="Country"
                 >
                   {COUNTRIES.map((c) => (
@@ -1207,7 +1208,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                   Spotify / Apple Music URL directly. Hidden by default since
                   the search box above covers 99% of cases. */}
               <details className="group rounded-xl border border-border/20 bg-muted/10">
-                <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer list-none">
+                <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer list-none rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40">
                   <Link2 className="w-3.5 h-3.5 text-green-500" />
                   <span className="text-xs font-semibold text-foreground">Or paste a Spotify / Apple Music link</span>
                   <ChevronDown className="w-3.5 h-3.5 ml-auto text-muted-foreground transition-transform group-open:rotate-180" />
@@ -1218,7 +1219,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                       value={musicLinkInput}
                       onChange={(e) => setMusicLinkInput(e.target.value)}
                       placeholder="Paste link…"
-                      className="flex-1 h-9 rounded-full bg-muted/30 px-3 text-sm text-foreground placeholder:text-muted-foreground/60"
+                      className="flex-1 h-9 rounded-full bg-muted/30 px-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     />
                     {musicLinkParsed?.platform ? (
                       <button type="button"
@@ -1226,12 +1227,12 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                           quickSend(`🎵 ${musicLinkParsed.platform === "spotify" ? "🟢 Spotify" : "🍎 Apple Music"}\n${musicLinkInput.trim()}`);
                           setMusicLinkInput("");
                         }}
-                        className="h-9 px-3 rounded-full bg-green-500 text-white text-xs font-semibold inline-flex items-center gap-1 shrink-0"
+                        className="h-9 px-3 rounded-full bg-green-500 text-white text-xs font-semibold inline-flex items-center gap-1 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/55 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         <Send className="w-3 h-3" /> Share
                       </button>
                     ) : musicLinkInput.trim() ? (
-                      <button type="button" onClick={() => setMusicLinkInput("")} className="h-9 w-9 rounded-full bg-muted/40 inline-flex items-center justify-center shrink-0">
+                      <button type="button" onClick={() => setMusicLinkInput("")} className="h-9 w-9 rounded-full bg-muted/40 inline-flex items-center justify-center shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                         <X className="w-4 h-4 text-muted-foreground" />
                       </button>
                     ) : null}
@@ -1265,7 +1266,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                   <div key={reactKey} className="rounded-2xl border border-border/30 overflow-hidden hover:border-primary/30 transition-colors">
                     <div className="flex items-center gap-3 p-3">
                       <button type="button" onClick={() => void toggleTrackPreview(trackKey, track.previewUrl)}
-                        className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${track.coverGradient} flex items-center justify-center shrink-0 shadow-lg overflow-hidden`}>
+                        className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${track.coverGradient} flex items-center justify-center shrink-0 shadow-lg overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}>
                         {artwork && (
 	                          <img src={artwork} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
                         )}
@@ -1281,7 +1282,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                           <span className="text-[10px] text-muted-foreground">{track.duration}</span>
                         </div>
                       </div>
-                      <button type="button" onClick={() => toggleFavoriteTrack(trackKey)} className="p-1.5">
+                      <button type="button" onClick={() => toggleFavoriteTrack(trackKey)} className="p-1.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                         <Heart className={`w-4 h-4 ${isFavorite ? "fill-rose-500 text-rose-500" : "text-muted-foreground"}`} />
                       </button>
                       <button type="button" onClick={() => {
@@ -1293,7 +1294,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                           `Preview: ${track.previewUrl}`,
                         ];
                         quickSend(lines.join("\n"));
-                      }} className="h-8 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold inline-flex items-center gap-1">
+                      }} className="h-8 px-3 rounded-full bg-ig-gradient text-white text-xs font-semibold inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                         <Send className="w-3 h-3" /> Send
                       </button>
                     </div>
@@ -1333,7 +1334,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
               <div className="grid grid-cols-2 gap-2">
                 {MEME_ITEMS.filter((m) => !search.trim() || m.label.toLowerCase().includes(search.trim().toLowerCase())).map((item) => (
                   <button type="button" key={item.label} onClick={() => quickSend(`${item.emoji} ${item.label}\n"${item.caption}"`)}
-                    className={`rounded-2xl ${item.bg} border border-border/20 p-4 text-left hover:scale-[1.02] active:scale-95 transition-all`}>
+                    className={`rounded-2xl ${item.bg} border border-border/20 p-4 text-left hover:scale-[1.02] active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40`}>
                     <p className="text-4xl mb-2">{item.emoji}</p>
                     <p className="text-sm font-bold">{item.label}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 italic">"{item.caption}"</p>
@@ -1360,7 +1361,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                     }
                   }}
                     className={cn(
-                      "rounded-2xl bg-gradient-to-br border border-border/20 p-4 text-left hover:scale-[1.02] active:scale-95 transition-all h-28 flex flex-col justify-between",
+                      "rounded-2xl bg-gradient-to-br border border-border/20 p-4 text-left hover:scale-[1.02] active:scale-95 transition-all h-28 flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40",
                       item.gradient,
                       item.textColor || "text-foreground"
                     )}>
@@ -1410,7 +1411,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                     sendSticker(`[sticker:${previewSticker.id}]`);
                     setPreviewSticker(null);
                   }}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/50 active:bg-muted transition-colors border-b border-border/20"
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/50 active:bg-muted transition-colors border-b border-border/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
                 >
                   <span className="text-[15px] font-medium text-foreground">Send</span>
                   <Send className="w-4 h-4 text-muted-foreground" />
@@ -1427,7 +1428,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                     toast.success(isFav ? "Removed from favorites" : "Added to favorites ⭐");
                     setPreviewSticker(null);
                   }}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/50 active:bg-muted transition-colors"
+                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/50 active:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
                 >
                   <span className="text-[15px] font-medium text-foreground">Favorite</span>
                   <Heart className={`w-4 h-4 ${favoriteStickers.includes(previewSticker.id) ? "text-rose-500 fill-rose-500" : "text-muted-foreground"}`} />

@@ -49,11 +49,12 @@ export default function CarRentalRatesSection({ storeId }: Props) {
   }, [filtered]);
 
   const startEdit = (v: CarRentalVehicle, field: RateField) => {
+    if (saving) return; // don't open a new cell while another save is in flight (avoids its success closing this editor)
     setEditingCell({ id: v.id, field });
-    const current = v[field] ?? 0;
+    const current = v[field];
     setDraftValue(
       field === "mileage_limit_per_day"
-        ? String(current ?? "")
+        ? (current == null ? "" : String(current)) // null = unlimited → blank input, not "0"
         : field === "extra_mile_cents"
           ? ((current ?? 0) / 100).toFixed(2)
           : String(((current ?? 0) / 100).toFixed(0))
@@ -61,7 +62,7 @@ export default function CarRentalRatesSection({ storeId }: Props) {
   };
 
   const commitEdit = async () => {
-    if (!editingCell) return;
+    if (!editingCell || saving) return;
     const num = Number(draftValue);
     if (Number.isNaN(num) || num < 0) { setEditingCell(null); return; }
     const field = editingCell.field;
@@ -71,8 +72,8 @@ export default function CarRentalRatesSection({ storeId }: Props) {
         : field === "extra_mile_cents"
           ? Math.round(num * 100)
           : Math.round(num * 100);
-    await update(editingCell.id, { [field]: newValue } as never);
-    setEditingCell(null);
+    const ok = await update(editingCell.id, { [field]: newValue } as never);
+    if (ok) setEditingCell(null);
   };
 
   return (
@@ -179,10 +180,10 @@ function RateCell({
   placeholderEmpty?: string;
 }) {
   const isEditing = editing?.id === v.id && editing.field === field;
-  const current = v[field] ?? 0;
+  const current = v[field];
   const display = formatter
-    ? formatter(current as number | null)
-    : current === 0
+    ? formatter((current ?? null) as number | null)
+    : current == null || current === 0
       ? (placeholderEmpty ?? "—")
       : `$${((current as number) / 100).toFixed(0)}`;
 

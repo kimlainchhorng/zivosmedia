@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowLeft,
   Users,
   Truck,
@@ -672,7 +672,7 @@ export default function ShopEmployeesPage() {
                 />
               </div>
 
-              <button type="button" onClick={handleSellNow} className="mt-2 h-9 w-full rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
+              <button type="button" onClick={handleSellNow} className="mt-2 h-9 w-full rounded-lg bg-ig-gradient text-white text-xs font-semibold">
                 Sell From Truck
               </button>
             </div>

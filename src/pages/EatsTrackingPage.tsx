@@ -151,8 +151,8 @@ export default function EatsTrackingPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-20 bg-background/95 backdrop-blur-2xl border-b border-border/30">
         <div className="px-4 py-3 flex items-center gap-3 safe-area-top">
-          <motion.button whileTap={{ scale: 0.88 }} onClick={() => navigate("/eats")}
-            className="w-10 h-10 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation">
+          <motion.button whileTap={{ scale: 0.88 }} onClick={() => navigate("/eats")} aria-label="Go back"
+            className="w-10 h-10 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
           <div className="flex-1">
@@ -318,13 +318,13 @@ export default function EatsTrackingPage() {
             </p>
             <div className="flex justify-center gap-2">
               {[1, 2, 3, 4, 5].map(s => (
-                <button type="button" key={s} onClick={async () => {
+                <button type="button" key={s} aria-label={`Rate ${s} star${s !== 1 ? "s" : ""}`} onClick={async () => {
                   setRating(s);
                   await supabase.functions.invoke("eats-order-state-update", {
                     body: { order_id: order.id, action: "rate_order", rating: s },
                   });
                   toast.success(`Rated ${s} stars! Thank you!`);
-                }} className="touch-manipulation active:scale-90 transition-transform">
+                }} className="touch-manipulation active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Star className={cn("w-8 h-8 transition-all",
                     rating && s <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
                 </button>
@@ -365,7 +365,7 @@ export default function EatsTrackingPage() {
                 toast.error("Could not share order");
               }
             }}
-            className="w-full flex items-center gap-3 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-3 text-left active:scale-[0.99] transition-transform touch-manipulation"
+            className="w-full flex items-center gap-3 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-3 text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-11 h-11 rounded-xl bg-orange-500/20 text-orange-600 flex items-center justify-center text-lg">
               🔗

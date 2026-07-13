@@ -5,15 +5,14 @@
  * (reusing the parent's setWorkStatus), assigns the main technician, shows total
  * sold hours + estimated completion time, and prints a tech-assignment sheet.
  *
- * NOTE: "Tech Mode" and "Technician Actions" are present to match VSM but are
- * lightweight stubs for now (no clock-in backend wired) — flagged for follow-up.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { toast } from "sonner";
 import { X, Printer, ChevronDown, Clock, Wrench, PauseCircle, CheckCircle2, PackageCheck, User, Activity, Timer } from "lucide-react";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 interface Props {
   open: boolean;
@@ -41,6 +40,13 @@ const MORE: { value: string; label: string; icon: typeof Clock }[] = [
   { value: "picked_up", label: "Picked Up", icon: PackageCheck },
 ];
 
+const TECH_ACTIONS = [
+  { value: "clock_in", label: "Clock In" },
+  { value: "clock_out", label: "Clock Out" },
+  { value: "reassign", label: "Reassign" },
+  { value: "split_labor", label: "Split Labor" },
+] as const;
+
 // Static class strings (kept literal so Tailwind keeps them in the build).
 const ACCENT: Record<Accent, { card: string; badge: string; text: string; sub: string; check: string }> = {
   sky: { card: "border-sky-300 bg-sky-50", badge: "bg-sky-500 text-white", text: "text-sky-900", sub: "text-sky-600", check: "text-sky-500" },
@@ -54,6 +60,7 @@ export default function BuildROStatusDialog({
 }: Props) {
   const [techMode, setTechMode] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const techInputRef = useRef<HTMLInputElement | null>(null);
   const isAutoRepairSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
   const statusHelpText = isAutoRepairSoftwareDomain
@@ -67,19 +74,76 @@ export default function BuildROStatusDialog({
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }, [soldHours]);
 
+  const resetStatusDialogState = () => {
+    setTechMode(false);
+    setMoreOpen(false);
+  };
+
+  useEffect(() => {
+    if (open) resetStatusDialogState();
+  }, [open]);
+
+  const handleOpenChange = (v: boolean) => {
+    if (!v) resetStatusDialogState();
+    onOpenChange(v);
+  };
+
   const pick = (value: string) => { onSetStatus(value); setMoreOpen(false); };
 
   const moreLabel = MORE.find((m) => m.value === status)?.label;
 
+  const commitTech = () => {
+    const name = technician.trim();
+    if (name) onCommitTechnician?.(name);
+    return name;
+  };
+
+  const handleTechAction = (value: string) => {
+    if (value === "clock_in") {
+      const name = commitTech();
+      if (!name) {
+        toast.error("Select a technician first");
+        techInputRef.current?.focus();
+        return;
+      }
+      onSetStatus("in_progress");
+      toast.success(`${name} clocked into this R.O.`);
+      return;
+    }
+    if (value === "clock_out") {
+      const name = commitTech();
+      if (!name) {
+        toast.error("Select a technician first");
+        techInputRef.current?.focus();
+        return;
+      }
+      onSetStatus("on_hold");
+      toast.success(`${name} clocked out. R.O. moved to On Hold.`);
+      return;
+    }
+    if (value === "reassign") {
+      onSetTechnician("");
+      onCommitTechnician?.("");
+      setTechMode(true);
+      window.requestAnimationFrame(() => techInputRef.current?.focus());
+      toast.info("Choose a new main technician");
+      return;
+    }
+    if (value === "split_labor") {
+      setTechMode(true);
+      toast.success("Tech Mode enabled for split labor tracking");
+    }
+  };
+
   const print = () => {
-    const html = `<html><head><title>Tech Assignment ${roNumber || ""}</title>
+    const html = `<html><head><title>Tech Assignment ${escapeHtml(roNumber || "")}</title>
       <style>body{font-family:system-ui,sans-serif;padding:28px;color:#111}h1{font-size:18px}
       .row{margin:8px 0}.k{color:#666;display:inline-block;width:200px}</style></head><body>
-      <h1>Technician Assignment${roNumber ? ` — RO ${roNumber}` : ""}</h1>
-      <div class="row"><span class="k">Main Technician:</span><b>${technician || "Unassigned"}</b></div>
-      <div class="row"><span class="k">Status:</span>${status}</div>
+      <h1>Technician Assignment${roNumber ? ` — RO ${escapeHtml(roNumber)}` : ""}</h1>
+      <div class="row"><span class="k">Main Technician:</span><b>${escapeHtml(technician || "Unassigned")}</b></div>
+      <div class="row"><span class="k">Status:</span>${escapeHtml(status)}</div>
       <div class="row"><span class="k">Total Sold Hours:</span>${soldHours.toFixed(1)}</div>
-      <div class="row"><span class="k">Estimated Completion Time:</span>${eta}</div>
+      <div class="row"><span class="k">Estimated Completion Time:</span>${escapeHtml(eta)}</div>
       </body></html>`;
     const w = window.open("", "_blank");
     if (!w) { toast.error("Pop-up blocked"); return; }
@@ -88,7 +152,7 @@ export default function BuildROStatusDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex max-h-[92vh] max-w-xl flex-col gap-0 overflow-hidden border-slate-200 bg-white p-0 text-slate-900">
         <DialogTitle className="sr-only">Repair Order Status &amp; Technician</DialogTitle>
 
@@ -101,7 +165,7 @@ export default function BuildROStatusDialog({
             <h2 className="text-base font-bold leading-tight text-white">Repair Order Status</h2>
             <p className="text-xs text-white/80">{roNumber ? `RO ${roNumber} · ` : ""}{statusHelpText}</p>
           </div>
-          <button onClick={() => onOpenChange(false)} className="rounded-lg bg-black/15 p-1.5 text-white transition hover:bg-black/25" aria-label="Close">
+          <button onClick={() => handleOpenChange(false)} className="rounded-lg bg-black/15 p-1.5 text-white transition hover:bg-black/25" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -174,6 +238,7 @@ export default function BuildROStatusDialog({
               <div className="relative flex-1">
                 <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
+                  ref={techInputRef}
                   list="ar-status-techs"
                   className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[#1e90ff] focus:outline-none focus:ring-2 focus:ring-[#1e90ff]/20"
                   placeholder="Select or type technician name"
@@ -183,12 +248,12 @@ export default function BuildROStatusDialog({
                 />
                 <datalist id="ar-status-techs">{technicians.map((t) => <option key={t} value={t} />)}</datalist>
               </div>
-              <Select onValueChange={(v) => toast.info(`Technician action: ${v} (coming soon)`)}>
+              <Select onValueChange={handleTechAction}>
                 <SelectTrigger className="h-10 w-full border-slate-300 bg-white text-sm font-medium text-slate-600 sm:w-48">
                   <SelectValue placeholder="Technician Actions" />
                 </SelectTrigger>
                 <SelectContent>
-                  {["Clock In", "Clock Out", "Reassign", "Split Labor"].map((a) => <SelectItem key={a} value={a} className="text-sm">{a}</SelectItem>)}
+                  {TECH_ACTIONS.map((a) => <SelectItem key={a.value} value={a.value} className="text-sm">{a.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

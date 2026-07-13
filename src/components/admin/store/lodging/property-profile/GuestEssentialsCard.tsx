@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Guest Essentials — Wi-Fi, emergency contacts, accepted IDs.
  * Stored on `lodge_property_profile.contact` (existing JSONB column) under namespaced keys.
  */
@@ -78,7 +78,7 @@ export default function GuestEssentialsCard({ value, onChange }: Props) {
             const on = accepted.includes(t);
             return (
               <button type="button" key={t} onClick={() => toggleId(t)}
-                className={`px-2.5 py-1 rounded-full text-[11px] border transition ${on ? "bg-primary text-primary-foreground border-primary font-semibold" : "bg-background border-border text-foreground hover:border-primary/40"}`}>
+                className={`px-2.5 py-1 rounded-full text-[11px] border transition ${on ? "bg-ig-gradient text-white border-primary font-semibold" : "bg-background border-border text-foreground hover:border-primary/40"}`}>
                 {t}
               </button>
             );

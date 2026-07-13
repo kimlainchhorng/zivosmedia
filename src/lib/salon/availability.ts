@@ -43,6 +43,9 @@ export function computeOpenSlots({
   earliestStart,
 }: AvailabilityInput): string[] {
   if (durationMinutes <= 0) return [];
+  // Guard the loop's step: a non-positive slotMinutes makes `t += slotMinutes`
+  // never advance, hanging the thread. Mirrors the durationMinutes guard above.
+  if (slotMinutes <= 0) return [];
   const target = new Date(`${date}T00:00:00`);
   const dow = target.getDay();
   const row = schedule.find((s) => s.day_of_week === dow);

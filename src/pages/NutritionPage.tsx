@@ -187,7 +187,7 @@ export default function NutritionPage() {
                 aria-label="Remove a glass"
                 onClick={() => adjustWater(-1)}
                 disabled={water === 0}
-                className="h-9 w-9 rounded-full border border-border flex items-center justify-center disabled:opacity-40 hover:bg-secondary active:scale-90 transition"
+                className="h-9 w-9 rounded-full border border-border flex items-center justify-center disabled:opacity-40 hover:bg-secondary active:scale-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Minus className="h-4 w-4" />
               </button>
@@ -195,7 +195,7 @@ export default function NutritionPage() {
                 type="button"
                 aria-label="Add a glass"
                 onClick={() => adjustWater(1)}
-                className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center shadow-sm active:scale-90 transition"
+                className="h-9 w-9 rounded-full bg-ig-gradient text-white flex items-center justify-center shadow-sm active:scale-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Plus className="h-4 w-4" strokeWidth={3} />
               </button>
@@ -236,7 +236,7 @@ export default function NutritionPage() {
                     type="button"
                     aria-label={`Add ${label}`}
                     onClick={() => setAdding(key)}
-                    className="h-8 w-8 rounded-full bg-ig-gradient text-white flex items-center justify-center shadow-sm active:scale-90 transition"
+                    className="h-8 w-8 rounded-full bg-ig-gradient text-white flex items-center justify-center shadow-sm active:scale-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Plus className="h-4 w-4" strokeWidth={3} />
                   </button>
@@ -256,7 +256,7 @@ export default function NutritionPage() {
                       type="button"
                       aria-label={`Remove ${e.name}`}
                       onClick={() => removeEntry(e.id)}
-                      className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
+                      className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>

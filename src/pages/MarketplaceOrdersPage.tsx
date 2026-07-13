@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MarketplaceOrdersPage — Track marketplace purchases and sales
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -87,7 +87,7 @@ export default function MarketplaceOrdersPage() {
     <div className="min-h-dvh bg-background pb-24">
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50">
+          <button type="button" aria-label="Back" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-bold flex-1">Orders</h1>
@@ -99,9 +99,10 @@ export default function MarketplaceOrdersPage() {
           {(["purchases", "sales"] as const).map((t) => (
             <button type="button"
               key={t}
+              aria-pressed={tab === t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
-                tab === t ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                tab === t ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
               }`}
             >
               {t === "purchases" ? `Purchases (${purchases.length})` : `Sales (${sales.length})`}
@@ -179,7 +180,7 @@ export default function MarketplaceOrdersPage() {
                 {tab === "sales" && ["pending", "confirmed", "shipped"].includes(order.status) && (
                   <button type="button" disabled={advancingId === order.id}
                     onClick={() => advanceSaleStatus(order.id, order.status)}
-                    className="mt-3 w-full py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold border border-primary/20 active:scale-[0.98] transition-all touch-manipulation disabled:opacity-50">
+                    className="mt-3 w-full py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold border border-primary/20 active:scale-[0.98] transition-all touch-manipulation disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     {advancingId === order.id ? "Updating…" : order.status === "pending" ? "Mark as Confirmed →" : order.status === "confirmed" ? "Mark as Shipped →" : "Mark as Delivered →"}
                   </button>
                 )}
@@ -192,7 +193,7 @@ export default function MarketplaceOrdersPage() {
                       {[1,2,3,4,5].map(s => (
                         <button key={s} type="button" aria-label={`Rate ${s} star${s !== 1 ? "s" : ""}`}
                           onClick={() => submitBuyerReview(order.id, s)}
-                          className="flex-1 flex items-center justify-center py-1.5 rounded-lg border border-border/40 bg-muted/30 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors active:scale-90">
+                          className="flex-1 flex items-center justify-center py-1.5 rounded-lg border border-border/40 bg-muted/30 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                           <Star className="w-4 h-4 text-muted-foreground/40 hover:fill-amber-400 hover:text-amber-400 transition-colors" />
                         </button>
                       ))}

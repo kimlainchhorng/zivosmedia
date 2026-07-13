@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Ticket Chat Message
  * Individual message bubble in the chat interface
  */
@@ -60,7 +60,7 @@ export function TicketChatMessage({
           className={cn(
             "rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap",
             isAdmin
-              ? "bg-primary text-primary-foreground rounded-tr-sm"
+              ? "bg-ig-gradient text-white rounded-tr-sm"
               : "bg-muted text-foreground rounded-tl-sm"
           )}
         >

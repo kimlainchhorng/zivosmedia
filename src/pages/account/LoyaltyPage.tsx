@@ -87,7 +87,8 @@ export default function LoyaltyPage() {
         <div className="flex items-center gap-3 px-4 py-3">
           <button type="button"
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center"
+            aria-label="Go back"
+            className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>

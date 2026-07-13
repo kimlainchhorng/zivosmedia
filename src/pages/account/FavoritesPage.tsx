@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Account Favorites Page
  * View and manage favorites across all service types
  */
@@ -124,7 +124,7 @@ export default function FavoritesPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b">
         <div className="flex items-center justify-between px-6 py-4 max-w-2xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="font-bold text-lg">Favorites</h1>
@@ -143,10 +143,11 @@ export default function FavoritesPage() {
               <button type="button"
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
+                aria-pressed={isActive}
                 className={cn(
-                  "shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold border transition-all",
+                  "shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isActive
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-card text-muted-foreground border-border hover:border-primary/30"
                 )}
               >
@@ -178,7 +179,7 @@ export default function FavoritesPage() {
                 <button type="button"
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:bg-muted/60"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -203,7 +204,7 @@ export default function FavoritesPage() {
             <button type="button"
               onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
               aria-label={viewMode === "list" ? "Switch to grid view" : "Switch to list view"}
-              className="h-9 w-9 rounded-full flex items-center justify-center bg-card border border-border/40 hover:bg-accent/50 active:scale-95 transition-all shrink-0"
+              className="h-9 w-9 rounded-full flex items-center justify-center bg-card border border-border/40 hover:bg-accent/50 active:scale-95 transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {viewMode === "list" ? <Grid3x3 className="h-4 w-4" /> : <List className="h-4 w-4" />}
             </button>
@@ -304,7 +305,8 @@ export default function FavoritesPage() {
                         e.stopPropagation();
                         removeFavorite({ itemType: fav.item_type, itemId: fav.item_id });
                       }}
-                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-destructive/20 backdrop-blur-md border border-destructive/30 flex items-center justify-center text-destructive hover:bg-destructive/30 transition-colors"
+                      aria-label="Remove from favorites"
+                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-destructive/20 backdrop-blur-md border border-destructive/30 flex items-center justify-center text-destructive hover:bg-destructive/30 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Heart className="w-4 h-4 fill-current" />
                     </button>

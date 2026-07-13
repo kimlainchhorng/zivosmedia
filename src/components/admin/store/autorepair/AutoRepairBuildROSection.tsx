@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Auto Repair — "Build R.O." console (VSM-style repair-order / estimate builder).
  *
  * Phase 1: the full single-screen builder shell.
@@ -14,7 +14,7 @@
  * fields ride along; the legacy {kind,name,qty,unit_cents} keys are kept so the simple Estimates list and
  * the print/share flows keep working). No database changes — clean note/PO round-tripping lands in Phase 2.
  */
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import BuildROSectionDialog from "./BuildROSectionDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -53,6 +53,9 @@ import type { LaborGuideEntry } from "@/lib/laborGuide";
 import { generateDocumentPdf, downloadPdf } from "@/lib/admin/invoicePdf";
 import { assignDocNumber, assignWorkOrderNumber, peekDocNumber } from "@/lib/admin/invoiceActions";
 import { copyText } from "@/lib/native/clipboard";
+import { printOrShareHtml } from "@/lib/native/printDocument";
+import { escapeHtml } from "@/lib/escapeHtml";
+import { buildAutoRepairBookingUrl } from "@/lib/admin/autoRepairBookingUrl";
 import { type MatrixTier, DEFAULT_PARTS_MATRIX, normalizeMatrix, sellFromCostCents } from "@/lib/admin/partsMatrix";
 import {
   Wrench, Package, CircleDot, Receipt, Truck, StickyNote, BookOpen, AlertTriangle,
@@ -73,11 +76,24 @@ type GarageVehicle = {
   model: string;
   vin?: string | null;
   plate?: string | null;
+  plate_state?: string | null;
   color?: string | null;
   mileage?: number | null;
+  engine?: string | null;
+  transmission?: string | null;
+  drive_type?: string | null;
   notes?: string | null;
   created_at: string;
 };
+
+const usefulVehiclePart = (value?: string | null) => {
+  const clean = (value ?? "").trim();
+  return clean && !/^unknown\b/i.test(clean) && clean !== "—" ? clean : "";
+};
+const noteVehicleSpec = (notes: string | null | undefined, label: "Engine" | "Trans") =>
+  notes?.match(new RegExp(`${label}:\\s*([^·\\n]+)`, "i"))?.[1]?.trim() ?? "";
+const vehicleDisplayLabel = (v: GarageVehicle) =>
+  [v.year, usefulVehiclePart(v.make), usefulVehiclePart(v.model)].filter(Boolean).join(" ");
 
 interface Props {
   storeId: string;
@@ -133,6 +149,42 @@ const KIND_ACCENT: Record<LineKind, { text: string; border: string }> = {
 const RAIL: LineKind[] = ["labor", "part", "tire", "fee", "sublet", "note", "diagnosis", "concern"];
 const APPOINTMENT_TYPES = ["Stay With Vehicle", "Drop Off", "Waiter", "Pick-up & Delivery", "Towed In"];
 const PAYMENT_METHODS = ["", "Cash", "Card", "Check", "Fleet / PO", "KHQR", "Other"];
+const BUILD_RO_POPUP_TABS = new Set([
+  "settings",
+  "customers",
+  "customer-bookings",
+  "ar-vehicles",
+  "ar-dashboard",
+  "ar-workorders",
+  "ar-inspections",
+  "ar-customer-notes",
+  "ar-labor-time",
+  "ar-parts",
+  "ar-tires",
+  "ar-parts-suppliers",
+  "ar-fin-income",
+  "ar-fin-expenses",
+  "ar-fin-payments",
+  "ar-fin-pnl",
+  "ar-fin-tax",
+  "ar-promos",
+  "ar-campaigns",
+  "ar-gift-cards",
+  "ar-reports",
+  "ar-estimates",
+  "ar-invoices",
+  "ar-warranty",
+  "ar-booking-link",
+  "ar-qr",
+  "ar-reminders",
+  "ar-reviews",
+]);
+
+const initialPopupTab = (): string | null => {
+  if (typeof window === "undefined") return null;
+  const requested = new URLSearchParams(window.location.search).get("section");
+  return requested && BUILD_RO_POPUP_TABS.has(requested) ? requested : null;
+};
 
 // Shop-floor repair-order workflow stages, shown as a clickable chevron stepper.
 // `value` is what's written to ar_estimates.status; `color` themes the chevron.
@@ -223,6 +275,8 @@ const blankHeader = {
   diagnosis: "",
   recommendation: "",
   warranty: "",
+  extended_warranty: "",
+  insurance: "",
   note: "",
   internal: "",
 };
@@ -239,6 +293,8 @@ const NOTE_TABS = [
   { key: "diagnosis", label: "Diagnosis" },
   { key: "recommendation", label: "Recommendation" },
   { key: "warranty", label: "Warranty" },
+  { key: "extended_warranty", label: "Extend Warranty" },
+  { key: "insurance", label: "Insurance" },
   { key: "note", label: "Note" },
   { key: "internal", label: "Internal Note" },
 ] as const;
@@ -250,6 +306,8 @@ const composeNotes = (h: HeaderForm) => {
   if (h.diagnosis.trim()) parts.push(`Diagnosis: ${h.diagnosis.trim()}`);
   if (h.recommendation.trim()) parts.push(`Recommendation: ${h.recommendation.trim()}`);
   if (h.warranty.trim()) parts.push(`Warranty: ${h.warranty.trim()}`);
+  if (h.extended_warranty.trim()) parts.push(`Extended Warranty: ${h.extended_warranty.trim()}`);
+  if (h.insurance.trim()) parts.push(`Insurance: ${h.insurance.trim()}`);
   if (h.note.trim()) parts.push(`Note: ${h.note.trim()}`);
   if (h.internal.trim()) parts.push(`Internal: ${h.internal.trim()}`);
   return parts.join("\n\n");
@@ -261,6 +319,7 @@ const parseNotes = (notes: string | null): Partial<HeaderForm> => {
   const map: Record<string, keyof HeaderForm> = {
     "Customer Request": "customer_request", Diagnosis: "diagnosis",
     Recommendation: "recommendation", Warranty: "warranty", Note: "note", Internal: "internal",
+    "Extended Warranty": "extended_warranty", Insurance: "insurance",
   };
   const blocks = notes.split(/\n\n+/);
   let matchedAny = false;
@@ -333,6 +392,8 @@ const tidyNote = (raw: string): string => {
 
 export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwareDomain = false }: Props) {
   const qc = useQueryClient();
+  (window as any).__arc = (window as any).__arc || { r: 0, e1: 0, e2: 0, e3: 0, e4: 0 };
+  (window as any).__arc.r++;
   const suppliesLabel = isSoftwareDomain ? "Supply Charge" : "Shop Supplies";
   const [editId, setEditId] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
@@ -368,6 +429,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         .from("ar_estimates" as any)
         .select("*")
         .eq("store_id", storeId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(40);
       if (error) throw error;
@@ -383,7 +445,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   const [historyOpen, setHistoryOpen] = useState(false);
   const [carfaxOpen, setCarfaxOpen] = useState(false);
   const [statusDlgOpen, setStatusDlgOpen] = useState(false);
-  const [custEdit, setCustEdit] = useState(false); // Customer card: form (adding/editing) vs summary/prompt
+  const [custEdit, setCustEdit] = useState(true); // Customer card: form always expanded by default
   const [vehEdit, setVehEdit] = useState(false); // Vehicle card: form (adding/editing) vs summary/prompt
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printCopies, setPrintCopies] = useState(1);
@@ -394,6 +456,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   const [openCustomer, setOpenCustomer] = useState(false);
   const [openVehicleDlg, setOpenVehicleDlg] = useState(false);
   const [openCatalog, setOpenCatalog] = useState(false);
+  const [catalogVersion, setCatalogVersion] = useState(0);
   const [openExisting, setOpenExisting] = useState(false);
   const [openCanned, setOpenCanned] = useState(false);
   const [openMatrix, setOpenMatrix] = useState(false);
@@ -401,15 +464,66 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   const [openGP, setOpenGP] = useState(false);
   const [openQueue, setOpenQueue] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
+  const handlePrintModalOpenChange = (open: boolean) => {
+    setPrintModalOpen(open);
+    if (!open) setPrintCopies(1);
+  };
+  const handleSmsMenuOpenChange = (open: boolean) => {
+    setSmsMenuOpen(open);
+    if (!open) setSmsCustomMsg("");
+  };
   const { storeInfo, storeLogoData } = useStorePdfHeader(storeId);
+  const { data: bookingStoreSlug } = useQuery({
+    queryKey: ["ar-build-ro-booking-store-slug", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("store_profiles").select("slug").eq("id", storeId).maybeSingle();
+      if (error) throw error;
+      return (data as any)?.slug as string | null;
+    },
+    enabled: !!storeId,
+  });
   // The nav group of the toolbar is portaled into the shared page header; grab
   // that slot once the surrounding layout has mounted.
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
   useEffect(() => {
     setHeaderSlot(document.getElementById("store-owner-header-actions"));
+    const frame = window.requestAnimationFrame(() => {
+      setHeaderSlot(document.getElementById("store-owner-header-actions"));
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
   // Cross-section toolbar icon → open that section as a popup over Build R.O.
-  const [sectionTab, setSectionTab] = useState<string | null>(null);
+  const [sectionTab, setSectionTab] = useState<string | null>(() => initialPopupTab());
+  const setSectionParam = useCallback((nextTab: string | null, mode: "push" | "replace" = "replace") => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (nextTab) url.searchParams.set("section", nextTab);
+    else url.searchParams.delete("section");
+    if (mode === "push" && url.toString() !== window.location.href) {
+      window.history.pushState(window.history.state, "", url);
+    } else {
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, []);
+  const openSectionTab = useCallback((nextTab: string) => {
+    if (!BUILD_RO_POPUP_TABS.has(nextTab)) return;
+    setSectionTab(nextTab);
+    setSectionParam(nextTab, sectionTab === nextTab ? "replace" : "push");
+  }, [sectionTab, setSectionParam]);
+  const handleSectionOpenChange = useCallback((open: boolean) => {
+    if (open) return;
+    setSectionTab(null);
+    setSectionParam(null);
+  }, [setSectionParam]);
+  useEffect(() => {
+    const syncSectionFromUrl = () => {
+      const requested = initialPopupTab();
+      setSectionTab((current) => (current === requested ? current : requested));
+    };
+    syncSectionFromUrl();
+    window.addEventListener("popstate", syncSectionFromUrl);
+    return () => window.removeEventListener("popstate", syncSectionFromUrl);
+  }, []);
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>(blankCustomer);
   const [view, setView] = useState<"hub" | "builder">("hub");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
@@ -417,7 +531,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   // Vendors the shop has connected in Parts Suppliers — surfaced in the part-line
   // vendor picker so ordering goes to a real account. Recomputed when the dialog
   // closes (a new connection may have been saved).
-  const connectedVendors = useMemo(() => listConnectedVendors(storeId), [storeId, openCatalog]);
+  const connectedVendors = useMemo(() => listConnectedVendors(storeId), [storeId, catalogVersion]);
 
   const { data: garage = [] } = useQuery({
     queryKey: ["ar-build-ro-garage", storeId],
@@ -431,6 +545,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       return (data ?? []) as GarageVehicle[];
     },
   });
+  useEffect(() => {
+    if (!vehicleId || boundVehicle || garage.length === 0) return;
+    const gv = garage.find((g) => g.id === vehicleId);
+    if (gv) setBoundVehicle(gv);
+  }, [boundVehicle, garage, vehicleId]);
 
   // Shop's saved canned jobs (Price Book) — surfaced as quick presets.
   const { data: cannedJobs = [] } = useQuery({
@@ -485,7 +604,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   const { data: previewNumber } = useQuery({
     queryKey: ["ar-build-ro-peek", storeId],
     queryFn: () => peekDocNumber(storeId, "estimate"),
-    enabled: !editId && !header.number,
+    enabled: view === "builder" && !editId && !header.number,
   });
 
   // Shop-level defaults (labor rate, tax rate) from store_profiles.ar_settings — prefill new R.O.s.
@@ -535,7 +654,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   }, [garage, custSearch]);
 
   const bindVehicle = (v: GarageVehicle) => {
-    setVehicleId(asUuid(v.id));
+    const nextVehicleId = asUuid(v.id);
+    setVehicleId(nextVehicleId);
     setBoundVehicle(v);
     setHeader((h) => ({
       ...h,
@@ -544,21 +664,45 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       customer_last_name: (v.owner_name ?? "").includes(" ") ? (v.owner_name ?? "").split(" ").slice(-1)[0] : "",
       customer_phone: v.owner_phone ?? "",
       customer_email: v.owner_email ?? "",
-      vehicle_label: [v.year, v.make, v.model].filter(Boolean).join(" "),
+      vehicle_label: vehicleDisplayLabel(v),
       vehicle_year: v.year ? String(v.year) : "",
       vehicle_make: v.make ?? "",
-      vehicle_model: v.model ?? "",
-      vehicle_transmission: "",
-      vehicle_engine: v.notes?.match(/Engine:\s*([^·]+)/)?.[1]?.trim() ?? "",
+      vehicle_model: usefulVehiclePart(v.model),
+      vehicle_transmission: usefulVehiclePart(v.transmission) || noteVehicleSpec(v.notes, "Trans"),
+      vehicle_engine: usefulVehiclePart(v.engine) || noteVehicleSpec(v.notes, "Engine"),
       license_plate: v.plate ?? "",
+      plate_state: v.plate_state ?? h.plate_state,
       vehicle_color: v.color ?? "",
       mileage_in: v.mileage ? String(v.mileage) : h.mileage_in,
     }));
     setCustSearch("");
     setSearchOpen(false);
-    toast.success(`Linked ${[v.year, v.make, v.model].filter(Boolean).join(" ")}`);
+    void persistVehicleLink(nextVehicleId);
   };
-  const unbind = () => { setVehicleId(null); setBoundVehicle(null); };
+  const persistVehicleLink = async (nextVehicleId: string | null) => {
+    if (!editId) return;
+    try {
+      const { error } = await supabase.from("ar_estimates" as any).update({ vehicle_id: nextVehicleId }).eq("id", editId);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't save vehicle link");
+    }
+  };
+  const clearBoundVehicle = () => {
+    setVehicleId(null);
+    setBoundVehicle(null);
+  };
+  const unbind = () => {
+    clearBoundVehicle();
+    void persistVehicleLink(null);
+  };
+  const openBlankCustomerDialog = () => {
+    setCustomerDraft(blankCustomer);
+    setPendingVehicleAfterCustomer(false);
+    setOpenCustomer(true);
+  };
 
   // New Customer dialog → fill header customer fields; optionally chain to the vehicle dialog.
   const handleSaveCustomer = (c: CustomerDraft, addVehicle: boolean) => {
@@ -585,6 +729,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     }
   };
   const customerMemo = [
+    customerDraft.rating ? `Customer rating: ${customerDraft.rating}/5` : "",
     customerDraft.street,
     [customerDraft.city, customerDraft.state, customerDraft.zip].filter(Boolean).join(" "),
     customerDraft.memo,
@@ -608,16 +753,21 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         owner_email: header.customer_email.trim() || null,
         year, make, model,
         plate: header.license_plate.trim() || null,
+        plate_state: header.plate_state.trim() || null,
+        engine: header.vehicle_engine.trim() || null,
+        transmission: header.vehicle_transmission.trim() || null,
         color: header.vehicle_color.trim().toLowerCase() || null,
         mileage: header.mileage_in ? parseInt(header.mileage_in, 10) : 0,
       };
-      const { data, error } = await supabase.from("ar_customer_vehicles").insert(payload).select("*").single();
+      const { data, error } = await supabase.from("ar_customer_vehicles").insert(payload as any).select("*").single();
       if (error) throw error;
       return data as unknown as GarageVehicle;
     },
     onSuccess: (v) => {
-      setVehicleId(asUuid(v.id));
+      const nextVehicleId = asUuid(v.id);
+      setVehicleId(nextVehicleId);
       setBoundVehicle(v);
+      void persistVehicleLink(nextVehicleId);
       qc.invalidateQueries({ queryKey: ["ar-build-ro-garage", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-customer-vehicles", storeId] });
       toast.success("Saved to garage");
@@ -667,14 +817,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   useEffect(() => {
     if (!epaTouched) {
       const c = chargeFromConfig(shopDefaults?.epa);
-      if (c != null) setEpaC(c);
+      if (c != null) setEpaC((current) => (current === c ? current : c));
     }
     if (!suppliesTouched) {
       const c = chargeFromConfig(shopDefaults?.supplies);
-      if (c != null) setSuppliesC(c);
+      if (c != null) setSuppliesC((current) => (current === c ? current : c));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t.parts, t.tires, t.labor, shopDefaults, epaTouched, suppliesTouched]);
+  }, [t.parts, t.tires, t.labor, shopDefaults?.epa, shopDefaults?.supplies, epaTouched, suppliesTouched]);
 
   // ── Line ops ──
   const addLine = (kind: LineKind) => setLines((a) => [...a, { ...blankLine(activeJob, kind), taxable: taxableFor(kind) }]);
@@ -682,6 +832,18 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     setLines((a) => [...a, { ...blankLine(activeJob, d.kind), ...d }]);
   const patchLine = (id: string, patch: Partial<ROLine>) =>
     setLines((a) => a.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  const changeLineKind = (id: string, kind: LineKind) =>
+    setLines((a) => a.map((l) => {
+      if (l.id !== id) return l;
+      return {
+        ...blankLine(l.job, kind),
+        id: l.id,
+        description: l.description,
+        ordered: kind === "part" || kind === "tire" ? false : l.ordered,
+        declined: l.declined,
+        taxable: taxableFor(kind),
+      };
+    }));
   const removeLine = (id: string) => setLines((a) => a.filter((l) => l.id !== id));
   const addJob = () => {
     const next = (jobs[jobs.length - 1] || 0) + 1;
@@ -777,7 +939,28 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   };
 
   // ── New / Load ──
+  const closeTransientBuildROUi = () => {
+    setOpenLoad(false);
+    setOpenPicker(false);
+    setOpenLabor(false);
+    setOpenParts(false);
+    setOpenCustomer(false);
+    setOpenVehicleDlg(false);
+    setOpenCatalog(false);
+    setOpenExisting(false);
+    setOpenCanned(false);
+    setOpenMatrix(false);
+    setOpenImport(false);
+    setOpenGP(false);
+    setOpenQueue(false);
+    handlePrintModalOpenChange(false);
+    handleSmsMenuOpenChange(false);
+    setPlaceOrderOpen(false);
+    setPreviewDoc(null);
+  };
+
   const resetAll = () => {
+    closeTransientBuildROUi();
     setEditId(null);
     // Prefill the shop's default labor rate (Auto Repair Settings) onto a fresh R.O.
     setHeader({ ...blankHeader, estimate_date: todayStr(), labor_rate: shopDefaults?.labor ? String(shopDefaults.labor) : blankHeader.labor_rate });
@@ -789,16 +972,18 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     setTaxRate(shopDefaults?.taxPct ?? 0);
     setStatus("draft");
     setWorkflowStage("awaiting");
-    setCustEdit(false);
+    setCustEdit(true);
     setVehEdit(false);
     setCreatedAt(null);
-    unbind();
+    clearBoundVehicle();
     setCustSearch("");
+    setCustomerDraft(blankCustomer);
+    setPendingVehicleAfterCustomer(false);
   };
 
   const loadEstimate = (e: any) => {
     setEditId(e.id);
-    unbind();
+    clearBoundVehicle();
     setHeader({
       ...blankHeader,
       number: e.number ?? "",
@@ -852,11 +1037,12 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     setTaxRate(e.tax_rate != null ? Number(e.tax_rate) : 0);
     setStatus(e.status ?? "draft");
     setWorkflowStage((e as any).workflow_stage ?? "awaiting");
-    setCustEdit(false);
+    setCustEdit(true);
     setVehEdit(false);
     setOpenLoad(false);
     // Re-bind the saved garage vehicle so History / linked features work on load.
     if (e.vehicle_id) {
+      setVehicleId(e.vehicle_id);
       const gv = garage.find((g) => g.id === e.vehicle_id);
       if (gv) { setVehicleId(gv.id); setBoundVehicle(gv); }
     }
@@ -865,13 +1051,17 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
 
   // Handoff from another tab (Estimates list "Open / New in Build R.O."): a sessionStorage
   // key + the lodge-set-tab event bring us here; load the requested estimate or start fresh.
-  useEffect(() => {
+  const consumeBuildROOpen = useCallback(() => {
     const raw = sessionStorage.getItem("ar_buildro_open");
     if (!raw) return;
     sessionStorage.removeItem("ar_buildro_open");
     if (raw === "new") { resetAll(); setView("builder"); return; }
     (async () => {
-      const { data, error } = await supabase.from("ar_estimates" as any).select("*").eq("id", raw).maybeSingle();
+      const { data, error } = await supabase.from("ar_estimates" as any).select("*")
+        .eq("id", raw)
+        .eq("store_id", storeId)
+        .is("deleted_at", null)
+        .maybeSingle();
       if (!error && data) { loadEstimate(data); setView("builder"); }
       else { resetAll(); setView("builder"); }
     })();
@@ -882,7 +1072,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   // open a fresh R.O. here, pre-bound to that vehicle + its customer. The same
   // builder backs both — an estimate is saved with "Build R.O.", and the
   // "Invoice" button converts it, so both buttons land in the one workflow.
-  useEffect(() => {
+  const consumeBuildROPrefill = useCallback(() => {
     const raw = sessionStorage.getItem("ar_buildro_prefill");
     if (!raw) return;
     sessionStorage.removeItem("ar_buildro_prefill");
@@ -915,10 +1105,30 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       }
       if (p.vehicle) bindVehicle(p.vehicle as GarageVehicle);
       setView("builder");
-      if (p.mode === "invoice") toast.info("Add the work, then tap Invoice to bill this vehicle");
     } catch { /* ignore malformed prefill */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const consumeBuildROIntakeType = useCallback(() => {
+    const type = sessionStorage.getItem("ar_buildro_intake_type");
+    if (!type) return;
+    sessionStorage.removeItem("ar_buildro_intake_type");
+    resetAll();
+    setH({ appointment_type: type });
+    setView("builder");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Consume the handoff on mount, and again when a Build R.O. popup (Vehicles /
+  // Customers / Estimates) hands off while this page is already mounted — in that
+  // case the mount read can't re-fire, so BuildROSectionDialog nudges us via this
+  // event. Handles both "open an existing estimate" and "prefill a new R.O.".
+  useEffect(() => {
+    const consumeAll = () => { consumeBuildROOpen(); consumeBuildROPrefill(); consumeBuildROIntakeType(); };
+    consumeAll();
+    window.addEventListener("ar-buildro-consume-prefill", consumeAll);
+    return () => window.removeEventListener("ar-buildro-consume-prefill", consumeAll);
+  }, [consumeBuildROOpen, consumeBuildROPrefill, consumeBuildROIntakeType]);
 
   // ── Save ──
   const save = useMutation({
@@ -960,6 +1170,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         po_number: header.po_number || null,
         labor_rate_cents: header.labor_rate ? dollarsToCents(header.labor_rate) : null,
         appointment_type: header.appointment_type || null,
+        workflow_stage: workflowStage,
         // line_items keep both the extended fields and the legacy {name} alias.
         line_items: lines.map((l) => ({ ...l, name: l.description })),
         subtotal_cents: t.lineSubtotal,
@@ -975,7 +1186,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         // Persist the two main intake notes in their dedicated columns (clean
         // round-trip + they flow to the invoice and customer-facing views).
         customer_notes: header.customer_request || null,
-        diagnosis_notes: header.diagnosis || null,
+        diagnosis_notes: [header.diagnosis, header.recommendation].filter(Boolean).join("\n") || null,
         // Link the bound garage vehicle by id for robust history matching.
         vehicle_id: asUuid(vehicleId),
       };
@@ -1019,6 +1230,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       connected: connectedVendors.find((v) => v.name === vendor) ?? null,
     }));
   }, [lines, connectedVendors]);
+  const hasActiveWorkLines = useMemo(() => lines.some((l) => !l.declined), [lines]);
 
   const placeOrder = () => {
     if (toOrderCount === 0) { toast.info("No parts to order"); return; }
@@ -1026,12 +1238,38 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   };
 
   // Mark a set of part lines ordered (by id), optionally opening the vendor portal.
+  const persistOrderedLines = async (nextLines: ROLine[]) => {
+    try {
+      const id = editId ?? (await save.mutateAsync(false)).id;
+      const nextActive = nextLines.filter((l) => !l.declined);
+      const nextLineSubtotal = nextActive.reduce((s, l) => s + lineTotalCents(l), 0);
+      const nextTaxableBase = nextActive.filter((l) => l.taxable).reduce((s, l) => s + lineTotalCents(l), 0);
+      const nextTax = Math.round((nextTaxableBase * taxRate) / 100);
+      const nextTotal = Math.max(0, nextLineSubtotal + feesC + epaC + suppliesC - discountC + nextTax);
+      const { error } = await supabase.from("ar_estimates" as any).update({
+        line_items: nextLines.map((l) => ({ ...l, name: l.description })),
+        subtotal_cents: nextLineSubtotal,
+        sublet_cents: nextActive.filter((l) => l.kind === "sublet").reduce((s, l) => s + lineTotalCents(l), 0),
+        tax_cents: nextTax,
+        total_cents: nextTotal,
+      }).eq("id", id);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Parts marked locally, but couldn't save the ordered status");
+    }
+  };
+
   const markGroupOrdered = (ids: string[], portalUrl?: string) => {
-    setLines((a) => a.map((l) => (ids.includes(l.id) ? { ...l, ordered: true } : l)));
+    const nextLines = lines.map((l) => (ids.includes(l.id) ? { ...l, ordered: true } : l));
+    setLines(nextLines);
     if (portalUrl) {
       const w = window.open(portalUrl, "_blank", "noopener,noreferrer");
       if (!w) toast.error("Pop-up blocked — allow pop-ups to open the portal");
     }
+    void persistOrderedLines(nextLines);
+    if (nextLines.every((l) => l.kind !== "part" || l.declined || l.ordered)) setPlaceOrderOpen(false);
     toast.success(`${ids.length} part${ids.length === 1 ? "" : "s"} marked ordered`);
   };
 
@@ -1049,17 +1287,61 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     if (!lines.length) return null;
     const partsUsed = lines.filter((l) => l.kind === "part" && !l.declined)
       .map((l) => ({ name: l.description, qty: l.qty, unit_cents: l.unit_cents }));
+    const laborUsed = lines.filter((l) => l.kind === "labor" && !l.declined)
+      .map((l) => ({ name: l.description, qty: l.qty, unit_cents: l.unit_cents }));
     const { data, error } = await supabase.from("ar_work_orders" as any).insert({
       store_id: storeId,
       estimate_id: estimateId,
       number: await assignWorkOrderNumber(storeId),
       status: "in_progress",
+      workflow_stage: "in_progress",
       parts_used: partsUsed,
+      parts: partsUsed,
+      labor: laborUsed,
+      subtotal_cents: t.lineSubtotal,
+      sublet_cents: t.sublet,
+      fees_cents: feesC,
+      epa_cents: epaC,
+      shop_supplies_cents: suppliesC,
+      discount_cents: discountC,
+      tax_rate: taxRate,
+      tax_cents: t.tax,
       total_cents: t.total,
       customer_name: header.customer_name || null,
       customer_phone: header.customer_phone || null,
       customer_email: header.customer_email || null,
+      customer_street: header.customer_street || null,
+      customer_city: header.customer_city || null,
+      customer_state: header.customer_state || null,
+      customer_zip: header.customer_zip || null,
+      customer_address: [header.customer_street, header.customer_city, header.customer_state, header.customer_zip].filter(Boolean).join(", ") || null,
       vehicle_label: header.vehicle_label || null,
+      vehicle_year: header.vehicle_year || null,
+      vehicle_make: header.vehicle_make || null,
+      vehicle_model: header.vehicle_model || null,
+      vehicle_engine: header.vehicle_engine || null,
+      vehicle_transmission: header.vehicle_transmission || null,
+      vehicle_color: header.vehicle_color || null,
+      vehicle_vin: boundVehicle?.vin || null,
+      vehicle_plate: header.license_plate || null,
+      plate_state: header.plate_state || null,
+      unit_number: header.unit_number || null,
+      keytag: header.keytag || null,
+      mileage: header.mileage_in ? Number(header.mileage_in) : null,
+      service_writer: header.service_writer || null,
+      technician: header.technician || null,
+      technician_cert: header.technician_cert || null,
+      promised_at: header.promised_at || null,
+      estimate_date: header.estimate_date || null,
+      start_date: header.start_date || null,
+      po_number: header.po_number || null,
+      payment_method: header.payment_method || null,
+      labor_rate_cents: header.labor_rate ? dollarsToCents(header.labor_rate) : null,
+      complaint: header.customer_request || null,
+      diagnosis: header.diagnosis || null,
+      notes: header.recommendation || null,
+      customer_notes: header.customer_request || null,
+      diagnosis_notes: [header.diagnosis, header.recommendation].filter(Boolean).join("\n") || null,
       vehicle_id: asUuid(vehicleId),
     }).select("id").single();
     if (error) throw error;
@@ -1218,17 +1500,62 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       const partsUsed = lines
         .filter((l) => l.kind === "part" && !l.declined)
         .map((l) => ({ name: l.description, qty: l.qty, unit_cents: l.unit_cents }));
+      const laborUsed = lines
+        .filter((l) => l.kind === "labor" && !l.declined)
+        .map((l) => ({ name: l.description, qty: l.qty, unit_cents: l.unit_cents }));
       const { data, error } = await supabase.from("ar_work_orders" as any).insert({
         store_id: storeId,
         estimate_id: id,
         number: await assignWorkOrderNumber(storeId),
         status: "awaiting",
+        workflow_stage: "awaiting",
         parts_used: partsUsed,
+        parts: partsUsed,
+        labor: laborUsed,
+        subtotal_cents: t.lineSubtotal,
+        sublet_cents: t.sublet,
+        fees_cents: feesC,
+        epa_cents: epaC,
+        shop_supplies_cents: suppliesC,
+        discount_cents: discountC,
+        tax_rate: taxRate,
+        tax_cents: t.tax,
         total_cents: t.total,
         customer_name: header.customer_name || null,
         customer_phone: header.customer_phone || null,
         customer_email: header.customer_email || null,
+        customer_street: header.customer_street || null,
+        customer_city: header.customer_city || null,
+        customer_state: header.customer_state || null,
+        customer_zip: header.customer_zip || null,
+        customer_address: [header.customer_street, header.customer_city, header.customer_state, header.customer_zip].filter(Boolean).join(", ") || null,
         vehicle_label: header.vehicle_label || null,
+        vehicle_year: header.vehicle_year || null,
+        vehicle_make: header.vehicle_make || null,
+        vehicle_model: header.vehicle_model || null,
+        vehicle_engine: header.vehicle_engine || null,
+        vehicle_transmission: header.vehicle_transmission || null,
+        vehicle_color: header.vehicle_color || null,
+        vehicle_vin: boundVehicle?.vin || null,
+        vehicle_plate: header.license_plate || null,
+        plate_state: header.plate_state || null,
+        unit_number: header.unit_number || null,
+        keytag: header.keytag || null,
+        mileage: header.mileage_in ? Number(header.mileage_in) : null,
+        service_writer: header.service_writer || null,
+        technician: header.technician || null,
+        technician_cert: header.technician_cert || null,
+        promised_at: header.promised_at || null,
+        estimate_date: header.estimate_date || null,
+        start_date: header.start_date || null,
+        po_number: header.po_number || null,
+        payment_method: header.payment_method || null,
+        labor_rate_cents: header.labor_rate ? dollarsToCents(header.labor_rate) : null,
+        complaint: header.customer_request || null,
+        diagnosis: header.diagnosis || null,
+        notes: header.recommendation || null,
+        customer_notes: header.customer_request || null,
+        diagnosis_notes: [header.diagnosis, header.recommendation].filter(Boolean).join("\n") || null,
         vehicle_id: asUuid(vehicleId),
       }).select("id").single();
       if (error) throw error;
@@ -1241,7 +1568,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
       qc.invalidateQueries({ queryKey: ["ar-build-ro-recent", storeId] });
       toast.success("Converted to Work Order");
-      onNavigate?.("ar-workorders");
+      openSectionTab("ar-workorders");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to convert"),
   });
@@ -1299,19 +1626,28 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       setStatus("approved");
       qc.invalidateQueries({ queryKey: ["ar-invoices", storeId] });
       toast.success(`Converted to Invoice ${invNumber}`);
-      onNavigate?.("ar-invoices");
+      openSectionTab("ar-invoices");
     },
     onError: (e: any) => toast.error(e?.message ?? "Failed to convert"),
   });
 
   const copyApprovalLink = async () => {
+    if (!hasActiveWorkLines) {
+      toast.error("Add at least one active line before sharing");
+      return;
+    }
     try {
       const id = await ensureSavedId();
       const { data } = await supabase.from("ar_estimates" as any).select("share_token").eq("id", id).single();
       let token = (data as any)?.share_token as string | undefined;
       if (!token) {
         token = crypto.randomUUID();
-        await supabase.from("ar_estimates" as any).update({ share_token: token, status: "sent" }).eq("id", id);
+        // A Supabase update resolves even when the DB rejects (RLS / offline), so an
+        // unchecked write let a failed token-save fall through to "Approval link copied"
+        // while the public /estimate/:token page (resolved via ar_get_estimate_by_share_token)
+        // had no row to find — a dead customer link. Throw into the outer catch instead.
+        const { error } = await supabase.from("ar_estimates" as any).update({ share_token: token, status: "sent" }).eq("id", id);
+        if (error) throw error;
       }
       const url = `${window.location.origin}/estimate/${token}`;
       setStatus("sent");
@@ -1331,6 +1667,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
 
   const sendChannel = useMutation({
     mutationFn: async (channel: "email" | "sms") => {
+      if (!hasActiveWorkLines) throw new Error("Add at least one active line before sending");
       const id = await ensureSavedId();
       const { data, error } = await supabase.functions.invoke("ar-estimate-send", { body: { estimate_id: id, channel } });
       if (error) throw error;
@@ -1341,20 +1678,74 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     onError: (e: any) => toast.error(e?.message ?? "Failed to send"),
   });
 
-  const printRO = () => {
-    if (!lines.length) { toast.error("Add at least one line first"); return; }
-    const rows = lines
-      .map(
-        (l) =>
-          `<tr><td>${KIND_META[l.kind].label}</td><td>${l.description || "—"}${l.misc ? ` <span style="color:#888">(${l.misc})</span>` : ""}</td><td class="r">${l.qty}</td><td class="r">${money(l.unit_cents)}</td><td class="r">${money(lineTotalCents(l))}</td></tr>`,
-      )
-      .join("");
-    const html = `<html><head><title>RO ${header.number || ""}</title><style>
+  // Save a branded PDF copy of the RO to storage + log it. Best-effort: it runs
+  // in the background and never blocks (or fails) the actual print.
+  const archiveRO = async () => {
+    try {
+      const blob = generateDocumentPdf({
+        doc: {
+          type: "estimate", number: header.number || "EST",
+          customer: header.customer_name || "Customer",
+          phone: header.customer_phone || undefined,
+          email: header.customer_email || undefined,
+          vehicle: header.vehicle_label || undefined,
+          mileageIn: header.mileage_in ? String(header.mileage_in) : undefined,
+          items: lines.filter(l => l.kind !== "note").map(l => ({
+            category: l.kind === "labor" ? "labor" : l.kind === "part" ? "part" : "diagnosis",
+            description: l.description,
+            qty: l.qty, price: l.unit_cents / 100,
+            hours: l.kind === "labor" ? l.qty : undefined,
+          })),
+          status: status, createdAt: new Date().toISOString(),
+          taxRate: taxRate, epaCents: epaC, shopSuppliesCents: suppliesC,
+          feesCents: feesC,
+        },
+        storeName: storeInfo.name,
+        storeAddress: storeInfo.address,
+        storePhone: storeInfo.phone,
+        storePhone2: storeInfo.phone2,
+        storeEmail: storeInfo.email,
+        storeStateReg: storeInfo.stateReg,
+        storeLogo: storeLogoData,
+        storeTermsPolicy: storeInfo.termsPolicy,
+      });
+      const pdf_base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read PDF"));
+        reader.readAsDataURL(blob);
+      });
+      await supabase.functions.invoke("ar-ro-archive", {
+        body: {
+          store_id: storeId,
+          ro_number: header.number || null,
+          doc_type: "repair_order",
+          customer_name: header.customer_name || null,
+          vehicle_label: header.vehicle_label || null,
+          total_cents: Math.round(t.total),
+          pdf_base64,
+        },
+      });
+    } catch (e) {
+      console.warn("RO archive failed", e);
+    }
+  };
+
+  const printRO = async () => {
+    const rows = lines.length
+      ? lines
+          .map(
+            (l) =>
+              `<tr><td>${KIND_META[l.kind].label}</td><td>${escapeHtml(l.description || "—")}${l.misc ? ` <span style="color:#888">(${escapeHtml(l.misc)})</span>` : ""}</td><td class="r">${l.qty}</td><td class="r">${money(l.unit_cents)}</td><td class="r">${money(lineTotalCents(l))}</td></tr>`,
+          )
+          .join("")
+      : `<tr><td colspan="5" style="padding:18px 8px;color:#666;text-align:center">No line items yet</td></tr>`;
+    const html = `<html><head><title>RO ${escapeHtml(header.number || "")}</title><style>
       body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:20px;margin:0}
       table{width:100%;border-collapse:collapse;margin-top:14px}th,td{padding:6px 8px;border-bottom:1px solid #ddd;text-align:left}
       th{font-size:11px;text-transform:uppercase;color:#666}.r{text-align:right}.tot{font-size:18px;font-weight:700}</style></head><body>
-      <h1>Repair Order ${header.number || ""}</h1>
-      <p><b>Customer:</b> ${header.customer_name || "—"} &nbsp;|&nbsp; <b>Vehicle:</b> ${header.vehicle_label || "—"}${header.license_plate ? ` (${header.license_plate})` : ""}</p>
+      <h1>Repair Order ${escapeHtml(header.number || "")}</h1>
+      <p><b>Customer:</b> ${escapeHtml(header.customer_name || "—")} &nbsp;|&nbsp; <b>Vehicle:</b> ${escapeHtml(header.vehicle_label || "—")}${header.license_plate ? ` (${escapeHtml(header.license_plate)})` : ""}</p>
       <table><tr><th>Type</th><th>Description</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Total</th></tr>${rows}</table>
       <div style="margin-top:16px;text-align:right">
         <p>Parts: ${money(t.parts)} &nbsp; Labor: ${money(t.labor)} &nbsp; Tires: ${money(t.tires)} &nbsp; Sublet: ${money(t.sublet)}</p>
@@ -1362,18 +1753,23 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
         <p>Discount: -${money(discountC)} &nbsp; Tax: ${money(t.tax)}</p>
         <p class="tot">Total: ${money(t.total)}</p>
       </div></body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) { toast.error("Pop-up blocked"); return; }
-    w.document.write(html); w.document.close(); w.focus();
-    setTimeout(() => w.print(), 400);
+    // Cross-platform: web opens the OS print dialog (any printer / Save as PDF);
+    // the mobile app renders a PDF to the system share sheet (AirPrint, Save to
+    // Files, Mail). Either way the device's own printers are reachable.
+    await printOrShareHtml(html, `RO-${header.number || "draft"}.pdf`, `Print RO ${header.number || ""}`);
+    void archiveRO();
   };
 
-  const shortcuts: { label: string; icon: typeof Wrench; onClick?: () => void }[] = [
-    { label: "Summary", icon: FileSignature },
-    { label: "Service History", icon: History, onClick: () => boundVehicle ? setHistoryOpen(true) : onNavigate?.("ar-vehicles") },
-    { label: "Vehicle Inspection", icon: ClipboardCheck, onClick: () => onNavigate?.("ar-inspections") },
-    { label: "Activities", icon: Activity, onClick: () => onNavigate?.("ar-customer-notes") },
-    { label: "Payments", icon: CreditCard, onClick: () => onNavigate?.("ar-fin-payments") },
+  const scrollToEstimateSummary = () => {
+    document.getElementById("ar-estimate-summary")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const shortcuts: { label: string; icon: typeof Wrench; onClick: () => void }[] = [
+    { label: "Summary", icon: FileSignature, onClick: scrollToEstimateSummary },
+    { label: "Service History", icon: History, onClick: () => boundVehicle ? setHistoryOpen(true) : openSectionTab("ar-vehicles") },
+    { label: "Vehicle Inspection", icon: ClipboardCheck, onClick: () => openSectionTab("ar-inspections") },
+    { label: "Activities", icon: Activity, onClick: () => openSectionTab("ar-customer-notes") },
+    { label: "Payments", icon: CreditCard, onClick: () => openSectionTab("ar-fin-payments") },
   ];
 
   const fieldCls = "h-6 px-2 text-[11px]";
@@ -1385,6 +1781,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     if (mode === "estimate") {
       const { data, error } = await supabase.from("ar_estimates" as any)
         .select("*").eq("store_id", storeId).ilike("number", `%${term}%`)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false }).limit(1);
       if (error) { toast.error(error.message); return; }
       if (data?.[0]) { loadEstimate(data[0]); setView("builder"); }
@@ -1395,18 +1792,28 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       if (error) { toast.error(error.message); return; }
       const inv: any = data?.[0];
       if (inv?.estimate_id) {
-        const { data: est } = await supabase.from("ar_estimates" as any).select("*").eq("id", inv.estimate_id).single();
+        const { data: est } = await supabase.from("ar_estimates" as any).select("*")
+          .eq("id", inv.estimate_id)
+          .eq("store_id", storeId)
+          .is("deleted_at", null)
+          .single();
         if (est) { loadEstimate(est); setView("builder"); return; }
       }
-      if (inv) { toast.info(`Invoice ${inv.number} — opening Invoices`); onNavigate?.("ar-invoices"); }
+      if (inv) { toast.info(`Invoice ${inv.number} — opening Invoices`); openSectionTab("ar-invoices"); }
       else toast.error(`No invoice matching "${term}"`);
     }
   };
 
   const requestInfoBySms = (phone: string) => {
-    const msg = encodeURIComponent("Hi! Please reply with your name, vehicle (year/make/model) and the service you need so we can prepare your estimate. Thank you!");
+    const bookingUrl = buildAutoRepairBookingUrl({
+      origin: window.location.origin,
+      storeId,
+      slug: bookingStoreSlug,
+      params: { source: "build-ro-sms", phone },
+    });
+    const msg = encodeURIComponent(`Hi! Please complete your customer and vehicle details here so we can prepare your estimate: ${bookingUrl}`);
     window.open(`sms:${phone}?body=${msg}`, "_blank");
-    toast.success("Opening your text app…");
+    toast.success("Opening your text app with the customer info link…");
   };
 
   // Quick-nav toolbar (portaled into the page header) + the section popup dialog,
@@ -1414,9 +1821,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
   // present on every Build R.O. screen.
   const toolbarHandlers = {
     onNew: () => { resetAll(); setView("builder"); },
-    onHub: () => setView("hub"),
-    onPrint: printRO,
-    onNavigate: (tab: string) => setSectionTab(tab),
+    onHub: () => { closeTransientBuildROUi(); setView("hub"); },
+    onPrint: () => setPrintModalOpen(true),
+    onNavigate: openSectionTab,
     onNavigateMain: onNavigate, // client-side switch the main window (e.g. open the Settings page)
     onProfit: () => setOpenGP(true),
     onNewIntake: (type: string) => { resetAll(); setH({ appointment_type: type }); setView("builder"); },
@@ -1428,7 +1835,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
     <>
       {headerSlot && createPortal(<BuildROIconToolbar group="nav" isSoftwareDomain={isSoftwareDomain} {...toolbarHandlers} />, headerSlot)}
       <BuildROIconToolbar group="docs" isSoftwareDomain={isSoftwareDomain} {...toolbarHandlers} />
-      <BuildROSectionDialog storeId={storeId} tab={sectionTab} onOpenChange={(o) => { if (!o) setSectionTab(null); }} />
+      <BuildROSectionDialog storeId={storeId} tab={sectionTab} onOpenChange={handleSectionOpenChange} onNavigate={onNavigate} isSoftwareDomain={isSoftwareDomain} />
     </>
   );
 
@@ -1441,11 +1848,11 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
           recent={recent}
           onCreateNew={() => { resetAll(); setView("builder"); }}
           onExistingCustomer={() => { resetAll(); setView("builder"); setOpenExisting(true); }}
-          onNewCustomer={() => { resetAll(); setView("builder"); setOpenCustomer(true); }}
+          onNewCustomer={() => { resetAll(); setView("builder"); openBlankCustomerDialog(); }}
           onOpenTicket={(e) => { loadEstimate(e); setView("builder"); }}
           onRequestInfoSms={requestInfoBySms}
           onSearch={searchAndLoad}
-          onNavigate={onNavigate}
+          onNavigate={openSectionTab}
         />
       </>
     );
@@ -1487,10 +1894,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
           {editId && <Badge variant="secondary" className="text-[10px]">saved</Badge>}
         </div>
         <div className="flex items-center gap-1.5">
-          <Button size="sm" variant="ghost" className="h-8 gap-1.5" onClick={() => setView("hub")} title="Back to start screen">
+          <Button size="sm" variant="ghost" className="h-8 gap-1.5" onClick={() => { closeTransientBuildROUi(); setView("hub"); }} title="Back to start screen">
             <Home className="h-3.5 w-3.5" /> Start
           </Button>
-          <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={resetAll}>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5" disabled={save.isPending} onClick={resetAll}>
             <FilePlus2 className="h-3.5 w-3.5" /> New
           </Button>
           <div className="relative">
@@ -1506,7 +1913,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
                     <button
                       key={e.id}
                       type="button"
-                      onClick={() => loadEstimate(e)}
+                      onClick={() => { loadEstimate(e); setOpenLoad(false); }}
                       className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-muted"
                     >
                       <span className="min-w-0">
@@ -1529,7 +1936,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
             }))}>
             <Eye className="h-3.5 w-3.5" /> Preview
           </Button>
-          <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => setPrintModalOpen(true)}>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5" disabled={save.isPending} onClick={() => setPrintModalOpen(true)}>
             <Printer className="h-3.5 w-3.5" /> Print
           </Button>
           <Button size="sm" className="h-8 gap-1.5" disabled={save.isPending} onClick={() => save.mutate(false)}>
@@ -1552,7 +1959,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
                   <button type="button" className="ml-0.5 hover:text-foreground" onClick={unbind} title="Unlink"><X className="h-3 w-3" /></button>
                 </span>
               )}
-              <button type="button" onClick={() => setOpenCustomer(true)}
+              <button type="button" onClick={openBlankCustomerDialog}
                 className="flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground hover:bg-primary/90">
                 <UserPlus className="h-3 w-3" /> Add New
               </button>
@@ -1689,7 +2096,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
                 key={j}
                 type="button"
                 onClick={() => setActiveJob(j)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${activeJob === j ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${activeJob === j ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
               >
                 Job {j}
                 <span className="ml-1 opacity-70">({lines.filter((l) => l.job === j).length})</span>
@@ -1763,7 +2170,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
                       return (
                         <tr key={l.id} className={`group border-b border-l-2 last:border-b-0 hover:bg-muted/20 ${accent.border} ${l.declined ? "opacity-40" : ""}`}>
                           <td className="px-2 py-1 align-middle">
-                            <Select value={l.kind} onValueChange={(v: LineKind) => patchLine(l.id, { kind: v })}>
+                            <Select value={l.kind} onValueChange={(v: LineKind) => changeLineKind(l.id, v)}>
                               <SelectTrigger className={`h-7 w-[84px] border-transparent bg-transparent px-1.5 text-[11px] font-semibold shadow-none hover:border-border hover:bg-background ${accent.text}`}>
                                 <span className="flex items-center gap-1"><Icon className="h-3 w-3" /><SelectValue /></span>
                               </SelectTrigger>
@@ -1939,6 +2346,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
                     <button
                       key={stage.value}
                       type="button"
+                      disabled={save.isPending}
                       onClick={() => setWorkStatus(stage.value)}
                       title={stage.label}
                       className={`relative flex h-6 items-center pl-3 pr-2.5 text-[10px] font-semibold transition-colors first:rounded-l-md last:rounded-r-md ${
@@ -1969,17 +2377,17 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               <SelectTrigger className="h-6 w-[150px] text-xs"><SelectValue placeholder="Appointment type" /></SelectTrigger>
               <SelectContent>{APPOINTMENT_TYPES.map((a) => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}</SelectContent>
             </Select>
-            <Button size="sm" variant={toOrderCount ? "default" : "outline"} className="ml-auto h-7 gap-1.5 text-xs" onClick={placeOrder}>
+            <Button size="sm" variant={toOrderCount ? "default" : "outline"} className="ml-auto h-7 gap-1.5 text-xs" disabled={save.isPending} onClick={placeOrder}>
               <ShoppingCart className="h-3.5 w-3.5" /> Place Order ({toOrderCount})
             </Button>
           </div>
 
           {/* Notes — VSM-style: six categories, AI ReWrite + voice dictation */}
-          <div className="rounded-xl border bg-card p-2">
+          <div id="ar-estimate-summary" className="rounded-xl border bg-card p-2">
             <div className="mb-1.5 flex flex-wrap items-center gap-1">
               {NOTE_TABS.map((n) => (
                 <button key={n.key} type="button" onClick={() => setNoteTab(n.key)}
-                  className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${noteTab === n.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
+                  className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${noteTab === n.key ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}>
                   {n.label}
                 </button>
               ))}
@@ -2080,14 +2488,14 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               </Button>
             </div>
             <div className="mt-1.5 flex items-center justify-center gap-1 border-t pt-1.5">
-              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" onClick={copyApprovalLink}>
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!hasActiveWorkLines} onClick={copyApprovalLink}>
                 <Link2 className="h-3.5 w-3.5" /> Link
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!header.customer_email || sendChannel.isPending}
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!hasActiveWorkLines || !header.customer_email || sendChannel.isPending}
                 onClick={() => sendChannel.mutate("email")}>
                 <Mail className="h-3.5 w-3.5" /> Email
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!header.customer_phone}
+              <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" disabled={!hasActiveWorkLines || !header.customer_phone}
                 onClick={() => setSmsMenuOpen(true)}>
                 <MessageSquare className="h-3.5 w-3.5" /> SMS
               </Button>
@@ -2100,9 +2508,8 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               <button
                 key={s.label}
                 type="button"
-                disabled={!s.onClick}
                 onClick={s.onClick}
-                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground transition hover:bg-muted"
               >
                 <s.icon className="h-3.5 w-3.5" /> {s.label}
               </button>
@@ -2200,7 +2607,10 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       />
       <BuildROPartsCatalogDialog
         open={openCatalog}
-        onOpenChange={setOpenCatalog}
+        onOpenChange={(open) => {
+          setOpenCatalog(open);
+          if (!open) setCatalogVersion((v) => v + 1);
+        }}
         storeId={storeId}
         vehicleLabel={header.vehicle_label || undefined}
         vin={boundVehicle?.vin || undefined}
@@ -2294,7 +2704,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       />
 
       {/* ── Print / Review modal ── */}
-      <Dialog open={printModalOpen} onOpenChange={setPrintModalOpen}>
+      <Dialog open={printModalOpen} onOpenChange={handlePrintModalOpenChange}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-center text-lg">Print / Review</DialogTitle>
@@ -2303,12 +2713,16 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
           <div className="space-y-3 pt-2">
             {/* Review & Sign */}
             <Button className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2"
-              onClick={async () => { setPrintModalOpen(false); await copyApprovalLink(); }}>
+              onClick={async () => { handlePrintModalOpenChange(false); await copyApprovalLink(); }}>
               <FileSignature className="h-4 w-4" /> Review &amp; Sign
             </Button>
             {/* Print Estimate */}
             <Button className="w-full bg-red-600 hover:bg-red-700 text-white gap-2"
-              onClick={() => { setPrintModalOpen(false); for (let i = 0; i < printCopies; i++) printRO(); }}>
+              onClick={async () => {
+                const copies = printCopies;
+                for (let i = 0; i < copies; i++) await printRO();
+                handlePrintModalOpenChange(false);
+              }}>
               <Printer className="h-4 w-4" /> Print Estimate
             </Button>
             {/* Copies */}
@@ -2322,7 +2736,6 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               {/* Download Estimate */}
               <button className="flex items-center gap-1 text-primary hover:underline"
                 onClick={async () => {
-                  if (!lines.length) { toast.error("Add at least one line first"); return; }
                   try {
                     const blob = await generateDocumentPdf({
                       doc: {
@@ -2339,13 +2752,13 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
                           hours: l.kind === "labor" ? l.qty : undefined,
                         })),
                         status: status, createdAt: new Date().toISOString(),
-                        taxRate: taxRate, epaCents: epaC * 100, shopSuppliesCents: suppliesC * 100,
-                        feesCents: feesC * 100,
+                        taxRate: taxRate, epaCents: epaC, shopSuppliesCents: suppliesC,
+                        feesCents: feesC,
                       },
                     });
                     downloadPdf(blob, `estimate-${header.number || "draft"}.pdf`);
                   } catch (e: any) { toast.error(e?.message ?? "PDF error"); }
-                  setPrintModalOpen(false);
+                  handlePrintModalOpenChange(false);
                 }}>
                 <Download className="h-3.5 w-3.5" /> Download Estimate
               </button>
@@ -2353,15 +2766,15 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               <button className="flex items-center gap-1 text-primary hover:underline"
                 onClick={() => {
                   const html = `<html><head><title>Tech Assignment</title><style>body{font-family:system-ui;padding:24px}h2{margin:0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{padding:6px 8px;border:1px solid #ddd;text-align:left}th{background:#f3f4f6;font-size:11px;text-transform:uppercase}</style></head><body>
-                    <h2>Tech Assignment — RO ${header.number || ""}</h2>
-                    <p><b>Vehicle:</b> ${header.vehicle_label || "—"} &nbsp;|&nbsp; <b>Plate:</b> ${header.license_plate || "—"}</p>
-                    <p><b>Mileage In:</b> ${header.mileage_in || "—"}</p>
+                    <h2>Tech Assignment — RO ${escapeHtml(header.number || "")}</h2>
+                    <p><b>Vehicle:</b> ${escapeHtml(header.vehicle_label || "—")} &nbsp;|&nbsp; <b>Plate:</b> ${escapeHtml(header.license_plate || "—")}</p>
+                    <p><b>Mileage In:</b> ${escapeHtml(header.mileage_in || "—")}</p>
                     <table><tr><th>Type</th><th>Description</th><th>Qty</th></tr>
-                    ${lines.filter(l => l.kind === "labor").map(l => `<tr><td>Labor</td><td>${l.description}</td><td>${l.qty} hr</td></tr>`).join("")}
+                    ${lines.filter(l => l.kind === "labor").map(l => `<tr><td>Labor</td><td>${escapeHtml(l.description)}</td><td>${l.qty} hr</td></tr>`).join("")}
                     </table></body></html>`;
                   const w = window.open("", "_blank");
                   if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
-                  setPrintModalOpen(false);
+                  handlePrintModalOpenChange(false);
                 }}>
                 <PhoneCall className="h-3.5 w-3.5" /> Print Tech Assignment
               </button>
@@ -2371,7 +2784,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
       </Dialog>
 
       {/* ── SMS Menu ── */}
-      <Dialog open={smsMenuOpen} onOpenChange={setSmsMenuOpen}>
+      <Dialog open={smsMenuOpen} onOpenChange={handleSmsMenuOpenChange}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-center text-lg">Text Message (SMS) Menu</DialogTitle>
@@ -2380,7 +2793,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
             {/* Req. Approval */}
             <Button className="w-full bg-red-700 hover:bg-red-800 text-white gap-2" disabled={sendChannel.isPending}
               onClick={async () => {
-                setSmsMenuOpen(false);
+                handleSmsMenuOpenChange(false);
                 await sendChannel.mutateAsync("sms");
               }}>
               <CheckCircle2 className="h-4 w-4" /> Req. Approval
@@ -2390,7 +2803,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               onClick={() => {
                 const msg = encodeURIComponent(`Your vehicle is ready for pickup! Please call us to arrange. Thank you.`);
                 window.open(`sms:${header.customer_phone}?body=${msg}`, "_blank");
-                setSmsMenuOpen(false);
+                handleSmsMenuOpenChange(false);
               }}>
               <CheckCircle2 className="h-4 w-4" /> Ready
             </Button>
@@ -2399,7 +2812,7 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               onClick={() => {
                 const msg = encodeURIComponent(`Thank you for choosing us! We'd love your feedback. Please leave us a review — it means a lot to our team.`);
                 window.open(`sms:${header.customer_phone}?body=${msg}`, "_blank");
-                setSmsMenuOpen(false);
+                handleSmsMenuOpenChange(false);
               }}>
               <Star className="h-4 w-4" /> Request a Review
             </Button>
@@ -2412,9 +2825,9 @@ export default function AutoRepairBuildROSection({ storeId, onNavigate, isSoftwa
               <Button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white gap-2"
                 disabled={!smsCustomMsg.trim()}
                 onClick={() => {
-                  window.open(`sms:${header.customer_phone}?body=${encodeURIComponent(smsCustomMsg)}`, "_blank");
-                  setSmsCustomMsg("");
-                  setSmsMenuOpen(false);
+                  const msg = smsCustomMsg;
+                  window.open(`sms:${header.customer_phone}?body=${encodeURIComponent(msg)}`, "_blank");
+                  handleSmsMenuOpenChange(false);
                 }}>
                 <Send className="h-4 w-4" /> New Message
               </Button>

@@ -130,7 +130,7 @@ export default function ItinerariesPage() {
               const tripItems = itemsByItinerary.get(it.id) ?? [];
               return (
                 <motion.div key={it.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx, 12) * 0.03 }} className="rounded-2xl bg-card border border-border overflow-hidden">
-                  <button type="button" onClick={() => toggle(it.id)} className="w-full text-left flex items-start gap-3 p-3.5 hover:bg-secondary/40 transition-colors">
+                  <button type="button" onClick={() => toggle(it.id)} aria-expanded={isOpen} className="w-full text-left flex items-start gap-3 p-3.5 hover:bg-secondary/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                     {it.cover_image_url ? <img src={it.cover_image_url} alt="" className="shrink-0 h-14 w-14 rounded-xl object-cover" loading="lazy" decoding="async" /> : <div className="shrink-0 h-14 w-14 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><MapPin className="h-5 w-5 text-ig-gradient" /></div>}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-foreground line-clamp-1">{it.title}</p>

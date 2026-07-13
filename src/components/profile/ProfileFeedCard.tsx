@@ -16,11 +16,16 @@ import { formatDistanceToNow } from "date-fns";
 import { toUserPostInteractionId } from "@/lib/social/postInteraction";
 import CommentsSheet from "@/components/social/CommentsSheet";
 import CollapsibleCaption from "@/components/social/CollapsibleCaption";
-import { formatCount, commentsLinkLabel } from "@/lib/social/formatCount";
+import { formatCount } from "@/lib/social/formatCount";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useHaptic } from "@/hooks/useHaptic";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
 
-const REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "👍"];
+// Emojis constrained by the post_reactions DB CHECK: ❤️ 😂 😮 😢 😡 🔥 (👍 is not allowed)
+const REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "🔥"];
+const POST_REACTIONS_ENABLED = import.meta.env.VITE_ENABLE_POST_REACTIONS === "true";
 
 export type ProfileFeedItem = {
   id: string;
@@ -58,6 +63,7 @@ interface ProfileFeedCardProps {
   onOpenMenu: (item: ProfileFeedItem) => void;
   onShare: (postId: string) => void;
   onSelectPost: (item: ProfileFeedItem) => void;
+  onCommentsCountChange?: (count: number) => void;
   testId?: string;
 }
 
@@ -72,6 +78,7 @@ export default function ProfileFeedCard({
   onOpenMenu,
   onShare,
   onSelectPost,
+  onCommentsCountChange,
   testId,
 }: ProfileFeedCardProps) {
   const navigate = useNavigate();
@@ -84,7 +91,15 @@ export default function ProfileFeedCard({
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
+  const [topLikerName, setTopLikerName] = useState<string | null>(null);
   const lastTapRef = useRef(0);
+  const openTimerRef = useRef<number | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+  const haptic = useHaptic();
+
+  // Clear a pending deferred single-tap open on unmount
+  useEffect(() => () => { if (openTimerRef.current) clearTimeout(openTimerRef.current); }, []);
 
   // Deep link: open comments when URL contains ?post=<id>&comments=1
   useEffect(() => {
@@ -152,6 +167,7 @@ export default function ProfileFeedCard({
   const handleDoubleTap = useCallback(() => {
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
+      if (openTimerRef.current) { clearTimeout(openTimerRef.current); openTimerRef.current = null; }
       if (!isLiked) onToggleLike(item);
       setShowDoubleTapHeart(true);
       setTimeout(() => setShowDoubleTapHeart(false), 800);
@@ -159,11 +175,61 @@ export default function ProfileFeedCard({
     lastTapRef.current = now;
   }, [isLiked, item, onToggleLike]);
 
-  const handleReaction = (emoji: string) => {
-    setSelectedReaction(selectedReaction === emoji ? null : emoji);
+  const handleReaction = async (emoji: string) => {
+    if (!POST_REACTIONS_ENABLED) {
+      setShowReactionPicker(false);
+      toast.error("Reactions are being upgraded");
+      return;
+    }
+    if (!currentUserId) {
+      toast.error("Please sign in to react");
+      return;
+    }
+    const previous = selectedReaction;
+    const next = previous === emoji ? null : emoji;
+    setSelectedReaction(next);
     setShowReactionPicker(false);
-    if (!isLiked) onToggleLike(item);
+    try {
+      if (next == null) {
+        const { error } = await (supabase as any)
+          .from("post_reactions")
+          .delete()
+          .eq("user_id", currentUserId)
+          .eq("post_id", toUserPostInteractionId(item.id))
+          .eq("source", "user");
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("post_reactions")
+          .upsert(
+            { user_id: currentUserId, post_id: toUserPostInteractionId(item.id), source: "user", emoji: next },
+            { onConflict: "user_id,post_id,source" },
+          );
+        if (error) throw error;
+        if (!isLiked) onToggleLike(item);
+      }
+    } catch {
+      setSelectedReaction(previous);
+      toast.error("Couldn't save reaction");
+    }
   };
+
+  // Hydrate the viewer's persisted reaction so it survives remount/reload.
+  useEffect(() => {
+    if (!POST_REACTIONS_ENABLED || !currentUserId) return;
+    let alive = true;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("post_reactions")
+        .select("emoji")
+        .eq("user_id", currentUserId)
+        .eq("post_id", toUserPostInteractionId(item.id))
+        .eq("source", "user")
+        .maybeSingle();
+      if (alive && data?.emoji) setSelectedReaction(data.emoji);
+    })();
+    return () => { alive = false; };
+  }, [currentUserId, item.id]);
 
   const navigateToAuthor = (userId?: string) => {
     if (userId && userId !== currentUserId) {
@@ -171,26 +237,54 @@ export default function ProfileFeedCard({
     }
   };
 
+  // Resolve the most-recent liker's name for the single "Liked by NAME"
+  // social-proof line (name, not number — counts live on the action buttons).
+  useEffect(() => {
+    if (item.likes <= 0) { setTopLikerName(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data: rows } = await (supabase as any)
+        .from("post_likes")
+        .select("user_id, created_at")
+        .eq("post_id", item.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (cancelled) return;
+      const winner = (rows || []).find((r: { user_id: string }) => r.user_id && r.user_id !== currentUserId)?.user_id;
+      if (!winner) { setTopLikerName(null); return; }
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name, username")
+        .eq("user_id", winner)
+        .maybeSingle();
+      if (cancelled) return;
+      const display = (prof as { full_name?: string | null; username?: string | null } | null)?.full_name
+        || ((prof as { username?: string | null } | null)?.username ? `@${(prof as any).username}` : null);
+      setTopLikerName(display);
+    })();
+    return () => { cancelled = true; };
+  }, [item.likes, item.id, currentUserId]);
+
   return (
     <article
-      className="overflow-hidden rounded-[24px] border border-border/70 bg-card shadow-sm shadow-black/[0.04]"
+      className="overflow-hidden rounded-2xl border border-border/30 bg-background/92 shadow-sm transition-colors duration-200 hover:border-border/50"
       data-testid={testId}
     >
       {item.isShared && item.sharedOrigin ? (
         <>
           {/* Sharer header */}
-          <div className="flex items-start border-b border-border/35 bg-card/95">
+          <div className="flex items-start border-b border-border/15">
             <button
               type="button"
               onClick={() => navigateToAuthor(item.userId || profileOwnerId)}
               className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-3 text-left active:opacity-70"
             >
-              <Avatar className="h-10 w-10 shrink-0 border border-border/50">
+              <Avatar className="h-10 w-10 shrink-0 border border-border/30">
                 <AvatarImage src={item.user.avatar || undefined} />
                 <AvatarFallback className="text-xs font-bold">{item.user.name?.[0]?.toUpperCase() || "Z"}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="inline-flex max-w-full items-center gap-1 text-[13px] font-extrabold text-foreground">
+                <p className="inline-flex max-w-full items-center gap-1 text-[13px] font-semibold text-foreground">
                   <span className="truncate">{item.user.name}</span>
                   {isBlueVerified(item.user.isVerified) && <VerifiedBadge size={14} interactive={false} />}
                 </p>
@@ -214,8 +308,8 @@ export default function ProfileFeedCard({
           )}
 
           {/* Embedded original post card */}
-          <div className="mx-3 mb-3 overflow-hidden rounded-[20px] border border-border/60 bg-muted/20">
-            <div className="flex items-center border-b border-border/35 px-3 py-2.5">
+          <div className="mx-3 mb-3 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
+            <div className="flex items-center border-b border-border/15 px-3 py-2.5">
               <button
                 type="button"
                 onClick={() => {
@@ -247,7 +341,7 @@ export default function ProfileFeedCard({
                   }}
                   className="text-primary text-[13px] font-semibold ml-2 shrink-0"
                 >
-                  Follow
+                  View profile
                 </button>
               )}
             </div>
@@ -281,7 +375,7 @@ export default function ProfileFeedCard({
                   </>
                 ) : (
                   <img src={item.url!} alt="" className="block h-auto max-h-[560px] w-full cursor-pointer object-contain"
-                    style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => onSelectPost(item)} />
+                    style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => { openTimerRef.current = window.setTimeout(() => onSelectPost(item), 300); }} />
                 )}
                 {/* Double-tap heart */}
                 <AnimatePresence>
@@ -300,18 +394,18 @@ export default function ProfileFeedCard({
       ) : (
         <>
           {/* Normal post header */}
-          <div className="flex items-start border-b border-border/35 bg-card/95">
+          <div className="flex items-start border-b border-border/15">
             <button
               type="button"
               onClick={() => navigateToAuthor(item.userId || profileOwnerId)}
               className="flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-3 text-left active:opacity-70"
             >
-              <Avatar className="h-10 w-10 shrink-0 border border-border/50">
+              <Avatar className="h-10 w-10 shrink-0 border border-border/30">
                 <AvatarImage src={item.user.avatar || undefined} />
                 <AvatarFallback className="text-xs font-bold">{item.user.name?.[0]?.toUpperCase() || "Z"}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="inline-flex max-w-full items-center gap-1 text-[13px] font-extrabold text-foreground">
+                <p className="inline-flex max-w-full items-center gap-1 text-[13px] font-semibold text-foreground">
                   <span className="truncate">{item.user.name}</span>
                   {isBlueVerified(item.user.isVerified) && <VerifiedBadge size={14} interactive={false} />}
                 </p>
@@ -370,7 +464,7 @@ export default function ProfileFeedCard({
                 </>
               ) : (
                 <img src={item.url!} alt="" className="block h-auto max-h-[560px] w-full cursor-pointer object-contain"
-                  style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => onSelectPost(item)} />
+                  style={{ filter: item.filterCss || "none" }} loading="lazy" decoding="async" onClick={() => { openTimerRef.current = window.setTimeout(() => onSelectPost(item), 300); }} />
               )}
               {/* Double-tap heart */}
               <AnimatePresence>
@@ -387,64 +481,99 @@ export default function ProfileFeedCard({
         </>
       )}
 
-      {/* Emoji reaction bar */}
-      <AnimatePresence>
-        {showReactionPicker && (
-          <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.9 }}
-            role="toolbar" aria-label="Reactions"
-            className="flex items-center gap-1 px-3 py-2 mx-3 mt-1 bg-card rounded-full shadow-lg border border-border/30 w-fit">
-            {REACTIONS.map((emoji) => (
-              <button type="button" key={emoji} onClick={() => handleReaction(emoji)}
-                aria-label={`React with ${emoji}`}
-                aria-pressed={selectedReaction === emoji}
-                className={cn("text-xl p-1.5 rounded-full transition-all active:scale-125 hover:bg-muted",
-                  selectedReaction === emoji && "bg-primary/10 ring-2 ring-primary/30")}>
-                {emoji}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Action buttons — v2026 chip-style icons */}
-      <div className="flex items-center px-2.5 sm:px-3 py-1.5">
-        <div className="flex items-center gap-1.5 flex-1">
-          {/* Like */}
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={() => onToggleLike(item)}
-            onContextMenu={(e) => { e.preventDefault(); setShowReactionPicker(!showReactionPicker); }}
-            aria-label={isLiked ? `Unlike post${formatCount(item.likes) ? `, ${formatCount(item.likes)} likes` : ""}` : `Like post${formatCount(item.likes) ? `, ${formatCount(item.likes)} likes` : ""}`}
-            aria-pressed={isLiked}
-            style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
-            className={cn(
-              "min-h-[44px] h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 inline-flex items-center justify-center gap-1.5 px-2.5 rounded-full transition-all",
-              isLiked
-                ? "bg-rose-500/12 text-rose-500 shadow-[0_0_18px_-6px_hsl(347_77%_55%/0.55)]"
-                : "text-foreground hover:bg-muted/50",
-            )}
-          >
-            {selectedReaction ? (
-              <span className="text-lg leading-none" aria-hidden>{selectedReaction}</span>
+      {/* Engagement summary — single "Liked by …" social-proof line.
+          Numeric counts live exactly once, on the action buttons below. */}
+      {item.likes > 0 && (topLikerName || !(isLiked && item.likes === 1)) && (
+        <div className="mx-3 mt-1.5 px-1">
+          <p className="text-[11px] text-foreground leading-tight">
+            {topLikerName ? (
+              <span>Liked by <span className="font-semibold">{topLikerName}</span></span>
             ) : (
-              <Heart aria-hidden strokeWidth={2.2} className={cn("h-[22px] w-[22px] transition-transform", isLiked && "fill-rose-500 scale-110")} />
+              <span>Liked by <span className="font-semibold">{formatCount(item.likes)} {item.likes === 1 ? "person" : "people"}</span></span>
             )}
-            {formatCount(item.likes) && (
-              <span aria-hidden className={cn("text-[12px] font-semibold tabular-nums", isLiked || selectedReaction ? "text-rose-500" : "text-muted-foreground")}>
-                {formatCount(item.likes)}
-              </span>
-            )}
-          </motion.button>
+          </p>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="mx-3 mb-2.5 mt-1 flex items-center gap-1 border-t border-border/15 pt-1">
+        <div className="flex items-center gap-1 flex-1">
+          {/* Like — long-press (touch) or right-click opens the reaction popover */}
+          <div className="relative">
+            <AnimatePresence>
+              {showReactionPicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.7 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.7 }}
+                  transition={{ type: "spring", damping: 16, stiffness: 420, mass: 0.7 }}
+                  role="toolbar" aria-label="Reactions"
+                  className="zivo-social-reaction-dock absolute bottom-full left-0 mb-3 z-50 flex items-center gap-0.5 rounded-full px-2.5 py-1.5"
+                >
+                  {REACTIONS.map((emoji) => (
+                    <button type="button" key={emoji}
+                      onClick={(e) => { e.stopPropagation(); void handleReaction(emoji); }}
+                      aria-label={`React with ${emoji}`}
+                      aria-pressed={selectedReaction === emoji}
+                      className={cn("text-xl p-1.5 rounded-full transition-transform hover:scale-[1.35] active:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                        selectedReaction === emoji && "bg-primary/10 ring-2 ring-primary/30")}>
+                      {emoji}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => {
+                if (longPressFired.current) { longPressFired.current = false; return; }
+                onToggleLike(item);
+              }}
+              onPointerDown={() => {
+                if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                longPressFired.current = false;
+                longPressTimer.current = setTimeout(() => {
+                  longPressFired.current = true;
+                  haptic("medium");
+                  setShowReactionPicker(true);
+                }, 350);
+              }}
+              onPointerUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
+              onPointerLeave={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
+              onPointerCancel={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; } }}
+              onContextMenu={(e) => { e.preventDefault(); setShowReactionPicker(!showReactionPicker); }}
+              aria-label={isLiked ? `Unlike post${formatCount(item.likes) ? `, ${formatCount(item.likes)} likes` : ""}` : `Like post${formatCount(item.likes) ? `, ${formatCount(item.likes)} likes` : ""}`}
+              aria-pressed={isLiked}
+              title={isLiked ? "Unlike post" : "Like post"}
+              style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", WebkitTapHighlightColor: "transparent" } as React.CSSProperties}
+              className={cn(
+                "min-h-[40px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 flex items-center justify-center gap-1.5 rounded-full transition-colors touch-manipulation",
+                isLiked || selectedReaction
+                  ? "bg-destructive/10 text-destructive"
+                  : "text-muted-foreground hover:bg-muted/60",
+              )}
+            >
+              {selectedReaction ? (
+                <span className="text-lg leading-none" aria-hidden>{selectedReaction}</span>
+              ) : (
+                <Heart aria-hidden className={cn("h-[20px] w-[20px] transition-all", isLiked && "fill-destructive scale-105")} />
+              )}
+              {formatCount(item.likes) && (
+                <span aria-hidden className={cn("text-[12px] font-semibold tabular-nums", isLiked || selectedReaction ? "text-destructive" : "text-muted-foreground")}>
+                  {formatCount(item.likes)}
+                </span>
+              )}
+            </motion.button>
+          </div>
 
           {/* Comment */}
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={openComments}
             aria-label={`Open comments${formatCount(item.comments) ? `, ${formatCount(item.comments)} comments` : ""}`}
-            className="min-h-[44px] h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 inline-flex items-center justify-center gap-1.5 px-2.5 rounded-full text-foreground hover:bg-muted/50 transition-all"
+            className="min-h-[40px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 flex items-center justify-center gap-1.5 rounded-full text-muted-foreground hover:bg-muted/60 transition-colors touch-manipulation"
           >
-            <MessageCircle aria-hidden strokeWidth={2.2} className="h-[22px] w-[22px]" />
+            <MessageCircle aria-hidden className="h-[20px] w-[20px]" />
             {formatCount(item.comments) && (
               <span aria-hidden className="text-[12px] text-muted-foreground font-semibold tabular-nums">
                 {formatCount(item.comments)}
@@ -457,9 +586,9 @@ export default function ProfileFeedCard({
             whileTap={{ scale: 0.88 }}
             onClick={() => onShare(item.id)}
             aria-label="Share post"
-            className="min-h-[44px] h-11 w-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 inline-flex items-center justify-center rounded-full text-foreground hover:bg-muted/50 transition-all"
+            className="min-h-[40px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 flex items-center justify-center gap-1.5 rounded-full text-muted-foreground hover:bg-muted/60 transition-colors touch-manipulation"
           >
-            <Send aria-hidden strokeWidth={2.2} className="h-[21px] w-[21px] -rotate-12" />
+            <Send aria-hidden className="h-[20px] w-[20px] shrink-0" />
           </motion.button>
         </div>
 
@@ -469,36 +598,25 @@ export default function ProfileFeedCard({
           onClick={() => onToggleBookmark(item)}
           aria-label={isBookmarked ? "Remove bookmark" : "Save post"}
           aria-pressed={isBookmarked}
+          title={isBookmarked ? "Remove bookmark" : "Save post"}
           className={cn(
-            "min-h-[44px] h-11 w-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 inline-flex items-center justify-center rounded-full transition-all",
+            "min-h-[40px] w-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 flex items-center justify-center rounded-full transition-colors touch-manipulation",
             isBookmarked
-              ? "bg-emerald-500/12 text-emerald-500"
-              : "text-foreground hover:bg-muted/50",
+              ? "text-primary"
+              : "text-muted-foreground hover:bg-muted/60",
           )}
         >
-          <Bookmark aria-hidden strokeWidth={2.2} className={cn("h-[22px] w-[22px] transition-transform", isBookmarked && "fill-emerald-500 scale-110")} />
+          <Bookmark aria-hidden className={cn("h-[20px] w-[20px] transition-all", isBookmarked && "fill-primary")} />
         </motion.button>
       </div>
 
-      {/* View all comments — deep-linkable */}
-      {item.comments > 0 && (
-        <a
-          href={`?post=${encodeURIComponent(item.id)}&src=user&comments=1`}
-          onClick={(e) => { e.preventDefault(); openComments(); }}
-          aria-label={`View all ${formatCount(item.comments) ?? item.comments} comments on this post`}
-          className="block px-3 pb-2 text-left active:opacity-70"
-        >
-          <p className="text-[13px] text-muted-foreground font-medium hover:text-foreground transition-colors">
-            {commentsLinkLabel(item.comments)}
-          </p>
-        </a>
-      )}
-
-      {/* Views for videos */}
+      {/* Views for videos — single views chip on the main-feed token */}
       {isVideo && (item.views || 0) > 0 && (
-        <div className="px-3 pb-2 flex items-center gap-1">
-          <Eye aria-hidden className="h-3 w-3 text-muted-foreground" />
-          <p className="text-[11px] text-muted-foreground">{(item.views || 0).toLocaleString()} views</p>
+        <div className="px-3 pb-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/15 bg-muted/20 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            <Eye aria-hidden className="h-3 w-3" />
+            {formatCount(item.views || 0)} views
+          </span>
         </div>
       )}
 
@@ -510,6 +628,7 @@ export default function ProfileFeedCard({
         postSource="user"
         currentUserId={currentUserId || null}
         commentsCount={item.comments}
+        onCommentsCountChange={onCommentsCountChange}
       />
     </article>
   );

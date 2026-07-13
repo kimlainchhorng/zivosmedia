@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { MessageSquareText, Star, Flag, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -98,7 +98,7 @@ export default function LodgingReviewsSection({ storeId }: { storeId: string }) 
             <button type="button"
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium capitalize ${filter === f ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}
+              className={`rounded-full border px-3 py-1 text-xs font-medium capitalize ${filter === f ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}
             >
               {f === "low" ? "≤3 stars" : f}
             </button>

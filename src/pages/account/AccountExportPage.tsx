@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AccountExportPage — Granular data export with format selection.
  * Lets users pick which data categories to include and which format
  * (JSON or CSV ZIP). Counts each category live before export.
@@ -372,7 +372,7 @@ export default function AccountExportPage() {
                 );
               }
             }}
-            className="w-full mt-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
+            className="w-full mt-1 px-4 py-2 rounded-lg bg-ig-gradient text-white text-sm font-semibold active:scale-95 transition-transform"
           >
             Download authoritative bundle
           </button>

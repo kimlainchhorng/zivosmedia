@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EventRSVPCard — render an event with RSVP buttons.
  * Tap Going/Maybe/Decline to upsert into event_rsvps.
  */
@@ -71,7 +71,7 @@ export default function EventRSVPCard({ event, myStatus, onRSVP }: Props) {
               key={s}
               onClick={() => void rsvp(s)}
               disabled={busy}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold capitalize transition active:scale-95 ${myStatus === s ? "bg-primary text-primary-foreground" : "bg-muted/50 text-foreground hover:bg-muted"}`}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-bold capitalize transition active:scale-95 ${myStatus === s ? "bg-ig-gradient text-white" : "bg-muted/50 text-foreground hover:bg-muted"}`}
             >
               {s === "going" ? "Going" : s === "maybe" ? "Maybe" : "Can't"}
             </button>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalFleetSection — manage vehicles.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -78,6 +78,7 @@ export default function CarRentalFleetSection({ storeId }: Props) {
   const [editing, setEditing] = useState<CarRentalVehicle | null>(null);
   const [draft, setDraft] = useState<CarRentalVehicleDraft>(EMPTY_DRAFT);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const [detailVehicle, setDetailVehicle] = useState<CarRentalVehicle | null>(null);
   const [serviceMap, setServiceMap] = useState<Map<string, { next_due_date: string | null; next_due_odometer: number | null }>>(new Map());
   const [searchQuery, setSearchQuery] = useState("");
@@ -139,8 +140,9 @@ export default function CarRentalFleetSection({ storeId }: Props) {
     return { due, overdue, total: due + overdue };
   }, [vehicles, serviceMap]);
 
-  const openCreate = () => { setEditing(null); setDraft(EMPTY_DRAFT); setDialogOpen(true); };
+  const openCreate = () => { setEditing(null); setDraft(EMPTY_DRAFT); setSubmitted(false); setDialogOpen(true); };
   const openEdit = (v: CarRentalVehicle) => {
+    setSubmitted(false);
     setEditing(v);
     setDraft({
       make: v.make, model: v.model, year: v.year, color: v.color,
@@ -174,6 +176,7 @@ export default function CarRentalFleetSection({ storeId }: Props) {
   const openClone = (v: CarRentalVehicle) => {
     // Pre-fill from the source vehicle but DROP unique identifiers so create() doesn't
     // hit a uniqueness constraint, and append "(copy)" to the model for clarity.
+    setSubmitted(false);
     setEditing(null);
     setDraft({
       make: v.make,
@@ -214,12 +217,9 @@ export default function CarRentalFleetSection({ storeId }: Props) {
 
   const save = async () => {
     if (!draft.make.trim() || !draft.model.trim()) return;
-    if (editing) {
-      await update(editing.id, draft);
-    } else {
-      await create(draft);
-    }
-    setDialogOpen(false);
+    setSubmitted(true);
+    const ok = editing ? await update(editing.id, draft) : Boolean(await create(draft));
+    if (ok) setDialogOpen(false);
   };
 
   return (
@@ -263,7 +263,7 @@ export default function CarRentalFleetSection({ storeId }: Props) {
                 {(["all", "available", "rented", "maintenance", "retired"] as const).map((s) => (
                   <button key={s} type="button" onClick={() => setStatusFilter(s)} className={cn(
                     "rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                    statusFilter === s ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                    statusFilter === s ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground"
                   )}>
                     {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
                     {s !== "all" && (
@@ -364,7 +364,7 @@ export default function CarRentalFleetSection({ storeId }: Props) {
                   )}
                   <div className="mt-2 flex items-baseline justify-between">
                     <p className="text-lg font-bold text-foreground">${(v.daily_rate_cents / 100).toFixed(0)}<span className="text-xs font-medium text-muted-foreground">/day</span></p>
-                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                       <Button variant="ghost" size="icon" className="h-7 w-7" title="Details" onClick={() => setDetailVehicle(v)}>
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
@@ -374,7 +374,7 @@ export default function CarRentalFleetSection({ storeId }: Props) {
                       <Button variant="ghost" size="icon" className="h-7 w-7" title="Duplicate vehicle" onClick={() => openClone(v)}>
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Delete" onClick={() => setDeleteId(v.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Delete" onClick={() => { setSubmitted(false); setDeleteId(v.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -387,7 +387,7 @@ export default function CarRentalFleetSection({ storeId }: Props) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o && saving) return; setDialogOpen(o); }}>
         <DialogContent className="max-w-2xl max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit vehicle" : "Add vehicle"}</DialogTitle>
@@ -535,8 +535,13 @@ export default function CarRentalFleetSection({ storeId }: Props) {
               />
             </Field>
           </div>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={save} disabled={saving || !draft.make.trim() || !draft.model.trim()}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               {editing ? "Save changes" : "Add vehicle"}
@@ -550,7 +555,7 @@ export default function CarRentalFleetSection({ storeId }: Props) {
         onClose={() => setDetailVehicle(null)}
       />
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o && saving) return; if (!o) setDeleteId(null); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete vehicle?</DialogTitle>
@@ -558,11 +563,21 @@ export default function CarRentalFleetSection({ storeId }: Props) {
           <p className="text-sm text-muted-foreground">
             This permanently removes the vehicle from the fleet. Past reservations remain (their vehicle label is snapshotted).
           </p>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={async () => {
-              if (deleteId) { await remove(deleteId); setDeleteId(null); }
-            }}>Delete</Button>
+            <Button variant="ghost" onClick={() => setDeleteId(null)} disabled={saving}>Cancel</Button>
+            <Button variant="destructive" disabled={saving} onClick={async () => {
+              if (!deleteId) return;
+              setSubmitted(true);
+              if (await remove(deleteId)) setDeleteId(null);
+            }}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

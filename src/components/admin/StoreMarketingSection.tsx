@@ -42,6 +42,7 @@ import AutomationsBuilder from "./marketing/AutomationsBuilder";
 import UnifiedPerformancePanel from "./marketing/UnifiedPerformancePanel";
 import PromoCodesManager from "./marketing/PromoCodesManager";
 import MarketingOverviewHeader from "./marketing/MarketingOverviewHeader";
+import CampaignsHistoryPanel from "./marketing/CampaignsHistoryPanel";
 import { useStoreMarketingOverview } from "@/hooks/useStoreMarketingOverview";
 import { isAutoRepairSoftwareHost, ZIVO_MEDIA_ORIGIN, ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
 
@@ -378,9 +379,8 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
       ? ZIVO_SOFTWARE_ORIGIN
       : ZIVO_MEDIA_ORIGIN;
   const isAutoRepairSoftwareDomain = isAutoRepair && publicOrigin === ZIVO_SOFTWARE_ORIGIN;
-  // Canonical brand URLs for sharing/SEO are https://hizivo.com/store/<slug> and
-  // https://hizivo.com/book/<slug>; the live share/QR links below use the active
-  // serving origin (publicOrigin) so they resolve during the hizivo.com cutover.
+  // Share/QR links use the active serving origin (publicOrigin) — zivosmedia.com
+  // for media stores, zivosoftware.com for the auto-repair software domain.
   const storeUrl = slug ? `${publicOrigin}/store/${slug}` : "";
   const bookingUrl = slug ? `${publicOrigin}/book/${slug}` : "";
   const businessPageLabel = isAutoRepairSoftwareDomain ? "Business Page URL" : "Store URL";
@@ -445,14 +445,10 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         is_active: promoForm.is_active,
       };
       if (isEdit && editingPromo) {
-        const { error } = await supabase.functions.invoke("promotion-manage", {
-          body: { action: "update", promotion_id: editingPromo.id, promotion: payload },
-        });
+        const { error } = await supabase.from("promotions").update(payload as any).eq("id", editingPromo.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.functions.invoke("promotion-manage", {
-          body: { action: "create", merchant_id: storeId, promotion: payload },
-        });
+        const { error } = await supabase.from("promotions").insert(payload as any);
         if (error) throw error;
       }
     },
@@ -467,9 +463,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
   const deletePromo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.functions.invoke("promotion-manage", {
-        body: { action: "delete", promotion_id: id },
-      });
+      const { error } = await supabase.from("promotions").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -482,9 +476,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
   const togglePromoActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.functions.invoke("promotion-manage", {
-        body: { action: "set_active", promotion_id: id, is_active: active },
-      });
+      const { error } = await supabase.from("promotions").update({ is_active: active } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -672,6 +664,9 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
             <TabsTrigger value="overview" className="text-[11px] sm:text-xs gap-1 sm:gap-1.5 px-2.5 sm:px-3 whitespace-nowrap shrink-0">
               <BarChart3 className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> <span>Overview</span>
             </TabsTrigger>
+            <TabsTrigger value="campaigns" className="text-[11px] sm:text-xs gap-1 sm:gap-1.5 px-2.5 sm:px-3 whitespace-nowrap shrink-0">
+              <Megaphone className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> <span>Campaigns</span>
+            </TabsTrigger>
             <TabsTrigger value="promotions" className="text-[11px] sm:text-xs gap-1 sm:gap-1.5 px-2.5 sm:px-3 whitespace-nowrap shrink-0">
               <Tag className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> <span>Promos</span>
             </TabsTrigger>
@@ -704,7 +699,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
         {/* ═══ OVERVIEW ═══ */}
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <MarketingOverviewHeader storeId={storeId} />
+          <MarketingOverviewHeader storeId={storeId} storeName={name} storeCategory={storeCategory} onCampaignCreated={() => setActiveSubTab("campaigns")} />
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard label="Total Views" value={analytics.totalViews.toLocaleString()} change={0} icon={Eye} color="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
@@ -739,6 +734,16 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               </div>
             </CardContent>
           </Card>
+
+          {/* Recent Campaigns — where "Campaign sending" lands */}
+          <CampaignsHistoryPanel
+            storeId={storeId}
+            storeName={name}
+            storeCategory={storeCategory}
+            compact
+            limit={4}
+            onViewAll={() => setActiveSubTab("campaigns")}
+          />
 
           {/* Recent Promotions Preview */}
           <Card>
@@ -815,6 +820,11 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ═══ CAMPAIGNS ═══ */}
+        <TabsContent value="campaigns" className="space-y-4 mt-4">
+          <CampaignsHistoryPanel storeId={storeId} storeName={name} storeCategory={storeCategory} />
         </TabsContent>
 
         {/* ═══ PROMOTIONS ═══ */}
@@ -939,7 +949,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4 mt-4">
-          <TemplatesLibrary storeId={storeId} />
+          <TemplatesLibrary storeId={storeId} category={storeCategory} storeName={name} />
         </TabsContent>
 
         <TabsContent value="automations" className="space-y-4 mt-4">

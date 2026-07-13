@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LodgingReviewsSummaryCard — Booking.com-style review roll-up.
  * Shows average score, label, count, and one featured guest quote.
  */
@@ -64,7 +64,7 @@ export default function LodgingReviewsSummaryCard({ storeId }: { storeId: string
       </CardHeader>
       <CardContent className="pt-0">
         <div className="flex items-start gap-3">
-          <div className="rounded-lg bg-primary text-primary-foreground px-2.5 py-1.5 text-center min-w-[48px]">
+          <div className="rounded-lg bg-ig-gradient text-white px-2.5 py-1.5 text-center min-w-[48px]">
             <p className="text-[16px] font-bold leading-none">{display.toFixed(1)}</p>
           </div>
           <div className="min-w-0 flex-1">

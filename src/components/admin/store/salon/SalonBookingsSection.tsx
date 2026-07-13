@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SalonBookingsSection — day view of bookings with full CRUD + status flow.
  * Built as a chronological list grouped by stylist, with a date stepper.
  * (A grid/timeline view can be layered on later — this gives the workflow first.)
@@ -776,13 +776,13 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
             <span className="ml-2 text-sm font-semibold text-foreground">{friendlyDate(date)}</span>
             <div className="ml-auto inline-flex rounded-md border border-border bg-card p-0.5 text-xs">
               <button type="button" onClick={() => setView("list")}
-                className={cn("rounded px-2.5 py-1 transition-colors", view === "list" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-muted")}
+                className={cn("rounded px-2.5 py-1 transition-colors", view === "list" ? "bg-ig-gradient text-white" : "text-foreground/70 hover:bg-muted")}
               >List</button>
               <button type="button" onClick={() => setView("day")}
-                className={cn("rounded px-2.5 py-1 transition-colors", view === "day" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-muted")}
+                className={cn("rounded px-2.5 py-1 transition-colors", view === "day" ? "bg-ig-gradient text-white" : "text-foreground/70 hover:bg-muted")}
               >Day grid</button>
               <button type="button" onClick={() => setView("week")}
-                className={cn("rounded px-2.5 py-1 transition-colors", view === "week" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:bg-muted")}
+                className={cn("rounded px-2.5 py-1 transition-colors", view === "week" ? "bg-ig-gradient text-white" : "text-foreground/70 hover:bg-muted")}
               >Week</button>
             </div>
           </div>
@@ -882,7 +882,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                     onClick={() => setFilter(f.id as typeof filter)}
                     className={cn(
                       "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-                      active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground/75 hover:border-primary/40"
+                      active ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground/75 hover:border-primary/40"
                     )}
                   >
                     {f.label} <span className="opacity-70">{count}</span>
@@ -1553,7 +1553,7 @@ export default function SalonBookingsSection({ storeId }: SalonBookingsSectionPr
                       onClick={() => setRepeatWeeks(o.v)}
                       className={cn(
                         "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                        repeatWeeks === o.v ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground/75 hover:border-primary/40"
+                        repeatWeeks === o.v ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground/75 hover:border-primary/40"
                       )}
                     >
                       {o.label}

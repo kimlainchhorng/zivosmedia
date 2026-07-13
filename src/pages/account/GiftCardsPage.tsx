@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Gift Cards Page
  * Buy, send, and redeem ZIVO gift cards
  */
@@ -126,9 +126,10 @@ export default function GiftCardsPage() {
           <button type="button"
             key={amt.cents}
             onClick={() => { setCustomMode(false); setSelectedAmount(amt.cents); }}
-            className={`py-3 rounded-xl font-bold text-base transition-all ${
+            aria-pressed={!customMode && selectedAmount === amt.cents}
+            className={`py-3 rounded-xl font-bold text-base transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               !customMode && selectedAmount === amt.cents
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                ? "bg-ig-gradient text-white shadow-lg shadow-primary/30"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
@@ -137,9 +138,10 @@ export default function GiftCardsPage() {
         ))}
         <button type="button"
           onClick={() => setCustomMode(true)}
-          className={`py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1 ${
+          aria-pressed={customMode}
+          className={`py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center justify-center gap-1 ${
             customMode
-              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+              ? "bg-ig-gradient text-white shadow-lg shadow-primary/30"
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
@@ -208,7 +210,8 @@ export default function GiftCardsPage() {
         <div className="flex items-center justify-between px-6 py-4">
           <button type="button"
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center"
+            aria-label="Back"
+            className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -234,15 +237,15 @@ export default function GiftCardsPage() {
         {/* Tabs */}
         <Tabs defaultValue="buy" className="space-y-4">
           <TabsList className="w-full bg-muted border border-border/50 rounded-xl h-12 p-1">
-            <TabsTrigger value="buy" className="flex-1 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
+            <TabsTrigger value="buy" className="flex-1 rounded-xl data-[state=active]:bg-ig-gradient data-[state=active]:text-white gap-1.5">
               <CreditCard className="w-4 h-4" />
               {t("gift.buy")}
             </TabsTrigger>
-            <TabsTrigger value="send" className="flex-1 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
+            <TabsTrigger value="send" className="flex-1 rounded-xl data-[state=active]:bg-ig-gradient data-[state=active]:text-white gap-1.5">
               <Send className="w-4 h-4" />
               {t("gift.send")}
             </TabsTrigger>
-            <TabsTrigger value="redeem" className="flex-1 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
+            <TabsTrigger value="redeem" className="flex-1 rounded-xl data-[state=active]:bg-ig-gradient data-[state=active]:text-white gap-1.5">
               <Ticket className="w-4 h-4" />
               {t("gift.redeem")}
             </TabsTrigger>
@@ -418,9 +421,10 @@ export default function GiftCardsPage() {
                         <button type="button"
                           key={opt.key}
                           onClick={() => setCardFilter(opt.key)}
-                          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                          aria-pressed={cardFilter === opt.key}
+                          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                             cardFilter === opt.key
-                              ? "bg-primary text-primary-foreground border-primary"
+                              ? "bg-ig-gradient text-white border-primary"
                               : "bg-card text-muted-foreground border-border/40 hover:border-primary/30"
                           }`}
                         >
@@ -470,7 +474,8 @@ export default function GiftCardsPage() {
                         <span className="font-mono text-sm">{card.code}</span>
                         <button type="button"
                           onClick={() => copyCode(card.code, card.id)}
-                          className="p-1 rounded hover:bg-muted"
+                          aria-label="Copy code"
+                          className="p-1 rounded hover:bg-muted active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {copiedId === card.id ? (
                             <Check className="w-3.5 h-3.5 text-emerald-500" />

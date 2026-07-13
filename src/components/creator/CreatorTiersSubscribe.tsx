@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { formatTierPrice, monthlyEquivalent, INTERVAL_LABEL, type BillingInterval } from "@/lib/tierFormat";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 import SubscribeInAppSheet from "./SubscribeInAppSheet";
 
 interface Props {
@@ -102,6 +103,7 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.url) {
+        if (!isAllowedCheckoutUrl(data.url)) throw new Error("Invalid checkout URL");
         window.location.href = data.url;
         return;
       }

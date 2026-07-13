@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Rooms & Rates section.
  * CRUD for room types: name, type, beds, max guests, rates (USD), amenities, units,
  * photos, description, cancellation policy, check-in/out times, add-ons.
@@ -702,7 +702,7 @@ export default function LodgingRoomsSection({ storeId }: { storeId: string }) {
                           const Icon = getAmenityIcon(a);
                           return (
                             <button type="button" key={a} onClick={() => toggleAmenity(a)}
-                              className={`px-2.5 py-1 rounded-full text-xs border transition inline-flex items-center gap-1.5 ${on ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border text-muted-foreground hover:border-primary/40"}`}>
+                              className={`px-2.5 py-1 rounded-full text-xs border transition inline-flex items-center gap-1.5 ${on ? "bg-ig-gradient text-white border-primary" : "bg-background border-border text-muted-foreground hover:border-primary/40"}`}>
                               <Icon className="h-3 w-3" />
                               {a}
                             </button>
@@ -738,7 +738,7 @@ export default function LodgingRoomsSection({ storeId }: { storeId: string }) {
                           const cur = editing.badges || [];
                           setEditing({ ...editing, badges: on ? cur.filter((x: string) => x !== b.v) : [...cur, b.v] });
                         }}
-                        className={`px-2.5 py-1 rounded-full text-[11px] border transition ${on ? "bg-primary text-primary-foreground border-primary font-semibold" : "bg-background border-border hover:border-primary/40"}`}
+                        className={`px-2.5 py-1 rounded-full text-[11px] border transition ${on ? "bg-ig-gradient text-white border-primary font-semibold" : "bg-background border-border hover:border-primary/40"}`}
                       >{b.label}</button>
                     );
                   })}
@@ -867,7 +867,7 @@ export default function LodgingRoomsSection({ storeId }: { storeId: string }) {
                         <div className="col-span-12 flex flex-wrap gap-1">
                           {ADDON_STATUS_OPTIONS.map(s => {
                             const on = (a.requires_status || []).includes(s);
-                            return <button type="button" key={s} onClick={() => updateAddon(i, { requires_status: on ? (a.requires_status || []).filter(x => x !== s) : [...(a.requires_status || []), s] })} className={`px-2 py-1 rounded-full text-[10px] border ${on ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border text-muted-foreground"}`}>{s.replace(/_/g, " ")}</button>;
+                            return <button type="button" key={s} onClick={() => updateAddon(i, { requires_status: on ? (a.requires_status || []).filter(x => x !== s) : [...(a.requires_status || []), s] })} className={`px-2 py-1 rounded-full text-[10px] border ${on ? "bg-ig-gradient text-white border-primary" : "bg-background border-border text-muted-foreground"}`}>{s.replace(/_/g, " ")}</button>;
                           })}
                         </div>
                       </div>

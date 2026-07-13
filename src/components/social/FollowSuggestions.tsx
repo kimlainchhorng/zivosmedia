@@ -19,6 +19,7 @@ export default function FollowSuggestions() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [pending, setPending] = useState<string[]>([]);
 
   const { data: suggestions = [] } = useQuery({
     queryKey: ["follow-suggestions", user?.id],
@@ -44,9 +45,28 @@ export default function FollowSuggestions() {
 
   const followUser = async (targetId: string) => {
     if (!user) return;
-    await (supabase as any).from("user_followers").insert({ follower_id: user.id, following_id: targetId });
+    // A Supabase insert resolves even when the DB rejects (RLS / duplicate /
+    // offline), so without throwOnError() this toasted "Following!" and dismissed
+    // the card on a follow that never persisted — and the dropped card blocked
+    // retry. Mirror TrendingCreators: throw on failure, keep the card, surface it.
+    // The pending guard stops a rapid double-tap from firing a second insert that
+    // would hit the unique constraint and throw a "Couldn't follow" toast right
+    // after the first tap already succeeded and dismissed the card.
+    if (pending.includes(targetId)) return;
+    setPending((p) => [...p, targetId]);
+    try {
+      await (supabase as any)
+        .from("user_followers")
+        .insert({ follower_id: user.id, following_id: targetId })
+        .throwOnError();
+    } catch {
+      toast.error("Couldn't follow — please try again");
+      setPending((p) => p.filter((id) => id !== targetId));
+      return;
+    }
     toast.success("Following!");
     setDismissed((p) => [...p, targetId]);
+    setPending((p) => p.filter((id) => id !== targetId));
     try {
       const { data: sp } = await supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).single();
       await supabase.functions.invoke("send-push-notification", {
@@ -206,8 +226,9 @@ export default function FollowSuggestions() {
             </div>
             <button type="button"
               onClick={() => followUser(s.id)}
+              disabled={pending.includes(s.id)}
               aria-label={`Follow ${s.full_name || "user"}`}
-              className="zivo-social-chip-active flex min-h-[34px] w-full items-center justify-center gap-1 rounded-full py-1.5 text-xs font-semibold shadow-lg shadow-primary/20 transition-transform active:scale-95"
+              className="zivo-social-chip-active flex min-h-[34px] w-full items-center justify-center gap-1 rounded-full py-1.5 text-xs font-semibold shadow-lg shadow-primary/20 transition-transform active:scale-95 disabled:opacity-60"
             >
               <UserPlus className="h-3 w-3" /> Follow
             </button>

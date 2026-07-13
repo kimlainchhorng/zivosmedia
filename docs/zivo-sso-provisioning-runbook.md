@@ -61,6 +61,37 @@ Concrete `webhook_url` templates:
 - `zivo_travel`   → `https://zivostravel.com/webhooks/zivosmedia/{event}`
 - `zivo_chat`     → short-circuits on shared `slirph`; no cross-project webhook needed.
 
+### Zivo Software local callback testing
+
+For local testing from `http://127.0.0.1:5173`, apply the zivosmedia migration
+`20260613224500_zivo_software_sso_local_redirects.sql`. It appends:
+
+- `http://localhost:5173/auth/zivosmedia/callback`
+- `http://127.0.0.1:5173/auth/zivosmedia/callback`
+
+It only flips `zivo_software` to enabled if `client_secret_hash` is already a
+64-character SHA-256 hash. To complete go-live, use the same raw secret in both places:
+
+```bash
+# Software project (ydxztoresbdeoeijhxww)
+npx supabase secrets set ZIVO_MEDIA_APP_CLIENT_SECRET="<raw-secret>" --project-ref ydxztoresbdeoeijhxww
+npx supabase secrets set ZIVO_MEDIA_VALIDATE_CODE_URL="https://slirphzzwcogdbkeicff.supabase.co/functions/v1/zivosmedia-auth-validate-code" --project-ref ydxztoresbdeoeijhxww
+npx supabase secrets set ZIVO_MEDIA_ANON_KEY="<zivosmedia-anon-key>" --project-ref ydxztoresbdeoeijhxww
+```
+
+```sql
+-- Hub project (slirphzzwcogdbkeicff)
+create extension if not exists pgcrypto;
+
+update public.app_integrations
+set
+  client_secret_hash = encode(digest('<raw-secret>', 'sha256'), 'hex'),
+  status = 'enabled',
+  enabled = true,
+  updated_at = now()
+where app_key = 'zivo_software';
+```
+
 ## Phase 4 — verify (staging first)
 1. From a product app, click "Continue with Zivosmedia" → hub `/auth/zivosmedia/authorize`
    → back to the app's callback → `exchange` → local link. Confirm a row in that app's

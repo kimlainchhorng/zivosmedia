@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideSubscriptionHub — Subscription tiers, auto-renew, usage dashboard, perks
  */
 import { useState } from "react";
@@ -144,7 +144,7 @@ export default function RideSubscriptionHub() {
             return (
               <div key={plan.id} className={cn("rounded-xl border overflow-hidden", isCurrent ? plan.borderColor : "border-border/30")}>
                 {plan.popular && (
-                  <div className="bg-primary text-primary-foreground text-center py-1 text-[10px] font-bold">Most Popular</div>
+                  <div className="bg-ig-gradient text-white text-center py-1 text-[10px] font-bold">Most Popular</div>
                 )}
                 <div className={cn("p-4 space-y-3", isCurrent ? `bg-gradient-to-br ${plan.color}` : "bg-card")}>
                   <div className="flex items-center gap-3">
@@ -155,7 +155,7 @@ export default function RideSubscriptionHub() {
                       <p className="text-sm font-bold text-foreground">{plan.name}</p>
                       <p className="text-lg font-black text-foreground">{plan.price}<span className="text-xs text-muted-foreground font-normal">{plan.period}</span></p>
                     </div>
-                    {isCurrent && <span className="text-[10px] bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold">Your Plan</span>}
+                    {isCurrent && <span className="text-[10px] bg-ig-gradient text-white px-2 py-0.5 rounded-full font-bold">Your Plan</span>}
                   </div>
                   <div className="space-y-1.5">
                     {plan.features.map((f) => (
@@ -168,7 +168,7 @@ export default function RideSubscriptionHub() {
                   {!isCurrent && (
                     <button type="button"
                       onClick={() => switchPlan(plan.id, plan.name)}
-                      className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold"
+                      className="w-full py-2.5 bg-ig-gradient text-white rounded-xl text-sm font-bold"
                     >
                       {plans.findIndex((p) => p.id === plan.id) > plans.findIndex((p) => p.id === currentPlan) ? "Upgrade" : "Downgrade"}
                     </button>

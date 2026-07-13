@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StorefrontContentCard — Booking.com-style "About this property" editor.
  * - description_sections: titled long-form paragraphs (Accommodations, Facilities, Dining, Location, …)
  * - property_highlights: side mini-card content (Perfect for, Top location score, Breakfast info, Rooms with…)
@@ -195,7 +195,7 @@ export default function StorefrontContentCard({
                   <button type="button"
                     key={rf} onClick={() => toggleRoomFeature(rf)}
                     className={`px-2 py-0.5 rounded-full text-[10px] border transition ${
-                      on ? "bg-primary text-primary-foreground border-primary font-semibold" : "bg-background border-border hover:border-primary/40"
+                      on ? "bg-ig-gradient text-white border-primary font-semibold" : "bg-background border-border hover:border-primary/40"
                     }`}
                   >{rf}</button>
                 );
@@ -227,7 +227,7 @@ export default function StorefrontContentCard({
                     key={a} onClick={() => togglePopular(a)} disabled={disabled}
                     className={`px-2.5 py-1 rounded-full text-[11px] border inline-flex items-center gap-1 transition ${
                       on
-                        ? "bg-primary text-primary-foreground border-primary font-semibold"
+                        ? "bg-ig-gradient text-white border-primary font-semibold"
                         : disabled
                         ? "bg-background border-border text-muted-foreground/40 cursor-not-allowed"
                         : "bg-background border-border hover:border-primary/40 hover:bg-primary/5"

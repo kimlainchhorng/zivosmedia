@@ -1,7 +1,7 @@
 /**
  * dispatch-eats-order
  * --------------------
- * Idempotent helper that bridges myzivo (customer) → zivodriver (driver) for
+ * Idempotent helper that bridges zivosmedia (customer) → zivodriver (driver) for
  * a paid Eats order. Inserts a `jobs` row and triggers `dispatch-start` so
  * online drivers receive offers.
  *

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import FolderPlus from "lucide-react/dist/esm/icons/folder-plus";
 import Check from "lucide-react/dist/esm/icons/check";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
@@ -233,7 +233,7 @@ export default function AddToCollectionPopover({ bookmarkId, className }: Props)
                     </span>
                     <span className={cn(
                       "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
-                      isMember ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/25",
+                      isMember ? "border-primary bg-ig-gradient text-white" : "border-muted-foreground/25",
                     )}>
                       {isMember && <Check className="h-3.5 w-3.5" />}
                     </span>

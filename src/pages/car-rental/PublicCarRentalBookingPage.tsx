@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PublicCarRentalBookingPage — customer-facing booking flow for a single
  * car-rental store. Mirrors the salon public booking flow.
  *
@@ -14,7 +14,7 @@ import { bestBaseTotal } from "@/lib/car-rental/pricing";
 import { Helmet } from "react-helmet-async";
 import {
   Car, CalendarRange, MapPin, Loader2, CheckCircle2, ChevronLeft, ChevronRight,
-  Users, Fuel, Cog, Briefcase, Snowflake, AlertTriangle, Tag, Star, Heart, Search, Zap, ShieldCheck,
+  Users, Fuel, Cog, Briefcase, Snowflake, AlertTriangle, Tag, Star, Heart, Search, Zap, ShieldCheck, Gauge,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import CarRentalInlinePaymentForm from "@/components/car-rental/CarRentalInlinePaymentForm";
@@ -764,7 +764,7 @@ export default function PublicCarRentalBookingPage() {
               return (
                 <div key={s} className={cn(
                   "flex-1 min-w-[60px] rounded-full px-2 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider",
-                  isActive ? "bg-primary text-primary-foreground" : isDone ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                  isActive ? "bg-ig-gradient text-white" : isDone ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
                 )}>
                   {s}
                 </div>
@@ -880,7 +880,7 @@ export default function PublicCarRentalBookingPage() {
                 This rental store hasn't listed any vehicles yet.
               </div>
             ) : (
-              <ul className="grid gap-3 sm:grid-cols-2">
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {vehicles.map((v) => {
                   const isUnavailable = conflicts.has(v.id);
                   const isSelected = vehicleId === v.id;
@@ -897,7 +897,7 @@ export default function PublicCarRentalBookingPage() {
                         disabled={isUnavailable}
                         onClick={() => setVehicleId(v.id)}
                         className={cn(
-                          "group w-full rounded-2xl border bg-card p-4 text-left transition-all",
+                          "group w-full rounded-2xl border bg-card p-4 text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           isUnavailable ? "opacity-50 cursor-not-allowed border-border" :
                             isSelected ? "border-primary ring-2 ring-primary/30" :
                             "border-border hover:border-primary/40"
@@ -934,6 +934,7 @@ export default function PublicCarRentalBookingPage() {
                           <span className="inline-flex items-center gap-1"><Cog className="h-3 w-3" />{v.transmission}</span>
                           <span className="inline-flex items-center gap-1"><Fuel className="h-3 w-3" />{v.fuel_type}</span>
                           {v.air_conditioning && <span className="inline-flex items-center gap-1"><Snowflake className="h-3 w-3" />AC</span>}
+                          {v.mileage_limit_per_day != null && <span className="inline-flex items-center gap-1"><Gauge className="h-3 w-3" />{v.mileage_limit_per_day} km/day</span>}
                         </div>
                         {Array.isArray(v.features) && v.features.length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1">
@@ -948,6 +949,9 @@ export default function PublicCarRentalBookingPage() {
                               </span>
                             )}
                           </div>
+                        )}
+                        {v.description && (
+                          <p className="mt-1.5 text-[11px] text-muted-foreground line-clamp-2">{v.description}</p>
                         )}
                         <div className="mt-2 flex items-baseline justify-between">
                           <p className="text-xl font-bold text-foreground">{formatMoney(v.daily_rate_cents)}<span className="text-xs font-medium text-muted-foreground">/day</span></p>
@@ -969,7 +973,7 @@ export default function PublicCarRentalBookingPage() {
                                 <button
                                   type="button"
                                   onClick={() => setVehicleId(s.id)}
-                                  className="rounded-md border border-border bg-card px-2 py-1 text-[11px] hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                                  className="rounded-md border border-border bg-card px-2 py-1 text-[11px] hover:border-primary/40 hover:bg-primary/5 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                   {s.year ? `${s.year} ` : ""}{s.make} {s.model}{" "}
                                   <span className="font-bold text-primary">{formatMoney(s.daily_rate_cents)}/day</span>
@@ -1005,7 +1009,7 @@ export default function PublicCarRentalBookingPage() {
                       <button
                         type="button"
                         onClick={() => toggleAddon(a.id)}
-                        className="min-w-0 flex-1 text-left"
+                        className="min-w-0 flex-1 text-left rounded-lg active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <p className="text-sm font-semibold text-foreground">{a.name}</p>
                         {a.description && <p className="text-[11px] text-muted-foreground">{a.description}</p>}
@@ -1019,7 +1023,7 @@ export default function PublicCarRentalBookingPage() {
                           <button
                             type="button"
                             onClick={() => setAddonQty(a.id, qty - 1)}
-                            className="grid h-7 w-7 place-items-center rounded-full border border-border text-foreground hover:bg-muted"
+                            className="grid h-7 w-7 place-items-center rounded-full border border-border text-foreground hover:bg-muted active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             aria-label="Decrease quantity"
                           >−</button>
                           <span className="w-6 text-center text-sm font-bold tabular-nums">{qty}</span>
@@ -1027,7 +1031,7 @@ export default function PublicCarRentalBookingPage() {
                             type="button"
                             onClick={() => setAddonQty(a.id, qty + 1)}
                             disabled={qty >= 10}
-                            className="grid h-7 w-7 place-items-center rounded-full border border-border text-foreground hover:bg-muted disabled:opacity-30"
+                            className="grid h-7 w-7 place-items-center rounded-full border border-border text-foreground hover:bg-muted disabled:opacity-30 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             aria-label="Increase quantity"
                           >+</button>
                         </div>
@@ -1035,7 +1039,7 @@ export default function PublicCarRentalBookingPage() {
                         <button
                           type="button"
                           onClick={() => toggleAddon(a.id)}
-                          className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                          className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground active:scale-[0.95] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           Add
                         </button>
@@ -1105,7 +1109,7 @@ export default function PublicCarRentalBookingPage() {
                         {appliedPromo.kind === "percent" ? `${appliedPromo.amount}% off` : `${formatMoney(appliedPromo.amount)} off`}
                       </span>
                     </div>
-                    <button type="button" onClick={removePromo} className="text-xs text-muted-foreground underline hover:text-foreground">
+                    <button type="button" onClick={removePromo} className="text-xs text-muted-foreground underline hover:text-foreground active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
                       Remove
                     </button>
                   </div>
@@ -1118,7 +1122,7 @@ export default function PublicCarRentalBookingPage() {
                         placeholder="Enter code"
                         className="font-mono uppercase"
                       />
-                      <Button type="button" variant="outline" onClick={applyPromoCode} disabled={!promoCodeInput.trim() || promoChecking}>
+                      <Button type="button" variant="outline" onClick={applyPromoCode} disabled={!promoCodeInput.trim() || promoChecking} className="active:scale-[0.98] transition-transform">
                         {promoChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
                       </Button>
                     </div>
@@ -1230,16 +1234,16 @@ export default function PublicCarRentalBookingPage() {
         {step !== "confirmed" && step !== "payment" && (
           <div className="mt-5 flex items-center justify-between">
             {step !== "dates" ? (
-              <Button variant="outline" onClick={goBack} disabled={submitting}>
+              <Button variant="outline" onClick={goBack} disabled={submitting} className="active:scale-[0.98] transition-transform">
                 <ChevronLeft className="mr-1 h-4 w-4" /> Back
               </Button>
             ) : <div />}
             {step !== "review" ? (
-              <Button onClick={goNext}>
+              <Button onClick={goNext} className="active:scale-[0.98] transition-transform">
                 Next <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={submit} disabled={submitting}>
+              <Button onClick={submit} disabled={submitting} className="active:scale-[0.98] transition-transform">
                 {submitting ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
                 Continue to payment
               </Button>
@@ -1329,7 +1333,7 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
             </div>
           )}
           <div className="mt-6">
-            <Button size="lg" onClick={onStartBooking} className="px-8 py-6 text-base font-bold">
+            <Button size="lg" onClick={onStartBooking} className="px-8 py-6 text-base font-bold active:scale-[0.98] transition-transform">
               <CalendarRange className="mr-2 h-5 w-5" /> Book now
               {cheapest && <span className="ml-2 opacity-80 text-sm font-normal">from {formatMoney(cheapest.daily_rate_cents)}/day</span>}
             </Button>
@@ -1395,7 +1399,7 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
                   type="button"
                   onClick={() => setFavoritesOnly((v) => !v)}
                   className={cn(
-                    "h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[11px] font-semibold uppercase tracking-wider transition-colors",
+                    "h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border text-[11px] font-semibold uppercase tracking-wider transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     favoritesOnly
                       ? "border-rose-500 bg-rose-500 text-white"
                       : "border-border text-muted-foreground hover:text-foreground"
@@ -1408,20 +1412,20 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
             </div>
             <div className="mb-4 flex flex-wrap items-center gap-1.5">
               <button type="button" onClick={() => setCatFilter("all")} className={cn(
-                "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                catFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                catFilter === "all" ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
               )}>All</button>
               {allCategories.map((c) => (
                 <button key={c} type="button" onClick={() => setCatFilter(c)} className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors capitalize",
-                  catFilter === c ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                  "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring capitalize",
+                  catFilter === c ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
                 )}>{c}</button>
               ))}
               <span className="mx-1 text-muted-foreground/30">·</span>
               {(["all", "automatic", "manual"] as const).map((t) => (
                 <button key={t} type="button" onClick={() => setTransmissionFilter(t)} className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-colors capitalize",
-                  transmissionFilter === t ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                  "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring capitalize",
+                  transmissionFilter === t ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
                 )}>{t === "all" ? "Any transmission" : t}</button>
               ))}
             </div>
@@ -1435,13 +1439,13 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
         ) : filteredVehicles.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-12 text-center text-muted-foreground">
             <Car className="mx-auto mb-2 h-10 w-10 opacity-50" />
-            No vehicles match those filters. <button type="button" className="text-primary underline ml-1" onClick={() => { setCatFilter("all"); setTransmissionFilter("all"); }}>Clear filters</button>
+            No vehicles match those filters. <button type="button" className="text-primary underline ml-1 rounded active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => { setCatFilter("all"); setTransmissionFilter("all"); }}>Clear filters</button>
           </div>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredVehicles.slice(0, 9).map((v) => (
               <li key={v.id} className="relative">
-                <button type="button" onClick={onStartBooking} className="group w-full text-left rounded-2xl border border-border bg-card overflow-hidden transition-all hover:border-primary/40 hover:shadow-md">
+                <button type="button" onClick={onStartBooking} className="group w-full text-left rounded-2xl border border-border bg-card overflow-hidden transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <div className="relative">
                     {v.photo_url ? (
                       <img src={v.photo_url} alt="" className="h-36 w-full object-cover" loading="lazy" decoding="async" />
@@ -1498,7 +1502,7 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
                   onClick={(e) => { e.stopPropagation(); toggleFavorite(v.id); }}
                   aria-label={favorites.has(v.id) ? "Remove from favorites" : "Save to favorites"}
                   className={cn(
-                    "absolute top-2 right-2 grid h-8 w-8 place-items-center rounded-full shadow transition-colors",
+                    "absolute top-2 right-2 grid h-8 w-8 place-items-center rounded-full shadow transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     favorites.has(v.id) ? "bg-rose-500 text-white" : "bg-card/90 backdrop-blur text-muted-foreground hover:text-rose-500"
                   )}
                 >
@@ -1613,7 +1617,7 @@ function Storefront({ store, vehicles, locations, reviews, bookedNow, popularIds
         <h2 className="text-2xl font-bold text-foreground">Ready to hit the road?</h2>
         <p className="mt-2 text-sm text-muted-foreground">Pick your dates and we'll show you what's available.</p>
         <div className="mt-4">
-          <Button size="lg" onClick={onStartBooking} className="px-8 py-6 text-base font-bold">
+          <Button size="lg" onClick={onStartBooking} className="px-8 py-6 text-base font-bold active:scale-[0.98] transition-transform">
             <CalendarRange className="mr-2 h-5 w-5" /> Start booking
           </Button>
         </div>
@@ -1651,7 +1655,7 @@ function FAQAccordion({ items }: { items: { q: string; a: string }[] }) {
             <button
               type="button"
               onClick={() => setOpen(isOpen ? null : i)}
-              className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-muted/30"
+              className="flex w-full items-center justify-between gap-3 p-4 text-left transition-all hover:bg-muted/30 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               aria-expanded={isOpen}
             >
               <span className="text-sm font-semibold text-foreground">{item.q}</span>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoLivePage — Broadcast a real live stream.
  *
  * 100% real:
@@ -2564,7 +2564,7 @@ export default function GoLivePage() {
  {/* End confirm */}
 <AnimatePresence>
  {showEndConfirm && (
-<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center px-6">
+<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[1450] bg-black/70 flex items-center justify-center px-6">
 <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-zinc-900 rounded-3xl p-6 w-full max-w-sm border border-white/10">
 <h3 className="text-white font-bold text-lg mb-1">End stream?</h3>
 <p className="text-white/60 text-sm mb-5">You can't restart the same broadcast.</p>
@@ -2582,7 +2582,7 @@ export default function GoLivePage() {
  {showBgSheet && (
 <motion.div
  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
- className="fixed inset-0 z-[100] bg-black/60 flex items-end"
+ className="fixed inset-0 z-[1450] bg-black/60 flex items-end"
  onClick={() =>setShowBgSheet(false)}
  >
 <motion.div

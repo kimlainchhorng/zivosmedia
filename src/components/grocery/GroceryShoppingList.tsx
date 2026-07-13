@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryShoppingList - Persistent shopping list drawer
  * Users build a list before browsing, check off items as they add to cart
  */
@@ -51,7 +51,7 @@ export function GroceryShoppingList({ onSearchItem }: GroceryShoppingListProps) 
           </p>
         </div>
         {list.uncheckedCount > 0 && (
-          <span className="flex items-center justify-center h-6 min-w-[24px] px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+          <span className="flex items-center justify-center h-6 min-w-[24px] px-1.5 rounded-full bg-ig-gradient text-white text-[10px] font-bold">
             {list.uncheckedCount}
           </span>
         )}
@@ -103,7 +103,7 @@ export function GroceryShoppingList({ onSearchItem }: GroceryShoppingListProps) 
           whileTap={{ scale: 0.9 }}
           onClick={handleAdd}
           disabled={!newItem.trim()}
-          className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 transition-opacity"
+          className="h-9 w-9 rounded-xl bg-ig-gradient text-white flex items-center justify-center disabled:opacity-40 transition-opacity"
         >
           <Plus className="h-4 w-4" />
         </motion.button>

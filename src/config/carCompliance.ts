@@ -1,5 +1,5 @@
 /**
- * HIZIVO CAR RENTALS - LOCKED COMPLIANCE TEXT
+ * ZIVO CAR RENTALS - LOCKED COMPLIANCE TEXT
  * 
  * DO NOT MODIFY WITHOUT LEGAL APPROVAL
  * These texts are required for partner compliance
@@ -115,7 +115,7 @@ export const CAR_ERROR_MESSAGES = {
 // ============================================
 
 export const CAR_TRACKING_PARAMS = {
-  utm_source: 'hizivo',
+  utm_source: 'zivosmedia',
   utm_medium: 'partner',
   utm_campaign: 'cars',
 } as const;

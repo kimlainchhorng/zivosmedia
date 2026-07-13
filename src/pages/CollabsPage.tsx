@@ -224,8 +224,9 @@ export default function CollabsPage() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
+              aria-pressed={tab === t.key}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 tab === t.key
                   ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-secondary text-foreground hover:bg-muted",
@@ -283,7 +284,7 @@ export default function CollabsPage() {
                   <button
                     type="button"
                     onClick={() => navigate("/feed")}
-                    className="shrink-0 relative w-14 h-14 rounded-xl overflow-hidden bg-muted active:opacity-80"
+                    className="shrink-0 relative w-14 h-14 rounded-xl overflow-hidden bg-muted active:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="View post"
                   >
                     {url ? (
@@ -325,7 +326,7 @@ export default function CollabsPage() {
                         disabled={busy}
                         onClick={() => updateMutation.mutate({ id: c.collabId, status: "accepted" })}
                         aria-label="Accept invite"
-                        className="h-9 w-9 rounded-xl bg-ig-gradient text-white flex items-center justify-center shadow-sm shadow-rose-500/25 disabled:opacity-50"
+                        className="h-9 w-9 rounded-xl bg-ig-gradient text-white flex items-center justify-center shadow-sm shadow-rose-500/25 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Check className="h-4 w-4" strokeWidth={3} />
                       </motion.button>
@@ -335,7 +336,7 @@ export default function CollabsPage() {
                         disabled={busy}
                         onClick={() => updateMutation.mutate({ id: c.collabId, status: "declined" })}
                         aria-label="Decline invite"
-                        className="h-9 w-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
+                        className="h-9 w-9 rounded-xl bg-muted text-muted-foreground flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <X className="h-4 w-4" />
                       </motion.button>
@@ -345,7 +346,7 @@ export default function CollabsPage() {
                       type="button"
                       onClick={() => navigate("/feed")}
                       aria-label="View post"
-                      className="shrink-0 h-8 w-8 rounded-full bg-secondary hover:bg-muted flex items-center justify-center text-muted-foreground"
+                      className="shrink-0 h-8 w-8 rounded-full bg-secondary hover:bg-muted flex items-center justify-center text-muted-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>

@@ -136,8 +136,9 @@ export default function TrendingTopicsPage() {
                 key={r}
                 type="button"
                 onClick={() => setActiveRegion(r)}
+                aria-pressed={activeRegion === r}
                 className={cn(
-                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5 capitalize",
+                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5 capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeRegion === r ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                 )}
               >
@@ -155,8 +156,9 @@ export default function TrendingTopicsPage() {
                 key={p}
                 type="button"
                 onClick={() => setActivePeriod(p)}
+                aria-pressed={activePeriod === p}
                 className={cn(
-                  "shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-all capitalize",
+                  "shrink-0 px-3 py-1 rounded-full text-[11px] font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activePeriod === p ? "bg-foreground text-background" : "border border-border text-muted-foreground hover:bg-secondary",
                 )}
               >
@@ -199,7 +201,7 @@ export default function TrendingTopicsPage() {
                 transition={{ delay: Math.min(idx, 12) * 0.02 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={() => handleOpen(t.topic)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className={cn(
                   "shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-sm font-extrabold",

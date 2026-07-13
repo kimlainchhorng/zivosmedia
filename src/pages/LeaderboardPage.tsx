@@ -123,7 +123,7 @@ export default function LeaderboardPage() {
         {/* Period Selector */}
         <div className="flex gap-2 mb-4">
           {["weekly", "all-time"].map((p) => (
-            <Badge key={p} variant={period === p ? "default" : "outline"} className="cursor-pointer capitalize" onClick={() => setPeriod(p)}>
+            <Badge key={p} variant={period === p ? "default" : "outline"} className="cursor-pointer capitalize transition-all active:scale-[0.97]" onClick={() => setPeriod(p)}>
               {p === "all-time" ? "All Time" : "Weekly"}
             </Badge>
           ))}

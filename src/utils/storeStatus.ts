@@ -193,7 +193,11 @@ export function getStoreStatus(hours: string, market?: string): StoreStatusResul
     return { isOpen: true, status: "open", label: "Open", closesAt: formattedClose, formattedHours };
   }
 
-  const minutesUntilOpen = openMinutes - currentMinutes;
+  // If today's opening time has already passed, the next opening is tomorrow.
+  // Without the wrap, a store that opens just after midnight (e.g. 00:15) would
+  // read as "Closed" at 23:50 instead of "Opens in 25m".
+  const nextOpen = currentMinutes < openMinutes ? openMinutes : openMinutes + 24 * 60;
+  const minutesUntilOpen = nextOpen - currentMinutes;
   if (minutesUntilOpen > 0 && minutesUntilOpen <= 60) {
     return { isOpen: false, status: "almost-open", label: `Opens in ${minutesUntilOpen}m`, formattedHours };
   }

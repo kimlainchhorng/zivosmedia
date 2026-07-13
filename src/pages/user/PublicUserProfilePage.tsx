@@ -174,7 +174,7 @@ export default function PublicUserProfilePage() {
       <div className="min-h-[100dvh] bg-background">
         <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border/30 pt-safe">
           <div className="flex items-center justify-between px-2 py-2">
-            <button type="button" onClick={goBack} className="h-10 w-10 rounded-full hover:bg-muted/50 flex items-center justify-center" aria-label="Back">
+            <button type="button" onClick={goBack} className="h-10 w-10 rounded-full hover:bg-muted/50 flex items-center justify-center transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Back">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex-1" />
@@ -211,7 +211,7 @@ export default function PublicUserProfilePage() {
         <div className="flex items-center justify-between px-2 py-2">
           <button type="button"
             onClick={goBack}
-            className="h-10 w-10 rounded-full hover:bg-muted/50 flex items-center justify-center"
+            className="h-10 w-10 rounded-full hover:bg-muted/50 flex items-center justify-center transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -222,7 +222,7 @@ export default function PublicUserProfilePage() {
           <div className="relative">
             <button type="button"
               onClick={() => setShowMenu((v) => !v)}
-              className="h-10 w-10 rounded-full hover:bg-muted/50 flex items-center justify-center"
+              className="h-10 w-10 rounded-full hover:bg-muted/50 flex items-center justify-center transition-all active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="More options"
             >
               <MoreHorizontal className="h-5 w-5" />
@@ -242,14 +242,14 @@ export default function PublicUserProfilePage() {
                         toast.success("Profile link copied");
                       }
                     }}
-                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted/50"
+                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-muted/50 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Share profile
                   </button>
                   {!isOwnProfile && friendStatus === "accepted" && (
                     <button type="button"
                       onClick={() => { setShowMenu(false); void unfriend(); }}
-                      className="w-full px-3 py-2.5 text-left text-sm text-rose-500 hover:bg-muted/50"
+                      className="w-full px-3 py-2.5 text-left text-sm text-rose-500 hover:bg-muted/50 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       Unfriend
                     </button>
@@ -297,18 +297,18 @@ export default function PublicUserProfilePage() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2 pt-1">
                   {isIOS && (
-                    <a href={APP_STORE} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-foreground text-background text-sm font-bold active:scale-[0.98]">
+                    <a href={APP_STORE} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-foreground text-background text-sm font-bold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       Download for iPhone
                     </a>
                   )}
                   {isAndroid && (
-                    <a href={PLAY_STORE} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-foreground text-background text-sm font-bold active:scale-[0.98]">
+                    <a href={PLAY_STORE} className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-foreground text-background text-sm font-bold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       Get it on Google Play
                     </a>
                   )}
                   <button type="button"
                     onClick={() => navigate(withRedirectParam("/login", `/user/${profile.user_id}`))}
-                    className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-semibold active:scale-[0.98]"
+                    className="flex-1 inline-flex items-center justify-center px-3 py-2 rounded-xl bg-muted text-foreground text-sm font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Sign in instead
                   </button>

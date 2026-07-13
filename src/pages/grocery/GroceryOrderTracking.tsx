@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GroceryOrderTracking — Live order tracking with real-time status,
  * driver info, animated stepper, ETA countdown, and item details.
  * Uses Supabase Realtime for push updates.
@@ -228,14 +228,14 @@ export default function GroceryOrderTracking() {
       <div className="relative max-w-md mx-auto px-5">
         {/* Header */}
         <div className="flex items-center gap-3 pt-12 pb-4">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-muted/40 transition-colors">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="p-2 -ml-2 rounded-xl hover:bg-muted/40 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-extrabold tracking-tight">Track Order</h1>
             <p className="text-[11px] text-muted-foreground">from {order.store}</p>
           </div>
-          <button type="button" onClick={copyId} className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
+          <button type="button" onClick={copyId} aria-label="Copy order ID" className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <span className="text-[10px] font-mono font-bold">{orderId?.slice(0, 8).toUpperCase()}</span>
             <Copy className="h-3 w-3 text-muted-foreground" />
           </button>
@@ -334,10 +334,10 @@ export default function GroceryOrderTracking() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" className="h-10 w-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors">
+                  <button type="button" aria-label="Message driver (coming soon)" className="h-10 w-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <MessageSquare className="h-4 w-4 text-primary" />
                   </button>
-                  <button type="button" className="h-10 w-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors">
+                  <button type="button" aria-label="Call driver (coming soon)" className="h-10 w-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Phone className="h-4 w-4 text-primary" />
                   </button>
                 </div>
@@ -384,9 +384,9 @@ export default function GroceryOrderTracking() {
                   )}
                   <div className={`relative z-10 h-8 w-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                     isComplete
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                      ? "bg-ig-gradient text-white shadow-md shadow-primary/20"
                       : isCurrent
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-2 ring-primary/20"
+                        ? "bg-ig-gradient text-white shadow-lg shadow-primary/30 ring-2 ring-primary/20"
                         : "bg-muted/30 text-muted-foreground/30 border border-border/20"
                   }`}>
                     {isComplete ? <CheckCircle className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
@@ -444,7 +444,8 @@ export default function GroceryOrderTracking() {
         >
           <button type="button"
             onClick={() => setShowItems(v => !v)}
-            className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-colors"
+            aria-expanded={showItems}
+            className="w-full flex items-center justify-between p-4 hover:bg-muted/10 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
           >
             <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" />
@@ -534,9 +535,9 @@ export default function GroceryOrderTracking() {
             <p className="text-[11px] font-bold">{itemCount}</p>
             <p className="text-[8px] text-muted-foreground">Items</p>
           </div>
-          <div className="p-3 rounded-2xl bg-muted/20 border border-border/15 text-center">
+          <div className="p-3 rounded-2xl bg-muted/20 border border-border/15 text-center min-w-0">
             <MapPin className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
-            <p className="text-[11px] font-bold">{order.store}</p>
+            <p className="text-[11px] font-bold truncate">{order.store}</p>
             <p className="text-[8px] text-muted-foreground">Store</p>
           </div>
         </motion.div>

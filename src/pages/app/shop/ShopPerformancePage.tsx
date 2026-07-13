@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ShopPerformancePage — Employee performance reviews
  * Stores records in feedback_submissions (category: shop_performance)
  */
@@ -105,11 +105,11 @@ export default function ShopPerformancePage() {
     <AppLayout title="Performance" hideHeader>
       <div className="flex flex-col pb-28">
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
-          <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center">
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-lg flex-1">Performance Reviews</h1>
-          <button type="button" onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+          <button type="button" aria-label="New performance review" onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Plus className="w-4.5 h-4.5 text-primary" />
           </button>
         </div>
@@ -144,7 +144,7 @@ export default function ShopPerformancePage() {
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm">New Performance Review</p>
-                  <button type="button" onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
+                  <button type="button" aria-label="Close" onClick={() => setShowForm(false)} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-muted-foreground" /></button>
                 </div>
                 <input
                   className="w-full text-sm px-3 py-2 rounded-xl border border-border/40 bg-background outline-none focus:ring-1 focus:ring-primary/30"
@@ -154,9 +154,9 @@ export default function ShopPerformancePage() {
                 />
                 <div className="flex gap-1.5">
                   {PERIODS.map((p) => (
-                    <button type="button" key={p} onClick={() => setForm({ ...form, period: p })}
-                      className={cn("px-3 py-1 rounded-full text-xs font-medium border",
-                        form.period === p ? "bg-primary text-primary-foreground border-primary" : "border-border bg-muted/40")}>
+                    <button type="button" key={p} aria-pressed={form.period === p} onClick={() => setForm({ ...form, period: p })}
+                      className={cn("px-3 py-1 rounded-full text-xs font-medium border transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        form.period === p ? "bg-ig-gradient text-white border-primary" : "border-border bg-muted/40")}>
                       {p}
                     </button>
                   ))}
@@ -166,7 +166,8 @@ export default function ShopPerformancePage() {
                   <p className="text-xs text-muted-foreground mb-1.5">Overall rating</p>
                   <div className="flex gap-2">
                     {RATINGS.map((r) => (
-                      <button type="button" key={r} onClick={() => setForm({ ...form, rating: r })}>
+                      <button type="button" key={r} aria-label={`${r} ${r === 1 ? "star" : "stars"}`} aria-pressed={form.rating === r} onClick={() => setForm({ ...form, rating: r })}
+                        className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         <Star className={cn("w-7 h-7 transition-colors",
                           r <= form.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30")} />
                       </button>
@@ -195,7 +196,7 @@ export default function ShopPerformancePage() {
                   onChange={(e) => setForm({ ...form, goals: e.target.value })}
                 />
                 <button type="button" onClick={handleSave} disabled={saving}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
+                  className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   {saving ? "Saving…" : "Save Review"}
                 </button>
               </motion.div>

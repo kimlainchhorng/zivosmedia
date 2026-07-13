@@ -100,7 +100,7 @@ export default function CreatorLiveEarningsPage() {
         <div className="flex items-center gap-3 px-4 py-3">
           <button type="button"
             onClick={() => navigate(-1)}
-            className="h-11 w-11 -ml-2 rounded-full hover:bg-muted/50 active:scale-95 touch-manipulation flex items-center justify-center transition-transform"
+            className="h-11 w-11 -ml-2 rounded-full hover:bg-muted/50 active:scale-95 touch-manipulation flex items-center justify-center transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -151,7 +151,7 @@ export default function CreatorLiveEarningsPage() {
               </div>
               <button type="button"
                 onClick={() => navigate("/account/wallet")}
-                className="h-9 px-3 rounded-xl bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 text-[11px] font-bold text-white/90 active:scale-95 transition"
+                className="h-9 px-3 rounded-xl bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 text-[11px] font-bold text-white/90 active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 Wallet
               </button>
@@ -283,7 +283,7 @@ export default function CreatorLiveEarningsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
                     onClick={() => navigate("/live-streams")}
-                    className="w-full text-left zivo-card-organic p-4 active:scale-[0.99] transition-transform hover:border-primary/30"
+                    className="w-full text-left zivo-card-organic p-4 active:scale-[0.99] transition-transform hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="flex items-start gap-3">
                       <div
@@ -453,7 +453,7 @@ export default function CreatorLiveEarningsPage() {
                 <button type="button"
                   key={a}
                   onClick={() => setAmount(String(a))}
-                  className="h-10 px-4 rounded-xl bg-muted text-sm font-extrabold hover:bg-muted/70 active:scale-95 transition tabular-nums"
+                  className="h-10 px-4 rounded-xl bg-muted text-sm font-extrabold hover:bg-muted/70 active:scale-95 transition tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   ${a}
                 </button>
@@ -461,7 +461,7 @@ export default function CreatorLiveEarningsPage() {
               {availableCents >= 1000 && (
                 <button type="button"
                   onClick={() => setAmount((availableCents / 100).toFixed(2))}
-                  className="h-10 px-4 rounded-xl bg-emerald-500/10 text-emerald-600 text-sm font-extrabold hover:bg-emerald-500/20 active:scale-95 transition"
+                  className="h-10 px-4 rounded-xl bg-emerald-500/10 text-emerald-600 text-sm font-extrabold hover:bg-emerald-500/20 active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Max
                 </button>
@@ -481,7 +481,8 @@ export default function CreatorLiveEarningsPage() {
                     <button type="button"
                       key={m.id}
                       onClick={() => setMethod(m.id)}
-                      className={`w-full h-14 px-3.5 rounded-2xl border-2 flex items-center gap-3 active:scale-[0.99] transition ${
+                      aria-pressed={selected}
+                      className={`w-full h-14 px-3.5 rounded-2xl border-2 flex items-center gap-3 active:scale-[0.99] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         selected
                           ? "border-emerald-500 bg-emerald-500/5"
                           : "border-border bg-card"

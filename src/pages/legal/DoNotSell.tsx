@@ -18,7 +18,7 @@ export default function DoNotSell() {
       />
       <Header />
 
-      <main className="pt-24 pb-16">
+      <main className="pt-safe-header pb-16">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">

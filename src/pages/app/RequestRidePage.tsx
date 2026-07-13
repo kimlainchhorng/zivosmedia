@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+﻿import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -266,7 +266,7 @@ function FareSplitSection({ totalCents, formatUSD }: { totalCents: number; forma
           <p className="text-[10px] text-muted-foreground">{splitCount === 1 ? "person" : "people"}</p>
         </div>
         <button type="button" onClick={() => setSplitCount(Math.min(6, splitCount + 1))}
-          className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg touch-manipulation active:scale-90">+</button>
+          className="w-10 h-10 rounded-full bg-ig-gradient text-white flex items-center justify-center font-bold text-lg touch-manipulation active:scale-90">+</button>
       </div>
       {splitCount > 1 && (
         <div className="text-center p-3 rounded-xl bg-primary/5 border border-primary/20">
@@ -1009,7 +1009,7 @@ export default function RequestRidePage() {
                           {(["none", "chill", "pop", "jazz", "classical"] as const).map(genre => (
                             <button type="button" key={genre} onClick={() => setMusicPreference(genre)}
                               className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                                musicPreference === genre ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                                musicPreference === genre ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                               {genre === "none" ? "🔇 Silent" : genre === "chill" ? "🎵 Chill" : genre === "pop" ? "🎤 Pop" : genre === "jazz" ? "🎷 Jazz" : "🎻 Classical"}
                             </button>
                           ))}
@@ -1037,7 +1037,7 @@ export default function RequestRidePage() {
                       {[1, 2, 3, 4].map(n => (
                         <button type="button" key={n} onClick={() => setSplitWith(n)}
                           className={cn("w-8 h-8 rounded-full text-xs font-bold transition-all touch-manipulation",
-                            splitWith === n ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground")}>
+                            splitWith === n ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground")}>
                           {n + 1}
                         </button>
                       ))}
@@ -1089,7 +1089,7 @@ export default function RequestRidePage() {
                     {(["none", "small", "medium", "large"] as const).map(size => (
                       <button type="button" key={size} onClick={() => setLuggageSize(size)}
                         className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                          luggageSize === size ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                          luggageSize === size ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                         {size === "none" ? "None" : size === "small" ? "🧳 Small" : size === "medium" ? "🧳🧳 Med" : "🧳🧳🧳 Large"}
                       </button>
                     ))}
@@ -1107,7 +1107,7 @@ export default function RequestRidePage() {
                     ]).map(t => (
                       <button type="button" key={t.id} onClick={() => setTempPreference(t.id)}
                         className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                          tempPreference === t.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                          tempPreference === t.id ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                         {t.label}
                       </button>
                     ))}
@@ -1144,7 +1144,7 @@ export default function RequestRidePage() {
                       {["30min", "1hr", "2hr", "3hr", "custom"].map(d => (
                         <button type="button" key={d} onClick={() => setReturnDelay(d)}
                           className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all touch-manipulation",
-                            returnDelay === d ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground")}>
+                            returnDelay === d ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground")}>
                           {d}
                         </button>
                       ))}
@@ -1225,7 +1225,7 @@ export default function RequestRidePage() {
                           {(["any", "english", "spanish", "french", "mandarin", "arabic"] as const).map(lang => (
                             <button type="button" key={lang} onClick={() => setDriverLanguage(lang)}
                               className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                                driverLanguage === lang ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                                driverLanguage === lang ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                               {lang === "any" ? "🌐 Any" : lang === "english" ? "🇺🇸 EN" : lang === "spanish" ? "🇪🇸 ES" : lang === "french" ? "🇫🇷 FR" : lang === "mandarin" ? "🇨🇳 ZH" : "🇸🇦 AR"}
                             </button>
                           ))}
@@ -1260,7 +1260,7 @@ export default function RequestRidePage() {
                           {(["none", "daily", "weekdays", "weekly"] as const).map(opt => (
                             <button type="button" key={opt} onClick={() => setRecurringRide(opt)}
                               className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all capitalize",
-                                recurringRide === opt ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                                recurringRide === opt ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                               {opt === "none" ? "One-time" : opt}
                             </button>
                           ))}
@@ -1388,7 +1388,7 @@ export default function RequestRidePage() {
                       {(["infant", "toddler", "booster"] as const).map(t => (
                         <button type="button" key={t} onClick={() => setChildSeatType(t)}
                           className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                            childSeatType === t ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                            childSeatType === t ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                           {t === "infant" ? "👶 Infant" : t === "toddler" ? "🧒 Toddler" : "💺 Booster"}
                         </button>
                       ))}
@@ -1403,7 +1403,7 @@ export default function RequestRidePage() {
                     {(["any", "black", "white", "silver"] as const).map(c => (
                       <button type="button" key={c} onClick={() => setVehicleColorPref(c)}
                         className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                          vehicleColorPref === c ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                          vehicleColorPref === c ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                         {c === "any" ? "Any" : c === "black" ? "⬛ Black" : c === "white" ? "⬜ White" : "🩶 Silver"}
                       </button>
                     ))}
@@ -1719,7 +1719,7 @@ export default function RequestRidePage() {
                         <button type="button" key={pm.id} onClick={() => setSelectedPaymentMethod(pm.id)}
                           className={cn(
                             "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                            selectedPaymentMethod === pm.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
+                            selectedPaymentMethod === pm.id ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
                           )}>
                           <PMIcon className="w-3.5 h-3.5" />
                           {pm.label}
@@ -1772,7 +1772,7 @@ export default function RequestRidePage() {
                     <button type="button" key={cat.id} onClick={() => { setActiveCategory(cat.id); setSelectedVehicle(null); }}
                       className={cn(
                         "px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-1.5 touch-manipulation active:scale-95",
-                        activeCategory === cat.id ? "bg-primary text-primary-foreground shadow-md shadow-primary/25" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
+                        activeCategory === cat.id ? "bg-ig-gradient text-white shadow-md shadow-primary/25" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
                       )}>
                       {cat.id === "premium" && <Sparkles className="w-3 h-3" />}
                       {cat.id === "elite" && <Crown className="w-3 h-3" />}
@@ -1978,7 +1978,7 @@ export default function RequestRidePage() {
                       <button type="button" key={opt.id} onClick={() => setSelectedTip(opt.id)}
                         className={cn(
                           "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                          selectedTip === opt.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
+                          selectedTip === opt.id ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
                         )}>
                         {opt.label}
                       </button>

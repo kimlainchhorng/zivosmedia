@@ -45,57 +45,51 @@ export default function PlanTripBundle() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-lg p-4 bg-card border border-border"
+        className="rounded-2xl border border-border/30 bg-background/92 shadow-sm overflow-hidden"
       >
-        <div className="relative flex items-center gap-2 mb-2">
-          <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-foreground">
-            <Sparkles className="w-3 h-3 text-ig-gradient" /> <span className="text-ig-gradient">New</span>
+        {/* Top row: label + CTA */}
+        <div className="flex items-center gap-2 px-3 pt-3 pb-2">
+          <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
+            <Sparkles className="w-3 h-3" /> Trip Bundle
           </span>
-          <span className="text-[11px] font-semibold text-muted-foreground">Trip Bundle</span>
-        </div>
-
-        <div className="relative">
-          <div className="text-[17px] font-bold leading-tight text-foreground">Plan everything in one go</div>
-          <div className="text-[12px] text-muted-foreground mt-0.5">
-            Flight, hotel, and the ride — booked together, tracked together.
+          <span className="text-[10px] font-semibold text-muted-foreground/60 border border-border/30 rounded-full px-1.5 py-0.5">
+            New
+          </span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={shareTripBundle}
+              aria-label="Share trip bundle"
+              className="h-7 w-7 inline-flex items-center justify-center rounded-full border border-border/30 text-muted-foreground active:opacity-70 touch-manipulation"
+            >
+              <Share2 className="w-3 h-3" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate("/flights?bundle=1")}
+              className="inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-[11px] font-semibold touch-manipulation active:opacity-80"
+            >
+              Start <ArrowRight className="w-3 h-3" />
+            </motion.button>
           </div>
         </div>
 
-        <div className="relative mt-3 grid grid-cols-3 gap-2">
+        {/* Step pills — horizontal row */}
+        <div className="flex gap-2 px-3 pb-3">
           {STEPS.map((s) => {
             const Icon = s.icon;
             return (
               <motion.button
                 key={s.label}
-                whileTap={{ scale: 0.96 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => navigate(s.to)}
-                className="flex flex-col items-center justify-center gap-1 rounded-lg bg-muted active:bg-muted/70 px-2 py-3 transition-colors touch-manipulation"
+                className="flex items-center gap-1.5 rounded-full border border-border/30 bg-muted/20 px-3 py-1.5 text-[11px] font-semibold text-foreground touch-manipulation active:bg-muted/40 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-background flex items-center justify-center">
-                  <Icon className="w-4 h-4 text-foreground" strokeWidth={1.8} />
-                </div>
-                <div className="text-[11px] font-semibold text-foreground">{s.label}</div>
+                <Icon className="w-3 h-3 text-muted-foreground shrink-0" strokeWidth={1.8} />
+                {s.label}
               </motion.button>
             );
           })}
-        </div>
-
-        <div className="mt-3 flex items-stretch gap-2">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate("/flights?bundle=1")}
-            className="relative flex-1 flex items-center justify-center gap-1 rounded-lg bg-ig-gradient text-white font-bold py-2.5 text-sm shadow-sm hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation"
-          >
-            Start with a flight <ArrowRight className="w-4 h-4" />
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={shareTripBundle}
-            aria-label="Share trip bundle to chat"
-            className="h-11 w-11 shrink-0 inline-flex items-center justify-center rounded-lg border border-border/40 bg-background text-foreground active:opacity-70 transition-opacity touch-manipulation"
-          >
-            <Share2 className="w-4 h-4" />
-          </motion.button>
         </div>
       </motion.div>
     </div>

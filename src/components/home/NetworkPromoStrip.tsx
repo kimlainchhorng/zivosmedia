@@ -23,14 +23,14 @@ export default function NetworkPromoStrip() {
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={() => navigate("/network")}
-        className="w-full flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-left active:bg-muted/50 transition-colors touch-manipulation"
+        className="w-full flex items-center gap-3 rounded-2xl border border-border/30 bg-background/92 shadow-sm p-3 text-left active:bg-muted/40 transition-colors touch-manipulation"
       >
         <div className="relative w-11 h-11 rounded-full bg-muted flex items-center justify-center">
           <BadgeCheck className="w-5 h-5 text-foreground" strokeWidth={1.8} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-ig-gradient">
+            <span className="text-[11px] font-semibold text-primary">
               ZIVO Network
             </span>
             <UtensilsCrossed className="w-3 h-3 text-muted-foreground" />
@@ -50,7 +50,7 @@ export default function NetworkPromoStrip() {
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate("/network/saved")}
-          className="w-full flex items-center gap-3 rounded-lg border border-border bg-card p-2.5 text-left active:bg-muted/50 transition-colors touch-manipulation"
+          className="w-full flex items-center gap-3 rounded-2xl border border-border/30 bg-background/92 shadow-sm p-2.5 text-left active:bg-muted/40 transition-colors touch-manipulation"
         >
           <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
             <Heart className="w-4 h-4 text-destructive fill-destructive" />

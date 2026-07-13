@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ExplorePage — Discover users, trending posts, hashtags, and nearby places
  * Features: search, trending grid, hashtag browsing, map toggle
  */
@@ -44,12 +44,13 @@ export default function ExplorePage() {
   const { data: trendingPosts = [], isLoading: loadingPosts, isError: hasTrendingError } = useQuery({
     queryKey: ["explore-trending"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("store_posts")
         .select("id, media_urls, media_type, caption, likes_count, comments_count, created_at")
         .eq("is_published", true)
         .order("likes_count", { ascending: false })
         .limit(30);
+      if (error) throw error;
       return (data || []).map((p: any) => ({
         ...p,
         media_urls: Array.isArray(p.media_urls) ? p.media_urls : typeof p.media_urls === "string" ? [p.media_urls] : [],
@@ -63,12 +64,13 @@ export default function ExplorePage() {
     queryKey: ["explore-users", search],
     queryFn: async () => {
       if (!search.trim()) return [];
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("profiles")
         .select("id, full_name, avatar_url, is_verified")
         .ilike("full_name", `%${search}%`)
         .eq("is_of_creator", false)
         .limit(20);
+      if (error) throw error;
       return (data as any[]) || [];
     },
     enabled: search.length > 1,
@@ -79,13 +81,14 @@ export default function ExplorePage() {
   const { data: suggestedUsers = [], isLoading: loadingSuggested, isError: hasSuggestedError } = useQuery({
     queryKey: ["explore-suggested-users", user?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("profiles")
         .select("id, full_name, avatar_url, is_verified, bio")
         .not("id", "eq", user?.id ?? "")
         .eq("is_of_creator", false)
         .order("created_at", { ascending: false })
         .limit(20);
+      if (error) throw error;
       return (data as any[]) || [];
     },
     enabled: activeTab === "users" && !search,
@@ -97,13 +100,14 @@ export default function ExplorePage() {
     queryKey: ["explore-tagged", selectedTag],
     queryFn: async () => {
       if (!selectedTag) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("store_posts")
         .select("id, media_urls, media_type, caption, likes_count")
         .eq("is_published", true)
         .ilike("caption", `%#${selectedTag}%`)
         .order("likes_count", { ascending: false })
         .limit(30);
+      if (error) throw error;
       return (data || []).map((p: any) => ({
         ...p,
         media_urls: Array.isArray(p.media_urls) ? p.media_urls : typeof p.media_urls === "string" ? [p.media_urls] : [],
@@ -117,12 +121,13 @@ export default function ExplorePage() {
   const { data: trendingHashtags = [], isError: hasHashtagsError } = useQuery({
     queryKey: ["explore-hashtags"],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("store_posts")
         .select("caption")
         .eq("is_published", true)
         .not("caption", "is", null)
         .limit(500);
+      if (error) throw error;
       const counts: Record<string, number> = {};
       (data || []).forEach((p: any) => {
         const tags = (p.caption as string).match(/#(\w+)/g) ?? [];
@@ -137,13 +142,6 @@ export default function ExplorePage() {
         .map(([tag, count]) => ({ tag, count }));
     },
     staleTime: 5 * 60 * 1000,
-    placeholderData: [
-      { tag: "travel", count: 1240 }, { tag: "food", count: 980 },
-      { tag: "zivo", count: 870 }, { tag: "adventure", count: 650 },
-      { tag: "photography", count: 540 }, { tag: "nature", count: 430 },
-      { tag: "citylife", count: 380 }, { tag: "sunset", count: 320 },
-      { tag: "foodie", count: 290 }, { tag: "wanderlust", count: 260 },
-    ],
   });
 
   const tabs: { id: Tab; label: string; icon: typeof TrendingUp }[] = [
@@ -226,7 +224,7 @@ export default function ExplorePage() {
               className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-muted/50 border border-border/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             {search && (
-              <button type="button" onClick={() => setSearch("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2">
+              <button type="button" onClick={() => setSearch("")} aria-label="Clear search" title="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <X className="h-4 w-4 text-muted-foreground" />
               </button>
             )}
@@ -239,9 +237,10 @@ export default function ExplorePage() {
             <button type="button"
               key={t.id}
               onClick={() => setActiveTab(t.id)}
+              aria-pressed={activeTab === t.id}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                activeTab === t.id ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                activeTab === t.id ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
               )}
             >
               <t.icon className="h-3.5 w-3.5" />
@@ -279,24 +278,6 @@ export default function ExplorePage() {
           />
         )}
 
-        {/* 18+ Discovery shortcut — surfaces OF creators that are filtered out
-            of the normal explore queries. Only shown when not actively searching. */}
-        {search.length <= 1 && !shouldShowExploreRecovery && (
-          <button
-            type="button"
-            onClick={() => navigate("/explore/18-plus")}
-            className="mx-4 mt-4 mb-1 w-[calc(100%-2rem)] flex items-center gap-3 p-3 rounded-2xl border border-rose-500/30 bg-gradient-to-r from-rose-500/10 to-pink-500/5 hover:from-rose-500/15 hover:to-pink-500/10 transition-colors text-left active:scale-[0.99]"
-          >
-            <div className="h-10 w-10 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
-              <span className="text-[12px] font-extrabold text-rose-500">18+</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-extrabold text-[13px]">Adult Creators</p>
-              <p className="text-[10px] text-muted-foreground">OF-style content · age-gated</p>
-            </div>
-            <span className="text-[10px] font-extrabold text-rose-500">Enter →</span>
-          </button>
-        )}
 
         {/* Search results */}
         {search.length > 1 && !shouldShowExploreRecovery && (
@@ -306,7 +287,7 @@ export default function ExplorePage() {
               <button type="button"
                 key={u.id}
                 onClick={() => navigate(`/profile/${u.id}`)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-colors"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={u.avatar_url} />
@@ -338,8 +319,9 @@ export default function ExplorePage() {
               return (
                 <motion.button
                   key={post.id}
+                  aria-label="Open post"
                   className={cn(
-                    "relative aspect-square bg-muted overflow-hidden",
+                    "relative aspect-square bg-muted overflow-hidden focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-ring",
                     isLarge && "col-span-2 row-span-2"
                   )}
                   whileTap={{ scale: 0.97 }}
@@ -372,7 +354,7 @@ export default function ExplorePage() {
               <button type="button"
                 key={u.id}
                 onClick={() => navigate(`/profile/${u.id}`)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left"
               >
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={u.avatar_url} />
@@ -402,7 +384,7 @@ export default function ExplorePage() {
                   <h3 className="text-sm font-semibold text-foreground">#{selectedTag}</h3>
                   <button type="button"
                     onClick={() => setSelectedTag(null)}
-                    className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors"
+                    className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground transition-all active:scale-[0.97] rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <X className="h-3.5 w-3.5" /> Clear
                   </button>
@@ -424,7 +406,8 @@ export default function ExplorePage() {
                       return (
                         <motion.button
                           key={post.id}
-                          className="relative aspect-square bg-muted overflow-hidden"
+                          aria-label="Open post"
+                          className="relative aspect-square bg-muted overflow-hidden focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-ring"
                           whileTap={{ scale: 0.97 }}
                           onClick={() => navigate(`/reels/${post.id}`)}
                         >
@@ -444,7 +427,7 @@ export default function ExplorePage() {
               <button type="button"
                 key={h.tag}
                 onClick={() => setSelectedTag(h.tag)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40 hover:bg-accent/50 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring text-left"
               >
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <Hash className="h-4 w-4 text-primary" />

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoreSideRail — desktop-only sticky right column for StoreProfilePage.
  * Hosts mini map, address, primary CTAs, and (for lodging) the stay selector.
  */
@@ -251,7 +251,7 @@ export default function StoreSideRail({
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={handleRideThere}
-        className="w-full h-11 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+        className="w-full h-11 rounded-2xl bg-ig-gradient text-white font-bold text-sm shadow-lg shadow-primary/25 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
       >
         <MapPin className="h-4 w-4" />
         Ride There

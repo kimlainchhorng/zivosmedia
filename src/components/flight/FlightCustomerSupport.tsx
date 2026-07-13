@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 const supportOptions = [
   { icon: MessageSquare, title: "Live Chat", description: "Instant support 24/7", wait: "< 1 min", color: "text-green-400", bgColor: "bg-green-500/10" },
   { icon: Phone, title: "Call Us", description: "+1 (888) ZIVO-FLY", wait: "< 3 min", color: "text-sky-400", bgColor: "bg-sky-500/10" },
-  { icon: Mail, title: "Email Support", description: "support@zivo.com", wait: "< 2 hrs", color: "text-purple-400", bgColor: "bg-purple-500/10" },
+  { icon: Mail, title: "Email Support", description: "support@zivosmedia.com", wait: "< 2 hrs", color: "text-purple-400", bgColor: "bg-purple-500/10" },
   { icon: Bot, title: "AI Assistant", description: "Get instant answers", wait: "Instant", color: "text-amber-400", bgColor: "bg-amber-500/10" },
 ];
 

@@ -141,7 +141,7 @@ export default function ConciergePage() {
         <div className="max-w-screen-md mx-auto px-4 py-3 flex items-center gap-3">
           <button type="button"
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"
+            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -180,7 +180,7 @@ export default function ConciergePage() {
                 e.stopPropagation();
                 cancelAutorun();
               }}
-              className="text-[11px] font-bold text-emerald-700 px-2 py-1"
+              className="text-[11px] font-bold text-emerald-700 px-2 py-1 transition-transform active:scale-[0.97] rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Cancel
             </button>
@@ -237,7 +237,7 @@ export default function ConciergePage() {
               <button type="button"
                 key={s}
                 onClick={() => submit(s)}
-                className="rounded-full bg-muted hover:bg-muted/70 px-2.5 py-1 text-[11px] font-bold text-foreground transition-colors"
+                className="rounded-full bg-muted hover:bg-muted/70 px-2.5 py-1 text-[11px] font-bold text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {s}
               </button>
@@ -277,7 +277,7 @@ export default function ConciergePage() {
                       key={i}
                       whileTap={{ scale: 0.99 }}
                       onClick={() => navigate(s.to)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors touch-manipulation ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
                         i > 0 ? "border-t border-border/40" : ""
                       }`}
                     >

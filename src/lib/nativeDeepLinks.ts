@@ -23,7 +23,11 @@ export function pathFromNativeOpenUrl(rawUrl: string): string | null {
       path = `${url.pathname}${url.search}${url.hash}`;
     }
 
-    if (!path || !path.startsWith("/") || path.startsWith("//")) return null;
+    if (!path) return null;
+    // Collapse backslashes first: URL parsers/browsers treat "\" as "/", so "/\evil.com"
+    // would resolve to the authority //evil.com (off-origin) once navigated.
+    const probe = path.replace(/\\/g, "/");
+    if (!probe.startsWith("/") || probe.startsWith("//")) return null;
     return path;
   } catch {
     return null;

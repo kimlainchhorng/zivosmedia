@@ -91,8 +91,9 @@ export default function ARFiltersPage() {
               key={c}
               type="button"
               onClick={() => setActive(c)}
+              aria-pressed={active === c}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 active === c
                   ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-secondary text-foreground hover:bg-muted",
@@ -117,7 +118,7 @@ export default function ARFiltersPage() {
                 transition={{ delay: idx * 0.04 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => setSavedId(isSaved ? null : f.id)}
-                className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted shadow-sm text-left active:opacity-90"
+                className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-muted shadow-sm text-left active:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-pressed={isSaved}
               >
 	                <img src={f.cover} alt={f.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />

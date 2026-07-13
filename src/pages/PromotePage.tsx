@@ -212,8 +212,10 @@ export default function PromotePage() {
                     className={cn(
                       "relative aspect-square rounded-xl overflow-hidden bg-muted ring-2 transition-all",
                       isSelected ? "ring-transparent" : "ring-border/0",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
                     )}
                     aria-label={`Select post${post.caption ? `: ${post.caption.slice(0, 40)}` : ""}`}
+                    aria-pressed={isSelected}
                   >
                     {isSelected && <div className="absolute inset-0 bg-ig-gradient p-[3px] rounded-xl" aria-hidden />}
                     <div className="absolute inset-[3px] rounded-[9px] overflow-hidden bg-muted">
@@ -262,6 +264,7 @@ export default function PromotePage() {
                     isSelected
                       ? "border-transparent ring-2 ring-rose-500/30 bg-card shadow-md"
                       : "border-border bg-card hover:bg-secondary/30",
+                    "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   )}
                   aria-pressed={isSelected}
                 >

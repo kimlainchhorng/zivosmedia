@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReelsFeedPage — Instagram / Facebook style social feed
  * Full-width cards with author info, media, captions, and engagement
  * Everyone can post photos/videos that show up here
@@ -85,6 +85,7 @@ import Crown from "lucide-react/dist/esm/icons/crown";
 import Package from "lucide-react/dist/esm/icons/package";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -94,7 +95,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { getPostShareUrl } from "@/lib/getPublicOrigin";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
+import { useZivoPlus } from "@/contexts/ZivoPlusContext";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/shared/PullToRefresh";
@@ -128,13 +130,14 @@ const FEED_CREATOR_WORKFLOWS: ReadonlyArray<{
   description: string;
   icon: typeof Plus;
   tone: string;
+  tileCn: string;
 }> = [
-  { action: "story", label: "Story", description: "Share a moment", icon: Camera, tone: "from-pink-500 to-rose-500" },
-  { action: "reel", label: "Reel", description: "Post a video", icon: Film, tone: "from-purple-500 to-indigo-500" },
-  { action: "photo", label: "Photo", description: "Upload a photo", icon: ImageIcon, tone: "from-sky-500 to-cyan-500" },
-  { action: "shop", label: "Shop", description: "Tag products", icon: ShoppingBag, tone: "from-emerald-500 to-teal-500" },
-  { action: "live", label: "Live", description: "Go live now", icon: Radio, tone: "from-orange-500 to-red-500" },
-  { action: "jobs", label: "Jobs", description: "Post a job", icon: Briefcase, tone: "from-slate-500 to-zinc-500" },
+  { action: "story", label: "Story", description: "Share a moment", icon: Camera, tone: "bg-pink-500/12 text-pink-600", tileCn: "border-pink-500/22 bg-pink-500/[0.06] hover:bg-pink-500/[0.1] hover:border-pink-500/35" },
+  { action: "reel", label: "Reel", description: "Post a video", icon: Film, tone: "bg-purple-500/12 text-purple-600", tileCn: "border-purple-500/22 bg-purple-500/[0.06] hover:bg-purple-500/[0.1] hover:border-purple-500/35" },
+  { action: "photo", label: "Photo", description: "Upload a photo", icon: ImageIcon, tone: "bg-sky-500/12 text-sky-600", tileCn: "border-sky-500/22 bg-sky-500/[0.06] hover:bg-sky-500/[0.1] hover:border-sky-500/35" },
+  { action: "shop", label: "Shop", description: "Tag products", icon: ShoppingBag, tone: "bg-emerald-500/12 text-emerald-600", tileCn: "border-emerald-500/22 bg-emerald-500/[0.06] hover:bg-emerald-500/[0.1] hover:border-emerald-500/35" },
+  { action: "live", label: "Live", description: "Go live now", icon: Radio, tone: "bg-orange-500/12 text-orange-600", tileCn: "border-orange-500/22 bg-orange-500/[0.06] hover:bg-orange-500/[0.1] hover:border-orange-500/35" },
+  { action: "jobs", label: "Jobs", description: "Post a job", icon: Briefcase, tone: "bg-slate-500/12 text-slate-600", tileCn: "border-slate-400/22 bg-slate-500/[0.06] hover:bg-slate-500/[0.08] hover:border-slate-400/35" },
 ];
 
 const getFeedAuthorSnoozeKey = (source: FeedPreferenceSource, id: string) => `${source}:${id}`;
@@ -502,24 +505,21 @@ function FeedWorkflowRail({
   };
 
   return (
-    <section className="zivo-social-module mx-2 my-3 rounded-[1.25rem] p-2" aria-label="Create">
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-        {FEED_CREATOR_WORKFLOWS.map(({ action, label, description, icon: Icon, tone }) => (
-          <button
-            key={action}
-            type="button"
-            onClick={() => handleWorkflow(action)}
-            className="zivo-social-module-tile group rounded-2xl px-2 py-3 text-center transition-all hover:-translate-y-0.5 active:scale-[0.98]"
-          >
-            <span className={cn("mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg transition-transform group-hover:scale-105", tone)}>
-              <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-            </span>
-            <span className="block text-[12px] font-extrabold leading-tight text-foreground">{label}</span>
-            <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted-foreground">{description}</span>
-          </button>
-        ))}
-      </div>
-    </section>
+    <div className="flex items-center px-1 py-1" role="toolbar" aria-label="Create">
+      {FEED_CREATOR_WORKFLOWS.map(({ action, label, icon: Icon, tone }) => (
+        <button
+          key={action}
+          type="button"
+          onClick={() => handleWorkflow(action)}
+          className="flex flex-1 flex-col items-center gap-1.5 rounded-xl py-2.5 transition-colors hover:bg-muted/50 active:scale-95"
+        >
+          <span className={cn("flex h-8 w-8 items-center justify-center rounded-full", tone)}>
+            <Icon className="h-[15px] w-[15px]" aria-hidden="true" />
+          </span>
+          <span className="text-[11px] font-semibold text-foreground/75">{label}</span>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -820,8 +820,8 @@ export default function ReelsFeedPage() {
   const { unreadCount: notificationUnread } = useNotifications(20);
   const { data: ownerStores = [] } = useOwnerStores();
   const primaryOwnerStore = ownerStores[0];
-  const myBusinessPath = primaryOwnerStore
-    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id).path
+  const myBusinessDashboard = primaryOwnerStore
+    ? resolveBusinessDashboardRoute(primaryOwnerStore.category, primaryOwnerStore.id)
     : null;
   const hasMultipleBusinesses = ownerStores.length > 1;
   const [businessSwitcherOpen, setBusinessSwitcherOpen] = useState(false);
@@ -909,8 +909,12 @@ export default function ReelsFeedPage() {
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [feedTab, feedFilter, selectedHashtag]);
-  const [sidebarContacts, setSidebarContacts] = useState<Array<{ id: string; name: string; avatar: string | null }>>([]);
+  const [sidebarContacts, setSidebarContacts] = useState<Array<{ id: string; name: string; avatar: string | null; lastSeen: string | null }>>([]);
   const [trendingTags, setTrendingTags] = useState<Array<{ tag: string; count: number }>>([]);
+  const [birthdaysToday, setBirthdaysToday] = useState<Array<{ id: string; name: string; avatar: string | null }>>([]);
+  const [birthdaysLoaded, setBirthdaysLoaded] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState<Array<{ id: string; title: string; startTime: string; location: string | null }>>([]);
+  const { isPlus, isLoading: plusLoading } = useZivoPlus();
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const PAGE_INCREMENT = REELS_PAGE_INCREMENT;
@@ -921,6 +925,8 @@ export default function ReelsFeedPage() {
   const feedPageTopRef = useRef<HTMLDivElement>(null);
   const feedTopRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const swipeTouchXRef = useRef<number | null>(null);
+  const swipeTouchYRef = useRef<number | null>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
   const isFeedRoute = location.pathname.startsWith("/feed");
@@ -952,6 +958,22 @@ export default function ReelsFeedPage() {
     closeFeedSearch();
     navigate(href);
   }, [closeFeedSearch, navigate]);
+
+  const handleFeedSwipeStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchXRef.current = e.touches[0].clientX;
+    swipeTouchYRef.current = e.touches[0].clientY;
+  }, []);
+  const handleFeedSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (swipeTouchXRef.current === null || swipeTouchYRef.current === null) return;
+    const dx = e.changedTouches[0].clientX - swipeTouchXRef.current;
+    const dy = e.changedTouches[0].clientY - swipeTouchYRef.current;
+    swipeTouchXRef.current = null;
+    swipeTouchYRef.current = null;
+    if (Math.abs(dx) < 52 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+    const idx = FEED_TABS.indexOf(feedTab as (typeof FEED_TABS)[number]);
+    if (dx < 0 && idx < FEED_TABS.length - 1) setFeedTab(FEED_TABS[idx + 1]);
+    if (dx > 0 && idx > 0) setFeedTab(FEED_TABS[idx - 1]);
+  }, [feedTab]);
 
   useEffect(() => {
     const markReady = () => setSidebarDataReady(true);
@@ -1050,15 +1072,46 @@ export default function ReelsFeedPage() {
         .eq("status", "accepted")
         .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
         .limit(500);
-      if (!fships?.length) return;
+      if (!fships?.length) { setBirthdaysLoaded(true); return; }
       const fIds = fships.map((r: any) => r.user_id === userId ? r.friend_id : r.user_id);
       setFriendIds(new Set(fIds));
       const { data: profs } = await supabase
         .from("profiles")
-        .select("user_id, full_name, avatar_url")
+        .select("user_id, full_name, avatar_url, last_seen")
         .in("user_id", fIds.slice(0, 8))
         .limit(8);
-      if (profs) setSidebarContacts(profs.map((p: any) => ({ id: p.user_id, name: p.full_name || "User", avatar: p.avatar_url || null })));
+      if (profs) setSidebarContacts(profs.map((p: any) => ({ id: p.user_id, name: p.full_name || "User", avatar: p.avatar_url || null, lastSeen: p.last_seen || null })));
+
+      // Friends with a birthday today — real data (profiles.date_of_birth is
+      // populated at signup). Compare month/day as strings to avoid TZ drift.
+      // Chunked so friend lists >150 don't overflow the PostgREST URL limit.
+      const dobChunks = [];
+      for (let i = 0; i < fIds.length; i += 150) dobChunks.push(fIds.slice(i, i + 150));
+      const dobResults = await Promise.all(dobChunks.map((chunk) =>
+        supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url, date_of_birth")
+          .in("user_id", chunk)
+          .not("date_of_birth", "is", null)
+      ));
+      const dobProfs = dobResults.flatMap((r) => (r.data as any[]) || []);
+      {
+        const now = new Date();
+        const todayMonthDay = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const y = now.getFullYear();
+        const isLeap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+        setBirthdaysToday(
+          dobProfs
+            .filter((p) => {
+              const md = (p.date_of_birth || "").slice(5, 10);
+              // Leap-day birthdays are celebrated on Feb 28 in non-leap years.
+              return md === todayMonthDay || (!isLeap && md === "02-29" && todayMonthDay === "02-28");
+            })
+            .slice(0, 3)
+            .map((p) => ({ id: p.user_id, name: p.full_name || "User", avatar: p.avatar_url || null }))
+        );
+      }
+      setBirthdaysLoaded(true);
     })();
     (async () => {
       const { data: flData } = await (supabase as any)
@@ -1087,6 +1140,52 @@ export default function ReelsFeedPage() {
       );
     })();
   }, [userId, sidebarDataReady]);
+
+  // Keep contact presence fresh: re-pull last_seen every 45s so online dots
+  // both appear and expire (a one-time fetch would freeze them). Keyed on the
+  // contact-id list so lastSeen-only updates don't reset the interval.
+  const sidebarContactIdsKey = sidebarContacts.map((c) => c.id).join(",");
+  useEffect(() => {
+    if (!sidebarContactIdsKey) return;
+    const ids = sidebarContactIdsKey.split(",");
+    const tick = async () => {
+      if (document.visibilityState === "hidden") return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, last_seen")
+        .in("user_id", ids);
+      if (!data) return;
+      const byId = new Map((data as any[]).map((p) => [p.user_id, p.last_seen || null]));
+      setSidebarContacts((prev) => prev.map((c) => byId.has(c.id) ? { ...c, lastSeen: byId.get(c.id) } : c));
+    };
+    const interval = window.setInterval(tick, 45_000);
+    return () => window.clearInterval(interval);
+  }, [sidebarContactIdsKey]);
+
+  // Upcoming events for the right rail — social_events is publicly readable,
+  // so this also works for logged-out visitors. Self-hides when empty.
+  useEffect(() => {
+    if (!sidebarDataReady) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("social_events")
+        .select("id, title, start_time, location")
+        .eq("status", "published")
+        .gte("start_time", new Date().toISOString())
+        .order("start_time", { ascending: true })
+        .limit(3);
+      if (data) {
+        setUpcomingEvents(
+          (data as any[]).map((e) => ({
+            id: e.id,
+            title: e.title || "Event",
+            startTime: e.start_time,
+            location: e.location || null,
+          }))
+        );
+      }
+    })();
+  }, [sidebarDataReady]);
 
   // Realtime: count new posts that arrive while the user is mid-feed.
   useEffect(() => {
@@ -1788,11 +1887,42 @@ export default function ReelsFeedPage() {
           <div
             data-testid="feed-sticky-header"
             className="lg:hidden zivo-sticky-mobile-header px-2 pt-1 pb-1"
+            onTouchStart={handleFeedSwipeStart}
+            onTouchEnd={handleFeedSwipeEnd}
           >
-            <div className="zivo-pt-safe-sticky zivo-feed-mobile-header-panel zivo-social-header-glass rounded-[1.5rem] overflow-hidden">
+            <div
+              className={cn(
+                "zivo-pt-safe-sticky zivo-feed-mobile-header-panel relative rounded-[1.5rem] overflow-hidden",
+                /* ── Liquid Glass — mirrors the bottom nav (ZivoMobileNav): clear
+                      frost so feed content bleeds through as it scrolls behind.
+                      Opacity nudged 0.15→0.20 since the header is larger / sits
+                      over lighter content. DeepSeek + MiMo. ── */
+                "bg-white/[0.20] backdrop-blur-3xl backdrop-saturate-[2]",
+                "border border-white/25",
+                "shadow-[inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-0.5px_0_rgba(255,255,255,0.1),0_8px_40px_rgba(0,0,0,0.08),0_2px_12px_rgba(0,0,0,0.04)]",
+                "dark:bg-zinc-950/[0.40] dark:border-white/[0.08]",
+                "dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-0.5px_0_rgba(255,255,255,0.02),0_8px_40px_rgba(0,0,0,0.5),0_2px_12px_rgba(0,0,0,0.25)]",
+              )}
+            >
+              {/* A — diagonal specular sheen (glossy highlight catch), matches nav */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.12] via-transparent to-transparent dark:from-white/[0.04] dark:via-transparent dark:to-transparent"
+              />
+              {/* B — faint cool self-tint: just enough material temperature for the
+                    top-of-feed case (white behind), without killing content bleed */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-[60%] bg-gradient-to-b from-slate-200/[0.10] to-transparent dark:from-zinc-800/20"
+              />
+              {/* C — bottom separation hairline: grounds the floating panel */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-black/[0.07] to-transparent dark:via-white/10"
+              />
               <div
                 className={cn(
-                  "overflow-hidden transition-all duration-300 ease-out",
+                  "relative z-10 overflow-hidden transition-all duration-300 ease-out",
                   "max-h-[200px] opacity-100",
                   headerHidden && "shadow-sm"
                 )}
@@ -1811,15 +1941,23 @@ export default function ReelsFeedPage() {
                         <Menu className="h-5 w-5" />
                       </button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="zivo-social-surface w-[88vw] sm:w-[400px] p-0 overflow-y-auto">
+                    <SheetContent side="left" hideClose className="zivo-social-surface w-[88vw] sm:w-[400px] p-0 overflow-y-auto">
                       <SheetHeader className="zivo-social-header-glass m-2 rounded-[1.25rem] px-4 py-3">
-                        <SheetTitle className="text-base font-bold">Menu</SheetTitle>
+                        <div className="flex items-center justify-between gap-3">
+                          <SheetTitle className="text-base font-bold">Menu</SheetTitle>
+                          <SheetClose
+                            aria-label="Close"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </SheetClose>
+                        </div>
                         <SheetDescription className="sr-only">
                           Shortcuts for creating posts, navigating ZIVO, and opening saved or notification tools.
                         </SheetDescription>
                       </SheetHeader>
                       <div className="p-3 space-y-3">
-                        {userId && myBusinessPath && (
+                        {userId && myBusinessDashboard && (
                           hasMultipleBusinesses ? (
                             <div className="zivo-social-module rounded-[1.25rem] overflow-hidden">
                               <button
@@ -1845,7 +1983,14 @@ export default function ReelsFeedPage() {
                                     <button
                                       key={store.id}
                                       type="button"
-                                      onClick={() => navigate(resolveBusinessDashboardRoute(store.category, store.id).path)}
+                                      onClick={() => {
+                                        const dashboard = resolveBusinessDashboardRoute(store.category, store.id);
+                                        if (dashboard.externalUrl) {
+                                          window.location.assign(dashboard.externalUrl);
+                                          return;
+                                        }
+                                        navigate(dashboard.path);
+                                      }}
                                       className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-all hover:bg-white/55 active:scale-[0.99]"
                                     >
                                       <Avatar className="zivo-social-avatar-ring h-8 w-8 shrink-0">
@@ -1869,7 +2014,13 @@ export default function ReelsFeedPage() {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => navigate(myBusinessPath)}
+                              onClick={() => {
+                                if (myBusinessDashboard.externalUrl) {
+                                  window.location.assign(myBusinessDashboard.externalUrl);
+                                  return;
+                                }
+                                navigate(myBusinessDashboard.path);
+                              }}
                               className="zivo-social-module group flex w-full items-center gap-3 rounded-[1.25rem] px-3 py-3 text-left transition-all active:scale-[0.98]"
                             >
                               <span className="zivo-social-share-orb flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-primary">
@@ -1966,7 +2117,7 @@ export default function ReelsFeedPage() {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <h1 className="text-base font-bold text-foreground shrink-0 drop-shadow-sm">Feed</h1>
+                  <h1 className="text-base font-extrabold shrink-0 text-foreground">Feed</h1>
                   <div className="flex-1 relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                     <input
@@ -2016,26 +2167,25 @@ export default function ReelsFeedPage() {
                     headerHidden ? "max-h-0 opacity-0" : "max-h-[124px] opacity-100"
                   )}
                 >
-                  {/* Tab strip — For You / Friends / Following (signed-in only) */}
+                  {/* Tab strip — pill-scroll 2026 */}
                   {userId && (
-                    <div className="zivo-feed-tabbar mx-2 mb-2.5 grid grid-cols-5 gap-1 rounded-[1.25rem] p-1">
+                    <div className="flex gap-1.5 overflow-x-auto scrollbar-none mx-2 mb-2 px-0.5">
                       {FEED_TABS.map((label) => (
-                        <button type="button"
+                        <motion.button
                           key={label}
+                          layout
+                          whileTap={{ scale: 0.94 }}
                           onClick={() => setFeedTab(label)}
                           aria-pressed={feedTab === label}
                           className={cn(
-                            "relative min-h-[36px] rounded-[1rem] px-1 text-[11px] font-black tracking-[-0.02em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                            "shrink-0 h-[34px] rounded-full px-3.5 text-[11px] font-black tracking-[-0.01em] whitespace-nowrap transition-colors duration-150 touch-manipulation focus-visible:outline-none",
                             feedTab === label
-                              ? "zivo-feed-tab-active"
-                              : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
+                              ? "bg-zinc-900 text-white shadow-[0_2px_10px_rgba(0,0,0,0.18)] dark:bg-white dark:text-zinc-900"
+                              : "text-muted-foreground/80 bg-muted/40 hover:bg-muted hover:text-foreground"
                           )}
                         >
                           {label}
-                          {feedTab === label && (
-                            <span className="absolute left-1/2 top-full mt-1 h-1 w-7 -translate-x-1/2 rounded-full bg-gradient-to-r from-primary via-pink-500 to-amber-400 shadow-[0_0_14px_hsl(var(--primary)/0.4)]" />
-                          )}
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
                   )}
@@ -2213,55 +2363,46 @@ export default function ReelsFeedPage() {
           </AnimatePresence>
 
 
-          {/* Create post — Facebook-style card composer */}
+          {/* Unified composer + quick-create card */}
           <div ref={feedPageTopRef} data-feed-page-top aria-hidden="true" />
 
-          {userId && (
-            <div className="zivo-social-composer mx-2 mt-3 rounded-[1.25rem] px-3 pt-2.5 pb-2">
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="h-9 w-9 rounded-full overflow-hidden bg-muted border border-primary/20 shadow-[0_10px_22px_hsl(210_28%_18%/0.12)] shrink-0">
-                  {userProfile?.avatar ? (
-                    <img src={userProfile.avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center text-muted-foreground/50">
-                      <Camera className="h-3.5 w-3.5" />
+          <div className="mx-3 mt-3">
+            <div className="rounded-2xl border border-border/30 bg-background/92 overflow-hidden shadow-sm">
+              {userId && (
+                <>
+                  <div className="flex items-center gap-3 px-3 pt-3.5 pb-3">
+                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border/30 bg-muted">
+                      {userProfile?.avatar ? (
+                        <img src={userProfile.avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-muted-foreground/50">
+                          <Camera className="h-4 w-4" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <button type="button"
-                  onClick={() => setShowCreate(true)}
-                  className="zivo-social-search flex-1 text-left px-4 py-2 rounded-full text-[13px] text-muted-foreground transition-colors"
-                >
-                  {(() => {
-                    const first = (userProfile?.name || "").trim().split(/\s+/)[0];
-                    return first ? `What's on your mind, ${first}?` : "What's on your mind?";
-                  })()}
-                </button>
-              </div>
-              <div className="border-t border-border/15 pt-1.5 flex gap-1.5 overflow-x-auto scrollbar-hide lg:max-w-md lg:mx-auto lg:gap-2" role="toolbar" aria-label="Create post">
-                <button type="button" onClick={() => { setCreateMode("photo"); setShowCreate(true); }} aria-label="Share a photo" title="Share a photo" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Photo</span>
-                </button>
-                <button type="button" onClick={() => { setCreateMode("reel"); setShowCreate(true); }} aria-label="Create a Reel" title="Create a Reel" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <Film className="h-3.5 w-3.5 text-violet-500" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Reels</span>
-                </button>
-                <button type="button" onClick={() => { setCreateMode("poll"); setShowCreate(true); }} aria-label="Create a poll" title="Create a poll" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <TrendingUp className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Poll</span>
-                </button>
-                <button type="button" onClick={() => navigate("/check-in")} aria-label="Check in to a place" title="Check in to a place" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <MapPin className="h-3.5 w-3.5 text-red-500" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Check In</span>
-                </button>
-                <button type="button" onClick={() => navigate("/live")} aria-label="Go live" title="Go live" className="zivo-social-chip flex-1 shrink-0 flex items-center justify-center gap-1.5 py-1.5 rounded-xl transition-colors min-w-[58px]">
-                  <Radio className="h-3.5 w-3.5 text-rose-600" />
-                  <span className="text-[9px] leading-none font-semibold text-muted-foreground">Live</span>
-                </button>
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreate(true)}
+                      className="flex-1 rounded-full border border-border/30 bg-muted/35 px-4 py-2.5 text-left text-sm text-muted-foreground/65 transition-colors hover:bg-muted/55 active:scale-[0.99]"
+                    >
+                      {(() => {
+                        const first = (userProfile?.name || "").trim().split(/\s+/)[0];
+                        return first ? `What's on your mind, ${first}?` : "What's on your mind?";
+                      })()}
+                    </button>
+                  </div>
+                  <div className="h-px bg-border/30 mx-3" />
+                </>
+              )}
+              <FeedWorkflowRail
+                isSignedIn={!!userId}
+                onRequireAuth={(returnTo) => navigate(`/login?redirect=${encodeURIComponent(returnTo)}`)}
+                onCreate={() => setShowCreate(true)}
+                onCreateMode={setCreateMode}
+                onNavigate={navigate}
+              />
             </div>
-          )}
+          </div>
 
           {/* Anchor for scroll-to-top after tapping the new-posts banner */}
           <div ref={feedTopRef} aria-hidden="true" />
@@ -2289,7 +2430,7 @@ export default function ReelsFeedPage() {
           {liveStreamsCount > 0 && (
             <button type="button"
               onClick={() => navigate("/live")}
-              className="zivo-social-composer mx-2 mt-2 mb-0.5 flex w-[calc(100%-1rem)] items-center gap-2 px-3 py-2 rounded-xl transition-colors"
+              className="mx-3 mt-3 mb-0.5 flex items-center gap-2 rounded-2xl border border-border/30 bg-background/92 px-3 py-2 shadow-sm transition-colors"
             >
               <div className="relative">
                 <Radio className="h-4 w-4 text-red-500" />
@@ -2351,8 +2492,6 @@ export default function ReelsFeedPage() {
           {/* On this day — Facebook-style memories */}
           {sidebarDataReady && <Suspense fallback={null}><OnThisDay /></Suspense>}
 
-          {/* Scroll-to-top FAB (renders portal-ish via fixed positioning) */}
-          <Suspense fallback={null}><ScrollToTopFab /></Suspense>
 
           {/* Story Rings */}
            <Suspense fallback={null}><FeedStoryRing /></Suspense>
@@ -2373,23 +2512,23 @@ export default function ReelsFeedPage() {
 
           {/* Feed mode tabs — desktop only (mobile uses the sticky header tabs) */}
           {userId && (
-            <div className="zivo-feed-tabs-shell hidden lg:flex justify-center sticky lg:top-[60px] z-20 py-1">
-              <div className="zivo-feed-tabbar grid w-[min(620px,calc(100%-2rem))] grid-cols-5 gap-1 rounded-[1.35rem] p-1">
+            <div className="hidden justify-center sticky z-20 py-2 lg:flex lg:top-[66px]">
+              <div className="grid w-[min(700px,calc(100%-2rem))] grid-cols-5 gap-1.5 rounded-[1.6rem] border border-border/45 bg-background/84 p-1.5 shadow-[0_22px_50px_-36px_hsl(var(--foreground)/0.32)] backdrop-blur-2xl">
                 {FEED_TABS.map((label) => (
                   <button type="button"
                     key={label}
                     onClick={() => setFeedTab(label)}
                     aria-pressed={feedTab === label}
                     className={cn(
-                      "relative min-h-[40px] rounded-[1rem] px-3 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                      "relative min-h-[48px] rounded-[1.1rem] px-3 text-[13px] font-black tracking-[-0.01em] transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                       feedTab === label
-                        ? "zivo-feed-tab-active"
+                        ? "zivo-feed-tab-active bg-gradient-to-r from-primary/[0.16] via-pink-500/[0.12] to-amber-400/[0.14] text-foreground shadow-[0_16px_32px_-26px_hsl(var(--primary)/0.9)]"
                         : "text-muted-foreground hover:bg-white/70 hover:text-foreground"
                     )}
                   >
                     {label}
                     {feedTab === label && (
-                      <span className="absolute left-1/2 top-full mt-1 h-1 w-8 -translate-x-1/2 rounded-full bg-gradient-to-r from-primary via-pink-500 to-amber-400 shadow-[0_0_14px_hsl(var(--primary)/0.4)]" />
+                      <span className="absolute left-1/2 top-full mt-1 h-1 w-10 -translate-x-1/2 rounded-full bg-gradient-to-r from-primary via-pink-500 to-amber-400 shadow-[0_0_14px_hsl(var(--primary)/0.4)]" />
                     )}
                   </button>
                 ))}
@@ -2401,16 +2540,17 @@ export default function ReelsFeedPage() {
           {(isCategoryTab ? categoryLoading : isLoading) ? (
             <div className="space-y-2 pb-4" aria-label="Loading posts" aria-busy="true">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.25rem]">
-                  <div className="flex items-center gap-3 px-3 py-2.5">
-                    <div className="zivo-social-avatar-ring h-9 w-9 rounded-full animate-pulse" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-3 w-1/3 bg-muted/80 rounded animate-pulse" />
-                      <div className="h-2.5 w-1/4 bg-muted/60 rounded animate-pulse" />
+                <div key={i} className="mx-2 my-3 overflow-hidden rounded-[1.85rem] border border-border/40 bg-background/88 shadow-[0_18px_50px_-36px_hsl(var(--foreground)/0.22)]">
+                  <div className="flex items-center gap-3 px-3 py-3">
+                    <div className="h-11 w-11 shrink-0 rounded-full bg-muted/70 animate-pulse" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3.5 w-2/5 rounded-full bg-muted/70 animate-pulse" />
+                      <div className="h-2.5 w-1/4 rounded-full bg-muted/50 animate-pulse" />
                     </div>
+                    <div className="h-8 w-20 rounded-full bg-muted/50 animate-pulse" />
                   </div>
-                  <div className="zivo-social-embedded-post mx-3 aspect-[4/5] rounded-2xl animate-pulse flex items-center justify-center">
-                    <Film className="h-8 w-8 text-muted-foreground/35" />
+                  <div className="mx-3 aspect-[4/5] rounded-[1.25rem] bg-muted/60 animate-pulse flex items-center justify-center">
+                    <Film className="h-8 w-8 text-muted-foreground/30" />
                   </div>
                   <EngagementSkeleton />
                 </div>
@@ -2426,7 +2566,7 @@ export default function ReelsFeedPage() {
               {userId && (
                 <button type="button"
                   onClick={() => setShowCreate(true)}
-                  className="px-6 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-primary/20"
+                  className="px-6 py-2.5 bg-ig-gradient text-white rounded-full text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-primary/20"
                 >
                   Create Post
                 </button>
@@ -2464,7 +2604,7 @@ export default function ReelsFeedPage() {
                     </p>
                     <button type="button"
                       onClick={() => setSelectedHashtag(null)}
-                      className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                      className="rounded-full bg-ig-gradient text-white text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                     >
                       Clear filter
                     </button>
@@ -2485,7 +2625,7 @@ export default function ReelsFeedPage() {
                       </p>
                       <button type="button"
                         onClick={() => setFeedTab("For You")}
-                        className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                        className="rounded-full bg-ig-gradient text-white text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                       >
                         Back to For You
                       </button>
@@ -2509,7 +2649,7 @@ export default function ReelsFeedPage() {
                     </p>
                     <button type="button"
                       onClick={() => setFeedTab("For You")}
-                      className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                      className="rounded-full bg-ig-gradient text-white text-xs font-semibold px-4 py-2 shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                     >
                       Back to For You
                     </button>
@@ -2738,7 +2878,7 @@ export default function ReelsFeedPage() {
                   </div>
                   <button type="button"
                     onClick={() => navigate("/explore")}
-                    className="mt-2 px-5 py-2 rounded-full bg-primary text-primary-foreground text-[12px] font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-transform"
+                    className="mt-2 px-5 py-2 rounded-full bg-ig-gradient text-white text-[12px] font-semibold shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                   >
                     Discover more
                   </button>
@@ -2941,35 +3081,33 @@ export default function ReelsFeedPage() {
 
         {/* Desktop RIGHT rail — hidden when chat panel is open to avoid overflow */}
         <aside className={cn(
-          "zivo-social-nav-glass hidden xl:flex flex-col w-[280px] shrink-0 sticky top-[4.5rem] h-[calc(100vh-4.5rem)] overflow-y-auto py-4 px-3 gap-4 border-l border-border/20",
+          "hidden xl:flex w-[320px] shrink-0 sticky top-[5rem] h-[calc(100vh-5rem)] overflow-y-auto py-2 pl-3 pr-2 gap-3 flex-col",
           chatOpen && "!hidden"
         )}>
 
           {/* Quick Access — service shortcuts */}
-          <div className="zivo-social-module rounded-[1.25rem] p-3">
-            <h3 className="text-[11px] font-bold text-foreground/55 uppercase tracking-[0.08em] px-1 mb-2.5">Quick Access</h3>
-            <div className="grid grid-cols-3 gap-1.5">
+          <div className="rounded-2xl border border-border/40 bg-card p-3">
+            <div className="mb-2 px-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Quick Access</p>
+            </div>
+            <div className="grid grid-cols-3 gap-1">
               {[
-                { label: "Flights", icon: Plane, path: "/flights", color: "bg-sky-500/15 text-sky-600", ring: "group-hover:ring-sky-500/30" },
-                { label: "Hotels", icon: Hotel, path: "/hotels", color: "bg-amber-500/15 text-amber-600", ring: "group-hover:ring-amber-500/30" },
-                { label: "Rides", icon: Car, path: "/rides/hub", color: "bg-emerald-500/15 text-emerald-600", ring: "group-hover:ring-emerald-500/30" },
-                { label: "Eats", icon: UtensilsCrossed, path: "/eats", color: "bg-orange-500/15 text-orange-600", ring: "group-hover:ring-orange-500/30" },
-                { label: "Delivery", icon: Package, path: "/delivery", color: "bg-violet-500/15 text-violet-600", ring: "group-hover:ring-violet-500/30" },
-                { label: "Explore", icon: Globe, path: "/explore", color: "bg-primary/15 text-primary", ring: "group-hover:ring-primary/30" },
-              ].map(({ label, icon: Icon, path, color, ring }) => (
+                { label: "Flights", icon: Plane, path: "/flights", color: "bg-sky-500/15 text-sky-600" },
+                { label: "Hotels", icon: Hotel, path: "/hotels", color: "bg-amber-500/15 text-amber-600" },
+                { label: "Rides", icon: Car, path: "/rides/hub", color: "bg-emerald-500/15 text-emerald-600" },
+                { label: "Eats", icon: UtensilsCrossed, path: "/eats", color: "bg-orange-500/15 text-orange-600" },
+                { label: "Delivery", icon: Package, path: "/delivery", color: "bg-violet-500/15 text-violet-600" },
+                { label: "Explore", icon: Globe, path: "/explore", color: "bg-primary/10 text-primary" },
+              ].map(({ label, icon: Icon, path, color }) => (
                 <button type="button"
                   key={label}
                   onClick={() => navigate(path)}
-                  className="zivo-social-module-tile flex flex-col items-center gap-1.5 rounded-2xl px-1 py-2.5 active:scale-95 transition-all group"
+                  className="flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 >
-                  <div className={cn(
-                    "h-11 w-11 rounded-2xl flex items-center justify-center ring-2 ring-transparent shadow-lg transition-all",
-                    color,
-                    ring
-                  )}>
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={2.25} />
-                  </div>
-                  <span className="text-[11px] font-semibold text-foreground/75 group-hover:text-foreground transition-colors">{label}</span>
+                  <span className={cn("grid h-10 w-10 place-items-center rounded-full", color)}>
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="text-[11px] font-medium text-foreground/80">{label}</span>
                 </button>
               ))}
             </div>
@@ -2981,49 +3119,54 @@ export default function ReelsFeedPage() {
               orphaned heading in the right rail. */}
           {userId && sidebarDataReady && (
             <Suspense fallback={null}>
-              <SuggestedUsersCarousel />
+              <SuggestedUsersCarousel variant="rail" />
             </Suspense>
           )}
 
           {/* Contacts */}
           {sidebarContacts.length > 0 && (
-            <div className="zivo-social-module rounded-[1.25rem] p-3">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <h3 className="text-sm font-semibold text-foreground">Contacts</h3>
-                <button type="button" onClick={() => navigate("/chat/contacts")} className="text-[11px] text-primary hover:underline">See all</button>
+            <div className="rounded-2xl border border-border/40 bg-card p-3">
+              <div className="mb-1.5 flex items-center justify-between px-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Contacts</p>
+                <button type="button" onClick={() => navigate("/chat/contacts")} className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">See all</button>
               </div>
               <div className="space-y-0.5">
-                {sidebarContacts.map((c) => (
-                  <button type="button"
-                    key={c.id}
-                    onClick={() => navigate(`/user/${c.id}`)}
-                    className="zivo-social-module-tile w-full flex items-center gap-2.5 rounded-2xl px-2 py-2 text-left transition-all active:scale-[0.99]"
-                  >
-                    <div className="relative shrink-0">
-                      <div className="zivo-social-avatar-ring h-8 w-8 rounded-full overflow-hidden">
-                        {c.avatar ? (
-                          <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center text-[11px] font-bold text-primary">
-                            {c.name[0]?.toUpperCase()}
-                          </div>
+                {sidebarContacts.map((c) => {
+                  // Real presence: same 60s last_seen threshold as chat's UserBadge.
+                  const online = !!c.lastSeen && Date.now() - new Date(c.lastSeen).getTime() < 60_000;
+                  return (
+                    <button type="button"
+                      key={c.id}
+                      onClick={() => navigate(`/user/${c.id}`)}
+                      className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                    >
+                      <div className="relative shrink-0">
+                        <div className="h-9 w-9 rounded-full overflow-hidden bg-muted">
+                          {c.avatar ? (
+                            <img src={c.avatar} alt={c.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-[11px] font-semibold text-foreground/70">
+                              {c.name[0]?.toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        {online && (
+                          <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" aria-label="Online" />
                         )}
                       </div>
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
-                    </div>
-                    <span className="text-sm font-medium text-foreground truncate">{c.name}</span>
-                  </button>
-                ))}
+                      <span className="text-[14px] font-medium text-foreground truncate">{c.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* Trending */}
           {trendingTags.length > 0 && (
-            <div className="zivo-social-module rounded-[1.25rem] p-3">
-              <div className="flex items-center gap-1.5 mb-2 px-1">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">Trending</h3>
+            <div className="rounded-2xl border border-border/40 bg-card p-3">
+              <div className="mb-1.5 px-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Trending</p>
               </div>
               <div className="space-y-0.5">
                 {trendingTags.map(({ tag, count }) => {
@@ -3035,14 +3178,20 @@ export default function ReelsFeedPage() {
                       onClick={() => {
                         setSelectedHashtag(active ? null : cleanTag);
                       }}
+                      aria-pressed={active}
                       className={cn(
-                        "zivo-social-module-tile w-full flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all text-left active:scale-[0.99]",
-                        active && "zivo-social-chip-active"
+                        "w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                        active ? "bg-muted font-semibold" : "hover:bg-muted/50"
                       )}
                     >
-                      <Hash className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <span className="text-sm text-foreground truncate flex-1">{cleanTag}</span>
-                      <span className="text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">
+                      <span className={cn(
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-full",
+                        active ? "bg-background ring-1 ring-border/60" : "bg-muted/60"
+                      )}>
+                        <Hash className="h-4 w-4 text-muted-foreground" />
+                      </span>
+                      <span className="text-[14px] text-foreground truncate flex-1">{cleanTag}</span>
+                      <span className="text-[11px] font-medium text-muted-foreground shrink-0 tabular-nums">
                         {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}
                       </span>
                     </button>
@@ -3052,58 +3201,108 @@ export default function ReelsFeedPage() {
             </div>
           )}
 
-          {/* ZIVO+ upgrade card */}
-          {userId && (
-            <div className="zivo-social-module rounded-[1.25rem] overflow-hidden p-3">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Crown className="h-4 w-4 text-amber-500" />
-                <h3 className="text-sm font-semibold text-foreground">ZIVO+</h3>
+          {/* ZIVO+ upgrade card — hidden for existing members (and while the
+              membership check is still loading, to avoid an upsell flash). */}
+          {userId && !plusLoading && !isPlus && (
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-3.5">
+              <div className="mb-1.5 flex items-center gap-2.5">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-amber-500/15 text-amber-600">
+                  <Crown className="h-4 w-4" />
+                </span>
+                <p className="text-[15px] font-semibold text-foreground">ZIVO+</p>
               </div>
-              <p className="text-[11px] text-muted-foreground mb-2.5 leading-relaxed">Unlock exclusive features, locked content, chat tools, and more.</p>
+              <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">Unlock exclusive features, locked content, chat tools, and more.</p>
               <button type="button"
                 onClick={() => navigate("/zivo-plus")}
-                className="w-full py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-primary text-white text-[12px] font-semibold hover:opacity-90 transition-opacity active:scale-95"
+                className="w-full rounded-xl bg-foreground py-2 text-[13px] font-semibold text-background transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               >
                 Upgrade to ZIVO+
               </button>
             </div>
           )}
 
-          {/* Birthdays */}
-          <button type="button"
-            onClick={() => navigate("/friends")}
-            className="zivo-social-module text-left rounded-[1.25rem] p-3 active:scale-[0.99] transition-all group"
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="h-7 w-7 rounded-lg bg-rose-500/15 flex items-center justify-center">
-                <Gift className="h-4 w-4 text-rose-500" />
-              </span>
-              <h3 className="text-sm font-semibold text-foreground">Birthdays</h3>
+          {/* Birthdays — real friends-with-a-birthday-today data; falls back
+              to a simple link card when nobody's birthday is today. */}
+          {userId && (
+            <div className="rounded-2xl border border-border/40 bg-card p-3">
+              <div className="mb-1.5 flex items-center justify-between px-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Birthdays</p>
+                <button type="button" onClick={() => navigate("/friends")} className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">See all</button>
+              </div>
+              {birthdaysToday.length > 0 ? (
+                <div className="space-y-0.5">
+                  {birthdaysToday.map((b) => (
+                    <button type="button"
+                      key={b.id}
+                      onClick={() => navigate(`/user/${b.id}`)}
+                      className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                    >
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-500/15">
+                        <Gift className="h-4 w-4 text-rose-500" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-medium text-foreground">{b.name}</span>
+                        <span className="block text-[12px] text-muted-foreground">Birthday today 🎂</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : birthdaysLoaded ? (
+                <button type="button"
+                  onClick={() => navigate("/friends")}
+                  className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-500/15">
+                    <Gift className="h-4 w-4 text-rose-500" />
+                  </span>
+                  <span className="text-[13px] text-muted-foreground">No birthdays today</span>
+                </button>
+              ) : null}
             </div>
-            <p className="text-[12px] text-muted-foreground mb-1.5 leading-snug">See which friends have birthdays today.</p>
-            <span className="text-[12px] font-semibold text-rose-500 group-hover:translate-x-0.5 inline-block transition-transform">
-              View birthdays →
-            </span>
-          </button>
+          )}
 
-          {/* Upcoming Events */}
-          <button type="button"
-            onClick={() => navigate("/explore")}
-            className="zivo-social-module text-left rounded-[1.25rem] p-3 active:scale-[0.99] transition-all group"
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="h-7 w-7 rounded-lg bg-blue-500/15 flex items-center justify-center">
-                <Calendar className="h-4 w-4 text-blue-500" />
-              </span>
-              <h3 className="text-sm font-semibold text-foreground">Events</h3>
+          {/* Upcoming Events — real social_events rows; links to /events (the
+              actual events page), with a link-card fallback when none exist. */}
+          <div className="rounded-2xl border border-border/40 bg-card p-3">
+            <div className="mb-1.5 flex items-center justify-between px-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Events</p>
+              <button type="button" onClick={() => navigate("/events")} className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">See all</button>
             </div>
-            <p className="text-[12px] text-muted-foreground mb-1.5 leading-snug">Discover events happening near you.</p>
-            <span className="text-[12px] font-semibold text-blue-500 group-hover:translate-x-0.5 inline-block transition-transform">
-              Browse events →
-            </span>
-          </button>
+            {upcomingEvents.length > 0 ? (
+              <div className="space-y-0.5">
+                {upcomingEvents.map((e) => (
+                  <button type="button"
+                    key={e.id}
+                    onClick={() => navigate("/events")}
+                    className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-500/15">
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-medium text-foreground">{e.title}</span>
+                      <span className="block truncate text-[12px] text-muted-foreground">
+                        {format(new Date(e.startTime), "EEE, MMM d · h:mm a")}
+                        {e.location ? ` · ${e.location}` : ""}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button type="button"
+                onClick={() => navigate("/events")}
+                className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-500/15">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                </span>
+                <span className="text-[13px] text-muted-foreground">Discover upcoming events</span>
+              </button>
+            )}
+          </div>
 
-          <p className="text-[10px] text-muted-foreground/60 mt-auto px-1 pt-2">© ZIVO LLC · zivosmedia.com</p>
+          <p className="mt-auto px-2 pt-2 text-[10px] text-muted-foreground/60">© ZIVO LLC · zivosmedia.com</p>
         </aside>
 
       </div>
@@ -3727,7 +3926,7 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
 
         {item.commerce_link && (
           <button type="button" onClick={handleBuyNow} className="flex flex-col items-center gap-1 min-h-[44px] min-w-[44px] justify-center" title="Buy now">
-            <div className="px-2.5 py-1.5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold shadow-lg">
+            <div className="px-2.5 py-1.5 rounded-full bg-ig-gradient text-white text-[11px] font-bold shadow-lg">
               Buy Now
             </div>
           </button>
@@ -4834,7 +5033,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   return (
     <div className={cn(
-      detailMode ? "bg-transparent" : "zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.25rem] transition-transform duration-200 hover:-translate-y-0.5"
+      detailMode ? "bg-transparent" : "mx-3 my-2.5 overflow-hidden rounded-2xl border border-border/30 bg-background/92 shadow-sm transition-colors duration-200 hover:border-border/50"
     )}>
       {isSharedPost ? (
         /* ── Facebook-style shared post layout ────────────────── */
@@ -4980,7 +5179,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               ref={containerRef}
               className={cn(
                 "relative overflow-hidden",
-                hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[680px] xl:max-h-[760px] w-full mx-auto bg-black rounded-xl", videoAspectClass) : "") : ""
+                hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[680px] xl:max-h-[760px] w-full mx-auto bg-black rounded-2xl", videoAspectClass) : "") : ""
               )}
             >
               {hasMedia ? (
@@ -5039,7 +5238,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-[3px] w-full aspect-square overflow-hidden rounded-lg">
+                  <div className="grid grid-cols-2 gap-[3px] w-full aspect-square overflow-hidden rounded-2xl">
                     {item.media_urls.slice(0, 4).map((url, i) => (
                       <div key={i} className="relative bg-muted overflow-hidden">
                         <img src={url} alt="" className="h-full w-full object-cover cursor-pointer" loading="lazy" decoding="async" onClick={() => { setCurrentMedia(i); onOpenFullscreen?.(); }} />
@@ -5061,7 +5260,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         <>
           {/* Author header — hidden in detail overlay (overlay renders its own) */}
           {!detailMode && (
-            <div className="flex items-center">
+            <div className="flex items-center gap-1 px-3 py-3">
               <button
                 type="button"
                 onClick={() => {
@@ -5071,41 +5270,35 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     navigate(`/user/${item.author_id}`);
                   }
                 }}
-                className="flex items-center gap-3 px-3 py-2.5 flex-1 min-w-0 active:opacity-70"
+                className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70"
               >
-                <div className="zivo-social-avatar-ring h-9 w-9 rounded-full overflow-hidden shrink-0">
+                <div className="zivo-social-avatar-ring h-11 w-11 shrink-0 overflow-hidden rounded-full bg-muted">
                   {item.author_avatar ? (
                     <img src={item.author_avatar} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-muted-foreground/40 text-xs font-bold">
+                    <div className="flex h-full w-full items-center justify-center text-xs font-bold text-muted-foreground/50">
                       {item.author_name[0]}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-[13px] font-semibold text-foreground truncate flex items-center gap-1">
+                  <p className="flex items-center gap-1 text-sm font-bold text-foreground truncate">
                     <span className="truncate">{item.author_name}</span>
                     {isBlueVerified(item.author_is_verified) && <VerifiedBadge size={13} />}
                     {item.location && (
                       <>
-                        <span className="text-[10px] text-muted-foreground font-normal"> is in </span>
-                        <span className="text-[12px] text-foreground font-semibold truncate">{item.location}</span>
+                        <span className="text-[10px] font-normal text-muted-foreground"> in </span>
+                        <span className="text-[12px] font-semibold text-foreground truncate">{item.location}</span>
                       </>
                     )}
                   </p>
-                  <div className="flex items-center gap-1">
-                    <p className="text-[10px] text-muted-foreground"><RelativeTime date={item.created_at} /></p>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <p className="text-[11px] font-medium text-muted-foreground"><RelativeTime date={item.created_at} /></p>
                     {item.source === "store" && (
-                      <>
-                        <span className="text-[10px] text-muted-foreground">·</span>
-                        <span className="text-[10px] font-semibold text-primary">Sponsored</span>
-                      </>
+                      <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Sponsored</span>
                     )}
                     {item.location && (
-                      <>
-                        <span className="text-[10px] text-muted-foreground">·</span>
-                        <MapPin className="h-2.5 w-2.5 text-muted-foreground" />
-                      </>
+                      <MapPin className="h-3 w-3 text-muted-foreground/60" />
                     )}
                   </div>
                 </div>
@@ -5118,10 +5311,8 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   aria-label={isFollowingAuthor ? "Unfollow author" : "Follow author"}
                   title={isFollowingAuthor ? "Unfollow author" : "Follow author"}
                   className={cn(
-                    "mr-1 text-[12px] font-semibold px-3 py-1 rounded-full transition-all active:scale-95",
-                    isFollowingAuthor
-                      ? "zivo-social-chip text-muted-foreground"
-                      : "zivo-social-chip-active"
+                    "shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-all active:scale-95",
+                    isFollowingAuthor ? "zivo-social-chip text-muted-foreground" : "zivo-social-chip-active"
                   )}
                 >
                   {followLoading ? (
@@ -5133,7 +5324,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 onClick={(e) => { e.stopPropagation(); setShowPostMenu(true); }}
                 aria-label="Post actions"
                 title="Post actions"
-                className="zivo-social-icon-button mr-2 h-9 w-9 rounded-full text-muted-foreground hover:text-foreground min-h-[40px] min-w-[40px] flex items-center justify-center"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
               >
                 <MoreHorizontal className="h-5 w-5" />
               </button>
@@ -5152,7 +5343,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               {Array.from(item.caption).some((char) => char.charCodeAt(0) > 127) && (
                 <div className="mt-1">
                   {translatedCaption ? (
-                    <div className="zivo-social-chip rounded-lg px-3 py-2">
+                    <div className="zivo-social-chip rounded-xl px-3 py-2">
                       <p className="text-[11px] text-muted-foreground mb-1 font-semibold uppercase tracking-wide">Translated</p>
                       <p className="text-[13px] text-foreground leading-snug">{translatedCaption}</p>
                       <button type="button"
@@ -5209,7 +5400,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             onTouchEnd={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchEnd : undefined)}
             className={cn(
               "relative overflow-hidden",
-              hasMedia ? (item.media_type === "video" ? cn("max-h-[500px] lg:max-h-[680px] xl:max-h-[760px] w-full mx-auto bg-black rounded-xl", videoAspectClass) : "") : ""
+              hasMedia ? (item.media_type === "video" ? cn("mx-3 max-h-[500px] lg:max-h-[680px] xl:max-h-[760px] bg-black rounded-2xl", videoAspectClass) : "") : ""
             )}
           >
             {hasMedia ? (
@@ -5247,7 +5438,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   {item.commerce_link && (
                     <button type="button"
                       onClick={(e) => { e.stopPropagation(); handleBuyNow(); }}
-                      className="absolute bottom-3 left-3 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-lg min-h-[44px]"
+                      className="absolute bottom-3 left-3 px-3 py-2 rounded-full bg-ig-gradient text-white text-xs font-semibold shadow-lg min-h-[44px]"
                     >
                       Buy Now
                     </button>
@@ -5404,21 +5595,17 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         </>
       )}
 
-      {/* Facebook-style engagement summary row */}
-      {(localLikes > 0 || localComments > 0) && (
-        <div className="zivo-social-engagement-summary px-3 py-2 space-y-1">
-          {/* "Liked by [name] and X others" social proof line — real data
-              from post_likes joined to profiles. We only show the name once
-              we've actually resolved a non-self liker; otherwise we render
-              a generic count phrase so the line never lies. */}
-          {localLikes > 0 && (() => {
-            const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
+      {/* Engagement summary — single "Liked by …" social-proof line.
+          Numeric like/comment counts live once, on the action buttons below. */}
+      {localLikes > 0 && (
+        <div className="mx-3 mt-1.5 px-1">
+          {(() => {
             const others = Math.max(0, localLikes - (topLikerName ? 1 : 0));
             if (topLikerName) {
               return (
                 <p className="text-[11px] text-foreground leading-tight">
                   {others > 0 ? (
-                    <span>Liked by <span className="font-semibold">{topLikerName}</span> and <span className="font-semibold">{fmt(others)} {others === 1 ? "other" : "others"}</span></span>
+                    <span>Liked by <span className="font-semibold">{topLikerName}</span> and <span className="font-semibold">{formatCount(others)} {others === 1 ? "other" : "others"}</span></span>
                   ) : (
                     <span>Liked by <span className="font-semibold">{topLikerName}</span></span>
                   )}
@@ -5430,36 +5617,16 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             if (liked && localLikes === 1) return null;
             return (
               <p className="text-[11px] text-foreground leading-tight">
-                Liked by <span className="font-semibold">{fmt(localLikes)} {localLikes === 1 ? "person" : "people"}</span>
+                Liked by <span className="font-semibold">{formatCount(localLikes)} {localLikes === 1 ? "person" : "people"}</span>
               </p>
             );
           })()}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              {localLikes > 0 && (
-                <div className="flex items-center gap-1">
-                  {selectedReaction
-                    ? <span className="text-sm leading-none">{selectedReaction}</span>
-                    : <Heart className="h-3.5 w-3.5 text-destructive fill-destructive" />
-                  }
-                  <span className="text-[12px] text-muted-foreground">{localLikes >= 1000 ? `${(localLikes / 1000).toFixed(1)}k` : localLikes}</span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2.5 leading-tight">
-              {localComments > 0 && (
-                <button type="button" onClick={handleComment} className="text-[12px] text-muted-foreground hover:text-foreground hover:underline transition-colors" title="Action">
-                  {localComments === 1 ? "1 comment" : `${localComments >= 1000 ? `${(localComments / 1000).toFixed(1)}k` : localComments} comments`}
-                </button>
-              )}
-            </div>
-          </div>
         </div>
       )}
 
-      {/* Action buttons — enhanced with counts */}
-      <div className="zivo-social-action-strip mx-3 mt-2 mb-2 flex items-center gap-2 rounded-2xl px-2 py-1.5">
-        <div className="flex items-center gap-1.5 flex-1">
+      {/* Action buttons */}
+      <div className="mx-3 mb-2.5 mt-1 flex items-center gap-1 border-t border-border/15 pt-1">
+        <div className="flex items-center gap-1 flex-1">
           <div className="relative">
             {/* FB-style reaction popover anchored above the Like button.
                 Opens on long-press (touch) or right-click (desktop). */}
@@ -5517,12 +5684,12 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               onContextMenu={(e) => { e.preventDefault(); setShowReactionPicker(!showReactionPicker); }}
               aria-label={liked ? `Unlike post${!item.hide_like_counts && formatCount(localLikes) ? `, ${formatCount(localLikes)} likes` : ""}` : `Like post${!item.hide_like_counts && formatCount(localLikes) ? `, ${formatCount(localLikes)} likes` : ""}`}
               title={liked ? "Unlike post" : "Like post"}
-              className="zivo-touch-no-callout zivo-social-icon-button min-h-[44px] min-w-[44px] px-2 rounded-full flex items-center justify-center gap-1 group"
+              className={cn("zivo-touch-no-callout min-h-[40px] px-3 rounded-full flex items-center justify-center gap-1.5 transition-colors touch-manipulation", liked || selectedReaction ? "bg-destructive/10 text-destructive" : "text-muted-foreground hover:bg-muted/60")}
             >
               {selectedReaction ? (
                 <span className="text-lg" aria-hidden>{selectedReaction}</span>
               ) : (
-                <Heart aria-hidden className={cn("h-[22px] w-[22px] transition-all", liked ? "text-destructive fill-destructive scale-110" : "text-foreground group-active:scale-125")} />
+                <Heart aria-hidden className={cn("h-[20px] w-[20px] transition-all", liked ? "fill-destructive scale-105" : "group-active:scale-125")} />
               )}
               {!item.hide_like_counts && formatCount(localLikes) && (
                 <span aria-hidden className={cn("text-[12px] font-semibold whitespace-nowrap", liked || selectedReaction ? "text-destructive" : "text-muted-foreground")}>
@@ -5535,9 +5702,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <button type="button"
               onClick={handleComment}
               aria-label={`Open comments${formatCount(localComments) ? `, ${formatCount(localComments)} comments` : ""}`}
-              className="zivo-social-icon-button min-h-[44px] min-w-[44px] px-2 rounded-full flex items-center justify-center text-foreground gap-1"
+              className="min-h-[40px] px-3 rounded-full flex items-center justify-center text-muted-foreground gap-1.5 hover:bg-muted/60 transition-colors touch-manipulation"
              title="Action">
-              <MessageCircle aria-hidden className="h-[22px] w-[22px]" />
+              <MessageCircle aria-hidden className="h-[20px] w-[20px]" />
               {formatCount(localComments) && (
                 <span aria-hidden className="text-[12px] text-muted-foreground font-semibold whitespace-nowrap">
                   {formatCount(localComments)}
@@ -5549,9 +5716,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <button type="button"
               onClick={handleShare}
               aria-label={`Share post${formatCount(item.shares_count) ? `, ${formatCount(item.shares_count)} shares` : ""}`}
-              className="zivo-social-icon-button min-h-[44px] min-w-[52px] px-2.5 rounded-full flex items-center justify-center text-foreground gap-1.5"
+              className="min-h-[40px] px-3 rounded-full flex items-center justify-center text-muted-foreground gap-1.5 hover:bg-muted/60 transition-colors touch-manipulation"
              title="Share">
-              <Send aria-hidden className="h-[22px] w-[22px] shrink-0" />
+              <Send aria-hidden className="h-[20px] w-[20px] shrink-0" />
               {formatCount(item.shares_count) && (
                 <span aria-hidden className="min-w-[1ch] text-[12px] leading-none text-muted-foreground font-semibold tabular-nums whitespace-nowrap">
                   {formatCount(item.shares_count)}
@@ -5564,21 +5731,19 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           onClick={handleSave}
           aria-label={saved ? "Remove bookmark" : "Save post"}
           title={saved ? "Remove bookmark" : "Save post"}
-          className="zivo-social-icon-button min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center"
+          className={cn("min-h-[40px] w-10 rounded-full flex items-center justify-center transition-colors touch-manipulation", saved ? "text-primary" : "text-muted-foreground hover:bg-muted/60")}
         >
-          <Bookmark aria-hidden className={cn("h-[22px] w-[22px] transition-all", saved ? "text-primary fill-primary" : "text-foreground")} />
+          <Bookmark aria-hidden className={cn("h-[20px] w-[20px] transition-all", saved ? "fill-primary" : "")} />
         </button>
       </div>
 
       {/* Owner post insights — reach + engagement strip */}
       {isOwner && (item.views_count || 0) > 0 && (
-        <div className="zivo-social-chip mx-3 mb-2 rounded-xl px-3 py-2 flex items-center gap-3">
+        <div className="mx-3 mb-2.5 flex items-center gap-3 border-t border-border/15 px-1 pt-2 pb-0.5">
           <BarChart2 className="h-4 w-4 text-primary shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-semibold text-foreground">
-              {(item.views_count || 0) >= 1000
-                ? `${((item.views_count || 0) / 1000).toFixed(1)}k`
-                : item.views_count} views
+              {formatCount(item.views_count || 0)} views
               {(item.likes_count || 0) > 0 && (
                 <span className="text-muted-foreground font-normal">
                   {" "}· {Math.round(((item.likes_count || 0) / Math.max(1, item.views_count || 1)) * 100)}% engagement
@@ -5588,7 +5753,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           </div>
           <button type="button"
             onClick={() => navigate("/admin/marketing/campaigns")}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[11px] font-bold shrink-0 active:scale-95 transition-transform"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-ig-gradient text-white text-[11px] font-bold shrink-0 active:scale-95 transition-transform"
           >
             <Zap className="h-3 w-3" />
             Boost
@@ -5600,7 +5765,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         <div className="px-3 pb-2">
           <button type="button"
             onClick={handleBuyNow}
-            className="w-full rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-semibold"
+            className="w-full rounded-xl bg-ig-gradient text-white py-2.5 text-sm font-semibold"
            title="Action">
             Buy Now
           </button>
@@ -5615,19 +5780,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           <MessageSquareOff aria-hidden className="h-3.5 w-3.5 text-muted-foreground/60" />
           <p className="text-[12px] text-muted-foreground/60">Comments are turned off</p>
         </div>
-      ) : localComments > 0 ? (
-        <>
-          <div className="px-3 pb-1">
-            <Suspense fallback={null}>
-              <CommentPreview
-                postId={interactionPostId}
-                source={item.source === "store" ? "store" : "user"}
-                totalCount={localComments}
-                onOpen={handleComment}
-              />
-            </Suspense>
-          </div>
-        </>
       ) : null}
 
       {/* Comments Sheet — only mount when open */}
@@ -5649,11 +5801,13 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         </Suspense>
       )}
 
-      {/* Views */}
-      {item.media_type === "video" && item.views_count > 0 && (
-        <div className="px-3 pb-2 flex items-center gap-1">
-          <Eye className="h-3 w-3 text-muted-foreground" />
-          <p className="text-[11px] text-muted-foreground">{item.views_count.toLocaleString()} views</p>
+      {/* Views — non-owners only; owners already see views in the insights strip */}
+      {!isOwner && item.media_type === "video" && item.views_count > 0 && (
+        <div className="px-3 pb-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/15 bg-muted/20 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            <Eye className="h-3 w-3" />
+            {formatCount(item.views_count)} views
+          </span>
         </div>
       )}
 
@@ -5757,10 +5911,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             <>
               <button type="button"
                 onClick={() => { setShowPostMenu(false); setEditCaptionText(item.caption || ""); setShowEditCaption(true); }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Pencil className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Edit caption</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400"><Pencil className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Edit caption</span>
               </button>
               <button type="button"
                 onClick={async () => {
@@ -5770,17 +5924,17 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   await (supabase as any).from(table).update({ is_pinned: true }).eq("id", realId);
                   toast.success("Post pinned to your profile");
                 }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Pin className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Pin to profile</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400"><Pin className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Pin to profile</span>
               </button>
               <button type="button"
                 onClick={() => { setShowPostMenu(false); setShowCommentSettings(true); }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Settings2 className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Comment settings</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-500/10 text-slate-600 dark:text-slate-400"><Settings2 className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Comment settings</span>
               </button>
               <button type="button"
                 onClick={async () => {
@@ -5796,34 +5950,36 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                     queryClient.invalidateQueries({ queryKey: ["customer-feed"] });
                   }
                 }}
-                className="zivo-social-sheet-row zivo-social-sheet-row-danger flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row zivo-social-sheet-row-danger flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Trash2 className="h-5 w-5 text-destructive" />
-                <span className="text-sm font-medium text-destructive">Delete post</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-destructive"><Trash2 className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-destructive">Delete post</span>
               </button>
               <hr className="my-1 border-border/40" />
             </>
           )}
           <button type="button"
             onClick={() => { setShowPostMenu(false); setShowReportSheet(true); setReportStep("categories"); setReportCategory(""); }}
-            className="zivo-social-sheet-row zivo-social-sheet-row-danger flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row zivo-social-sheet-row-danger flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <Flag className="h-5 w-5 text-destructive" />
-            <span className="text-sm font-medium text-destructive">Report</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-red-500/10 text-destructive"><Flag className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-destructive">Report</span>
           </button>
           <button type="button"
             onClick={() => { setNotificationsOn(!notificationsOn); setShowPostMenu(false); toast.success(notificationsOn ? "Notifications turned off" : "Notifications turned on for this post"); }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            {notificationsOn ? <BellOff className="h-5 w-5 text-foreground" /> : <Bell className="h-5 w-5 text-foreground" />}
-            <span className="text-sm font-medium text-foreground">{notificationsOn ? "Turn off notifications" : "Turn on notifications"}</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              {notificationsOn ? <BellOff className="h-[18px] w-[18px]" /> : <Bell className="h-[18px] w-[18px]" />}
+            </span>
+            <span className="text-sm font-semibold text-foreground">{notificationsOn ? "Turn off notifications" : "Turn on notifications"}</span>
           </button>
           <button type="button"
             onClick={() => { setShowPostMenu(false); handleCopyLink(); }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <Link2 className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">Copy link</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400"><Link2 className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">Copy link</span>
           </button>
           <button type="button"
             onClick={() => {
@@ -5831,10 +5987,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
               hiddenPosts.hide(item.id);
               toast.success("We'll show fewer like this");
             }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <EyeOff className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">Not interested</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-zinc-500/10 text-zinc-600 dark:text-zinc-400"><EyeOff className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">Not interested</span>
           </button>
 
           {/* Sponsored-only: ad explanation */}
@@ -5845,35 +6001,35 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   setShowPostMenu(false);
                   toast.info("This is a sponsored post from a business on ZIVO. Ads are shown based on your activity and location.");
                 }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <HelpCircle className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Why am I seeing this?</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400"><HelpCircle className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Why am I seeing this?</span>
               </button>
               <button type="button"
                 onClick={() => { setShowPostMenu(false); toast.success("Ad hidden — you'll see fewer ads from this business"); }}
-                className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+                className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
               >
-                <Ban className="h-5 w-5 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Hide this ad</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-500/10 text-slate-600 dark:text-slate-400"><Ban className="h-[18px] w-[18px]" /></span>
+                <span className="text-sm font-semibold text-foreground">Hide this ad</span>
               </button>
             </>
           )}
           {!isOwner && item.author_name && (
             <button type="button"
               onClick={() => { setShowPostMenu(false); toast.success(`${item.author_name} snoozed for 30 days`); }}
-              className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+              className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
             >
-              <BellOff className="h-5 w-5 text-foreground" />
-              <span className="text-sm font-medium text-foreground">Snooze {item.author_name} for 30 days</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400"><BellOff className="h-[18px] w-[18px]" /></span>
+              <span className="text-sm font-semibold text-foreground">Snooze {item.author_name} for 30 days</span>
             </button>
           )}
           <button type="button"
             onClick={() => { setShowPostMenu(false); setShowShareSheet(true); }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <Share2 className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">Share</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400"><Share2 className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">Share</span>
           </button>
 
           {/* Save to device */}
@@ -5896,10 +6052,10 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   toast.error("Could not download — try saving from gallery");
                 }
               }}
-              className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+              className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
             >
-              <Download className="h-5 w-5 text-foreground" />
-              <span className="text-sm font-medium text-foreground">Save to device</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><Download className="h-[18px] w-[18px]" /></span>
+              <span className="text-sm font-semibold text-foreground">Save to device</span>
             </button>
           )}
 
@@ -5915,29 +6071,29 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 toast.info("Embed: " + embedCode.slice(0, 60) + "…");
               }
             }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <Code2 className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">Embed post</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"><Code2 className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">Embed post</span>
           </button>
 
           {/* QR code share */}
           <button type="button"
             onClick={() => { setShowPostMenu(false); setShowQrModal(true); }}
-            className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+            className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
           >
-            <QrCode className="h-5 w-5 text-foreground" />
-            <span className="text-sm font-medium text-foreground">QR code</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"><QrCode className="h-[18px] w-[18px]" /></span>
+            <span className="text-sm font-semibold text-foreground">QR code</span>
           </button>
 
           {/* Tip creator */}
           {!isOwner && item.author_id && (
             <button type="button"
               onClick={() => { setShowPostMenu(false); setTipTarget({ id: item.author_id!, name: item.author_name }); }}
-              className="zivo-social-sheet-row flex items-center gap-4 w-full rounded-2xl px-4 py-3.5 min-h-[48px] transition-all active:scale-[0.99]"
+              className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
             >
-              <Gift className="h-5 w-5 text-amber-500" />
-              <span className="text-sm font-medium text-foreground">Send Tip</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400"><Gift className="h-[18px] w-[18px]" /></span>
+              <span className="text-sm font-semibold text-foreground">Send Tip</span>
             </button>
           )}
 
@@ -6064,7 +6220,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             </p>
             <button type="button"
               onClick={() => setShowReportSheet(false)}
-              className="mt-4 px-8 py-3 rounded-full bg-primary text-primary-foreground font-semibold text-sm min-h-[48px] shadow-lg shadow-primary/20"
+              className="mt-4 px-8 py-3 rounded-full bg-ig-gradient text-white font-semibold text-sm min-h-[48px] shadow-lg shadow-primary/20"
             >
               Done
             </button>

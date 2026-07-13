@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+﻿import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -206,7 +206,7 @@ export default function LodgingInboxSection({ storeId }: { storeId: string }) {
                   {activeMessages.length === 0 ? (
                     <p className="text-center text-xs text-muted-foreground py-8">No messages yet — send the first one below.</p>
                   ) : activeMessages.map((m) => (
-                    <div key={m.id} className={cn("group max-w-[80%] rounded-2xl px-3 py-2 text-sm", m.sender_role === "staff" ? "ml-auto bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+                    <div key={m.id} className={cn("group max-w-[80%] rounded-2xl px-3 py-2 text-sm", m.sender_role === "staff" ? "ml-auto bg-ig-gradient text-white" : "bg-muted text-foreground")}>
                       <p className="whitespace-pre-wrap break-words">{m.body}</p>
                       <div className="mt-1 flex items-center justify-between gap-2">
                         <p className="text-[10px] opacity-70">{new Date(m.created_at).toLocaleString()}</p>

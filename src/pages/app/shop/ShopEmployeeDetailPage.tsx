@@ -204,8 +204,9 @@ export default function ShopEmployeeDetailPage() {
       <div className="flex flex-col px-4 pt-3 pb-24 max-w-2xl mx-auto">
         <div className="flex items-center gap-2.5 mb-5">
           <button type="button"
+            aria-label="Go back"
             onClick={() => navigate(-1)}
-            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -306,7 +307,7 @@ export default function ShopEmployeeDetailPage() {
                 <p className="text-sm font-semibold flex-1">This week's shifts</p>
                 <button type="button"
                   onClick={() => navigate("/shop-dashboard/employee-schedule")}
-                  className="text-[11px] font-semibold text-primary"
+                  className="text-[11px] font-semibold text-primary active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Edit
                 </button>
@@ -413,9 +414,10 @@ export default function ShopEmployeeDetailPage() {
                     return (
                       <button type="button"
                         key={rule.id}
+                        aria-pressed={acked}
                         onClick={() => toggleAck(rule)}
                         className={cn(
-                          "w-full flex items-center gap-2 text-left text-[12px] rounded-lg px-2.5 py-2 border transition-colors",
+                          "w-full flex items-center gap-2 text-left text-[12px] rounded-lg px-2.5 py-2 border transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           acked
                             ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
                             : "bg-muted/30 border-border/30",

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ImportOrdersPage - List + detail of customer's import orders.
  */
 import { useNavigate, useParams } from "react-router-dom";
@@ -101,7 +101,7 @@ function OrderDetail({ id }: { id: string }) {
             return (
               <div key={stage.key} className="flex items-start gap-3">
                 <div className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
-                  done ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  done ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground"
                 }`}>
                   <Icon className="h-3.5 w-3.5" />
                 </div>

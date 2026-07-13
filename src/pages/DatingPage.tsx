@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DatingPage — Interest-based profile matching & discovery
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -104,7 +104,7 @@ export default function DatingPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-bold flex-1 flex items-center gap-2">
@@ -123,7 +123,7 @@ export default function DatingPage() {
             <p className="text-xs text-muted-foreground mt-1">Check back later for new people</p>
             <button type="button"
               onClick={() => { setCurrentIndex(0); queryClient.invalidateQueries({ queryKey: ["dating-profiles"] }); }}
-              className="mt-4 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
+              className="mt-4 px-6 py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-medium transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Refresh
             </button>
@@ -199,7 +199,8 @@ export default function DatingPage() {
             <div className="flex items-center gap-5 mt-8">
               <button type="button"
                 onClick={() => handleSwipe("left")}
-                className="h-14 w-14 rounded-full bg-card border-2 border-destructive/30 flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                aria-label="Pass"
+                className="h-14 w-14 rounded-full bg-card border-2 border-destructive/30 flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="h-7 w-7 text-destructive" />
               </button>
@@ -207,17 +208,19 @@ export default function DatingPage() {
               <button type="button"
                 onClick={() => {
                   if (currentProfile) {
-                    navigate(`/chat`, { state: { recipientId: currentProfile.id } });
+                    navigate(`/chat`, { state: { openChat: { recipientId: currentProfile.id, recipientName: currentProfile.full_name, recipientAvatar: currentProfile.avatar_url ?? null } } });
                   }
                 }}
-                className="h-11 w-11 rounded-full bg-card border border-border/50 flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                aria-label="Message"
+                className="h-11 w-11 rounded-full bg-card border border-border/50 flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <MessageCircle className="h-5 w-5 text-primary" />
               </button>
 
               <button type="button"
                 onClick={() => handleSwipe("right")}
-                className="h-14 w-14 rounded-full bg-card border-2 border-emerald-500/30 flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                aria-label="Like"
+                className="h-14 w-14 rounded-full bg-card border-2 border-emerald-500/30 flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Heart className="h-7 w-7 text-emerald-500" />
               </button>

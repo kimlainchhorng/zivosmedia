@@ -45,10 +45,12 @@ export default function LodgingReportsSection({ storeId }: { storeId: string }) 
     ];
     const csv = rows.map(r => r.map(v => `"${(v ?? "").toString().replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `lodging-report-${from}-to-${to}.csv`;
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (

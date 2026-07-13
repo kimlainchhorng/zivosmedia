@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Laundry & Dry Cleaning.
  * Track laundry orders per room through collected → processing → ready → delivered pipeline.
  */
@@ -238,7 +238,7 @@ export default function LodgingLaundrySection({ storeId }: { storeId: string }) 
         <div className="flex gap-1.5 flex-wrap">
           {(["active", "all", "collected", "processing", "ready", "delivered", "cancelled"] as const).map(s => (
             <button type="button" key={s} onClick={() => setFilterStatus(s as any)}
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
               {s === "active" ? "Active" : s === "all" ? "All" : STATUS_LABEL[s as OrderStatus]}
             </button>
           ))}

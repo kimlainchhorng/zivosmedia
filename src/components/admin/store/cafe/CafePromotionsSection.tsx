@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CafePromotionsSection — CRUD for time-windowed % / fixed-cent promos.
  */
 import { useState } from "react";
@@ -190,7 +190,7 @@ export default function CafePromotionsSection({ storeId }: Props) {
                   return (
                     <button key={d} type="button" onClick={() => toggleWeekday(idx)} className={cn(
                       "rounded-full border px-3 py-1 text-xs transition-colors",
-                      on ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-muted",
+                      on ? "bg-ig-gradient text-white border-primary" : "bg-card border-border hover:bg-muted",
                     )}>{d}</button>
                   );
                 })}

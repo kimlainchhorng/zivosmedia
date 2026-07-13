@@ -156,8 +156,9 @@ const AppTravel = () => {
               <button type="button"
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
+                aria-pressed={activeTab === tab.id}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 touch-manipulation",
+                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeTab === tab.id
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"

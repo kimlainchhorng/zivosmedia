@@ -133,11 +133,11 @@ export default function AudioRoomsPage() {
         </motion.div>
 
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("live")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5", tab === "live" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>
+          <button type="button" onClick={() => setTab("live")} aria-pressed={tab === "live"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "live" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>
             <span>Live</span>
             <span className={cn("text-[10px] font-extrabold px-1.5 py-0.5 rounded-full", tab === "live" ? "bg-white/20" : "bg-background/60")}>{liveCount}</span>
           </button>
-          <button type="button" onClick={() => setTab("ended")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "ended" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Past</button>
+          <button type="button" onClick={() => setTab("ended")} aria-pressed={tab === "ended"} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "ended" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Past</button>
         </div>
 
         {isLoading && <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 bg-muted animate-pulse rounded-2xl" />)}</div>}
@@ -166,7 +166,7 @@ export default function AudioRoomsPage() {
                   transition={{ delay: Math.min(idx, 12) * 0.03 }}
                   whileTap={{ scale: 0.985 }}
                   onClick={() => navigate(`/voice-rooms/${r.id}`)}
-                  className={cn("w-full text-left rounded-2xl bg-card border p-3.5 hover:bg-secondary/40 transition-colors", isLive ? "border-rose-500/30" : "border-border")}
+                  className={cn("w-full text-left rounded-2xl bg-card border p-3.5 hover:bg-secondary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isLive ? "border-rose-500/30" : "border-border")}
                 >
                   <div className="flex items-start gap-3">
                     {r.cover_url ? (

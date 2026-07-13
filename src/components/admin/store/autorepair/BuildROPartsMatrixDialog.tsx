@@ -26,9 +26,19 @@ export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, 
   const [rows, setRows] = useState<MatrixTier[]>(DEFAULT_PARTS_MATRIX);
   const [testCost, setTestCost] = useState("");
 
+  const resetMatrixState = () => {
+    setRows(normalizeMatrix(initial));
+    setTestCost("");
+  };
+
   useEffect(() => {
-    if (open) setRows(normalizeMatrix(initial));
+    if (open) resetMatrixState();
   }, [open, initial]);
+
+  const handleOpenChange = (v: boolean) => {
+    if (!v) setTestCost("");
+    onOpenChange(v);
+  };
 
   const setMarkup = (i: number, v: string) =>
     setRows((r) => r.map((t, idx) => (idx === i ? { ...t, markup: Number(v) || 0 } : t)));
@@ -72,7 +82,7 @@ export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, 
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-sky-600">Parts Matrix</DialogTitle>
@@ -153,7 +163,7 @@ export default function BuildROPartsMatrixDialog({ open, onOpenChange, storeId, 
           <Button onClick={() => save.mutate()} disabled={save.isPending || !valid} className="bg-sky-500 px-10 hover:bg-sky-600">
             {save.isPending ? "Saving…" : "Save"}
           </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

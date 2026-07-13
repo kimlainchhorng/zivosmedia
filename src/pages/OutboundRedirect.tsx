@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ZIVO Outbound Redirect Page
  * 
  * All affiliate CTAs route through this page for tracking
@@ -122,7 +122,7 @@ export default function OutboundRedirect() {
                 {/* Continue Button */}
                 <button type="button"
                   onClick={handleContinue}
-                  className="w-full py-3 px-6 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] touch-manipulation min-h-[48px] shadow-lg shadow-primary/20"
+                  className="w-full py-3 px-6 rounded-xl bg-ig-gradient text-white font-semibold hover:bg-primary/90 transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] touch-manipulation min-h-[48px] shadow-lg shadow-primary/20"
                 >
                   Continue to {partnerName}
                   <ExternalLink className="w-4 h-4" />

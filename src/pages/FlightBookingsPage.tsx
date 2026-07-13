@@ -118,7 +118,7 @@ export default function FlightBookingsPage() {
       <Header />
 
       <main className="pt-20 pb-20 relative z-10">
-        <div className="container mx-auto px-4 max-w-2xl">
+        <div className="container mx-auto px-4 max-w-2xl lg:max-w-3xl">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -146,36 +146,37 @@ export default function FlightBookingsPage() {
             </div>
           </motion.div>
 
-          {/* Search bar */}
-          <div className="flex gap-2 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by ref, route, PNR..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 rounded-xl bg-card/80 border-border/40 h-10"
-              />
+          {/* Search + filters — sticky on scroll */}
+          <div className="sticky top-[72px] z-20 bg-background/95 backdrop-blur-md -mx-4 px-4 pb-3 pt-1 border-b border-border/30 mb-4">
+            <div className="flex gap-2 mb-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by ref, route, PNR..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 rounded-xl bg-card/80 border-border/40 h-10"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSortNewest(!sortNewest)}
+                className="rounded-xl border-border/40 shrink-0"
+                title={sortNewest ? "Newest first" : "Oldest first"}
+              >
+                <ArrowUpDown className="w-4 h-4" />
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSortNewest(!sortNewest)}
-              className="rounded-xl border-border/40 shrink-0"
-              title={sortNewest ? "Newest first" : "Oldest first"}
-            >
-              <ArrowUpDown className="w-4 h-4" />
-            </Button>
-          </div>
-
           {/* Filter tabs — horizontal scroll */}
-          <div className="flex gap-1.5 mb-5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none -mx-1 px-1">
             {FILTER_TABS.map(({ key, label, icon: Icon }) => (
               <button type="button"
                 key={key}
                 onClick={() => setActiveTab(key)}
+                aria-pressed={activeTab === key}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 shrink-0",
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 shrink-0 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeTab === key
                     ? "bg-[hsl(var(--flights))] text-white shadow-sm"
                     : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -197,6 +198,7 @@ export default function FlightBookingsPage() {
                 )}
               </button>
             ))}
+          </div>
           </div>
 
           {/* Loading */}
@@ -236,33 +238,57 @@ export default function FlightBookingsPage() {
 
           {/* Empty */}
           {!isLoading && !error && bookings && filteredBookings.length === 0 && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="border-border/40 bg-card/80 backdrop-blur-xl">
-                <CardContent className="p-8 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-[hsl(var(--flights))]/10 flex items-center justify-center mx-auto mb-4">
-                    {activeTab === "all" ? (
-                      <Plane className="w-7 h-7 text-[hsl(var(--flights))]" />
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+              <Card className="border-border/40 bg-card/80 backdrop-blur-xl overflow-hidden">
+                <CardContent className="p-0">
+                  {/* Gradient top band */}
+                  <div
+                    className="h-1.5 w-full"
+                    style={{ background: "linear-gradient(90deg, hsl(var(--flights)), hsl(var(--flights)/0.4))" }}
+                  />
+                  <div className="p-8 text-center">
+                    {/* Glowing icon */}
+                    <motion.div
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                      className="relative w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center"
+                      style={{ background: "hsl(var(--flights)/0.12)", boxShadow: "0 0 40px hsl(var(--flights)/0.2)" }}
+                    >
+                      <Plane className="w-9 h-9 text-[hsl(var(--flights))] rotate-45" />
+                      <div className="absolute -inset-1 rounded-3xl blur-lg opacity-20" style={{ background: "hsl(var(--flights))" }} />
+                    </motion.div>
+
+                    <h2 className="text-xl font-bold mb-2">
+                      {activeTab === "all" && !searchQuery ? "No Bookings Yet" : "No results found"}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
+                      {activeTab === "all" && !searchQuery
+                        ? "Your flight bookings will appear here once you book your first trip."
+                        : `No bookings match your current filter. Try clearing the search.`}
+                    </p>
+
+                    {activeTab === "all" && !searchQuery ? (
+                      <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                        <Button
+                          asChild
+                          className="rounded-2xl h-12 px-6 font-semibold text-white"
+                          style={{ background: "linear-gradient(135deg, hsl(var(--flights)), hsl(var(--flights)/0.8))", boxShadow: "0 4px 16px hsl(var(--flights)/0.3)" }}
+                        >
+                          <Link to="/flights">
+                            <Plane className="w-4 h-4 mr-2 -rotate-0 rotate-45" />
+                            Search Flights
+                          </Link>
+                        </Button>
+                        <Button variant="outline" asChild className="rounded-2xl h-12 px-6 border-border/50">
+                          <Link to="/flight-price-alerts">Set Price Alert</Link>
+                        </Button>
+                      </div>
                     ) : (
-                      <Filter className="w-7 h-7 text-[hsl(var(--flights))]" />
+                      <Button variant="outline" onClick={() => { setActiveTab("all"); setSearchQuery(""); }} className="rounded-2xl h-11 px-6">
+                        Clear Filters
+                      </Button>
                     )}
                   </div>
-                  <h2 className="text-lg font-bold mb-1.5">
-                    {activeTab === "all" && !searchQuery ? "No Bookings Yet" : "No results"}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
-                    {activeTab === "all" && !searchQuery
-                      ? "Book your first flight to see it here."
-                      : `No bookings match "${searchQuery || activeTab}" filter.`}
-                  </p>
-                  {activeTab === "all" && !searchQuery ? (
-                    <Button asChild className="bg-[hsl(var(--flights))] hover:bg-[hsl(var(--flights))]/90 rounded-xl">
-                      <Link to="/flights">Search Flights</Link>
-                    </Button>
-                  ) : (
-                    <Button variant="outline" onClick={() => { setActiveTab("all"); setSearchQuery(""); }} className="rounded-xl">
-                      Clear Filters
-                    </Button>
-                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -432,7 +458,7 @@ function BookingDetailsModal({ bookingId, onClose }: { bookingId: string | null;
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Booking Ref</span>
-                  <button type="button" onClick={handleCopy} className="flex items-center gap-1.5 font-mono font-bold hover:text-[hsl(var(--flights))] transition-colors">
+                  <button type="button" onClick={handleCopy} aria-label="Copy booking reference" className="flex items-center gap-1.5 font-mono font-bold hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     {booking.booking_reference}
                     {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
                   </button>
@@ -507,10 +533,10 @@ function BookingDetailsModal({ bookingId, onClose }: { bookingId: string | null;
                   <Separator className="bg-border/30" />
                   <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20 space-y-2">
                     <p className="text-xs font-semibold text-destructive">Need help?</p>
-                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizovo.com"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizovo.com"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Mail className="w-3.5 h-3.5" /> support@hizovo.com
                     </button>
-                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizovo.com/help"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizovo.com/help"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <MessageCircle className="w-3.5 h-3.5" /> Help Center
                     </button>
                   </div>

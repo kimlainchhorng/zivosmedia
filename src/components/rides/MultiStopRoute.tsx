@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MultiStopRoute - Multi-stop trip planner with reorderable waypoints
  */
 import { useState } from "react";
@@ -134,7 +134,7 @@ export default function MultiStopRoute({ pickup = "Current location", onConfirm,
                           className={cn(
                             "px-2 py-0.5 rounded text-[9px] font-bold transition-all",
                             stop.waitTime === mins
-                              ? "bg-primary text-primary-foreground"
+                              ? "bg-ig-gradient text-white"
                               : "bg-muted/40 text-muted-foreground"
                           )}
                         >

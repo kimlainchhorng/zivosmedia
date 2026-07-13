@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreatorTypePicker — reusable modal for choosing creator workflow.
  *
  * Usage:
@@ -250,7 +250,7 @@ export default function CreatorTypePicker({
                 pendingType === "of" && ageConfirmed && !saving
                   ? "bg-rose-500 text-white hover:bg-rose-600"
                   : pendingType === "content" && !saving
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  ? "bg-ig-gradient text-white hover:bg-primary/90"
                   : "bg-muted/50 text-muted-foreground cursor-not-allowed"
               )}
             >

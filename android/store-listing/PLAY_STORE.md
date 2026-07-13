@@ -65,10 +65,10 @@ Download ZIVO and run your whole day in one app.
 —
 ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory. Some premium features and creator subscriptions may have a price.
 
-Support:  support@hizivo.com
-Website:  https://hizivo.com
-Privacy:  https://hizivo.com/legal/privacy
-Terms:    https://hizivo.com/legal/terms
+Support:  support@zivosmedia.com
+Website:  https://zivosmedia.com
+Privacy:  https://zivosmedia.com/legal/privacy
+Terms:    https://zivosmedia.com/legal/terms
 ```
 
 ## 4. What's New / Release Notes  (max 500 characters — UPDATE EVERY RELEASE)
@@ -79,7 +79,7 @@ Terms:    https://hizivo.com/legal/terms
 • HD video call quality improvements
 • Bug fixes and stability updates
 
-Feedback? support@hizivo.com
+Feedback? support@zivosmedia.com
 ```
 
 ## 5. Categorization
@@ -95,15 +95,15 @@ In-app purchases: Yes (creator subscriptions, premium features)
 ## 6. Contact Details
 
 ```
-Email:    support@hizivo.com
-Website:  https://hizivo.com
+Email:    support@zivosmedia.com
+Website:  https://zivosmedia.com
 Phone:    (optional — leave blank if not used)
 ```
 
 ## 7. Privacy Policy URL
 
 ```
-https://hizivo.com/legal/privacy
+https://zivosmedia.com/legal/privacy
 ```
 
 ## 8. Account Deletion URL
@@ -111,7 +111,7 @@ https://hizivo.com/legal/privacy
 Use this in Play Console -> App content -> Data safety -> Account deletion.
 
 ```
-https://hizivo.com/delete-account
+https://zivosmedia.com/delete-account
 ```
 
 ## 9. Release Metadata

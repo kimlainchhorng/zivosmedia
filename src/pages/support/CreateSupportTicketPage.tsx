@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreateSupportTicketPage — /support/new
  */
 import { useState } from "react";
@@ -58,7 +58,7 @@ export default function CreateSupportTicketPage() {
         canonical="/support/new"
       />
       <Header />
-      <main className="pt-24 pb-24 container mx-auto px-4 max-w-md">
+      <main className="pt-safe-header pb-24 container mx-auto px-4 max-w-md">
         <h1 className="text-2xl font-bold mb-1 inline-flex items-center gap-2"><LifeBuoy className="w-6 h-6 text-primary" />Get help</h1>
         <p className="text-sm text-muted-foreground mb-6">Describe what's wrong — we'll get back ASAP.</p>
         <div className="space-y-3">
@@ -73,7 +73,7 @@ export default function CreateSupportTicketPage() {
             <option value="urgent">Urgent</option>
           </select>
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="What happened?" className="w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
-          <button type="button" onClick={() => void submit()} disabled={busy || !subject} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50">
+          <button type="button" onClick={() => void submit()} disabled={busy || !subject} className="w-full inline-flex items-center justify-center gap-1 py-3 rounded-xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50">
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit ticket"}
           </button>
         </div>

@@ -1,6 +1,6 @@
 /**
  * HotelConciergeSheet — natural-language hotel ranker powered by the
- * `hotel-concierge` edge function (Anthropic Claude). Shown as a bottom sheet
+ * `hotel-concierge` edge function (AI). Shown as a bottom sheet
  * with a prompt input, suggested chips, and ranked picks card list.
  */
 import { useEffect, useState } from "react";
@@ -44,6 +44,7 @@ export default function HotelConciergeSheet({ isOpen, onClose, candidates, onSel
   const [narrator, setNarrator] = useState<string>("");
   const [picks, setPicks] = useState<ConciergePick[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const providerModel = "deepseek-v4-flash";
 
   useEffect(() => {
     if (!isOpen) {
@@ -71,6 +72,8 @@ export default function HotelConciergeSheet({ isOpen, onClose, candidates, onSel
           prompt: trimmed,
           candidate_ids: candidates.map((c) => c.id).slice(0, 60),
           max: 5,
+          provider: "deepseek",
+          model: providerModel,
         },
       });
       if (fnErr) throw new Error(fnErr.message || "Could not reach concierge");
@@ -112,7 +115,7 @@ export default function HotelConciergeSheet({ isOpen, onClose, candidates, onSel
                 <div>
                   <h2 className="text-base font-extrabold leading-tight">Find with AI</h2>
                   <p className="text-[11px] text-muted-foreground leading-tight">
-                    Describe your perfect stay — Claude ranks the best matches.
+                    Describe your perfect stay — AI ranks the best matches.
                   </p>
                 </div>
               </div>

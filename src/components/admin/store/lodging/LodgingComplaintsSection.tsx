@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lodging — Guest Complaints & Feedback.
  * In-house complaint resolution log with priority triage and resolution tracking.
  */
@@ -238,7 +238,7 @@ export default function LodgingComplaintsSection({ storeId }: { storeId: string 
           <div className="flex gap-1.5 flex-wrap">
             {(["open_all", "all", "open", "in_progress", "escalated", "resolved", "closed"] as const).map(s => (
               <button type="button" key={s} onClick={() => setFilterStatus(s as any)}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterStatus === s ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
                 {s === "open_all" ? "All open" : s === "all" ? "All" : s.replace("_", " ")}
               </button>
             ))}
@@ -246,7 +246,7 @@ export default function LodgingComplaintsSection({ storeId }: { storeId: string 
           <div className="flex gap-1.5 flex-wrap">
             {(["all", "urgent", "high", "medium", "low"] as const).map(p => (
               <button type="button" key={p} onClick={() => setFilterPriority(p as any)}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterPriority === p ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${filterPriority === p ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-muted-foreground"}`}>
                 {p === "all" ? "Any priority" : p}
               </button>
             ))}

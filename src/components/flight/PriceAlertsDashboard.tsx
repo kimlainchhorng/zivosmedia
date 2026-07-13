@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -153,7 +153,7 @@ export function PriceAlertsDashboard({ className, onBookNow }: PriceAlertsDashbo
               className={cn(
                 "px-2 py-1 rounded transition-colors capitalize",
                 sortBy === option 
-                  ? "bg-primary text-primary-foreground" 
+                  ? "bg-ig-gradient text-white" 
                   : "hover:bg-muted"
               )}
             >

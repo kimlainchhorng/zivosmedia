@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CommunitiesPage — Topic-based groups & forums
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -68,7 +68,8 @@ export default function CommunitiesPage() {
       if (!user) throw new Error("Login required");
       const isMember = memberSet.has(communityId);
       if (isMember) {
-        await (supabase as any).from("community_members").delete().eq("community_id", communityId).eq("user_id", user.id);
+        const { error } = await (supabase as any).from("community_members").delete().eq("community_id", communityId).eq("user_id", user.id);
+        if (error) throw error;
       } else {
         const { error } = await (supabase as any).from("community_members").insert({
           community_id: communityId, user_id: user.id, role: "member",
@@ -80,6 +81,9 @@ export default function CommunitiesPage() {
       queryClient.invalidateQueries({ queryKey: ["my-communities"] });
       queryClient.invalidateQueries({ queryKey: ["communities"] });
       toast.success("Updated!");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? "Couldn't update membership. Please try again.");
     },
   });
 
@@ -120,6 +124,9 @@ export default function CommunitiesPage() {
       setNewCommunity({ name: "", description: "", category: "General", privacy: "public" });
       navigate(`/communities/${communityId}`);
     },
+    onError: (e: any) => {
+      toast.error(e?.message ?? "Couldn't create community. Please try again.");
+    },
   });
 
   const memberSet = new Set(myMemberships.map((m: any) => m.community_id));
@@ -140,12 +147,12 @@ export default function CommunitiesPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" aria-label="Go back" title="Go back" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50">
+          <button type="button" aria-label="Go back" title="Go back" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-bold flex-1">Communities</h1>
           {user && (
-            <button type="button" aria-label="Create community" title="Create community" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-primary text-primary-foreground">
+            <button type="button" aria-label="Create community" title="Create community" onClick={() => setShowCreate(true)} className="p-2 rounded-full bg-ig-gradient text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Plus className="h-4 w-4" />
             </button>
           )}
@@ -157,8 +164,9 @@ export default function CommunitiesPage() {
             <button type="button"
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
-                tab === t ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+              aria-pressed={tab === t}
+              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                tab === t ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
               }`}
             >
               {t === "discover" ? "Discover" : "My Communities"}
@@ -197,7 +205,7 @@ export default function CommunitiesPage() {
                   void refetch();
                 }}
                 disabled={isFetching}
-                className="shrink-0 rounded-full bg-foreground px-3 py-1 text-[11px] font-bold text-background disabled:opacity-50"
+                className="shrink-0 rounded-full bg-foreground px-3 py-1 text-[11px] font-bold text-background disabled:opacity-50 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {isFetching ? "Refreshing..." : "Retry"}
               </button>
@@ -277,10 +285,10 @@ export default function CommunitiesPage() {
                   <button type="button"
                     onClick={(e) => { e.stopPropagation(); joinMutation.mutate(community.id); }}
                     disabled={joinMutation.isPending}
-                    className={`w-full mt-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    className={`w-full mt-3 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       isMember
                         ? "bg-muted text-foreground"
-                        : "bg-primary text-primary-foreground"
+                        : "bg-ig-gradient text-white"
                     }`}
                   >
                     {isMember ? "Leave" : "Join Community"}
@@ -297,14 +305,14 @@ export default function CommunitiesPage() {
         {showCreate && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => setShowCreate(false)}
           >
             <motion.div
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md bg-background rounded-t-3xl pb-8"
+              className="w-full max-w-md bg-background rounded-t-3xl overflow-y-auto max-h-[85dvh] pb-[calc(env(safe-area-inset-bottom)+80px)]"
             >
               <div className="flex justify-center py-3">
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
@@ -329,9 +337,10 @@ export default function CommunitiesPage() {
                     <button type="button"
                       key={p}
                       onClick={() => setNewCommunity({ ...newCommunity, privacy: p })}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-medium ${
+                      aria-pressed={newCommunity.privacy === p}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         newCommunity.privacy === p
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-ig-gradient text-white"
                           : "bg-muted/40 text-muted-foreground"
                       }`}
                     >
@@ -342,7 +351,7 @@ export default function CommunitiesPage() {
                 <button type="button"
                   onClick={() => createMutation.mutate()}
                   disabled={!newCommunity.name || createMutation.isPending}
-                  className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50"
+                  className="w-full py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm disabled:opacity-50 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {createMutation.isPending ? "Creating..." : "Create Community"}
                 </button>

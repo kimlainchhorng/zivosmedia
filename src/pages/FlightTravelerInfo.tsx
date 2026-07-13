@@ -3,13 +3,14 @@
  * Premium 3D spatial traveler form with depth, perspective, glassmorphism
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { calculateFlightPricing } from "@/utils/flightPricing";
 import { useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Plane, ChevronRight, Shield, Users, Lock, User,
   CreditCard, CheckCircle2, Fingerprint, Luggage, PackageCheck, RefreshCw,
-  Clock, AlertCircle, ChevronDown
+  Clock, AlertCircle, ChevronDown, Bot, Sparkles, SlidersHorizontal, Loader2,
+  ShieldCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
@@ -32,6 +33,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { type DuffelOffer, useDuffelOffer } from "@/hooks/useDuffelFlights";
 import { FLIGHT_CONSENT, FLIGHT_DISCLAIMERS } from "@/config/flightCompliance";
 import { cn } from "@/lib/utils";
+import { completeZivoAiChat } from "@/lib/zivoAiChat";
 import DuffelSeatPicker from "@/components/flight/DuffelSeatPicker";
 
 import { FlightSummaryCompact } from "@/components/flight/traveler/FlightSummaryCompact";
@@ -45,6 +47,62 @@ import {
   profileToPassenger,
 } from "@/components/flight/traveler/SavedTravelerPicker";
 import type { TravelerProfile } from "@/hooks/useTravelerProfiles";
+
+type TravelerAiStatus = "idle" | "loading" | "ready" | "error";
+
+type TravelerReadiness = {
+  completeCount: number;
+  missingCount: number;
+  readyForCheckout: boolean;
+  missingByTraveler: Array<{
+    traveler: string;
+    missing: string[];
+  }>;
+};
+
+const TRAVELER_NAME_REGEX = /^[a-zA-Z\s\-']{2,}$/;
+const TRAVELER_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+const TRAVELER_FIELD_LABELS: Record<string, string> = {
+  given_name: "First name",
+  family_name: "Last name",
+  gender: "Gender",
+  born_on: "Date of birth",
+  email: "Email",
+  consent: "Terms & conditions",
+};
+
+const TRAVELER_REQUIRED_FIELDS: Array<{ field: keyof PassengerForm; label: string; leadOnly?: boolean }> = [
+  { field: "given_name", label: "First name" },
+  { field: "family_name", label: "Last name" },
+  { field: "gender", label: "Gender" },
+  { field: "born_on", label: "Date of birth" },
+  { field: "email", label: "Lead traveler email", leadOnly: true },
+];
+
+const formatTripDateLabel = (value?: string) => {
+  if (!value) return "Flexible";
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const date = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const getTravelerMissingFields = (passenger: PassengerForm, index: number) => {
+  return TRAVELER_REQUIRED_FIELDS
+    .filter((item) => !item.leadOnly || index === 0)
+    .filter(({ field }) => {
+      const value = String(passenger[field] ?? "").trim();
+      if (field === "given_name" || field === "family_name") return !TRAVELER_NAME_REGEX.test(value);
+      if (field === "email") return !TRAVELER_EMAIL_REGEX.test(value);
+      return !value;
+    })
+    .map((item) => item.label);
+};
 
 /* ── 3D Step indicator ────────────────────────── */
 function StepIndicator3D({ current = 2 }: { current?: number }) {
@@ -119,6 +177,267 @@ function StepIndicator3D({ current = 2 }: { current?: number }) {
   );
 }
 
+function TravelerPlannerHandoff({
+  offer,
+  search,
+  totalPassengers,
+  readiness,
+  aiStatus,
+  onRunDeepSeek,
+}: {
+  offer: DuffelOffer;
+  search: any;
+  totalPassengers: number;
+  readiness: TravelerReadiness;
+  aiStatus: TravelerAiStatus;
+  onRunDeepSeek: () => void;
+}) {
+  const tripDates = search?.returnDate
+    ? `${formatTripDateLabel(search.departureDate)} - ${formatTripDateLabel(search.returnDate)}`
+    : formatTripDateLabel(search?.departureDate);
+  const cabin = String(search?.cabinClass || offer.cabinClass || "economy").replace(/_/g, " ");
+  const deepSeekLabel = aiStatus === "loading" ? "Checking" : aiStatus === "ready" ? "Checked" : "Ready";
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: -14, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+      className="mb-5 overflow-hidden rounded-2xl border border-[hsl(var(--flights)/0.16)] bg-card/80"
+      style={{
+        boxShadow: "0 18px 48px -28px hsl(var(--flights) / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
+        backdropFilter: "blur(24px) saturate(1.25)",
+      }}
+    >
+      <div className="grid gap-0 lg:grid-cols-[1.35fr_1fr_auto]">
+        <div className="flex items-start gap-3 border-b border-border/40 p-4 lg:border-b-0 lg:border-r">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--flights)/0.1)] text-[hsl(var(--flights))]">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[hsl(var(--flights))]">AI Planner Handoff</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-foreground sm:text-2xl">
+              Traveler details for {offer.departure.code} to {offer.arrival.code}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              DeepSeek checks readiness before the partner checkout. Payment stays off this step.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 divide-x divide-border/40 border-b border-border/40 sm:grid-cols-4 lg:border-b-0 lg:border-r">
+          {[
+            { label: "Route", value: `${offer.departure.code} -> ${offer.arrival.code}`, icon: Plane },
+            { label: "Dates", value: tripDates, icon: Clock },
+            { label: "Travelers", value: `${totalPassengers} ${cabin}`, icon: Users },
+            { label: "Readiness", value: readiness.readyForCheckout ? "Complete" : `${readiness.missingCount} missing`, icon: ShieldCheck },
+          ].map((item) => (
+            <div key={item.label} className="min-w-0 px-3 py-4">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                <item.icon className="h-3.5 w-3.5" />
+                {item.label}
+              </p>
+              <p className="mt-1 truncate text-sm font-black capitalize text-foreground">{item.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col justify-center gap-2 p-4 sm:flex-row sm:items-center lg:flex-col lg:items-stretch">
+          <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+            {[
+              { label: "ZIVO AI", value: "Auto", tone: "text-[hsl(var(--flights))]" },
+              { label: "DeepSeek", value: deepSeekLabel, tone: "text-emerald-600" },
+              { label: "Fallback AI", value: "Optional", tone: "text-amber-600" },
+            ].map((item) => (
+              <div key={item.label} className="min-w-0 rounded-xl bg-muted/35 px-2 py-2">
+                <p className="truncate font-bold uppercase tracking-[0.12em] text-muted-foreground">{item.label}</p>
+                <p className={cn("mt-0.5 truncate font-black", item.tone)}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            onClick={onRunDeepSeek}
+            disabled={aiStatus === "loading"}
+            className="h-11 rounded-xl bg-[hsl(var(--flights))] px-4 text-sm font-bold text-primary-foreground"
+          >
+            {aiStatus === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SlidersHorizontal className="mr-2 h-4 w-4" />}
+            Tune details
+          </Button>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+function TravelerAiPanel({
+  status,
+  summary,
+  readiness,
+  totalPassengers,
+  onRunDeepSeek,
+}: {
+  status: TravelerAiStatus;
+  summary: string;
+  readiness: TravelerReadiness;
+  totalPassengers: number;
+  onRunDeepSeek: () => void;
+}) {
+  const summaryLines = summary.split(/\n+/).map((line) => line.trim()).filter(Boolean).slice(0, 6);
+  const statusCopy = status === "loading"
+    ? "DeepSeek is checking the trip."
+    : status === "ready"
+      ? "DeepSeek check complete."
+      : status === "error"
+        ? "DeepSeek needs backend access."
+        : "Ready for a privacy-safe readiness check.";
+
+  return (
+    <motion.aside
+      initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ delay: 0.2, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+      className="mt-5 overflow-hidden rounded-2xl border border-[hsl(var(--flights)/0.16)] bg-card/80 p-4 sm:mt-0"
+      style={{
+        boxShadow: "0 16px 44px -30px hsl(var(--flights) / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.08)",
+        backdropFilter: "blur(22px) saturate(1.2)",
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[hsl(var(--flights)/0.1)] text-[hsl(var(--flights))]">
+          <Bot className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[hsl(var(--flights))]">DeepSeek Assist</p>
+          <h3 className="mt-1 text-lg font-black tracking-tight">Traveler readiness</h3>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{statusCopy}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-xl bg-muted/35 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Travelers</p>
+          <p className="mt-1 text-2xl font-black text-foreground">
+            {readiness.completeCount}/{totalPassengers}
+          </p>
+          <p className="text-[10px] text-muted-foreground">complete</p>
+        </div>
+        <div className="rounded-xl bg-muted/35 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Missing</p>
+          <p className={cn("mt-1 text-2xl font-black", readiness.missingCount ? "text-amber-600" : "text-emerald-600")}>
+            {readiness.missingCount}
+          </p>
+          <p className="text-[10px] text-muted-foreground">required items</p>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {readiness.missingByTraveler.map((item) => (
+          <div key={item.traveler} className="flex items-start gap-2 text-xs">
+            {item.missing.length ? (
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+            ) : (
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+            )}
+            <p className="min-w-0 text-muted-foreground">
+              <span className="font-bold text-foreground">{item.traveler}:</span>{" "}
+              {item.missing.length ? item.missing.join(", ") : "Ready"}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-xl bg-[hsl(var(--flights)/0.06)] p-3 text-xs leading-relaxed text-muted-foreground">
+        <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 text-[hsl(var(--flights))]" />
+        Sends route, dates, counts, and missing-field labels only. Names, birthdates, email, phone, and payment data stay out of the AI request.
+      </div>
+
+      {summaryLines.length > 0 && (
+        <div
+          className={cn(
+            "mt-4 space-y-2 rounded-xl border p-3 text-xs leading-relaxed",
+            status === "error"
+              ? "border-amber-500/25 bg-amber-500/8 text-amber-700 dark:text-amber-300"
+              : "border-emerald-500/20 bg-emerald-500/8 text-muted-foreground"
+          )}
+        >
+          {summaryLines.map((line, index) => (
+            <p key={`${line}-${index}`}>{line.replace(/^[-*]\s*/, "")}</p>
+          ))}
+        </div>
+      )}
+
+      <Button
+        type="button"
+        onClick={onRunDeepSeek}
+        disabled={status === "loading"}
+        className="mt-4 h-11 w-full rounded-xl bg-[hsl(var(--flights))] text-sm font-bold text-primary-foreground"
+      >
+        {status === "loading" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+        Run DeepSeek check
+      </Button>
+    </motion.aside>
+  );
+}
+
+function TravelerCheckoutPanel({
+  totalPrice,
+  basePrice,
+  taxesFees,
+  currency,
+  totalPassengers,
+  readiness,
+}: {
+  totalPrice: number;
+  basePrice: number;
+  taxesFees: number;
+  currency: string;
+  totalPassengers: number;
+  readiness: TravelerReadiness;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/80 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">Checkout readiness</p>
+          <p className="mt-1 text-2xl font-black text-foreground">${totalPrice.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground">{totalPassengers} traveler{totalPassengers > 1 ? "s" : ""} - {currency}</p>
+        </div>
+        <div className={cn(
+          "rounded-full px-3 py-1 text-xs font-black",
+          readiness.readyForCheckout ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+        )}>
+          {readiness.readyForCheckout ? "Ready" : "Needs details"}
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2 border-t border-border/40 pt-4 text-sm">
+        <div className="flex justify-between gap-3">
+          <span className="text-muted-foreground">Base fare</span>
+          <span className="font-semibold tabular-nums">${basePrice.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between gap-3">
+          <span className="text-muted-foreground">Taxes & fees</span>
+          <span className="font-semibold tabular-nums">${taxesFees.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2 text-xs text-muted-foreground">
+        {[
+          "Final price confirmed by the travel partner",
+          "ZIVO does not collect flight card details",
+          "Passenger data shared only after consent",
+        ].map((item) => (
+          <p key={item} className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[hsl(var(--flights))]" />
+            <span>{item}</span>
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main page ─────────────────────────────── */
 const FlightTravelerInfo = () => {
   const navigate = useNavigate();
@@ -129,18 +448,28 @@ const FlightTravelerInfo = () => {
   const offerRaw = sessionStorage.getItem("zivo_selected_offer");
   const snapshotRaw = sessionStorage.getItem("zivo_selected_offer_snapshot");
   const searchRaw = sessionStorage.getItem("zivo_search_params");
-  const storedOfferBase: DuffelOffer | null = offerRaw ? JSON.parse(offerRaw) : null;
-  const snapshotOffer: DuffelOffer | null = snapshotRaw ? JSON.parse(snapshotRaw) : null;
-  const storedOffer: DuffelOffer | null = storedOfferBase?.fareVariants || !snapshotOffer?.fareVariants
-    ? storedOfferBase
-    : storedOfferBase
-      ? { ...storedOfferBase, fareVariants: snapshotOffer.fareVariants }
-      : snapshotOffer;
-  const search = searchRaw ? JSON.parse(searchRaw) : null;
+  const storedOfferBase = useMemo<DuffelOffer | null>(() => (
+    offerRaw ? JSON.parse(offerRaw) : null
+  ), [offerRaw]);
+  const snapshotOffer = useMemo<DuffelOffer | null>(() => (
+    snapshotRaw ? JSON.parse(snapshotRaw) : null
+  ), [snapshotRaw]);
+  const storedOffer = useMemo<DuffelOffer | null>(() => (
+    storedOfferBase?.fareVariants || !snapshotOffer?.fareVariants
+      ? storedOfferBase
+      : storedOfferBase
+        ? { ...storedOfferBase, fareVariants: snapshotOffer.fareVariants }
+        : snapshotOffer
+  ), [storedOfferBase, snapshotOffer]);
+  const search = useMemo<any>(() => (
+    searchRaw ? JSON.parse(searchRaw) : null
+  ), [searchRaw]);
   const { data: liveOffer } = useDuffelOffer(storedOffer?.id ?? null);
-  const offer = liveOffer && storedOffer?.fareVariants && !liveOffer.fareVariants
-    ? { ...liveOffer, fareVariants: storedOffer.fareVariants }
-    : (liveOffer ?? storedOffer);
+  const offer = useMemo(() => (
+    liveOffer && storedOffer?.fareVariants && !liveOffer.fareVariants
+      ? { ...liveOffer, fareVariants: storedOffer.fareVariants }
+      : (liveOffer ?? storedOffer)
+  ), [liveOffer, storedOffer]);
 
   const totalPassengers = search ? (search.adults || 1) + (search.children || 0) + (search.infants || 0) : 1;
 
@@ -164,6 +493,73 @@ const FlightTravelerInfo = () => {
   const [consentChecked, setConsentChecked] = useState(false);
   const [selectedProfiles, setSelectedProfiles] = useState<Record<number, string>>({});
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [aiStatus, setAiStatus] = useState<TravelerAiStatus>("idle");
+  const [aiSummary, setAiSummary] = useState("");
+
+  const travelerReadiness = useMemo<TravelerReadiness>(() => {
+    const missingByTraveler = passengers.map((passenger, index) => {
+      const missing = getTravelerMissingFields(passenger, index);
+      return {
+        traveler: `Traveler ${index + 1}`,
+        missing,
+      };
+    });
+    const consentMissing = consentChecked ? 0 : 1;
+    const missingCount = missingByTraveler.reduce((sum, item) => sum + item.missing.length, consentMissing);
+
+    return {
+      completeCount: missingByTraveler.filter((item) => item.missing.length === 0).length,
+      missingCount,
+      readyForCheckout: missingCount === 0,
+      missingByTraveler,
+    };
+  }, [passengers, consentChecked]);
+
+  const runDeepSeekTravelerCheck = useCallback(async () => {
+    if (!offer || !search) return;
+
+    setAiStatus("loading");
+    setAiSummary("");
+
+    const missingLines = travelerReadiness.missingByTraveler
+      .map((item) => `${item.traveler}: ${item.missing.length ? item.missing.join(", ") : "complete"}`)
+      .join("\n");
+
+    try {
+      const content = await completeZivoAiChat({
+        provider: "deepseek",
+        mode: "travel",
+        maxTokens: 420,
+        temperature: 0.2,
+        messages: [{
+          role: "user",
+          content: [
+            "You are ZIVO Travel's passenger-readiness assistant for the step before partner checkout.",
+            "Return 3 to 5 concise bullets. Do not ask for or mention payment card data.",
+            "Do not request names, birthdates, phone numbers, emails, passport numbers, or any other PII.",
+            "Use only this privacy-safe trip context:",
+            `Route: ${offer.departure.code} to ${offer.arrival.code}`,
+            `Dates: ${formatTripDateLabel(search.departureDate)}${search.returnDate ? ` to ${formatTripDateLabel(search.returnDate)}` : ""}`,
+            `Travelers: ${totalPassengers}`,
+            `Cabin: ${String(search.cabinClass || offer.cabinClass || "economy").replace(/_/g, " ")}`,
+            `International-style document review: ${isInternational ? "yes" : "no"}`,
+            `Consent checked: ${consentChecked ? "yes" : "no"}`,
+            "Missing field summary:",
+            missingLines,
+            "If anything is missing, prioritize what the traveler should complete next. If ready, confirm they can continue to partner checkout.",
+          ].join("\n"),
+        }],
+      });
+      setAiSummary(content.trim());
+      setAiStatus("ready");
+    } catch (error) {
+      const message = error instanceof Error && error.message
+        ? error.message
+        : "DeepSeek traveler check is unavailable right now.";
+      setAiSummary(`${message} Configure DEEPSEEK_API_KEY as a backend secret, then run this check again.`);
+      setAiStatus("error");
+    }
+  }, [offer, search, travelerReadiness, totalPassengers, isInternational, consentChecked]);
 
   useEffect(() => {
     if (offer) {
@@ -213,27 +609,16 @@ const FlightTravelerInfo = () => {
     });
   };
 
-  const fieldLabels: Record<string, string> = {
-    given_name: "First name",
-    family_name: "Last name",
-    gender: "Gender",
-    born_on: "Date of birth",
-    email: "Email",
-    consent: "Terms & conditions",
-  };
-
   const validate = (): boolean => {
-    const nameRegex = /^[a-zA-Z\s\-']{2,}$/;
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     const newErrors: Record<string, string> = {};
 
     for (let i = 0; i < passengers.length; i++) {
       const p = passengers[i];
-      if (!nameRegex.test(p.given_name)) newErrors[`${i}.given_name`] = "Enter a valid first name";
-      if (!nameRegex.test(p.family_name)) newErrors[`${i}.family_name`] = "Enter a valid last name";
+      if (!TRAVELER_NAME_REGEX.test(p.given_name)) newErrors[`${i}.given_name`] = "Enter a valid first name";
+      if (!TRAVELER_NAME_REGEX.test(p.family_name)) newErrors[`${i}.family_name`] = "Enter a valid last name";
       if (!p.gender) newErrors[`${i}.gender`] = "Select gender";
       if (!p.born_on) newErrors[`${i}.born_on`] = "Enter date of birth";
-      if (i === 0 && !emailRegex.test(p.email)) newErrors[`${i}.email`] = "Enter a valid email";
+      if (i === 0 && !TRAVELER_EMAIL_REGEX.test(p.email)) newErrors[`${i}.email`] = "Enter a valid email";
     }
 
     if (!consentChecked) newErrors["consent"] = "Accept terms to continue";
@@ -250,10 +635,10 @@ const FlightTravelerInfo = () => {
         missing.push("Terms & conditions");
         continue;
       }
-      const parts = key.split(".");
+        const parts = key.split(".");
       if (parts.length === 2) {
         const field = parts[1];
-        const label = fieldLabels[field] || field;
+        const label = TRAVELER_FIELD_LABELS[field] || field;
         if (!missing.includes(label)) missing.push(label);
       }
     }
@@ -267,16 +652,14 @@ const FlightTravelerInfo = () => {
     if (!validate()) {
       const summary = getMissingFieldsSummary(errors.consent ? errors : (() => {
         // Re-run to get fresh errors for summary
-        const nameRegex = /^[a-zA-Z\s\-']{2,}$/;
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         const freshErrors: Record<string, string> = {};
         for (let i = 0; i < passengers.length; i++) {
           const p = passengers[i];
-          if (!nameRegex.test(p.given_name)) freshErrors[`${i}.given_name`] = "x";
-          if (!nameRegex.test(p.family_name)) freshErrors[`${i}.family_name`] = "x";
+          if (!TRAVELER_NAME_REGEX.test(p.given_name)) freshErrors[`${i}.given_name`] = "x";
+          if (!TRAVELER_NAME_REGEX.test(p.family_name)) freshErrors[`${i}.family_name`] = "x";
           if (!p.gender) freshErrors[`${i}.gender`] = "x";
           if (!p.born_on) freshErrors[`${i}.born_on`] = "x";
-          if (i === 0 && !emailRegex.test(p.email)) freshErrors[`${i}.email`] = "x";
+          if (i === 0 && !TRAVELER_EMAIL_REGEX.test(p.email)) freshErrors[`${i}.email`] = "x";
         }
         if (!consentChecked) freshErrors["consent"] = "x";
         return freshErrors;
@@ -293,8 +676,27 @@ const FlightTravelerInfo = () => {
     navigate("/flights/checkout");
   };
 
+  const isPlannerHandoff = search.source === "ai-trip-planner" || search.plannerHandoff === true;
+  const stickyPricing = calculateFlightPricing(offer.pricePerPerson || offer.price, totalPassengers, offer.currency || "USD");
+  const totalPrice = stickyPricing.totalAllPassengers;
+  const basePrice = stickyPricing.baseFare * totalPassengers;
+  const taxesFees = stickyPricing.taxesFeesCharges * totalPassengers;
+
   const pageContent = (
-    <div className={cn("mx-auto px-3 sm:px-4", isMobile ? "max-w-lg pb-36" : "max-w-2xl pb-36")}>
+    <div className={cn("mx-auto px-3 sm:px-4", isMobile ? "max-w-lg pb-36" : "max-w-[1440px] pb-36")}>
+      {isPlannerHandoff && (
+        <TravelerPlannerHandoff
+          offer={offer}
+          search={search}
+          totalPassengers={totalPassengers}
+          readiness={travelerReadiness}
+          aiStatus={aiStatus}
+          onRunDeepSeek={runDeepSeekTravelerCheck}
+        />
+      )}
+
+      <div className={cn(!isMobile && "grid grid-cols-[minmax(0,1fr)_380px] items-start gap-6")}>
+        <div className="min-w-0">
       {/* Sticky 3D header for mobile */}
       {isMobile && (
         <div className="sticky top-0 safe-area-top z-20 -mx-3 px-3 mb-4">
@@ -376,6 +778,16 @@ const FlightTravelerInfo = () => {
 
       {/* Flight summary */}
       <FlightSummaryCompact offer={offer} search={search} />
+
+      {isMobile && (
+        <TravelerAiPanel
+          status={aiStatus}
+          summary={aiSummary}
+          readiness={travelerReadiness}
+          totalPassengers={totalPassengers}
+          onRunDeepSeek={runDeepSeekTravelerCheck}
+        />
+      )}
 
       {/* Passenger Forms with saved traveler pickers */}
       <div className="space-y-4">
@@ -666,15 +1078,32 @@ const FlightTravelerInfo = () => {
           <Link to="/legal/partner-disclosure" className="text-[hsl(var(--flights))]/70 hover:underline">Partner Disclosure</Link>
         </p>
       </motion.div>
+        </div>
+
+        {!isMobile && (
+          <aside className="sticky top-24 space-y-4">
+            <TravelerAiPanel
+              status={aiStatus}
+              summary={aiSummary}
+              readiness={travelerReadiness}
+              totalPassengers={totalPassengers}
+              onRunDeepSeek={runDeepSeekTravelerCheck}
+            />
+            <TravelerCheckoutPanel
+              totalPrice={totalPrice}
+              basePrice={basePrice}
+              taxesFees={taxesFees}
+              currency={offer.currency || "USD"}
+              totalPassengers={totalPassengers}
+              readiness={travelerReadiness}
+            />
+          </aside>
+        )}
+      </div>
     </div>
   );
 
   /* Sticky bottom CTA — 3D elevated with price breakdown */
-  const stickyPricing = calculateFlightPricing(offer.pricePerPerson || offer.price, totalPassengers, offer.currency || "USD");
-  const totalPrice = stickyPricing.totalAllPassengers;
-  const basePrice = stickyPricing.baseFare * totalPassengers;
-  const taxesFees = stickyPricing.taxesFeesCharges * totalPassengers;
-
   const stickyCTA = (
     <div
       className="fixed bottom-0 left-0 right-0 z-30 safe-area-bottom"
@@ -693,7 +1122,7 @@ const FlightTravelerInfo = () => {
         </p>
       </div>
 
-      <div className={cn("mx-auto px-4 py-3", isMobile ? "max-w-lg" : "max-w-2xl")}>
+      <div className={cn("mx-auto px-4 py-3", isMobile ? "max-w-lg" : "max-w-[1440px]")}>
         {/* Expandable price breakdown */}
         <AnimatePresence>
           {showBreakdown && (

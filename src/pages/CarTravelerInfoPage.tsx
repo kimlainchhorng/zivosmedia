@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Car Rental Traveler Info Page
  * Collect traveler details with partner consent
  */
@@ -91,14 +91,14 @@ export default function CarTravelerInfoPage() {
           {/* Progress indicator */}
           <div className="flex items-center gap-2 mb-8">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+              <div className="w-8 h-8 rounded-full bg-ig-gradient text-white flex items-center justify-center text-sm font-medium">
                 <CheckCircle className="w-4 h-4" />
               </div>
               <span className="text-sm font-medium">Details</span>
             </div>
             <div className="flex-1 h-px bg-border" />
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+              <div className="w-8 h-8 rounded-full bg-ig-gradient text-white flex items-center justify-center text-sm font-medium">
                 2
               </div>
               <span className="text-sm font-medium">Traveler Info</span>

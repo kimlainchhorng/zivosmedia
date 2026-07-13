@@ -9,5 +9,6 @@ serve(withSecurity("software-subscription-active", async (req, ctx) => {
   allowedMethods: ["POST"],
   strictCors: true,
   skipBotDetection: true,
+  strictCors: true,
   skipWaf: true,
 }));

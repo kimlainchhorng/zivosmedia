@@ -169,8 +169,9 @@ export default function AffiliateLinksPage() {
                 key={c}
                 type="button"
                 onClick={() => setActiveCategory(c)}
+                aria-pressed={activeCategory === c}
                 className={cn(
-                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeCategory === c ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                 )}
               >
@@ -248,14 +249,14 @@ export default function AffiliateLinksPage() {
                     <button
                       type="button"
                       onClick={() => copyLink(l.slug)}
-                      className="flex-1 h-8 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center justify-center gap-1 active:scale-95 transition-all"
+                      className="flex-1 h-8 rounded-lg bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center justify-center gap-1 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Copy className="h-3 w-3" /> Copy
                     </button>
                     <button
                       type="button"
                       onClick={() => window.open(l.target_url, "_blank", "noopener,noreferrer")}
-                      className="flex-1 h-8 rounded-lg bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1 hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                      className="flex-1 h-8 rounded-lg bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1 hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <ExternalLink className="h-3 w-3" /> Open
                     </button>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CreateGroupModal — Select friends to create a group chat
  */
 import { type ChangeEvent, useState, useEffect, useRef, useMemo } from "react";
@@ -475,7 +475,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
                   ) : (
                     <Camera className="h-6 w-6 text-primary" />
                   )}
-                  <span className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-background">
+                  <span className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-ig-gradient text-white ring-2 ring-background">
                     <Camera className="h-3.5 w-3.5" />
                   </span>
                 </button>
@@ -655,7 +655,7 @@ export default function CreateGroupModal({ open, onClose, onCreated }: CreateGro
             <button type="button"
               onClick={() => step === "members" ? setStep("details") : handleCreate()}
               disabled={step === "members" ? !canAdvance : !canSubmit}
-              className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {step === "members"

@@ -108,8 +108,9 @@ export default function MindfulnessPage() {
               key={key}
               type="button"
               onClick={() => setActiveCategory(key)}
+              aria-pressed={activeCategory === key}
               className={cn(
-                "shrink-0 px-3.5 py-2 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5",
+                "shrink-0 px-3.5 py-2 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeCategory === key
                   ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-secondary text-foreground hover:bg-muted",
@@ -134,7 +135,7 @@ export default function MindfulnessPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   whileTap={{ scale: 0.97 }}
-                  className="shrink-0 w-[220px] text-left"
+                  className="shrink-0 w-[220px] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="relative w-[220px] h-[140px] rounded-2xl overflow-hidden bg-muted shadow-md">
                     <img src={s.cover} alt={s.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -170,7 +171,7 @@ export default function MindfulnessPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.025 }}
                 whileTap={{ scale: 0.985 }}
-                className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-card border border-border text-left hover:bg-secondary/40 transition-colors"
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-card border border-border text-left hover:bg-secondary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="relative shrink-0">
                   <img src={s.cover} alt={s.title} className="w-14 h-14 rounded-lg object-cover" loading="lazy" decoding="async" />

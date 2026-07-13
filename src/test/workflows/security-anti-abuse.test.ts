@@ -1020,36 +1020,42 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(webUnregister).toContain('from("push_subscriptions")');
   });
 
-  it("keeps user notification update and delete actions behind server-side ownership checks", () => {
+  it("scopes user notification update and delete to the owner via RLS", () => {
     const notificationFn = read("supabase/functions/notification-manage/index.ts");
-    const notificationGate = read("supabase/migrations/20260601100000_notifications_server_gate.sql");
+    const ownerPolicies = read("supabase/migrations/20260403141649_0f3d28ca-54fe-450f-863a-f0e471f03d15.sql");
+    const gateNeutralised = read("supabase/migrations/20260616090000_notifications_user_owned_mutations.sql");
     const notificationCenter = read("src/pages/NotificationCenterPage.tsx");
     const notificationsHook = read("src/hooks/useNotifications.ts");
     const personalNotifications = read("src/pages/app/personal/PersonalNotificationsPage.tsx");
     const rideNotifications = read("src/components/rides/RideNotificationCenter.tsx");
     const notificationManageClient = read("src/lib/notifications/notificationManage.ts");
 
+    // The notification-manage edge function stays available as a hardened server
+    // option (it owns its CORS + ownership checks) even though the browser now
+    // mutates directly under per-user RLS.
     expect(notificationFn).toContain('withSecurity("notification-manage"');
-    expect(notificationFn).toContain("strictCors: true");
-    expect(notificationFn).toContain('trackNetwork: "suspicious"');
-    expect(notificationFn).toContain("blockNetworkRiskAt: 80");
     expect(notificationFn).toContain("auth.getUser(token)");
-    expect(notificationFn).toContain("cleanIds");
-    expect(notificationFn).toContain("cleanDate");
-    expect(notificationFn).toContain('from("notifications")');
     expect(notificationFn).toContain('.eq("user_id", user.id)');
     expect(notificationFn).not.toContain('"Access-Control-Allow-Origin": "*"');
 
+    // Postgres RLS enforces ownership: a signed-in user may update/delete only
+    // their OWN notification rows (auth.uid() = user_id). The never-deployable
+    // server-gate block is dropped so the in-app bell can mutate directly.
+    expect(ownerPolicies).toContain("Users delete own notifications");
+    expect(ownerPolicies).toContain("Users update own notifications");
     for (const policy of ["notifications_block_direct_update", "notifications_block_direct_delete"]) {
-      expect(notificationGate).toContain(policy);
+      expect(gateNeutralised).toContain(policy);
     }
-    expect(notificationGate).toContain("AS RESTRICTIVE");
-    expect(notificationGate).toContain("trusted server-side ingestion");
+    expect(gateNeutralised).toContain("drop policy if exists");
+    expect(gateNeutralised).toContain("auth.uid()");
 
-    expect(notificationManageClient).toMatch(/functions\.invoke\(['"]notification-manage['"]/);
-    expect(notificationManageClient).toContain("VITE_NOTIFICATION_MANAGE_ENABLED");
-    expect(notificationManageClient).toContain("NotificationManageUnavailableError");
+    // The client always scopes its direct mutations to the signed-in user.
+    expect(notificationManageClient).toContain('from("notifications")');
+    expect(notificationManageClient).toContain("auth.getUser");
+    expect(notificationManageClient).toContain('.eq("user_id"');
 
+    // Feature surfaces route through the shared lib and never run raw
+    // notification update/delete statements themselves.
     for (const surface of [notificationCenter, notificationsHook, personalNotifications, rideNotifications]) {
       expect(surface).toContain("@/lib/notifications/notificationManage");
       expect(surface).toContain("notifications");

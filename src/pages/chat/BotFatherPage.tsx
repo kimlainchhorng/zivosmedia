@@ -32,13 +32,13 @@ const TEMPLATES: Template[] = [
   {
     id: "ai",
     title: "AI Assistant",
-    description: "Claude-powered. Answers anything, with memory.",
+    description: "AI-powered. Answers anything, with memory.",
     icon: Sparkles,
     suffix: "_ai_bot",
     defaultName: "AI Assistant",
     setup: async (bot, token) => {
       const url = `${AI_HANDLER_BASE}?bot_token=${encodeURIComponent(token)}`;
-      await supabase.from("bots").update({ webhook_url: url, category: "ai" }).eq("id", bot.id);
+      await supabase.from("bots").update({ webhook_url: `${url}&provider=deepseek&model=deepseek-v4-flash`, category: "ai" }).eq("id", bot.id);
       await supabase.from("bot_workflows").insert({
         bot_id: bot.id, trigger_type: "first", trigger_value: "",
         reply_text: "Hi! 👋 I'm an AI assistant. Ask me anything.",
@@ -174,13 +174,13 @@ export default function BotFatherPage() {
     <div className="min-h-screen bg-background pb-[var(--zivo-safe-bottom,0px)]">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border safe-area-top">
         <div className="flex items-center gap-2 h-14 px-2">
-          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-semibold flex-1">My Bots</h1>
           <button
             type="button" onClick={() => setHelpOpen(true)} aria-label="How bots work"
-            className="p-2 -mr-1 rounded-full hover:bg-muted"
+            className="p-2 -mr-1 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Info className="w-5 h-5" />
           </button>
@@ -207,7 +207,7 @@ export default function BotFatherPage() {
                   type="button"
                   disabled={busy}
                   onClick={() => createFromTemplate(tpl)}
-                  className="rounded-2xl bg-card border border-border p-3 text-left hover:bg-muted/40 disabled:opacity-60"
+                  className="rounded-2xl bg-card border border-border p-3 text-left hover:bg-muted/40 disabled:opacity-60 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -228,7 +228,7 @@ export default function BotFatherPage() {
           <button
             type="button"
             onClick={() => navigate("/chat/bots/inbox")}
-            className="flex items-center gap-2 p-3 rounded-2xl bg-card border border-border text-left hover:bg-muted/40"
+            className="flex items-center gap-2 p-3 rounded-2xl bg-card border border-border text-left hover:bg-muted/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Inbox className="w-5 h-5 text-primary" />
@@ -241,7 +241,7 @@ export default function BotFatherPage() {
           <button
             type="button"
             onClick={() => navigate("/chat/bots/discover")}
-            className="flex items-center gap-2 p-3 rounded-2xl bg-card border border-border text-left hover:bg-muted/40"
+            className="flex items-center gap-2 p-3 rounded-2xl bg-card border border-border text-left hover:bg-muted/40 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Compass className="w-5 h-5 text-primary" />
@@ -257,7 +257,7 @@ export default function BotFatherPage() {
           <button
             type="button"
             onClick={() => navigate("/chat/bots/admin")}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border text-left hover:bg-muted/40"
+            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border text-left hover:bg-muted/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
               <Shield className="w-5 h-5 text-amber-600" />
@@ -288,7 +288,7 @@ export default function BotFatherPage() {
                 key={b.id}
                 type="button"
                 onClick={() => navigate(`/chat/bots/${b.id}`)}
-                className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/40"
+                className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                   {b.avatar_url
@@ -334,7 +334,7 @@ export default function BotFatherPage() {
             <ul className="list-disc ml-5 text-xs space-y-1">
               <li><strong>Workflows</strong> — point-and-click rules. Run server-side, no server needed.</li>
               <li><strong>Webhook</strong> — paste your server URL; we POST every message.</li>
-              <li><strong>AI</strong> — one tap to make the bot Claude-powered.</li>
+            <li><strong>AI</strong> — one tap to enable DeepSeek-powered responses.</li>
               <li><strong>API</strong> — call <span className="font-mono">bot-api</span> with the token (sendMessage, getUpdates, etc.).</li>
             </ul>
             <p><strong>Owner tools:</strong> stats, broadcasts, scheduled messages, reports, regenerate token.</p>

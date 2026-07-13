@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DocumentScanner — capture photos with the camera (or pick from gallery),
  * apply scan-style filters (Auto / Color / Grayscale / B&W), and export as a
  * multi-page A4 / Letter / Original PDF that gets sent into the chat.
@@ -239,7 +239,7 @@ export default function DocumentScanner({ open, onClose, onComplete }: DocumentS
           <button type="button"
             disabled={!pages.length || busy}
             onClick={buildPdf}
-            className="px-3 h-9 rounded-full bg-primary text-primary-foreground text-sm font-medium disabled:opacity-40"
+            className="px-3 h-9 rounded-full bg-ig-gradient text-white text-sm font-medium disabled:opacity-40"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : `Send PDF`}
           </button>
@@ -290,7 +290,7 @@ export default function DocumentScanner({ open, onClose, onComplete }: DocumentS
                 onClick={() => reapplyFilter(f)}
                 disabled={busy}
                 className={`px-3 h-8 rounded-full text-xs font-medium whitespace-nowrap ${
-                  filter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  filter === f ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground"
                 }`}
               >
                 {f === "bw" ? "B&W" : f[0].toUpperCase() + f.slice(1)}
@@ -302,7 +302,7 @@ export default function DocumentScanner({ open, onClose, onComplete }: DocumentS
                 key={s}
                 onClick={() => setPageSize(s)}
                 className={`px-3 h-8 rounded-full text-xs font-medium whitespace-nowrap ${
-                  pageSize === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  pageSize === s ? "bg-ig-gradient text-white" : "bg-muted text-muted-foreground"
                 }`}
               >
                 {s.toUpperCase()}
@@ -315,7 +315,7 @@ export default function DocumentScanner({ open, onClose, onComplete }: DocumentS
         <div className="grid grid-cols-2 gap-2 p-4 pt-2 border-t border-border/40 shrink-0" style={{ paddingBottom: "calc(16px + var(--zivo-safe-bottom,0px))" }}>
           <button type="button"
             onClick={() => cameraRef.current?.click()}
-            className="h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center gap-2 font-medium"
+            className="h-12 rounded-2xl bg-ig-gradient text-white flex items-center justify-center gap-2 font-medium"
           >
             <Camera className="h-5 w-5" /> Capture
           </button>

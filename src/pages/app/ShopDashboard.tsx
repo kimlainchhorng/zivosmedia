@@ -101,14 +101,14 @@ const ShopDashboard = () => {
           <button
             type="button"
             onClick={() => navigate("/store/setup")}
-            className="w-full h-12 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+            className="w-full h-12 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Create my shop <ArrowRight className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => navigate("/more")}
-            className="w-full h-10 mt-2 rounded-2xl text-sm font-semibold text-muted-foreground hover:bg-muted/40 transition-colors"
+            className="w-full h-10 mt-2 rounded-2xl text-sm font-semibold text-muted-foreground hover:bg-muted/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Not now
           </button>
@@ -185,7 +185,7 @@ const ShopDashboard = () => {
               key={action.label}
               type="button"
               onClick={action.onClick}
-              className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border/40 bg-card p-3 hover:bg-muted/40 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border/40 bg-card p-3 hover:bg-muted/40 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${action.bgClass}`}>
                 <action.icon className={`w-5 h-5 ${action.iconClass}`} />

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SmartIntentSearch — single search bar that classifies the user's intent
  * and routes to the right vertical:
  *   "pizza near me", "burger" → /eats?q=
@@ -99,7 +99,7 @@ export default function SmartIntentSearch() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[1450] bg-black/40 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           >
             <motion.div

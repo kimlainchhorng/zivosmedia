@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,17 @@ interface Props {
 export default function LaborGuidePickerDialog({ open, onOpenChange, onSelect, title = "Labor Guide" }: Props) {
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("All");
+  const resetGuideState = () => {
+    setSearch("");
+    setCat("All");
+  };
+  useEffect(() => {
+    if (open) resetGuideState();
+  }, [open]);
+  const handleOpenChange = (v: boolean) => {
+    if (!v) resetGuideState();
+    onOpenChange(v);
+  };
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -39,13 +50,11 @@ export default function LaborGuidePickerDialog({ open, onOpenChange, onSelect, t
 
   const handleSelect = (entry: LaborGuideEntry) => {
     onSelect(entry);
-    onOpenChange(false);
-    setSearch("");
-    setCat("All");
+    handleOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col gap-0 p-0">
         <DialogHeader className="px-5 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">
@@ -72,7 +81,7 @@ export default function LaborGuidePickerDialog({ open, onOpenChange, onSelect, t
                 className={cn(
                   "text-[11px] px-2.5 py-1 rounded-full whitespace-nowrap font-medium transition-colors border",
                   cat === c
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-ig-gradient text-white border-primary"
                     : "bg-muted/50 text-muted-foreground border-transparent hover:border-border"
                 )}
               >

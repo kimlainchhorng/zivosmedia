@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalReservationsSection — central reservation manager.
  */
 import { useEffect, useMemo, useState } from "react";
@@ -120,12 +120,12 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
             <div className="flex items-center rounded-md border border-border overflow-hidden">
               <button type="button" onClick={() => setView("list")}
                 className={cn("h-8 px-2.5 inline-flex items-center gap-1 text-xs font-semibold",
-                  view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
+                  view === "list" ? "bg-ig-gradient text-white" : "text-muted-foreground hover:bg-muted")}>
                 <List className="h-3.5 w-3.5" /> List
               </button>
               <button type="button" onClick={() => setView("calendar")}
                 className={cn("h-8 px-2.5 inline-flex items-center gap-1 text-xs font-semibold border-l border-border",
-                  view === "calendar" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
+                  view === "calendar" ? "bg-ig-gradient text-white" : "text-muted-foreground hover:bg-muted")}>
                 <LayoutGrid className="h-3.5 w-3.5" /> Calendar
               </button>
             </div>
@@ -216,7 +216,7 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
                   onClick={() => setSourceFilter(s)}
                   className={cn(
                     "rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider border transition-colors",
-                    sourceFilter === s ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                    sourceFilter === s ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {s === "all" ? "All" : s === "walk_in" ? "Walk-in" : s === "app" ? "Online" : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -240,7 +240,7 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
                       })}
                       className={cn(
                         "rounded-full px-2.5 py-0.5 text-[11px] font-semibold border transition-colors",
-                        active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+                        active ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {t}
@@ -359,6 +359,7 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
         seed={cloneSource}
         onCreate={create}
         saving={saving}
+        error={error}
       />
 
       <CarRentalWalkInDialog
@@ -379,12 +380,13 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
           reservation={editing}
           onClose={() => setEditing(null)}
           onSave={async (patch) => {
-            await update(editing.id, patch);
-            setEditing(null);
+            const ok = await update(editing.id, patch);
+            if (ok) setEditing(null);
           }}
           saving={saving}
           vehicles={vehicles}
           locations={locations}
+          error={error}
         />
       )}
 
@@ -395,7 +397,7 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
           onClose={() => setCancelling(null)}
           onConfirm={async (reason, opts) => {
             const refund = opts?.refund_amount_cents ?? 0;
-            await changeStatus(cancelling.id, reason === "no_show" ? "no_show" : "cancelled", {
+            const ok = await changeStatus(cancelling.id, reason === "no_show" ? "no_show" : "cancelled", {
               cancellation_reason: reason === "no_show" ? null : reason,
               cancelled_at: reason === "no_show" ? null : new Date().toISOString(),
               fees_cents: opts?.noShowFeeCents ?? cancelling.fees_cents,
@@ -403,9 +405,10 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
               refund_at: refund > 0 ? new Date().toISOString() : null,
               refund_method: refund > 0 ? (opts?.refund_method ?? "original_payment") : null,
             });
-            setCancelling(null);
+            if (ok) setCancelling(null);
           }}
           saving={saving}
+          error={error}
         />
       )}
 
@@ -414,14 +417,19 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
           reservation={refunding}
           onClose={() => setRefunding(null)}
           onConfirm={async (amountCents, method) => {
-            await changeStatus(refunding.id, refunding.status as CarRentalReservationStatus, {
+            // A quick refund is not a status transition — route through update(),
+            // not changeStatus(), so it never re-stamps the status timestamp
+            // (cancelled_at / returned_at / picked_up_at) of an already-terminal
+            // reservation to "now".
+            const ok = await update(refunding.id, {
               refund_amount_cents: amountCents,
               refund_at: new Date().toISOString(),
               refund_method: method,
             });
-            setRefunding(null);
+            if (ok) setRefunding(null);
           }}
           saving={saving}
+          error={error}
         />
       )}
     </div>
@@ -429,12 +437,13 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
 }
 
 function QuickRefundDialog({
-  reservation: r, onClose, onConfirm, saving,
+  reservation: r, onClose, onConfirm, saving, error,
 }: {
   reservation: CarRentalReservation;
   onClose: () => void;
   onConfirm: (amountCents: number, method: "original_payment" | "cash" | "store_credit" | "other") => Promise<void>;
   saving: boolean;
+  error: string | null;
 }) {
   // Default to the full paid amount (deposit + amount_paid) if any was collected;
   // otherwise fall back to the base total. Operator can still override.
@@ -445,6 +454,7 @@ function QuickRefundDialog({
   })();
   const [amount, setAmount] = useState(defaultDollars);
   const [method, setMethod] = useState<"original_payment" | "cash" | "store_credit" | "other">("original_payment");
+  const [submitted, setSubmitted] = useState(false);
   const cents = Math.max(0, Math.round((parseFloat(amount) || 0) * 100));
   return (
     <Dialog open onOpenChange={(o) => !o && !saving && onClose()}>
@@ -493,9 +503,14 @@ function QuickRefundDialog({
             Records the refund against this reservation. Use this only after the refund has actually been issued through your payment system.
           </p>
         </div>
+        {submitted && error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+          </div>
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={() => onConfirm(cents, method)} disabled={saving || cents <= 0}>
+          <Button onClick={async () => { setSubmitted(true); await onConfirm(cents, method); }} disabled={saving || cents <= 0}>
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
             Mark refunded
           </Button>
@@ -506,7 +521,7 @@ function QuickRefundDialog({
 }
 
 function CancelReservationDialog({
-  reservation: r, refundTiers, onClose, onConfirm, saving,
+  reservation: r, refundTiers, onClose, onConfirm, saving, error,
 }: {
   reservation: CarRentalReservation;
   refundTiers: RefundTier[] | null;
@@ -517,6 +532,7 @@ function CancelReservationDialog({
     refund_method?: "original_payment" | "cash" | "store_credit" | "other";
   }) => Promise<void>;
   saving: boolean;
+  error: string | null;
 }) {
   type ReasonKey = "customer_request" | "vehicle_issue" | "weather" | "duplicate" | "no_show" | "other";
   const [reasonKey, setReasonKey] = useState<ReasonKey>("customer_request");
@@ -542,10 +558,12 @@ function CancelReservationDialog({
 
   const [refundDollars, setRefundDollars] = useState<number>(suggestedRefundCents / 100);
   const [refundMethod, setRefundMethod] = useState<"original_payment" | "cash" | "store_credit" | "other">("original_payment");
+  const [submitted, setSubmitted] = useState(false);
 
   const isNoShow = reasonKey === "no_show";
 
   const submit = async () => {
+    setSubmitted(true);
     const reasonLabel =
       reasonKey === "customer_request" ? "Customer cancelled"
       : reasonKey === "vehicle_issue" ? "Vehicle issue"
@@ -565,7 +583,7 @@ function CancelReservationDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -676,6 +694,11 @@ function CancelReservationDialog({
             </>
           )}
         </div>
+        {submitted && error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+          </div>
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Keep reservation</Button>
           <Button variant="destructive" onClick={submit} disabled={saving}>
@@ -914,7 +937,7 @@ function ReservationRow({ reservation: r, storeId, customerTags, selected, onTog
 }
 
 function EditReservationDialog({
-  reservation: r, onClose, onSave, saving, vehicles, locations,
+  reservation: r, onClose, onSave, saving, vehicles, locations, error,
 }: {
   reservation: CarRentalReservation;
   onClose: () => void;
@@ -922,6 +945,7 @@ function EditReservationDialog({
   saving: boolean;
   vehicles: ReturnType<typeof useCarRentalVehicles>["vehicles"];
   locations: ReturnType<typeof useCarRentalLocations>["locations"];
+  error: string | null;
 }) {
   const toLocal = (iso: string) => {
     const d = new Date(iso);
@@ -942,6 +966,7 @@ function EditReservationDialog({
   );
   const [internalNotes, setInternalNotes] = useState(r.internal_notes ?? "");
   const [customerNotes, setCustomerNotes] = useState(r.customer_notes ?? "");
+  const [submitted, setSubmitted] = useState(false);
 
   const pickupAt = new Date(pickupAtLocal);
   const dropoffAt = new Date(dropoffAtLocal);
@@ -979,6 +1004,7 @@ function EditReservationDialog({
   const canSave = customerName.trim() && validRange;
 
   const submit = async () => {
+    setSubmitted(true);
     const pickupLoc = locations.find((l) => l.id === pickupLocationId);
     const dropoffLoc = locations.find((l) => l.id === dropoffLocationId);
     const patch: Partial<CarRentalReservation> = {
@@ -1008,7 +1034,7 @@ function EditReservationDialog({
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => !o && !saving && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit reservation · <span className="font-mono">{r.confirmation_code}</span></DialogTitle>
@@ -1134,6 +1160,11 @@ function EditReservationDialog({
             </div>
           )}
         </div>
+        {submitted && error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+          </div>
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button onClick={submit} disabled={!canSave || saving}>
@@ -1170,7 +1201,7 @@ function StatusBadge({ status }: { status: CarRentalReservationStatus }) {
 }
 
 function CreateReservationDialog({
-  open, onOpenChange, vehicles, customers, locations, defaultDate, seed, onCreate, saving,
+  open, onOpenChange, vehicles, customers, locations, defaultDate, seed, onCreate, saving, error,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -1181,6 +1212,7 @@ function CreateReservationDialog({
   seed?: CarRentalReservation | null;
   onCreate: ReturnType<typeof useCarRentalReservations>["create"];
   saving: boolean;
+  error: string | null;
 }) {
   const defaultLocation = locations.find((l) => l.is_default) ?? locations[0];
 
@@ -1198,6 +1230,10 @@ function CreateReservationDialog({
   const [insuranceDollars, setInsuranceDollars] = useState("");
   const [discountCents, setDiscountCents] = useState(0);
   const [notes, setNotes] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  // Clear any stale create error each time the dialog opens.
+  useEffect(() => { if (open) setSubmitted(false); }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -1277,9 +1313,10 @@ function CreateReservationDialog({
 
   const submit = async () => {
     if (!selectedVehicle || !canSubmit) return;
+    setSubmitted(true);
     const pickupLoc = locations.find((l) => l.id === pickupLocationId);
     const dropoffLoc = locations.find((l) => l.id === dropoffLocationId);
-    await onCreate({
+    const created = await onCreate({
       vehicle_id: selectedVehicle.id,
       customer_id: customerId === "walkin" ? null : customerId,
       pickup_location_id: pickupLocationId === "none" ? null : pickupLocationId,
@@ -1304,11 +1341,11 @@ function CreateReservationDialog({
       source: "admin",
       internal_notes: notes || null,
     });
-    onOpenChange(false);
+    if (created) onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o && saving) return; onOpenChange(o); }}>
       <DialogContent className="max-w-2xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -1468,6 +1505,11 @@ function CreateReservationDialog({
             </div>
           )}
         </div>
+        {submitted && error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+          </div>
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={submit} disabled={!canSubmit || saving}>

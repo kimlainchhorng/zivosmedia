@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoreMiniMap — Interactive Google Map thumbnail for the store profile rail.
  * Features: light tile style matching the main store map, user location blue
  * dot, zoom/recenter controls, and distance label.
@@ -290,7 +290,7 @@ export default function StoreMiniMap({ latitude, longitude, storeId, storeName, 
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="relative flex h-12 w-12 items-center justify-center">
               <div className="absolute inset-0 animate-ping rounded-full bg-primary/40" />
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/40 ring-4 ring-background/60">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/40 ring-4 ring-background/60">
                 <MapPin className="h-5 w-5" />
               </div>
             </div>
@@ -328,7 +328,7 @@ export default function StoreMiniMap({ latitude, longitude, storeId, storeName, 
             <Minus className="h-4 w-4" />
           </button>
           <button type="button" onClick={recenter} aria-label="Recenter on store"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-1 ring-border transition-all hover:scale-105 active:scale-95">
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/30 ring-1 ring-border transition-all hover:scale-105 active:scale-95">
             <Locate className="h-4 w-4" />
           </button>
         </div>
@@ -371,7 +371,7 @@ export default function StoreMiniMap({ latitude, longitude, storeId, storeName, 
           type="button"
           onClick={openFullMap}
           aria-label={`Open full map for ${storeName}`}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-1 ring-border transition-transform duration-300 hover:scale-110 hover:rotate-12"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/30 ring-1 ring-border transition-transform duration-300 hover:scale-110 hover:rotate-12"
         >
           <ExternalLink className="h-3.5 w-3.5" />
         </button>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatSearchPage
  * --------------
  * Global search across the user's DMs, group chats, and channel posts.
@@ -222,7 +222,7 @@ export default function ChatSearchPage() {
             onClick={() => setFilter(f)}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
               filter === f
-                ? "bg-primary text-primary-foreground"
+                ? "bg-ig-gradient text-white"
                 : "bg-muted/40 text-muted-foreground"
             }`}
           >

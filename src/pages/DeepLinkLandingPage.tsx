@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+﻿import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ANDROID_STORE_URL,
@@ -71,7 +71,7 @@ export default function DeepLinkLandingPage() {
         </p>
         <a
           href={nativeUrl || "#"}
-          className="block w-full rounded-xl bg-primary text-primary-foreground py-3 text-sm font-semibold"
+          className="block w-full rounded-xl bg-ig-gradient text-white py-3 text-sm font-semibold"
         >
           Open In App
         </a>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReservationPage — Restaurant table booking flow
  *
  * Funnel:
@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left";
 import Calendar from "lucide-react/dist/esm/icons/calendar";
 import Users from "lucide-react/dist/esm/icons/users";
@@ -77,7 +78,11 @@ export default function ReservationPage() {
       : null,
   );
   const [step, setStep] = useState<Step>("details");
-  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  // Cambodia-local day (browser is UTC+7, no DST). toISOString().slice(0,10) is the UTC
+  // day, which from 00:00–06:59 ICT is still yesterday — the default would pre-fill, and
+  // the minDate floor below would allow, a past-dated reservation. date-fns format uses
+  // the local day, matching the user's calendar.
+  const [date, setDate] = useState<string>(() => format(new Date(), "yyyy-MM-dd"));
   const [party, setParty] = useState<number>(2);
   const [time, setTime] = useState<string>("19:00");
   const [name, setName] = useState<string>("");
@@ -103,7 +108,7 @@ export default function ReservationPage() {
     };
   }, [restaurantId, restaurant?.cuisine_type]);
 
-  const minDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const minDate = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
   const isValid = !!restaurant && date >= minDate && party > 0 && !!time && name.trim().length >= 2;
   const arrivalDateTime = `${date}T${time}:00`;
 
@@ -163,7 +168,7 @@ export default function ReservationPage() {
         <button type="button"
           onClick={() => navigate(-1)}
           style={{ top: 'calc(var(--zivo-safe-top,0px) + 0.75rem)' }}
-          className="absolute left-3 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white"
+          className="absolute left-3 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           aria-label="Back"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -210,9 +215,10 @@ export default function ReservationPage() {
                   <button type="button"
                     key={n}
                     onClick={() => setParty(n)}
-                    className={`min-w-[44px] h-11 px-4 rounded-xl border text-sm font-bold transition-all touch-manipulation ${
+                    aria-pressed={party === n}
+                    className={`min-w-[44px] h-11 px-4 rounded-xl border text-sm font-bold transition-all touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       party === n
-                        ? "bg-primary text-primary-foreground border-primary shadow"
+                        ? "bg-ig-gradient text-white border-primary shadow"
                         : "bg-card border-border/60 text-foreground"
                     }`}
                   >
@@ -233,9 +239,10 @@ export default function ReservationPage() {
                   <button type="button"
                     key={t}
                     onClick={() => setTime(t)}
-                    className={`h-11 rounded-xl border text-sm font-semibold transition-all touch-manipulation ${
+                    aria-pressed={time === t}
+                    className={`h-11 rounded-xl border text-sm font-semibold transition-all touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       time === t
-                        ? "bg-primary text-primary-foreground border-primary shadow"
+                        ? "bg-ig-gradient text-white border-primary shadow"
                         : "bg-card border-border/60 text-foreground"
                     }`}
                   >

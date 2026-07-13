@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSmartBack } from "@/lib/smartBack";
 import { ArrowLeft, Copy, RefreshCw, Trash2, Plus, X, Bot as BotIcon, MessageCircle, Send, Activity, Users, Clock, Flag, Star } from "lucide-react";
@@ -20,6 +20,18 @@ import {
 const SEND_ENDPOINT = `${SUPABASE_URL}/functions/v1/bot-send-message`;
 const AI_HANDLER_BASE = `${SUPABASE_URL}/functions/v1/bot-ai-handler`;
 const BOT_API_ENDPOINT = `${SUPABASE_URL}/functions/v1/bot-api`;
+const DEEPSEEK_MODELS = ["deepseek-v4-flash", "deepseek-v4-pro"] as const;
+const CLAUDE_MODELS = ["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-7", "claude-opus-4-8", "claude-haiku-4-5"] as const;
+const DEFAULT_AI_MODEL = DEEPSEEK_MODELS[0];
+const AI_MODELS = [
+  { value: DEEPSEEK_MODELS[0], label: "DeepSeek V4 Flash (fast)" },
+  { value: DEEPSEEK_MODELS[1], label: "DeepSeek V4 Pro (best quality)" },
+  { value: CLAUDE_MODELS[0], label: "Claude Haiku 4.5 (fast)" },
+  { value: CLAUDE_MODELS[1], label: "Claude Sonnet 4.6 (smart)" },
+  { value: CLAUDE_MODELS[2], label: "Claude Opus 4.7 (smartest)" },
+  { value: CLAUDE_MODELS[3], label: "Claude Opus 4.8 (accurate)" },
+  { value: CLAUDE_MODELS[4], label: "Claude Haiku 4.5 (legacy)" },
+] as const;
 
 type Bot = {
   id: string;
@@ -158,7 +170,7 @@ export default function BotDetailPage() {
   const [newCmd, setNewCmd] = useState("");
   const [newCmdDesc, setNewCmdDesc] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     const [{ data: b, error: be }, { data: c }, { data: w }, { data: s }, { data: sch }, { data: rep }, { data: dly }, { data: act }, { data: whc }, { data: tls }, { data: aps }, { data: pys }] = await Promise.all([
@@ -191,9 +203,11 @@ export default function BotDetailPage() {
     setApps((aps ?? []) as App[]);
     setPays((pys ?? []) as Pay[]);
     setLoading(false);
-  };
+  }, [id]);
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    load();
+  }, [id, load]);
 
   const save = async (patch: Partial<Bot>) => {
     if (!bot) return;
@@ -464,7 +478,7 @@ export default function BotDetailPage() {
     <div className="min-h-screen bg-background pb-[var(--zivo-safe-bottom,0px)]">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border safe-area-top">
         <div className="flex items-center gap-2 h-14 px-2">
-          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-semibold flex-1 truncate">@{bot.username}</h1>
@@ -587,12 +601,13 @@ export default function BotDetailPage() {
               onClick={async () => {
                 const tk = prompt("Paste this bot's token to enable AI replies (we don't store it):");
                 if (!tk) return;
-                const wh = `${AI_HANDLER_BASE}?bot_token=${encodeURIComponent(tk)}`;
+                const selectedModel = bot.ai_model ?? DEFAULT_AI_MODEL;
+                const wh = `${AI_HANDLER_BASE}?bot_token=${encodeURIComponent(tk)}&provider=deepseek&model=${encodeURIComponent(selectedModel)}`;
                 await save({ webhook_url: wh });
-                toast.success("AI replies enabled — bot now answers via Claude");
+                toast.success(`AI replies enabled - bot now runs ${selectedModel.startsWith("deepseek") ? "DeepSeek" : "Claude"}`);
               }}
             >
-              Make this an AI bot (Claude-powered)
+              Make this an AI bot (DeepSeek by default)
             </Button>
           </div>
           <div className="pt-2 border-t border-border space-y-2">
@@ -653,13 +668,15 @@ export default function BotDetailPage() {
               <div>
                 <label className="text-xs text-muted-foreground">Model</label>
                 <select
-                  value={bot.ai_model ?? "claude-haiku-4-5-20251001"}
+                  value={bot.ai_model ?? DEFAULT_AI_MODEL}
                   onChange={(e) => { setBot({ ...bot, ai_model: e.target.value }); save({ ai_model: e.target.value }); }}
                   className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs"
                 >
-                  <option value="claude-haiku-4-5-20251001">Haiku 4.5 (fast)</option>
-                  <option value="claude-sonnet-4-6">Sonnet 4.6 (smart)</option>
-                  <option value="claude-opus-4-7">Opus 4.7 (smartest)</option>
+                  {AI_MODELS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -676,7 +693,7 @@ export default function BotDetailPage() {
             <div className="pt-2 border-t border-border space-y-2">
               <div className="text-xs font-medium">🔧 Tools (function calling)</div>
               <div className="text-[11px] text-muted-foreground -mt-1">
-                Give the AI HTTP endpoints it can call when it needs data or to take actions. Claude decides when to use them.
+                Give the AI HTTP endpoints it can call when it needs data or to take actions.
               </div>
               <div className="space-y-1">
                 {tools.map((t) => (
@@ -687,7 +704,7 @@ export default function BotDetailPage() {
                       {t.description && <div className="text-muted-foreground line-clamp-1">{t.description}</div>}
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => editToolSchema(t)} className="h-6 px-2 text-[10px]">Schema</Button>
-                    <button onClick={() => removeTool(t.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                    <button onClick={() => removeTool(t.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -705,7 +722,7 @@ export default function BotDetailPage() {
                 </select>
               </div>
               <Input placeholder="https://api.example.com/weather" value={newToolUrl} onChange={(e) => setNewToolUrl(e.target.value)} />
-              <Input placeholder="What this tool does (Claude reads this)" value={newToolDesc} onChange={(e) => setNewToolDesc(e.target.value)} />
+              <Input placeholder="What this tool does (AI reads this)" value={newToolDesc} onChange={(e) => setNewToolDesc(e.target.value)} />
               <Button size="sm" onClick={addTool} className="gap-1">
                 <Plus className="w-4 h-4" /> Add tool
               </Button>
@@ -734,7 +751,7 @@ export default function BotDetailPage() {
                   <div className="text-sm font-mono">/{c.command}</div>
                   <div className="text-xs text-muted-foreground truncate">{c.description || "—"}</div>
                 </div>
-                <button onClick={() => removeCommand(c.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removeCommand(c.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -829,7 +846,7 @@ export default function BotDetailPage() {
                     {s.last_sent_count != null && ` · last sent: ${s.last_sent_count}`}
                   </div>
                 </div>
-                <button onClick={() => removeSchedule(s.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removeSchedule(s.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -889,7 +906,7 @@ export default function BotDetailPage() {
                   </div>
                   <div className="text-muted-foreground truncate">→ {w.reply_text}</div>
                 </div>
-                <button onClick={() => removeWorkflow(w.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removeWorkflow(w.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -999,7 +1016,7 @@ Methods: getMe · sendMessage · setWebhook · deleteWebhook
                   <div className="text-muted-foreground truncate font-mono">{p.checkout_url}</div>
                   <div className="text-[10px] text-muted-foreground">slug: <span className="font-mono">{p.slug}</span></div>
                 </div>
-                <button onClick={() => removePay(p.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removePay(p.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -1040,7 +1057,7 @@ Methods: getMe · sendMessage · setWebhook · deleteWebhook
                   <div className="font-medium">{a.title} <span className="text-muted-foreground font-mono">/{a.slug}</span></div>
                   <div className="text-muted-foreground truncate">{a.app_url}</div>
                 </div>
-                <button onClick={() => removeApp(a.id)} className="p-1 rounded hover:bg-muted" aria-label="Remove">
+                <button onClick={() => removeApp(a.id)} className="p-1 rounded hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Remove">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>

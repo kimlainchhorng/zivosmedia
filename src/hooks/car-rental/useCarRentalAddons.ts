@@ -60,6 +60,7 @@ export function useCarRentalAddons(storeId: string | undefined) {
   const create = useCallback(async (draft: CarRentalAddonDraft): Promise<CarRentalAddon | null> => {
     if (!storeId) return null;
     setSaving(true);
+    setError(null);
     const payload = {
       store_id: storeId,
       name: draft.name.trim(),
@@ -85,25 +86,31 @@ export function useCarRentalAddons(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<CarRentalAddonDraft>) => {
+  const update = useCallback(async (id: string, patch: Partial<CarRentalAddonDraft>): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     setAddons((prev) => prev.map((a) => (a.id === id ? ({ ...a, ...patch } as CarRentalAddon) : a)));
     const { data, error: err } = await supabase.functions.invoke("car-rental-addon-manage", {
       body: { action: "update", addon_id: id, addon: patch },
     });
     if (err) {
       console.error("[useCarRentalAddons] update failed", err);
-      setError("Couldn't save changes — refreshing.");
-      await load();
-    } else if (data?.addon) {
+      await load(); // roll the optimistic patch back to server truth …
+      setError("Couldn't save changes — please retry."); // … then set the message (load() can clear it)
+      setSaving(false);
+      return false;
+    }
+    if (data?.addon) {
       const updated = data.addon as CarRentalAddon;
       setAddons((prev) => prev.map((a) => (a.id === id ? updated : a)));
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const prev = addons;
     setAddons((p) => p.filter((a) => a.id !== id));
     const { error: err } = await supabase.functions.invoke("car-rental-addon-manage", {
@@ -113,8 +120,11 @@ export function useCarRentalAddons(storeId: string | undefined) {
       console.error("[useCarRentalAddons] delete failed", err);
       setError("Couldn't delete add-on.");
       setAddons(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [addons]);
 
   return { addons, loading, saving, error, create, update, remove, refresh: load };

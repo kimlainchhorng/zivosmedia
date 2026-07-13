@@ -152,7 +152,7 @@ export default function StorePromoCodesPage() {
                       <div className="shrink-0 h-10 w-10 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><Store className="h-4 w-4 text-ig-gradient" /></div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <button type="button" onClick={() => s?.slug ? navigate(`/store/${s.slug}`) : null} className="text-sm font-bold text-foreground line-clamp-1 hover:underline">{s?.name ?? "Store"}</button>
+                      <button type="button" onClick={() => s?.slug ? navigate(`/store/${s.slug}`) : null} className="text-sm font-bold text-foreground line-clamp-1 hover:underline transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{s?.name ?? "Store"}</button>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-2xl font-extrabold text-ig-gradient">{valueStr}</span>
                         {p.min_order_cents > 0 && <span className="text-[11px] text-muted-foreground">on ${(p.min_order_cents / 100).toFixed(0)}+ orders</span>}
@@ -166,7 +166,7 @@ export default function StorePromoCodesPage() {
                   <button
                     type="button"
                     onClick={() => copyCode(p.code)}
-                    className={cn("mt-3 w-full h-10 rounded-xl text-sm font-extrabold inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98]", isCopied ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-ig-gradient text-white shadow-sm hover:opacity-90")}
+                    className={cn("mt-3 w-full h-10 rounded-xl text-sm font-extrabold inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isCopied ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-ig-gradient text-white shadow-sm hover:opacity-90")}
                   >
                     {isCopied ? <><CheckCircle2 className="h-4 w-4" /> Copied</> : <><Copy className="h-4 w-4" /> {p.code}</>}
                   </button>

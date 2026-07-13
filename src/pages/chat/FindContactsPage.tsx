@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useSmartBack } from "@/lib/smartBack";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -271,7 +271,7 @@ export default function FindContactsPage() {
       <div className="space-y-4 p-4">
         <section className="rounded-[28px] border border-border bg-card p-4 shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ig-gradient text-white">
               <Users className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, lazy, Suspense, type PointerEvent as ReactPointerEvent } from "react";
+﻿import { useEffect, useMemo, useRef, useState, lazy, Suspense, type PointerEvent as ReactPointerEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3,
@@ -9,6 +9,7 @@ import {
   Copy,
   Eye,
   FileText,
+  ImageOff,
   Link as LinkIcon,
   Loader2,
   MessageCircle,
@@ -48,6 +49,8 @@ const STICKER_PACK_BY_STICKER_ID = new Map(
 
 interface Props {
   post: ChannelPost;
+  channelName?: string;
+  channelAvatarUrl?: string | null;
   /** True if the viewer can pin/delete posts on this channel. */
   canManage?: boolean;
   /** True if the viewer can comment (subscribed or manager). */
@@ -70,6 +73,7 @@ interface MediaItem {
   mime_type?: string;
   duration_ms?: number;
   waveform?: number[];
+  preview_image_url?: string;
 }
 
 interface StickerItem {
@@ -209,25 +213,58 @@ function getFirstUrl(text?: string | null): string | null {
   return match || null;
 }
 
+function getXStatusId(url: string) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
+    if (host !== "x.com" && host !== "twitter.com" && host !== "mobile.twitter.com") return null;
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const statusIndex = parts.findIndex((part) => part === "status" || part === "statuses");
+    const id = statusIndex >= 0 ? parts[statusIndex + 1] : null;
+    return id && /^\d{5,30}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function getTwitterStatusUrl(url: string) {
+  const statusId = getXStatusId(url);
+  if (!statusId) return null;
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const username = parts[0] || "i";
+    return `https://twitter.com/${encodeURIComponent(username)}/status/${encodeURIComponent(statusId)}`;
+  } catch {
+    return `https://twitter.com/i/status/${encodeURIComponent(statusId)}`;
+  }
+}
+
 function buildLinkPreview(url: string) {
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.replace(/^www\./, "");
     const isMeet = host.includes("meet.google.com");
     const isTelegram = host.includes("t.me") || host.includes("telegram.");
+    const xStatusId = getXStatusId(url);
+    const xStatusUrl = getTwitterStatusUrl(url);
     return {
-      kind: isMeet ? "meet" : isTelegram ? "telegram" : "link",
+      kind: xStatusId ? "x-status" : isMeet ? "meet" : isTelegram ? "telegram" : "link",
       host,
-      title: isMeet ? "Google Meet" : isTelegram ? "Telegram" : host,
-      description: isMeet
+      title: xStatusId ? "X video" : isMeet ? "Google Meet" : isTelegram ? "Telegram" : host,
+      description: xStatusId
+        ? "Watch this X post without leaving the channel."
+        : isMeet
         ? "Real-time meetings by Google. Using your browser, share your video, desktop, and presentations with teammates and customers."
         : isTelegram
         ? "Open this Telegram link."
         : parsed.pathname.split("/").filter(Boolean).join(" / ") || "Open link",
       accent: isMeet ? "border-l-4 border-l-emerald-500" : "border-l-4 border-l-sky-500",
+      xStatusId,
+      xStatusUrl,
     };
   } catch {
-    return { kind: "link", host: url, title: "Link", description: url, accent: "border-l-4 border-l-sky-500" };
+    return { kind: "link", host: url, title: "Link", description: url, accent: "border-l-4 border-l-sky-500", xStatusId: null, xStatusUrl: null };
   }
 }
 
@@ -249,17 +286,16 @@ function PostMediaStatsOverlay({ views, time, pill = false }: { views: number; t
   return (
     <span
       className={cn(
-        "pointer-events-none absolute bottom-1.5 right-2 inline-flex items-center gap-1.5 leading-none text-white",
+        "pointer-events-none absolute inline-flex items-center leading-none text-white",
         // Stickers have no bubble behind them, so plain white text reads poorly
         // over light artwork — wrap it in a dark Telegram-style pill instead.
         pill
-          ? "rounded-full bg-black/45 px-2 py-1 text-[12px] font-medium backdrop-blur-sm"
-          : "text-[17px] font-medium",
+          ? "bottom-1.5 right-2 gap-1.5 rounded-full bg-black/45 px-2 py-1 text-[12px] font-medium backdrop-blur-sm"
+          : "bottom-1 right-1.5 gap-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[11px] font-semibold shadow-sm backdrop-blur-sm",
       )}
-      style={pill ? undefined : { textShadow: "0 1px 2px rgba(0,0,0,.55)" }}
     >
       <span>{formatViewCount(views)}</span>
-      <Eye className={cn("fill-white/30 stroke-[2.4]", pill ? "h-3.5 w-3.5" : "h-5 w-5")} />
+      <Eye className={cn("fill-white/30 stroke-[2.4]", pill ? "h-3.5 w-3.5" : "h-3 w-3")} />
       {time && <span>{time}</span>}
     </span>
   );
@@ -302,8 +338,8 @@ function PostActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left text-base font-medium last:border-b-0 disabled:opacity-45",
-        destructive ? "text-rose-500" : "text-slate-950",
+        "flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left text-base font-medium last:border-b-0 disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset",
+        destructive ? "text-rose-500 focus-visible:ring-destructive/50" : "text-slate-950 focus-visible:ring-primary/40",
       )}
     >
       <Icon className="h-5 w-5 shrink-0" />
@@ -328,6 +364,8 @@ function MeetPreviewArtwork() {
 
 export function ChannelPostCard({
   post,
+  channelName,
+  channelAvatarUrl,
   canManage = false,
   canComment = true,
   protectContent = false,
@@ -515,6 +553,10 @@ export function ChannelPostCard({
   // Viewer's own reaction (one per post, Telegram-style). null = none.
   const [myReaction, setMyReaction] = useState<string | null>(null);
   const [reacting, setReacting] = useState(false);
+  // Post images whose src failed to load (deleted from storage, dead URL, offline).
+  // Tracked per-url so a broken image shows a neutral placeholder instead of the
+  // browser's broken-image icon in the middle of the feed.
+  const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const allowedReactions = reactionPolicy === "some" ? REACTIONS.slice(0, 3) : REACTIONS;
   const firstUrl = useMemo(() => getFirstUrl(localBody ?? post.body), [localBody, post.body]);
@@ -584,6 +626,35 @@ export function ChannelPostCard({
     if (hasReactions) void loadReactors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id]);
+
+  useEffect(() => {
+    if (linkPreview?.kind !== "x-status" || !linkPreview.xStatusUrl) return;
+    if (typeof window === "undefined") return;
+
+    const renderWidgets = () => {
+      const widgets = (window as any).twttr?.widgets;
+      if (widgets?.load) widgets.load(ref.current ?? undefined);
+    };
+
+    if ((window as any).twttr?.widgets?.load) {
+      renderWidgets();
+      return;
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://platform.twitter.com/widgets.js"]');
+    if (existing) {
+      existing.addEventListener("load", renderWidgets, { once: true });
+      return () => existing.removeEventListener("load", renderWidgets);
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://platform.twitter.com/widgets.js";
+    script.async = true;
+    script.charset = "utf-8";
+    script.addEventListener("load", renderWidgets, { once: true });
+    document.head.appendChild(script);
+    return () => script.removeEventListener("load", renderWidgets);
+  }, [linkPreview?.kind, linkPreview?.xStatusUrl]);
 
   // Polls are inlined into post.media as `{ type: "poll", poll_id, ... }`
   // (no `url`). Voice notes use `{ type: "voice", url, duration_ms, ... }`.
@@ -756,7 +827,21 @@ export function ChannelPostCard({
     musicItems.length === 0 &&
     fileItems.length === 0 &&
     media.length === 0;
-  const showBottomFooter = !compactBubble && (!hasVisualContent || visibleReactions.length > 0);
+  const firstMedia = media[0];
+  const singleMediaIsVideo = !!firstMedia && isVideo(firstMedia);
+  const singleMediaPost =
+    media.length === 1 &&
+    !linkPreview &&
+    !pollAttachment &&
+    voiceItems.length === 0 &&
+    musicItems.length === 0 &&
+    fileItems.length === 0 &&
+    stickerItems.length === 0;
+  const singleMediaPreviewText =
+    messageText.trim() || firstMedia?.name?.trim() || (singleMediaIsVideo ? "Video" : "Photo");
+  const singleMediaAvatarUrl = channelAvatarUrl || null;
+  const channelInitial = (channelName || "Channel").trim().charAt(0).toUpperCase();
+  const showBottomFooter = !compactBubble && !singleMediaPost && (!hasVisualContent || visibleReactions.length > 0);
 
   return (
     <>
@@ -803,6 +888,9 @@ export function ChannelPostCard({
                   : "bg-[#d9fdd3] ring-emerald-200/70 dark:bg-emerald-950/60 dark:ring-emerald-900/70",
                 compactBubble ? "max-w-[min(26rem,78%)] px-2.5 py-1.5" : "max-w-[min(30rem,calc(100%-4.75rem))] px-3 py-2 pb-1.5",
               ],
+          singleMediaPost &&
+            !compactBubble &&
+            "w-[min(21rem,78vw)] max-w-[calc(100%-4.75rem)] bg-[#d7ecff] p-1.5 ring-sky-300/70 after:bg-[#d7ecff]",
           highlight && "ring-2 ring-sky-400 ring-offset-2 ring-offset-[#dcefdc] dark:ring-offset-zinc-950",
         )}
       >
@@ -837,7 +925,7 @@ export function ChannelPostCard({
                 type="button"
                 onClick={() => { setEditing(false); setEditBody(localBody ?? post.body ?? ""); }}
                 disabled={savingEdit}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted/40"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 Cancel
               </button>
@@ -845,7 +933,7 @@ export function ChannelPostCard({
                 type="button"
                 onClick={saveEdit}
                 disabled={savingEdit}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-ig-gradient text-white text-xs font-bold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {savingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                 Save
@@ -853,7 +941,7 @@ export function ChannelPostCard({
             </div>
           </div>
         ) : (
-          hasBody && (
+          hasBody && !singleMediaPost && (
             <p
               className={cn(
                 "whitespace-pre-wrap break-words text-slate-950",
@@ -904,35 +992,76 @@ export function ChannelPostCard({
         )}
 
         {linkPreview && (
-          <a
-            href={firstUrl ?? undefined}
-            target="_blank"
-            rel="noreferrer"
-            className={cn(
-              "block overflow-hidden rounded-lg bg-emerald-100/60 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70",
-              hasBody ? "mt-1.5" : "mt-0",
-            )}
-          >
-            <span className="flex gap-2 p-2.5">
-              <span className="w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-bold text-emerald-700 dark:text-emerald-300">{linkPreview.title}</span>
-                <span className="mt-0.5 line-clamp-3 block text-[15px] leading-5 text-slate-950 dark:text-zinc-200">{linkPreview.description}</span>
-                <span className="mt-1 block truncate text-[11px] text-emerald-700/70 dark:text-emerald-300/70">{linkPreview.host}</span>
+          linkPreview.kind === "x-status" && linkPreview.xStatusId ? (
+            <div
+              className={cn(
+                "overflow-hidden rounded-2xl bg-black text-white shadow-sm ring-1 ring-black/10",
+                hasBody ? "mt-2" : "mt-0",
+              )}
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2.5">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-black">
+                    <X className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold">X video</span>
+                    <span className="block truncate text-[11px] text-white/60">{linkPreview.host}</span>
+                  </span>
+                </span>
+                <a
+                  href={firstUrl ?? undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  Open
+                </a>
+              </div>
+              <div className="min-h-[260px] bg-white px-2 py-3 text-slate-950 [&_.twitter-tweet]:!mx-auto [&_.twitter-tweet]:!w-full [&_iframe]:!min-h-[260px] [&_iframe]:!w-full">
+                <blockquote
+                  className="twitter-tweet mx-auto"
+                  data-dnt="true"
+                  data-theme="light"
+                  data-conversation="none"
+                >
+                  <a href={linkPreview.xStatusUrl ?? firstUrl ?? undefined}>
+                    Watch on X
+                  </a>
+                </blockquote>
+              </div>
+            </div>
+          ) : (
+            <a
+              href={firstUrl ?? undefined}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "block overflow-hidden rounded-lg bg-emerald-100/60 text-left ring-1 ring-emerald-200/45 transition hover:bg-emerald-100/75 dark:bg-emerald-950/45 dark:hover:bg-emerald-950/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset",
+                hasBody ? "mt-1.5" : "mt-0",
+              )}
+            >
+              <span className="flex gap-2 p-2.5">
+                <span className="w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-bold text-emerald-700 dark:text-emerald-300">{linkPreview.title}</span>
+                  <span className="mt-0.5 line-clamp-3 block text-[15px] leading-5 text-slate-950 dark:text-zinc-200">{linkPreview.description}</span>
+                  <span className="mt-1 block truncate text-[11px] text-emerald-700/70 dark:text-emerald-300/70">{linkPreview.host}</span>
+                </span>
+                <span
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/65 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-300",
+                    linkPreview.kind === "meet" && "bg-yellow-300 text-white dark:bg-yellow-400 dark:text-white",
+                  )}
+                >
+                  {linkPreview.kind === "meet" ? <Video className="h-5 w-5 fill-current" /> : <LinkIcon className="h-4 w-4" />}
+                </span>
               </span>
-              <span
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/65 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-300",
-                  linkPreview.kind === "meet" && "bg-yellow-300 text-white dark:bg-yellow-400 dark:text-white",
-                )}
-              >
-                {linkPreview.kind === "meet" ? <Video className="h-5 w-5 fill-current" /> : <LinkIcon className="h-4 w-4" />}
-              </span>
-            </span>
-            {linkPreview.kind === "meet" && (
-              <MeetPreviewArtwork />
-            )}
-          </a>
+              {linkPreview.kind === "meet" && (
+                <MeetPreviewArtwork />
+              )}
+            </a>
+          )
         )}
 
         {pollAttachment && (
@@ -975,7 +1104,7 @@ export function ChannelPostCard({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50"
+                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700">
                   <Music className="h-4 w-4" />
@@ -998,7 +1127,7 @@ export function ChannelPostCard({
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50"
+                className="flex items-center gap-3 rounded-xl bg-white/35 p-3 ring-1 ring-emerald-200/40 hover:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/55 text-emerald-700">
                   <FileText className="h-4 w-4" />
@@ -1013,8 +1142,28 @@ export function ChannelPostCard({
           </div>
         )}
 
+        {!editing && singleMediaPost && (
+          <div className="mb-1.5 flex min-w-0 items-center gap-2 rounded-t-[14px] rounded-b-md border-l-[3px] border-emerald-500 bg-[#eaf5ff] px-2 py-1.5 text-left ring-1 ring-sky-200/80">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-sky-100 text-sm font-bold text-sky-700">
+              {singleMediaAvatarUrl ? (
+                <img src={singleMediaAvatarUrl} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+              ) : (
+                channelInitial
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[14px] font-bold leading-5 text-emerald-600">
+                {channelName || "Channel"}
+              </span>
+              <span className="block truncate text-[14px] leading-5 text-slate-950">
+                {singleMediaPreviewText}
+              </span>
+            </span>
+          </div>
+        )}
+
         {media.length > 0 && (
-          <div className={`mt-3 grid gap-1.5 ${gridClass}`}>
+          <div className={cn("grid gap-1.5", singleMediaPost && !editing ? "mt-0" : "mt-3", gridClass)}>
             {media.slice(0, 6).map((m, i) => {
               const isFirstOfThree = media.length === 3 && i === 0;
               const isOverflow = media.length > 6 && i === 5;
@@ -1023,9 +1172,10 @@ export function ChannelPostCard({
                 <button type="button"
                   key={i}
                   onClick={() => setLightboxIdx(i)}
-                  className={`relative overflow-hidden rounded-xl bg-muted ${
-                    isFirstOfThree ? "col-span-2 aspect-[2/1]" : "aspect-square"
-                  }`}
+                  className={cn(
+                    "relative overflow-hidden rounded-xl bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset",
+                    isFirstOfThree ? "col-span-2 aspect-[2/1]" : media.length === 1 && video ? "aspect-[9/16]" : "aspect-square",
+                  )}
                   aria-label={video ? `Play video ${i + 1}` : `Open image ${i + 1}`}
                   onContextMenu={blockSaveGestures}
                   onContextMenuCapture={blockSaveGestures}
@@ -1035,12 +1185,13 @@ export function ChannelPostCard({
                     <>
                       <video
                         src={m.url}
+                        poster={m.preview_image_url}
                         muted
                         playsInline
                         preload="metadata"
                         controlsList={protectContent ? "nodownload noplaybackrate noremoteplayback" : undefined}
                         disablePictureInPicture={protectContent}
-                        className="pointer-events-none h-full w-full object-cover"
+                        className={cn("pointer-events-none h-full w-full", media.length === 1 ? "bg-black object-contain" : "object-cover")}
                         onContextMenu={blockSaveGestures}
                         onContextMenuCapture={blockSaveGestures}
                         onDragStartCapture={blockSaveGestures}
@@ -1051,6 +1202,11 @@ export function ChannelPostCard({
                         </div>
                       </div>
                     </>
+                  ) : failedMedia[m.url] ? (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-muted text-muted-foreground">
+                      <ImageOff className="h-6 w-6" />
+                      <span className="text-[11px] font-medium">Image unavailable</span>
+                    </div>
                   ) : (
                     <>
                       <img
@@ -1060,6 +1216,7 @@ export function ChannelPostCard({
                         decoding="async"
                         draggable={false}
                         className="h-full w-full object-cover transition-transform hover:scale-[1.02]"
+                        onError={() => setFailedMedia((f) => ({ ...f, [m.url]: true }))}
                         onContextMenu={blockSaveGestures}
                         onContextMenuCapture={blockSaveGestures}
                         onDragStartCapture={blockSaveGestures}
@@ -1076,10 +1233,43 @@ export function ChannelPostCard({
                       +{media.length - 6}
                     </div>
                   )}
-                  {i === Math.min(media.length, 6) - 1 && <PostMediaStatsOverlay views={post.view_count} time={postTimeLabel} />}
+                  {i === Math.min(media.length, 6) - 1 && !singleMediaPost && <PostMediaStatsOverlay views={post.view_count} time={postTimeLabel} />}
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {!editing && singleMediaPost && hasBody && (
+          <div className="px-2 pb-0.5 pt-2 text-[15px] leading-5 text-slate-950">
+            {renderMessageText(messageText)}
+          </div>
+        )}
+
+        {!editing && singleMediaPost && (
+          <div className="mt-1 flex items-end justify-between gap-2 px-2 pb-0.5">
+            <div className="flex min-w-0 flex-wrap gap-1">
+              {visibleReactions.map(({ emoji, count, mine }) => (
+                <button
+                  type="button"
+                  key={emoji}
+                  onClick={() => react(emoji)}
+                  disabled={reacting}
+                  className={cn(
+                    "inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    mine ? "bg-white/75 text-sky-700 ring-1 ring-sky-300/70" : "bg-sky-100/85 text-sky-700 hover:bg-sky-100",
+                  )}
+                >
+                  <span>{emoji}</span>
+                  {count > 0 && <span className="ml-1 font-semibold">{count}</span>}
+                </button>
+              ))}
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[12px] font-medium leading-none text-slate-500">
+              <span>{formatViewCount(post.view_count)}</span>
+              <Eye className="h-3.5 w-3.5 fill-slate-400/30 stroke-[2.4]" />
+              {postTimeLabel && <span>{postTimeLabel}</span>}
+            </span>
           </div>
         )}
 
@@ -1094,7 +1284,7 @@ export function ChannelPostCard({
                   key={emoji}
                   onClick={() => react(emoji)}
                   disabled={reacting}
-                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 ${
+                  className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shadow-sm transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                     mine
                       ? "bg-white/75 ring-1 ring-primary/40 text-foreground"
                       : "bg-white/45 hover:bg-white/70"
@@ -1186,7 +1376,7 @@ export function ChannelPostCard({
                     }}
                     disabled={reacting}
                     className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-full text-xl transition active:scale-95 disabled:opacity-50",
+                      "flex h-10 w-10 items-center justify-center rounded-full text-xl transition active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                       myReaction === emoji ? "bg-sky-100" : "hover:bg-slate-50",
                     )}
                     aria-label={`React ${emoji}`}
@@ -1262,7 +1452,7 @@ export function ChannelPostCard({
               <button
                 type="button"
                 onClick={() => { setStickerPackOpen(null); setPreviewSticker(null); }}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 aria-label="Close sticker pack"
               >
                 <X className="h-5 w-5 stroke-[2.2]" />
@@ -1277,7 +1467,7 @@ export function ChannelPostCard({
               </div>
               <button
                 type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 aria-label="Sticker pack options"
               >
                 <span className="text-2xl leading-none">⋮</span>
@@ -1311,7 +1501,7 @@ export function ChannelPostCard({
                   key={sticker.id}
                   type="button"
                   className={cn(
-                    "flex aspect-square items-center justify-center rounded-2xl transition hover:bg-slate-100 active:scale-95",
+                    "flex aspect-square items-center justify-center rounded-2xl transition hover:bg-slate-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     previewSticker?.id === sticker.id && "bg-sky-50 ring-2 ring-sky-300",
                   )}
                   aria-label={sticker.alt}
@@ -1332,7 +1522,7 @@ export function ChannelPostCard({
               <button
                 type="button"
                 className={cn(
-                  "flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wide shadow-sm transition active:scale-[.99]",
+                  "flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-full text-sm font-bold uppercase tracking-wide shadow-sm transition active:scale-[.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   stickerPackInstalled
                     ? "bg-emerald-500 text-white hover:bg-emerald-600"
                     : "bg-[#3390ec] text-white hover:bg-[#2484df]",
@@ -1357,7 +1547,7 @@ export function ChannelPostCard({
               e.stopPropagation();
               setLightboxIdx(null);
             }}
-            className="absolute right-4 top-[var(--zivo-safe-top-overlay)] rounded-full bg-card/80 p-2 text-foreground hover:bg-card"
+            className="absolute right-4 top-[var(--zivo-safe-top-overlay)] rounded-full bg-card/80 p-2 text-foreground hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -1368,7 +1558,7 @@ export function ChannelPostCard({
                 e.stopPropagation();
                 setLightboxIdx(lightboxIdx - 1);
               }}
-              className="absolute left-4 rounded-full bg-card/80 p-2 text-foreground hover:bg-card"
+              className="absolute left-4 rounded-full bg-card/80 p-2 text-foreground hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="Previous"
             >
               <ChevronLeft className="h-6 w-6" />
@@ -1380,7 +1570,7 @@ export function ChannelPostCard({
                 e.stopPropagation();
                 setLightboxIdx(lightboxIdx + 1);
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-card/80 p-2 text-foreground hover:bg-card"
+              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-card/80 p-2 text-foreground hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="Next"
             >
               <ChevronRight className="h-6 w-6" />
@@ -1389,6 +1579,7 @@ export function ChannelPostCard({
           {isVideo(media[lightboxIdx]) ? (
             <video
               src={media[lightboxIdx].url}
+              poster={media[lightboxIdx].preview_image_url}
               autoPlay
 	              controls
 	              playsInline
@@ -1443,7 +1634,7 @@ export function ChannelPostCard({
                 type="button"
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
-                className="px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-muted/50"
+                className="px-3 py-2 rounded-lg text-sm font-semibold text-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 Cancel
               </button>
@@ -1451,7 +1642,7 @@ export function ChannelPostCard({
                 type="button"
                 onClick={deletePost}
                 disabled={deleting}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-rose-500 text-white text-sm font-bold disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-rose-500 text-white text-sm font-bold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 Delete

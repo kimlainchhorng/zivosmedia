@@ -173,7 +173,7 @@ export default function ShareProfileRedirect() {
 
         <button
           type="button"
-          className="mt-4 text-[12px] text-muted-foreground underline-offset-2 hover:underline"
+          className="mt-4 text-[12px] text-muted-foreground underline-offset-2 hover:underline rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => {
             // Continue in the browser by resolving the share code to /user/:id.
             supabase

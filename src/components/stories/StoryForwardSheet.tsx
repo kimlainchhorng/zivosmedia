@@ -1,4 +1,4 @@
-/**
+﻿/**
  * StoryForwardSheet — Instagram-style "Send to" sheet.
  *
  * Lists the current user's accepted friends, lets them select one or more,
@@ -322,7 +322,7 @@ export default function StoryForwardSheet({
                 <button type="button"
                   onClick={handleSend}
                   disabled={sending}
-                  className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-full py-3 font-semibold text-sm disabled:opacity-60 active:scale-[0.99] transition"
+                  className="w-full flex items-center justify-center gap-2 bg-ig-gradient text-white rounded-full py-3 font-semibold text-sm disabled:opacity-60 active:scale-[0.99] transition"
                 >
                   {sending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

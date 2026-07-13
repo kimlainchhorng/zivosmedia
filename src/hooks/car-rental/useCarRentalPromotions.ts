@@ -102,8 +102,9 @@ export function useCarRentalPromotions(storeId: string | undefined) {
     return created;
   }, [storeId]);
 
-  const update = useCallback(async (id: string, patch: Partial<CarRentalPromotionDraft>) => {
+  const update = useCallback(async (id: string, patch: Partial<CarRentalPromotionDraft>): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const cleaned: Record<string, unknown> = {};
     Object.entries(patch).forEach(([k, v]) => { cleaned[k] = typeof v === "string" && k === "code" ? v.toUpperCase() : v; });
     setPromos((prev) => prev.map((p) => p.id === id ? ({ ...p, ...cleaned } as CarRentalPromotion) : p));
@@ -112,14 +113,18 @@ export function useCarRentalPromotions(storeId: string | undefined) {
     });
     if (err) {
       console.error("[useCarRentalPromotions] update failed", err);
-      setError("Couldn't save changes — refreshing.");
-      await load();
+      await load(); // roll the optimistic patch back to server truth …
+      setError("Couldn't save changes — please retry."); // … then set the message (load() can clear it)
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [load]);
 
-  const remove = useCallback(async (id: string) => {
+  const remove = useCallback(async (id: string): Promise<boolean> => {
     setSaving(true);
+    setError(null);
     const prev = promos;
     setPromos((p) => p.filter((x) => x.id !== id));
     const { error: err } = await supabase.functions.invoke("car-rental-promotion-manage", {
@@ -129,8 +134,11 @@ export function useCarRentalPromotions(storeId: string | undefined) {
       console.error("[useCarRentalPromotions] delete failed", err);
       setError("Couldn't delete promotion.");
       setPromos(prev);
+      setSaving(false);
+      return false;
     }
     setSaving(false);
+    return true;
   }, [promos]);
 
   return { promos, loading, saving, error, create, update, remove, refresh: load };

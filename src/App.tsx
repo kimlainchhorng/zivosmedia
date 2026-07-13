@@ -32,6 +32,8 @@ const CreatorSubscribeSheet = lazy(() => import("@/components/creator/CreatorSub
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useVerificationRealtime } from "@/hooks/useVerificationRealtime";
 import { useOTAUpdate } from "@/hooks/useOTAUpdate";
+import { useTabSwipeNavigation } from "@/hooks/useTabSwipeNavigation";
+import SwipeNavHint from "@/components/app/SwipeNavHint";
 // OTA banner pulls framer-motion — keep it out of the root chunk; it only
 // renders on native when an update is queued.
 const OTAUpdateBanner = lazy(() => import("@/components/shared/OTAUpdateBanner"));
@@ -40,6 +42,7 @@ const ScrollRestoration = lazy(() => import("@/components/app/ScrollRestoration"
 
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import ZivoChatRedirectGuard from "@/components/cross-app/ZivoChatRedirectGuard";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RemoteConfigProvider } from "@/contexts/RemoteConfigContext";
@@ -130,6 +133,11 @@ import {
   ZIVO_SOFTWARE_HOME_PATH,
 } from "@/config/autoRepairDomain";
 import {
+  isZivoDriverHost,
+  isZivoDriverPath,
+  ZIVO_DRIVER_HOME_PATH,
+} from "@/config/zivoDriverDomain";
+import {
   isZivoChatHost,
   isZivoChatPath,
   ZIVO_CHAT_HOME_PATH,
@@ -139,11 +147,6 @@ import {
   isZivoTravelPath,
   ZIVO_TRAVEL_HOME_PATH,
 } from "@/config/zivoTravelDomain";
-import {
-  isZivoDriverHost,
-  isZivoDriverPath,
-  ZIVO_DRIVER_HOME_PATH,
-} from "@/config/zivoDriverDomain";
 import {
   isZivoBusinessHost,
   isZivoBusinessPath,
@@ -158,6 +161,7 @@ import { ZivoTravel3DProvider } from "@/components/zivo-travel/ZivoTravel3DProvi
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
+const DevBuildRO = lazy(() => import("./pages/__DevBuildRO"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ConnectCallback = lazy(() => import("./pages/ConnectCallback"));
 const OAuthForwarder = lazy(() => import("./pages/OAuthForwarder"));
@@ -172,6 +176,10 @@ const InspectionViewPage = lazy(() => lazyRetry(() => import("./pages/Inspection
 
 const Index = lazy(() => lazyRetry(() => import("./pages/Index")));
 const ZivoTravelHome = lazy(() => import("./pages/ZivoTravelHome"));
+const ZivoTravelMyTrips = lazy(() => import("./pages/ZivoTravelMyTrips"));
+const ZivoTravelWallet = lazy(() => import("./pages/ZivoTravelWallet"));
+const ZivoTravelPaymentMethods = lazy(() => import("./pages/ZivoTravelPaymentMethods"));
+const ZivoTravelAccount = lazy(() => import("./pages/ZivoTravelAccount"));
 const ZivoDriverHome = lazy(() => import("./pages/ZivoDriverHome"));
 const ZivoBusinessHome = lazy(() => import("./pages/ZivoBusinessHome"));
 const ZivoEmployeeHome = lazy(() => import("./pages/ZivoEmployeeHome"));
@@ -399,6 +407,7 @@ const GroceryReturns = lazy(() => import("./pages/grocery/GroceryReturns"));
 const GroceryFees = lazy(() => import("./pages/grocery/GroceryFees"));
 const ZivoPlusPage = lazy(() => import("./pages/ZivoPlusPage"));
 const DrivePage = lazy(() => import("./pages/DrivePage"));
+const ZivoDriverLandingPage = lazy(() => import("./pages/driver/ZivoDriverLandingPage"));
 const DriverShoppingList = lazy(() => import("./pages/DriverShoppingList"));
 const DriverOrdersPage = lazy(() => import("./pages/DriverOrdersPage"));
 const AdminShoppingOrders = lazy(() => import("./pages/admin/AdminShoppingOrders"));
@@ -1194,6 +1203,11 @@ function RoutePerfTracker() {
   return null;
 }
 
+function TabSwipeNavigator() {
+  useTabSwipeNavigation();
+  return <SwipeNavHint />;
+}
+
 function NativeDeepLinkHandler() {
   const navigate = useNavigate();
 
@@ -1252,7 +1266,7 @@ function isCurrentZivoChatHost() {
 }
 
 function isCurrentZivoTravelHost() {
-  return typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
+  return typeof window !== "undefined" && isZivoTravelHost();
 }
 
 function isCurrentZivoDriverHost() {
@@ -1294,6 +1308,7 @@ function RouteAwareGlobalUI() {
 
   if (isCurrentZivoSoftwareHost()) return null;
   if (isCurrentZivoTravelHost()) return null;
+  if (isCurrentZivoDriverHost()) return null;
   if (isTravelPreview) return null;
   if (hideGlobalUI || !ready) return null;
 
@@ -1316,6 +1331,7 @@ function DeferredPassiveChatOverlays() {
   const ready = useAfterFirstPaint(3200);
   if (isCurrentZivoSoftwareHost()) return null;
   if (isCurrentZivoTravelHost()) return null;
+  if (isCurrentZivoDriverHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1361,7 +1377,7 @@ function LazyP2PTransferSheetHost() {
 
 function DeferredGlobalSheets() {
   const ready = useAfterFirstPaint(2400);
-  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost()) return null;
+  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost() || isCurrentZivoDriverHost()) return null;
   if (!ready) return null;
 
   return (
@@ -1378,7 +1394,7 @@ function DeferredGlobalSheets() {
 
 function DeferredCurrencyPicker() {
   const ready = useAfterFirstPaint(2400);
-  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost()) return null;
+  if (isCurrentZivoSoftwareHost() || isCurrentZivoChatHost() || isCurrentZivoTravelHost() || isCurrentZivoDriverHost()) return null;
   return ready ? <Suspense fallback={null}><CurrencyPickerSheet /></Suspense> : null;
 }
 
@@ -1417,6 +1433,7 @@ function DesktopNavBootstrap() {
     isCurrentZivoSoftwareHost() ||
     isCurrentZivoChatHost() ||
     isCurrentZivoTravelHost() ||
+    isCurrentZivoDriverHost() ||
     location.pathname === "/zivo-travel" ||
     location.pathname.startsWith("/desktop/auto-repair") ||
     location.pathname.startsWith("/d/")
@@ -1580,7 +1597,7 @@ function ZivoChatHostGate() {
 function ZivoTravelHostGate() {
   const location = useLocation();
 
-  if (typeof window === "undefined" || !isZivoTravelHost(window.location.hostname)) {
+  if (typeof window === "undefined" || !isZivoTravelHost()) {
     return null;
   }
 
@@ -1633,6 +1650,7 @@ function ZivoEmployeeHostGate() {
   return <Navigate to={ZIVO_EMPLOYEE_HOME_PATH} replace />;
 }
 
+
 const App = () => (
   <ErrorBoundary>
     <HelmetProvider>
@@ -1664,10 +1682,12 @@ const App = () => (
                 <ZivoEmployeeHostGate />
                 <ZivoTravel3DProvider />
                 <RoutePerfTracker />
+                <TabSwipeNavigator />
                 <NativeDeepLinkHandler />
                 <OTAUpdateBootstrap />
                 <Suspense fallback={null}><NavigationProgressBar /></Suspense>
                 <Suspense fallback={null}><ScrollRestoration /></Suspense>
+                <ZivoChatRedirectGuard />
                 <Suspense fallback={null}><PostShareSheet /></Suspense>
                 <DeferredRoutePrefetcher />
                 <PaymentReturnBootstrap />
@@ -1685,9 +1705,15 @@ const App = () => (
                       <UTMProvider>
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
-                            <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : isCurrentZivoDriverHost() ? <ZivoDriverHome /> : isCurrentZivoBusinessHost() ? <ZivoBusinessHome /> : isCurrentZivoEmployeeHost() ? <ZivoEmployeeHome /> : <Index />} />
+                            <Route path="/" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : isCurrentZivoDriverHost() ? <ZivoDriverLandingPage /> : isCurrentZivoBusinessHost() ? <ZivoBusinessHome /> : isCurrentZivoEmployeeHost() ? <ZivoEmployeeHome /> : <Index />} />
                             <Route path="/zivo-travel" element={<ZivoTravelHome />} />
+                            {/* Travel utility pages — host-agnostic preview paths (also usable on the travel host). */}
+                            <Route path="/zivo-travel/my-trips" element={<ZivoTravelMyTrips />} />
+                            <Route path="/zivo-travel/wallet" element={<ZivoTravelWallet />} />
+                            <Route path="/zivo-travel/payment-methods" element={<ZivoTravelPaymentMethods />} />
+                            <Route path="/zivo-travel/account" element={<ZivoTravelAccount />} />
                             
+                            <Route path="/__dev_buildro/:storeId" element={<DevBuildRO />} />
                             <Route path="/login" element={<Login />} />
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/unsubscribe" element={<Unsubscribe />} />
@@ -1704,10 +1730,11 @@ const App = () => (
                 <Route path="/app/home" element={<ProtectedRoute><AppHome /></ProtectedRoute>} />
                 <Route path="/index" element={<ProtectedRoute><AppHome /></ProtectedRoute>} />
                 <Route path="/hotel-admin" element={<ProtectedRoute><HotelAdminLaunchPage /></ProtectedRoute>} />
-                <Route path="/my-trips" element={<ProtectedRoute><MyTripsPage /></ProtectedRoute>} />
+                <Route path="/my-trips" element={isCurrentZivoTravelHost() ? <ZivoTravelMyTrips /> : <ProtectedRoute><MyTripsPage /></ProtectedRoute>} />
                 <Route path="/my-reviews" element={<ProtectedRoute><MyReviewsPage /></ProtectedRoute>} />
                 <Route path="/payments" element={<ProtectedRoute><PreserveQueryRedirect to="/wallet" /></ProtectedRoute>} />
-                <Route path="/wallet" element={<ProtectedRoute><AccountWalletPage /></ProtectedRoute>} />
+                <Route path="/wallet" element={isCurrentZivoTravelHost() ? <ZivoTravelWallet /> : <ProtectedRoute><AccountWalletPage /></ProtectedRoute>} />
+                <Route path="/payment-methods" element={isCurrentZivoTravelHost() ? <ZivoTravelPaymentMethods /> : <ProtectedRoute><PreserveQueryRedirect to="/wallet" /></ProtectedRoute>} />
                 <Route path="/wallet/coins/success" element={<ProtectedRoute><CoinPurchaseSuccess /></ProtectedRoute>} />
                 <Route path="/support" element={<ProtectedRoute><SupportCenterPage /></ProtectedRoute>} />
                 <Route path="/travel" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : <ProtectedRoute><AppTravel /></ProtectedRoute>} />
@@ -1778,7 +1805,7 @@ const App = () => (
                 <Route path="/move" element={<PreserveQueryRedirect to="/rides/hub" />} />
                 <Route path="/search" element={<PreserveQueryRedirect to="/flights" />} />
                 <Route path="/my-trips-legacy" element={<PreserveQueryRedirect to="/trips" />} />
-                <Route path="/account" element={<PreserveQueryRedirect to="/profile" />} />
+                <Route path="/account" element={isCurrentZivoTravelHost() ? <ZivoTravelAccount /> : <PreserveQueryRedirect to="/profile" />} />
                 <Route path="/alerts" element={<PreserveQueryRedirect to="/notifications" />} />
                 <Route path="/delivery" element={<DeliveryPage />} />
                 <Route path="/delivery/track/:id" element={<ProtectedRoute><DeliveryTrackingPage /></ProtectedRoute>} />
@@ -1959,6 +1986,7 @@ const App = () => (
                 <Route path="/grocery/fees" element={<GroceryFees />} />
                 <Route path="/zivo-plus" element={<ZivoPlusPage />} />
                 <Route path="/drive" element={<CambodiaOnlyGate><DrivePage /></CambodiaOnlyGate>} />
+                <Route path="/driver" element={<ZivoDriverLandingPage />} />
                 <Route path="/driver/orders" element={<DriverOrdersPage />} />
                 <Route path="/driver/shopping/:orderId" element={<DriverShoppingList />} />
                 <Route path="/driver/shop/:orderId" element={<DriverShopPage />} />
@@ -2044,13 +2072,13 @@ const App = () => (
 
                 {/* Flights */}
                 <Route path="/flights" element={<RouteErrorBoundary section="Flights"><FlightLanding /></RouteErrorBoundary>} />
+                <Route path="/flights/results" element={<RouteErrorBoundary section="Flights"><FlightResults /></RouteErrorBoundary>} />
                 <Route path="/flights/from-:fromCity" element={<RouteErrorBoundary section="Flights"><FlightLanding /></RouteErrorBoundary>} />
                 <Route path="/flights/to-:toCity" element={<RouteErrorBoundary section="Flights"><FlightLanding /></RouteErrorBoundary>} />
                 <Route path="/flights/to/:citySlug" element={<RouteErrorBoundary section="Flights"><FlightToCity /></RouteErrorBoundary>} />
                 <Route path="/flights/cities/:citySlug" element={<RouteErrorBoundary section="Flights"><FlightCityPage /></RouteErrorBoundary>} />
                 <Route path="/flights/:origin-to-:destination" element={<RouteErrorBoundary section="Flights"><FlightRoutePage /></RouteErrorBoundary>} />
                 <Route path="/flights/:route" element={<RouteErrorBoundary section="Flights"><FlightLanding /></RouteErrorBoundary>} />
-                <Route path="/flights/results" element={<RouteErrorBoundary section="Flights"><FlightResults /></RouteErrorBoundary>} />
                 <Route path="/flights/live" element={<RouteErrorBoundary section="Flights"><FlightLive /></RouteErrorBoundary>} />
                 <Route path="/flights/details/review" element={<RouteErrorBoundary section="Flights"><FlightReview /></RouteErrorBoundary>} />
                 <Route path="/flights/details/:id" element={<RouteErrorBoundary section="Flights"><FlightDetails /></RouteErrorBoundary>} />

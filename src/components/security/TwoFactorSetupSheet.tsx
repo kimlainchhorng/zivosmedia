@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TwoFactorSetupSheet — TOTP enrollment + recovery codes.
  *
  * Generates a TOTP secret + otpauth URL, shows a QR string the user scans
@@ -98,7 +98,7 @@ export default function TwoFactorSetupSheet() {
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={close}
-          className="fixed inset-0 z-[180] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
+          className="fixed inset-0 z-[1450] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
           role="dialog" aria-modal="true"
         >
           <motion.div
@@ -126,7 +126,7 @@ export default function TwoFactorSetupSheet() {
                     <p className="font-mono text-sm break-all mt-1">{secret}</p>
                   </div>
                   <a href={otpauthUrl} className="block w-full py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold text-center">Open in app</a>
-                  <button type="button" onClick={() => setStep("verify")} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">Next: enter code</button>
+                  <button type="button" onClick={() => setStep("verify")} className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-bold">Next: enter code</button>
                 </>
               )}
               {step === "verify" && (
@@ -139,7 +139,7 @@ export default function TwoFactorSetupSheet() {
                     className="w-full text-center text-2xl font-mono tracking-[0.4em] py-3 rounded-xl bg-muted/40 border border-border/30 outline-none focus:ring-2 focus:ring-primary/30"
                     placeholder="000000"
                   />
-                  <button type="button" onClick={() => void verify()} disabled={busy || code.length < 6} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50">
+                  <button type="button" onClick={() => void verify()} disabled={busy || code.length < 6} className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-bold disabled:opacity-50">
                     Verify & enable
                   </button>
                 </>
@@ -150,7 +150,7 @@ export default function TwoFactorSetupSheet() {
                   <div className="grid grid-cols-2 gap-2">
                     {recovery.map((c) => <div key={c} className="font-mono text-xs text-center py-2 rounded-lg bg-muted/40">{c}</div>)}
                   </div>
-                  <button type="button" onClick={close} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">Done</button>
+                  <button type="button" onClick={close} className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-bold">Done</button>
                 </>
               )}
             </div>

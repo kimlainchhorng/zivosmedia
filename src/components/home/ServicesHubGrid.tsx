@@ -16,6 +16,7 @@ import BedDouble from "lucide-react/dist/esm/icons/bed-double";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import CalendarClock from "lucide-react/dist/esm/icons/calendar-clock";
 import type { LucideIcon } from "lucide-react";
+import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCountry } from "@/hooks/useCountry";
@@ -67,6 +68,10 @@ export default function ServicesHubGrid() {
       };
 
       const sb = supabase as any;
+      // Local YYYY-MM-DD. toISOString().slice(0,10) is the UTC day, which in
+      // Cambodia (UTC+7) reads as yesterday before 07:00 local — an early-morning
+      // user would see today's flight/hotel drop off this hub.
+      const todayLocal = format(new Date(), "yyyy-MM-dd");
       const [ride, food, flight, hotel] = await Promise.all([
         sb
           .from("trips")
@@ -88,7 +93,7 @@ export default function ServicesHubGrid() {
           .from("flight_bookings")
           .select("id,departure_date")
           .eq("customer_id", user.id)
-          .gte("departure_date", new Date().toISOString().slice(0, 10))
+          .gte("departure_date", todayLocal)
           .order("departure_date", { ascending: true })
           .limit(1)
           .maybeSingle(),
@@ -96,7 +101,7 @@ export default function ServicesHubGrid() {
           .from("hotel_bookings")
           .select("id,check_in_date")
           .eq("customer_id", user.id)
-          .gte("check_in_date", new Date().toISOString().slice(0, 10))
+          .gte("check_in_date", todayLocal)
           .order("check_in_date", { ascending: true })
           .limit(1)
           .maybeSingle(),

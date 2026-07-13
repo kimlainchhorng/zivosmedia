@@ -67,7 +67,7 @@ const AppLayout = ({
       <main
         className={cn(
           "flex-1",
-          fixedHeight ? "min-h-0 overflow-hidden flex flex-col" : "scroll-momentum",
+          fixedHeight ? "min-h-0 overflow-hidden flex flex-col" : "scroll-momentum overscroll-contain",
           !hideNav && "pb-nav",
           className
         )}

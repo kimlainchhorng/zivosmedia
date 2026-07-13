@@ -249,7 +249,7 @@ export default function CreatorMilestonesPage() {
                     type="button"
                     onClick={() => celebrateMutation.mutate(row.id)}
                     disabled={celebrateMutation.isPending}
-                    className="mt-3 w-full h-9 rounded-lg bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                    className="mt-3 w-full h-9 rounded-lg bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <PartyPopper className="h-3.5 w-3.5" /> Celebrate this milestone
                   </button>

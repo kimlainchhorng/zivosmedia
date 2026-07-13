@@ -98,7 +98,7 @@ export default function MyPodcastsPage() {
               return (
                 <motion.div key={s.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx, 12) * 0.02 }} className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border">
                   {p?.cover_url ? <img src={p.cover_url} alt="" className="shrink-0 h-14 w-14 rounded-xl object-cover" loading="lazy" decoding="async" /> : <div className="shrink-0 h-14 w-14 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><Mic className="h-5 w-5 text-ig-gradient" /></div>}
-                  <button type="button" onClick={() => navigate(`/podcasts/${s.podcast_id}`)} className="flex-1 min-w-0 text-left">
+                  <button type="button" onClick={() => navigate(`/podcasts/${s.podcast_id}`)} className="flex-1 min-w-0 text-left transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <p className="text-sm font-bold text-foreground line-clamp-1">{p?.title ?? "Podcast"}</p>
                     {p?.description && <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{p.description}</p>}
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
@@ -108,7 +108,7 @@ export default function MyPodcastsPage() {
                       <span className="inline-flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> Subscribed {formatRelative(s.created_at)}</span>
                     </div>
                   </button>
-                  <button type="button" aria-label="Unsubscribe" onClick={() => unsubscribe(s.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" aria-label="Unsubscribe" onClick={() => unsubscribe(s.id)} className="h-8 w-8 rounded-full text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Trash2 className="h-3.5 w-3.5" /></button>
                 </motion.div>
               );
             })}

@@ -55,7 +55,12 @@ export interface PnLKpis {
 
 export function computeKpis(payments: PaymentRow[], expenses: ExpenseRow[], invoices: InvoiceRow[]): PnLKpis {
   const revenue = payments.reduce((s, p) => s + (p.amount_cents ?? 0), 0);
-  const invoiced = invoices.reduce((s, i) => s + Math.max(0, (i.total_cents ?? 0) - (i.amount_paid_cents ?? 0)), 0);
+  // Voiding an invoice only flips status="void"; it leaves total_cents/amount_paid_cents
+  // intact, so a never-paid void still shows a positive balance. Exclude it from
+  // outstanding receivables, matching every other AR call site in the app.
+  const invoiced = invoices
+    .filter((i) => i.status !== "void")
+    .reduce((s, i) => s + Math.max(0, (i.total_cents ?? 0) - (i.amount_paid_cents ?? 0)), 0);
   const cogs = expenses.filter((e) => isCogs(e.category)).reduce((s, e) => s + (e.amount_cents ?? 0), 0);
   const opex = expenses.filter((e) => !isCogs(e.category)).reduce((s, e) => s + (e.amount_cents ?? 0), 0);
   const taxes = invoices.reduce((s, i) => s + collectedTaxCents(i), 0);
@@ -137,7 +142,7 @@ export function computeAging(invoices: InvoiceRow[]): ArAging {
   const now = Date.now();
   const buckets = { current: 0, d30: 0, d60: 0, d90: 0, d90Plus: 0 };
   const unpaid = invoices
-    .filter((i) => i.status !== "paid" && (i.total_cents - i.amount_paid_cents) > 0)
+    .filter((i) => i.status !== "paid" && i.status !== "void" && (i.total_cents - i.amount_paid_cents) > 0)
     .map((i) => {
       const outstanding = i.total_cents - i.amount_paid_cents;
       const dueRef = i.due_at ? new Date(i.due_at).getTime() : new Date(i.created_at).getTime();
@@ -159,7 +164,13 @@ export type Preset = "today" | "week" | "mtd" | "last_month" | "qtd" | "ytd" | "
 
 export function presetRange(preset: Preset): { from: string; to: string } {
   const today = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  // Local YYYY-MM-DD. toISOString().slice(0,10) is the UTC day, which for Cambodia
+  // (UTC+7, no DST) reads as yesterday before 07:00 ICT. Worse, the month-anchored
+  // presets build new Date(y, m, 1) — local midnight of the 1st, which serializes in
+  // UTC to the last day of the previous month — so mtd/qtd/ytd/last_month would
+  // persistently leak (or drop) a boundary day. Read the local calendar parts instead.
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const start = (d: Date) => { d.setHours(0,0,0,0); return d; };
   const to = iso(today);
   switch (preset) {

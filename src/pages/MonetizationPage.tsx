@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MonetizationPage — ZIVO Signature Design (2026)
  * Real wallet data, complete program hub, creator tools
  */
@@ -89,12 +89,12 @@ const monetizationPrograms: Program[] = [
 ];
 
 const learningResources = [
-  { title: "Getting started with Subscription", description: "Your key to deeper audience connections...", views: "7.7M views", icon: Crown, accent: "hsl(38 92% 50%)" },
-  { title: "Going LIVE on ZIVO!", description: "Real-time fun, self-expression, and connecting...", views: "5.7M views", icon: Video, accent: "hsl(263 70% 58%)" },
-  { title: "Unlocking LIVE monetization", description: "Explore all ways to monetize your streams...", views: "5.7M views", icon: DollarSign, accent: "hsl(142 71% 45%)" },
-  { title: "Monetizing your content", description: "Turn views into real earnings...", views: "9.2M views", icon: TrendingUp, accent: "hsl(221 83% 53%)" },
-  { title: "Building affiliate business", description: "Earn $10K+ monthly through referrals...", views: "3.1M views", icon: Target, accent: "hsl(172 66% 50%)" },
-  { title: "Selling digital products", description: "Create and sell digital products...", views: "2.8M views", icon: PenTool, accent: "hsl(300 70% 55%)" },
+  { title: "Getting started with Subscription", description: "Your key to deeper audience connections...", views: "7.7M views", icon: Crown, accent: "hsl(38 92% 50%)", tab: "Subscription" },
+  { title: "Going LIVE on ZIVO!", description: "Real-time fun, self-expression, and connecting...", views: "5.7M views", icon: Video, accent: "hsl(263 70% 58%)", tab: "LIVE rewards" },
+  { title: "Unlocking LIVE monetization", description: "Explore all ways to monetize your streams...", views: "5.7M views", icon: DollarSign, accent: "hsl(142 71% 45%)", tab: "LIVE rewards" },
+  { title: "Monetizing your content", description: "Turn views into real earnings...", views: "9.2M views", icon: TrendingUp, accent: "hsl(221 83% 53%)", tab: "Creator Rewards" },
+  { title: "Building affiliate business", description: "Earn $10K+ monthly through referrals...", views: "3.1M views", icon: Target, accent: "hsl(172 66% 50%)", tab: "Affiliate" },
+  { title: "Selling digital products", description: "Create and sell digital products...", views: "2.8M views", icon: PenTool, accent: "hsl(300 70% 55%)", tab: "Digital Products" },
 ];
 
 const resourceTabs = ["Recommended", "Subscription", "LIVE rewards", "Creator Rewards", "Affiliate", "Digital Products"];
@@ -221,11 +221,12 @@ export default function MonetizationPage() {
 
         // Deactivate the free Supporter tier so visitors only see the paid VIP.
         // (Reactivate from the Creator Setup page if you want both later.)
-        await (supabase as any)
+        const { error: deactivateErr } = await (supabase as any)
           .from("subscription_tiers")
           .update({ is_active: false })
           .eq("creator_id", user.id)
           .eq("is_free", true);
+        if (deactivateErr) throw deactivateErr;
 
         // Invalidate the public-tier cache so the visitor preview refetches.
         qc.invalidateQueries({ queryKey: ["public-creator-tiers", user.id] });
@@ -348,6 +349,13 @@ export default function MonetizationPage() {
   const visibleLearningResources = zivoOFMode
     ? learningResources.filter((res) => zivoOFResourceTitles.has(res.title))
     : learningResources;
+  // Filter the resource list by the selected tab ("Recommended" = all). Guarded so an
+  // out-of-range activeResTab (e.g. after the zivoOF tab set shrinks) falls back to all.
+  const activeResourceTabName = visibleResourceTabs[activeResTab];
+  const tabbedLearningResources =
+    !activeResourceTabName || activeResourceTabName === "Recommended"
+      ? visibleLearningResources
+      : visibleLearningResources.filter((res) => res.tab === activeResourceTabName);
 
   return (
     <div className="min-h-dvh bg-background pb-24">
@@ -356,7 +364,7 @@ export default function MonetizationPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30 zivo-ribbon">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" title="Back" aria-label="Back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/profile"))} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" title="Back" aria-label="Back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/profile"))} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           {searchOpen ? (
@@ -375,7 +383,7 @@ export default function MonetizationPage() {
             title={searchOpen ? "Close search" : "Open search"}
             aria-label={searchOpen ? "Close search" : "Open search"}
             onClick={() => { setSearchOpen(!searchOpen); if (searchOpen) setSearchQuery(""); }}
-            className="p-2 -mr-1 rounded-full hover:bg-muted/50 touch-manipulation"
+            className="p-2 -mr-1 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Search className="h-5 w-5" />
           </button>
@@ -435,14 +443,14 @@ export default function MonetizationPage() {
               <button
                 type="button"
                 onClick={() => navigate("/creator/subscribers")}
-                className="rounded-full border border-border/50 bg-muted/30 px-3 py-2 text-[11px] font-semibold text-foreground hover:bg-muted/50 active:scale-[0.97] transition-all"
+                className="rounded-full border border-border/50 bg-muted/30 px-3 py-2 text-[11px] font-semibold text-foreground hover:bg-muted/50 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 View subscribers
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/wallet")}
-                className="rounded-full border border-border/50 bg-muted/30 px-3 py-2 text-[11px] font-semibold text-foreground hover:bg-muted/50 active:scale-[0.97] transition-all"
+                className="rounded-full border border-border/50 bg-muted/30 px-3 py-2 text-[11px] font-semibold text-foreground hover:bg-muted/50 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Payouts &amp; wallet
               </button>
@@ -554,7 +562,7 @@ export default function MonetizationPage() {
             <button
               type="button"
               onClick={() => { navigate("/feed?compose=locked"); }}
-              className="w-full flex items-center justify-center gap-2 rounded-full border border-[#00AEEF]/30 bg-[#00AEEF]/5 px-4 py-2.5 text-[12px] font-bold text-[#00AEEF] hover:bg-[#00AEEF]/10 active:scale-[0.97] transition-all"
+              className="w-full flex items-center justify-center gap-2 rounded-full border border-[#00AEEF]/30 bg-[#00AEEF]/5 px-4 py-2.5 text-[12px] font-bold text-[#00AEEF] hover:bg-[#00AEEF]/10 active:scale-[0.97] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Lock className="w-3.5 h-3.5" />
               Create locked post (PPV)
@@ -583,7 +591,7 @@ export default function MonetizationPage() {
               <button
                 type="button"
                 onClick={() => navigate(`/user/${user.id}?from=monetization&as=visitor`)}
-                className="zivo-btn-signature px-3.5 py-2 text-[11px] flex items-center gap-1.5"
+                className="zivo-btn-signature px-3.5 py-2 text-[11px] flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Eye className="w-3.5 h-3.5" /> Preview profile
               </button>
@@ -600,7 +608,7 @@ export default function MonetizationPage() {
                   key={item.title}
                   type="button"
                   onClick={() => navigate(item.href)}
-                  className="text-left rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5 hover:bg-muted/35 transition-colors touch-manipulation"
+                  className="text-left rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5 hover:bg-muted/35 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation"
                 >
                   <p className="text-[12px] font-bold leading-tight">{item.title}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
@@ -627,7 +635,7 @@ export default function MonetizationPage() {
                   <p className="text-xl font-extrabold">${(balance / 100).toFixed(2)}</p>
                 </div>
               </div>
-              <Link to="/creator-dashboard" className="zivo-btn-signature px-4 py-2 text-[11px] flex items-center gap-1 touch-manipulation">
+              <Link to="/creator-dashboard" className="zivo-btn-signature px-4 py-2 text-[11px] flex items-center gap-1 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 Dashboard <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
@@ -654,7 +662,7 @@ export default function MonetizationPage() {
           </h2>
           <div className="grid grid-cols-3 gap-2">
             {visibleQuickActions.map((action, i) => (
-              <Link key={action.label} to={action.href}>
+              <Link key={action.label} to={action.href} className="rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -686,7 +694,8 @@ export default function MonetizationPage() {
               <button type="button"
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                aria-pressed={activeFilter === filter}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   activeFilter === filter
                     ? "bg-foreground text-background"
                     : "bg-muted/60 text-muted-foreground"
@@ -713,7 +722,7 @@ export default function MonetizationPage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: i * 0.02 }}
                   >
-                    <Link to={`/monetization/program/${prog.programId}`}>
+                    <Link to={`/monetization/program/${prog.programId}`} className="rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <div className="zivo-card-organic flex items-start gap-3 p-3.5 touch-manipulation">
                         <div className={`zivo-icon-pill w-9 h-9 rounded-xl shrink-0 mt-0.5 ${getAccentClasses(prog.accent).text} ${getAccentClasses(prog.accent).bg}`}>
                           <prog.icon className={`h-4 w-4 ${getAccentClasses(prog.accent).text}`} />
@@ -751,7 +760,7 @@ export default function MonetizationPage() {
             {filteredPrograms.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-sm text-muted-foreground">No programs match your filter</p>
-                <button type="button" onClick={() => { setActiveFilter("All"); setSearchQuery(""); }} className="text-xs text-primary font-semibold mt-2">
+                <button type="button" onClick={() => { setActiveFilter("All"); setSearchQuery(""); }} className="text-xs text-primary font-semibold mt-2 active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   Show all programs
                 </button>
               </div>
@@ -769,7 +778,7 @@ export default function MonetizationPage() {
             </h2>
             <button type="button"
               onClick={() => navigate("/monetization/articles")}
-              className="text-xs text-primary font-semibold flex items-center gap-0.5 touch-manipulation"
+              className="text-xs text-primary font-semibold flex items-center gap-0.5 touch-manipulation active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               View all <ChevronRight className="w-3 h-3" />
             </button>
@@ -780,7 +789,8 @@ export default function MonetizationPage() {
               <button type="button"
                 key={tab}
                 onClick={() => setActiveResTab(i)}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                aria-pressed={i === activeResTab}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   i === activeResTab
                     ? "bg-foreground text-background"
                     : "bg-muted/60 text-muted-foreground"
@@ -792,14 +802,14 @@ export default function MonetizationPage() {
           </div>
 
           <div className="space-y-3">
-            {visibleLearningResources.map((res, i) => (
+            {tabbedLearningResources.map((res, i) => (
               <motion.button
                 key={res.title}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + i * 0.04 }}
                 onClick={() => navigate(`/monetization/articles/${res.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "")}`)}
-                className="w-full flex items-start gap-3 text-left touch-manipulation active:bg-muted/10 rounded-xl p-2 -mx-2 transition-colors"
+                className="w-full flex items-start gap-3 text-left touch-manipulation active:bg-muted/10 rounded-xl p-2 -mx-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-[13px] leading-tight mb-1">{res.title}</p>
@@ -835,11 +845,11 @@ export default function MonetizationPage() {
               <button type="button"
                 key={item.step}
                 onClick={() => item.href && navigate(item.href)}
-                className="flex items-center gap-3 w-full text-left touch-manipulation"
+                className="flex items-center gap-3 w-full text-left touch-manipulation rounded-lg active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 disabled={!item.href || item.done}
               >
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                  item.done ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+                  item.done ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
                 }`}>
                   {item.done ? <CheckCircle className="w-4 h-4" /> : i + 1}
                 </div>
@@ -861,7 +871,7 @@ export default function MonetizationPage() {
           { icon: Award, title: "Creator Academy", desc: "500+ guides and tutorials.", href: "/monetization/articles", accent: "hsl(25 95% 53%)" },
           { icon: Globe, title: "Partner Program", desc: "Exclusive partner benefits.", href: "/affiliate-hub", accent: "hsl(263 70% 58%)" },
         ].map((cta, i) => (
-          <Link key={cta.title} to={cta.href}>
+          <Link key={cta.title} to={cta.href} className="rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

@@ -179,6 +179,7 @@ export default function LiveTripTracker() {
   const secs = countdown % 60;
 
   return (
+    <div className="px-5 pb-3">
     <motion.button
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -231,5 +232,6 @@ export default function LiveTripTracker() {
         </div>
       </div>
     </motion.button>
+    </div>
   );
 }

@@ -9,5 +9,6 @@ serve(withSecurity("travel-payment-failed", async (req, ctx) => {
   allowedMethods: ["POST"],
   strictCors: true,
   skipBotDetection: true,
+  strictCors: true,
   skipWaf: true,
 }));

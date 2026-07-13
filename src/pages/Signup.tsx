@@ -197,39 +197,14 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
-  // Date of birth — split into M/D/Y so a single bad keystroke never invalidates
-  // the whole field, and so we can use native <select> on mobile (no calendar
-  // popover quirks). Combined into ISO YYYY-MM-DD on submit and validated 18+.
-  const [dobMonth, setDobMonth] = useState("");
-  const [dobDay, setDobDay] = useState("");
-  const [dobYear, setDobYear] = useState("");
   // Honeypot — invisible to humans, irresistible to naive form-filling bots.
   // If it has a value at submit time, the request is from a bot. Silent reject.
   const [companyWebsite, setCompanyWebsite] = useState("");
-
-  // Compute age from selected DOB. Returns null when DOB is incomplete/invalid.
-  const computedAge = (() => {
-    if (!dobMonth || !dobDay || !dobYear) return null;
-    const y = Number(dobYear), mo = Number(dobMonth), d = Number(dobDay);
-    if (!Number.isInteger(y) || !Number.isInteger(mo) || !Number.isInteger(d)) return null;
-    if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
-    const dob = new Date(Date.UTC(y, mo - 1, d));
-    if (Number.isNaN(dob.getTime())) return null;
-    // Reject impossible day-of-month (e.g. Feb 30) by round-tripping
-    if (dob.getUTCFullYear() !== y || dob.getUTCMonth() !== mo - 1 || dob.getUTCDate() !== d) return null;
-    const now = new Date();
-    let age = now.getUTCFullYear() - y;
-    const beforeBirthday = now.getUTCMonth() < mo - 1 || (now.getUTCMonth() === mo - 1 && now.getUTCDate() < d);
-    if (beforeBirthday) age -= 1;
-    return age;
-  })();
-  const isUnderage = !isZivoSoftwareDomain && computedAge !== null && computedAge < 18;
-  const dobIsoString = dobMonth && dobDay && dobYear
-    ? `${dobYear.padStart(4, "0")}-${dobMonth.padStart(2, "0")}-${dobDay.padStart(2, "0")}`
-    : "";
 
   useEffect(() => {
     if (!authLoading && user) finishAuthRedirect(redirect);
@@ -247,47 +222,33 @@ const Signup = () => {
       return;
     }
 
+    setFormError(null);
+
     if (!firstName.trim() || !lastName.trim()) {
-      toast.error("Please enter your first and last name.");
+      setFormError("Please enter your first and last name.");
       return;
     }
     if (!email.trim()) {
-      toast.error("Please enter your email.");
+      setFormError("Please enter your email.");
       return;
     }
-    // 18+ gate for the main consumer app. ZIVO Software business signup does
-    // not collect date of birth.
-    if (!isZivoSoftwareDomain) {
-      if (!dobIsoString) {
-        toast.error("Please enter your date of birth.");
-        return;
-      }
-      if (computedAge === null) {
-        toast.error("Please enter a valid date of birth.");
-        return;
-      }
-      if (computedAge < 18) {
-        toast.error("You must be 18 or older to create a ZIVO account.");
-        return;
-      }
-      if (computedAge > 120) {
-        toast.error("Please enter a valid date of birth.");
-        return;
-      }
-    }
     if (password.length < 8) {
-      toast.error("Password must be at least 8 characters.");
+      setFormError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setFormError("Passwords don't match.");
       return;
     }
     if (!agree) {
-      toast.error("Please accept the Terms and Privacy Policy.");
+      setFormError("Please accept the Terms and Privacy Policy.");
       return;
     }
 
     // Strength gate: refuse weak passwords up-front (local rules, no network).
     const analysis = analyzePassword(password);
     if (analysis.strength === "weak") {
-      toast.error(`Password too weak. ${analysis.feedback[0] ?? "Try a longer, more varied password."}`);
+      setFormError(`Password too weak. ${analysis.feedback[0] ?? "Try a longer, more varied password."}`);
       return;
     }
 
@@ -298,9 +259,7 @@ const Signup = () => {
     const breach = await checkPasswordBreach(password);
     if (breach.breached) {
       setSubmitting(false);
-      toast.error(
-        `This password appears in ${breach.count.toLocaleString()} known data breaches. Please choose a different one.`,
-      );
+      setFormError(`This password appears in ${breach.count.toLocaleString()} known data breaches. Please choose a different one.`);
       return;
     }
 
@@ -309,14 +268,14 @@ const Signup = () => {
       email.trim(),
       password,
       fullName,
-      isZivoSoftwareDomain ? undefined : dobIsoString,
+      undefined,
       undefined,
       isZivoSoftwareDomain ? "zivo_software" : undefined,
     );
     setSubmitting(false);
 
     if (error) {
-      toast.error(error.message || "Could not create account. Please try again.");
+      setFormError(error.message || "Could not create account. Please try again.");
       return;
     }
 
@@ -429,6 +388,29 @@ const Signup = () => {
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                id="su-first"
+                type="text"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(e) => { setFirstName(e.target.value); setFormError(null); }}
+                placeholder="First name"
+                disabled={submitting}
+                className="w-full h-10 px-3 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
+              />
+              <input
+                id="su-last"
+                type="text"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(e) => { setLastName(e.target.value); setFormError(null); }}
+                placeholder="Last name"
+                disabled={submitting}
+                className="w-full h-10 px-3 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
+              />
+            </div>
+
             <input
               id="su-email"
               type="email"
@@ -439,107 +421,57 @@ const Signup = () => {
               spellCheck={false}
               enterKeyHint="next"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setFormError(null); }}
               placeholder="Email"
               disabled={submitting}
               className="w-full h-10 px-3 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
             />
 
             <div className="grid grid-cols-2 gap-2">
-              <input
-                id="su-first"
-                type="text"
-                autoComplete="given-name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="First name"
-                disabled={submitting}
-                className="w-full h-10 px-3 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
-              />
-              <input
-                id="su-last"
-                type="text"
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Last name"
-                disabled={submitting}
-                className="w-full h-10 px-3 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
-              />
-            </div>
-
-            <div className="relative">
-              <input
-                id="su-pw"
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                enterKeyHint="go"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                disabled={submitting}
-                className="w-full h-10 px-3 pr-12 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {!isZivoSoftwareDomain && (
-              <div className="pt-2 space-y-1.5">
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  Date of birth — you must be 18+
-                </label>
-                <div className="grid grid-cols-[1.4fr_1fr_1.1fr] gap-2">
-                  <select
-                    value={dobMonth}
-                    onChange={(e) => setDobMonth(e.target.value)}
-                    disabled={submitting}
-                    aria-label="Month"
-                    className={`h-11 px-2 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border ${isUnderage ? "border-rose-400 dark:border-rose-500" : "border-zinc-200 dark:border-zinc-700"} focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white transition`}
-                  >
-                    <option value="">Month</option>
-                    {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m, i) => (
-                      <option key={m} value={String(i + 1)}>{m}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={dobDay}
-                    onChange={(e) => setDobDay(e.target.value)}
-                    disabled={submitting}
-                    aria-label="Day"
-                    className={`h-11 px-2 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border ${isUnderage ? "border-rose-400 dark:border-rose-500" : "border-zinc-200 dark:border-zinc-700"} focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white transition`}
-                  >
-                    <option value="">Day</option>
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={String(d)}>{d}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={dobYear}
-                    onChange={(e) => setDobYear(e.target.value)}
-                    disabled={submitting}
-                    aria-label="Year"
-                    className={`h-11 px-2 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border ${isUnderage ? "border-rose-400 dark:border-rose-500" : "border-zinc-200 dark:border-zinc-700"} focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white transition`}
-                  >
-                    <option value="">Year</option>
-                    {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                      <option key={y} value={String(y)}>{y}</option>
-                    ))}
-                  </select>
-                </div>
-                {isUnderage && (
-                  <p className="text-[11px] font-medium text-rose-500 dark:text-rose-400">
-                    You must be at least 18 years old to use ZIVO.
-                  </p>
-                )}
+              <div className="relative">
+                <input
+                  id="su-pw"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  enterKeyHint="next"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setFormError(null); }}
+                  placeholder="Password"
+                  disabled={submitting}
+                  className="w-full h-10 px-3 pr-10 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
-            )}
+              <div className="relative">
+                <input
+                  id="su-confirm"
+                  type={showConfirm ? "text" : "password"}
+                  autoComplete="new-password"
+                  enterKeyHint="go"
+                  value={confirm}
+                  onChange={(e) => { setConfirm(e.target.value); setFormError(null); }}
+                  placeholder="Confirm password"
+                  disabled={submitting}
+                  className="w-full h-10 px-3 pr-10 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  aria-label={showConfirm ? "Hide password" : "Show password"}
+                >
+                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
 
             {isZivoSoftwareDomain ? (
               <p className="text-[11px] font-medium leading-snug pt-2 text-[#66736d]">
@@ -586,9 +518,13 @@ const Signup = () => {
               </span>
             </label>
 
+            {formError && (
+              <p className="text-xs text-red-500 dark:text-red-400 px-0.5">{formError}</p>
+            )}
+
             <button
               type="submit"
-              disabled={submitting || !agree || isUnderage}
+              disabled={submitting || !agree}
               className={`w-full h-10 mt-1 rounded-lg text-sm font-bold text-white active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 ${
                 isZivoSoftwareDomain
                   ? "bg-[#101412] shadow-[0_14px_30px_rgba(17,20,18,0.18)] hover:bg-black"

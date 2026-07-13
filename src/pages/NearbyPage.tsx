@@ -135,7 +135,7 @@ export default function NearbyPage() {
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {FILTERS.map((f) => (
-            <Badge key={f} variant={filter === f ? "default" : "outline"} className="cursor-pointer capitalize shrink-0" onClick={() => setFilter(f)}>
+            <Badge key={f} variant={filter === f ? "default" : "outline"} className="cursor-pointer capitalize shrink-0 transition-all active:scale-[0.97]" onClick={() => setFilter(f)}>
               {f}
             </Badge>
           ))}
@@ -181,7 +181,7 @@ export default function NearbyPage() {
           const { icon: Icon, color } = categoryIcon(item.category || "");
           return (
             <motion.div key={item.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}>
-              <Card className="p-3 flex items-center gap-3 cursor-pointer hover:bg-accent/50 transition-colors"
+              <Card className="p-3 flex items-center gap-3 cursor-pointer hover:bg-accent/50 transition-all active:scale-[0.99]"
                 onClick={() => item.slug ? navigate(`/s/${item.slug}`) : undefined}>
                 <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${color}`}>
                   {item.type === "checkin" ? <MapPin className="h-5 w-5" /> : <Icon className="h-5 w-5" />}

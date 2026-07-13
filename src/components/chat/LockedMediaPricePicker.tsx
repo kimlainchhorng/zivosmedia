@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LockedMediaPricePicker — Bottom sheet to set unlock price before sending locked media
  */
 import { useState } from "react";
@@ -86,7 +86,7 @@ export default function LockedMediaPricePicker({ open, onClose, onConfirm, mode 
                 }}
                 className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
                   !useCustom && (isStars ? selectedStars === price : selectedPrice === price)
-                    ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
+                    ? "bg-ig-gradient text-white shadow-md scale-[1.02]"
                     : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
               >

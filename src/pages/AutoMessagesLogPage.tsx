@@ -129,7 +129,7 @@ export default function AutoMessagesLogPage() {
         <button
           type="button"
           onClick={() => navigate("/notifications/preferences")}
-          className="w-full h-10 rounded-xl bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center justify-center gap-2 transition-colors"
+          className="w-full h-10 rounded-xl bg-secondary hover:bg-muted text-foreground text-xs font-bold inline-flex items-center justify-center gap-2 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Manage notification preferences →
         </button>
@@ -139,9 +139,10 @@ export default function AutoMessagesLogPage() {
             <button
               key={t.id}
               type="button"
+              aria-pressed={tab === t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                "flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5",
+                "flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >

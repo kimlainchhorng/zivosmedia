@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LodgingPhotoLightbox — full-screen photo viewer with zoom controls,
  * keyboard nav, LQIP placeholders, and prev/next.
  */
@@ -73,7 +73,7 @@ export function LodgingPhotoLightbox({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] bg-black/95 flex flex-col"
+      className="fixed inset-0 z-[1450] bg-black/95 flex flex-col"
       role="dialog"
       aria-modal="true"
       aria-label={`${name} photo viewer`}

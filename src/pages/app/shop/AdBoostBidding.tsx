@@ -102,8 +102,9 @@ export default function AdBoostBidding() {
               <motion.button
                 key={key}
                 whileTap={{ scale: 0.97 }}
+                aria-pressed={active}
                 onClick={() => setPlacement(key)}
-                className={`rounded-2xl border-2 p-4 text-left transition-all ${active ? "border-primary bg-primary/5" : "border-border/40 bg-card"}`}
+                className={`rounded-2xl border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active ? "border-primary bg-primary/5" : "border-border/40 bg-card"}`}
               >
                 <Icon className={`h-6 w-6 mb-2 ${active ? "text-primary" : "text-muted-foreground"}`} />
                 <p className="text-sm font-bold">{cfg.label}</p>

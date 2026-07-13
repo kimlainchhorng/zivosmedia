@@ -366,7 +366,6 @@ export default function HotelResortDetailPage() {
         if (next) set.add(storeId); else set.delete(storeId);
         localStorage.setItem("hotel_faves", JSON.stringify([...set]));
       } catch {}
-      toast.success(next ? "Saved to favorites" : "Removed from favorites");
       return next;
     });
   };
@@ -1248,8 +1247,7 @@ export default function HotelResortDetailPage() {
         ) : activeRooms.length === 0 ? (
           <p className="text-xs text-muted-foreground">No rooms published yet.</p>
         ) : (
-          <div className="relative">
-            <div className="-mx-4 px-4 pr-10 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:px-0 md:pr-0 md:overflow-visible md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {activeRooms.slice(0, 8).map((room) => {
                 const price = roomPricePresentation(room);
                 const hasDiscount = price.discountPct > 0 && price.strikeCents > price.displayCents;
@@ -1260,7 +1258,7 @@ export default function HotelResortDetailPage() {
                   <div
                     key={room.id}
                     className={cn(
-                      "snap-start shrink-0 w-60 md:w-auto rounded-xl border border-border bg-card overflow-hidden text-left hover:border-emerald-500/60 hover:shadow-md transition",
+                      "rounded-xl border border-border bg-card overflow-hidden text-left hover:border-emerald-500/60 hover:shadow-md transition",
                       soldOut && "opacity-80",
                     )}
                   >
@@ -1345,9 +1343,6 @@ export default function HotelResortDetailPage() {
                   </div>
                 );
               })}
-            </div>
-            {/* Right-edge fade hint (mobile only) */}
-            <div className="md:hidden pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-background to-transparent" />
           </div>
         )}
         {activeRooms.length > 8 && (

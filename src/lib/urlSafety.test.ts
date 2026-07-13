@@ -32,6 +32,15 @@ describe("isSafeProtocol", () => {
   it("is case-insensitive", () => {
     expect(isSafeProtocol("JavaScript:alert(1)")).toBe(false);
   });
+  it("rejects schemes split by an embedded tab", () => {
+    expect(isSafeProtocol("java" + String.fromCharCode(9) + "script:alert(1)")).toBe(false);
+  });
+  it("rejects schemes split by an embedded newline", () => {
+    expect(isSafeProtocol("java" + String.fromCharCode(10) + "script:alert(1)")).toBe(false);
+  });
+  it("rejects a scheme hidden behind a leading control char", () => {
+    expect(isSafeProtocol(String.fromCharCode(1) + "javascript:alert(1)")).toBe(false);
+  });
 });
 
 describe("isPunycodeHost", () => {
@@ -86,14 +95,14 @@ describe("isUrlShortener", () => {
 });
 
 describe("isZivoTyposquat", () => {
-  it("flags h1zivo.com (1-char digit swap)", () => {
-    expect(isZivoTyposquat("https://h1zivo.com/login")).toBe(true);
+  it("flags z1vosmedia.com (1-char digit swap)", () => {
+    expect(isZivoTyposquat("https://z1vosmedia.com/login")).toBe(true);
   });
-  it("flags hizovo.com (transpose)", () => {
-    expect(isZivoTyposquat("https://hizovo.com")).toBe(true);
+  it("flags zivosmedai.com (transpose)", () => {
+    expect(isZivoTyposquat("https://zivosmedai.com")).toBe(true);
   });
-  it("flags hizvo.com (1-char drop)", () => {
-    expect(isZivoTyposquat("https://hizvo.com")).toBe(true);
+  it("flags zivosmeda.com (1-char drop)", () => {
+    expect(isZivoTyposquat("https://zivosmeda.com")).toBe(true);
   });
   it("does NOT flag the real zivosmedia.com", () => {
     expect(isZivoTyposquat("https://zivosmedia.com")).toBe(false);

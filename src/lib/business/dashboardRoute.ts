@@ -15,6 +15,7 @@ export const RESTAURANT_CATEGORIES = new Set<StoreCategory>([
 
 export type ResolvedDashboard = {
   path: string;
+  externalUrl?: string | null;
   /** True when we couldn't match the category and fell back to the generic store dashboard. */
   fallback: boolean;
 };
@@ -55,7 +56,11 @@ export function resolveBusinessDashboardRoute(
 
   // Auto repair → full store admin dashboard with repair-specific sections.
   if (normalizedCategory === "auto repair" && storeId) {
-    return { path: `/admin/stores/${storeId}?tab=ar-dashboard&category=auto-repair`, fallback: false };
+    return {
+      path: `/admin/stores/${storeId}?tab=ar-dashboard&category=auto-repair`,
+      externalUrl: `https://zivosoftware.com/admin/stores/${storeId}?tab=ar-dashboard&category=auto-repair`,
+      fallback: false,
+    };
   }
 
   // Car rental → store admin dashboard with car-rental sections.

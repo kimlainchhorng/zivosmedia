@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { toast } from "sonner";
 import { X, Printer, Loader2, History, Receipt, Wrench, DollarSign, Calendar, Gauge, FileSearch } from "lucide-react";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 export type CarfaxVehicle = {
   vin?: string | null;
@@ -157,14 +158,14 @@ export default function BuildROCarfaxDialog({ open, onOpenChange, storeId, vehic
   const print = () => {
     const rows = visits
       .map((v) => `<div style="margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid #e5e7eb">
-        <div><b>${v.kind === "invoice" ? "Invoice" : "Work Order"}${v.number ? ` #${v.number}` : ""}</b> — ${fmtDate(v.date)}${v.mileage != null ? ` · ${Number(v.mileage).toLocaleString()} mi` : ""}${v.totalCents != null ? ` · ${money(v.totalCents)}` : ""}</div>
-        <div style="color:#374151;margin-top:4px">${v.services.join(", ")}</div></div>`)
+        <div><b>${v.kind === "invoice" ? "Invoice" : "Work Order"}${v.number ? ` #${escapeHtml(v.number)}` : ""}</b> — ${fmtDate(v.date)}${v.mileage != null ? ` · ${Number(v.mileage).toLocaleString()} mi` : ""}${v.totalCents != null ? ` · ${money(v.totalCents)}` : ""}</div>
+        <div style="color:#374151;margin-top:4px">${escapeHtml(v.services.join(", "))}</div></div>`)
       .join("");
-    const html = `<html><head><title>Service History — ${vehicleLabel}</title>
+    const html = `<html><head><title>Service History — ${escapeHtml(vehicleLabel)}</title>
       <style>body{font-family:system-ui,Arial,sans-serif;padding:28px;color:#111;font-size:13px}
       h1{font-size:18px;margin:0 0 4px}.muted{color:#6b7280}hr{border:0;border-top:1px solid #e5e7eb;margin:14px 0}</style></head>
       <body><h1>Vehicle Service History</h1>
-      <div class="muted">${vehicleLabel || "—"}${vin ? ` &middot; VIN ${vin}` : ""}</div><hr/>
+      <div class="muted">${escapeHtml(vehicleLabel || "—")}${vin ? ` &middot; VIN ${escapeHtml(vin)}` : ""}</div><hr/>
       <div>Visits: <b>${summary.visits}</b> &nbsp;&nbsp; Total: <b>${money(summary.totalSpent)}</b> &nbsp;&nbsp; Last service: <b>${fmtDate(summary.lastDate)}</b></div><hr/>
       ${rows || `<p>${emptyPrintedRecordsText}</p>`}</body></html>`;
     const w = window.open("", "_blank");

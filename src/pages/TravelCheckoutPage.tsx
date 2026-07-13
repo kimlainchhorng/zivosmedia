@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Travel Checkout Page
  * Unified checkout for hotels, activities, and transfers
  */
@@ -184,14 +184,14 @@ const TravelCheckoutPage = () => {
             {/* Step Indicator */}
             <div className="flex items-center gap-4">
               <div className={`flex items-center gap-2 ${step >= 1 ? "text-primary" : "text-muted-foreground"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? "bg-ig-gradient text-white" : "bg-muted"}`}>
                   {step > 1 ? <Check className="h-4 w-4" /> : "1"}
                 </div>
                 <span className="text-sm font-medium">Details</span>
               </div>
               <div className="flex-1 h-0.5 bg-muted" />
               <div className={`flex items-center gap-2 ${step >= 2 ? "text-primary" : "text-muted-foreground"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? "bg-ig-gradient text-white" : "bg-muted"}`}>
                   2
                 </div>
                 <span className="text-sm font-medium">Payment</span>

@@ -59,6 +59,7 @@ describe("SSO, auth, sessions, and devices workflow", () => {
       "public-signup",
       "send-otp-email",
       "verify-otp-code",
+      "mint-sso-handoff",
       "log-login",
       "list-my-sessions",
       "revoke-session",
@@ -69,5 +70,39 @@ describe("SSO, auth, sessions, and devices workflow", () => {
       expect(source).toContain("blockNetworkRiskAt: 80");
       expect(source).not.toContain('"Access-Control-Allow-Origin": "*"');
     }
+  });
+
+  it("hardens cross-domain SSO with one-time token hashes instead of refresh-token URLs", () => {
+    const crossDomain = read("src/lib/crossDomainSSO.ts");
+    const receiver = read("src/pages/AuthHandoff.tsx");
+    const issuer = read("supabase/functions/mint-sso-handoff/index.ts");
+    const config = read("supabase/config.toml");
+
+    expect(crossDomain).toContain('const SSO_HANDOFF_FUNCTION = "mint-sso-handoff"');
+    expect(crossDomain).toContain("authSupabase.functions.invoke<HandoffMintResponse>");
+    expect(crossDomain).toContain("body: { targetOrigin: target }");
+    expect(crossDomain).toContain("ott: tokenHash");
+    expect(crossDomain).not.toContain("rt: session.refresh_token");
+    expect(crossDomain).not.toContain("refreshToken");
+
+    expect(receiver).toContain('params.get("ott")');
+    expect(receiver).toContain("authSupabase.auth.verifyOtp");
+    expect(receiver).toContain('type: "magiclink"');
+    expect(receiver).toContain("token_hash: tokenHash");
+    expect(receiver).toContain("Legacy #at/#rt handoffs are accepted only");
+
+    expect(issuer).toContain('withSecurity("mint-sso-handoff"');
+    expect(issuer).toContain("requireUser(req)");
+    expect(issuer).toContain("requireUserNotBlocked(auth.userId)");
+    expect(issuer).toContain("ALLOWED_TARGET_ORIGINS");
+    expect(issuer).toContain("admin.auth.admin.getUserById(auth.userId)");
+    expect(issuer).toContain("auth.admin.generateLink");
+    expect(issuer).toContain('type: "magiclink"');
+    expect(issuer).toContain("hashed_token");
+    expect(issuer).toContain('allowedMethods: ["POST"]');
+    expect(issuer).toContain('rateLimit: "auth_login"');
+
+    expect(config).toContain("[functions.mint-sso-handoff]");
+    expect(config).toContain("verify_jwt = true");
   });
 });

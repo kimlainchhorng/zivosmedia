@@ -1,4 +1,4 @@
-/**
+﻿/**
  * OTAUpdateBanner — small floating banner shown when a newer web bundle has
  * been downloaded and is waiting to be applied. Lets the user reload now or
  * dismiss; either way the bundle is already queued for the next cold start
@@ -79,7 +79,7 @@ export default function OTAUpdateBanner({
             type="button"
             onClick={handleApply}
             disabled={applying}
-            className="shrink-0 inline-flex items-center gap-1 px-2.5 h-8 rounded-full bg-primary text-primary-foreground text-[12px] font-bold active:scale-[0.97] transition disabled:opacity-60"
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 h-8 rounded-full bg-ig-gradient text-white text-[12px] font-bold active:scale-[0.97] transition disabled:opacity-60"
           >
             <RotateCw className={`h-3.5 w-3.5 ${applying ? "animate-spin" : ""}`} />
             {applying ? "Reloading…" : "Reload"}

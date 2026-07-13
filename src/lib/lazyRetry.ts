@@ -23,7 +23,10 @@ export function lazyRetry<T extends { default: unknown }>(
           } else {
             try {
               if (!sessionStorage.getItem(RELOAD_KEY)) {
-                sessionStorage.setItem(RELOAD_KEY, "1");
+                // Store a timestamp (not a "1" sentinel): lazyWithRetry reads this
+                // shared key as a number with a 30s window, so a sentinel would look
+                // like a 1970 reload and fail to suppress its duplicate reload.
+                sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
                 window.location.reload();
                 return;
               }

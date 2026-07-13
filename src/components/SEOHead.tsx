@@ -36,7 +36,7 @@ export default function SEOHead({
 
   useEffect(() => {
     const origin =
-      typeof window !== 'undefined' && isZivoTravelHost(window.location.hostname)
+      typeof window !== 'undefined' && isZivoTravelHost()
         ? ZIVO_TRAVEL_ORIGIN
         : SITE_URL;
     const canonicalUrl = canonical

@@ -34,7 +34,7 @@ export default function UnifiedPerformancePanel({ storeId }: { storeId: string }
   const [preset, setPreset] = useState<DateRange>(initial.preset);
   const [custom, setCustom] = useState<CustomRange>(initial.custom);
 
-  const { data, isLoading } = useUnifiedPerformance(
+  const { data, isLoading, isError, refetch } = useUnifiedPerformance(
     storeId,
     preset === "custom" && custom.from && custom.to
       ? { range: "custom", fromIso: custom.from.toISOString(), toIso: custom.to.toISOString() }
@@ -107,7 +107,16 @@ export default function UnifiedPerformancePanel({ storeId }: { storeId: string }
         </div>
       </div>
 
-      {isLoading || !data ? (
+      {isError ? (
+        <Card>
+          <CardContent className="py-12 text-center space-y-3">
+            <p className="text-xs text-muted-foreground">Couldn't load performance data.</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()} className="h-8">
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      ) : isLoading || !data ? (
         <Card>
           <CardContent className="py-12 text-center text-xs text-muted-foreground animate-pulse">
             Loading performance data…

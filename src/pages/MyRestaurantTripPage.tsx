@@ -115,7 +115,8 @@ export default function MyRestaurantTripPage() {
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/40 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
         <button type="button"
           onClick={() => navigate(-1)}
-          className="h-9 w-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition"
+          aria-label="Back"
+          className="h-9 w-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
@@ -148,7 +149,7 @@ export default function MyRestaurantTripPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Reservation Number</p>
-                  <button type="button" onClick={copyBookingRef} className="flex items-center gap-1.5 mt-1 group">
+                  <button type="button" onClick={copyBookingRef} aria-label="Copy reservation number" className="flex items-center gap-1.5 mt-1 group transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <p className="text-[15px] font-mono font-bold text-foreground">
                       {booking.reservation_number}
                     </p>

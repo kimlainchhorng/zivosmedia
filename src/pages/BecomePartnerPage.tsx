@@ -169,7 +169,7 @@ export default function BecomePartnerPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
                 onClick={() => navigate(`/partner-with-zivo?type=${opt.type}`)}
-                className="relative overflow-hidden rounded-3xl p-5 text-left bg-card border border-border hover:border-foreground/30 transition-colors touch-manipulation"
+                className="relative overflow-hidden rounded-3xl p-5 text-left bg-card border border-border hover:border-foreground/30 transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-secondary border border-border flex items-center justify-center">
@@ -236,7 +236,7 @@ export default function BecomePartnerPage() {
           <button
             type="button"
             onClick={() => navigate("/partner-with-zivo?type=driver")}
-            className="mt-4 w-full rounded-2xl bg-ig-gradient text-white font-bold py-3 text-sm shadow-sm hover:opacity-90 active:scale-[0.98] transition-all"
+            className="mt-4 w-full rounded-2xl bg-ig-gradient text-white font-bold py-3 text-sm shadow-sm hover:opacity-90 active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Start driving with ZIVO
           </button>
@@ -301,7 +301,8 @@ export default function BecomePartnerPage() {
               <button
                 type="button"
                 onClick={() => setFaqOpen(faqOpen === i ? null : i)}
-                className="w-full flex items-center justify-between px-4 py-4 text-left hover:bg-muted/20 transition-colors touch-manipulation"
+                aria-expanded={faqOpen === i}
+                className="w-full flex items-center justify-between px-4 py-4 text-left hover:bg-muted/20 transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
               >
                 <span className="text-[13px] font-semibold pr-4">{faq.q}</span>
                 <ChevronDown
@@ -336,7 +337,7 @@ export default function BecomePartnerPage() {
           <button
             type="button"
             onClick={() => navigate("/contact")}
-            className="mt-3 inline-flex items-center gap-1 rounded-xl bg-foreground text-background font-bold px-4 py-2 text-sm active:scale-[0.98] transition-transform"
+            className="mt-3 inline-flex items-center gap-1 rounded-xl bg-foreground text-background font-bold px-4 py-2 text-sm active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Contact sales <ChevronRight className="w-4 h-4" />
           </button>

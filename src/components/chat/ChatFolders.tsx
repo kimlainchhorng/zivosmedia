@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatFolders — Organize conversations into folders
  */
 import { useState } from "react";
@@ -76,7 +76,7 @@ export default function ChatFolders({ activeFolder, onSelectFolder }: ChatFolder
         onClick={() => onSelectFolder(null)}
         className={cn(
           "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-          !activeFolder ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+          !activeFolder ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
         )}
       >
         All
@@ -89,7 +89,7 @@ export default function ChatFolders({ activeFolder, onSelectFolder }: ChatFolder
           onDoubleClick={() => deleteFolder(f.id)}
           className={cn(
             "shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-            activeFolder === f.id ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+            activeFolder === f.id ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
           )}
         >
           <span>{f.icon}</span> {f.name}
@@ -137,7 +137,7 @@ export default function ChatFolders({ activeFolder, onSelectFolder }: ChatFolder
                 className="w-full px-3 py-2.5 rounded-xl bg-muted/30 border border-border/40 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 autoFocus
               />
-              <button type="button" onClick={createFolder} className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium">
+              <button type="button" onClick={createFolder} className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-medium">
                 Create Folder
               </button>
             </div>

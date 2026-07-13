@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Auto Repair — Part Shop (AutoZone-style)
  * Vehicle fitment lookup · rich catalog · stock alerts · sort/view toggle
  */
@@ -627,7 +627,7 @@ export default function AutoRepairPartShopSection({ storeId, isSoftwareDomain = 
               <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1"><ArrowUpDown className="w-3 h-3" /> Sort:</span>
               {(["name", "price", "stock", "brand"] as SortKey[]).map(k => (
                 <button type="button" key={k} onClick={() => toggleSort(k)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors shrink-0 ${sort === k ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors shrink-0 ${sort === k ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}>
                   {k.charAt(0).toUpperCase() + k.slice(1)}
                   {sort === k && <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>}
                 </button>
@@ -635,11 +635,11 @@ export default function AutoRepairPartShopSection({ storeId, isSoftwareDomain = 
             </div>
             <div className="flex border rounded-md overflow-hidden shrink-0">
               <button type="button" onClick={() => setView("grid")}
-                className={`p-1.5 transition-colors ${view === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                className={`p-1.5 transition-colors ${view === "grid" ? "bg-ig-gradient text-white" : "text-muted-foreground hover:bg-muted"}`}>
                 <LayoutGrid className="w-3.5 h-3.5" />
               </button>
               <button type="button" onClick={() => setView("list")}
-                className={`p-1.5 transition-colors ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
+                className={`p-1.5 transition-colors ${view === "list" ? "bg-ig-gradient text-white" : "text-muted-foreground hover:bg-muted"}`}>
                 <List className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -818,7 +818,7 @@ export default function AutoRepairPartShopSection({ storeId, isSoftwareDomain = 
               <div className="flex rounded-lg overflow-hidden border border-border text-xs">
                 {(["receive", "use", "set"] as const).map(m => (
                   <button type="button" key={m} onClick={() => setAdjustMode(m)}
-                    className={`flex-1 py-1.5 font-medium transition-colors ${adjustMode === m ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                    className={`flex-1 py-1.5 font-medium transition-colors ${adjustMode === m ? "bg-ig-gradient text-white" : "hover:bg-muted"}`}>
                     {m === "receive" ? "Receive" : m === "use" ? "Use / Consume" : "Set Exact"}
                   </button>
                 ))}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CarRentalLocationsSection — pickup / dropoff branches.
  */
 import { useState } from "react";
@@ -54,6 +54,7 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
   const [editing, setEditing] = useState<CarRentalLocation | null>(null);
   const [draft, setDraft] = useState<CarRentalLocationDraft>(EMPTY);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   // Tally vehicles per location_id — used for the "N vehicles based here" badge.
   const vehiclesPerLocation = new Map<string, number>();
@@ -66,6 +67,7 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
   const openCreate = () => {
     setEditing(null);
     setDraft({ ...EMPTY, is_default: locations.length === 0 });
+    setSubmitted(false);
     setDialogOpen(true);
   };
   const openEdit = (l: CarRentalLocation) => {
@@ -76,13 +78,14 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
       open_time: l.open_time, close_time: l.close_time,
       is_default: l.is_default, is_active: l.is_active,
     });
+    setSubmitted(false);
     setDialogOpen(true);
   };
   const save = async () => {
     if (!draft.name.trim()) return;
-    if (editing) await update(editing.id, draft);
-    else await create(draft);
-    setDialogOpen(false);
+    setSubmitted(true);
+    const ok = editing ? await update(editing.id, draft) : Boolean(await create(draft));
+    if (ok) setDialogOpen(false);
   };
 
   return (
@@ -168,11 +171,11 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
                         <p className="mt-0.5 text-[11px] text-muted-foreground">{l.phone}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(l)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(l.id)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(l.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -185,7 +188,7 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o && saving) return; setDialogOpen(o); }}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit location" : "Add location"}</DialogTitle>
@@ -229,7 +232,7 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
                       onClick={() => setDraft({ ...draft, open_time: p.open, close_time: p.close })}
                       className={cn(
                         "rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                        active ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground",
+                        active ? "bg-ig-gradient text-white border-primary" : "border-border text-muted-foreground hover:text-foreground",
                       )}
                     >
                       {p.label}
@@ -247,8 +250,13 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
               <Switch checked={draft.is_active ?? true} onCheckedChange={(c) => setDraft({ ...draft, is_active: c })} />
             </div>
           </div>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
             <Button onClick={save} disabled={saving || !draft.name.trim()}>
               {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1 h-4 w-4" />}
               {editing ? "Save changes" : "Add location"}
@@ -257,7 +265,7 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o && saving) return; if (!o) setDeleteId(null); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete location?</DialogTitle>
@@ -265,11 +273,21 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
           <p className="text-sm text-muted-foreground">
             Past reservations keep their pickup/dropoff location snapshot. Vehicles set to this location lose their home.
           </p>
+          {submitted && error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {error}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={async () => {
-              if (deleteId) { await remove(deleteId); setDeleteId(null); }
-            }}>Delete</Button>
+            <Button variant="ghost" onClick={() => setDeleteId(null)} disabled={saving}>Cancel</Button>
+            <Button variant="destructive" disabled={saving} onClick={async () => {
+              if (!deleteId) return;
+              setSubmitted(true);
+              if (await remove(deleteId)) setDeleteId(null);
+            }}>
+              {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1 h-4 w-4" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

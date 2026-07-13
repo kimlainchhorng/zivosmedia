@@ -156,7 +156,7 @@ const BookingManagement = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-20">
+        <main className="pt-safe-header pb-20">
           <div className="container mx-auto px-4 max-w-3xl text-center">
             <Info className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">Booking Not Found</h1>
@@ -181,7 +181,7 @@ const BookingManagement = () => {
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="container mx-auto px-4 max-w-3xl">
           {/* Back Navigation */}
           <Link

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DriverMapRightControls - Recenter, layers, demand heatmap toggle
  */
 import { Layers, Navigation, Flame } from "lucide-react";
@@ -34,7 +34,7 @@ export default function DriverMapRightControls({ isFollowing, showDemandHeatmap,
         size="icon"
         onClick={onRecenter}
         className={`w-12 h-12 rounded-full shadow-lg border-0 transition-all ${
-          isFollowing ? "bg-primary text-primary-foreground" : "bg-card/90 text-foreground hover:bg-card backdrop-blur-xl"
+          isFollowing ? "bg-ig-gradient text-white" : "bg-card/90 text-foreground hover:bg-card backdrop-blur-xl"
         }`}
         aria-label={isFollowing ? "Following" : "Recenter"}
       >

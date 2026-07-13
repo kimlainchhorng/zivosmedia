@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PublicCarDealershipListingPage — customer-facing inventory storefront.
  *
  * Route: /car-dealership/:slug
@@ -447,7 +447,7 @@ export default function PublicCarDealershipListingPage() {
           <Car className="mx-auto h-12 w-12 text-muted-foreground/40" />
           <h1 className="mt-3 text-2xl font-bold">Dealership not found</h1>
           <p className="mt-2 text-muted-foreground">The store you're looking for doesn't exist or isn't available.</p>
-          <Link to="/" className="mt-4 inline-block text-primary underline">Back to home</Link>
+          <Link to="/" className="mt-4 inline-block rounded-sm text-primary underline transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Back to home</Link>
         </div>
       </div>
     );
@@ -494,7 +494,7 @@ export default function PublicCarDealershipListingPage() {
                   {cityState && <span>·</span>}
                   <a
                     href="#reviews"
-                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                    className="flex items-center gap-1 rounded-sm hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <StarsRow rating={reviewStats.avg} size="xs" />
                     <span className="font-medium">{reviewStats.avg.toFixed(1)}</span>
@@ -507,7 +507,7 @@ export default function PublicCarDealershipListingPage() {
           {store.phone && (
             <a
               href={`tel:${store.phone}`}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border bg-background hover:bg-muted px-3 py-1.5 text-sm font-medium transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-border bg-background hover:bg-muted px-3 py-1.5 text-sm font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Phone className="h-3.5 w-3.5" />
               {store.phone}
@@ -532,7 +532,7 @@ export default function PublicCarDealershipListingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {promotions.map((p) => (
               <Card key={p.id} className="p-3 flex items-center gap-3 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-ig-gradient text-white">
                   <Tag className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -667,7 +667,7 @@ export default function PublicCarDealershipListingPage() {
             {filtered.map((v) => (
               <Card
                 key={v.id}
-                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow group"
+                className="overflow-hidden cursor-pointer hover:shadow-md transition-all active:scale-[0.98] group"
                 onClick={() => navigate(`/car-dealership/${store.slug}/v/${v.id}`)}
               >
                 <div className="aspect-[16/10] bg-muted relative">
@@ -789,7 +789,7 @@ export default function PublicCarDealershipListingPage() {
             <p className="font-semibold">{store.name}</p>
             <div className="flex items-center gap-4 text-muted-foreground">
               {store.phone && (
-                <a href={`tel:${store.phone}`} className="flex items-center gap-1 hover:text-foreground">
+                <a href={`tel:${store.phone}`} className="flex items-center gap-1 rounded-sm hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Phone className="h-3.5 w-3.5" />{store.phone}
                 </a>
               )}

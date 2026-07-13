@@ -9,6 +9,7 @@ import { lazy, Suspense, useState } from "react";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import Camera from "lucide-react/dist/esm/icons/camera";
+import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -138,34 +139,36 @@ export default function ChatStories() {
 
   return (
     <>
-      <div className="zivo-chat-card mb-3 rounded-3xl px-3.5 pb-2.5 pt-3">
+      <div className="zivo-chat-card mb-3 rounded-3xl px-3 pb-2 pt-2.5">
         <div className="mb-2 flex items-center justify-between px-0.5">
           <div className="flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+            <Sparkles className="h-3 w-3 text-primary" />
+            <span className="text-ig-gradient text-[10.5px] font-black uppercase tracking-[0.14em]">
               Stories
             </span>
           </div>
-          <button
+          <motion.button
             type="button"
+            whileTap={{ scale: 0.92 }}
             onClick={() => setShowCreate(true)}
-            className="rounded-full px-2.5 py-1 text-[11px] font-bold text-primary transition-colors active:scale-95"
+            className="bg-ig-gradient rounded-full px-2.5 py-0.5 text-[10px] font-black text-white shadow-[0_2px_8px_rgba(236,72,153,0.25)] transition-opacity active:opacity-80"
           >
             Create
-          </button>
+          </motion.button>
         </div>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-0.5">
+        <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-0.5">
           {/* Your Story */}
-          <button type="button"
+          <motion.button type="button"
+            whileTap={{ scale: 0.92 }}
             onClick={() => {
               if (hasMyStory) openViewer(myStories!);
               else setShowCreate(true);
             }}
-            className="flex flex-col items-center gap-1 flex-shrink-0 w-[58px]"
+            className="flex flex-col items-center gap-1 flex-shrink-0 w-[52px]"
           >
             <div className="relative">
               <div className={cn(
-                "h-[54px] w-[54px] rounded-full p-[2px] box-border",
+                "h-[46px] w-[46px] rounded-full p-[2px] box-border",
                 hasMyStory
                   ? "bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_10px_-3px_hsl(160_84%_45%/0.55)]"
                   : "bg-muted-foreground/25"
@@ -215,21 +218,22 @@ export default function ChatStories() {
                 )}
               </span>
             </div>
-            <span className="text-[10px] text-foreground font-medium max-w-[56px] truncate leading-tight">
+            <span className="text-[9.5px] text-foreground font-medium max-w-[50px] truncate leading-tight">
               Your story
             </span>
-          </button>
+          </motion.button>
 
           {/* Other Users */}
           {storyGroups
             .filter((g) => g.userId !== user?.id)
             .map((group) => (
-              <button type="button"
+              <motion.button type="button"
                 key={group.userId}
+                whileTap={{ scale: 0.92 }}
                 onClick={() => openViewer(group)}
-                className="flex flex-col items-center gap-1 flex-shrink-0 w-[58px]"
+                className="flex flex-col items-center gap-1 flex-shrink-0 w-[52px]"
               >
-                <div className="h-[54px] w-[54px] rounded-full p-[2px] bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_10px_-3px_hsl(160_84%_45%/0.55)]">
+                <div className="h-[46px] w-[46px] rounded-full p-[2px] bg-[conic-gradient(from_140deg,hsl(160_84%_45%),hsl(174_72%_45%),hsl(190_85%_55%),hsl(160_84%_45%))] shadow-[0_0_10px_-3px_hsl(160_84%_45%/0.55)]">
                   <div className="zivo-chat-avatar-ring w-full h-full rounded-full border-2 border-background overflow-hidden bg-muted">
                     {group.avatarUrl ? (
 	                      <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -240,10 +244,10 @@ export default function ChatStories() {
                     )}
                   </div>
                 </div>
-                <span className="text-[10px] text-foreground font-semibold max-w-[56px] truncate leading-tight">
+                <span className="text-[9.5px] text-foreground font-semibold max-w-[50px] truncate leading-tight">
                   {group.userName.split(" ")[0]}
                 </span>
-              </button>
+              </motion.button>
             ))}
         </div>
       </div>

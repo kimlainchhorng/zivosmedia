@@ -164,7 +164,7 @@ export default function PublicSalonMembershipPage() {
       <div className="mx-auto max-w-md px-4 py-8 sm:py-12">
         <Link
           to={`/salon/${store.slug}`}
-          className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          className="mb-4 inline-flex items-center gap-1 rounded-sm text-xs text-muted-foreground transition-all hover:text-foreground active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="h-3 w-3" /> Back to {store.name}
         </Link>

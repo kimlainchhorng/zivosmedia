@@ -27,7 +27,7 @@ import {
   Apple,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import packageJson from "../../package.json";
@@ -74,6 +74,7 @@ const CHANGELOG: { version: string; date: string; highlights: string[] }[] = [
 ];
 
 const About = () => {
+  const reduceMotion = useReducedMotion();
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash?.replace("#", "");
@@ -92,16 +93,16 @@ const About = () => {
       />
       <Header />
       
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="text-center mb-16">
+          <motion.div initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={reduceMotion ? undefined : { opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="text-center mb-16">
             <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">
               <Globe className="w-3 h-3 mr-1" />
               About Us
             </Badge>
             <h1 className="font-display text-4xl md:text-5xl font-bold mb-6">
-              About ZIVO
+              About <span className="text-ig-gradient">ZIVO</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               ZIVO is a global travel search and comparison platform that helps users find and compare 
@@ -114,7 +115,7 @@ const About = () => {
             <CardContent className="p-8 md:p-12">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
-                  <h2 className="text-3xl font-bold mb-4">What We Do</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold mb-4">What We Do</h2>
                   <div className="space-y-4 text-muted-foreground text-lg leading-relaxed">
                     <p>
                       ZIVO aggregates and compares travel options from multiple trusted partners, 
@@ -131,7 +132,7 @@ const About = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-6 rounded-2xl bg-card/80 border border-border/50 text-center hover:border-border hover:shadow-lg hover:hover:-translate-y-1 transition-all duration-300">
+                  <div className="p-6 rounded-2xl bg-card/80 border border-border/50 text-center hover:border-border hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                     <Plane className="w-8 h-8 text-foreground mx-auto mb-3" />
                     <p className="font-semibold">Flights</p>
                   </div>
@@ -139,7 +140,7 @@ const About = () => {
                     <Hotel className="w-8 h-8 text-amber-500 mx-auto mb-3" />
                     <p className="font-semibold">Hotels</p>
                   </div>
-                  <div className="p-6 rounded-2xl bg-card/80 border border-border/50 text-center hover:border-border hover:shadow-lg hover:hover:-translate-y-1 transition-all duration-300">
+                  <div className="p-6 rounded-2xl bg-card/80 border border-border/50 text-center hover:border-border hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                     <Car className="w-8 h-8 text-foreground mx-auto mb-3" />
                     <p className="font-semibold">Car Rentals</p>
                   </div>
@@ -159,7 +160,7 @@ const About = () => {
                 <DollarSign className="w-3 h-3 mr-1" />
                 Transparent Model
               </Badge>
-              <h2 className="text-3xl font-bold mb-4">How ZIVO Makes Money</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">How ZIVO Makes Money</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 We believe in full transparency about our business model.
               </p>
@@ -216,7 +217,7 @@ const About = () => {
                 <Globe className="w-3 h-3 mr-1" />
                 Global Platform
               </Badge>
-              <h2 className="text-3xl font-bold mb-4">Built for Scale</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4">Built for Scale</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 ZIVO is a growing travel platform with global coverage and expanding services.
               </p>
@@ -300,7 +301,7 @@ const About = () => {
 
           {/* Leadership Principles */}
           <div className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 text-center">Our Principles</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center">Our Principles</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { principle: "Traveler First", desc: "Every decision starts with: does this make the traveler's life easier?", emoji: "🧭" },
@@ -323,7 +324,7 @@ const About = () => {
 
           {/* Timeline */}
           <div className="mb-16">
-            <h2 className="text-3xl font-bold mb-8 text-center">Our Journey</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center">Our Journey</h2>
             <div className="space-y-3">
               {[
                 { date: "Q1 2025", event: "Launched ZIVO Rides, Eats, and Move verticals", emoji: "🚀" },
@@ -378,8 +379,8 @@ const About = () => {
               {CHANGELOG.map((entry, i) => (
                 <motion.div
                   key={entry.version}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                  whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: i * 0.05 }}
                 >
@@ -450,7 +451,7 @@ const About = () => {
 
           {/* CTA */}
           <div className="text-center bg-gradient-to-r from-primary/10 via-background to-teal-500/10 rounded-3xl p-10 border border-primary/20">
-            <h2 className="text-3xl font-bold mb-4">Start Your Journey</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Start Your Journey</h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
               Compare flights, hotels, and car rentals from trusted partners worldwide.
             </p>

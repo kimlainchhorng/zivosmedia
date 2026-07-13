@@ -216,7 +216,7 @@ export default function MentionsPage() {
                   transition={{ delay: idx * 0.03 }}
                   whileTap={{ scale: 0.985 }}
                   onClick={() => navigate("/feed")}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={`Open post mentioning you from ${m.author?.full_name ?? "user"}`}
                 >
                   {/* Thumbnail */}

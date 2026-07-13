@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ShopTrainingPage — Employee training & onboarding tracker
  * Stores records in feedback_submissions (category: shop_training)
  */
@@ -112,11 +112,11 @@ export default function ShopTrainingPage() {
     <AppLayout title="Training" hideHeader>
       <div className="flex flex-col pb-28">
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
-          <button type="button" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center">
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-lg flex-1">Training</h1>
-          <button type="button" onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+          <button type="button" aria-label="Log training record" onClick={() => setShowForm(true)} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Plus className="w-4.5 h-4.5 text-primary" />
           </button>
         </div>
@@ -147,7 +147,7 @@ export default function ShopTrainingPage() {
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sm">Log Training Record</p>
-                  <button type="button" onClick={() => setShowForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
+                  <button type="button" aria-label="Close" onClick={() => setShowForm(false)} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-muted-foreground" /></button>
                 </div>
                 <input className="w-full text-sm px-3 py-2 rounded-xl border border-border/40 bg-background outline-none focus:ring-1 focus:ring-primary/30"
                   placeholder="Employee name" value={form.employeeName} onChange={(e) => setForm({ ...form, employeeName: e.target.value })} />
@@ -155,9 +155,9 @@ export default function ShopTrainingPage() {
                   placeholder="Module / course title" value={form.moduleTitle} onChange={(e) => setForm({ ...form, moduleTitle: e.target.value })} />
                 <div className="flex gap-1.5">
                   {["completed", "in_progress", "not_started"].map((s) => (
-                    <button type="button" key={s} onClick={() => setForm({ ...form, status: s })}
-                      className={cn("px-3 py-1 rounded-full text-xs font-medium border",
-                        form.status === s ? "bg-primary text-primary-foreground border-primary" : "border-border bg-muted/40")}>
+                    <button type="button" key={s} aria-pressed={form.status === s} onClick={() => setForm({ ...form, status: s })}
+                      className={cn("px-3 py-1 rounded-full text-xs font-medium border transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        form.status === s ? "bg-ig-gradient text-white border-primary" : "border-border bg-muted/40")}>
                       {s === "completed" ? "Completed" : s === "in_progress" ? "In Progress" : "Not Started"}
                     </button>
                   ))}
@@ -165,7 +165,7 @@ export default function ShopTrainingPage() {
                 <input type="date" className="w-full text-sm px-3 py-2 rounded-xl border border-border/40 bg-background outline-none focus:ring-1 focus:ring-primary/30"
                   value={form.completedAt} onChange={(e) => setForm({ ...form, completedAt: e.target.value })} />
                 <button type="button" onClick={handleSave} disabled={saving}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
+                  className="w-full py-2.5 rounded-xl bg-ig-gradient text-white text-sm font-semibold disabled:opacity-50 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   {saving ? "Saving…" : "Save"}
                 </button>
               </motion.div>
@@ -178,7 +178,7 @@ export default function ShopTrainingPage() {
             <div className="rounded-xl border border-border/30 overflow-hidden divide-y divide-border/20">
               {DEFAULT_MODULES.map((mod) => (
                 <button type="button" key={mod.id} onClick={() => handleQuickLog(mod)}
-                  className="w-full flex items-center gap-3 px-3.5 py-3 hover:bg-muted/30 text-left transition-colors">
+                  className="w-full flex items-center gap-3 px-3.5 py-3 hover:bg-muted/30 text-left transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                   <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0",
                     completedModuleIds.has(mod.id) ? "bg-emerald-500/10" : "bg-blue-500/10")}>
                     {completedModuleIds.has(mod.id)

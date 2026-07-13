@@ -124,8 +124,9 @@ export default function PlacesPage() {
                 key={c}
                 type="button"
                 onClick={() => setActiveCategory(c)}
+                aria-pressed={activeCategory === c}
                 className={cn(
-                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeCategory === c ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
                 )}
               >
@@ -168,7 +169,7 @@ export default function PlacesPage() {
                 transition={{ delay: idx * 0.03 }}
                 whileTap={{ scale: 0.985 }}
                 onClick={() => navigate(`/places/${p.id}`)}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-muted">
                   {p.cover_url ? (

@@ -137,8 +137,9 @@ export default function CreatorEarningsPage() {
               key={r}
               type="button"
               onClick={() => setRange(r)}
+              aria-pressed={range === r}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 range === r ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
@@ -247,7 +248,7 @@ export default function CreatorEarningsPage() {
         <button
           type="button"
           onClick={() => navigate("/creator-live-earnings")}
-          className="w-full h-12 rounded-2xl bg-ig-gradient text-white font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-md shadow-rose-500/25"
+          className="w-full h-12 rounded-2xl bg-ig-gradient text-white font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-md shadow-rose-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Video className="h-4 w-4" />
           Open live earnings & cash-out

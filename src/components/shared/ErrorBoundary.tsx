@@ -49,7 +49,10 @@ export class ErrorBoundary extends Component<Props, State> {
       const reloadKey = "zivo_chunk_reload";
       try {
         if (!sessionStorage.getItem(reloadKey)) {
-          sessionStorage.setItem(reloadKey, "1");
+          // Store a timestamp (not a "1" sentinel) on this shared key: lazyWithRetry
+          // reads it as a number with a 30s window, so a sentinel would look like a
+          // 1970 reload and fail to suppress its duplicate reload for the same deploy.
+          sessionStorage.setItem(reloadKey, String(Date.now()));
           window.location.reload();
           return;
         }

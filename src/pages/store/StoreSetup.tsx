@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Store Setup Wizard — Multi-step onboarding for store owners.
  * Steps: 1) Owner Profile  2) Store Details  3) Payment Setup  4) Review
  */
@@ -412,7 +412,7 @@ export default function StoreSetup() {
                   onClick={() => { if (isDone) goToStep(s.id); }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-300 ${
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-105"
+                      ? "bg-ig-gradient text-white shadow-lg shadow-primary/30 scale-105"
                       : isDone
                         ? "bg-primary/20 text-primary cursor-pointer hover:bg-primary/30"
                         : "bg-white/[0.06] text-white/30"

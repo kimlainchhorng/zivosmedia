@@ -138,7 +138,7 @@ export default function AccountSubscriptionsPage() {
         style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}
       >
         <div className="flex items-center gap-3 px-3 h-14 max-w-3xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-base font-bold flex items-center gap-1.5">
@@ -162,10 +162,10 @@ export default function AccountSubscriptionsPage() {
 
         <div className="flex gap-1 mb-4 p-1 bg-muted/40 rounded-xl">
           {(["active", "ended"] as const).map((t) => (
-            <button type="button"
+            <button type="button" aria-pressed={tab === t}
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 tab === t ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
               }`}
             >
@@ -220,7 +220,7 @@ export default function AccountSubscriptionsPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/user/${s.creator_id}`)}
-                    className="w-full flex items-center gap-3 p-3 text-left active:bg-muted/30 transition-colors"
+                    className="w-full flex items-center gap-3 p-3 text-left active:bg-muted/30 transition-colors focus-visible:ring-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Avatar className="h-12 w-12 shrink-0">
                       <AvatarImage src={s.creator?.avatar_url || undefined} />
@@ -273,7 +273,7 @@ export default function AccountSubscriptionsPage() {
                       <button
                         type="button"
                         onClick={() => setConfirmCancel(s)}
-                        className="text-[11px] font-bold text-destructive hover:underline"
+                        className="text-[11px] font-bold text-destructive hover:underline rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         Cancel
                       </button>
@@ -282,7 +282,7 @@ export default function AccountSubscriptionsPage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/user/${s.creator_id}`)}
-                        className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+                        className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <Crown className="h-3 w-3" />
                         Resubscribe

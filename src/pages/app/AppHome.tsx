@@ -1,4 +1,4 @@
-/**
+﻿/**
  * App Home Screen - 2026 Travel Super-App Layout
  * Premium scrollable design with saved places, quick estimate, popular services,
  * quick actions, service navigation, and personalized content.
@@ -157,9 +157,8 @@ const savedPlaceIconMap: Record<string, LucideIcon> = {
 const RestaurantCard = ({ restaurant, onNavigate }: { restaurant: HomeRestaurant; onNavigate: () => void }) => (
   <motion.button
     onClick={onNavigate}
-    whileTap={{ scale: 0.94, rotateX: 5 }}
-    whileHover={{ y: -6, rotateX: -2 }}
-    className="shrink-0 w-[170px] rounded-2xl overflow-hidden bg-card border border-border/40 shadow-sm hover:shadow-xl transition-all duration-300 touch-manipulation text-left group card-3d"
+    whileTap={{ scale: 0.97 }}
+    className="shrink-0 w-[170px] rounded-2xl overflow-hidden bg-background/92 border border-border/30 shadow-sm hover:border-border/50 transition-colors touch-manipulation text-left group"
     
   >
     <div className="relative h-[120px] overflow-hidden">
@@ -174,17 +173,17 @@ const RestaurantCard = ({ restaurant, onNavigate }: { restaurant: HomeRestaurant
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
       {restaurant.rating && (
-        <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 backdrop-blur-xl rounded-full px-2 py-0.5">
+        <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/60 rounded-full px-2 py-0.5">
           <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
           <span className="text-[10px] font-bold text-primary-foreground">{restaurant.rating.toFixed(1)}</span>
         </div>
       )}
-      <PartnerBadge size="xs" className="absolute top-2 left-2 shadow-sm" />
-      <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+      <PartnerBadge size="xs" className="absolute top-2 left-2" />
+      <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
         <Heart className="w-3.5 h-3.5 text-primary-foreground" />
       </div>
     </div>
-    <div className="p-3 [transform:translateZ(8px)]">
+    <div className="p-3">
       <div className="text-xs font-bold text-foreground truncate">{restaurant.name}</div>
       {restaurant.cuisine_type && (
         <div className="text-[10px] text-muted-foreground truncate mt-0.5">{restaurant.cuisine_type}</div>
@@ -275,18 +274,18 @@ const SmartNowCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-lg border border-border bg-card p-4"
+        className="relative rounded-2xl border border-border/30 bg-background/92 shadow-sm hover:border-border/50 p-4"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-            <Icon className="w-5 h-5 text-foreground" strokeWidth={1.8} />
+          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", cfg.iconBg)}>
+            <Icon className={cn("w-5 h-5", cfg.iconColor)} strokeWidth={1.8} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{cfg.greeting}</p>
+            <p className="text-xs font-semibold text-muted-foreground">{cfg.greeting}</p>
             <button
               type="button"
               onClick={() => onNavigate(cfg.primary.to)}
-              className="mt-0.5 flex min-h-[40px] items-center gap-1 text-sm font-bold text-foreground active:opacity-70 transition-opacity touch-manipulation"
+              className="mt-0.5 flex min-h-[40px] items-center gap-1 text-sm font-semibold text-foreground active:opacity-70 transition-opacity touch-manipulation"
             >
               {cfg.primary.label}
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
@@ -299,7 +298,7 @@ const SmartNowCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
               key={chip.label}
               whileTap={{ scale: 0.96 }}
               onClick={() => onNavigate(chip.to)}
-              className="min-h-[40px] text-[11px] font-semibold text-foreground bg-muted border border-border rounded-full px-3 py-2 touch-manipulation active:bg-muted/70 transition-colors"
+              className="min-h-[40px] text-[11px] font-semibold text-foreground bg-muted/20 border border-border/30 rounded-full px-3 py-2 touch-manipulation active:bg-muted/40 transition-colors"
             >
               {chip.label}
             </motion.button>
@@ -366,7 +365,7 @@ const DailyMissionCard = ({ onNavigate }: { onNavigate: (to: string) => void }) 
   const mission = useMemo(() => DAILY_MISSIONS[new Date().getDay()], []);
   const Icon = mission.icon;
   const dayLabel = useMemo(() =>
-    new Date().toLocaleDateString("en-US", { weekday: "long" }).toUpperCase(),
+    new Date().toLocaleDateString("en-US", { weekday: "long" }),
   []);
 
   return (
@@ -374,15 +373,15 @@ const DailyMissionCard = ({ onNavigate }: { onNavigate: (to: string) => void }) 
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-lg border border-border bg-card p-4"
+        className="relative rounded-2xl border border-border/30 bg-background/92 shadow-sm hover:border-border/50 p-4"
       >
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
-            <Icon className="w-5 h-5 text-foreground" strokeWidth={1.8} />
+          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", ACCENT_STYLES[mission.accent].iconBg)}>
+            <Icon className={cn("w-5 h-5", ACCENT_STYLES[mission.accent].iconColor)} strokeWidth={1.8} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-ig-gradient">{dayLabel} MISSION</p>
+              <p className="text-xs font-semibold text-muted-foreground">{dayLabel} mission</p>
             </div>
             <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{mission.title}</p>
           </div>
@@ -390,7 +389,7 @@ const DailyMissionCard = ({ onNavigate }: { onNavigate: (to: string) => void }) 
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => onNavigate(mission.to)}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold bg-ig-gradient text-white shadow-sm hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation"
+          className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation"
         >
           {mission.cta}
           <ChevronRight className="w-3.5 h-3.5" />
@@ -470,21 +469,20 @@ const StreakCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full text-left relative overflow-hidden rounded-2xl border border-orange-500/25 bg-gradient-to-br from-orange-500/12 via-amber-500/6 to-transparent p-4 shadow-sm touch-manipulation"
+        className="w-full text-left relative overflow-hidden rounded-2xl border border-border/30 bg-background/92 p-4 shadow-sm hover:border-border/50 touch-manipulation"
       >
-        <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-orange-500/10 blur-2xl pointer-events-none" />
         <div className="relative flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500/30 to-amber-500/15 flex items-center justify-center shrink-0 shadow-inner">
-            <Flame className="w-6 h-6 text-orange-500" />
+          <div className="w-12 h-12 rounded-full bg-orange-500/12 flex items-center justify-center shrink-0">
+            <Flame className="w-6 h-6 text-orange-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-orange-600">Daily streak</p>
-            <p className="text-base font-extrabold text-foreground leading-tight">
+            <p className="text-xs font-semibold text-orange-600">Daily streak</p>
+            <p className="text-base font-semibold text-foreground leading-tight">
               {state.count} {state.count === 1 ? "day" : "days"} <span className="text-xs font-semibold text-muted-foreground">in a row</span>
             </p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Next</p>
+            <p className="text-xs font-semibold text-muted-foreground">Next</p>
             <p className="text-xs font-bold text-amber-600">{toGo === 0 ? "Reached!" : `${toGo}d → ${nextMilestone}d`}</p>
           </div>
         </div>
@@ -503,14 +501,14 @@ const StreakCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
                     isFuture
                       ? "bg-muted/40 text-muted-foreground/50"
                       : isComplete
-                        ? "bg-orange-500 text-white shadow-md shadow-orange-500/30"
+                        ? "bg-orange-500 text-white"
                         : "bg-muted/60 text-muted-foreground border border-dashed border-orange-500/40",
                     isToday && "ring-2 ring-orange-500/40 ring-offset-2 ring-offset-background scale-110",
                   )}
                 >
                   {isComplete && !isFuture ? "✓" : d}
                 </div>
-                <span className={cn("text-[8px] font-bold", isToday ? "text-orange-600" : "text-muted-foreground/60")}>{d}</span>
+                <span className={cn("text-[9px] font-semibold", isToday ? "text-orange-600" : "text-muted-foreground/60")}>{d}</span>
               </div>
             );
           })}
@@ -522,21 +520,18 @@ const StreakCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
 
 const SectionHeader = ({ icon: Icon, iconColor, title, badge, actionLabel, onSeeAll }: { icon: LucideIcon; iconColor: string; title: string; badge?: string; actionLabel?: string; onSeeAll: () => void }) => (
   <div className="flex items-center justify-between mb-4">
-    <h2 className="text-sm font-bold text-foreground flex items-center gap-2.5">
-      <motion.div
-        whileHover={{ scale: 1.1, rotateY: 10 }}
-        className="w-7 h-7 rounded-xl bg-gradient-to-br from-muted/80 to-muted/40 flex items-center justify-center shadow-sm icon-3d-pop"
-      >
+    <h2 className="text-sm font-semibold text-foreground flex items-center gap-2.5">
+      <div className="w-7 h-7 rounded-full bg-muted/20 border border-border/30 flex items-center justify-center">
         <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
-      </motion.div>
+      </div>
       {title}
       {badge && (
-        <Badge variant="secondary" className="text-[9px] font-bold bg-primary/10 text-primary border-0 px-1.5 py-0">
+        <Badge variant="secondary" className="text-[10px] font-semibold bg-primary/10 text-primary border-0 px-1.5 py-0">
           {badge}
         </Badge>
       )}
     </h2>
-    <button type="button" onClick={onSeeAll} className="text-xs text-primary font-bold touch-manipulation active:scale-95 min-w-[44px] min-h-[32px] flex items-center gap-0.5 hover:gap-1.5 transition-all">
+    <button type="button" onClick={onSeeAll} className="text-xs text-primary font-semibold touch-manipulation active:scale-95 min-w-[44px] min-h-[32px] flex items-center gap-0.5 hover:gap-1.5 transition-all">
       {actionLabel}
       <ChevronRight className="w-3.5 h-3.5" />
     </button>
@@ -744,6 +739,12 @@ const AppHome = () => {
   const avatarUrl = profile?.avatar_url;
   const initials = (profile?.full_name || user?.email || "Z").charAt(0).toUpperCase();
 
+  // The notch / Dynamic-Island safe-area padding is only needed inside the
+  // installed native app. In a regular browser there's no notch under the web
+  // content, so the forced 64px `pt-safe` floor just leaves an empty gap — drop
+  // it on the website and use normal header padding instead.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
+
   return (
     <div>
     <SEOHead title="ZIVO – Your Travel Super-App" description="Book rides, flights, hotels, and grocery delivery — all in one app." />
@@ -756,15 +757,17 @@ const AppHome = () => {
           blurred bar covering exactly var(--zivo-safe-top,0px) keeps that area
           legible without forcing the rest of the page to lose the edge-to-edge
           feel. */}
-      <div
-        aria-hidden
-        className="zivo-safe-top-none fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl pointer-events-none [height:var(--zivo-safe-top-sticky)]"
-      />
+      {isNativeApp && (
+        <div
+          aria-hidden
+          className="zivo-safe-top-none fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl pointer-events-none [height:var(--zivo-safe-top-sticky)]"
+        />
+      )}
 
       {/* 3D Ambient orbs — contained within scrollable area only */}
 
       {/* Scrollable content */}
-      <div className="scroll-momentum relative z-10 [padding-bottom:calc(56px+var(--zivo-safe-bottom,0px)+24px)]">
+      <div className="scroll-momentum relative z-10 [padding-bottom:calc(56px+var(--zivo-safe-bottom,0px))]">
         {shouldShowHomeRecovery ? (
           <LoadFailureCard
             className="px-4 pt-safe pb-6"
@@ -791,18 +794,25 @@ const AppHome = () => {
 
           {/* ─── GREETING HEADER ─── */}
           {user ? (
-            <div className="flex items-center justify-between px-5 pt-safe pb-3">
-              <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-2.5 touch-manipulation active:opacity-75 transition-opacity">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={userName} width={40} height={40} className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/25" loading="lazy" decoding="async" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/40 to-primary/15 flex items-center justify-center ring-2 ring-primary/20 shrink-0">
-                    <span className="text-sm font-bold text-primary">{initials}</span>
-                  </div>
-                )}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className={`flex items-center justify-between px-5 pb-4 ${isNativeApp ? "pt-safe" : "pt-3"}`}
+            >
+              <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-3 touch-manipulation active:opacity-75 transition-opacity">
+                <div className="shrink-0 p-[2px] rounded-full bg-ig-gradient">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={userName} width={44} height={44} className="w-11 h-11 rounded-full object-cover block" loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-primary/12 flex items-center justify-center">
+                      <span className="text-base font-semibold text-primary">{initials}</span>
+                    </div>
+                  )}
+                </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground leading-none mb-0.5">{greeting()}</p>
-                  <p className="text-sm font-bold text-foreground leading-none">{userName}</p>
+                  <p className="text-[11px] font-semibold text-muted-foreground leading-none mb-1">{greeting()}</p>
+                  <p className="text-[17px] font-bold text-foreground leading-none tracking-tight">{userName}</p>
                 </div>
               </button>
               <div className="flex items-center gap-2">
@@ -820,79 +830,90 @@ const AppHome = () => {
                   type="button"
                   aria-label="Activity"
                   onClick={() => navigate("/activity")}
-                  className="relative w-9 h-9 rounded-full bg-muted/50 flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
+                  className="relative w-10 h-10 rounded-full bg-muted/20 border border-border/30 flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
                 >
-                  <Bell className="w-4 h-4 text-foreground" />
+                  <Bell className="w-[18px] h-[18px] text-foreground" strokeWidth={1.8} />
                 </button>
               </div>
-            </div>
+            </motion.div>
           ) : null}
 
           {/* ─── ALL SERVICES (moved to top) ─── */}
-          <div className={cn("pb-5", user ? "pt-1" : "pt-safe")}>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 280, damping: 28, delay: 0.1 }}
+            className={cn("pb-5", user ? "pt-1" : "pt-safe")}
+          >
             <div className="flex items-center justify-between mb-3 px-5">
-              <h2 className="text-base font-bold text-ig-gradient">{t("home.more_services")}</h2>
+              <h2 className="text-[17px] font-bold text-foreground">{t("home.more_services")}</h2>
               <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
                 <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
               </button>
             </div>
             {/* Row 1 */}
-            <div className="grid grid-cols-4 gap-3 px-5 pb-3 preserve-3d">
+            <div className="grid grid-cols-4 gap-3 px-5 pb-3">
               {([
                 { label: t("home.ride"), image: zivoRideIcon, href: "/rides/hub", badge: null, badgeVariant: "promo" as const },
                 { label: t("home.eats"), image: zivoEatsIcon, href: "/eats", badge: null, badgeVariant: "promo" as const },
                 { label: t("home.flights"), image: zivoFlightsIcon, href: "/flights", badge: null, badgeVariant: "discount" as const },
                 { label: t("home.hotels"), image: zivoHotelsIcon, href: hotelsPath, badge: null, badgeVariant: "promo" as const },
-              ].filter(Boolean) as Array<{ label: string; image: string; href: string; badge: string | null; badgeVariant: "promo" | "discount" }>).map((s) => (
+              ].filter(Boolean) as Array<{ label: string; image: string; href: string; badge: string | null; badgeVariant: "promo" | "discount" }>).map((s, i) => (
                 <motion.button
                   key={s.label}
-                  whileTap={{ scale: 0.94 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.12 + i * 0.06 }}
+                  whileTap={{ scale: 0.91 }}
                   onPointerDown={() => prefetch(s.href)}
                   onClick={() => navigate(s.href)}
                   className="flex flex-col items-center gap-2 touch-manipulation relative group"
                 >
                   {s.badge && (
                     <div className={cn(
-                      "absolute -top-2.5 -right-2 z-10 text-[8px] font-bold px-2 py-[2px] rounded-full shadow-md",
+                      "absolute -top-2.5 -right-2 z-10 text-[8px] font-semibold px-2 py-[2px] rounded-full",
                       s.badgeVariant === "discount"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                        ? "bg-pink-500/12 text-pink-600"
+                        : "bg-amber-500/12 text-amber-600"
                     )}>
                       {s.badge}
                     </div>
                   )}
-                  <div className="w-[60px] h-[60px] rounded-2xl bg-card border border-border/30 shadow-sm flex items-center justify-center icon-3d-pop group-active:scale-95 transition-all duration-200">
-                    <img src={s.image} alt={s.label} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 object-contain" />
+                  <div className="w-[64px] h-[64px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center group-active:scale-95 group-hover:border-border/50 transition-all duration-200">
+                    <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
                   </div>
                   <span className="text-[11px] font-semibold text-muted-foreground text-center leading-tight group-hover:text-foreground transition-colors">{s.label}</span>
                 </motion.button>
               ))}
             </div>
             {/* Row 2 */}
-            <div className="grid grid-cols-4 gap-3 px-5 pb-2 preserve-3d">
+            <div className="grid grid-cols-4 gap-3 px-5 pb-2">
               {(([
                 { label: t("home.rental_cars"), image: zivoRentalCarIcon, icon: null, href: "/rent-car", badge: null },
                 { label: "Bus", image: null, icon: Bus, href: "/bus", badge: null },
                 { label: t("home.shopping"), image: zivoShoppingIcon, icon: null, href: "/grocery", badge: null },
                 { label: "Delivery", image: null, icon: Package, href: "/delivery", badge: null },
-              ].filter(Boolean)) as Array<{ label: string; image: string | null; icon: typeof Package | null; href: string; badge: string | null }>).map((s) => {
+              ].filter(Boolean)) as Array<{ label: string; image: string | null; icon: typeof Package | null; href: string; badge: string | null }>).map((s, idx2) => {
                 const SvcIcon = s.icon;
                 return (
                   <motion.button
                     key={s.label}
-                    whileTap={{ scale: 0.94 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.28 + (idx2 * 0.06) }}
+                    whileTap={{ scale: 0.91 }}
                     onPointerDown={() => prefetch(s.href)}
                     onClick={() => navigate(s.href)}
                     className="flex flex-col items-center gap-2 touch-manipulation relative group"
                   >
                     {s.badge && (
-                      <div className="absolute -top-2.5 -right-2 z-10 text-[8px] font-bold px-2 py-[2px] rounded-full shadow-md bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                      <div className="absolute -top-2.5 -right-2 z-10 text-[8px] font-semibold px-2 py-[2px] rounded-full bg-amber-500/12 text-amber-600">
                         {s.badge}
                       </div>
                     )}
-                    <div className="w-[60px] h-[60px] rounded-2xl bg-card border border-border/30 shadow-sm flex items-center justify-center icon-3d-pop group-active:scale-95 transition-all duration-200">
+                    <div className="w-[64px] h-[64px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center group-active:scale-95 group-hover:border-border/50 transition-all duration-200">
                       {s.image ? (
-                        <img src={s.image} alt={s.label} width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 object-contain" />
+                        <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
                       ) : SvcIcon ? (
                         <SvcIcon className="w-7 h-7 text-primary" />
                       ) : null}
@@ -902,69 +923,16 @@ const AppHome = () => {
                 );
               })}
             </div>
-          </div>
+          </motion.div>
 
           {/* ─── TODAY'S PLAN ─── */}
           <Suspense fallback={null}>
             <TodayPlanWidget />
           </Suspense>
 
-          {/* ─── QUICK PICKS + SAVED PLACES (unified pill rail) ─── */}
-          <div className="px-4 pb-3">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
-              {/* User's saved places first — one-tap to ride home/work/etc */}
-              {user && savedLocations?.slice(0, 4).map((loc) => {
-                const Icon = savedPlaceIconMap[loc.icon] || MapPin;
-                return (
-                  <motion.button
-                    key={loc.id}
-                    whileTap={{ scale: 0.94 }}
-                    onPointerDown={() => prefetch("/rides/hub")}
-                    onClick={() => navigate(`/rides/hub?destination=${encodeURIComponent(loc.address)}`)}
-                    className="shrink-0 flex min-h-[44px] items-center gap-1.5 bg-card border border-primary/30 rounded-full pl-2 pr-3 py-2 touch-manipulation active:bg-muted/50 transition-colors shadow-sm"
-                  >
-                    <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Icon className="w-3.5 h-3.5 text-primary" strokeWidth={1.8} />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground whitespace-nowrap capitalize">{loc.label}</span>
-                  </motion.button>
-                );
-              })}
-              {/* Categorical shortcuts */}
-              {QUICK_PICKS.map((p) => {
-                const Icon = p.icon;
-                return (
-                  <motion.button
-                    key={p.label}
-                    whileTap={{ scale: 0.94 }}
-                    onPointerDown={() => prefetch(p.to.split("?")[0])}
-                    onClick={() => navigate(p.to)}
-                    className="shrink-0 flex min-h-[44px] items-center gap-1.5 bg-card border border-border rounded-full pl-2 pr-3 py-2 touch-manipulation active:bg-muted/50 transition-colors"
-                  >
-                    <span className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                      <Icon className="w-3.5 h-3.5 text-foreground" strokeWidth={1.8} />
-                    </span>
-                    <span className="text-xs font-semibold text-foreground whitespace-nowrap">{p.label}</span>
-                  </motion.button>
-                );
-              })}
-              {/* Add place */}
-              <motion.button
-                whileTap={{ scale: 0.94 }}
-                onClick={() => navigate("/account/addresses")}
-                className="shrink-0 flex min-h-[44px] items-center gap-1.5 bg-muted/50 border border-dashed border-border/50 rounded-full px-3 py-2 touch-manipulation"
-                aria-label="Add a saved place"
-              >
-                <Plus className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Add place</span>
-              </motion.button>
-            </div>
-          </div>
 
           {/* ─── LIVE TRIP TRACKER (moved up — surface active trip ASAP) ─── */}
-          <div className="px-5 pb-3">
-            <Suspense fallback={null}><LiveTripTracker /></Suspense>
-          </div>
+          <Suspense fallback={null}><LiveTripTracker /></Suspense>
 
           {/* ─── UPCOMING BOOKINGS (moved up — show personal trips before browse) ─── */}
           {user && upcomingBookings.length > 0 && (
@@ -980,16 +948,16 @@ const AppHome = () => {
                       key={booking.id}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => navigate("/trips")}
-                      className="w-full flex items-center gap-3 bg-card border border-border/40 rounded-2xl p-4 shadow-sm text-left touch-manipulation"
+                      className="w-full flex items-center gap-3 bg-background/92 border border-border/30 hover:border-border/50 rounded-2xl p-4 shadow-sm text-left touch-manipulation"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0 border border-border">
+                      <div className="w-10 h-10 rounded-xl bg-muted/20 flex items-center justify-center shrink-0 border border-border/30">
                         <Calendar className="w-5 h-5 text-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-foreground truncate capitalize">{(booking.type || booking.service || "Trip").replace(/_/g, " ")}</p>
                         <p className="text-[11px] text-muted-foreground">{format(bookingDate, "MMM d 'at' h:mm a")}</p>
                       </div>
-                      <Badge variant="outline" className="text-[9px] font-bold text-foreground border-border bg-secondary shrink-0 capitalize">
+                      <Badge variant="outline" className="text-[9px] font-semibold text-foreground border-border/30 bg-muted/20 shrink-0 capitalize">
                         {booking.status || "Scheduled"}
                       </Badge>
                     </motion.button>
@@ -1000,9 +968,7 @@ const AppHome = () => {
           )}
 
           {/* ─── QUICK REBOOK (moved up — personal cluster) ─── */}
-          <div className="px-5 pb-3">
-            <Suspense fallback={null}><QuickReorderCarousel /></Suspense>
-          </div>
+          <Suspense fallback={null}><QuickReorderCarousel /></Suspense>
 
           {/* ─── RECENTLY VIEWED (moved up — personal cluster) ─── */}
           {user && recentItems.length > 0 && (
@@ -1021,7 +987,7 @@ const AppHome = () => {
                     }}
                     className="shrink-0 flex flex-col items-center gap-1.5 touch-manipulation group"
                   >
-                    <div className="w-[60px] h-[60px] rounded-2xl bg-card border border-border/40 shadow-sm flex items-center justify-center overflow-hidden group-hover:border-primary/30 transition-colors">
+                    <div className="w-[60px] h-[60px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center overflow-hidden group-hover:border-border/50 transition-colors">
                       {item.thumbnail_url ? (
                         <img src={item.thumbnail_url} alt={item.title || "Item"} width={60} height={60} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
@@ -1067,143 +1033,10 @@ const AppHome = () => {
               ~250px of home-screen real estate. Wire to a real release-notes
               table later if a fresh-features rail is desired. */}
 
-          <div className="px-5 pb-4">
-            {ownerStoreLoading ? (
-              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                <div className="h-4 w-36 rounded-full bg-muted animate-pulse" />
-                <div className="mt-3 h-2 rounded-full bg-muted animate-pulse" />
-              </div>
-            ) : ownerStore?.isLodging ? (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-2xl border border-primary/20 bg-primary/8 shadow-sm">
-                {/* Tappable preview area → public hotel detail page */}
-                <button
-                  type="button"
-                  onClick={() => navigate(`/hotel/${ownerStore.id}`)}
-                  aria-label={`Open ${ownerStore.name} hotel page`}
-                  className="block w-full text-left active:opacity-90 transition"
-                >
-                  <div className="relative h-24 w-full overflow-hidden bg-muted">
-                    {ownerStore.logo_url ? (
-                      <img
-                        src={ownerStore.logo_url}
-                        alt={`${ownerStore.name} cover`}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/15 to-transparent" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-card/95 via-card/30 to-transparent" />
-                    <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background/85 backdrop-blur text-primary"><Hotel className="h-4 w-4" /></div>
-                      <p className="truncate text-sm font-bold text-foreground drop-shadow-sm">{ownerStore.name}</p>
-                      <Badge variant="secondary" className="ml-auto shrink-0 text-[9px]">Tap to view</Badge>
-                    </div>
-                  </div>
-                </button>
-
-                <div className="p-4 pt-3">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-foreground">Hotel / Resort Admin</p>
-                    <Badge variant="secondary" className="shrink-0 text-[9px]">Ready</Badge>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {(lodgingRooms.data?.length ?? 0)} rooms · Setup {lodgingProgress?.percent || 0}%
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {["Rooms", "Rates", "Guest Requests"].map((label) => <span key={label} className="rounded-full bg-background px-2 py-0.5 text-[10px] font-semibold text-primary ring-1 ring-primary/15">{label}</span>)}
-                  </div>
-                  <div className="mt-3">
-                    <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-primary"><span>Setup progress</span><span>{lodgingProgress ? `${lodgingProgress.complete}/${lodgingProgress.total} ready` : "Loading"}</span></div>
-                    <Progress value={lodgingProgress?.percent || 0} className="h-1.5 bg-primary/15" />
-                  </div>
-                  {lodgingCompletion && lodgingCompletion.percent < 100 && lodgingCompletion.nextBestAction && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/admin/stores/${ownerStore.id}?tab=${lodgingCompletion.nextBestAction.tab}`); }}
-                      className="mt-2 flex w-full items-center justify-between rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-left transition-colors hover:bg-primary/12 active:scale-[0.99]"
-                    >
-                      <span className="min-w-0">
-                        <span className="block text-[10px] font-semibold uppercase tracking-wide text-primary">Next best action</span>
-                        <span className="block truncate text-xs font-bold text-foreground">{lodgingCompletion.nextBestAction.actionLabel}</span>
-                        <span className="block truncate text-[10px] text-muted-foreground">{lodgingCompletion.nextBestAction.hint}</span>
-                      </span>
-                      <ArrowRight className="ml-2 h-4 w-4 shrink-0 text-primary" />
-                    </button>
-                  )}
-                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Button size="sm" className="h-9 px-2 text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); navigate(`/admin/stores/${ownerStore.id}?tab=lodge-overview`); }}>
-                      <span className="truncate">Open Ops</span>
-                      <ArrowRight className="ml-1 h-3.5 w-3.5 shrink-0" />
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-9 px-2 text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); navigate("/admin/lodging/qa-checklist"); }}>
-                      <span className="truncate">Run QA</span>
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-9 px-2 text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); navigate("/hotel-admin"); }}>
-                      <span className="truncate">Operations</span>
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-9 px-2 text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); navigate("/admin/lodging/completion-verification"); }}>
-                      <span className="truncate">QA Report</span>
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <button type="button" onClick={() => navigate("/business/new")} className="flex w-full items-center justify-between rounded-2xl border border-border bg-card p-4 text-left shadow-sm active:scale-[0.99]">
-                <span className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Briefcase className="h-5 w-5" /></span><span><span className="block text-sm font-bold text-foreground">Business Page</span><span className="block text-xs text-muted-foreground">Create your business page on Zivo</span></span></span>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-            )}
-          </div>
 
 
 
 
-          {/* ─── DISCOVER (gradient cards) ─── */}
-          <div className="pb-5">
-            <div className="flex items-center justify-between mb-3 px-5">
-              <h2 className="text-base font-bold text-ig-gradient">Discover</h2>
-              <button type="button" aria-label="View more services" onClick={() => navigate("/more")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
-                <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
-              </button>
-            </div>
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 px-5">
-              {[
-                { icon: Briefcase, label: "Workplace", desc: "Clock in, jobs & schedule", href: "/personal-dashboard", gradient: "from-foreground to-foreground/80" },
-                { icon: Tv, label: "Live", desc: "Watch live", href: "/live", gradient: "from-foreground to-foreground/80" },
-                { icon: Rocket, label: "Creator Hub", desc: "Grow & earn", href: "/creator-dashboard", gradient: "from-foreground to-foreground/80" },
-                { icon: Heart, label: "Wellness", desc: "Stay healthy", href: "/wellness/activity", gradient: "from-foreground to-foreground/80" },
-                { icon: Crown, label: "ZIVO Plus", desc: "Premium perks", href: "/zivo-plus", gradient: "from-amber-500 via-yellow-400 to-orange-400" },
-                { icon: Gem, label: "Rewards", desc: "Earn points", href: "/rewards", gradient: "from-foreground to-foreground/80" },
-                { icon: Sparkles, label: "Marketplace", desc: "Buy & sell", href: "/marketplace", gradient: "from-foreground to-foreground/80" },
-                { icon: Dumbbell, label: "Workouts", desc: "Train daily", href: "/wellness/workouts", gradient: "from-lime-500 via-green-500 to-emerald-500" },
-              ].map((card, i) => (
-                <motion.button
-                  key={card.label}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(card.href)}
-                  className={cn(
-                    "shrink-0 w-[128px] h-[96px] rounded-[20px] bg-gradient-to-br p-3 flex flex-col justify-between shadow-lg touch-manipulation text-left",
-                    card.gradient
-                  )}
-                  style={{ animationDelay: `${i * 60}ms` }}
-                >
-                  <card.icon className="w-5 h-5 text-white/90" />
-                  <div>
-                    <p className="text-white font-bold text-[12px] leading-tight">{card.label}</p>
-                    <p className="text-white/75 text-[10px] mt-0.5">{card.desc}</p>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-
-          {/* 3D Section Divider */}
-          <div className="h-3 relative overflow-hidden">
-            <div className="absolute inset-x-4 top-1/2 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-            <div className="absolute inset-x-0 top-0 h-full bg-muted/20" />
-          </div>
         </div>
 
         {/* ─── MAIN CONTENT ─── */}
@@ -1212,161 +1045,18 @@ const AppHome = () => {
           {/* ─── PRICE ALERTS WIDGET ─── */}
           <Suspense fallback={null}><PriceAlertsWidget /></Suspense>
 
-          {/* ─── LOYALTY & REWARDS CARD ─── */}
-          {user && points && (
-            <motion.button
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate("/rewards")}
-              className="w-full rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/8 border border-amber-500/20 p-5 text-left shadow-sm relative overflow-hidden touch-manipulation"
-            >
-              <div className="absolute -top-8 -right-8 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex items-center gap-3 relative z-10">
-                <div className="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center shrink-0">
-                  <Crown className="w-5 h-5 text-amber-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-bold text-foreground">ZIVO Miles</p>
-                    {loyaltySummary?.tier && (
-                      <Badge variant="secondary" className="text-[9px] font-bold bg-amber-500/15 text-amber-600 border-0 px-1.5">
-                        {loyaltySummary.tier}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-bold text-foreground">{(loyaltySummary?.points_balance || 0).toLocaleString()}</span> pts · Earn more with every trip
-                  </p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-              </div>
-              {(loyaltySummary?.points_balance || 0) > 0 && (
-                <div className="mt-3 relative z-10">
-                  <Progress value={Math.min(((loyaltySummary?.points_balance || 0) / 5000) * 100, 100)} className="h-1.5 bg-amber-500/20" />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {Math.max(0, 5000 - (loyaltySummary?.points_balance || 0)).toLocaleString()} pts to next tier
-                  </p>
-                </div>
-              )}
-            </motion.button>
-          )}
 
-          {/* ─── REFERRAL WORKFLOW ─── */}
-          {user && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-border/70 p-3.5 relative overflow-hidden shadow-sm bg-card"
-            >
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-500 via-rose-500 to-fuchsia-600" />
-              <div className="relative z-10">
-                <div className="flex items-start justify-between gap-2.5">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Gift className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-foreground leading-tight">Invite friends, earn rewards</p>
-                      <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
-                        Friends get {REFERRAL_REWARDS.newUser.points.toLocaleString()} pts. You earn {REFERRAL_REWARDS.referrer.pointsPerReferral.toLocaleString()} pts after they book.
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary" className="rounded-full shrink-0 px-2 py-0.5 text-[10px]">
-                    {currentReferralTier?.tier_name || "Standard"}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-3 gap-1.5 mt-3">
-                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Users className="w-3.5 h-3.5 text-primary" />
-                      <span className="truncate text-[10px]">Joined</span>
-                    </div>
-                    <p className="mt-1 text-base font-black text-foreground">{totalReferralCount.toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Trophy className="w-3.5 h-3.5 text-amber-500" />
-                      <span className="truncate text-[10px]">Points</span>
-                    </div>
-                    <p className="mt-1 text-base font-black text-foreground">{referralPointsEarned.toLocaleString()}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/40 bg-muted/25 px-2.5 py-2">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Clock className="w-3.5 h-3.5 text-blue-500" />
-                      <span className="truncate text-[10px]">Pending</span>
-                    </div>
-                    <p className="mt-1 text-base font-black text-foreground">{pendingReferralCount.toLocaleString()}</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-3 py-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {referralsLoading ? "Syncing invite" : `${completedReferralCount.toLocaleString()} qualified`}
-                    </p>
-                    <p className="truncate text-xs font-bold text-foreground select-all" title={referralShareUrl || undefined}>
-                      {referralCode?.code ? `Code ${referralCode.code}` : referralShareUrl || "Preparing your link"}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!referralShareUrl}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void copyReferralLink();
-                    }}
-                    className="h-8 rounded-lg px-2.5 text-xs font-bold shrink-0"
-                  >
-                    <Copy className="w-3.5 h-3.5 mr-1" />
-                    Copy
-                  </Button>
-                </div>
-
-                <div className="mt-2.5">
-                  <div className="flex items-center justify-between gap-3 text-[11px]">
-                    <span className="truncate font-bold text-foreground">
-                      {nextReferralTier ? `${referralsToNextTier.toLocaleString()} more to ${nextReferralTier.tier_name}` : "Top referral tier unlocked"}
-                    </span>
-                    <span className="shrink-0 text-muted-foreground">{Math.round(referralTierProgress)}%</span>
-                  </div>
-                  <Progress value={referralTierProgress} className="mt-1.5 h-1 bg-primary/15" />
-                </div>
-
-                <div className="mt-3">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={!referralShareUrl}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void shareReferral();
-                    }}
-                    className="h-9 w-full rounded-xl text-sm font-bold shadow-sm"
-                  >
-                    <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                    Share invite
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           {/* ─── GUEST SIGN-UP CTA ─── */}
           {!user && (
             <motion.div
-              initial={{ opacity: 0, y: 15, rotateX: -8 }}
-              animate={{ opacity: 1, y: 0, rotateX: 0 }}
-              whileHover={{ y: -4, rotateX: 2 }}
-              className="rounded-2xl bg-gradient-to-br from-primary/12 to-primary/10 border border-primary/20 p-6 relative overflow-hidden shadow-sm card-3d"
-              
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              className="rounded-2xl bg-primary/10 border border-primary/20 p-6 relative overflow-hidden shadow-sm"
             >
-              <div className="absolute -top-10 -right-10 w-28 h-28 bg-primary/10 rounded-full blur-3xl breathe-glow" />
-              <div className="relative z-10 [transform:translateZ(15px)]">
+              <div className="relative z-10">
                 <h3 className="text-base font-bold text-foreground mb-1">{t("home.join_free")}</h3>
                 <p className="text-xs text-muted-foreground mb-4">
                   {t("home.join_desc")}
@@ -1375,7 +1065,7 @@ const AppHome = () => {
                   <Button
                     onClick={() => navigate("/signup")}
                     size="sm"
-                    className="flex-1 h-11 rounded-xl font-bold shadow-md shadow-primary/20 btn-3d"
+                    className="flex-1 h-11 rounded-xl font-semibold"
                   >
                     {t("home.sign_up_free")}
                   </Button>
@@ -1383,7 +1073,7 @@ const AppHome = () => {
                     onClick={() => navigate("/login")}
                     variant="outline"
                     size="sm"
-                    className="h-11 px-5 rounded-xl font-medium card-3d"
+                    className="h-11 px-5 rounded-xl font-medium"
                   >
                     {t("home.log_in")}
                   </Button>
@@ -1403,7 +1093,7 @@ const AppHome = () => {
         <UniversalSearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       </Suspense>
 
-    {/* Bottom Nav — outside perspective container so position:fixed works */}
+    {/* Bottom Nav */}
     <Suspense fallback={<div className="fixed inset-x-0 bottom-0 h-16 bg-background border-t border-border lg:hidden pb-safe" />}><ZivoMobileNav /></Suspense>
       </div>
   );

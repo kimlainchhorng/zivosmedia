@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MarketplacePage — Buy & sell items between users
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +14,7 @@ import {
   Store, User as UserIcon, TrendingUp, Star, Clock, MessageSquare, Send, Bell, BellOff, Copy,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -152,6 +152,7 @@ export default function MarketplacePage() {
     setRecentSearches(next);
     try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {/**/}
   };
+  const reduceMotion = useReducedMotion();
   const [conditionFilter, setConditionFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [sort, setSort] = useState("newest");
@@ -823,7 +824,7 @@ export default function MarketplacePage() {
                 {label}
                 {badge > 0 && (
                   <span className={`ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold ${
-                    tab === v ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                    tab === v ? "bg-primary-foreground text-primary" : "bg-ig-gradient text-white"
                   }`}>{badge > 99 ? "99+" : badge}</span>
                 )}
               </button>
@@ -892,7 +893,7 @@ export default function MarketplacePage() {
             type="button"
             onClick={() => setShowFilters(true)}
             className={`relative shrink-0 px-3 rounded-xl text-sm flex items-center gap-1.5 ${
-              activeFilterCount > 0 ? "bg-primary text-primary-foreground" : "bg-muted/40 text-foreground"
+              activeFilterCount > 0 ? "bg-ig-gradient text-white" : "bg-muted/40 text-foreground"
             }`}
           >
             <SlidersHorizontal className="h-4 w-4" />
@@ -992,8 +993,8 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => setCategoryFilter(null)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                !categoryFilter ? "bg-foreground text-background" : "bg-muted/50 text-muted-foreground"
+              className={`inline-flex min-h-[34px] items-center rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                !categoryFilter ? "bg-foreground text-background shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"
               }`}
             >
               All categories
@@ -1003,8 +1004,8 @@ export default function MarketplacePage() {
                 type="button"
                 key={cat.id}
                 onClick={() => setCategoryFilter(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                  categoryFilter === cat.id ? "bg-foreground text-background" : "bg-muted/50 text-muted-foreground"
+                className={`inline-flex min-h-[34px] items-center rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                  categoryFilter === cat.id ? "bg-foreground text-background shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {cat.icon ? `${cat.icon} ` : ""}{cat.name}
@@ -1022,9 +1023,9 @@ export default function MarketplacePage() {
             <button type="button"
               key={c.value}
               onClick={() => setConditionFilter(c.value)}
-              className={`min-h-[40px] rounded-full px-4 py-2 text-xs font-medium whitespace-nowrap transition-all touch-manipulation ${
+              className={`inline-flex min-h-[40px] items-center rounded-full px-4 py-2 text-xs font-medium whitespace-nowrap transition-all touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                 conditionFilter === c.value
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -1203,7 +1204,7 @@ export default function MarketplacePage() {
             <button
               type="button"
               onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
-              className={`text-xs px-3 py-1 rounded-full font-semibold ${selectMode ? "bg-primary text-primary-foreground" : "bg-muted/40"}`}
+              className={`text-xs px-3 py-1 rounded-full font-semibold ${selectMode ? "bg-ig-gradient text-white" : "bg-muted/40"}`}
             >
               {selectMode ? "Done" : "Select"}
             </button>
@@ -1229,7 +1230,7 @@ export default function MarketplacePage() {
                 type="button"
                 onClick={() => setOfferStatusFilter(s)}
                 className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap capitalize ${
-                  offerStatusFilter === s ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground"
+                  offerStatusFilter === s ? "bg-ig-gradient text-white" : "bg-muted/40 text-muted-foreground"
                 }`}
               >
                 {s}
@@ -1335,7 +1336,7 @@ export default function MarketplacePage() {
           <button
             type="button"
             onClick={() => { setNewCount(0); refetch(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-lg flex items-center gap-1.5"
+            className="px-4 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold shadow-lg flex items-center gap-1.5"
           >
             <Sparkles className="h-3.5 w-3.5" /> {newCount} new {newCount === 1 ? "listing" : "listings"}
           </button>
@@ -1399,26 +1400,35 @@ export default function MarketplacePage() {
               <p className="text-sm font-semibold mb-1">Start exploring</p>
               <p className="text-xs text-muted-foreground">Pick a category to browse</p>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {categories.slice(0, 12).map((c: any) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCategoryFilter(c.id)}
-                  className="aspect-square rounded-2xl bg-gradient-to-br from-primary/10 to-muted/20 border border-border/30 flex flex-col items-center justify-center gap-1 hover:shadow-md hover:border-primary/40 transition-all"
-                >
-                  <span className="text-2xl">{c.icon || "🛍️"}</span>
-                  <span className="text-[11px] font-semibold text-center px-1 line-clamp-1">{c.name}</span>
-                  <span className="text-[10px] text-muted-foreground">{(categoryCounts as Record<string, number>)[c.id] || 0}</span>
-                </button>
-              ))}
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-6">
+              {categories.slice(0, 12).map((c: any, ci: number) => {
+                const count = (categoryCounts as Record<string, number>)[c.id] || 0;
+                return (
+                  <motion.button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setCategoryFilter(c.id)}
+                    initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: reduceMotion ? 0 : Math.min(ci * 0.03, 0.3), duration: 0.3, ease: "easeOut" }}
+                    whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+                    className="group flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/40 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+                  >
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-fuchsia-500/10 text-2xl ring-1 ring-border/40 transition-transform duration-200 group-hover:scale-110">
+                      {c.icon || "🛍️"}
+                    </span>
+                    <span className="line-clamp-1 px-1 text-center text-[11px] font-bold leading-tight">{c.name}</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground">{count} {count === 1 ? "item" : "items"}</span>
+                  </motion.button>
+                );
+              })}
             </div>
             {user && (
               <div className="mt-4 text-center">
                 <button
                   type="button"
                   onClick={() => setShowCreate(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-ig-gradient text-white text-xs font-bold"
                 >
                   <Plus className="h-3.5 w-3.5" /> Sell your first item
                 </button>
@@ -1445,7 +1455,7 @@ export default function MarketplacePage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-ig-gradient text-white text-xs font-bold"
               >
                 <Plus className="h-3.5 w-3.5" /> Create listing
               </button>
@@ -1454,7 +1464,7 @@ export default function MarketplacePage() {
               <button
                 type="button"
                 onClick={() => setTab("browse")}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-ig-gradient text-white text-xs font-bold"
               >
                 Browse listings
               </button>
@@ -1502,7 +1512,7 @@ export default function MarketplacePage() {
                       type="button"
                       onClick={(e) => { e.stopPropagation(); toggleCompare(item.id); }}
                       className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold backdrop-blur-sm ${
-                        compareIds.includes(item.id) ? "bg-primary text-primary-foreground" : "bg-black/40 text-white"
+                        compareIds.includes(item.id) ? "bg-ig-gradient text-white" : "bg-black/40 text-white"
                       }`}
                       title="Compare"
                     >
@@ -1623,7 +1633,7 @@ export default function MarketplacePage() {
         {showFilters && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => setShowFilters(false)}
           >
             <motion.div
@@ -1714,7 +1724,7 @@ export default function MarketplacePage() {
         {showCreate && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => { setShowCreate(false); setEditingId(null); }}
           >
             <motion.div
@@ -1767,7 +1777,7 @@ export default function MarketplacePage() {
                       >
                         <img src={src} alt="" className="w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
                         {idx === 0 && (
-                          <span className="absolute bottom-0 left-0 right-0 bg-primary text-primary-foreground text-[9px] font-bold text-center py-0.5">COVER</span>
+                          <span className="absolute bottom-0 left-0 right-0 bg-ig-gradient text-white text-[9px] font-bold text-center py-0.5">COVER</span>
                         )}
                         <button type="button"
                           aria-label="Remove photo"
@@ -1980,7 +1990,7 @@ export default function MarketplacePage() {
         {showCompare && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50"
+            className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/50"
             onClick={() => setShowCompare(false)}
           >
             <motion.div
@@ -2401,7 +2411,7 @@ function ListingDetail({
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[210] flex items-end justify-center bg-black/60"
+      className="fixed inset-0 z-[1455] flex items-end justify-center bg-black/60"
       onClick={onClose}
     >
       <motion.div
@@ -2477,13 +2487,13 @@ function ListingDetail({
               <button
                 type="button"
                 onClick={onToggleFav}
-                className="p-2.5 rounded-full bg-muted/40"
+                className="p-2.5 rounded-full bg-muted/40 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Save"
               >
                 <Heart className={`h-5 w-5 ${isFav ? "fill-red-500 text-red-500" : ""}`} />
               </button>
             )}
-            <button type="button" aria-label="Share listing" onClick={handleShare} disabled={isSharingListing} className="p-2.5 rounded-full bg-muted/40 disabled:opacity-50">
+            <button type="button" aria-label="Share listing" onClick={handleShare} disabled={isSharingListing} className="p-2.5 rounded-full bg-muted/40 disabled:opacity-50 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Share2 className="h-5 w-5" />
             </button>
           </div>
@@ -2525,7 +2535,7 @@ function ListingDetail({
                   key={t}
                   type="button"
                   onClick={() => { onClose(); navigate(`/marketplace?q=${encodeURIComponent(t)}`); }}
-                  className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary/15"
+                  className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary/15 active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   #{t}
                 </button>
@@ -2544,7 +2554,7 @@ function ListingDetail({
           <button
             type="button"
             onClick={() => navigate(`/u/${seller?.username || listing.seller_id}`)}
-            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-muted/30 text-left"
+            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-muted/30 text-left active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0">
               {seller?.avatar_url ? (
@@ -2661,7 +2671,7 @@ function ListingDetail({
                 <button
                   type="button"
                   onClick={handleMessage}
-                  className="flex-1 py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-2xl bg-ig-gradient text-white font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <MessageCircle className="h-4 w-4" /> Message
                 </button>
@@ -2671,7 +2681,7 @@ function ListingDetail({
                     onClick={() => setShowOffer(true)}
                     disabled={hasPendingOffer}
                     title={hasPendingOffer ? "You already have a pending offer" : ""}
-                    className="flex-1 py-3.5 rounded-2xl bg-foreground text-background font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 py-3.5 rounded-2xl bg-foreground text-background font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <HandCoins className="h-4 w-4" /> {hasPendingOffer ? "Offer pending" : "Make Offer"}
                   </button>
@@ -2679,7 +2689,7 @@ function ListingDetail({
                 <button
                   type="button"
                   onClick={() => setShowReport(true)}
-                  className="px-4 rounded-2xl bg-muted/40"
+                  className="px-4 rounded-2xl bg-muted/40 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Report"
                 >
                   <Flag className="h-4 w-4" />
@@ -2689,7 +2699,7 @@ function ListingDetail({
           ) : (
             <div className="space-y-3 pt-2">
               {/* Owner controls */}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {listing.status === "draft" ? (
                   <button
                     type="button"
@@ -2704,7 +2714,7 @@ function ListingDetail({
                     type="button"
                     onClick={() => updateStatus.mutate("active")}
                     disabled={updateStatus.isPending}
-                    className="flex-1 py-3 rounded-2xl bg-muted/40 font-semibold text-sm flex items-center justify-center gap-2"
+                    className="flex-1 py-3 rounded-2xl bg-muted/40 font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <RotateCcw className="h-4 w-4" /> Relist
                   </button>
@@ -2721,7 +2731,7 @@ function ListingDetail({
                 <button
                   type="button"
                   onClick={() => onEdit(listing)}
-                  className="px-4 rounded-2xl bg-muted/40 font-semibold text-sm"
+                  className="px-4 rounded-2xl bg-muted/40 font-semibold text-sm active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Edit
                 </button>
@@ -2730,7 +2740,7 @@ function ListingDetail({
                     type="button"
                     onClick={() => bumpListing.mutate()}
                     disabled={bumpListing.isPending}
-                    className="px-4 rounded-2xl bg-blue-500/15 text-blue-700 dark:text-blue-400 font-semibold text-sm flex items-center gap-1"
+                    className="px-4 rounded-2xl bg-blue-500/15 text-blue-700 dark:text-blue-400 font-semibold text-sm flex items-center gap-1 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     title="Bump to top of feed (once per 24h)"
                   >
                     <TrendingUp className="h-4 w-4" />
@@ -2740,8 +2750,8 @@ function ListingDetail({
                   type="button"
                   onClick={() => togglePromote.mutate()}
                   disabled={togglePromote.isPending}
-                  className={`px-4 rounded-2xl font-semibold text-sm flex items-center gap-1 ${
-                    listing.is_featured ? "bg-primary text-primary-foreground" : "bg-muted/40"
+                  className={`px-4 rounded-2xl font-semibold text-sm flex items-center gap-1 active:scale-[0.95] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    listing.is_featured ? "bg-ig-gradient text-white" : "bg-muted/40"
                   }`}
                   title={listing.is_featured ? "Remove from Featured" : "Promote to Featured"}
                 >
@@ -2846,7 +2856,7 @@ function ListingDetail({
                   aria-label="Send question"
                   disabled={!qText.trim() || askQuestion.isPending}
                   onClick={() => { askQuestion.mutate(qText.trim()); setQText(""); }}
-                  className="px-4 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50"
+                  className="px-4 rounded-xl bg-ig-gradient text-white font-semibold text-sm disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                 </button>
@@ -2905,7 +2915,7 @@ function ListingDetail({
                       type="button"
                       key={s.id}
                       onClick={() => onOpenListing(s)}
-                      className="group shrink-0 w-32 rounded-xl overflow-hidden bg-card border border-border/30 text-left hover:shadow-md hover:border-border/60 transition-all"
+                      className="group shrink-0 w-32 rounded-xl overflow-hidden bg-card border border-border/30 text-left hover:shadow-md hover:border-border/60 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <div className="aspect-square bg-muted/30 overflow-hidden">
                         {img ? <img src={img} alt={s.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" /> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted/40 to-muted/10"><ShoppingBag className="h-6 w-6 text-muted-foreground/30" /></div>}
@@ -2961,7 +2971,7 @@ function ListingDetail({
           {showReport && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[225] flex items-end justify-center bg-black/50"
+              className="fixed inset-0 z-[1470] flex items-end justify-center bg-black/50"
               onClick={() => setShowReport(false)}
             >
               <motion.div
@@ -3112,7 +3122,7 @@ function ListingDetail({
           {showOffer && (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[220] flex items-end justify-center bg-black/50"
+              className="fixed inset-0 z-[1465] flex items-end justify-center bg-black/50"
               onClick={() => setShowOffer(false)}
             >
               <motion.div

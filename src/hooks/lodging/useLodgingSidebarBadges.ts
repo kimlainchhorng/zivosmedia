@@ -5,6 +5,7 @@
  */
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface LodgingSidebarBadges {
@@ -43,8 +44,13 @@ export function useLodgingSidebarBadges(storeId?: string, enabled = true) {
     staleTime: 60 * 1000,
     queryFn: async () => {
       if (!storeId) return ZERO;
-      const today = new Date().toISOString().slice(0, 10);
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      // Cambodia-local day (UTC+7, no DST). toISOString().slice(0,10) is the UTC day,
+      // which reads as yesterday before 07:00 ICT — the badge would then count
+      // yesterday's arrivals/departures and miss today's, since check_in / check_out
+      // are stored as local calendar dates (exactly the early-morning window when
+      // night-shift staff handle check-ins/outs).
+      const today = format(new Date(), "yyyy-MM-dd");
+      const tomorrow = format(new Date(Date.now() + 86400000), "yyyy-MM-dd");
 
       const headCount = async (table: string, build: (q: any) => any) => {
         try {

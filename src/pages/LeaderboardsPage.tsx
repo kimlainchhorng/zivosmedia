@@ -159,8 +159,9 @@ export default function LeaderboardsPage() {
               <button
                 key={b.id}
                 type="button"
+                aria-pressed={b.id === activeBoardId}
                 onClick={() => setSelectedId(b.id)}
-                className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5", b.id === activeBoardId ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}
+                className={cn("shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all inline-flex items-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", b.id === activeBoardId ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}
               >
                 {b.type === "global" && <Globe2 className="h-3 w-3" />}
                 <span>{b.name}</span>

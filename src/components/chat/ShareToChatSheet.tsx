@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ShareToChatSheet — pick a friend to send a ZIVO action card to.
  *
  * Mounted globally; opened by dispatching a window event with a payload, so
@@ -222,7 +222,7 @@ export default function ShareToChatSheet() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={handleClose}
-          className="fixed inset-0 z-[185] flex items-end justify-center bg-black/55 px-2 backdrop-blur-md sm:items-center sm:px-4"
+          className="fixed inset-0 z-[1450] flex items-end justify-center bg-black/55 px-2 backdrop-blur-md sm:items-center sm:px-4"
           role="dialog"
           aria-modal="true"
           aria-label="Share to a chat"
@@ -321,7 +321,7 @@ export default function ShareToChatSheet() {
                                 : "Group"}
                             </p>
                           </div>
-                          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${selected.has(g.id) ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "zivo-chat-chip text-muted-foreground/70"}`}>
+                          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${selected.has(g.id) ? "bg-ig-gradient text-white shadow-lg shadow-primary/20" : "zivo-chat-chip text-muted-foreground/70"}`}>
                             <Check className="w-3.5 h-3.5" />
                           </span>
                         </button>
@@ -355,7 +355,7 @@ export default function ShareToChatSheet() {
                               <p className="truncate text-[11px] font-semibold text-muted-foreground">@{f.username}</p>
                             )}
                           </div>
-                          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${selected.has(f.user_id) ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "zivo-chat-chip text-muted-foreground/70"}`}>
+                          <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${selected.has(f.user_id) ? "bg-ig-gradient text-white shadow-lg shadow-primary/20" : "zivo-chat-chip text-muted-foreground/70"}`}>
                             <Check className="w-3.5 h-3.5" />
                           </span>
                         </button>

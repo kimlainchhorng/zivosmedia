@@ -84,8 +84,9 @@ export default function SoundsPage() {
               key={g}
               type="button"
               onClick={() => setActiveGenre(g)}
+              aria-pressed={activeGenre === g}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activeGenre === g
                   ? "bg-ig-gradient text-white shadow-sm"
                   : "bg-secondary text-foreground hover:bg-muted",
@@ -121,7 +122,7 @@ export default function SoundsPage() {
                         type="button"
                         aria-label={isPlaying ? "Pause" : "Play"}
                         onClick={() => setPlayingId(isPlaying ? null : sound.id)}
-                        className="absolute inset-0 flex items-center justify-center active:scale-95"
+                        className="absolute inset-0 flex items-center justify-center active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                       >
                         <div className="h-11 w-11 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
                           {isPlaying ? (
@@ -162,7 +163,7 @@ export default function SoundsPage() {
                     type="button"
                     aria-label={isPlaying ? "Pause" : "Play"}
                     onClick={() => setPlayingId(isPlaying ? null : sound.id)}
-                    className="shrink-0 relative active:scale-95 transition-transform"
+                    className="shrink-0 relative active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <img src={sound.cover} alt={sound.title} className="w-12 h-12 rounded-lg object-cover" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/55 rounded-lg transition-colors">

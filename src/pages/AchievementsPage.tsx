@@ -96,9 +96,10 @@ export default function AchievementsPage() {
               <button
                 key={c}
                 type="button"
+                aria-pressed={activeCategory === c}
                 onClick={() => setActiveCategory(c)}
                 className={cn(
-                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                  "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeCategory === c
                     ? "bg-ig-gradient text-white shadow-sm"
                     : "bg-secondary text-foreground hover:bg-muted",

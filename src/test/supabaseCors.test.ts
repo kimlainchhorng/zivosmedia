@@ -6,9 +6,9 @@ describe("Supabase strict CORS origin allowlist", () => {
     expect(isOriginAllowed("http://192.168.1.72:8083")).toBe(true);
     expect(isOriginAllowed("http://localhost:8083")).toBe(true);
     expect(isOriginAllowed("http://127.0.0.1:8083")).toBe(true);
-    expect(isOriginAllowed("https://myzivo.com")).toBe(true);
-    expect(isOriginAllowed("https://www.myzivo.com")).toBe(true);
-    expect(isOriginAllowed("https://app.myzivo.com")).toBe(true);
+    expect(isOriginAllowed("https://zivosmedia.com")).toBe(true);
+    expect(isOriginAllowed("https://www.zivosmedia.com")).toBe(true);
+    expect(isOriginAllowed("https://app.zivosmedia.com")).toBe(true);
     expect(isOriginAllowed("https://zivoschat.com")).toBe(true);
     expect(isOriginAllowed("https://www.zivoschat.com")).toBe(true);
     expect(isOriginAllowed("https://app.zivoschat.com")).toBe(true);
@@ -21,6 +21,9 @@ describe("Supabase strict CORS origin allowlist", () => {
     expect(isOriginAllowed("https://evil.example")).toBe(false);
     expect(isOriginAllowed("ftp://192.168.1.72")).toBe(false);
     expect(isOriginAllowed(null)).toBe(false);
+    // Retired myzivo.com origins must no longer be allowed.
+    expect(isOriginAllowed("https://myzivo.com")).toBe(false);
+    expect(isOriginAllowed("https://app.myzivo.com")).toBe(false);
   });
 
   it("builds strict CORS headers only for allowed origins", () => {

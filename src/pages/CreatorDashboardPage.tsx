@@ -272,7 +272,7 @@ export default function CreatorDashboardPage() {
       {/* Header with ZIVO ribbon */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30 zivo-ribbon">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate("/more")} aria-label="Back" title="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" onClick={() => navigate("/more")} aria-label="Back" title="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-extrabold flex-1 tracking-tight">Creator Dashboard</h1>
@@ -280,8 +280,9 @@ export default function CreatorDashboardPage() {
           <button
             type="button"
             onClick={() => setShowTypePicker(true)}
+            aria-haspopup="dialog"
             className={cn(
-              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide border transition-colors",
+              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide border transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               creatorType === "of"
                 ? "bg-rose-500/15 text-rose-500 border-rose-500/30 hover:bg-rose-500/25"
                 : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
@@ -291,7 +292,7 @@ export default function CreatorDashboardPage() {
             {creatorType === "of" ? "OF Creator" : creatorType === "content" ? "Content" : "Set Type"}
             <ChevronDown className="w-3 h-3 opacity-60" />
           </button>
-          <button type="button" onClick={() => navigate("/creator-analytics")} aria-label="Open analytics" title="Open analytics" className="p-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" onClick={() => navigate("/creator-analytics")} aria-label="Open analytics" title="Open analytics" className="p-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <BarChart3 className="h-5 w-5 text-primary" />
           </button>
         </div>
@@ -307,7 +308,7 @@ export default function CreatorDashboardPage() {
           <button
             type="button"
             onClick={() => setShowTypePicker(true)}
-            className="text-[10px] font-bold text-rose-500 hover:underline shrink-0"
+            className="text-[10px] font-bold text-rose-500 hover:underline shrink-0 active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Change
           </button>
@@ -358,10 +359,10 @@ export default function CreatorDashboardPage() {
           )}
 
           <div className="flex justify-center gap-3 mt-4">
-            <button type="button" onClick={() => navigate("/wallet")} className="zivo-btn-signature px-5 py-2.5 text-xs flex items-center gap-1.5 touch-manipulation">
+            <button type="button" onClick={() => navigate("/wallet")} className="zivo-btn-signature px-5 py-2.5 text-xs flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Wallet className="w-3.5 h-3.5" /> Withdraw
             </button>
-            <button type="button" onClick={() => navigate("/creator-analytics")} className="px-5 py-2.5 rounded-2xl bg-muted/60 text-foreground text-xs font-bold touch-manipulation active:scale-95 flex items-center gap-1.5 border border-border/30">
+            <button type="button" onClick={() => navigate("/creator-analytics")} className="px-5 py-2.5 rounded-2xl bg-muted/60 text-foreground text-xs font-bold touch-manipulation active:scale-95 transition-transform flex items-center gap-1.5 border border-border/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <TrendingUp className="w-3.5 h-3.5" /> Analytics
             </button>
           </div>
@@ -423,7 +424,7 @@ export default function CreatorDashboardPage() {
                   <Link
                     key={step.label}
                     to={step.href}
-                    className={`flex items-center gap-3 p-2.5 rounded-xl border touch-manipulation active:scale-[0.98] transition-transform ${
+                    className={`flex items-center gap-3 p-2.5 rounded-xl border touch-manipulation active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                       step.done ? "border-border/20 bg-muted/20 opacity-70" : "border-border/40 bg-card hover:bg-muted/30"
                     }`}
                   >
@@ -452,7 +453,7 @@ export default function CreatorDashboardPage() {
             onClick={() => navigate("/creator/live-earnings")}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full text-left relative rounded-[20px] overflow-hidden touch-manipulation active:scale-[0.99] transition-transform"
+            className="w-full text-left relative rounded-[20px] overflow-hidden touch-manipulation active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-orange-500" />
             <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/15" />
@@ -502,7 +503,7 @@ export default function CreatorDashboardPage() {
           </h2>
           <div className="grid grid-cols-3 gap-2">
             {(creatorType === "of" ? ofQuickActions : quickActions).map((action, i) => (
-              <Link key={action.label} to={action.href}>
+              <Link key={action.label} to={action.href} className="rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -640,7 +641,7 @@ export default function CreatorDashboardPage() {
             </h2>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-muted-foreground">{tiers.length} tiers</span>
-              <Link to="/monetization" className="text-[10px] font-bold text-primary hover:underline">+ Add</Link>
+              <Link to="/monetization" className="text-[10px] font-bold text-primary hover:underline active:scale-[0.97] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">+ Add</Link>
             </div>
           </div>
           {tiers.length > 0 ? (
@@ -670,7 +671,7 @@ export default function CreatorDashboardPage() {
               })}
             </div>
           ) : (
-            <Link to="/monetization" className="block">
+            <Link to="/monetization" className="block rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <div className="zivo-card-organic p-6 text-center border-dashed hover:border-primary/40 transition-colors">
                 {creatorType === "of"
                   ? <Flame className="w-10 h-10 text-rose-500/20 mx-auto mb-2" />

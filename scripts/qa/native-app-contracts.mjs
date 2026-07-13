@@ -126,8 +126,8 @@ const contracts = [
       }
       requireContains(this.id, listing, "Bundle ID: `com.hizovo.app`", listingPath);
       requireContains(this.id, listing, "Privacy URL:", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/legal/privacy", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/legal/terms", listingPath);
+      requireContains(this.id, listing, "https://zivosmedia.com/legal/privacy", listingPath);
+      requireContains(this.id, listing, "https://zivosmedia.com/legal/terms", listingPath);
       requireContains(this.id, listing, "What's New in This Version", listingPath);
     },
   },
@@ -165,9 +165,9 @@ const contracts = [
       requireContains(this.id, listing, "Package name: `com.hizovo.app`", listingPath);
       requireContains(this.id, listing, "Privacy Policy URL", listingPath);
       requireContains(this.id, listing, "Account Deletion URL", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/legal/privacy", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/legal/terms", listingPath);
-      requireContains(this.id, listing, "https://hizivo.com/delete-account", listingPath);
+      requireContains(this.id, listing, "https://zivosmedia.com/legal/privacy", listingPath);
+      requireContains(this.id, listing, "https://zivosmedia.com/legal/terms", listingPath);
+      requireContains(this.id, listing, "https://zivosmedia.com/delete-account", listingPath);
       requireNotContains(this.id, listing, "https://www.zivollc.com", listingPath);
       requireContains(this.id, setup, "android/local.properties", setupPath);
       requireContains(this.id, setup, "npm run android:build:debug", setupPath);

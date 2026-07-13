@@ -1,14 +1,12 @@
 /**
- * ZIVO Mobile Bottom Navigation — glass-blur capsule.
- * Backdrop-blurred translucent background with a sliding pill behind the
- * active tab (motion layoutId), tactile active-press scale, subtle ring
- * elevation. Matches the reels-rail / reel-tabs design language.
+ * ZIVO Mobile Bottom Navigation — 2026 floating pill
+ * Dynamic Island–inspired: active tab expands to show icon + label.
+ * Frosted-glass capsule floats above safe-area with spring-animated layout.
  */
 import { forwardRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, MessageCircle, User, Film, Newspaper } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Home, User, Film, Newspaper, Car, Compass, Luggage, Wallet, CreditCard, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -17,19 +15,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useLiveActivityCount } from "@/hooks/useLiveActivityCount";
-import { useChatPrefs } from "@/hooks/useChatPrefs";
-import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
 import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 
 interface NavTab {
   id: string;
-  labelKey: string;
+  labelKey?: string;
+  label?: string;
   icon: typeof Home;
   path: string;
   badge?: number;
-  /** Lucide icons that render well with `fill="currentColor"` when active. */
   fillable?: boolean;
 }
 
@@ -69,56 +66,53 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
   const { notifications } = useNotifications(20);
   const liveActivity = useLiveActivityCount();
 
-  const { data: unreadChatIds } = useQuery({
-    queryKey: ["nav-chat-unread", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("direct_messages")
-        .select("sender_id")
-        .eq("receiver_id", user!.id)
-        .eq("is_read", false);
-      return new Set((data ?? []).map((r: { sender_id: string }) => r.sender_id));
-    },
-    enabled: !!user,
-    refetchInterval: 30000,
-    staleTime: 15000,
-  });
-
-  // Prefetch tab chunks on touch-down so navigation feels instant (chunk
-  // arrives in memory while the finger is still on the screen).
   const { prefetch } = useRoutePrefetch();
 
-  const { prefs: chatPrefs } = useChatPrefs(user?.id);
-  const chatUnread = (() => {
-    const real = unreadChatIds ?? new Set<string>();
-    let manualOnly = 0;
-    for (const id of Object.keys(chatPrefs.unread)) {
-      if (!real.has(id)) manualOnly++;
-    }
-    return real.size + manualOnly;
-  })();
   const accountUnread = useMemo(
-    () => notifications.filter((notification) => !notification.is_read && !isChatNotification(notification)).length,
+    () => notifications.filter((n) => !n.is_read && !isChatNotification(n)).length,
     [notifications],
   );
+
+  // On the Zivo Travel host (or `?zt=1` preview) the bottom nav becomes a
+  // travel-only tab set — never the social Feed/Reels/Ride tabs.
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
 
   const gated = (path: string) =>
     user ? path : `/login?redirect=${encodeURIComponent(path)}`;
 
-  const tabs: NavTab[] = [
-    { id: "home", labelKey: "nav.home", icon: Home, path: "/", badge: liveActivity.total, fillable: true },
-    { id: "feed", labelKey: "nav.feed", icon: Newspaper, path: SOCIAL_ROUTE_PATHS.feed },
-    { id: "reels", labelKey: "nav.reel", icon: Film, path: SOCIAL_ROUTE_PATHS.reels },
-    { id: "chat", labelKey: "nav.chat", icon: MessageCircle, path: gated(SOCIAL_ROUTE_PATHS.chat), badge: chatUnread, fillable: true },
-    { id: "account", labelKey: "nav.account", icon: User, path: gated(SOCIAL_ROUTE_PATHS.profile), badge: accountUnread },
+  const socialTabs: NavTab[] = [
+    { id: "home",    labelKey: "nav.home",    icon: Home,          path: "/",                                   badge: liveActivity.total, fillable: true },
+    { id: "feed",    labelKey: "nav.feed",    icon: Newspaper,     path: SOCIAL_ROUTE_PATHS.feed },
+    { id: "reels",   labelKey: "nav.reel",    icon: Film,          path: SOCIAL_ROUTE_PATHS.reels },
+    { id: "ride",    labelKey: "nav.ride",    icon: Car,           path: "/rides/hub" },
+    { id: "account", labelKey: "nav.account", icon: User,          path: gated(SOCIAL_ROUTE_PATHS.profile),    badge: accountUnread },
   ];
+
+  // Mirrors the TravelUtilityShell bottom nav so the travel host has ONE
+  // consistent tab set across booking pages + utility pages.
+  const travelTabs: NavTab[] = [
+    { id: "home",    label: "Home",    icon: Compass,    path: "/",                       fillable: true },
+    { id: "trips",   label: "Trips",   icon: Luggage,    path: gated("/my-trips") },
+    { id: "wallet",  label: "Wallet",  icon: Wallet,     path: gated("/wallet") },
+    { id: "cards",   label: "Cards",   icon: CreditCard, path: gated("/payment-methods") },
+    { id: "account", label: "Account", icon: UserRound,  path: gated("/account"),         badge: accountUnread },
+  ];
+
+  const tabs = isTravel ? travelTabs : socialTabs;
 
   const getActiveTab = () => {
     const path = location.pathname;
+    if (isTravel) {
+      if (path.startsWith("/my-trips")) return "trips";
+      if (path.startsWith("/wallet")) return "wallet";
+      if (path.startsWith("/payment-methods")) return "cards";
+      if (path.startsWith("/account")) return "account";
+      return "home";
+    }
     if (path === "/" || path === "") return "home";
     if (path.startsWith(SOCIAL_ROUTE_PATHS.reels)) return "reels";
+    if (path.startsWith("/rides")) return "ride";
     if (path.startsWith(SOCIAL_ROUTE_PATHS.feed)) return "feed";
-    if (path.startsWith(SOCIAL_ROUTE_PATHS.chat)) return "chat";
     if (
       path.startsWith("/account") ||
       path.startsWith(SOCIAL_ROUTE_PATHS.profile) ||
@@ -138,29 +132,54 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
     <nav
       ref={ref}
       data-zivo-mobile-nav
-      className="zivo-social-nav-glass fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe"
+      aria-label="Primary"
+      className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe pointer-events-none"
     >
-      <div className="relative mx-auto flex h-[60px] max-w-lg items-center justify-around px-2">
+      {/* Instagram-style floating glass bar — clean frosted capsule, icon-only,
+          with a soft neutral pill behind the active icon. No rainbow accents. */}
+      <div className="relative px-3 pb-3">
+        <div
+          className={cn(
+            "pointer-events-auto relative flex w-full items-stretch px-1.5 py-2",
+            "rounded-[26px]",
+            /* Instagram-style frosted surface — present enough to stay a stable
+               bright bar in light mode (so the active pill always reads), while
+               blur+saturate still let content bleed softly through. */
+            "bg-white/[0.45] backdrop-blur-3xl backdrop-saturate-[2]",
+            /* Rim-light border — bright specular edge */
+            "border border-white/40",
+            /* Specular highlights (bright top, faint bottom) + soft diffuse float */
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),inset_0_-0.5px_0_rgba(255,255,255,0.1),0_8px_40px_rgba(0,0,0,0.1),0_2px_12px_rgba(0,0,0,0.05)]",
+            /* Dark mode glass */
+            "dark:bg-zinc-900/[0.55] dark:border-white/[0.10]",
+            "dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-0.5px_0_rgba(255,255,255,0.02),0_8px_40px_rgba(0,0,0,0.5),0_2px_12px_rgba(0,0,0,0.25)]",
+          )}
+        >
+        {/* Glassy sheen — diagonal highlight catch */}
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[26px] bg-gradient-to-br from-white/[0.12] via-transparent to-transparent dark:from-white/[0.04] dark:via-transparent dark:to-transparent"
+          aria-hidden
+        />
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
+          const label = tab.label ?? (tab.labelKey ? t(tab.labelKey) : "");
+          const isAccountWithAvatar = tab.id === "account" && !!user;
 
           return (
             <button
-              type="button"
               key={tab.id}
+              type="button"
               onPointerDown={() => {
-                // Strip `/login?redirect=...` wrapper so prefetch hits the
-                // actual destination chunk, not the login chunk.
                 const target = tab.path.startsWith("/login")
                   ? decodeURIComponent(tab.path.split("redirect=")[1] || "")
                   : tab.path;
                 if (target && activeTab !== tab.id) prefetch(target);
               }}
               onClick={() => {
-                if (tab.id === "account" && activeTab === "account") {
+                if (!isTravel && tab.id === "account" && activeTab === "account") {
                   impact("light");
-                  const onMore = location.pathname.startsWith("/more");
-                  navigate(onMore ? gated("/profile") : "/more");
+                  navigate(location.pathname.startsWith("/more") ? gated("/profile") : "/more");
                   return;
                 }
                 if (activeTab !== tab.id) {
@@ -169,16 +188,88 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                 }
               }}
               className={cn(
-                "relative flex min-h-[48px] min-w-[44px] flex-1 touch-manipulation items-center justify-center transition-all duration-200 active:scale-[0.94]",
-                isActive ? "text-foreground" : "text-foreground/45 hover:text-foreground/70"
+                "group relative flex flex-1 min-h-[52px] min-w-[44px] touch-manipulation items-center justify-center",
+                "rounded-2xl px-0.5 transition-all duration-200 ease-out active:scale-[0.92]",
+                isActive
+                  ? "text-zinc-900 dark:text-white"
+                  : "text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300",
               )}
-              aria-label={t(tab.labelKey)}
+              aria-label={
+                typeof tab.badge === "number" && tab.badge > 0
+                  ? `${label}, ${tab.badge > 99 ? "99+" : tab.badge} unread`
+                  : label
+              }
               aria-current={isActive ? "page" : undefined}
+              title={label}
             >
-              <NavIcon tab={tab} isActive={isActive} user={user} profile={profile} />
+              {/* Instagram-style active pill — a soft neutral lozenge behind the
+                  selected icon. Plain CSS transition (no framer-motion layoutId):
+                  shared-layout layoutId loops ("Maximum update depth") when
+                  ZivoMobileNav is mounted more than once on a page (e.g. MorePage
+                  renders its own instance). */}
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-x-1.5 inset-y-1.5 rounded-[16px] transition-all duration-300 ease-out",
+                  isActive
+                    ? "scale-100 opacity-100 bg-black/[0.08] shadow-[inset_0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/[0.12] dark:shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.06)]"
+                    : "scale-90 opacity-0",
+                )}
+                aria-hidden
+              />
+
+              {/* Icon / avatar */}
+              {isAccountWithAvatar ? (
+                <div className="relative z-10 shrink-0 rounded-full transition-all duration-300">
+                  <Avatar className={cn("block transition-all duration-200", isActive ? "h-7 w-7" : "h-6 w-6")}>
+                    <AvatarImage
+                      src={profile?.avatar_url || user.user_metadata?.avatar_url || undefined}
+                      alt="Account"
+                      className="object-cover"
+                    />
+                    <AvatarFallback className={cn(
+                      "text-[10px] font-bold",
+                      isActive
+                        ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white"
+                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+                    )}>
+                      {(profile?.full_name?.[0] || user.email?.[0] || "Z").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              ) : (
+                <div className="relative z-10 shrink-0">
+                  <Icon
+                    className={cn(
+                      "h-[22px] w-[22px] transition-all duration-200",
+                      isActive && "scale-[1.08] drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]",
+                    )}
+                    strokeWidth={isActive ? 2.4 : 1.6}
+                    fill={isActive && tab.fillable ? "currentColor" : "none"}
+                    aria-hidden
+                  />
+                </div>
+              )}
+
+              {/* Badge */}
+              {typeof tab.badge === "number" && tab.badge > 0 && (
+                <motion.span
+                  aria-hidden
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 520, damping: 22 }}
+                  className={cn(
+                    "absolute right-[16%] top-0 z-20 flex h-[15px] min-w-[15px] items-center justify-center",
+                    "rounded-full px-[4px] text-[8px] font-black leading-none",
+                    "bg-rose-500 text-white shadow-[0_2px_6px_rgba(244,63,94,0.35)]",
+                  )}
+                >
+                  {tab.badge > 99 ? "99+" : tab.badge}
+                </motion.span>
+              )}
             </button>
           );
         })}
+        </div>
       </div>
     </nav>
   );
@@ -189,78 +280,3 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
 ZivoMobileNav.displayName = "ZivoMobileNav";
 
 export default ZivoMobileNav;
-
-function NavIcon({
-  tab,
-  isActive,
-  user,
-  profile,
-}: {
-  tab: NavTab;
-  isActive: boolean;
-  user: ReturnType<typeof useAuth>["user"];
-  profile: ReturnType<typeof useUserProfile>["data"];
-}) {
-  return (
-    <div className="relative flex h-11 w-11 items-center justify-center">
-      {isActive && (
-        <motion.span
-          layoutId="zivo-bottom-nav-pill"
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          aria-hidden
-          className="zivo-social-nav-pill absolute inset-0 rounded-2xl"
-        />
-      )}
-      {isActive && (
-        <motion.span
-          layoutId="zivo-bottom-nav-glow"
-          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-          aria-hidden
-          className="bg-ig-gradient absolute bottom-0.5 left-1/2 h-[3px] w-5 -translate-x-1/2 rounded-full opacity-90"
-        />
-      )}
-      {tab.id === "account" && user ? (
-        <div
-          className={cn(
-            "relative z-10 rounded-full",
-            isActive
-              ? "bg-ig-gradient p-[1.5px] ring-2 ring-background shadow-sm"
-              : ""
-          )}
-        >
-          <Avatar
-            className={cn(
-              "h-7 w-7 transition-all duration-150",
-              isActive ? "ring-2 ring-background" : ""
-            )}
-          >
-            <AvatarImage
-              src={profile?.avatar_url || user.user_metadata?.avatar_url || undefined}
-              alt="Account"
-              className="object-cover"
-            />
-            <AvatarFallback className="bg-muted text-foreground text-[11px] font-semibold">
-              {(profile?.full_name?.[0] || user.email?.[0] || "Z").toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      ) : (
-        <tab.icon
-          className="relative z-10 h-[23px] w-[23px]"
-          strokeWidth={isActive ? 2.4 : 1.6}
-          fill={isActive && tab.fillable ? "currentColor" : "none"}
-        />
-      )}
-      {typeof tab.badge === "number" && tab.badge > 0 && (
-        <motion.span
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 500, damping: 20 }}
-          className="absolute right-0 top-0 z-20 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-black leading-none text-destructive-foreground ring-2 ring-background"
-        >
-          {tab.badge > 99 ? "99+" : tab.badge}
-        </motion.span>
-      )}
-    </div>
-  );
-}

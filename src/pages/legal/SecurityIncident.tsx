@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Security Incident Response Policy Page
  * Legal page explaining how ZIVO handles security incidents
  */
@@ -147,7 +147,7 @@ export default function SecurityIncident() {
             <div className="space-y-4">
               {responseSteps.map((item) => (
                 <div key={item.step} className="flex gap-4 p-4 rounded-lg border border-border bg-card hover:border-primary/20 hover:shadow-sm transition-all duration-200">
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-ig-gradient text-white flex items-center justify-center font-bold shrink-0">
                     {item.step}
                   </div>
                   <div>
@@ -261,7 +261,7 @@ export default function SecurityIncident() {
               </p>
               <a 
                 href="mailto:security@zivosmedia.com"
-                className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-ig-gradient text-white font-medium hover:bg-primary/90 transition-colors"
               >
                 <Mail className="w-5 h-5" />
                 security@zivosmedia.com

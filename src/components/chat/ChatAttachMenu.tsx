@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatAttachMenu — upgraded attachment sheet UI.
  * Lock & Unlock requires Chat+ or Pro ZIVO+ plan.
  */
@@ -376,7 +376,7 @@ export default function ChatAttachMenu({
                       {item.hint}
                     </span>
                     {item.isNew && (
-                      <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">NEW</span>
+                      <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-ig-gradient text-white">NEW</span>
                     )}
                     {item.id === "disappearing" && disappearingEnabled && (
                       <span className="text-[8px] text-primary font-bold -mt-1">ON</span>

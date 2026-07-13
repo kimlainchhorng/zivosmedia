@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SocialListModal — Shows Friends, Followers, or Following list
  * with unfriend/unfollow actions, confirmation dialogs, and sort
  */
@@ -456,7 +456,7 @@ export default function SocialListModal({ open, onClose, initialTab = "friends",
                         onClick={() => (canFollow ? handleFollow(item) : openProfile(item))}
                         className={cn(
                           "flex w-28 flex-col items-center justify-center gap-1 text-xs font-black",
-                          canFollow ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground"
+                          canFollow ? "bg-emerald-500 text-white" : "bg-ig-gradient text-white"
                         )}
                       >
                         {canFollow ? <UserCheck className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}

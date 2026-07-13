@@ -331,23 +331,23 @@ const FlightCheckout = () => {
                  {/* All legal links */}
                  <div className="px-4 py-3">
                    <div className="flex items-center gap-3 text-[11px] flex-wrap">
-                     <button type="button" onClick={() => openSheet("Flight Terms", FLIGHT_LEGAL_LINKS.flightTerms)} className="text-primary hover:underline">
+                     <button type="button" onClick={() => openSheet("Flight Terms", FLIGHT_LEGAL_LINKS.flightTerms)} className="text-primary hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                        Flight Terms
                      </button>
                      <span className="text-border">·</span>
-                     <button type="button" onClick={() => openSheet("Partner Disclosure", FLIGHT_LEGAL_LINKS.partnerDisclosure)} className="text-primary hover:underline">
+                     <button type="button" onClick={() => openSheet("Partner Disclosure", FLIGHT_LEGAL_LINKS.partnerDisclosure)} className="text-primary hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                        Partner Disclosure
                      </button>
                      <span className="text-border">·</span>
-                     <button type="button" onClick={() => openSheet("Terms of Service", FLIGHT_LEGAL_LINKS.terms)} className="text-primary hover:underline">
+                     <button type="button" onClick={() => openSheet("Terms of Service", FLIGHT_LEGAL_LINKS.terms)} className="text-primary hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                        Terms of Service
                      </button>
                      <span className="text-border">·</span>
-                     <button type="button" onClick={() => openSheet("Privacy Policy", FLIGHT_LEGAL_LINKS.privacy)} className="text-primary hover:underline">
+                     <button type="button" onClick={() => openSheet("Privacy Policy", FLIGHT_LEGAL_LINKS.privacy)} className="text-primary hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                        Privacy Policy
                      </button>
                      <span className="text-border">·</span>
-                     <button type="button" onClick={() => openSheet("Refund Policy", FLIGHT_LEGAL_LINKS.refundPolicy)} className="text-primary hover:underline">
+                     <button type="button" onClick={() => openSheet("Refund Policy", FLIGHT_LEGAL_LINKS.refundPolicy)} className="text-primary hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                        Refund Policy
                      </button>
                    </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EatsLanding - Food delivery hub page with full ordering flow
  * Connected to Supabase: restaurants, menu_items, food_orders
  */
@@ -38,6 +38,7 @@ import WheatOff from "lucide-react/dist/esm/icons/wheat-off";
 import Beef from "lucide-react/dist/esm/icons/beef";
 import Mic from "lucide-react/dist/esm/icons/mic";
 import Navigation from "lucide-react/dist/esm/icons/navigation";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import HelpCircle from "lucide-react/dist/esm/icons/help-circle";
 import Phone from "lucide-react/dist/esm/icons/phone";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
@@ -55,11 +56,10 @@ import { Capacitor } from "@capacitor/core";
 import { useEatsOrder, type PlaceOrderParams } from "@/hooks/useEatsOrder";
 import { getWalletBalance } from "@/hooks/useWalletPayment";
 import { useAuth } from "@/contexts/AuthContext";
-import NavBar from "@/components/home/NavBar";
+import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import PartnerBadge from "@/components/shared/PartnerBadge";
-import NativeBackButton from "@/components/shared/NativeBackButton";
 import { useNetworkFavorites } from "@/hooks/useNetworkFavorites";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -121,41 +121,73 @@ const deliverySpeedOptions = [
 // ─── Sub-components ──────────────────────────────────────────────────
 function EatsStepIndicator({ currentStep }: { currentStep: string }) {
   const steps = [
-    { id: "browse", label: "Browse" },
-    { id: "restaurant", label: "Menu" },
-    { id: "cart", label: "Cart" },
-    { id: "checkout", label: "Pay" },
-  ];
+    { id: "browse",     label: "Browse", icon: UtensilsCrossed },
+    { id: "restaurant", label: "Menu",   icon: Store },
+    { id: "cart",       label: "Cart",   icon: ShoppingCart },
+    { id: "checkout",   label: "Pay",    icon: CreditCard },
+  ] as const;
   const idx = steps.findIndex(s => s.id === currentStep);
 
   return (
-    <div className="flex items-center justify-center gap-1 px-4 py-2.5">
-      {steps.map((s, i) => {
-        const done = i < idx;
-        const active = i === idx;
-        return (
-          <div key={s.id} className="flex items-center gap-1.5">
-            <div className="flex flex-col items-center gap-0.5">
-              <div className={cn(
-                "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all",
-                done ? "bg-emerald-500 text-white" :
-                active ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-1 ring-offset-background" :
-                "bg-muted/40 text-muted-foreground/60 border border-border/40"
-              )}>
-                {done ? <CheckCircle className="w-3.5 h-3.5" /> : i + 1}
-              </div>
-              <span className={cn("text-[9px] font-bold uppercase tracking-wider transition-colors hidden sm:inline",
-                done ? "text-emerald-600" : active ? "text-foreground" : "text-muted-foreground/40")}>{s.label}</span>
+    <div className="px-3 pb-2.5 pt-0.5">
+      <motion.div layout className="flex items-center">
+        {steps.map((s, i) => {
+          const done = i < idx;
+          const active = i === idx;
+          const Icon = s.icon;
+          return (
+            <div key={s.id} className={cn("flex items-center", i < steps.length - 1 ? "flex-1" : "")}>
+              <motion.div
+                layout
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full select-none overflow-hidden shrink-0",
+                  active
+                    ? "h-7 px-3 bg-foreground text-background shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
+                    : done
+                    ? "w-7 h-7 justify-center bg-emerald-500 text-white"
+                    : "w-7 h-7 justify-center bg-muted/50 text-muted-foreground/40 border border-border/30",
+                )}
+              >
+                {done ? (
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
+                    <CheckCircle className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  </motion.div>
+                ) : (
+                  <>
+                    <Icon className={cn("shrink-0", active ? "w-3.5 h-3.5" : "w-3 h-3")} strokeWidth={active ? 2.5 : 2} />
+                    <AnimatePresence>
+                      {active && (
+                        <motion.span
+                          key={s.id + "-label"}
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ opacity: 1, width: "auto" }}
+                          exit={{ opacity: 0, width: 0 }}
+                          transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                          className="text-[11px] font-black tracking-wide whitespace-nowrap overflow-hidden"
+                        >
+                          {s.label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
+              </motion.div>
+
+              {i < steps.length - 1 && (
+                <div className="flex-1 mx-1 h-[2px] rounded-full bg-border/25 relative overflow-hidden">
+                  <motion.div
+                    className="absolute inset-y-0 left-0 rounded-full bg-emerald-500"
+                    initial={false}
+                    animate={{ width: done ? "100%" : "0%" }}
+                    transition={{ duration: 0.45, ease: "easeOut" }}
+                  />
+                </div>
+              )}
             </div>
-            {i < steps.length - 1 && (
-              <div className="relative w-6 sm:w-12 h-[2px] rounded-full bg-border/40 overflow-hidden mx-0.5 sm:mx-1 -mt-3">
-                <div className={cn("absolute inset-y-0 left-0 transition-all duration-500",
-                  done ? "w-full bg-emerald-500" : active ? "w-1/2 bg-primary" : "w-0")} />
-              </div>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </motion.div>
     </div>
   );
 }
@@ -170,6 +202,12 @@ const ORDER_STAGES = [
   { label: "Delivered", icon: CheckCircle },
 ] as const;
 
+// Map the real food_orders.status enum onto the inline ORDER_STAGES index.
+const EATS_STATUS_TO_STEP: Record<string, number> = {
+  pending: 0, confirmed: 1, preparing: 2, ready: 2,
+  picked_up: 3, out_for_delivery: 3, delivered: 4,
+};
+
 export default function EatsLanding() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -179,16 +217,36 @@ export default function EatsLanding() {
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
   const [statusStep, setStatusStep] = useState(0);
   const [cancelCountdown, setCancelCountdown] = useState(60);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
 
+  // Reflect the REAL order status (no fake timer): fetch once, then subscribe to
+  // realtime updates — mirrors EatsTrackingPage. Monotonic so a slow initial fetch
+  // can't regress a newer realtime value. Closes the overlay if the order is cancelled.
   useEffect(() => {
     if (!trackedOrderId) return;
-    if (statusStep >= ORDER_STAGES.length - 1) {
-      const t = setTimeout(() => { setTrackedOrderId(null); navigate(`/eats/track/${trackedOrderId}`); }, 1800);
-      return () => clearTimeout(t);
-    }
-    const t = setTimeout(() => setStatusStep(s => s + 1), 15000);
-    return () => clearTimeout(t);
-  }, [trackedOrderId, statusStep, navigate]);
+    let active = true;
+    const apply = (status?: string | null) => {
+      if (!active || !status) return;
+      if (status === "cancelled") { setTrackedOrderId(null); return; }
+      const step = EATS_STATUS_TO_STEP[status];
+      if (typeof step === "number") setStatusStep((prev) => Math.max(prev, step));
+    };
+    supabase
+      .from("food_orders")
+      .select("status")
+      .eq("id", trackedOrderId)
+      .single()
+      .then(({ data }) => apply((data as { status?: string } | null)?.status));
+    const channel = supabase
+      .channel(`eats-inline-${trackedOrderId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "food_orders", filter: `id=eq.${trackedOrderId}` },
+        (payload) => apply((payload.new as { status?: string } | null)?.status),
+      )
+      .subscribe();
+    return () => { active = false; supabase.removeChannel(channel); };
+  }, [trackedOrderId]);
 
   useEffect(() => {
     if (!trackedOrderId || cancelCountdown <= 0) return;
@@ -325,11 +383,38 @@ export default function EatsLanding() {
     try { return JSON.parse(localStorage.getItem(SAVED_ADDRESSES_KEY) || "[]"); } catch { return []; }
   });
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [addressFocused, setAddressFocused] = useState(false);
   const requestLocation = () => {
     if (!navigator.geolocation) { toast.error("Location not available in this browser"); return; }
     navigator.geolocation.getCurrentPosition(
       (pos) => { setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); toast.success("Sorting by distance"); },
       () => toast.error("Couldn't get your location"),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+  const detectAddressFromGPS = () => {
+    if (!navigator.geolocation) { toast.error("Location not available"); return; }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude: lat, longitude: lng } = pos.coords;
+          setUserCoords({ lat, lng });
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+          const data = await res.json();
+          const addr = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          setDeliveryAddress(addr);
+          persistAddress(addr);
+          toast.success("Address detected");
+        } catch {
+          toast.error("Could not resolve address");
+        } finally {
+          setGpsLoading(false);
+          setAddressFocused(false);
+        }
+      },
+      () => { toast.error("Couldn't get your location"); setGpsLoading(false); },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
@@ -574,10 +659,10 @@ export default function EatsLanding() {
 
     const result = await placeOrder({
       restaurantId: cart[0].restaurantId,
-      items: cart,
+      items: cart.map((c) => ({ ...c, specialInstructions: specialInstructions[c.menuItemId] || undefined })),
       deliveryAddress: orderMode === "pickup" ? (currentRestaurant?.address || "Pickup at restaurant") : deliveryAddress,
-      deliveryLat: 0,
-      deliveryLng: 0,
+      deliveryLat: userCoords?.lat ?? 0,
+      deliveryLng: userCoords?.lng ?? 0,
       subtotal: cartTotal,
       deliveryFee: effectiveDeliveryFee,
       serviceFee,
@@ -591,6 +676,8 @@ export default function EatsLanding() {
         noUtensils ? "[No utensils]" : null,
         deliveryInstructions || null,
       ].filter(Boolean).join(" ") || undefined,
+      isScheduled: scheduleMode === "later",
+      scheduledFor: scheduleMode === "later" && scheduleTime ? new Date(scheduleTime).toISOString() : undefined,
       isExpress: selectedSpeed === "priority",
       expressFee: speedExtra,
       promoCode: promoApplied ? promoCode : undefined,
@@ -610,6 +697,39 @@ export default function EatsLanding() {
         action: { label: "Track", onClick: () => navigate(`/eats/track/${result.orderId}`) },
         duration: 6000,
       });
+    }
+  };
+
+  // ─── Cancel just-placed order (grace window) ─────────────────────────
+  // Reuses the REAL cancel + refund path (cancel-eats-order edge function),
+  // the same one EatsTrackingPage's CancelOrderButton calls. This actually
+  // cancels the live food_orders row and triggers the provider refund — it is
+  // NOT a cosmetic overlay close. On failure (e.g. restaurant already
+  // confirmed / driver assigned → 409) we surface the error and KEEP the
+  // overlay open so the order stays trackable.
+  const handleCancelTrackedOrder = async () => {
+    if (!trackedOrderId || cancellingOrder) return;
+    setCancellingOrder(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("cancel-eats-order", {
+        body: { order_id: trackedOrderId, reason: "customer_initiated" },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const r = data as { refund_cents?: number; payment_status?: string; provider?: string };
+      if (r?.refund_cents && r.refund_cents > 0) {
+        toast.success("Order cancelled", {
+          description: `$${(r.refund_cents / 100).toFixed(2)} refund ${r.payment_status === "refunded" ? "issued" : "in progress"} via ${r.provider || "your payment method"}.`,
+        });
+      } else {
+        toast.success("Order cancelled");
+      }
+      setTrackedOrderId(null);
+      setStep("browse");
+    } catch (e: any) {
+      toast.error(e?.message || "Cancellation failed");
+    } finally {
+      setCancellingOrder(false);
     }
   };
 
@@ -645,7 +765,7 @@ export default function EatsLanding() {
               <button type="button" aria-label="Decrease" onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center touch-manipulation active:scale-90 hover:bg-muted/80 transition-colors"><Minus className="w-3.5 h-3.5" /></button>
               <motion.span key={inCart.quantity} initial={{ scale: 1.4 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 18 }}
                 className="text-sm font-bold w-5 text-center tabular-nums">{inCart.quantity}</motion.span>
-              <button type="button" aria-label="Increase" onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center touch-manipulation active:scale-90 hover:shadow-md hover:shadow-primary/30 transition-shadow"><Plus className="w-3.5 h-3.5" /></button>
+              <button type="button" aria-label="Increase" onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 rounded-full bg-ig-gradient text-white flex items-center justify-center touch-manipulation active:scale-90 hover:shadow-md hover:shadow-primary/30 transition-shadow"><Plus className="w-3.5 h-3.5" /></button>
             </div>
           ) : (
             <Button size="sm" variant="outline" onClick={() => addToCart(item, currentRestaurant!.id)} className="rounded-xl h-9 px-4 gap-1.5 font-bold text-xs border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 hover:shadow-sm hover:shadow-primary/20 shrink-0 transition-all">
@@ -674,8 +794,52 @@ export default function EatsLanding() {
         description="Order from your favorite local restaurants. Fast delivery, real-time tracking, and exclusive deals on ZIVO Eats."
         canonical="/eats"
       />
-      {step === "browse" && !Capacitor.isNativePlatform() && <NavBar />}
-      {step === "browse" && <NativeBackButton />}
+      {/* In-app top bar for browse step */}
+      {step === "browse" && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-2xl border-b border-border/20 safe-area-top overflow-hidden">
+          <div className="flex items-center gap-2 px-3 h-14 w-full max-w-6xl mx-auto">
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.88 }}
+              onClick={() => navigate(-1)}
+              className="w-9 h-9 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation shrink-0"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="w-5 h-5 text-foreground" />
+            </motion.button>
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shrink-0">
+                <UtensilsCrossed className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-extrabold text-base tracking-tight truncate">ZIVO <span className="text-ig-gradient">Eats</span></span>
+            </div>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setStep("cart")}
+              className={cn(
+                "flex items-center gap-1.5 h-9 px-3 rounded-xl border touch-manipulation shrink-0 transition-all",
+                cartCount > 0
+                  ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/30"
+                  : "bg-card/80 border-border/40 text-foreground"
+              )}
+              aria-label={`Cart — ${cartCount} item${cartCount !== 1 ? "s" : ""}`}
+            >
+              <ShoppingCart className="w-4 h-4 shrink-0" />
+              <motion.span
+                key={cartCount}
+                initial={{ scale: 1.3 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                className="text-[11px] font-black leading-none"
+              >
+                {cartCount > 99 ? "99+" : cartCount}
+              </motion.span>
+            </motion.button>
+          </div>
+        </div>
+      )}
+      <ZivoMobileNav />
 
       {/* Safe-area top backdrop — occludes scrolled content under the
           dynamic island so partner badges, cards, etc. don't peek under
@@ -713,80 +877,192 @@ export default function EatsLanding() {
                 <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
               </motion.button>
             )}
-            <section className="safe-area-top relative pb-6 sm:pb-8 overflow-hidden">
-              <div className="pt-12 sm:pt-32 relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-primary/8 via-primary/3 to-transparent" />
-              <div className="container mx-auto px-4 relative z-10">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto text-center mb-4 sm:mb-8">
-                  <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mx-auto mb-2 sm:mb-6 shadow-lg shadow-orange-500/20">
-                    <UtensilsCrossed className="w-5 h-5 sm:w-8 sm:h-8 text-primary-foreground" />
-                  </div>
-                  <h1 className="text-2xl sm:text-5xl font-bold tracking-tight mb-1 sm:mb-3">ZIVO <span className="text-ig-gradient">Eats</span></h1>
-                  <p className="text-muted-foreground text-xs sm:text-lg">Delicious food from local restaurants, delivered fast.</p>
-                </motion.div>
+            <section className="safe-area-top relative pb-8 sm:pb-12 overflow-x-hidden">
+              {/* Background blobs */}
+              <div className="absolute inset-0 bg-gradient-to-b from-orange-500/8 via-primary/4 to-transparent" />
+              <div className="pointer-events-none absolute -top-20 -right-4 w-72 h-72 rounded-full bg-orange-500/10 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-10 -left-10 w-60 h-60 rounded-full bg-rose-500/8 blur-3xl" />
 
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="max-w-xl mx-auto space-y-3">
-                  {/* Delivery / Pickup toggle + currency */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 flex bg-muted/40 rounded-2xl p-1">
-                      <button type="button" onClick={() => setOrderMode("delivery")}
-                        className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                          orderMode === "delivery" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-                        <Truck className="w-3.5 h-3.5" /> Delivery
-                      </button>
-                      <button type="button" onClick={() => setOrderMode("pickup")}
-                        className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                          orderMode === "pickup" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
-                        <Store className="w-3.5 h-3.5" /> Pickup
-                      </button>
-                    </div>
-                    <button type="button"
-                      onClick={() => setCurrency(c => c === "USD" ? "KHR" : "USD")}
-                      aria-label="Toggle currency"
-                      className="shrink-0 px-3 h-11 rounded-2xl bg-card border border-border/50 text-xs font-bold text-foreground touch-manipulation active:scale-95">
-                      {currency === "USD" ? "$ USD" : "៛ KHR"}
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input placeholder="Search restaurants or dishes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") persistSearch(searchQuery); }} onBlur={() => persistSearch(searchQuery)} className={cn("pl-10 h-12 rounded-xl bg-card border-border/50", searchQuery ? "pr-20" : "pr-12")} />
-                    {searchQuery && (
-                      <button type="button" onClick={() => setSearchQuery("")} aria-label="Clear search"
-                        className="absolute right-12 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center bg-muted/60 text-muted-foreground hover:text-foreground touch-manipulation active:scale-90">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    <button type="button" onClick={startVoiceSearch} aria-label="Voice search"
-                      className={cn("absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all touch-manipulation active:scale-90",
-                        voiceListening ? "bg-red-500 text-white animate-pulse" : "bg-muted/60 text-muted-foreground hover:text-foreground")}>
-                      <Mic className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {orderMode === "delivery" && (
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input placeholder="Enter your delivery address" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="pl-10 h-12 rounded-xl bg-card border-border/50 focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/40 transition-all" />
-                    </div>
-                  )}
-                  {!searchQuery && recentSearches.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 self-center">Recent:</span>
-                      {recentSearches.map(q => (
-                        <button type="button" key={q}
-                          onClick={() => setSearchQuery(q)}
-                          className="px-2.5 py-1 rounded-full bg-muted/40 text-[11px] font-medium text-muted-foreground hover:text-foreground touch-manipulation active:scale-95">
-                          {q}
+              <div className="pt-16 sm:pt-28 lg:pt-32 relative">
+                <div className="container mx-auto px-4 relative z-10 max-w-6xl">
+                  {/* Desktop: side-by-side. Mobile/tablet: stacked */}
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:gap-16 lg:min-h-[260px]">
+
+                    {/* Brand column */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                      className="lg:flex-1 lg:text-left mb-4 lg:mb-0"
+                    >
+                      {/* Mobile / tablet — hidden (fixed header handles branding) */}
+                      <div className="hidden">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/25 shrink-0">
+                          <UtensilsCrossed className="w-5 h-5 text-white" />
+                        </div>
+                        <h1 className="text-2xl font-black tracking-tight leading-none">
+                          ZIVO <span className="text-ig-gradient">Eats</span>
+                        </h1>
+                        <p className="text-xs text-muted-foreground leading-snug ml-1 hidden sm:block">
+                          Local food, fast delivery.
+                        </p>
+                      </div>
+
+                      {/* Desktop — full stacked layout */}
+                      <div className="hidden lg:block">
+                        <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center mb-4 shadow-2xl shadow-orange-500/30">
+                          <UtensilsCrossed className="w-12 h-12 text-white" />
+                        </div>
+                        <h1 className="text-7xl font-black tracking-tight mb-3 leading-[1.05]">
+                          ZIVO <span className="text-ig-gradient">Eats</span>
+                        </h1>
+                        <p className="text-muted-foreground text-xl max-w-xs">
+                          Delicious food from local restaurants, delivered fast.
+                        </p>
+                        <div className="flex items-center gap-4 mt-5">
+                          {[
+                            { icon: Truck, label: "Fast delivery", sub: "25–45 min avg" },
+                            { icon: Percent, label: "Best prices", sub: "No hidden fees" },
+                            { icon: Flame, label: "Top picks", sub: "Curated daily" },
+                          ].map(b => (
+                            <div key={b.label} className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                                <b.icon className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold leading-tight">{b.label}</p>
+                                <p className="text-[10px] text-muted-foreground">{b.sub}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Search column */}
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.1 }}
+                      className="w-full lg:w-[420px] xl:w-[480px] space-y-3"
+                    >
+                      {/* Delivery / Pickup toggle + currency */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 flex bg-muted/40 rounded-2xl p-1">
+                          <button type="button" onClick={() => setOrderMode("delivery")}
+                            className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
+                              orderMode === "delivery" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+                            <Truck className="w-3.5 h-3.5" /> Delivery
+                          </button>
+                          <button type="button" onClick={() => setOrderMode("pickup")}
+                            className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
+                              orderMode === "pickup" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground")}>
+                            <Store className="w-3.5 h-3.5" /> Pickup
+                          </button>
+                        </div>
+                        <button type="button"
+                          onClick={() => setCurrency(c => c === "USD" ? "KHR" : "USD")}
+                          aria-label="Toggle currency"
+                          className="shrink-0 px-3 h-11 rounded-2xl bg-card border border-border/50 text-xs font-bold text-foreground touch-manipulation active:scale-95">
+                          {currency === "USD" ? "$ USD" : "៛ KHR"}
                         </button>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
-              </div>
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input placeholder="Search restaurants or dishes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") persistSearch(searchQuery); }} onBlur={() => persistSearch(searchQuery)} className={cn("pl-10 h-12 rounded-xl bg-card border-border/50 shadow-sm", searchQuery ? "pr-20" : "pr-12")} />
+                        {searchQuery && (
+                          <button type="button" onClick={() => setSearchQuery("")} aria-label="Clear search"
+                            className="absolute right-12 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center bg-muted/60 text-muted-foreground hover:text-foreground touch-manipulation active:scale-90">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button type="button" onClick={startVoiceSearch} aria-label="Voice search"
+                          className={cn("absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all touch-manipulation active:scale-90",
+                            voiceListening ? "bg-red-500 text-white animate-pulse" : "bg-muted/60 text-muted-foreground hover:text-foreground")}>
+                          <Mic className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {orderMode === "delivery" && (
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500 z-10 pointer-events-none" />
+                          <Input
+                            placeholder="Enter your delivery address"
+                            value={deliveryAddress}
+                            onChange={(e) => setDeliveryAddress(e.target.value)}
+                            onFocus={() => setAddressFocused(true)}
+                            onBlur={(e) => { persistAddress(e.target.value); setTimeout(() => setAddressFocused(false), 200); }}
+                            className="pl-10 pr-11 h-12 rounded-xl bg-card border-border/50 shadow-sm focus-visible:ring-2 focus-visible:ring-orange-500/30 focus-visible:border-orange-500/40 transition-all"
+                          />
+                          <button type="button"
+                            onMouseDown={(e) => { e.preventDefault(); detectAddressFromGPS(); }}
+                            disabled={gpsLoading}
+                            aria-label="Use my location"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 touch-manipulation active:scale-90 transition-all">
+                            {gpsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                          </button>
+
+                          {/* Suggestions dropdown */}
+                          <AnimatePresence>
+                            {addressFocused && (savedAddresses.length > 0 || !deliveryAddress) && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                                className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 rounded-2xl bg-card border border-border/40 shadow-2xl shadow-black/10 overflow-hidden">
+                                {/* Use current location row */}
+                                <button type="button"
+                                  onMouseDown={(e) => { e.preventDefault(); detectAddressFromGPS(); }}
+                                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 active:bg-muted/60 transition-colors border-b border-border/20 touch-manipulation">
+                                  <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                                    {gpsLoading ? <Loader2 className="w-4 h-4 text-orange-500 animate-spin" /> : <Navigation className="w-4 h-4 text-orange-500" />}
+                                  </div>
+                                  <div className="text-left">
+                                    <p className="text-sm font-extrabold text-foreground">Use current location</p>
+                                    <p className="text-[10px] text-muted-foreground">Detect address automatically</p>
+                                  </div>
+                                </button>
+                                {/* Saved addresses */}
+                                {savedAddresses
+                                  .filter(a => !deliveryAddress || a.toLowerCase().includes(deliveryAddress.toLowerCase()))
+                                  .slice(0, 4)
+                                  .map((a, i) => (
+                                    <motion.button type="button" key={a}
+                                      initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: i * 0.04 }}
+                                      onMouseDown={(e) => { e.preventDefault(); setDeliveryAddress(a); setAddressFocused(false); }}
+                                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 active:bg-muted/60 transition-colors touch-manipulation border-b border-border/10 last:border-0">
+                                      <div className="w-8 h-8 rounded-xl bg-muted/50 flex items-center justify-center shrink-0">
+                                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                                      </div>
+                                      <p className="text-sm font-medium text-foreground truncate text-left">{a}</p>
+                                    </motion.button>
+                                  ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      )}
+                      {!searchQuery && recentSearches.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 self-center">Recent:</span>
+                          {recentSearches.map(q => (
+                            <button type="button" key={q}
+                              onClick={() => setSearchQuery(q)}
+                              className="px-2.5 py-1 rounded-full bg-muted/40 text-[11px] font-medium text-muted-foreground hover:text-foreground touch-manipulation active:scale-95">
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  </div>
+                </div>
               </div>
             </section>
 
             <section className="pt-2 pb-8">
-              <div className="container mx-auto px-4">
+              <div className="container mx-auto px-4 max-w-6xl">
                 {/* Order again strip */}
                 {recentOrders.length > 0 && (
                   <div className="mb-5">
@@ -847,24 +1123,31 @@ export default function EatsLanding() {
 
                 {/* Trending now strip */}
                 {!loadingRestaurants && restaurants.length > 0 && (
-                  <div className="mb-5">
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                    className="mb-5"
+                  >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                        <Flame className="w-3 h-3 text-orange-500" /> Trending now
+                      <p className="text-sm font-extrabold flex items-center gap-1.5">
+                        <Flame className="w-3.5 h-3.5 text-orange-500" /> Trending now
                       </p>
                       <button type="button" onClick={() => setSortBy("rating")}
                         className="text-[10px] font-bold text-primary hover:underline">See all →</button>
                     </div>
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                    <div className="relative">
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 snap-x snap-mandatory overscroll-x-contain">
                       {[...restaurants]
                         .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
                         .slice(0, 6)
                         .map(r => (
                           <button type="button" key={r.id}
                             onClick={() => { trackRecentlyViewed(r.id); setSelectedRestaurantId(r.id); setStep("restaurant"); }}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/50 text-left shrink-0 active:scale-95 hover:scale-105 transition-all duration-200 touch-manipulation hover:border-primary/30 hover:shadow-md hover:shadow-primary/10">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/15 to-rose-500/10 flex items-center justify-center text-primary shrink-0">
-                              <UtensilsCrossed className="w-4 h-4" />
+                            className="snap-start flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/50 text-left shrink-0 active:scale-95 hover:scale-105 transition-all duration-200 touch-manipulation hover:border-primary/30 hover:shadow-md hover:shadow-primary/10">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/15 to-rose-500/10 flex items-center justify-center text-base leading-none shrink-0" aria-hidden>
+                              {cuisineEmoji(r.cuisine_type || "")}
                             </div>
                             <div>
                               <p className="text-xs font-semibold truncate max-w-[120px]">{r.name}</p>
@@ -880,7 +1163,9 @@ export default function EatsLanding() {
                           </button>
                         ))}
                     </div>
-                  </div>
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-background to-transparent" />
+                    </div>
+                  </motion.div>
                 )}
 
                 {/* Recently viewed */}
@@ -900,8 +1185,8 @@ export default function EatsLanding() {
                           <button type="button" key={r.id}
                             onClick={() => { trackRecentlyViewed(r.id); setSelectedRestaurantId(r.id); setStep("restaurant"); }}
                             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/30 border border-border/30 text-left shrink-0 active:scale-95 transition-transform touch-manipulation hover:border-primary/30">
-                            <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-primary shrink-0">
-                              <UtensilsCrossed className="w-4 h-4" />
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500/15 to-rose-500/10 flex items-center justify-center text-base leading-none shrink-0" aria-hidden>
+                              {cuisineEmoji(r.cuisine_type || "")}
                             </div>
                             <div>
                               <p className="text-xs font-semibold truncate max-w-[110px]">{r.name}</p>
@@ -915,10 +1200,17 @@ export default function EatsLanding() {
                 })()}
 
                 {/* Promo banners */}
-                <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 mb-1 -mx-4 px-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                  className="relative -mx-4 px-4"
+                >
+                <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 mb-1 snap-x snap-mandatory overscroll-x-contain">
                   <button type="button"
                     onClick={() => { setPromoCode("ZIVO10"); toast.success("Code ZIVO10 ready — apply at checkout"); }}
-                    className="relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md hover:shadow-lg hover:shadow-emerald-500/30 flex items-center gap-3 active:scale-[0.98] transition-all duration-300 touch-manipulation text-left">
+                    className="snap-start relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md hover:shadow-lg hover:shadow-emerald-500/30 flex items-center gap-3 active:scale-[0.98] transition-all duration-300 touch-manipulation text-left">
                     <div className="pointer-events-none absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                       <Percent className="w-5 h-5" />
@@ -940,7 +1232,7 @@ export default function EatsLanding() {
                     </div>
                   </button>
                   <button type="button" onClick={() => navigate("/plus")}
-                    className="relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:shadow-lg hover:shadow-violet-500/30 active:scale-[0.98] transition-all duration-300 flex items-center gap-3 text-left">
+                    className="snap-start relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:shadow-lg hover:shadow-violet-500/30 active:scale-[0.98] transition-all duration-300 flex items-center gap-3 text-left">
                     <div className="pointer-events-none absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10 blur-2xl" />
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                       <Sparkles className="w-5 h-5" />
@@ -951,6 +1243,8 @@ export default function EatsLanding() {
                     </div>
                   </button>
                 </div>
+                <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-background to-transparent" />
+                </motion.div>
                 <div className="flex justify-center gap-1.5 mb-4">
                   {[0, 1, 2].map(i => (
                     <span key={i} className={cn("h-1.5 rounded-full transition-all duration-500",
@@ -959,19 +1253,28 @@ export default function EatsLanding() {
                 </div>
 
                 {/* Categories */}
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 mb-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ type: "spring", stiffness: 320, damping: 28 }}
+                  className="relative"
+                >
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 mb-3 snap-x overscroll-x-contain">
                   {categories.map(c => (
                     <button type="button" key={c}
                       onClick={() => { setActiveCategory(c); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                       className={cn(
                       "whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 touch-manipulation active:scale-95",
                       activeCategory === c
-                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/30 scale-105"
+                        ? "bg-ig-gradient text-white shadow-md shadow-primary/30 scale-105"
                         : "bg-muted/50 text-muted-foreground border border-border/40 hover:border-primary/40 hover:text-foreground"
                     )}>{c}</button>
                   ))}
                 </div>
 
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-background to-transparent" />
+                </motion.div>
                 {/* Dietary filters */}
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 mb-4">
                   <button type="button"
@@ -1074,7 +1377,7 @@ export default function EatsLanding() {
 
                 {/* Loading skeletons */}
                 {loadingRestaurants && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                     {Array.from({ length: 6 }).map((_, i) => (
                       <div key={i} className="rounded-2xl bg-card border border-border/40 overflow-hidden">
                         <div className="aspect-[16/10] bg-muted/40 animate-pulse" />
@@ -1100,7 +1403,7 @@ export default function EatsLanding() {
                     <p className="text-xs text-muted-foreground mb-4">Try clearing filters or searching for something else</p>
                     <button type="button"
                       onClick={() => { setSearchQuery(""); setActiveCategory("All"); setActiveDietary(null); }}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold active:scale-95 transition-transform touch-manipulation">
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-ig-gradient text-white text-xs font-bold active:scale-95 transition-transform touch-manipulation">
                       <X className="w-3.5 h-3.5" /> Clear filters
                     </button>
                   </div>
@@ -1120,7 +1423,7 @@ export default function EatsLanding() {
                           style={{ left: `${x}%`, top: `${y}%` }}
                           className="absolute -translate-x-1/2 -translate-y-full group flex flex-col items-center touch-manipulation">
                           <div className="px-2 py-1 rounded-lg bg-background shadow-lg border border-border/40 text-[10px] font-bold text-foreground whitespace-nowrap mb-1 opacity-0 group-hover:opacity-100 transition-opacity">{r.name}</div>
-                          <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center ring-4 ring-background hover:scale-110 transition-transform">
+                          <div className="w-9 h-9 rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/30 flex items-center justify-center ring-4 ring-background hover:scale-110 transition-transform">
                             <UtensilsCrossed className="w-4 h-4" />
                           </div>
                         </button>
@@ -1140,97 +1443,79 @@ export default function EatsLanding() {
                   </div>
                 )}
 
-                {/* Restaurant Grid */}
+                {/* Restaurant List */}
                 {viewMode === "list" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="flex flex-col gap-2">
                   {filtered.map((restaurant, i) => (
-                    <motion.div key={restaurant.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.4, delay: i * 0.05 }}>
-                      <div className="group relative rounded-2xl bg-card border border-border/40 overflow-hidden hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/20 transition-all duration-300">
-                        <button type="button" onClick={() => { trackRecentlyViewed(restaurant.id); setSelectedRestaurantId(restaurant.id); setStep("restaurant"); }} className="block w-full text-left touch-manipulation active:scale-[0.99]">
-                          <div className="relative aspect-[16/10] overflow-hidden bg-muted/20">
+                    <motion.div key={restaurant.id} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ type: "spring", stiffness: 340, damping: 28, delay: Math.min(i, 5) * 0.04 }}>
+                      <div className="group relative rounded-2xl bg-card border border-border/40 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/8 transition-all duration-200">
+                        <button type="button" onClick={() => { trackRecentlyViewed(restaurant.id); setSelectedRestaurantId(restaurant.id); setStep("restaurant"); }} className="flex items-center gap-3 w-full text-left px-3 py-3 touch-manipulation active:scale-[0.99]">
+                          {/* Thumbnail */}
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted/30 shrink-0">
                             {restaurant.cover_image_url ? (
-	                              <img src={restaurant.cover_image_url} alt={restaurant.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" decoding="async" />
+                              <img src={restaurant.cover_image_url} alt={restaurant.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" decoding="async" />
                             ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-orange-500/20 via-amber-500/15 to-rose-500/10 relative">
-                                <div className="absolute top-0 left-0 w-1/2 h-1/2 rounded-full bg-white/30 blur-2xl" />
-                                <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-full bg-orange-300/30 blur-2xl" />
-                                <UtensilsCrossed className="w-12 h-12 text-foreground/40 relative" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/60 relative">{canonicalCuisine(restaurant.cuisine_type)}</span>
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-rose-500/10">
+                                <UtensilsCrossed className="w-6 h-6 text-foreground/40" />
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-50" />
-                            {restaurant.delivery_fee_cents === 0 && (
-                              <span className="absolute top-3 left-3 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-sm flex items-center gap-1">
-                                <Truck className="w-3 h-3" /> Free Delivery
-                              </span>
-                            )}
-                            <PartnerBadge size="xs" className="absolute bottom-3 left-3 shadow-sm" />
                             {!restaurant.is_open && (
-                              <span className="absolute top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground">Closed</span>
-                            )}
-                            {restaurant.is_open && ((restaurant.rating_count ?? 0) > 5 || (restaurant.rating ?? 0) >= 4.5) && (
-                              <span className="absolute bottom-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/90 text-white shadow-sm flex items-center gap-1">
-                                <Flame className="w-2.5 h-2.5" /> Popular today
-                              </span>
+                              <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
+                                <span className="text-[8px] font-black uppercase tracking-wider text-destructive">Closed</span>
+                              </div>
                             )}
                           </div>
-                          <div className="p-4">
-                            <div className="flex items-center justify-between mb-1 gap-2">
-                              <h3 className="font-bold text-sm truncate">{restaurant.name}</h3>
-                              {(() => {
-                                const min = ((restaurant as { min_order_cents?: number | null }).min_order_cents ?? 0) / 100;
-                                const tier = min >= 30 ? 3 : min >= 15 ? 2 : 1;
-                                return (
-                                  <span className="text-[10px] font-bold text-muted-foreground/70 shrink-0">
-                                    {"$".repeat(tier)}<span className="opacity-30">{"$".repeat(3 - tier)}</span>
-                                  </span>
-                                );
-                              })()}
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="font-extrabold text-sm truncate leading-tight">{restaurant.name}</span>
+                              {restaurant.is_open && ((restaurant.rating_count ?? 0) > 5 || (restaurant.rating ?? 0) >= 4.5) && (
+                                <Flame className="w-3 h-3 text-rose-500 shrink-0" />
+                              )}
+                              {restaurant.delivery_fee_cents === 0 && (
+                                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600">Free</span>
+                              )}
                             </div>
-                            <p className="text-xs text-muted-foreground mb-2">{canonicalCuisine(restaurant.cuisine_type)}</p>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+                              <span className="truncate max-w-[80px]">{canonicalCuisine(restaurant.cuisine_type)}</span>
+                              <span className="text-border">·</span>
                               {restaurant.rating != null && restaurant.rating > 0 && (restaurant.rating_count ?? 0) > 0 ? (
-                                <>
-                                  <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {restaurant.rating.toFixed(1)}</span>
-                                  <span className="text-muted-foreground/60">({restaurant.rating_count})</span>
-                                </>
+                                <span className="flex items-center gap-0.5 shrink-0"><Star className="w-3 h-3 fill-amber-400 text-amber-400" /><span className="font-semibold text-foreground/80">{restaurant.rating.toFixed(1)}</span></span>
                               ) : (
-                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600">New</span>
+                                <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600">New</span>
                               )}
-                              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {restaurant.avg_prep_time ?? 25}-{(restaurant.avg_prep_time ?? 25) + 15} min</span>
-                              <span className="flex items-center gap-1">
-                                <Truck className="w-3.5 h-3.5" />
+                              <span className="text-border">·</span>
+                              <span className="flex items-center gap-0.5 shrink-0"><Clock className="w-3 h-3" />{restaurant.avg_prep_time ?? 25}–{(restaurant.avg_prep_time ?? 25) + 15}m</span>
+                              <span className="text-border">·</span>
+                              <span className="flex items-center gap-0.5 shrink-0">
+                                <Truck className="w-3 h-3" />
                                 {restaurant.delivery_fee_cents === 0
-                                  ? <span className="text-emerald-600 font-bold">Free</span>
-                                  : <>{fmtPrice((restaurant.delivery_fee_cents ?? 399) / 100)}</>}
+                                  ? <span className="text-emerald-600 font-semibold">Free</span>
+                                  : fmtPrice((restaurant.delivery_fee_cents ?? 399) / 100)}
                               </span>
-                              {((restaurant as { min_order_cents?: number | null }).min_order_cents ?? 0) > 0 && (
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                                  Min ${(((restaurant as { min_order_cents?: number | null }).min_order_cents ?? 0) / 100).toFixed(0)}
-                                </span>
-                              )}
-                              {userCoords && (restaurant as { lat?: number | null; lng?: number | null }).lat != null && (restaurant as { lat?: number | null; lng?: number | null }).lng != null && (
-                                <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80">
-                                  <Navigation className="w-3 h-3" />
-                                  {haversineKm(userCoords, { lat: (restaurant as { lat: number }).lat, lng: (restaurant as { lng: number }).lng }).toFixed(1)} km
-                                </span>
+                              {userCoords && (restaurant as { lat?: number | null; lng?: number | null }).lat != null && (
+                                <>
+                                  <span className="text-border">·</span>
+                                  <span className="shrink-0">{haversineKm(userCoords, { lat: (restaurant as { lat: number }).lat, lng: (restaurant as { lng: number }).lng }).toFixed(1)} km</span>
+                                </>
                               )}
                             </div>
                           </div>
+                          {/* Chevron */}
+                          <ChevronRight className="w-4 h-4 text-muted-foreground/40 shrink-0 group-hover:text-primary/60 transition-colors" />
                         </button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleFavorite(restaurant.id); }}
-                          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-card/80 backdrop-blur flex items-center justify-center touch-manipulation active:scale-90 shadow-sm">
-                          <Heart className={cn("w-4 h-4 transition-all", favorites.has(restaurant.id) ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
-                        </button>
-                        <button type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/eats/reserve?restaurantId=${restaurant.id}&restaurantName=${encodeURIComponent(restaurant.name)}`);
-                          }}
-                          className="absolute top-3 right-12 text-[10px] font-bold px-2.5 py-1.5 rounded-full bg-orange-500/90 text-white shadow-sm hover:bg-orange-500 hover:shadow-md hover:shadow-orange-500/40 active:scale-95 transition-all duration-200 touch-manipulation flex items-center gap-1"
-                        >
-                          <CalendarCheck className="w-3 h-3" /> Reserve
-                        </button>
+                        {/* Hover action buttons */}
+                        <div className="absolute top-1/2 -translate-y-1/2 right-8 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none group-hover:pointer-events-auto">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); toggleFavorite(restaurant.id); }}
+                            className="w-7 h-7 rounded-full bg-card/90 backdrop-blur border border-border/40 flex items-center justify-center touch-manipulation active:scale-90 shadow-sm">
+                            <Heart className={cn("w-3.5 h-3.5 transition-all", favorites.has(restaurant.id) ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
+                          </button>
+                          <button type="button"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/eats/reserve?restaurantId=${restaurant.id}&restaurantName=${encodeURIComponent(restaurant.name)}`); }}
+                            className="h-7 px-2 rounded-full bg-orange-500/90 text-white text-[9px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1 touch-manipulation active:scale-95">
+                            <CalendarCheck className="w-3 h-3" /> Reserve
+                          </button>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -1242,7 +1527,13 @@ export default function EatsLanding() {
             {/* Become a partner CTA */}
             {!loadingRestaurants && filtered.length > 0 && (
               <section className="pb-12 pt-4">
-                <div className="container mx-auto px-4">
+                <div className="container mx-auto px-4 max-w-6xl">
+                  <motion.div
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-60px" }}
+                    transition={{ type: "spring", stiffness: 300, damping: 26 }}
+                  >
                   <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-rose-500 to-primary p-6 sm:p-10 text-white shadow-xl shadow-primary/20">
                     <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
                     <div className="absolute -bottom-16 -left-10 w-56 h-56 rounded-full bg-amber-300/20 blur-3xl" />
@@ -1265,6 +1556,7 @@ export default function EatsLanding() {
                       </button>
                     </div>
                   </div>
+                  </motion.div>
                 </div>
               </section>
             )}
@@ -1431,7 +1723,7 @@ export default function EatsLanding() {
               <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 flex items-center gap-2">
                 {currentRestaurant.delivery_fee_cents === 0 && (
-                  <Badge className="bg-primary text-primary-foreground text-[10px] font-bold gap-1"><Truck className="w-3 h-3" /> Free Delivery</Badge>
+                  <Badge className="bg-ig-gradient text-white text-[10px] font-bold gap-1"><Truck className="w-3 h-3" /> Free Delivery</Badge>
                 )}
                 <Badge variant="outline" className="bg-card/80 backdrop-blur text-[10px] font-bold gap-1"><Timer className="w-3 h-3" /> {currentRestaurant.avg_prep_time ?? 25}m prep</Badge>
               </div>
@@ -1545,30 +1837,6 @@ export default function EatsLanding() {
                         <p className="text-[11px] text-muted-foreground">Based on {currentRestaurant.rating_count} customer reviews</p>
                       </div>
                     </div>
-                    {/* Recent review snippets (placeholder — wire to reviews table later) */}
-                    <div className="space-y-2 pt-3 border-t border-border/30">
-                      {[
-                        { name: "Sokha", rating: 5, text: "Tasty and fast, delivery was warm." },
-                        { name: "Mey", rating: 4, text: "Good portion size, packaging was nice." },
-                      ].map((rv, i) => (
-                        <div key={i} className="flex items-start gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-rose-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                            {rv.name[0]}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-bold text-foreground">{rv.name}</p>
-                              <span className="flex gap-0.5">
-                                {Array.from({ length: rv.rating }).map((_, j) => (
-                                  <Star key={j} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                                ))}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">{rv.text}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </>
                 ) : (
                   <p className="text-xs text-muted-foreground py-2">No reviews yet — be the first to order and rate.</p>
@@ -1636,13 +1904,13 @@ export default function EatsLanding() {
                                 <div className="flex items-center gap-1">
                                   <button type="button" aria-label="Decrease" onClick={() => updateQuantity(item.id, -1)} className="w-6 h-6 rounded-full bg-muted flex items-center justify-center active:scale-90"><Minus className="w-3 h-3" /></button>
                                   <span className="text-xs font-bold w-4 text-center tabular-nums">{inCart.quantity}</span>
-                                  <button type="button" aria-label="Increase" onClick={() => updateQuantity(item.id, 1)} className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-90"><Plus className="w-3 h-3" /></button>
+                                  <button type="button" aria-label="Increase" onClick={() => updateQuantity(item.id, 1)} className="w-6 h-6 rounded-full bg-ig-gradient text-white flex items-center justify-center active:scale-90"><Plus className="w-3 h-3" /></button>
                                 </div>
                               ) : (
                                 <button type="button"
                                   onClick={() => addToCart(item, currentRestaurant!.id)}
                                   aria-label="Add"
-                                  className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-90 hover:shadow-md hover:shadow-primary/30 transition-shadow">
+                                  className="w-7 h-7 rounded-full bg-ig-gradient text-white flex items-center justify-center active:scale-90 hover:shadow-md hover:shadow-primary/30 transition-shadow">
                                   <Plus className="w-3.5 h-3.5" />
                                 </button>
                               )}
@@ -1688,22 +1956,32 @@ export default function EatsLanding() {
 
         {/* ═══ CART ═══ */}
         {step === "cart" && (
-          <motion.div key="cart" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="min-h-screen pb-32">
-            <div className="sticky top-0 safe-area-top z-20 bg-background/95 backdrop-blur-2xl border-b border-border/30">
-              <div className="px-4 py-3 flex items-center gap-3">
-                <motion.button whileTap={{ scale: 0.88 }} onClick={handleBack} className="w-10 h-10 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation">
+          <motion.div key="cart" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="min-h-screen pb-36">
+
+            {/* Header */}
+            <div className="sticky top-0 safe-area-top z-20 bg-background/95 backdrop-blur-2xl border-b border-border/20">
+              <div className="px-3 h-14 flex items-center gap-2 max-w-6xl mx-auto">
+                <motion.button whileTap={{ scale: 0.88 }} onClick={handleBack}
+                  className="w-9 h-9 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation shrink-0">
                   <ArrowLeft className="w-5 h-5 text-foreground" />
                 </motion.button>
-                <h1 className="text-base font-bold text-ig-gradient">Your Cart</h1>
-                <Badge variant="outline" className="ml-auto text-xs font-bold">{cartCount} items</Badge>
+                <div className="flex-1 flex items-center gap-2 min-w-0">
+                  <span className="font-extrabold text-base tracking-tight">
+                    Your <span className="text-ig-gradient">Cart</span>
+                  </span>
+                  {cartCount > 0 && (
+                    <motion.span key={cartCount} initial={{ scale: 1.4 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                      className="inline-flex items-center justify-center h-5 min-w-[20px] rounded-full bg-orange-500 px-1.5 text-[10px] font-black text-white">
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </div>
                 {cart.length > 0 && (
                   <button type="button"
                     onClick={() => {
                       const snapshot = cart;
                       setCart([]);
-                      toast.success("Cart cleared", {
-                        action: { label: "Undo", onClick: () => setCart(snapshot) },
-                      });
+                      toast.success("Cart cleared", { action: { label: "Undo", onClick: () => setCart(snapshot) } });
                     }}
                     aria-label="Clear cart"
                     className="w-9 h-9 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-destructive touch-manipulation active:scale-90">
@@ -1714,193 +1992,269 @@ export default function EatsLanding() {
               <EatsStepIndicator currentStep="cart" />
             </div>
 
-            <div className="px-4 py-6 max-w-lg mx-auto space-y-4">
-              {cart.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingCart className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-                  <p className="text-foreground font-bold mb-1">Your cart is empty</p>
-                  <p className="text-xs text-muted-foreground mb-5">Pick a restaurant to get started</p>
-                  <Button variant="outline" onClick={() => setStep("browse")} className="mb-8 rounded-xl">Browse all restaurants</Button>
-                  {restaurants.slice(0, 3).length > 0 && (
-                    <div className="text-left">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Popular near you</p>
-                      <div className="space-y-2">
-                        {restaurants.slice(0, 3).map(r => (
-                          <button type="button" key={r.id}
-                            onClick={() => { trackRecentlyViewed(r.id); setSelectedRestaurantId(r.id); setStep("restaurant"); }}
-                            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border/40 hover:border-primary/30 active:scale-[0.98] transition-all touch-manipulation">
-                            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0 text-primary">
-                              <UtensilsCrossed className="w-4 h-4" />
+            {cart.length === 0 ? (
+              /* ── EMPTY STATE ── */
+              <div className="px-4 pb-8 max-w-lg mx-auto">
+                <div className="relative mt-10 mb-6 flex justify-center">
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="w-48 h-48 rounded-full bg-orange-500/10 blur-3xl" />
+                  </div>
+                  <motion.div
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                    className="relative w-28 h-28 rounded-3xl bg-gradient-to-br from-orange-500/15 to-rose-500/10 border border-orange-500/20 flex items-center justify-center">
+                    <ShoppingCart className="w-12 h-12 text-orange-500/60" />
+                  </motion.div>
+                </div>
+                <div className="text-center mb-8">
+                  <h2 className="text-xl font-black text-foreground mb-1">Nothing here yet</h2>
+                  <p className="text-sm text-muted-foreground">Pick a restaurant and add your favorites</p>
+                </div>
+                <motion.button whileTap={{ scale: 0.96 }} onClick={() => setStep("browse")}
+                  className="w-full h-12 rounded-2xl bg-gradient-to-r from-orange-500 to-rose-500 text-white font-extrabold text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 mb-8">
+                  <UtensilsCrossed className="w-4 h-4" /> Browse Restaurants
+                </motion.button>
+                {restaurants.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground mb-3">Popular near you</p>
+                    <div className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-4 px-4 overscroll-x-contain">
+                      {restaurants.slice(0, 6).map((r, i) => (
+                        <motion.button type="button" key={r.id}
+                          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => { trackRecentlyViewed(r.id); setSelectedRestaurantId(r.id); setStep("restaurant"); }}
+                          className="snap-start shrink-0 w-44 rounded-2xl bg-card border border-border/40 overflow-hidden active:scale-[0.97] touch-manipulation text-left">
+                          {r.cover_image_url ? (
+                            <img src={r.cover_image_url} alt={r.name} className="w-full h-24 object-cover" loading="lazy" decoding="async" />
+                          ) : (
+                            <div className="w-full h-24 bg-gradient-to-br from-orange-500/20 to-rose-500/10 flex items-center justify-center">
+                              <UtensilsCrossed className="w-8 h-8 text-orange-500/40" />
                             </div>
-                            <div className="flex-1 min-w-0 text-left">
-                              <p className="text-sm font-bold text-foreground truncate">{r.name}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">{canonicalCuisine(r.cuisine_type)} · {r.avg_prep_time ?? 25}-{(r.avg_prep_time ?? 25) + 15} min</p>
+                          )}
+                          <div className="p-2.5">
+                            <p className="text-xs font-extrabold text-foreground truncate">{r.name}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{canonicalCuisine(r.cuisine_type)} · {r.avg_prep_time ?? 25}–{(r.avg_prep_time ?? 25) + 15} min</p>
+                            {r.rating != null && r.rating > 0 && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                                <span className="text-[10px] font-bold text-amber-600">{r.rating.toFixed(1)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ── FILLED STATE ── */
+              <div className="px-4 pt-4 pb-4 max-w-lg mx-auto space-y-3">
+
+                {/* Restaurant banner */}
+                {currentRestaurant && (
+                  <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-orange-500/8 to-rose-500/5 border border-orange-500/20">
+                    {currentRestaurant.cover_image_url ? (
+                      <img src={currentRestaurant.cover_image_url} alt={currentRestaurant.name}
+                        className="w-12 h-12 rounded-xl object-cover shrink-0" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
+                        <UtensilsCrossed className="w-5 h-5 text-orange-500" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-extrabold text-sm text-foreground truncate">{currentRestaurant.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{canonicalCuisine(currentRestaurant.cuisine_type)} · {currentRestaurant.avg_prep_time ?? 25}–{(currentRestaurant.avg_prep_time ?? 25) + 15} min</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Timer className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-[11px] font-bold text-primary">{(currentRestaurant.avg_prep_time ?? 25) + 10}–{(currentRestaurant.avg_prep_time ?? 25) + 20} min</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Free-delivery progress */}
+                {deliveryFee > 0 && (() => {
+                  const threshold = 20;
+                  const remaining = Math.max(0, threshold - cartTotal);
+                  const pct = Math.min(100, (cartTotal / threshold) * 100);
+                  return (
+                    <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/20 p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Truck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <p className="text-xs font-bold text-foreground flex-1">
+                          {remaining > 0
+                            ? <>Add <span className="text-emerald-600">{fmtPrice(remaining)}</span> for free delivery</>
+                            : <span className="text-emerald-600">Free delivery unlocked!</span>}
+                        </p>
+                        <span className="text-[10px] font-black text-emerald-600">{Math.round(pct)}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-emerald-500/15 overflow-hidden">
+                        <motion.div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500"
+                          initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.6, ease: "easeOut" }} />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Cart items */}
+                <AnimatePresence>
+                  {cart.map((item, i) => {
+                    const note = specialInstructions[item.menuItemId];
+                    return (
+                      <motion.div key={item.menuItemId}
+                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -60 }}
+                        transition={{ delay: i * 0.04 }}
+                        layout
+                        className="p-3 rounded-2xl bg-card border border-border/40">
+                        <div className="flex items-center gap-3">
+                          {item.imageUrl ? (
+                            <img src={item.imageUrl} alt={item.name}
+                              className="w-14 h-14 rounded-xl object-cover shrink-0" loading="lazy" decoding="async" />
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl shrink-0 bg-gradient-to-br from-orange-500/15 to-rose-500/10 flex items-center justify-center">
+                              <UtensilsCrossed className="w-5 h-5 text-foreground/30" />
                             </div>
-                            <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-extrabold text-sm text-foreground truncate">{item.name}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{fmtPrice(item.price)} each</p>
+                            {note && note.trim() && (
+                              <p className="text-[10px] text-muted-foreground italic mt-0.5 flex items-center gap-1 truncate">
+                                <MessageSquare className="w-3 h-3 shrink-0" /> {note}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <span className="font-extrabold text-sm text-foreground">{fmtPrice(item.price * item.quantity)}</span>
+                            <div className="flex items-center gap-1">
+                              <button type="button" aria-label="Decrease" onClick={() => updateQuantity(item.menuItemId, -1)}
+                                className="w-7 h-7 rounded-full bg-muted flex items-center justify-center touch-manipulation active:scale-90">
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <motion.span key={item.quantity} initial={{ scale: 1.4 }} animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                                className="text-sm font-black w-5 text-center">{item.quantity}</motion.span>
+                              <button type="button" aria-label="Increase" onClick={() => updateQuantity(item.menuItemId, 1)}
+                                className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center touch-manipulation active:scale-90">
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+
+                {/* Add more */}
+                <button type="button" onClick={() => setStep("restaurant")}
+                  className="w-full flex items-center justify-center gap-2 p-3 rounded-2xl border border-dashed border-border/50 text-xs font-extrabold text-muted-foreground hover:text-foreground hover:border-orange-500/40 transition-all touch-manipulation active:scale-[0.98]">
+                  <Plus className="w-3.5 h-3.5" /> Add more items
+                </button>
+
+                {/* Skip utensils */}
+                <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
+                  <button type="button" onClick={() => setNoUtensils(!noUtensils)}
+                    className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", noUtensils ? "bg-emerald-500" : "bg-muted/60")}>
+                    <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", noUtensils ? "left-[18px]" : "left-0.5")} />
+                  </button>
+                  <div className="flex-1">
+                    <p className="text-xs font-extrabold text-foreground flex items-center gap-1.5">
+                      <Leaf className="w-3.5 h-3.5 text-emerald-500" /> Skip utensils
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Reduce plastic waste</p>
+                  </div>
+                </div>
+
+                {/* Upsell */}
+                {(() => {
+                  const threshold = 20;
+                  const remaining = Math.max(0, threshold - cartTotal);
+                  if (remaining === 0 || remaining > 8 || cart.length === 0) return null;
+                  const popularExtras = menuItems
+                    .filter(m => m.price <= remaining + 1 && !cart.some(c => c.menuItemId === m.id))
+                    .slice(0, 3);
+                  if (!popularExtras.length) return null;
+                  return (
+                    <div className="rounded-2xl bg-amber-500/5 border border-amber-500/25 p-3 space-y-2">
+                      <p className="text-xs font-extrabold text-amber-600 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" /> Add {fmtPrice(remaining)} more for free delivery
+                      </p>
+                      <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1 overscroll-x-contain">
+                        {popularExtras.map(m => (
+                          <button type="button" key={m.id}
+                            onClick={() => addToCart(m, cart[0].restaurantId)}
+                            className="snap-start shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/50 hover:border-amber-500/40 active:scale-95 transition-all touch-manipulation">
+                            <Plus className="w-3 h-3 text-amber-600" />
+                            <div className="text-left">
+                              <p className="text-xs font-extrabold text-foreground truncate max-w-[100px]">{m.name}</p>
+                              <p className="text-[10px] text-amber-600 font-bold">{fmtPrice(m.price)}</p>
+                            </div>
                           </button>
                         ))}
                       </div>
                     </div>
-                  )}
+                  );
+                })()}
+
+                {/* Order summary */}
+                <div className="rounded-2xl bg-card border border-border/40 overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-border/20 bg-muted/20">
+                    <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">Order summary</p>
+                  </div>
+                  <div className="p-4 space-y-2.5 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="font-extrabold">{fmtPrice(cartTotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" /> Delivery</span>
+                      <span className="font-extrabold">{deliveryFee === 0 ? <span className="text-emerald-600">Free</span> : fmtPrice(deliveryFee)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Service fee</span>
+                      <span className="font-extrabold">{fmtPrice(serviceFee)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-3 border-t border-border/20">
+                      <span className="font-extrabold text-base">Total</span>
+                      <motion.span key={cartTotal + deliveryFee + serviceFee} initial={{ scale: 1.1 }} animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 400 }}
+                        className="font-black text-xl text-primary">{fmtPrice(cartTotal + deliveryFee + serviceFee)}</motion.span>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <>
-                  {currentRestaurant && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/30">
-                      <UtensilsCrossed className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-bold text-foreground">{currentRestaurant.name}</span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{currentRestaurant.avg_prep_time ?? 25}-{(currentRestaurant.avg_prep_time ?? 25) + 15} min</span>
-                    </div>
-                  )}
 
-                  {currentRestaurant && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
-                      <Timer className="w-4 h-4 text-primary shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-foreground">
-                          Estimated arrival: {(currentRestaurant.avg_prep_time ?? 25) + 10}–{(currentRestaurant.avg_prep_time ?? 25) + 20} min
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">From order placement</p>
-                      </div>
-                    </div>
-                  )}
+              </div>
+            )}
 
-                  {cart.map(item => {
-                    const note = specialInstructions[item.menuItemId];
-                    return (
-                      <div key={item.menuItemId} className="p-4 rounded-2xl bg-card border border-border/40 space-y-2">
-                        <div className="flex items-center gap-4">
-                          {item.imageUrl ? (
-	                            <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl object-cover shrink-0" loading="lazy" decoding="async" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-xl shrink-0 bg-gradient-to-br from-orange-500/15 via-amber-500/10 to-rose-500/10 flex items-center justify-center">
-                              <UtensilsCrossed className="w-5 h-5 text-foreground/40" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-sm text-foreground truncate">{item.name}</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">{fmtPrice(item.price)} each</p>
-
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button type="button" aria-label="Decrease" onClick={() => updateQuantity(item.menuItemId, -1)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center touch-manipulation active:scale-90"><Minus className="w-3.5 h-3.5" /></button>
-                            <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
-                            <button type="button" aria-label="Increase" onClick={() => updateQuantity(item.menuItemId, 1)} className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center touch-manipulation active:scale-90"><Plus className="w-3.5 h-3.5" /></button>
-                          </div>
-                          <span className="font-bold text-sm text-foreground w-16 text-right shrink-0">{fmtPrice(item.price * item.quantity)}</span>
-                        </div>
-                        {note && note.trim() && (
-                          <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground pl-16 italic">
-                            <MessageSquare className="w-3 h-3 mt-0.5 shrink-0" /> {note}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  <button type="button" onClick={() => setStep("restaurant")}
-                    className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-border/60 text-xs font-bold text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all touch-manipulation active:scale-[0.98]">
-                    <Plus className="w-3.5 h-3.5" /> Add more items
-                  </button>
-
-                  {/* Skip utensils */}
-                  <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                    <button type="button" onClick={() => setNoUtensils(!noUtensils)}
-                      className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", noUtensils ? "bg-emerald-500" : "bg-muted/60")}>
-                      <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", noUtensils ? "left-[18px]" : "left-0.5")} />
-                    </button>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Leaf className="w-3.5 h-3.5 text-emerald-500" /> Skip utensils</p>
-                      <p className="text-[10px] text-muted-foreground">Help reduce plastic waste</p>
-                    </div>
-                  </div>
-
-                  {/* Upsell suggestion when close to free-delivery threshold */}
-                  {(() => {
-                    const threshold = 20;
-                    const remaining = Math.max(0, threshold - cartTotal);
-                    if (remaining === 0 || remaining > 8 || cart.length === 0) return null;
-                    const popularExtras = menuItems
-                      .filter(m => m.price <= remaining + 1 && !cart.some(c => c.menuItemId === m.id))
-                      .slice(0, 3);
-                    if (!popularExtras.length) return null;
-                    return (
-                      <div className="rounded-2xl bg-amber-500/5 border border-amber-500/30 p-3 space-y-2">
-                        <p className="text-xs font-bold text-amber-600 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5" /> Add {fmtPrice(remaining)} more for free delivery — try:
-                        </p>
-                        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-                          {popularExtras.map(m => (
-                            <button type="button" key={m.id}
-                              onClick={() => addToCart(m, cart[0].restaurantId)}
-                              className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/50 hover:border-amber-500/40 active:scale-95 transition-all touch-manipulation">
-                              <Plus className="w-3.5 h-3.5 text-amber-600" />
-                              <div className="text-left">
-                                <p className="text-xs font-bold text-foreground truncate max-w-[120px]">{m.name}</p>
-                                <p className="text-[10px] text-amber-600 font-bold">{fmtPrice(m.price)}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Free-delivery progress */}
-                  {deliveryFee > 0 && (() => {
-                    const threshold = 20;
-                    const remaining = Math.max(0, threshold - cartTotal);
-                    const pct = Math.min(100, (cartTotal / threshold) * 100);
-                    return (
-                      <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/20 p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Truck className="w-4 h-4 text-emerald-600" />
-                          <p className="text-xs font-bold text-foreground">
-                            {remaining > 0
-                              ? <>Add <span className="text-emerald-600">{fmtPrice(remaining)}</span> for free delivery</>
-                              : <span className="text-emerald-600">You unlocked free delivery!</span>}
-                          </p>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-emerald-500/15 overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Fee Summary */}
-                  <div className="rounded-2xl bg-card border border-border/40 p-4 space-y-3 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-bold">{fmtPrice(cartTotal)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Delivery fee</span><span className="font-bold">{deliveryFee === 0 ? <span className="text-primary">Free</span> : fmtPrice(deliveryFee)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Service fee</span><span className="font-bold">{fmtPrice(serviceFee)}</span></div>
-                    <div className="flex justify-between pt-3 border-t border-border/30">
-                      <span className="font-bold text-base">Total</span>
-                      <span className="font-bold text-xl text-primary">{fmtPrice(cartTotal + deliveryFee + serviceFee)}</span>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
+            {/* Checkout CTA */}
             {cart.length > 0 && (() => {
               const minOrderCents = (currentRestaurant as { min_order_cents?: number | null } | null)?.min_order_cents ?? 0;
               const minOrder = minOrderCents / 100;
               const belowMin = minOrder > 0 && cartTotal < minOrder;
               return (
-                <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-background/95 backdrop-blur-2xl border-t border-border/30 safe-area-bottom">
+                <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+72px)] bg-background/95 backdrop-blur-2xl border-t border-border/20">
                   {belowMin && (
-                    <div className="mb-2 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-600">
-                      <Sparkles className="w-3.5 h-3.5" /> Add {fmtPrice(minOrder - cartTotal)} more to reach the {fmtPrice(minOrder)} minimum
-                    </div>
+                    <p className="text-center text-xs font-extrabold text-amber-600 mb-2 flex items-center justify-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> Add {fmtPrice(minOrder - cartTotal)} more (min {fmtPrice(minOrder)})
+                    </p>
                   )}
-                  <Button
+                  <motion.button whileTap={{ scale: 0.97 }}
                     onClick={() => belowMin ? toast.error(`Minimum order is $${minOrder.toFixed(2)}`) : setStep("checkout")}
                     disabled={belowMin}
-                    className={cn("w-full h-14 text-base font-bold gap-3 rounded-2xl text-primary-foreground shadow-lg active:scale-[0.98]",
-                      belowMin ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-gradient-to-r from-primary to-emerald-500 shadow-primary/25"
+                    className={cn("w-full h-14 rounded-2xl font-extrabold text-base flex items-center justify-between px-5 shadow-lg",
+                      belowMin ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-orange-500/30"
                     )}>
-                    <CreditCard className="w-5 h-5" /> {belowMin ? `Min ${fmtPrice(minOrder)} required` : `Checkout · ${fmtPrice(cartTotal + deliveryFee + serviceFee)}`}
-                  </Button>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-5 h-5" />
+                      <span>{belowMin ? "Min required" : "Checkout"}</span>
+                    </div>
+                    <span className="font-black">{fmtPrice(cartTotal + deliveryFee + serviceFee)}</span>
+                  </motion.button>
                 </div>
               );
             })()}
@@ -1982,7 +2336,7 @@ export default function EatsLanding() {
                             onClick={() => setScheduleTime(s.iso)}
                             className={cn("shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
                               scheduleTime === s.iso
-                                ? "bg-primary text-primary-foreground shadow-md"
+                                ? "bg-ig-gradient text-white shadow-md"
                                 : "bg-muted/40 text-muted-foreground border border-border/30")}>
                             {s.label}
                           </button>
@@ -2036,7 +2390,7 @@ export default function EatsLanding() {
                       setPaymentType(p.id);
                     }}
                       className={cn("flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                        paymentType === p.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40",
+                        paymentType === p.id ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40",
                         p.id === "wallet" && walletBalanceCents < Math.round(grandTotal * 100) && "opacity-50")}>
                       <p.Icon className="w-4 h-4" />
                       {p.label}
@@ -2059,7 +2413,7 @@ export default function EatsLanding() {
                     return (
                       <button type="button" key={t.id} onClick={() => setSelectedTip(t.id)}
                         className={cn("flex-1 py-2 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95 flex flex-col items-center gap-0.5",
-                          selectedTip === t.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                          selectedTip === t.id ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                         <span>{t.label}</span>
                         {tipPreviewAmt != null && tipPreviewAmt > 0 && (
                           <span className={cn("text-[9px] font-medium", selectedTip === t.id ? "opacity-90" : "opacity-60")}>{fmtPrice(tipPreviewAmt)}</span>
@@ -2324,9 +2678,11 @@ export default function EatsLanding() {
               </button>
               {cancelCountdown > 0 && statusStep === 0 && (
                 <button type="button"
-                  onClick={() => { setTrackedOrderId(null); setStep("cart"); }}
-                  className="text-[12px] text-muted-foreground underline-offset-2 hover:underline">
-                  Cancel order ({cancelCountdown}s)
+                  onClick={handleCancelTrackedOrder}
+                  disabled={cancellingOrder}
+                  className="flex items-center gap-1.5 text-[12px] text-muted-foreground underline-offset-2 hover:underline disabled:opacity-60 disabled:no-underline">
+                  {cancellingOrder && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {cancellingOrder ? "Cancelling…" : `Cancel order (${cancelCountdown}s)`}
                 </button>
               )}
             </div>

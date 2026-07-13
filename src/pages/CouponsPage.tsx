@@ -123,8 +123,9 @@ export default function CouponsPage() {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all capitalize",
+                "shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring capitalize",
                 filter === f ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
@@ -199,7 +200,7 @@ export default function CouponsPage() {
                         onClick={() => handleCopy(c.code)}
                         aria-label={`Copy code ${c.code}`}
                         className={cn(
-                          "shrink-0 h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-95",
+                          "shrink-0 h-9 w-9 rounded-full flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           exp.expired
                             ? "bg-muted text-muted-foreground cursor-not-allowed"
                             : "bg-ig-gradient text-white shadow-sm hover:opacity-90",

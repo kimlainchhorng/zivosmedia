@@ -88,7 +88,7 @@ export default function PersonalTimesheetPage() {
     <AppLayout title="Timesheet" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24 space-y-4">
         <div className="flex items-center gap-2.5">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform">
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-[17px]">Timesheet</h1>
@@ -96,14 +96,14 @@ export default function PersonalTimesheetPage() {
 
         {/* Week nav */}
         <div className="flex items-center justify-between rounded-2xl bg-card border border-border/40 px-4 py-3">
-          <button type="button" aria-label="Previous week" onClick={() => setWeekOffset(w => w - 1)} className="p-1.5 rounded-lg hover:bg-muted/40 transition-colors">
+          <button type="button" aria-label="Previous week" onClick={() => setWeekOffset(w => w - 1)} className="p-1.5 rounded-lg hover:bg-muted/40 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="text-center">
             <p className="text-[13px] font-bold text-foreground">{weekLabel}</p>
             <p className="text-[10px] text-muted-foreground">{weekRange}</p>
           </div>
-          <button type="button" aria-label="Next week" onClick={() => setWeekOffset(w => Math.min(0, w + 1))} className="p-1.5 rounded-lg hover:bg-muted/40 transition-colors" disabled={weekOffset >= 0}>
+          <button type="button" aria-label="Next week" onClick={() => setWeekOffset(w => Math.min(0, w + 1))} className="p-1.5 rounded-lg hover:bg-muted/40 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={weekOffset >= 0}>
             <ChevronRight className={cn("w-4 h-4", weekOffset >= 0 && "opacity-30")} />
           </button>
         </div>

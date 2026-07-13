@@ -1,4 +1,4 @@
-import { ArrowLeft, Wallet, TrendingUp, DollarSign } from "lucide-react";
+﻿import { ArrowLeft, Wallet, TrendingUp, DollarSign } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/app/AppLayout";
@@ -112,7 +112,7 @@ export default function ShopPayrollPage() {
     <AppLayout title="Payroll" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24">
         <div className="flex items-center gap-2.5 mb-6">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform"><ArrowLeft className="w-4 h-4" /></button>
+          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="w-4 h-4" /></button>
           <h1 className="font-bold text-[17px]">Payroll</h1>
         </div>
 
@@ -133,7 +133,7 @@ export default function ShopPayrollPage() {
                 <input value={truckPct} onChange={(e) => setTruckPct(Number(e.target.value) || 0)} type="number" className="h-9 rounded-lg border border-border/40 px-2 text-xs" placeholder="Truck %" />
                 <input value={ridesPct} onChange={(e) => setRidesPct(Number(e.target.value) || 0)} type="number" className="h-9 rounded-lg border border-border/40 px-2 text-xs" placeholder="Rides %" />
               </div>
-              <button type="button" onClick={saveConfig} className="mt-2 h-9 w-full rounded-lg bg-primary text-primary-foreground text-xs font-semibold">Save Payroll Rules</button>
+              <button type="button" onClick={saveConfig} className="mt-2 h-9 w-full rounded-lg bg-ig-gradient text-white text-xs font-semibold transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Save Payroll Rules</button>
             </div>
 
             <div className="rounded-2xl border border-border/30 p-3 bg-card">

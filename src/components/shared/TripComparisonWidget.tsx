@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { 
   Scale, 
   Plane, 
@@ -132,7 +132,7 @@ const TripComparisonWidget = ({
             className={cn(
               "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
               selectedOptions.includes(flight.id)
-                ? "bg-primary text-primary-foreground border-primary"
+                ? "bg-ig-gradient text-white border-primary"
                 : "bg-muted/30 border-border/50 hover:border-border"
             )}
           >

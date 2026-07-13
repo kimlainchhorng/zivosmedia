@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatContactPicker — Telegram-style "share a contact" picker.
  * Pick one contact from your saved list; the parent sends it as a contact card.
  */
@@ -176,7 +176,7 @@ export default function ChatContactPicker({ open, onOpenChange, onConfirm }: Pro
                   )}
                 </div>
                 {isPicked && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground shrink-0">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-ig-gradient text-white shrink-0">
                     Selected
                   </span>
                 )}

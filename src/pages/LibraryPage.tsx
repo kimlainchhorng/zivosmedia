@@ -312,7 +312,7 @@ export default function LibraryPage() {
               <button
                 type="button"
                 onClick={expandAll}
-                className="text-ig-gradient hover:opacity-80 active:opacity-60 transition-opacity"
+                className="text-ig-gradient hover:opacity-80 active:opacity-60 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Expand all
               </button>
@@ -320,7 +320,7 @@ export default function LibraryPage() {
               <button
                 type="button"
                 onClick={collapseAll}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Collapse
               </button>
@@ -353,10 +353,11 @@ export default function LibraryPage() {
                 type="button"
                 onClick={() => !searching && toggleGroup(g.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                  "w-full flex items-center gap-3 px-4 py-3 text-left transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                   isOpen ? "" : "hover:bg-secondary/40",
                 )}
                 aria-label={`${g.title}, ${isOpen ? "collapse" : "expand"}`}
+                aria-expanded={isOpen}
               >
                 <div className="shrink-0 h-9 w-9 rounded-xl bg-ig-gradient flex items-center justify-center shadow-sm">
                   <GroupIcon className="h-4 w-4 text-white" />
@@ -396,7 +397,7 @@ export default function LibraryPage() {
                             transition={{ delay: idx * 0.02, duration: 0.15 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => navigate(section.path)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary/60 active:bg-secondary/80 transition-colors text-left"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-secondary/60 active:bg-secondary/80 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             <div className="shrink-0 h-8 w-8 rounded-lg bg-secondary flex items-center justify-center">
                               <Icon className="h-4 w-4 text-foreground" />

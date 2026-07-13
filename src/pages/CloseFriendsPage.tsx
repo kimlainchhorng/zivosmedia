@@ -252,7 +252,7 @@ export default function CloseFriendsPage() {
                   onClick={() => toggle(f.user_id)}
                   disabled={pendingId === f.user_id}
                   className={cn(
-                    "w-full flex items-center gap-3 p-2.5 rounded-xl transition-colors text-left active:scale-[0.98]",
+                    "w-full flex items-center gap-3 p-2.5 rounded-xl transition-all text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isCF ? "bg-secondary/40" : "hover:bg-secondary/40",
                   )}
                   aria-pressed={isCF}

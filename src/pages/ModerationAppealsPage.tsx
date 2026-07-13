@@ -293,7 +293,7 @@ export default function ModerationAppealsPage() {
                           <button
                             type="button"
                             onClick={() => { setAppealingId(null); setAppealText(""); }}
-                            className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold active:scale-95 transition-all"
+                            className="h-8 px-3 rounded-full bg-secondary hover:bg-muted text-foreground text-xs font-bold active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             Cancel
                           </button>
@@ -301,7 +301,7 @@ export default function ModerationAppealsPage() {
                             type="button"
                             disabled={submitting || appealText.trim().length < 12}
                             onClick={() => submitAppeal(a.id)}
-                            className="h-8 px-4 rounded-full bg-ig-gradient text-white text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                            className="h-8 px-4 rounded-full bg-ig-gradient text-white text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             {submitting ? "Submitting…" : "Submit appeal"}
                           </button>
@@ -312,7 +312,7 @@ export default function ModerationAppealsPage() {
                     <button
                       type="button"
                       onClick={() => { setAppealingId(a.id); setAppealText(""); }}
-                      className="mt-3 w-full h-9 rounded-xl bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm"
+                      className="mt-3 w-full h-9 rounded-xl bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <FileText className="h-3.5 w-3.5" /> Appeal this action
                     </button>

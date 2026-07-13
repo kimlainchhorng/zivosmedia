@@ -636,15 +636,15 @@ export default function BusinessPageWizard() {
         {Array.from({ length: STEP_COUNT }).map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${
-              i < step ? "bg-primary" : "bg-muted"
+            className={`h-1.5 flex-1 rounded-full transition-all ${
+              i < step ? "bg-ig-gradient" : "bg-muted"
             }`}
           />
         ))}
       </div>
 
       {/* Step summary chips */}
-      <div className="flex flex-wrap gap-1.5 px-4 pt-3">
+      <div className="flex flex-wrap gap-1.5 px-4 pt-2.5">
         {STEP_LABELS.map((label, i) => {
           const stepNum = (i + 1) as Step;
           const done = completedSteps.has(stepNum);
@@ -654,15 +654,15 @@ export default function BusinessPageWizard() {
               key={label}
               onClick={() => done && setStep(stepNum)}
               disabled={!done && !active}
-              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold transition-all ${
                 done
-                  ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                  ? "border-transparent bg-ig-gradient text-white shadow-[0_1px_6px_rgba(236,72,153,0.22)]"
                   : active
-                  ? "border-foreground/30 bg-muted text-foreground"
+                  ? "border-foreground/25 bg-foreground/8 text-foreground font-bold"
                   : "border-border bg-card text-muted-foreground"
               }`}
             >
-              {done && <Check className="h-3 w-3" />}
+              {done && <Check className="h-2.5 w-2.5" />}
               {label}
             </button>
           );
@@ -670,7 +670,7 @@ export default function BusinessPageWizard() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 px-5 pt-6">
+      <div className="flex-1 px-4 pt-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -683,11 +683,11 @@ export default function BusinessPageWizard() {
             {step === 1 && (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Briefcase className="h-6 w-6" />
+                  <div className="bg-ig-gradient flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-[0_2px_10px_rgba(236,72,153,0.22)]">
+                    <Briefcase className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-foreground">Business basics</h2>
+                    <h2 className="text-[17px] font-bold text-foreground">Business basics</h2>
                     <p className="text-sm text-muted-foreground">Tell us about your business.</p>
                   </div>
                 </div>
@@ -756,11 +756,11 @@ export default function BusinessPageWizard() {
             {step === 2 && (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Building2 className="h-6 w-6" />
+                  <div className="bg-ig-gradient flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-[0_2px_10px_rgba(236,72,153,0.22)]">
+                    <Building2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-foreground">Set type of business</h2>
+                    <h2 className="text-[17px] font-bold text-foreground">Set type of business</h2>
                     <p className="text-sm text-muted-foreground">
                       We'll route you to the right dashboard.
                     </p>
@@ -769,7 +769,7 @@ export default function BusinessPageWizard() {
                 <div className="space-y-5">
                   {Object.entries(groupedCategories).map(([group, opts]) => (
                     <div key={group}>
-                      <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <p className="text-ig-gradient mb-1.5 text-[10px] font-black uppercase tracking-[0.14em]">
                         {group}
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -779,9 +779,9 @@ export default function BusinessPageWizard() {
                             <button type="button"
                               key={opt.value}
                               onClick={() => setCategory(opt.value)}
-                              className={`rounded-full border px-3.5 py-2 text-sm font-medium transition-all active:scale-95 ${
+                              className={`rounded-full border px-3 py-1.5 text-[13px] font-semibold transition-all active:scale-95 ${
                                 active
-                                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                  ? "border-transparent bg-ig-gradient text-white shadow-[0_2px_8px_rgba(236,72,153,0.25)]"
                                   : "border-border bg-card text-foreground hover:border-primary/40"
                               }`}
                             >
@@ -799,11 +799,11 @@ export default function BusinessPageWizard() {
             {step === 3 && (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <User className="h-6 w-6" />
+                  <div className="bg-ig-gradient flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-[0_2px_10px_rgba(236,72,153,0.22)]">
+                    <User className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-foreground">Contact person</h2>
+                    <h2 className="text-[17px] font-bold text-foreground">Contact person</h2>
                     <p className="text-sm text-muted-foreground">Who should we reach out to?</p>
                   </div>
                 </div>
@@ -844,11 +844,11 @@ export default function BusinessPageWizard() {
             {step === 4 && (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Camera className="h-6 w-6" />
+                  <div className="bg-ig-gradient flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-[0_2px_10px_rgba(236,72,153,0.22)]">
+                    <Camera className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-foreground">Profile photo</h2>
+                    <h2 className="text-[17px] font-bold text-foreground">Profile photo</h2>
                     <p className="text-sm text-muted-foreground">Add a logo. You can skip and add it later.</p>
                   </div>
                 </div>
@@ -899,11 +899,11 @@ export default function BusinessPageWizard() {
             {step === 5 && (
               <>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <ImageIcon className="h-6 w-6" />
+                  <div className="bg-ig-gradient flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-[0_2px_10px_rgba(236,72,153,0.22)]">
+                    <ImageIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-foreground">Cover photo</h2>
+                    <h2 className="text-[17px] font-bold text-foreground">Cover photo</h2>
                     <p className="text-sm text-muted-foreground">Add a banner. You can skip and add it later.</p>
                   </div>
                 </div>

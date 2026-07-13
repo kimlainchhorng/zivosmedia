@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideEntertainment — In-ride music control, ambient preferences, ride playlist
  */
 import { useState } from "react";
@@ -136,7 +136,7 @@ export default function RideEntertainment() {
                       </div>
                       <div className="flex gap-1.5">
                         {setting.options.map(opt => (
-                          <button type="button" key={opt} onClick={() => setAmbientPrefs(prev => ({ ...prev, [setting.id]: opt }))} className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all", ambientPrefs[setting.id] === opt ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                          <button type="button" key={opt} onClick={() => setAmbientPrefs(prev => ({ ...prev, [setting.id]: opt }))} className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all", ambientPrefs[setting.id] === opt ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                             {opt}
                           </button>
                         ))}

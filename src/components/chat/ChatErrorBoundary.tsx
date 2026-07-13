@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ChatErrorBoundary
  * -----------------
  * Catches render-time exceptions inside chat thread / hub so a single bad
@@ -72,7 +72,7 @@ export default class ChatErrorBoundary extends Component<Props, State> {
         <button
           type="button"
           onClick={this.reset}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-ig-gradient text-white text-sm font-semibold active:scale-95 transition-transform"
         >
           <RotateCw className="w-4 h-4" />
           Try again

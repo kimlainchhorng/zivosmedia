@@ -176,8 +176,9 @@ export default function GiftHistoryPage() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
+              aria-pressed={tab === t.id}
               className={cn(
-                "flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5",
+                "flex-1 h-10 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 tab === t.id ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted",
               )}
             >
@@ -225,7 +226,7 @@ export default function GiftHistoryPage() {
                   transition={{ delay: Math.min(idx, 12) * 0.02 }}
                   whileTap={{ scale: 0.985 }}
                   onClick={() => g.message_id && navigate(`/chat`)}
-                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="shrink-0 h-12 w-12 rounded-2xl bg-ig-gradient/10 border border-ig-gradient/20 flex items-center justify-center text-2xl">
                     {giftEmoji(g.gift_key)}

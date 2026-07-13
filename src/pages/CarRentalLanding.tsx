@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
-import { CarFront, Shield, Clock, CheckCircle, ExternalLink, ShieldCheck, Lock } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { CarFront, CheckCircle, ShieldCheck, Lock } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -26,6 +27,7 @@ const trustBadges = [
 
 export default function CarRentalLanding() {
   const { location } = useParams<{ location?: string }>();
+  const reduceMotion = useReducedMotion();
 
   const formattedLocation = location?.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   
@@ -86,9 +88,14 @@ export default function CarRentalLanding() {
           </div>
           
           <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-3xl mx-auto text-center mb-10">
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+              animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="max-w-3xl mx-auto text-center mb-10"
+            >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium mb-6 text-primary-foreground">
-                <CarFront className="w-4 h-4 text-foreground" />
+                <CarFront className="w-4 h-4 text-primary-foreground" />
                 <span className="text-primary-foreground/80">Compare car rental prices</span>
               </div>
               
@@ -103,16 +110,16 @@ export default function CarRentalLanding() {
               <p className="text-lg text-primary-foreground/80 mb-8">
                 Compare prices from Hertz, Enterprise, Avis, Budget and more. No booking fees on ZIVO.
               </p>
-            </div>
+            </motion.div>
 
             {/* Professional Search Form */}
             <CarSearchFormPro className="max-w-4xl mx-auto" />
 
             {/* Trust Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-6 mt-8">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-8">
               {trustBadges.map((badge) => (
-                <div key={badge.text} className="flex items-center gap-2 text-sm text-primary-foreground/70">
-                  <badge.icon className="w-4 h-4 text-foreground" />
+                <div key={badge.text} className="flex items-center gap-2 text-sm text-primary-foreground/80">
+                  <badge.icon className="w-4 h-4 text-primary-foreground" />
                   <span>{badge.text}</span>
                 </div>
               ))}

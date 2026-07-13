@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AccessibilityHub - Accessibility features panel with assisted boarding, voice commands
  */
 import { useState } from "react";
@@ -124,7 +124,7 @@ export default function AccessibilityHub() {
             onClick={() => setActiveCategory(null)}
             className={cn(
               "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
-              !activeCategory ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground"
+              !activeCategory ? "bg-ig-gradient text-white" : "bg-muted/30 text-muted-foreground"
             )}
           >
             All
@@ -137,7 +137,7 @@ export default function AccessibilityHub() {
                 onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
                 className={cn(
                   "flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
-                  activeCategory === cat.id ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground"
+                  activeCategory === cat.id ? "bg-ig-gradient text-white" : "bg-muted/30 text-muted-foreground"
                 )}
               >
                 <Icon className="w-3 h-3" />

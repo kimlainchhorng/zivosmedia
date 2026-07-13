@@ -134,7 +134,7 @@ export default function SurveysPage() {
                     transition={{ delay: idx * 0.03 }}
                     whileTap={{ scale: 0.985 }}
                     onClick={() => navigate(`/surveys/${s.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl bg-card border border-border hover:bg-secondary/40 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="shrink-0 h-11 w-11 rounded-xl bg-ig-gradient flex items-center justify-center text-white">
                       <ClipboardList className="h-5 w-5" />

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CommunityDetailPage — View a community's posts and members
  * Route: /communities/:id
  */
@@ -90,15 +90,20 @@ export default function CommunityDetailPage() {
     mutationFn: async () => {
       if (!user) throw new Error("Login required");
       if (membership) {
-        await (supabase as any).from("community_members").delete().eq("community_id", id).eq("user_id", user.id);
+        const { error } = await (supabase as any).from("community_members").delete().eq("community_id", id).eq("user_id", user.id);
+        if (error) throw error;
       } else {
-        await (supabase as any).from("community_members").insert({ community_id: id, user_id: user.id, role: "member" });
+        const { error } = await (supabase as any).from("community_members").insert({ community_id: id, user_id: user.id, role: "member" });
+        if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["community-membership", id, user?.id] });
       queryClient.invalidateQueries({ queryKey: ["communities"] });
       toast.success(membership ? "Left community" : "Joined community!");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? "Something went wrong. Please try again.");
     },
   });
 
@@ -134,7 +139,7 @@ export default function CommunityDetailPage() {
     return (
       <div className="min-h-dvh bg-background flex flex-col items-center justify-center gap-3">
         <p className="text-sm font-medium">Community not found</p>
-        <button type="button" onClick={() => navigate("/communities")} className="text-primary text-sm">Browse communities</button>
+        <button type="button" onClick={() => navigate("/communities")} className="text-primary text-sm rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Browse communities</button>
       </div>
     );
   }
@@ -146,12 +151,12 @@ export default function CommunityDetailPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-muted/50">
+          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-base font-bold flex-1 truncate">{community.name}</h1>
           {user && membership && (
-            <button type="button" onClick={() => setShowPostForm(!showPostForm)} className="p-2 rounded-full bg-primary text-primary-foreground">
+            <button type="button" onClick={() => setShowPostForm(!showPostForm)} aria-label="Create post" className="p-2 rounded-full bg-ig-gradient text-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Plus className="h-4 w-4" />
             </button>
           )}
@@ -189,8 +194,8 @@ export default function CommunityDetailPage() {
               onClick={() => joinMutation.mutate()}
               disabled={joinMutation.isPending}
               className={cn(
-                "w-full py-2.5 rounded-xl text-sm font-semibold transition-colors",
-                membership ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"
+                "w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                membership ? "bg-muted text-foreground" : "bg-ig-gradient text-white"
               )}
             >
               {membership ? "Leave Community" : "Join Community"}
@@ -209,7 +214,7 @@ export default function CommunityDetailPage() {
             >
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-sm">Share with community</p>
-                <button type="button" onClick={() => setShowPostForm(false)}><X className="w-4 h-4 text-muted-foreground" /></button>
+                <button type="button" onClick={() => setShowPostForm(false)} aria-label="Close" className="rounded-md transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><X className="w-4 h-4 text-muted-foreground" /></button>
               </div>
               <textarea
                 value={postText}
@@ -220,11 +225,11 @@ export default function CommunityDetailPage() {
                 autoFocus
               />
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowPostForm(false)} className="px-4 py-2 rounded-xl bg-muted text-sm font-medium">Cancel</button>
+                <button type="button" onClick={() => setShowPostForm(false)} className="px-4 py-2 rounded-xl bg-muted text-sm font-medium transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Cancel</button>
                 <button type="button"
                   onClick={handlePost}
                   disabled={!postText.trim() || submitting}
-                  className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-ig-gradient text-white text-sm font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Send className="w-3.5 h-3.5" />
                   {submitting ? "Posting…" : "Post"}
@@ -247,7 +252,7 @@ export default function CommunityDetailPage() {
                 {membership ? "Be the first to post in this community!" : "Join the community to post"}
               </p>
               {user && !membership && (
-                <button type="button" onClick={() => joinMutation.mutate()} className="text-primary text-sm font-medium">Join to post</button>
+                <button type="button" onClick={() => joinMutation.mutate()} className="text-primary text-sm font-medium rounded-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Join to post</button>
               )}
             </div>
           ) : (
@@ -275,10 +280,14 @@ export default function CommunityDetailPage() {
                     </div>
                     {user?.id === post.user_id && (
                       <button type="button"
-                        className="p-1 rounded-full hover:bg-muted/50"
+                        aria-label="Delete post" className="p-1 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={async () => {
                           if (!confirm("Delete this post?")) return;
-                          await (supabase as any).from("community_posts").delete().eq("id", post.id);
+                          const { error } = await (supabase as any).from("community_posts").delete().eq("id", post.id);
+                          if (error) {
+                            toast.error(error.message ?? "Couldn't delete the post. Please try again.");
+                            return;
+                          }
                           queryClient.invalidateQueries({ queryKey: ["community-posts", id] });
                           toast.success("Post deleted");
                         }}

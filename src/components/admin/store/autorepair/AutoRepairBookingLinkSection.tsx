@@ -10,9 +10,13 @@ import CheckCheck from "lucide-react/dist/esm/icons/check-check";
 import Download from "lucide-react/dist/esm/icons/download";
 import Printer from "lucide-react/dist/esm/icons/printer";
 import { useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { copyText } from "@/lib/native/clipboard";
+import { escapeHtml } from "@/lib/escapeHtml";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
+import { supabase } from "@/integrations/supabase/client";
+import { buildAutoRepairBookingUrl } from "@/lib/admin/autoRepairBookingUrl";
 
 interface Props { storeId: string }
 
@@ -20,8 +24,17 @@ export default function AutoRepairBookingLinkSection({ storeId }: Props) {
   const [copied, setCopied] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
   const qrWrapRef = useRef<HTMLDivElement | null>(null);
+  const { data: storeSlug } = useQuery({
+    queryKey: ["ar-booking-link-store-slug", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("store_profiles").select("slug").eq("id", storeId).maybeSingle();
+      if (error) throw error;
+      return (data as any)?.slug as string | null;
+    },
+    enabled: !!storeId,
+  });
 
-  const bookingUrl = `${window.location.origin}/book/${storeId}`;
+  const bookingUrl = buildAutoRepairBookingUrl({ origin: window.location.origin, storeId, slug: storeSlug });
   const embedCode = `<script src="${window.location.origin}/widget.js" data-store="${storeId}" async></script>`;
 
   const findCanvas = (): HTMLCanvasElement | null =>
@@ -62,7 +75,7 @@ export default function AutoRepairBookingLinkSection({ storeId }: Props) {
   <h1>Scan to book your next appointment</h1>
   <p>Point your phone camera at the code below</p>
   <img src="${dataUrl}" alt="Booking QR" loading="lazy" decoding="async"/>
-  <p class="url">${bookingUrl}</p>
+  <p class="url">${escapeHtml(bookingUrl)}</p>
 </body></html>`);
     w.document.close();
     setTimeout(() => { w.focus(); w.print(); }, 300);

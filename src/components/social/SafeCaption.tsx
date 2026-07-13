@@ -4,7 +4,7 @@
  * links are rendered as non-clickable text with a warning tooltip.
  */
 import { useMemo, useState } from "react";
-import { AtSign, Hash, ShieldAlert, ShieldCheck, ExternalLink, Sparkles } from "lucide-react";
+import { AtSign, Hash, ShieldAlert, ShieldCheck, ExternalLink, Sparkles, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { assessLinkSync, type LinkRiskLevel } from "@/hooks/useLinkRisk";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -73,7 +74,18 @@ function tokenize(text: string): Segment[] {
     } else if (hashtagGroup) {
       segments.push({ type: "hashtag", value: `#${hashtagGroup}`, token: hashtagGroup });
     } else if (mentionGroup) {
-      segments.push({ type: "mention", value: `@${mentionGroup}`, token: mentionGroup });
+      // Usernames may contain dots ("john.doe") but never end in one; a trailing
+      // dot in prose ("thanks @john.") is sentence punctuation, not the handle.
+      // Strip it (mirroring the URL trailing-punctuation handling above) so the
+      // resolver looks up the real username instead of failing on "@john.".
+      const cleaned = mentionGroup.replace(/\.+$/g, "");
+      if (cleaned) {
+        segments.push({ type: "mention", value: `@${cleaned}`, token: cleaned });
+        const trail = mentionGroup.slice(cleaned.length);
+        if (trail) segments.push({ type: "text", value: trail });
+      } else {
+        segments.push({ type: "text", value: raw });
+      }
     }
     lastIdx = idx + raw.length;
   }
@@ -216,27 +228,35 @@ export default function SafeCaption({ text, className }: SafeCaptionProps) {
       </span>
 
       <Dialog open={!!pendingLink} onOpenChange={(o) => !o && setPendingLink(null)}>
-        <DialogContent className="zivo-social-sheet-panel max-w-sm overflow-hidden border-0 p-0">
+        <DialogContent hideClose className="zivo-social-sheet-panel max-w-sm overflow-hidden border-0 p-0">
           <div className="px-3 pt-3">
             <DialogHeader className="zivo-social-header-glass rounded-[1.25rem] px-4 py-3 text-left">
-              <DialogTitle className="flex items-center gap-3 text-base font-black">
-                <span className={cn(
-                  "zivo-social-share-orb flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                  pendingLink?.risk === "suspicious" && "text-amber-500",
-                )}>
-                  {pendingLink?.risk === "suspicious" ? (
-                    <ShieldAlert className="h-5 w-5" />
-                  ) : (
-                    <ShieldCheck className="h-5 w-5" />
-                  )}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate">{pendingLink?.risk === "suspicious" ? "Caution: external link" : "Leaving ZIVO"}</span>
-                  <span className="block truncate text-[11px] font-semibold text-muted-foreground">
-                    Check the destination before continuing
+              <div className="flex items-center justify-between gap-3">
+                <DialogTitle className="flex items-center gap-3 text-base font-black">
+                  <span className={cn(
+                    "zivo-social-share-orb flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                    pendingLink?.risk === "suspicious" && "text-amber-500",
+                  )}>
+                    {pendingLink?.risk === "suspicious" ? (
+                      <ShieldAlert className="h-5 w-5" />
+                    ) : (
+                      <ShieldCheck className="h-5 w-5" />
+                    )}
                   </span>
-                </span>
-              </DialogTitle>
+                  <span className="min-w-0">
+                    <span className="block truncate">{pendingLink?.risk === "suspicious" ? "Caution: external link" : "Leaving ZIVO"}</span>
+                    <span className="block truncate text-[11px] font-semibold text-muted-foreground">
+                      Check the destination before continuing
+                    </span>
+                  </span>
+                </DialogTitle>
+                <DialogClose
+                  aria-label="Close"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-all hover:opacity-90 active:scale-90 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <X className="h-4 w-4" />
+                </DialogClose>
+              </div>
             </DialogHeader>
           </div>
           <div className="px-5 pb-5 pt-3">

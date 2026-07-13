@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { 
   MapPin, 
   Plus, 
@@ -97,7 +97,7 @@ const MultiCityPlanner = ({ className }: MultiCityPlannerProps) => {
                 <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
                 
                 {/* City Number */}
-                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-ig-gradient text-white flex items-center justify-center text-xs font-bold">
                   {index + 1}
                 </div>
                 

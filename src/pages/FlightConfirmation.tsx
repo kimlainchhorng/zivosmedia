@@ -236,10 +236,10 @@ const FlightConfirmation = () => {
                     <Separator className="mb-4 bg-destructive/10" />
                     <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Contact Support</p>
                     <div className="space-y-2.5">
-                      <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizovo.com"))} className="flex items-center gap-3 text-sm hover:text-[hsl(var(--flights))] transition-colors">
+                      <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizovo.com"))} aria-label="Email support" className="flex items-center gap-3 text-sm hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">
                         <Mail className="w-4 h-4 text-muted-foreground" /> support@hizovo.com
                       </button>
-                      <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizovo.com/help"))} className="flex items-center gap-3 text-sm hover:text-[hsl(var(--flights))] transition-colors">
+                      <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizovo.com/help"))} className="flex items-center gap-3 text-sm hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">
                         <MessageCircle className="w-4 h-4 text-muted-foreground" /> Help Center
                       </button>
                     </div>
@@ -279,7 +279,8 @@ const FlightConfirmation = () => {
                     <span className="text-sm text-muted-foreground">Booking Reference</span>
                     <button type="button"
                       onClick={handleCopyRef}
-                      className="flex items-center gap-1.5 font-mono font-bold text-base tracking-wider hover:text-[hsl(var(--flights))] transition-colors"
+                      aria-label="Copy booking reference"
+                      className="flex items-center gap-1.5 font-mono font-bold text-base tracking-wider hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                     >
                       {booking.booking_reference}
                       {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
@@ -448,7 +449,7 @@ const FlightConfirmation = () => {
                 >
                   <p className="text-sm font-semibold mb-3">Complete your trip</p>
                   <div className="grid grid-cols-2 gap-3">
-                    <Link to={`/hotels?destination=${booking.destination}`}>
+                    <Link to={`/hotels?destination=${booking.destination}`} className="block rounded-2xl transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Card className="bg-[hsl(var(--hotels))]/5 border-[hsl(var(--hotels))]/20 hover:border-[hsl(var(--hotels))]/40 transition-all cursor-pointer group">
                         <CardContent className="p-4 text-center">
                           <Hotel className="w-6 h-6 mx-auto mb-2 text-[hsl(var(--hotels))]" />
@@ -458,7 +459,7 @@ const FlightConfirmation = () => {
                         </CardContent>
                       </Card>
                     </Link>
-                    <Link to={`/cars?destination=${booking.destination}`}>
+                    <Link to={`/cars?destination=${booking.destination}`} className="block rounded-2xl transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Card className="bg-[hsl(var(--cars))]/5 border-[hsl(var(--cars))]/20 hover:border-[hsl(var(--cars))]/40 transition-all cursor-pointer group">
                         <CardContent className="p-4 text-center">
                           <Car className="w-6 h-6 mx-auto mb-2 text-[hsl(var(--cars))]" />

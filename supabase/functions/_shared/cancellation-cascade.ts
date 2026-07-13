@@ -59,7 +59,7 @@ export async function cascadeCancellationToDriver(
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       // Drivers live in zivodriver — its push function is `send-push`. Try
-      // both that and the generic `send-push-notification` used by myzivo.
+      // both that and the generic `send-push-notification` used by zivosmedia.
       const payload = {
         user_id: driverId,
         title: kind === "ride" ? "Ride cancelled" : "Order cancelled",

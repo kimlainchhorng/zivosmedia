@@ -18,6 +18,7 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import DeliveryRouteMap from "@/components/delivery/DeliveryRouteMap";
 
 const packageSizes = [
   { id: "envelope", name: "Envelope", description: "Documents, letters", icon: "📄", maxWeight: "0.5 lb", price: 5.99 },
@@ -153,40 +154,10 @@ function CourierPreviewCard() {
   );
 }
 
-function DeliveryRoutePreview() {
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.16),transparent_32%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)))]">
-      <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(hsl(var(--border))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border))_1px,transparent_1px)] [background-size:42px_42px]" />
-      <div className="absolute left-[18%] top-[56%] h-3 w-3 rounded-full bg-foreground shadow-[0_0_0_8px_hsl(var(--foreground)/0.08)]" />
-      <div className="absolute right-[18%] top-[32%] h-3 w-3 rounded-full bg-primary shadow-[0_0_0_8px_hsl(var(--primary)/0.12)]" />
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M 20 58 C 34 38, 54 76, 80 34" fill="none" stroke="hsl(var(--primary))" strokeWidth="2.8" strokeLinecap="round" strokeDasharray="5 4" opacity="0.85" />
-      </svg>
-      <div className="absolute left-[46%] top-[43%] flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-lg">
-        <Truck className="h-5 w-5 text-foreground" />
-      </div>
-      <div className="absolute left-4 right-4 top-[calc(var(--zivo-safe-top,0px)+3.75rem)] rounded-2xl border border-border/60 bg-background/88 p-3 shadow-sm backdrop-blur">
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <Package className="h-4 w-4 text-primary" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-foreground">Delivery route preview</p>
-            <p className="truncate text-[11px] text-muted-foreground">Enter pickup and dropoff to estimate courier timing.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-// Price estimate preview
-function PriceEstimate({ basePrice, speed, fragile, signature, insurance, packages, promo }: {
-  basePrice: number; speed: number; fragile: boolean; signature: boolean; insurance: boolean; packages: number; promo: boolean;
-}) {
-  const total = (basePrice * packages * speed) + (fragile ? 2.99 : 0) + (signature ? 1.99 : 0) + (insurance ? 1.99 * packages : 0);
-  const discount = promo ? total * 0.1 : 0;
-  const final = total - discount;
+// Price estimate preview — shows the real charged total (passed in) so the
+// package-step estimate always matches the review/charge amount.
+function PriceEstimate({ total }: { total: number }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       className="rounded-xl bg-secondary border border-border p-3 flex items-center justify-between">
@@ -194,7 +165,7 @@ function PriceEstimate({ basePrice, speed, fragile, signature, insurance, packag
         <DollarSign className="w-4 h-4 text-foreground" />
         <span className="text-xs font-bold text-foreground">Estimated total</span>
       </div>
-      <span className="text-base font-bold text-foreground">${final.toFixed(2)}</span>
+      <span className="text-base font-bold text-foreground">${total.toFixed(2)}</span>
     </motion.div>
   );
 }
@@ -217,6 +188,7 @@ export default function DeliveryPage() {
 
   // Package
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [createdDeliveryId, setCreatedDeliveryId] = useState<string | null>(null);
   const [selectedSpeed, setSelectedSpeed] = useState("standard");
   const [packageDescription, setPackageDescription] = useState("");
   const [isFragile, setIsFragile] = useState(false);
@@ -293,16 +265,19 @@ export default function DeliveryPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("deliveries")
-        .select("id, dropoff_location, status, created_at")
+        .select("id, pickup_location, dropoff_location, delivery_fee, package_size, status, created_at")
         .eq("customer_user_id", user!.id)
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(6);
       return (data || []).map((d: any) => ({
         id: d.id,
+        from: (d.pickup_location as any)?.address ?? "—",
         to: (d.dropoff_location as any)?.address ?? "—",
-        status: d.status === "delivered" ? "Delivered" : d.status === "pending" ? "Pending" : d.status ?? "—",
+        pkg: packageSizes.find((p) => p.id === d.package_size)?.name ?? (d.package_size ?? "Package"),
+        price: typeof d.delivery_fee === "number" ? `$${d.delivery_fee.toFixed(2)}` : "—",
+        status: d.status === "delivered" ? "Delivered" : d.status === "pending" ? "Pending" : (d.status ?? "—"),
         date: d.created_at ? new Date(d.created_at).toLocaleDateString() : "—",
-        tracking: d.id.slice(0, 8).toUpperCase(),
+        tracking: String(d.id).slice(0, 8).toUpperCase(),
       }));
     },
   });
@@ -393,7 +368,8 @@ export default function DeliveryPage() {
     { zone: "Zone 4 (30+ mi)", time: "Same day", baseFee: "$24.99", color: "text-violet-500" },
   ];
 
-  const trackingId = `ZD-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+  const trackingCode = createdDeliveryId ? `ZD-${createdDeliveryId.slice(0, 8).toUpperCase()}` : null;
+  const trackingUrl = createdDeliveryId ? `${getPublicOrigin()}/delivery/track/${createdDeliveryId}` : null;
 
   const currentSize = packageSizes.find(s => s.id === selectedSize);
   const currentSpeed = deliverySpeed.find(s => s.id === selectedSpeed);
@@ -401,7 +377,8 @@ export default function DeliveryPage() {
   const speedMultiplier = currentSpeed?.multiplier ?? 1;
   const fragileFee = isFragile ? 2.99 : 0;
   const signatureFee = requireSignature ? 1.99 : 0;
-  const insuranceFee = includeInsurance ? 1.99 * packageCount : 0;
+  const selectedInsTier = insuranceTiers.find(t => t.id === selectedInsuranceTier) ?? insuranceTiers[1];
+  const insuranceFee = includeInsurance ? selectedInsTier.cost * packageCount : 0;
   const priorityFee = priorityHandling ? 4.99 : 0;
   const subtotal = basePrice * speedMultiplier + fragileFee + signatureFee + insuranceFee + priorityFee;
   const promoDiscount = promoApplied ? Math.round(subtotal * 0.15 * 100) / 100 : 0;
@@ -450,8 +427,8 @@ export default function DeliveryPage() {
         .single();
       if (error) throw error;
       notifyEats("order_placed");
-      if (inserted?.id) navigate(`/delivery/track/${inserted.id}`);
-      else setStep("confirmation");
+      if (inserted?.id) setCreatedDeliveryId(inserted.id);
+      setStep("confirmation");
     } catch {
       toast.error("Failed to place order. Please try again.");
     }
@@ -467,21 +444,24 @@ export default function DeliveryPage() {
   };
 
   const handleCopyTracking = () => {
-    navigator.clipboard.writeText(trackingId);
+    if (!trackingCode) return;
+    navigator.clipboard.writeText(trackingCode);
     toast.success("Tracking ID copied!");
   };
 
   const handleShareTracking = () => {
+    if (!trackingCode || !trackingUrl) return;
     if (navigator.share) {
-      navigator.share({ title: "ZIVO Delivery", text: `Track my package: ${trackingId}`, url: `${getPublicOrigin()}/delivery/track/${trackingId}` });
+      navigator.share({ title: "ZIVO Delivery", text: `Track my package: ${trackingCode}`, url: trackingUrl }).catch(() => {});
     } else {
-      handleCopyTracking();
+      navigator.clipboard.writeText(trackingUrl);
+      toast.success("Tracking link copied!");
     }
   };
 
-  const handleLoadPrevious = (d: typeof previousDeliveries[0]) => {
-    setPickupAddress(d.from);
-    setDropoffAddress(d.to);
+  const handleLoadPrevious = (d: typeof pastDeliveries[0]) => {
+    if (d.from && d.from !== "—") setPickupAddress(d.from);
+    if (d.to && d.to !== "—") setDropoffAddress(d.to);
     toast.success("Previous route loaded");
   };
 
@@ -510,7 +490,7 @@ export default function DeliveryPage() {
       {/* Map Preview */}
       {step === "address" && (
         <div className="relative h-[25vh] min-h-[180px]">
-          <DeliveryRoutePreview />
+          <DeliveryRouteMap pickupAddress={pickupAddress} dropoffAddress={dropoffAddress} />
           <div className="absolute top-0 left-0 right-0 z-10 px-4 pt-3 safe-area-top">
             <motion.button whileTap={{ scale: 0.88 }} onClick={handleBack}
               className="h-10 px-4 rounded-full bg-card/90 backdrop-blur-lg border border-border/40 flex items-center gap-2 touch-manipulation text-sm font-medium text-foreground shadow-lg">
@@ -592,29 +572,34 @@ export default function DeliveryPage() {
 
               {/* Previous deliveries */}
               <div className="space-y-2">
-                <button type="button" onClick={() => setShowPreviousDeliveries(!showPreviousDeliveries)}
-                  className="-ml-1 flex min-h-[44px] items-center gap-2 px-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
-                  <History className="w-3.5 h-3.5" /> Recent Deliveries
-                  <ChevronRight className={cn("w-3 h-3 transition-transform", showPreviousDeliveries && "rotate-90")} />
-                </button>
-                <AnimatePresence>
-                  {showPreviousDeliveries && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                      className="space-y-1.5 overflow-hidden">
-                      {previousDeliveries.map(d => (
-                        <button type="button" key={d.id} onClick={() => handleLoadPrevious(d)}
-                          className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30 hover:border-border transition-all touch-manipulation active:scale-[0.98] text-left">
-                          <RotateCcw className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-foreground truncate">{d.from} → {d.to}</p>
-                            <p className="text-[10px] text-muted-foreground">{d.date} · {d.pkg}</p>
-                          </div>
-                          <span className="text-xs font-bold text-foreground shrink-0">{d.price}</span>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {pastDeliveries.length > 0 && (
+                  <>
+                    <button type="button" onClick={() => setShowPreviousDeliveries(!showPreviousDeliveries)}
+                      className="-ml-1 flex min-h-[44px] items-center gap-2 px-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
+                      <History className="w-3.5 h-3.5" /> Recent Deliveries
+                      <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{pastDeliveries.length}</span>
+                      <ChevronRight className={cn("w-3 h-3 transition-transform", showPreviousDeliveries && "rotate-90")} />
+                    </button>
+                    <AnimatePresence>
+                      {showPreviousDeliveries && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                          className="space-y-1.5 overflow-hidden">
+                          {pastDeliveries.map(d => (
+                            <button type="button" key={d.id} onClick={() => handleLoadPrevious(d)}
+                              className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30 hover:border-border transition-all touch-manipulation active:scale-[0.98] text-left">
+                              <RotateCcw className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-foreground truncate">{d.from} → {d.to}</p>
+                                <p className="text-[10px] text-muted-foreground">{d.date} · {d.pkg} · {d.status}</p>
+                              </div>
+                              <span className="text-xs font-bold text-foreground shrink-0">{d.price}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -641,7 +626,7 @@ export default function DeliveryPage() {
                 </div>
               </div>
 
-              <Button onClick={handleContinueToPackage} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
+              <Button onClick={handleContinueToPackage} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
                 Continue <Zap className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -795,13 +780,18 @@ export default function DeliveryPage() {
 
               {/* Insurance toggle */}
               <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                <button type="button" onClick={() => setIncludeInsurance(!includeInsurance)}
+                <button type="button" onClick={() => {
+                  const next = !includeInsurance;
+                  setIncludeInsurance(next);
+                  if (!next) setSelectedInsuranceTier("none");
+                  else if (selectedInsuranceTier === "none") setSelectedInsuranceTier("basic");
+                }}
                   className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", includeInsurance ? "bg-violet-500" : "bg-muted/60")}>
                   <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", includeInsurance ? "left-[18px]" : "left-0.5")} />
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-foreground" /> Package Insurance</p>
-                  <p className="text-[10px] text-muted-foreground">Cover up to $500 for +$1.99{packageCount > 1 ? `/pkg` : ""}</p>
+                  <p className="text-[10px] text-muted-foreground">{includeInsurance ? `${selectedInsTier.coverage} coverage for +$${selectedInsTier.cost.toFixed(2)}${packageCount > 1 ? `/pkg` : ""}` : "Add coverage for your package"}</p>
                 </div>
               </div>
 
@@ -813,7 +803,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5 text-foreground" /> Return shipping label</p>
-                  <p className="text-[10px] text-muted-foreground">Include prepaid return label · +$3.99</p>
+                  <p className="text-[10px] text-muted-foreground">Include prepaid return label</p>
                 </div>
               </div>
 
@@ -825,7 +815,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Temperature sensitive</p>
-                  <p className="text-[10px] text-muted-foreground">Keep cool/frozen during transit · +$4.99</p>
+                  <p className="text-[10px] text-muted-foreground">Keep cool/frozen during transit</p>
                 </div>
               </div>
 
@@ -905,14 +895,17 @@ export default function DeliveryPage() {
                 </h3>
                 <div className="space-y-2">
                   {insuranceTiers.map(tier => (
-                    <button type="button" key={tier.id} onClick={() => setSelectedInsuranceTier(tier.id)}
+                    <button type="button" key={tier.id} onClick={() => {
+                      setSelectedInsuranceTier(tier.id);
+                      setIncludeInsurance(tier.id !== "none");
+                    }}
                       className={cn("w-full flex items-center justify-between p-3 rounded-xl transition-all touch-manipulation active:scale-[0.98]",
                         selectedInsuranceTier === tier.id ? "bg-violet-500/10 border border-violet-500/30" : "bg-muted/30 border border-border/30")}>
                       <div>
                         <span className="text-xs font-bold text-foreground">{tier.label}</span>
                         <span className="text-[10px] text-muted-foreground ml-2">{tier.coverage}</span>
                       </div>
-                      <span className="text-xs font-bold text-foreground">{tier.cost === 0 ? "Free" : `+$${tier.cost.toFixed(2)}`}</span>
+                      <span className="text-xs font-bold text-foreground shrink-0">{tier.cost === 0 ? "Free" : `+$${tier.cost.toFixed(2)}`}</span>
                     </button>
                   ))}
                 </div>
@@ -945,7 +938,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-foreground" /> Require photo ID on delivery</p>
-                  <p className="text-[10px] text-muted-foreground">Recipient must show valid ID · +$1.99</p>
+                  <p className="text-[10px] text-muted-foreground">Recipient must show valid ID</p>
                 </div>
               </div>
 
@@ -957,7 +950,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Gift className="w-3.5 h-3.5 text-foreground" /> Gift wrapping</p>
-                  <p className="text-[10px] text-muted-foreground">Premium gift wrap & card · +$3.99</p>
+                  <p className="text-[10px] text-muted-foreground">Premium gift wrap & card</p>
                 </div>
               </div>
 
@@ -1048,19 +1041,19 @@ export default function DeliveryPage() {
                     <button type="button" onClick={() => setTwoPersonLift(!twoPersonLift)}
                       className={cn("flex-1 p-2 rounded-xl text-[10px] font-bold text-center transition-all touch-manipulation",
                         twoPersonLift ? "bg-violet-500/10 border border-violet-500/30 text-violet-500" : "bg-muted/50 text-muted-foreground border border-border/40")}>
-                      👥 2-Person Lift (+$15)
+                      👥 2-Person Lift
                     </button>
                     <button type="button" onClick={() => setAssemblyRequired(!assemblyRequired)}
                       className={cn("flex-1 p-2 rounded-xl text-[10px] font-bold text-center transition-all touch-manipulation",
                         assemblyRequired ? "bg-violet-500/10 border border-violet-500/30 text-violet-500" : "bg-muted/50 text-muted-foreground border border-border/40")}>
-                      🔧 Assembly (+$25)
+                      🔧 Assembly
                     </button>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setStairDelivery(!stairDelivery)}
                       className={cn("flex-1 p-2 rounded-xl text-[10px] font-bold text-center transition-all touch-manipulation",
                         stairDelivery ? "bg-violet-500/10 border border-violet-500/30 text-violet-500" : "bg-muted/50 text-muted-foreground border border-border/40")}>
-                      🪜 Stair Delivery (+$10)
+                      🪜 Stair Delivery
                     </button>
                     <button type="button" onClick={() => setCurbsideOnly(!curbsideOnly)}
                       className={cn("flex-1 p-2 rounded-xl text-[10px] font-bold text-center transition-all touch-manipulation",
@@ -1165,7 +1158,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5">🤵 White-glove service</p>
-                  <p className="text-[10px] text-muted-foreground">Premium handling, unpacking & setup · +$19.99</p>
+                  <p className="text-[10px] text-muted-foreground">Premium handling, unpacking & setup</p>
                 </div>
               </div>
 
@@ -1177,7 +1170,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> On-time guarantee</p>
-                  <p className="text-[10px] text-muted-foreground">Full refund if delivery is late · +$2.99</p>
+                  <p className="text-[10px] text-muted-foreground">Full refund if delivery is late</p>
                 </div>
               </div>
 
@@ -1216,7 +1209,6 @@ export default function DeliveryPage() {
                     </button>
                   ))}
                 </div>
-                {deliveryAttempts > 1 && <p className="text-[10px] text-foreground mt-2 font-medium">+${((deliveryAttempts - 1) * 2.99).toFixed(2)} per additional attempt</p>}
               </div>
 
               {/* Shipment Stats */}
@@ -1259,7 +1251,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-emerald-500" /> Carbon neutral delivery</p>
-                  <p className="text-[10px] text-muted-foreground">Offset emissions · +$0.50</p>
+                  <p className="text-[10px] text-muted-foreground">Offset emissions</p>
                 </div>
               </div>
 
@@ -1280,7 +1272,6 @@ export default function DeliveryPage() {
                     </button>
                   ))}
                 </div>
-                {tempControl !== "none" && <p className="text-[10px] text-foreground mt-2 font-medium">+$4.99 for temperature-controlled shipping</p>}
               </div>
 
               {/* Package Locker */}
@@ -1359,7 +1350,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5 text-foreground" /> Include return label</p>
-                  <p className="text-[10px] text-muted-foreground">Prepaid return shipping · +$5.99</p>
+                  <p className="text-[10px] text-muted-foreground">Prepaid return shipping</p>
                 </div>
               </div>
 
@@ -1371,7 +1362,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-foreground" /> Saturday delivery</p>
-                  <p className="text-[10px] text-muted-foreground">Deliver on weekends · +$3.99</p>
+                  <p className="text-[10px] text-muted-foreground">Deliver on weekends</p>
                 </div>
               </div>
 
@@ -1382,7 +1373,7 @@ export default function DeliveryPage() {
                 </button>
                 <div className="flex-1">
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-amber-500" /> Express pickup</p>
-                  <p className="text-[10px] text-muted-foreground">Courier arrives in 15 min · +$4.99</p>
+                  <p className="text-[10px] text-muted-foreground">Courier arrives in 15 min</p>
                 </div>
               </div>
 
@@ -1444,10 +1435,10 @@ export default function DeliveryPage() {
 
               {/* Live price estimate */}
               {selectedSize && (
-                <PriceEstimate basePrice={currentSize?.price ?? 0} speed={speedMultiplier} fragile={isFragile} signature={requireSignature} insurance={includeInsurance} packages={packageCount} promo={promoApplied} />
+                <PriceEstimate total={totalPrice} />
               )}
 
-              <Button onClick={handleContinueToReview} disabled={!selectedSize} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
+              <Button onClick={handleContinueToReview} disabled={!selectedSize} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
                 Review Order <Zap className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -1587,7 +1578,7 @@ export default function DeliveryPage() {
                 )}
                 {fragileFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Fragile handling</span><span className="font-bold">${fragileFee.toFixed(2)}</span></div>}
                 {signatureFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Signature required</span><span className="font-bold">${signatureFee.toFixed(2)}</span></div>}
-                {includeInsurance && <div className="flex justify-between"><span className="text-muted-foreground">Insurance{packageCount > 1 ? ` (×${packageCount})` : ""}</span><span className="font-bold">${insuranceFee.toFixed(2)}</span></div>}
+                {insuranceFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Insurance · {selectedInsTier.label}{packageCount > 1 ? ` (×${packageCount})` : ""}</span><span className="font-bold">${insuranceFee.toFixed(2)}</span></div>}
                 {priorityFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Priority handling</span><span className="font-bold">${priorityFee.toFixed(2)}</span></div>}
                 {promoDiscount > 0 && <div className="flex justify-between text-foreground"><span className="font-bold flex items-center gap-1"><Tag className="w-3 h-3" /> DELIVER15</span><span className="font-bold">-${promoDiscount.toFixed(2)}</span></div>}
                 <div className="flex justify-between pt-3 border-t border-border/30">
@@ -1598,10 +1589,10 @@ export default function DeliveryPage() {
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
                 <Shield className="w-3.5 h-3.5 text-foreground/60" />
-                <span>{includeInsurance ? "Package insured up to $500" : "No insurance"} · Secured by ZIVO</span>
+                <span>{insuranceFee > 0 ? `Package insured · ${selectedInsTier.coverage}` : "No insurance"} · Secured by ZIVO</span>
               </div>
 
-              <Button onClick={handlePlaceOrder} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
+              <Button onClick={handlePlaceOrder} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
                 <CheckCircle className="w-5 h-5" /> Confirm Delivery · ${totalPrice.toFixed(2)}
               </Button>
             </motion.div>
@@ -1620,7 +1611,7 @@ export default function DeliveryPage() {
                   <p className="text-muted-foreground">A courier will be assigned shortly.</p>
                   <button type="button" onClick={handleCopyTracking}
                     className="text-xs font-mono text-foreground/80 mt-2 bg-secondary px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 hover:bg-secondary transition-all touch-manipulation">
-                    Tracking: {trackingId} <Copy className="w-3 h-3" />
+                    Tracking: {trackingCode ?? "Pending"} <Copy className="w-3 h-3" />
                   </button>
                 </motion.div>
 
@@ -1679,10 +1670,11 @@ export default function DeliveryPage() {
                   <Button variant="outline" onClick={handleShareTracking} className="flex-1 h-12 rounded-xl font-bold gap-2">
                     <Share2 className="w-4 h-4" /> Share
                   </Button>
-                  <Button onClick={() => navigate("/")} className="flex-1 h-12 rounded-xl font-bold text-primary-foreground gap-2 bg-foreground">
+                  <Button onClick={() => createdDeliveryId ? navigate(`/delivery/track/${createdDeliveryId}`) : navigate("/")} className="flex-1 h-12 rounded-xl font-bold text-primary-foreground gap-2 bg-foreground">
                     <Navigation className="w-4 h-4" /> Track Live
                   </Button>
                 </motion.div>
+                <p className="text-[10px] text-muted-foreground text-center">Recipients need a ZIVO account to view live tracking.</p>
                 <Button variant="ghost" onClick={() => navigate("/")} className="text-sm text-muted-foreground">
                   Back to Home
                 </Button>

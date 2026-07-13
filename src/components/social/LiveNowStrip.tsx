@@ -1,14 +1,15 @@
 /**
  * LiveNowStrip — horizontal strip of live activity surfaced inline in the
- * feed. Aggregates 3 sources so the strip stays useful when any one is
- * quiet: live_streams (video), audio_rooms (Clubhouse-style), and
- * ama_sessions (Q&A). Self-hides when all three are empty.
+ * feed. Streams-only for now: audio_rooms / ama_sessions are orphan tables
+ * with no create flow, so their legs were trimmed until those features ship
+ * (the LiveItem union keeps their shapes for easy re-wiring). Self-hides
+ * when nothing is live.
  */
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronRight, Flame, Mic, MessageCircleQuestion, Radio, UsersRound, Video } from "lucide-react";
+import { ChevronRight, Mic, MessageCircleQuestion, Radio, Video } from "lucide-react";
 
 interface LiveStreamRow {
   id: string;
@@ -16,22 +17,6 @@ interface LiveStreamRow {
   title: string | null;
   host_name: string | null;
   host_avatar: string | null;
-  viewer_count: number | null;
-}
-
-interface AudioRoomRow {
-  id: string;
-  host_id: string;
-  title: string;
-  topic: string | null;
-  listener_count: number | null;
-}
-
-interface AmaSessionRow {
-  id: string;
-  host_id: string;
-  title: string;
-  topic: string | null;
   viewer_count: number | null;
 }
 
@@ -60,21 +45,14 @@ export default function LiveNowStrip() {
   const { data: items = [] } = useQuery<LiveItem[]>({
     queryKey: ["feed-live-now-strip-v2"],
     queryFn: async () => {
-      // 3 queries in parallel — one per live source.
-      const [streamsRes, roomsRes, amasRes] = await Promise.all([
-        (supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { is: (k: string, v: null) => { order: (k: string, opts: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: LiveStreamRow[] | null }> } } } } } })
-          .from("live_streams").select("id, user_id, title, host_name, host_avatar, viewer_count")
-          .eq("status", "live").is("ended_at", null)
-          .order("viewer_count", { ascending: false }).limit(6),
-        (supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { is: (k: string, v: null) => { order: (k: string, opts: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: AudioRoomRow[] | null }> } } } } } })
-          .from("audio_rooms").select("id, host_id, title, topic, listener_count")
-          .eq("status", "live").is("ended_at", null)
-          .order("listener_count", { ascending: false }).limit(4),
-        (supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { order: (k: string, opts: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: AmaSessionRow[] | null }> } } } } })
-          .from("ama_sessions").select("id, host_id, title, topic, viewer_count")
-          .eq("status", "live")
-          .order("viewer_count", { ascending: false }).limit(3),
-      ]);
+      // Streams only. audio_rooms / ama_sessions are orphan tables today —
+      // no create flow exists and they have never held rows (their pages are
+      // read-only "orphans"), so querying them just rendered permanent zeros.
+      // Restore those legs when rooms/AMAs actually ship.
+      const streamsRes = await (supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { is: (k: string, v: null) => { order: (k: string, opts: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: LiveStreamRow[] | null }> } } } } } })
+        .from("live_streams").select("id, user_id, title, host_name, host_avatar, viewer_count")
+        .eq("status", "live").is("ended_at", null)
+        .order("viewer_count", { ascending: false }).limit(6);
 
       const out: LiveItem[] = [];
       (streamsRes.data ?? []).forEach((s) => out.push({
@@ -84,19 +62,6 @@ export default function LiveNowStrip() {
         viewers: s.viewer_count ?? 0,
         path: s.user_id ? `/user/${s.user_id}` : "/live",
       }));
-      (roomsRes.data ?? []).forEach((r) => out.push({
-        kind: "audio", id: r.id,
-        name: r.title, topic: r.topic,
-        viewers: r.listener_count ?? 0,
-        path: "/audio-rooms",
-      }));
-      (amasRes.data ?? []).forEach((a) => out.push({
-        kind: "ama", id: a.id,
-        name: a.title, topic: a.topic,
-        viewers: a.viewer_count ?? 0,
-        path: "/ama",
-      }));
-      // Streams first (highest engagement), then rooms, then AMAs.
       return out;
     },
     refetchInterval: 30_000,
@@ -107,21 +72,11 @@ export default function LiveNowStrip() {
   if (items.length === 0) return null;
 
   const streamCount = items.filter((item) => item.kind === "stream").length;
-  const roomCount = items.filter((item) => item.kind === "audio").length;
-  const amaCount = items.filter((item) => item.kind === "ama").length;
   const totalAudience = items.reduce((sum, item) => sum + item.viewers, 0);
   const hottestItem = items.reduce<LiveItem | null>(
     (top, item) => (!top || item.viewers > top.viewers ? item : top),
     null,
   );
-  const liveMixLabel = streamCount > 0 && roomCount + amaCount > 0
-    ? "Video + talk"
-    : streamCount > 0
-      ? "Video heavy"
-      : roomCount > 0
-        ? "Audio rooms"
-        : "AMA mode";
-  const audiencePerSession = items.length > 0 ? Math.round(totalAudience / items.length) : 0;
 
   return (
     <section aria-label="Live now" className="zivo-social-module mx-2 my-3 overflow-hidden rounded-[1.25rem] px-3 py-3">
@@ -148,7 +103,7 @@ export default function LiveNowStrip() {
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="mb-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mb-2.5 grid grid-cols-2 gap-2">
         <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
             <Video className="h-3.5 w-3.5" />
@@ -156,24 +111,6 @@ export default function LiveNowStrip() {
           <div className="min-w-0">
             <p className="text-xs font-black leading-none text-foreground">{streamCount}</p>
             <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Streams</p>
-          </div>
-        </div>
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Mic className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-black leading-none text-foreground">{roomCount}</p>
-            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Rooms</p>
-          </div>
-        </div>
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/10 text-fuchsia-500">
-            <MessageCircleQuestion className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-black leading-none text-foreground">{amaCount}</p>
-            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">AMAs</p>
           </div>
         </div>
         <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
@@ -198,26 +135,6 @@ export default function LiveNowStrip() {
           </span>
         </div>
       )}
-      <div className="zivo-social-module-tile mb-2.5 grid grid-cols-2 gap-2 rounded-2xl px-3 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
-            <Flame className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">Live mix</p>
-            <p className="truncate text-xs font-black text-foreground">{liveMixLabel}</p>
-          </div>
-        </div>
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-            <UsersRound className="h-4 w-4" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">Avg room</p>
-            <p className="truncate text-xs font-black text-foreground">{compactCount(audiencePerSession)} people</p>
-          </div>
-        </div>
-      </div>
       <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
         {items.map((it) => {
           const isHottest = hottestItem?.id === it.id && hottestItem.kind === it.kind;

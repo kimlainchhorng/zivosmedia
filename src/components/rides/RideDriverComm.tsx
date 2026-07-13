@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideDriverComm — Enhanced driver communication: messaging, voice notes, pre-ride instructions, translation
  */
 import { useState } from "react";
@@ -129,7 +129,7 @@ export default function RideDriverComm() {
                 <div
                   className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
                     msg.sender === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      ? "bg-ig-gradient text-white rounded-br-md"
                       : "bg-muted text-foreground rounded-bl-md"
                   }`}
                 >

@@ -116,7 +116,7 @@ export default function DigitalProductsPage() {
 
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30 zivo-ribbon">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate("/more")} className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation">
+          <button type="button" onClick={() => navigate("/more")} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-extrabold flex-1 tracking-tight">Digital Products</h1>
@@ -150,7 +150,8 @@ export default function DigitalProductsPage() {
             <button type="button"
               key={tab}
               onClick={() => setActiveTab(i)}
-              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors touch-manipulation ${
+              aria-pressed={i === activeTab}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation ${
                 i === activeTab ? "bg-foreground text-background" : "bg-muted/60 text-muted-foreground"
               }`}
             >
@@ -172,7 +173,7 @@ export default function DigitalProductsPage() {
             <p className="text-xs text-muted-foreground mb-4">Start selling by creating your first digital product.</p>
             <button type="button"
               onClick={() => setActiveTab(1)}
-              className="zivo-btn-signature px-5 py-2.5 text-xs inline-flex items-center gap-1.5 touch-manipulation"
+              className="zivo-btn-signature px-5 py-2.5 text-xs inline-flex items-center gap-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Plus className="w-3 h-3" /> Create Product
             </button>
@@ -195,7 +196,7 @@ export default function DigitalProductsPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.04 }}
                         onClick={() => setSelectedType(type)}
-                        className="w-full zivo-card-organic flex items-start gap-3 p-3.5 text-left touch-manipulation"
+                        className="w-full zivo-card-organic flex items-start gap-3 p-3.5 text-left touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <div className="zivo-icon-pill w-10 h-10 rounded-xl shrink-0" style={{ color: type.accent, background: `${type.accent}15` }}>
                           <type.icon className="w-5 h-5" style={{ color: type.accent }} />
@@ -212,7 +213,7 @@ export default function DigitalProductsPage() {
               ) : (
                 <motion.div key="create-form" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => setSelectedType(null)} className="p-2 rounded-full hover:bg-muted/50 touch-manipulation">
+                    <button type="button" onClick={() => setSelectedType(null)} aria-label="Back" className="p-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <ArrowLeft className="w-4 h-4" />
                     </button>
                     <div className="flex items-center gap-2 flex-1">
@@ -302,7 +303,7 @@ export default function DigitalProductsPage() {
             { label: "Dashboard", icon: BarChart3, href: "/creator-dashboard", accent: "hsl(198 93% 59%)" },
             { label: "ZIVO Shop", icon: Package, href: "/shop-dashboard", accent: "hsl(142 71% 45%)" },
           ].map((a) => (
-            <Link key={a.label} to={a.href}>
+            <Link key={a.label} to={a.href} className="rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <div className="zivo-card-organic p-3.5 flex items-center gap-3 touch-manipulation">
                 <div className="zivo-icon-pill w-9 h-9 rounded-xl" style={{ color: a.accent, background: `${a.accent}15` }}>
                   <a.icon className="w-4 h-4" style={{ color: a.accent }} />

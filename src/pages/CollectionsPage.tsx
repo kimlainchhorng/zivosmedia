@@ -205,7 +205,7 @@ export default function CollectionsPage() {
                   type="button"
                   aria-label="Cancel"
                   onClick={() => { setCreating(false); setName(""); }}
-                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground"
+                  className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -227,8 +227,9 @@ export default function CollectionsPage() {
                       type="button"
                       aria-label={`Pick ${p.name}`}
                       onClick={() => setColor(p.id)}
+                      aria-pressed={color === p.id}
                       className={cn(
-                        "h-9 w-9 rounded-full bg-gradient-to-br active:scale-90 transition-transform",
+                        "h-9 w-9 rounded-full bg-gradient-to-br active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                         p.from, p.to,
                         color === p.id ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "",
                       )}
@@ -300,7 +301,7 @@ export default function CollectionsPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/saved?collection=${c.id}`)}
-                    className="w-full aspect-square relative active:opacity-80 transition-opacity"
+                    className="w-full aspect-square relative active:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     aria-label={`Open collection ${c.name}`}
                   >
                     {c.cover_url ? (
@@ -346,7 +347,7 @@ export default function CollectionsPage() {
                       type="button"
                       aria-label={`Rename ${c.name}`}
                       onClick={(e) => { e.stopPropagation(); setEditingId(c.id); setEditName(c.name); }}
-                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 active:scale-90 transition-all"
+                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
@@ -354,7 +355,7 @@ export default function CollectionsPage() {
                       type="button"
                       aria-label={`Delete ${c.name}`}
                       onClick={(e) => { e.stopPropagation(); if (confirm(`Delete "${c.name}"?`)) deleteMutation.mutate(c.id); }}
-                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-destructive/80 active:scale-90 transition-all"
+                      className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-destructive/80 active:scale-90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

@@ -88,9 +88,9 @@ export default function LegalDisputesPage() {
           <p className="text-sm text-white/80 mt-1">{stats.filed} filed · {stats.against} against you · {stats.resolved} resolved</p>
         </motion.div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({stats.total})</button>
-          <button type="button" onClick={() => setTab("filed")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "filed" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Filed ({stats.filed})</button>
-          <button type="button" onClick={() => setTab("against")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all", tab === "against" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Against ({stats.against})</button>
+          <button type="button" aria-pressed={tab === "all"} onClick={() => setTab("all")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "all" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>All ({stats.total})</button>
+          <button type="button" aria-pressed={tab === "filed"} onClick={() => setTab("filed")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "filed" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Filed ({stats.filed})</button>
+          <button type="button" aria-pressed={tab === "against"} onClick={() => setTab("against")} className={cn("flex-1 h-10 rounded-xl text-xs font-bold transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === "against" ? "bg-ig-gradient text-white shadow-sm" : "bg-secondary text-foreground hover:bg-muted")}>Against ({stats.against})</button>
         </div>
         {isLoading && <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-24 bg-muted animate-pulse rounded-2xl" />)}</div>}
         {!isLoading && filtered.length === 0 && (

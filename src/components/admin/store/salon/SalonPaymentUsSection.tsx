@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { isAllowedStripeConnectUrl } from "@/lib/urlSafety";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useSalonPaymentSettings,
@@ -104,7 +105,7 @@ export default function SalonPaymentUsSection({ storeId }: SalonPaymentUsSection
         });
         if (error) {
           toast.error(error.message || "Couldn't start Stripe onboarding.");
-        } else if ((data as any)?.url) {
+        } else if ((data as any)?.url && isAllowedStripeConnectUrl((data as any).url)) {
           window.location.href = (data as any).url;
         } else {
           toast.error("Stripe didn't return an onboarding URL. Try again.");

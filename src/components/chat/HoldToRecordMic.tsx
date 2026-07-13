@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HoldToRecordMic — Telegram/WhatsApp-style press-and-hold voice recorder
  *
  * Gestures (single pointer):
@@ -377,7 +377,7 @@ export default function HoldToRecordMic({ voice, className }: Props) {
                 type="button"
                 onPointerDown={stopButtonPointer}
                 onClick={(event) => { void handleQuickSend(event); }}
-                className="pointer-events-auto h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-90 transition-transform shadow-md shrink-0"
+                className="pointer-events-auto h-10 w-10 rounded-full bg-ig-gradient text-white flex items-center justify-center active:scale-90 transition-transform shadow-md shrink-0"
                 aria-label="Send voice note"
               >
                 <Send className="h-4 w-4" />
@@ -438,7 +438,7 @@ export default function HoldToRecordMic({ voice, className }: Props) {
               </button>
               <button type="button"
                 onClick={handleLockedSend}
-                className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-90 transition-transform shadow-md"
+                className="h-10 w-10 rounded-full bg-ig-gradient text-white flex items-center justify-center active:scale-90 transition-transform shadow-md"
                 aria-label="Send voice note"
               >
                 <Send className="h-4 w-4" />

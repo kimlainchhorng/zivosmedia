@@ -46,7 +46,7 @@ const ALLOWED_PARTNER_DOMAINS: string[] = [
   // Insurance / extras
   'rentalcover.com',
   // ZIVO's own domains
-  'hizivo.com',
+  'zivosmedia.com',
   'myzivo.lovable.app',
 ];
 
@@ -105,14 +105,18 @@ const URL_SHORTENERS = new Set([
  * ZIVO-owned hostnames — anything that's *similar but not identical* to one
  * of these is treated as a typosquat attempt and blocked.
  */
-const ZIVO_OWNED_HOSTS = ['zivosmedia.com', 'hizivo.com', 'myzivo.lovable.app'];
+const ZIVO_OWNED_HOSTS = ['zivosmedia.com', 'myzivo.lovable.app'];
 
 /**
  * Check if a URL uses a safe protocol (http/https only).
  * Blocks javascript:, data:, vbscript:, file:, etc.
  */
 export function isSafeProtocol(url: string): boolean {
-  const trimmed = url.trim().toLowerCase();
+  // Browsers strip ASCII tabs/newlines and leading C0 control chars from a URL
+  // before resolving its scheme, so "java\tscript:" and "\x01javascript:" still
+  // execute. Strip those same characters before the prefix check — matching on
+  // the raw string alone is trivially bypassed.
+  const trimmed = url.replace(/[\u0000-\u001F\u007F]/g, '').trim().toLowerCase();
   if (
     trimmed.startsWith('javascript:') ||
     trimmed.startsWith('data:') ||
@@ -250,6 +254,24 @@ export function isAllowedPartnerUrl(url: string): boolean {
  */
 export function isAllowedCheckoutUrl(url: string): boolean {
   return isAllowedDomain(url, ALLOWED_CHECKOUT_DOMAINS);
+}
+
+/**
+ * Check if a URL is a Stripe-hosted URL (any *.stripe.com host, https only).
+ * Used for server-returned Stripe Connect onboarding (account-link) URLs, which
+ * resolve to connect.stripe.com — not the checkout hosts — so they're validated
+ * before redirecting the owner. Accepts any Stripe-owned subdomain so a future
+ * Stripe host change can't block a legitimate onboarding redirect.
+ */
+export function isAllowedStripeConnectUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return false;
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname === 'stripe.com' || hostname.endsWith('.stripe.com');
+  } catch {
+    return false;
+  }
 }
 
 /**
