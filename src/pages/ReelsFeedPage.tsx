@@ -2189,6 +2189,26 @@ export default function ReelsFeedPage() {
                       ))}
                     </div>
                   )}
+
+                {/* Filter bar — all / photos / videos / text */}
+                <div className="grid grid-cols-4 gap-1 px-2 pb-1.5 pt-1">
+                  {(["all", "photos", "videos", "text"] as const).map((f) => (
+                    <button
+                      type="button"
+                      key={f}
+                      onClick={() => setFeedFilter(f)}
+                      aria-pressed={feedFilter === f}
+                      className={cn(
+                        "min-h-10 w-full px-2 py-2 rounded-full text-[11px] font-semibold capitalize transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                        feedFilter === f
+                          ? "min-h-[40px] rounded-[1rem] px-6 bg-foreground text-background shadow-sm"
+                          : "text-muted-foreground hover:bg-white/60 hover:text-foreground"
+                      )}
+                    >
+                      {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  ))}
+                </div>
                 </div>
               </div>
             </div>

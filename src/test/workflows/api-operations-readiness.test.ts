@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const source = (file: string) => readFileSync(path.join(root, file), "utf8");
+const source = (file: string) => readFileSync(path.join(root, file), "utf8").replace(/\r\n/g, "\n");
 
 describe("API, speed, and operations readiness workflow", () => {
   it("wires the API operations contract gate into platform audit", () => {

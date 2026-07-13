@@ -140,6 +140,8 @@ export default function ChatComposerHub({
   onOpenChange,
   source,
   draftText,
+  onDraftTextChange,
+  onClearDraft,
   onImageSelect,
   onVideoSelect,
   onGifSelect,
@@ -230,6 +232,27 @@ export default function ChatComposerHub({
               {source.type === "group" ? "Group" : "Direct chat"} tools for {source.title}
             </SheetDescription>
           </SheetHeader>
+
+          <div className="mt-4">
+            <div className="relative flex items-start gap-2 rounded-xl border border-border/40 bg-muted/20 px-3 py-2.5">
+              <textarea
+                className="min-h-[56px] w-full resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                placeholder="Message..."
+                value={draftText}
+                onChange={(e) => onDraftTextChange(e.target.value)}
+                rows={2}
+              />
+              {hasDraftText && (
+                <button
+                  type="button"
+                  onClick={() => { onDraftTextChange(""); void onClearDraft(); }}
+                  className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
 
           <div className="mt-5 space-y-5">
             {COMPOSER_ACTION_SECTIONS.map((section) => {

@@ -49,7 +49,7 @@ describe("data rights legal policy hub", () => {
     expect(genericLegal).toContain("confirmation phrase DELETE MY ACCOUNT");
     expect(genericLegal).toContain("deletes user-owned records where permitted");
     expect(genericLegal).toContain("legal, tax, fraud prevention, payment, dispute");
-    expect(genericLegal).toContain("privacy@zivosmedia.com or support@zivosmedia.com");
+    expect(genericLegal).toContain("privacy@hizivo.com or support@hizivo.com");
     expect(deletionInfo).toContain("30-day grace period");
     expect(deletionInfo).toContain("/legal/data-retention");
     expect(deleteFunction).toContain("GDPR Article 17");
@@ -73,7 +73,7 @@ describe("data rights legal policy hub", () => {
     expect(genericLegal).toContain("categorized as dsar_request or consent_change");
     expect(genericLegal).toContain("GDPR requests are generally handled within 30 days");
     expect(genericLegal).toContain("CCPA requests follow applicable legal timeframes");
-    expect(genericLegal).toContain("privacy@zivosmedia.com");
+    expect(genericLegal).toContain("privacy@hizivo.com");
 
     expect(privacyControls).toContain('functions.invoke("privacy-request-submit"');
     expect(privacyControls).toContain('kind: "dsar_request"');

@@ -7,6 +7,7 @@ serve(withSecurity("driver-payout-failed", async (req, ctx) => {
   return applyDriverPayoutStatus(req, ctx, "failed");
 }, {
   allowedMethods: ["POST"],
+  strictCors: true,
   skipBotDetection: true,
   strictCors: true,
   skipWaf: true,

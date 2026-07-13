@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
+  "generated": "2026-06-08T21:42:50.206Z",
+=======
   "generated": "2026-06-12T21:34:33.473Z",
+>>>>>>> origin/main
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 88,

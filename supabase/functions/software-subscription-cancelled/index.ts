@@ -7,6 +7,7 @@ serve(withSecurity("software-subscription-cancelled", async (req, ctx) => {
   return applySoftwareSubscriptionStatus(req, ctx, "cancelled");
 }, {
   allowedMethods: ["POST"],
+  strictCors: true,
   skipBotDetection: true,
   strictCors: true,
   skipWaf: true,

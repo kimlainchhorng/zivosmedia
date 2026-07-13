@@ -79,11 +79,18 @@ export default function ZivoDriverHome() {
           content="Drive and deliver with Zivo Driver: accept rides, food, grocery, and parcel trips, follow live navigation, track transparent earnings, and cash out to your Zivo wallet."
         />
         <meta property="og:site_name" content="Zivo Driver" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://zivodriver.com/" />
         <meta property="og:title" content="Zivo Driver | Drive, deliver, and earn with ZIVO" />
         <meta
           property="og:description"
           content="Accept rides and deliveries, follow live navigation, and track earnings — the driver side of the ZIVO network."
         />
+        <meta property="og:image" content="https://zivodriver.com/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Zivo Driver | Drive, deliver, and earn with ZIVO" />
+        <meta name="twitter:description" content="Accept rides and deliveries, follow live navigation, and track earnings — the driver side of the ZIVO network." />
+        <meta name="twitter:image" content="https://zivodriver.com/og-image.png" />
         <link rel="canonical" href="https://zivodriver.com/" />
       </Helmet>
 

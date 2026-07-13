@@ -31,7 +31,7 @@ const summaryPath = path.resolve(
   root,
   argValue("--summary-path") || path.join("docs", "production-preflight-summary.json"),
 );
-const summaryLabel = path.relative(root, summaryPath).replace(/\\/g, "/") || summaryPath;
+const summaryLabel = (() => { const r = path.relative(root, summaryPath).replace(/\\/g, "/"); return r.startsWith("..") ? summaryPath : (r || summaryPath); })();
 
 function fail(message) {
   console.error(`preflight-summary: ${message}`);

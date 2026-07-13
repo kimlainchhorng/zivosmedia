@@ -26,7 +26,7 @@ describe("ads marketing privacy disclosure", () => {
   it("keeps privacy policy disclosure aligned with optional targeted advertising sharing", () => {
     const privacyPolicy = read("src/pages/legal/PrivacyPolicy.tsx");
 
-    expect(privacyPolicy).toContain("Meta, Google Ads, TikTok, and X");
+    expect(privacyPolicy).toContain("Meta, Google Ads, and TikTok");
     expect(privacyPolicy).toContain("only when you consent to marketing cookies");
     expect(privacyPolicy).toContain("limited audience or conversion signals");
     expect(privacyPolicy).toContain("Do Not Sell or Share");

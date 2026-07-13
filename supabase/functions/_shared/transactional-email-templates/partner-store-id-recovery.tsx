@@ -98,10 +98,10 @@ const cta = {
 }
 
 function PartnerStoreIdRecoveryEmail({
-  businessEmail = 'partner@zivosmedia.com',
+  businessEmail = 'partner@hizivo.com',
   stores = [{ name: 'Mommy Seafood', accountId: 'CBD0013F47A' }],
-  loginUrl = 'https://zivosmedia.com/partner-login',
-  supportUrl = 'https://zivosmedia.com/help',
+  loginUrl = 'https://hizivo.com/partner-login',
+  supportUrl = 'https://hizivo.com/help',
 }: PartnerStoreIdRecoveryProps) {
   return (
     <Html>
@@ -159,9 +159,9 @@ export const template = {
   },
   displayName: 'Partner store ID recovery',
   previewData: {
-    businessEmail: 'kimlain@zivosmedia.com',
+    businessEmail: 'kimlain@hizivo.com',
     stores: [{ name: 'Mommy Seafood ម៉ាមី ស៊ីហ៊្វូត', accountId: 'CBD0013F47A' }],
-    loginUrl: 'https://zivosmedia.com/partner-login',
-    supportUrl: 'https://zivosmedia.com/help',
+    loginUrl: 'https://hizivo.com/partner-login',
+    supportUrl: 'https://hizivo.com/help',
   },
 } satisfies TemplateEntry<PartnerStoreIdRecoveryProps>

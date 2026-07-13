@@ -440,7 +440,7 @@ describe("OTA deploy bypass guard", () => {
       const scriptPath = path.join(workspace, "scripts/deploy-update.mjs");
       writeFileSync(
         scriptPath,
-        readFileSync(scriptPath, "utf8").replace("    mandatory,\n    ...(releaseMessage", "    mandatory: false,\n    ...(releaseMessage")
+        readFileSync(scriptPath, "utf8").replace(/    mandatory,\r?\n    \.\.\.\(releaseMessage/, "    mandatory: false,\n    ...(releaseMessage")
       );
       const result = spawnSync(process.execPath, ["scripts/deploy-update.mjs", "--dry-run", "--skip-preflight", "--immediate", "--message=Emergency reload"], {
         cwd: workspace,

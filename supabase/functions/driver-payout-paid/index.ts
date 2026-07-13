@@ -7,6 +7,7 @@ serve(withSecurity("driver-payout-paid", async (req, ctx) => {
   return applyDriverPayoutStatus(req, ctx, "paid");
 }, {
   allowedMethods: ["POST"],
+  strictCors: true,
   skipBotDetection: true,
   strictCors: true,
   skipWaf: true,

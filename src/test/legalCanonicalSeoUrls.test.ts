@@ -12,10 +12,10 @@ describe("legal canonical SEO URLs", () => {
     const refunds = read("src/pages/Refunds.tsx");
     const cookies = read("src/pages/legal/CookiePolicy.tsx");
 
-    expect(terms).toContain('canonical="https://zivosmedia.com/legal/terms"');
-    expect(privacy).toContain('canonical="https://zivosmedia.com/legal/privacy"');
-    expect(refunds).toContain('canonical="https://zivosmedia.com/legal/refunds"');
-    expect(cookies).toContain('canonical="https://zivosmedia.com/legal/cookies"');
+    expect(terms).toContain('canonical="https://hizivo.com/legal/terms"');
+    expect(privacy).toContain('canonical="https://hizivo.com/legal/privacy"');
+    expect(refunds).toContain('canonical="https://hizivo.com/legal/refunds"');
+    expect(cookies).toContain('canonical="https://hizivo.com/legal/cookies"');
 
     for (const source of [terms, privacy, refunds, cookies]) {
       expect(source).not.toContain("https://zivosmedia.com/terms");
@@ -29,8 +29,8 @@ describe("legal canonical SEO URLs", () => {
     const storeMarketing = read("src/components/admin/StoreMarketingSection.tsx");
     const damagePolicy = read("src/pages/legal/DamagePolicy.tsx");
 
-    expect(storeMarketing).toContain("https://zivosmedia.com/store/");
-    expect(storeMarketing).toContain("https://zivosmedia.com/book/");
+    expect(storeMarketing).toContain("https://hizivo.com/store/");
+    expect(storeMarketing).toContain("https://hizivo.com/book/");
     expect(storeMarketing).not.toContain("https://www.zivosmedia.com");
     expect(damagePolicy).toContain('to="/legal/cancellation"');
     expect(damagePolicy).not.toContain('to="/cancellation-policy"');

@@ -25,7 +25,14 @@ type DispatchBody = {
 const ALLOWED_EVENTS = new Set(["user_updated", "user_disabled"]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+<<<<<<< HEAD
+serve(
+  withSecurity("zivosmedia-user-event-dispatch", async (req, ctx) => {
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+=======
 serve(withSecurity("zivosmedia-user-event-dispatch", async (req: Request, ctx) => {
+>>>>>>> origin/main
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const webhookSecret = Deno.env.get("ZIVOSMEDIA_WEBHOOK_SECRET");
@@ -136,8 +143,14 @@ serve(withSecurity("zivosmedia-user-event-dispatch", async (req: Request, ctx) =
   });
 }, {
   allowedMethods: ["POST"],
+<<<<<<< HEAD
+  strictCors: true,
+  skipBotDetection: true,
+  skipWaf: true,
+=======
   skipBotDetection: true,
   strictCors: true,
+>>>>>>> origin/main
 }));
 
 function json(corsHeaders: Record<string, string>, bodyValue: unknown, status = 200) {
