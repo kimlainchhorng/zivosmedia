@@ -5380,7 +5380,9 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
             onTouchEnd={item.media_urls.length > 1 && item.media_type !== "video" ? undefined : (item.media_urls.length > 1 ? handleTouchEnd : undefined)}
             className={cn(
               "relative overflow-hidden",
-              hasMedia ? (item.media_type === "video" ? cn("mx-3 max-h-[500px] lg:max-h-[680px] xl:max-h-[760px] bg-black rounded-2xl", videoAspectClass) : "") : ""
+              // Explicit width keeps the aspect-ratio box from collapsing to
+              // max-height × ratio (portrait clips rendered at ~half card width).
+              hasMedia ? (item.media_type === "video" ? cn("mx-3 w-[calc(100%-1.5rem)] max-h-[500px] lg:max-h-[680px] xl:max-h-[760px] bg-black rounded-2xl", videoAspectClass) : "") : ""
             )}
           >
             {hasMedia ? (
