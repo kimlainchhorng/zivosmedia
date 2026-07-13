@@ -42,6 +42,11 @@ Deno.serve(withSecurity("auto-recharge-ads-wallet", async (req, ctx) => {
           off_session: true,
           confirm: true,
           metadata: { store_id: w.store_id, kind: "ads_wallet_auto_recharge" },
+        }, {
+          // MED-09: idempotency so a retried invocation cannot double-charge the
+          // same store's card for the same recharge (scoped to store+amount+balance
+          // snapshot within the hour; a genuinely later low-balance recharge differs).
+          idempotencyKey: `ads_wallet_auto_recharge:${w.store_id}:${amount}:${w.balance_cents ?? 0}:${new Date().toISOString().slice(0, 13)}`,
         });
         if (pi.status === "succeeded") {
           const newBalance = (w.balance_cents ?? 0) + amount;
@@ -83,11 +88,15 @@ Deno.serve(withSecurity("auto-recharge-ads-wallet", async (req, ctx) => {
 }, { rateLimit: "admin_action", strictCors: true, allowedMethods: ["POST"], skipBotDetection: true, skipWaf: true, trackNetwork: "suspicious" }));
 
 function isInternalCaller(req: Request) {
+  // MED-09: this endpoint charges saved cards off-session for every opted-in store,
+  // so it must be reachable ONLY by the cron (x-cron-secret) or the service role.
+  // The SUPABASE_ANON_KEY ships in the public web bundle — accepting it as an
+  // "internal caller" let anyone POST it and force real charges. Anon-key branch
+  // removed: only the cron secret or the exact service-role Bearer authorize.
   const authHeader = req.headers.get("Authorization") || "";
   const cronSecret = Deno.env.get("INTERNAL_CRON_SECRET");
   if (cronSecret && req.headers.get("x-cron-secret") === cronSecret) return true;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   if (serviceKey && authHeader.includes(serviceKey)) return true;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-  return Boolean(anonKey && authHeader.includes(anonKey));
+  return false;
 }
