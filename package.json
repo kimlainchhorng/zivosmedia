@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build",
-    "build:dev": "node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build --mode development",
+    "build": "node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build && node scripts/generate-review-runtime-contract.mjs",
+    "build:dev": "node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build --mode development && node scripts/generate-review-runtime-contract.mjs",
     "native:sync": "npm run build && npx cap sync ios && npx cap sync android",
     "native:copy": "npm run build && npx cap copy ios && npx cap copy android",
     "native:doctor": "node scripts/native/doctor.mjs",

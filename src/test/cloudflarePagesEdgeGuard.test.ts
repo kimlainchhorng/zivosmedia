@@ -147,6 +147,38 @@ function request(path: string, init: RequestInit = {}) {
 }
 
 describe("Cloudflare Pages edge guard", () => {
+  it("passes the static Review runtime contract through the Cloudflare asset binding", async () => {
+    const contract = {
+      schemaVersion: "zivo-ecosystem-runtime/v1",
+      productId: "media",
+      buildSha: "0123456789abcdef0123456789abcdef01234567",
+      reviewMode: true,
+      gitDirty: false,
+      inboundContracts: [{ id: "chat.paid-media-authority", version: "v1", from: "chat" }],
+      outboundContracts: [{ id: "media.identity", version: "v1", to: "chat" }],
+    };
+    const assetEnv = {
+      ...cloudflareEnv,
+      ASSETS: {
+        fetch: async (assetRequest: Request) => {
+          expect(new URL(assetRequest.url).pathname).toBe("/.well-known/zivo-ecosystem-contract.json");
+          return new Response(JSON.stringify(contract), {
+            headers: { "content-type": "application/json; charset=utf-8" },
+          });
+        },
+      },
+    };
+
+    const response = await cloudflareWorker.fetch(
+      request("/.well-known/zivo-ecosystem-contract.json"),
+      assetEnv as any,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    await expect(response.json()).resolves.toEqual(contract);
+  });
+
   it("overrides wildcard asset CORS with the current allowed site origin", async () => {
     const response = await worker.fetch(request("/", { headers: { Origin: "https://evil.example" } }), env);
 
