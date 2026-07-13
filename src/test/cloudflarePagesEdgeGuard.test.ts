@@ -176,7 +176,71 @@ describe("Cloudflare Pages edge guard", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get("cache-control")).toBe("no-store");
     await expect(response.json()).resolves.toEqual(contract);
+  });
+
+  it("fails closed instead of serving the SPA fallback when the Review contract asset is absent", async () => {
+    const assetEnv = {
+      ...cloudflareEnv,
+      ASSETS: {
+        fetch: async () => new Response("<!doctype html><html><body>SPA fallback</body></html>", {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      },
+    };
+
+    const response = await cloudflareWorker.fetch(
+      request("/.well-known/zivo-ecosystem-contract.json"),
+      assetEnv as any,
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    await expect(response.json()).resolves.toEqual({ error: "Not found" });
+  });
+
+  it("fails closed when the Review contract asset is not valid JSON", async () => {
+    const assetEnv = {
+      ...cloudflareEnv,
+      ASSETS: {
+        fetch: async () => new Response("{not-json", {
+          headers: { "content-type": "application/json; charset=utf-8" },
+        }),
+      },
+    };
+
+    const response = await cloudflareWorker.fetch(
+      request("/.well-known/zivo-ecosystem-contract.json"),
+      assetEnv as any,
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    await expect(response.json()).resolves.toEqual({ error: "Not found" });
+  });
+
+  it("allows only GET for the Review runtime contract route", async () => {
+    let assetsFetched = false;
+    const assetEnv = {
+      ...cloudflareEnv,
+      ASSETS: {
+        fetch: async () => {
+          assetsFetched = true;
+          return new Response("{}", { headers: { "content-type": "application/json" } });
+        },
+      },
+    };
+
+    const response = await cloudflareWorker.fetch(
+      request("/.well-known/zivo-ecosystem-contract.json", { method: "POST" }),
+      assetEnv as any,
+    );
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("allow")).toBe("GET");
+    expect(assetsFetched).toBe(false);
   });
 
   it("overrides wildcard asset CORS with the current allowed site origin", async () => {

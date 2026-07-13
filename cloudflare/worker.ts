@@ -541,6 +541,7 @@ const CSP_REPORT_BY_HOST = new Map([
   ["www.zivostravel.com", "https://xbllvmpomorawkcrtbcq.supabase.co/functions/v1/csp-report"],
 ]);
 
+const REVIEW_RUNTIME_CONTRACT_PATH = "/.well-known/zivo-ecosystem-contract.json";
 const immutableCache = "public, max-age=31536000, immutable";
 const authPathPattern = /^\/(?:login|signup|auth(?:\/|$)|admin(?:\/|$))/i;
 const aiPathPattern = /^\/api\/(?:ai|deepseek)(?:\/|$)/i;
@@ -557,6 +558,51 @@ function noStoreJson(data: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers);
   headers.set("cache-control", "no-store");
   return json(data, { ...init, headers });
+}
+
+// `not_found_handling = single-page-application` normally turns a missing
+// static asset into index.html with a 200. The release harness needs this one
+// path to fail closed: only a generated JSON document is a valid contract.
+async function handleReviewRuntimeContract(request: Request, env: Env) {
+  if (request.method !== "GET") {
+    return noStoreJson(
+      { error: "Method not allowed" },
+      { status: 405, headers: { allow: "GET" } },
+    );
+  }
+
+  if (!env.ASSETS) {
+    return noStoreJson({ error: "Not found" }, { status: 404 });
+  }
+
+  let assetResponse: Response;
+  try {
+    assetResponse = await env.ASSETS.fetch(request);
+  } catch {
+    return noStoreJson({ error: "Not found" }, { status: 404 });
+  }
+
+  const contentType = (assetResponse.headers.get("content-type") || "").toLowerCase();
+  if (!assetResponse.ok || !/^application\/json(?:\s*;|$)/.test(contentType)) {
+    return noStoreJson({ error: "Not found" }, { status: 404 });
+  }
+
+  try {
+    const document = await assetResponse.clone().json();
+    if (!document || typeof document !== "object" || Array.isArray(document)) {
+      return noStoreJson({ error: "Not found" }, { status: 404 });
+    }
+  } catch {
+    return noStoreJson({ error: "Not found" }, { status: 404 });
+  }
+
+  const headers = new Headers(assetResponse.headers);
+  headers.set("cache-control", "no-store");
+  return new Response(assetResponse.body, {
+    status: assetResponse.status,
+    statusText: assetResponse.statusText,
+    headers,
+  });
 }
 
 function clientIp(request: Request) {
@@ -1238,6 +1284,10 @@ export default {
 
     if (url.pathname === "/healthz") {
       return json({ ok: true, service: "zivo-web", media: Boolean(env.ZIVO_MEDIA) });
+    }
+
+    if (url.pathname === REVIEW_RUNTIME_CONTRACT_PATH) {
+      return withSecurityHeaders(await handleReviewRuntimeContract(request, env), request, env);
     }
 
     if (request.method !== "OPTIONS") {
