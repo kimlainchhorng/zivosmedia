@@ -178,7 +178,10 @@ export default function DriverHomePage() {
   const acceptOffer = async () => {
     if (!incomingOffer || !driverId || accepting) return;
     setAccepting(true);
-    const { error } = await (supabase as any).rpc("accept_job_offer", { p_offer_id: incomingOffer.id, p_driver_id: driverId });
+    // Live accept_job_offer signature is (p_offer_id uuid) only — passing an
+    // extra p_driver_id makes PostgREST report "function not found" (PGRST202)
+    // and every accept fails. The RPC resolves the driver from auth.uid().
+    const { error } = await (supabase as any).rpc("accept_job_offer", { p_offer_id: incomingOffer.id });
     setAccepting(false);
     if (error) { toast.error("Could not accept ride"); return; }
     clearOffer();

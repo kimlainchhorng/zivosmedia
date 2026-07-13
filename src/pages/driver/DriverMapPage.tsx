@@ -127,13 +127,32 @@ export default function DriverMapPage() {
       const userId = data.user?.id ?? null;
       if (!mounted) return;
 
-      setDriverId(userId);
-      if (!userId) return;
+      if (!userId) {
+        setDriverId(null);
+        return;
+      }
+
+      // drivers_status RLS (20260615171643) and dispatch-start's offer rows are
+      // keyed by public.drivers.id, not the auth user id — writing the raw
+      // user id here made every go-online upsert fail RLS and left the
+      // job_offers realtime filter listening on the wrong id.
+      const { data: driver } = await supabase
+        .from("drivers")
+        .select("id")
+        .or(`id.eq.${userId},user_id.eq.${userId}`)
+        .maybeSingle();
+      const resolvedDriverId = driver?.id ?? userId;
+      if (!mounted) return;
+
+      setDriverId(resolvedDriverId);
+      if (!driver) {
+        console.warn("[DriverMap] No drivers row for this account — go-online will be rejected until the driver profile exists");
+      }
 
       const { data: status } = await supabase
         .from("drivers_status")
         .select("is_online")
-        .eq("driver_id", userId)
+        .eq("driver_id", resolvedDriverId)
         .maybeSingle();
 
       if (mounted) {
