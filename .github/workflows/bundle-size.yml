@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -63,7 +63,7 @@ jobs:
           echo "PR branch totals — total:$TOTAL vendor:$VENDOR main:$MAIN"
 
       - name: Checkout base (main) branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.base_ref }}
           path: base-branch
