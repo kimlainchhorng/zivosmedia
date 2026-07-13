@@ -1,0 +1,4 @@
+# Review build uses hash routing (#/snapshot) — the server only serves the static
+# assets. There is intentionally NO SPA catch-all to index.html, so any unknown
+# server path falls through to Cloudflare Pages' 404.html with an HTTP 404 (safe 404
+# for unknown routes). Do not add a "/* /index.html 200" rule here.
