@@ -14,6 +14,10 @@ function isEnabled(value) {
   return String(value || "").trim().toLowerCase() === "true";
 }
 
+function isExplicitlyClean(value) {
+  return value === "false";
+}
+
 function exactBuildSha(env) {
   for (const candidate of [env.VERCEL_GIT_COMMIT_SHA, env.GIT_COMMIT_SHA]) {
     const sha = typeof candidate === "string" ? candidate.trim() : "";
@@ -27,7 +31,7 @@ function exactBuildSha(env) {
  * build cannot make an exact, clean Review claim.
  */
 export function createReviewRuntimeContract(env = process.env) {
-  if (!isEnabled(env.ZIVO_ECOSYSTEM_REVIEW_MODE) || isEnabled(env.ZIVO_ECOSYSTEM_GIT_DIRTY)) {
+  if (!isEnabled(env.ZIVO_ECOSYSTEM_REVIEW_MODE) || !isExplicitlyClean(env.ZIVO_ECOSYSTEM_GIT_DIRTY)) {
     return null;
   }
 

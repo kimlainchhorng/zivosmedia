@@ -47,7 +47,9 @@ test("generator writes Media's exact static Review contract only for a clean exa
 test("generator removes stale artifacts when Review, cleanliness, or SHA proof is absent", async () => {
   for (const env of [
     { ZIVO_ECOSYSTEM_REVIEW_MODE: "false", ZIVO_ECOSYSTEM_GIT_DIRTY: "false", VERCEL_GIT_COMMIT_SHA: VERCEL_SHA },
+    { ZIVO_ECOSYSTEM_REVIEW_MODE: "true", VERCEL_GIT_COMMIT_SHA: VERCEL_SHA },
     { ZIVO_ECOSYSTEM_REVIEW_MODE: "true", ZIVO_ECOSYSTEM_GIT_DIRTY: "true", VERCEL_GIT_COMMIT_SHA: VERCEL_SHA },
+    { ZIVO_ECOSYSTEM_REVIEW_MODE: "true", ZIVO_ECOSYSTEM_GIT_DIRTY: "FALSE", VERCEL_GIT_COMMIT_SHA: VERCEL_SHA },
     { ZIVO_ECOSYSTEM_REVIEW_MODE: "true", ZIVO_ECOSYSTEM_GIT_DIRTY: "false", VERCEL_GIT_COMMIT_SHA: "short-sha", GIT_COMMIT_SHA: "" },
   ]) {
     const outDir = await mkdtemp(join(tmpdir(), "zivo-media-review-contract-"));
