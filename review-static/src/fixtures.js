@@ -1,4 +1,4 @@
-/* Deterministic, local, fictional fixtures for the Review build.
+/* Deterministic, local, fictional fixtures for the safe Media Review build.
  * No real accounts, media, contacts, phone numbers, or data. No network, no imports. */
 window.__FIXTURES__ = {
   users: {
@@ -8,36 +8,46 @@ window.__FIXTURES__ = {
     vibol: { name: "Vibol", handle: "@vibol.eats" }
   },
   snapshots: [
-    { id: "media-feed", group: "Media", label: "Feed" },
-    { id: "media-profile", group: "Media", label: "Profile" },
-    { id: "media-notifications", group: "Media", label: "Notifications" },
-    { id: "chat-conversations", group: "Chat", label: "Conversations" },
-    { id: "chat-direct", group: "Chat", label: "Direct message" },
-    { id: "chat-payment-link", group: "Chat", label: "Payment link" }
+    { id: "feed", label: "Feed" },
+    { id: "post", label: "Post" },
+    { id: "profile", label: "Profile" },
+    { id: "private-profile", label: "Private profile" },
+    { id: "search", label: "Search" },
+    { id: "discovery", label: "Discovery" },
+    { id: "notifications", label: "Notifications" },
+    { id: "privacy", label: "Privacy" },
+    { id: "block", label: "Block" },
+    { id: "mute", label: "Mute" },
+    { id: "report", label: "Report" },
+    { id: "empty", label: "Empty" },
+    { id: "offline", label: "Offline" },
+    { id: "error", label: "Error" }
   ],
   feed: [
     { user: "maya", caption: "Golden hour by the river 🌅 #phnompenh", likes: "1,204", comments: "86" },
     { user: "vibol", caption: "Best noodle stall in town, hands down.", likes: "642", comments: "41" }
   ],
+  post: {
+    user: "maya", caption: "Golden hour by the river 🌅 #phnompenh", likes: "1,204", comments: "86",
+    comments_list: [
+      { user: "dara", text: "This is stunning ✨" },
+      { user: "nita", text: "Where is this?" }
+    ]
+  },
+  profile: { user: "maya", posts: "128", followers: "24.1k", following: "310", tiles: 9 },
+  privateProfile: { user: "nita", followers: "5,902" },
+  search: ["maya", "dara", "nita", "vibol"],
+  discovery: 12,
   notifications: [
     { user: "dara", text: "started following you", when: "2h" },
     { user: "nita", text: "liked your post", when: "5h" },
     { user: "vibol", text: "mentioned you in a comment", when: "1d" }
   ],
-  conversations: [
-    { user: "dara", preview: "See you at 6 👍", when: "2h" },
-    { user: "nita", preview: "📷 Photo", when: "1d" }
+  privacy: [
+    { label: "Private account", sub: "Only approved followers see your posts", state: "Off" },
+    { label: "Show phone number", sub: "Never shown to others", state: "Hidden" },
+    { label: "Message requests", sub: "From people you don't follow", state: "Filtered" },
+    { label: "Activity status", sub: "Show when you're active", state: "Off" }
   ],
-  direct: [
-    { me: false, text: "Are we still on for tonight?" },
-    { me: true, text: "Yes! See you at 6 👍" },
-    { me: false, text: "Perfect 🙌" }
-  ],
-  paymentLink: {
-    from: "dara",
-    line: "Splitting lunch — here's your share",
-    amount: "$8.75",
-    status: "Processing",
-    id: "pay_8ae4…10c"
-  }
+  report: ["Spam", "Nudity or sexual content", "Hate speech or symbols", "Violence", "Scam or fraud", "I just don't like it"]
 };

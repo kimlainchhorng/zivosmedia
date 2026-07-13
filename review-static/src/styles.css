@@ -65,3 +65,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 
 .rv-404 { text-align: center; padding: 40px 16px; }
 .rv-404 h2 { margin: 0 0 6px; } .rv-404 p { color: var(--muted); margin: 0; }
+
+/* Media grid tiles (discovery/profile) */
+.rv-tiles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 10px; }
+.rv-tile { aspect-ratio: 1; border-radius: 8px; background: linear-gradient(135deg,#ddd6fe,#fbcfe8); }
