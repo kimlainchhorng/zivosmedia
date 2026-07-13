@@ -71,15 +71,15 @@ Deno.serve(withSecurity("verify-user-wallet-topup", async (req, ctx) => {
         });
       }
 
-      const amountCents = Number(
-        paymentIntent.metadata?.amount_cents ??
-        paymentIntent.amount_received ??
-        paymentIntent.amount ??
-        0,
-      );
-      const currency = String(paymentIntent.metadata?.currency ?? paymentIntent.currency ?? "USD").toUpperCase();
+      // Credit only the amount/currency Stripe actually settled.  Metadata is
+      // treated as an intent-binding assertion, never as the ledger authority.
+      const amountCents = Number(paymentIntent.amount_received ?? paymentIntent.amount ?? 0);
+      const currency = String(paymentIntent.currency ?? "").toUpperCase();
+      const metadataAmount = Number(paymentIntent.metadata?.amount_cents ?? amountCents);
+      const metadataCurrency = String(paymentIntent.metadata?.currency ?? currency).toUpperCase();
 
-      if (!Number.isFinite(amountCents) || amountCents <= 0) {
+      if (!Number.isSafeInteger(amountCents) || amountCents <= 0 || currency.length !== 3
+        || metadataAmount !== amountCents || metadataCurrency !== currency) {
         return new Response(JSON.stringify({ error: "invalid_amount" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -123,10 +123,13 @@ Deno.serve(withSecurity("verify-user-wallet-topup", async (req, ctx) => {
       });
     }
 
-    const amountCents = Number(session.metadata?.amount_cents ?? session.amount_total ?? 0);
-    const currency = String(session.metadata?.currency ?? "USD").toUpperCase();
+    const amountCents = Number(session.amount_total ?? 0);
+    const currency = String(session.currency ?? "").toUpperCase();
+    const metadataAmount = Number(session.metadata?.amount_cents ?? amountCents);
+    const metadataCurrency = String(session.metadata?.currency ?? currency).toUpperCase();
 
-    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    if (!Number.isSafeInteger(amountCents) || amountCents <= 0 || currency.length !== 3
+      || metadataAmount !== amountCents || metadataCurrency !== currency) {
       return new Response(JSON.stringify({ error: "invalid_amount" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

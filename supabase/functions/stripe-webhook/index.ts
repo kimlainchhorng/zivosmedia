@@ -1398,15 +1398,16 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
         // confirmPayment; this webhook is the safety net if the app closes.
         if (paymentIntent.metadata?.type === "user_wallet_topup") {
           const walletUserId = paymentIntent.metadata.user_id;
-          const amountCents = Number(
-            paymentIntent.metadata.amount_cents ??
-            paymentIntent.amount_received ??
-            paymentIntent.amount ??
-            0,
-          );
-          const currency = String(paymentIntent.metadata.currency ?? paymentIntent.currency ?? "USD").toUpperCase();
+          // The provider-settled amount/currency are authoritative.  Reject a
+          // malformed metadata binding rather than letting client-controlled
+          // metadata change an internal wallet credit.
+          const amountCents = Number(paymentIntent.amount_received ?? paymentIntent.amount ?? 0);
+          const currency = String(paymentIntent.currency ?? "").toUpperCase();
+          const metadataAmount = Number(paymentIntent.metadata.amount_cents ?? amountCents);
+          const metadataCurrency = String(paymentIntent.metadata.currency ?? currency).toUpperCase();
 
-          if (!walletUserId || !Number.isFinite(amountCents) || amountCents <= 0) {
+          if (!walletUserId || !Number.isSafeInteger(amountCents) || amountCents <= 0
+            || currency.length !== 3 || metadataAmount !== amountCents || metadataCurrency !== currency) {
             console.warn("[Webhook] user_wallet_topup missing user/amount", { pi: paymentIntent.id });
           } else {
             const { error: walletTopupErr } = await supabase.rpc("credit_user_wallet_topup", {
