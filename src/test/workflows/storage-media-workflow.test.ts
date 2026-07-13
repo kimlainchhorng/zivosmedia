@@ -210,11 +210,12 @@ describe("storage, media, CDN, and downloads workflow", () => {
     expect(serverUploadSecurity).toContain("File contains potentially dangerous embedded content");
     expect(serverUploadSecurity).toContain("<svg\\b");
 
-    expect(serviceWorker).toContain("supabase-storage-cache");
-    expect(serviceWorker).toContain("/storage/v1/object/public/");
-    expect(serviceWorker).toContain("StaleWhileRevalidate");
-    expect(serviceWorker).toContain("maxEntries: 300");
-    expect(serviceWorker).toContain("maxAgeSeconds: 60 * 60 * 24 * 7");
+    expect(serviceWorker).toContain("immutable-static-assets-v2");
+    expect(serviceWorker).toContain("url.origin === self.location.origin");
+    expect(serviceWorker).toContain("request.destination === 'image'");
+    expect(serviceWorker).toContain("workbox.precaching.precacheAndRoute");
+    expect(serviceWorker).not.toContain("supabase-storage-cache");
+    expect(serviceWorker).not.toContain("api-cache");
 
     expect(mediaCheck).toContain("img missing loading");
     expect(mediaCheck).toContain("video missing preload policy/LazyVideo");

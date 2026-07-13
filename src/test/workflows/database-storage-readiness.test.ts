@@ -101,7 +101,9 @@ describe("database, storage, and media readiness workflow", () => {
 
     expect(mediaCheck).toContain("img missing loading");
     expect(mediaCheck).toContain("video missing preload policy/LazyVideo");
-    expect(serviceWorker).toContain("supabase-storage-cache");
-    expect(serviceWorker).toContain("/storage/v1/object/public/");
+    expect(serviceWorker).toContain("immutable-static-assets-v2");
+    expect(serviceWorker).toContain("url.origin === self.location.origin");
+    expect(serviceWorker).not.toContain("supabase-storage-cache");
+    expect(serviceWorker).not.toContain("api-cache");
   });
 });

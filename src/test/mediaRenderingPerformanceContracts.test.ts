@@ -60,8 +60,10 @@ describe("media rendering performance contracts", () => {
     expect(preflight).toContain('"media-readiness"');
     expect(preflight).toContain("scripts/performance/media-readiness-check.mjs");
     expect(preflightSchema).toContain('"media-readiness"');
-    expect(serviceWorker).toContain("supabase-storage-cache");
-    expect(serviceWorker).toContain("StaleWhileRevalidate");
+    expect(serviceWorker).toContain("immutable-static-assets-v2");
+    expect(serviceWorker).toContain("workbox.precaching.precacheAndRoute");
+    expect(serviceWorker).not.toContain("supabase-storage-cache");
+    expect(serviceWorker).not.toContain("api-cache");
 
     for (const issue of [
       'img missing loading=\\"lazy\\"/SmartImage',

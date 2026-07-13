@@ -37,11 +37,25 @@ if (workbox) {
     })
   );
 
-  // Cache images (local assets only — cross-origin images are handled separately)
+  // Only cache Vite-emitted, content-hashed same-origin images at runtime.
+  //
+  // Do not broaden this matcher to generic image extensions or a provider host:
+  // a signed/private storage URL can also end in an image extension. The app
+  // shell and its essential icons remain available offline through precache;
+  // runtime caching is intentionally limited to immutable build artifacts.
+  const immutableStaticAssetPath =
+    /^\/assets\/.+-[A-Za-z0-9_-]{8}\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/i;
+
   workbox.routing.registerRoute(
-    /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/i,
+    ({ request, url }) =>
+      request.method === 'GET' &&
+      request.destination === 'image' &&
+      url.origin === self.location.origin &&
+      url.search === '' &&
+      immutableStaticAssetPath.test(url.pathname),
     new workbox.strategies.CacheFirst({
-      cacheName: 'images-cache',
+      // A new name forces activate to remove the pre-fix broad image cache.
+      cacheName: 'immutable-static-assets-v2',
       plugins: [
         new workbox.expiration.ExpirationPlugin({
           maxEntries: 200,
@@ -49,28 +63,7 @@ if (workbox) {
           purgeOnQuotaError: true,
         }),
         new workbox.cacheableResponse.CacheableResponsePlugin({
-          statuses: [0, 200],
-        }),
-      ],
-    })
-  );
-
-  // Cache Supabase Storage media (user avatars, post images/videos thumbnails)
-  // StaleWhileRevalidate: show cached instantly, refresh in background.
-  workbox.routing.registerRoute(
-    ({ url }) =>
-      url.hostname.endsWith('.supabase.co') &&
-      url.pathname.includes('/storage/v1/object/public/'),
-    new workbox.strategies.StaleWhileRevalidate({
-      cacheName: 'supabase-storage-cache',
-      plugins: [
-        new workbox.expiration.ExpirationPlugin({
-          maxEntries: 300,
-          maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
-          purgeOnQuotaError: true,
-        }),
-        new workbox.cacheableResponse.CacheableResponsePlugin({
-          statuses: [0, 200],
+          statuses: [200],
         }),
       ],
     })
@@ -98,25 +91,11 @@ if (workbox) {
     }
   );
 
-  // NetworkFirst for Supabase API/auth/realtime calls (not storage — handled above)
-  workbox.routing.registerRoute(
-    ({ url }) =>
-      url.hostname.endsWith('.supabase.co') &&
-      !url.pathname.includes('/storage/v1/object/public/'),
-    new workbox.strategies.NetworkFirst({
-      cacheName: 'api-cache',
-      networkTimeoutSeconds: 4, // was 5s — fail faster on mobile
-      plugins: [
-        new workbox.expiration.ExpirationPlugin({
-          maxEntries: 50,
-          maxAgeSeconds: 60 * 5, // 5 min stale fallback
-        }),
-        new workbox.cacheableResponse.CacheableResponsePlugin({
-          statuses: [0, 200],
-        }),
-      ],
-    })
-  );
+  // Supabase Auth, REST, realtime, Edge Functions, signed/private storage,
+  // and all wallet/payment data are deliberately network-only by default:
+  // there is no provider-host runtime-cache route. This prevents credentials,
+  // session responses, signed URLs, and financial state from being persisted
+  // in Cache Storage.
 } else {
   console.log('[SW] Workbox failed to load');
 }
@@ -306,11 +285,7 @@ self.addEventListener('activate', (event) => {
       const keepCaches = [
         'google-fonts-stylesheets',
         'google-fonts-webfonts',
-        'images-cache',
-        'supabase-storage-cache',
-        'api-cache',
-        'local-images',
-        'unsplash-images',
+        'immutable-static-assets-v2',
       ];
 
       if (workbox?.core?.cacheNames?.precache) {

@@ -107,8 +107,9 @@ const contracts = [
       for (const needle of ["img missing loading", "img missing decoding", "video missing preload policy/LazyVideo"]) {
         requireContains(this.id, mediaReport, needle, mediaReportPath);
       }
-      requireContains(this.id, serviceWorker, "supabase-storage-cache", serviceWorkerPath);
-      requireContains(this.id, serviceWorker, "StaleWhileRevalidate", serviceWorkerPath);
+      requireContains(this.id, serviceWorker, "immutable-static-assets-v2", serviceWorkerPath);
+      requireContains(this.id, serviceWorker, "workbox.precaching.precacheAndRoute", serviceWorkerPath);
+      requireContains(this.id, serviceWorker, "url.origin === self.location.origin", serviceWorkerPath);
     },
   },
   {

@@ -220,9 +220,13 @@ const contracts = [
       for (const needle of ["img missing loading", "video missing preload policy/LazyVideo", "SmartImage", "LazyVideo"]) {
         requireContains(this.id, mediaCheck, needle, mediaCheckPath);
       }
-      requireContains(this.id, serviceWorker, "supabase-storage-cache", serviceWorkerPath);
-      requireContains(this.id, serviceWorker, "/storage/v1/object/public/", serviceWorkerPath);
-      requireContains(this.id, serviceWorker, "new workbox.strategies.StaleWhileRevalidate", serviceWorkerPath);
+      requireContains(this.id, serviceWorker, "immutable-static-assets-v2", serviceWorkerPath);
+      requireContains(this.id, serviceWorker, "url.origin === self.location.origin", serviceWorkerPath);
+      requireContains(this.id, serviceWorker, "request.destination === 'image'", serviceWorkerPath);
+      requireContains(this.id, serviceWorker, "there is no provider-host runtime-cache route", serviceWorkerPath);
+      if (serviceWorker.includes("supabase-storage-cache") || serviceWorker.includes("api-cache")) {
+        fail(this.id, "service worker must not define a Supabase runtime cache", serviceWorkerPath);
+      }
     },
   },
 ];
