@@ -1,0 +1,97 @@
+name: Agent update (DeepSeek)
+
+# Manual-only: run the DeepSeek advisor on a task from the GitHub UI.
+# Actions tab → "Agent update (DeepSeek)" → Run workflow → type the task.
+# The proposed plan/diff appears in the run Summary and as a downloadable artifact.
+# DeepSeek only PROPOSES — it never commits or deploys. One-time setup:
+#   gh secret set DEEPSEEK_API_KEY
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "What should DeepSeek do? (the task)"
+        required: true
+        type: string
+      model:
+        description: "Model"
+        required: true
+        default: deepseek-chat
+        type: choice
+        options:
+          - deepseek-chat
+          - deepseek-reasoner
+      files:
+        description: "Optional context files (space-separated paths, e.g. src/App.tsx src/pages/ZivoTravelHome.tsx)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-deepseek-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deepseek:
+    name: DeepSeek advisor
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Check DEEPSEEK_API_KEY secret
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          if [ -z "$DEEPSEEK_API_KEY" ]; then
+            echo "::error::DEEPSEEK_API_KEY repo secret is not set. Run locally: gh secret set DEEPSEEK_API_KEY"
+            exit 1
+          fi
+
+      - name: Run DeepSeek
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          TASK: ${{ inputs.task }}
+          MODEL: ${{ inputs.model }}
+          FILES: ${{ inputs.files }}
+        run: |
+          # The runner needs no npm install — it uses native fetch + node: builtins.
+          args=( --task "$TASK" --model "$MODEL" --out agent-output.md --no-save )
+          for f in $FILES; do
+            args+=( --file "$f" )
+          done
+          node scripts/agents/deepseek-runner.mjs "${args[@]}"
+
+      - name: Publish result to step summary
+        if: always()
+        run: |
+          {
+            echo "## DeepSeek result"
+            echo ""
+            echo "**Task:** ${{ inputs.task }}"
+            echo "**Model:** ${{ inputs.model }}"
+            echo ""
+            if [ -f agent-output.md ]; then
+              cat agent-output.md
+            else
+              echo "_(no output produced — check the Run DeepSeek step logs)_"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload output artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: deepseek-agent-output
+          path: agent-output.md
+          if-no-files-found: warn
+          retention-days: 14

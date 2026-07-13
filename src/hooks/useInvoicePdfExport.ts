@@ -228,7 +228,7 @@ export function useInvoicePdfExport() {
     </div>
     
     <div class="footer">
-      <p>Thank you for choosing <a href="https://hizivo.com">ZIVO</a></p>
+      <p>Thank you for choosing <a href="https://zivosmedia.com">ZIVO</a></p>
       <p class="footer-note">
         ZIVO is a travel search and referral service. Payment and ticketing are handled by our licensed travel partners.
       </p>
@@ -238,22 +238,14 @@ export function useInvoicePdfExport() {
 </html>`;
   };
 
-  // Export to PDF (using print dialog)
-  const exportToPDF = (data: InvoicePdfData) => {
+  // Export invoice as a downloadable/shareable HTML document
+  const exportToPDF = async (data: InvoicePdfData) => {
     try {
+      const { exportBlob } = await import("@/lib/native/exportFile");
       const htmlContent = generateInvoiceHTML(data);
-      const printWindow = window.open("", "_blank", "noopener,noreferrer");
-      if (printWindow) {
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-        }, 250);
-        toast.success("Opening print dialog...");
-      } else {
-        toast.error("Please allow pop-ups to download PDF");
-      }
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const shared = await exportBlob(blob, `ZIVO-Invoice-${data.invoice?.id?.slice(0, 8) || 'receipt'}.html`, 'Invoice');
+      if (!shared) toast.success("Invoice downloaded!");
     } catch (error) {
       console.error("Failed to generate PDF:", error);
       toast.error("Failed to generate PDF");

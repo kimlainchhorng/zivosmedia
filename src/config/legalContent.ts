@@ -7,17 +7,18 @@ export const COMPANY_INFO = {
   name: "ZIVO LLC",
   dba: "ZIVO",
   address: "United States",
-  email: "info@hizivo.com",
-  supportEmail: "support@hizivo.com",
-  billingEmail: "payment@hizivo.com",
-  website: "https://hizivo.com",
+  email: "info@zivosmedia.com",
+  supportEmail: "support@zivosmedia.com",
+  billingEmail: "payment@zivosmedia.com",
+  website: "https://zivosmedia.com",
   stateOfFormation: "Delaware",
   governingLaw: "State of Delaware",
+  lastUpdated: "March 13, 2026",
 };
 
 export const TERMS_OF_SERVICE = {
-  version: "2.0",
-  effectiveDate: "2026-02-03",
+  version: "3.0",
+  effectiveDate: "2026-03-13",
   sections: [
     {
       title: "1. Acceptance of Terms",
@@ -260,7 +261,7 @@ export const PRIVACY_POLICY = {
     },
     {
       title: "5. Your Rights",
-      content: `You have the right to: access your data, correct inaccurate data, request deletion, opt out of marketing, and data portability. Contact privacy@hizivo.com to exercise these rights.`,
+      content: `You have the right to: access your data, correct inaccurate data, request deletion, opt out of marketing, and data portability. Contact privacy@zivosmedia.com to exercise these rights.`,
     },
     {
       title: "6. Security",
@@ -1478,7 +1479,7 @@ export const GOVERNMENT_SHUTDOWN_POLICIES = {
     id: "public_statement",
     title: "Public Statement Limitation",
     version: "1.0",
-    content: `Only official ZIVO channels represent the company. ZIVO is not liable for statements, claims, or representations made by users, partners, drivers, or any third parties. Official statements come only from @hizivo.com email addresses or official social media accounts.`,
+    content: `Only official ZIVO channels represent the company. ZIVO is not liable for statements, claims, or representations made by users, partners, drivers, or any third parties. Official statements come only from @zivosmedia.com email addresses or official social media accounts.`,
   },
 
   // Clause 105: Marketplace Volatility Disclaimer
@@ -1614,7 +1615,7 @@ export const CORPORATE_IP_POLICIES = {
       "Provide contact information and signature",
       "ZIVO reviews and acts on valid notices",
     ],
-    dmcaAgent: "DMCA Agent, ZIVO LLC, legal@hizivo.com",
+    dmcaAgent: "DMCA Agent, ZIVO LLC, legal@zivosmedia.com",
   },
 
   // Clause 112: Subpoena Response Policy
@@ -1683,7 +1684,7 @@ export const CORPORATE_IP_POLICIES = {
       "Protection from adverse action",
       "False reports prohibited",
     ],
-    reportingChannel: "ethics@hizivo.com",
+    reportingChannel: "ethics@zivosmedia.com",
   },
 
   // Clause 117: Internal Misuse Disclaimer
@@ -1791,7 +1792,7 @@ export const CORPORATE_LEGAL_FAQ = [
   },
   {
     question: "Who handles DMCA takedown requests?",
-    answer: "DMCA notices should be sent to ZIVO's designated agent at legal@hizivo.com with required information.",
+    answer: "DMCA notices should be sent to ZIVO's designated agent at legal@zivosmedia.com with required information.",
   },
   {
     question: "Can I report ethical concerns confidentially?",
@@ -2436,7 +2437,7 @@ export const FINANCIAL_COMPLIANCE_POLICIES = {
     version: "1.0",
     content: `ZIVO provides a complaints process for users to raise concerns about services. Resolution timelines depend on complaint complexity and are not guaranteed. Complaints do not create legal obligations beyond good-faith review. Regulatory complaints may override platform decisions when required by law.`,
     complaintProcess: [
-      "Submit complaint via support@hizivo.com or in-app support",
+      "Submit complaint via support@zivosmedia.com or in-app support",
       "Receive acknowledgment within 48 hours",
       "Investigation and review of relevant records",
       "Response with findings and resolution (if applicable)",

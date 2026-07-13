@@ -323,7 +323,7 @@ export default function TrustCertification() {
                 Security researchers who discover vulnerabilities are encouraged to report them responsibly.
               </p>
               <Button variant="outline" size="sm" asChild>
-                <a href="mailto:security@hizivo.com">
+                <a href="mailto:security@zivosmedia.com">
                   Report a Vulnerability
                   <ExternalLink className="w-3 h-3 ml-2" />
                 </a>

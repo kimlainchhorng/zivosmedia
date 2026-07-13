@@ -8,10 +8,63 @@ export interface UserAccess {
   isCarRentalOwner: boolean;
   isHotelOwner: boolean;
   isFlightManager: boolean;
+  isStoreOwner: boolean;
+  isSupport: boolean;
+  isModerator: boolean;
+  isOperations: boolean;
+  roles: string[];
   driverId?: string;
   restaurantId?: string;
   carRentalIds?: string[];
   hotelId?: string;
+  storeId?: string;
+}
+
+const EMPTY_ACCESS: UserAccess = {
+  isAdmin: false,
+  isDriver: false,
+  isRestaurantOwner: false,
+  isCarRentalOwner: false,
+  isHotelOwner: false,
+  isFlightManager: false,
+  isStoreOwner: false,
+  isSupport: false,
+  isModerator: false,
+  isOperations: false,
+  roles: [],
+};
+
+let accessRpcAvailable: boolean | null = null;
+
+function normalizeAccess(data: any): UserAccess {
+  const roles = Array.isArray(data?.roles) ? data.roles.map(String) : [];
+  // The get_my_user_access RPC only emits a subset of explicit booleans
+  // (is_admin/is_driver/is_merchant). Derive the remaining role flags from the
+  // roles array so support/moderator/operations are honored when the RPC omits
+  // their booleans — matching the non-RPC fallback path below.
+  const hasRole = (role: string) => roles.includes(role);
+  return {
+    isAdmin: Boolean(data?.isAdmin ?? data?.is_admin) || hasRole("admin") || hasRole("super_admin"),
+    isDriver: Boolean(data?.isDriver ?? data?.is_driver) || hasRole("driver"),
+    isRestaurantOwner: Boolean(data?.isRestaurantOwner ?? data?.is_restaurant_owner),
+    isCarRentalOwner: Boolean(data?.isCarRentalOwner ?? data?.is_car_rental_owner),
+    isHotelOwner: Boolean(data?.isHotelOwner ?? data?.is_hotel_owner),
+    isFlightManager: Boolean(data?.isFlightManager ?? data?.is_flight_manager),
+    isStoreOwner: Boolean(data?.isStoreOwner ?? data?.is_store_owner),
+    isSupport: Boolean(data?.isSupport ?? data?.is_support) || hasRole("support"),
+    isModerator: Boolean(data?.isModerator ?? data?.is_moderator) || hasRole("moderator"),
+    isOperations: Boolean(data?.isOperations ?? data?.is_operations) || hasRole("operations"),
+    roles,
+    driverId: data?.driverId ?? data?.driver_id ?? undefined,
+    restaurantId: data?.restaurantId ?? data?.restaurant_id ?? undefined,
+    carRentalIds: Array.isArray(data?.carRentalIds)
+      ? data.carRentalIds
+      : Array.isArray(data?.car_rental_ids)
+        ? data.car_rental_ids
+        : undefined,
+    hotelId: data?.hotelId ?? data?.hotel_id ?? undefined,
+    storeId: data?.storeId ?? data?.store_id ?? undefined,
+  };
 }
 
 export const useUserAccess = (userId: string | undefined) => {
@@ -19,24 +72,27 @@ export const useUserAccess = (userId: string | undefined) => {
     queryKey: ["userAccess", userId],
     queryFn: async (): Promise<UserAccess> => {
       if (!userId) {
-        return {
-          isAdmin: false,
-          isDriver: false,
-          isRestaurantOwner: false,
-          isCarRentalOwner: false,
-          isHotelOwner: false,
-          isFlightManager: false,
-        };
+        return EMPTY_ACCESS;
+      }
+
+      if (accessRpcAvailable !== false) {
+        const { data, error } = await (supabase as any).rpc("get_my_user_access");
+        if (!error && data) {
+          accessRpcAvailable = true;
+          return normalizeAccess(data);
+        }
+
+        if (error?.code === "PGRST202" || error?.code === "42883") {
+          accessRpcAvailable = false;
+        }
       }
 
       // Check all access in parallel
-      const [adminRole, driver, restaurant, carRentals, hotel] = await Promise.all([
+      const [userRoles, driver, restaurant, carRentals, hotel, storeProfile] = await Promise.all([
         supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", userId)
-          .eq("role", "admin")
-          .maybeSingle(),
+          .eq("user_id", userId),
         supabase
           .from("drivers")
           .select("id")
@@ -56,19 +112,32 @@ export const useUserAccess = (userId: string | undefined) => {
           .select("id")
           .eq("owner_id", userId)
           .maybeSingle(),
+        supabase
+          .from("store_profiles")
+          .select("id")
+          .eq("owner_id", userId)
+          .maybeSingle(),
       ]);
 
+      const roles = (userRoles.data || []).map(r => r.role);
+
       return {
-        isAdmin: !!adminRole.data,
+        isAdmin: roles.includes("admin") || roles.includes("super_admin"),
         isDriver: !!driver.data,
         isRestaurantOwner: !!restaurant.data,
         isCarRentalOwner: (carRentals.data?.length ?? 0) > 0,
         isHotelOwner: !!hotel.data,
-        isFlightManager: !!adminRole.data, // For now, only admins can manage flights
+        isFlightManager: roles.includes("admin") || roles.includes("super_admin"),
+        isStoreOwner: !!storeProfile.data,
+        isSupport: roles.includes("support"),
+        isModerator: roles.includes("moderator"),
+        isOperations: roles.includes("operations"),
+        roles,
         driverId: driver.data?.id,
         restaurantId: restaurant.data?.id,
         carRentalIds: carRentals.data?.map(c => c.id),
         hotelId: hotel.data?.id,
+        storeId: storeProfile.data?.id,
       };
     },
     enabled: !!userId,

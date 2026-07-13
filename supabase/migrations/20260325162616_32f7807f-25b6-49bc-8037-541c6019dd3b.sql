@@ -1,0 +1,5 @@
+INSERT INTO public.store_profiles (name, slug, description, logo_url, market, category, address, phone, hours, rating, delivery_min, is_active)
+VALUES 
+('Chip Mong Supermarket', 'chip-mong', 'We offer the widest range of products to meet the customers'' modern shopping experience.', NULL, 'KH', 'grocery', 'Phnom Penh, Cambodia', '023 900 888', '7am–10pm', 4.7, 45, true),
+('AEON Mall Market', 'aeon-market', 'Premium Japanese supermarket chain with fresh groceries and household items.', NULL, 'KH', 'grocery', 'Phnom Penh, Cambodia', '023 988 668', '9am–10pm', 4.6, 50, true),
+('Lucky Supermarket', 'lucky-supermarket', 'Cambodia''s leading supermarket chain offering quality products at affordable prices.', NULL, 'KH', 'grocery', 'Phnom Penh, Cambodia', '023 215 225', '7am–9:30pm', 4.5, 40, true);

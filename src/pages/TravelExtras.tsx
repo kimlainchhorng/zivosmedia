@@ -70,17 +70,6 @@ interface ExtrasPartner {
 
 const EXTRAS_PARTNERS: ExtrasPartner[] = [
   {
-    id: 'klook',
-    name: 'Klook',
-    category: 'Activities & Tours',
-    description: 'Book tours and attractions worldwide',
-    icon: Ticket,
-    thumbnail: extrasActivities,
-    trackingUrl: 'https://klook.tpo.li/ToVcOax7',
-    gradient: 'from-emerald-500/10 to-teal-500/10',
-    borderHover: 'hover:border-emerald-500/50',
-  },
-  {
     id: 'tiqets',
     name: 'Tiqets',
     category: 'Museums & Attractions',
@@ -258,6 +247,8 @@ export default function TravelExtras() {
                 src={heroExtras}
                 alt="Travel extras and services"
                 className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background" />
             </div>
@@ -321,11 +312,17 @@ export default function TravelExtras() {
                     return (
                       <Tooltip key={partner.id}>
                         <TooltipTrigger asChild>
-                          <a
-                            href={outboundUrl}
-                            target="_blank"
-                            rel="nofollow sponsored noopener noreferrer"
-                            className="block"
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.preventDefault(); import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(outboundUrl)); }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(outboundUrl));
+                              }
+                            }}
+                            className="block w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-[var(--radius)]"
                           >
                             <Card
                               className={cn(
@@ -343,6 +340,7 @@ export default function TravelExtras() {
                                     alt={partner.category}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                     loading="lazy"
+                                    decoding="async"
                                   />
                                   <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
                                   {/* Icon Badge */}
@@ -375,7 +373,7 @@ export default function TravelExtras() {
                                 </div>
                               </CardContent>
                             </Card>
-                          </a>
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>You will be redirected to a partner site.</p>
@@ -401,7 +399,7 @@ export default function TravelExtras() {
                   <span>Instant confirmation</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Globe className="w-4 h-4 text-sky-500" />
+                  <Globe className="w-4 h-4 text-foreground" />
                   <span>Worldwide coverage</span>
                 </div>
               </div>

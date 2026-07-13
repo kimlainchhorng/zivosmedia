@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
-
-const STORAGE_KEY = "zivo_local_payment_methods";
+import { useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export interface LocalPaymentMethod {
   id: string;
@@ -12,6 +14,7 @@ export interface LocalPaymentMethod {
   cardholderName: string;
   isDefault: boolean;
   createdAt: number;
+  stripeId?: string; // If sourced from DB
 }
 
 export type CardInput = Omit<LocalPaymentMethod, "id" | "createdAt" | "isDefault">;
@@ -28,18 +31,12 @@ export function detectCardBrand(cardNumber: string): string {
   return "Card";
 }
 
-/**
- * Format card number with spaces (XXXX XXXX XXXX XXXX)
- */
 export function formatCardNumber(value: string): string {
   const cleaned = value.replace(/\D/g, "").slice(0, 16);
   const parts = cleaned.match(/.{1,4}/g);
   return parts ? parts.join(" ") : cleaned;
 }
 
-/**
- * Format expiry date (MM/YY)
- */
 export function formatExpiry(value: string): string {
   const cleaned = value.replace(/\D/g, "").slice(0, 4);
   if (cleaned.length >= 2) {
@@ -48,9 +45,6 @@ export function formatExpiry(value: string): string {
   return cleaned;
 }
 
-/**
- * Parse expiry string to month and year
- */
 export function parseExpiry(expiry: string): { month: number; year: number } | null {
   const match = expiry.match(/^(\d{2})\/(\d{2})$/);
   if (!match) return null;
@@ -60,14 +54,9 @@ export function parseExpiry(expiry: string): { month: number; year: number } | n
   return { month, year };
 }
 
-/**
- * Validate card number (basic Luhn check)
- */
 export function validateCardNumber(cardNumber: string): boolean {
   const cleaned = cardNumber.replace(/\s/g, "");
   if (!/^\d{13,19}$/.test(cleaned)) return false;
-  
-  // Luhn algorithm
   let sum = 0;
   let isEven = false;
   for (let i = cleaned.length - 1; i >= 0; i--) {
@@ -82,9 +71,6 @@ export function validateCardNumber(cardNumber: string): boolean {
   return sum % 10 === 0;
 }
 
-/**
- * Validate expiry is in the future
- */
 export function validateExpiry(expiry: string): boolean {
   const parsed = parseExpiry(expiry);
   if (!parsed) return false;
@@ -96,77 +82,90 @@ export function validateExpiry(expiry: string): boolean {
   return false;
 }
 
-/**
- * Validate CVV (3-4 digits)
- */
 export function validateCVV(cvv: string): boolean {
   return /^\d{3,4}$/.test(cvv);
 }
 
 /**
- * Mock payment methods hook using localStorage
+ * Payment methods hook — reads real saved cards from zivo_payment_methods.
+ * New cards must be saved through the Stripe SetupIntent flow.
  */
 export function useLocalPaymentMethods() {
-  const [methods, setMethods] = useState<LocalPaymentMethod[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Fetch saved cards from DB
+  const { data: dbMethods = [], isLoading } = useQuery({
+    queryKey: ["zivo-payment-methods", user?.id],
+    queryFn: async (): Promise<LocalPaymentMethod[]> => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("zivo_payment_methods")
+        .select("id, brand, last_four, exp_month, exp_year, is_default, type, stripe_payment_method_id, nickname, created_at")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.error("[PaymentMethods] Fetch error:", error);
+        return [];
+      }
+      return (data || []).map(pm => ({
+        id: pm.id,
+        type: "card" as const,
+        brand: pm.brand || "Card",
+        last4: pm.last_four || "****",
+        expMonth: pm.exp_month || 0,
+        expYear: pm.exp_year || 0,
+        cardholderName: pm.nickname || "",
+        isDefault: pm.is_default || false,
+        createdAt: new Date(pm.created_at).getTime(),
+        stripeId: pm.stripe_payment_method_id,
+      }));
+    },
+    enabled: !!user,
+    staleTime: 60_000,
   });
 
-  // Persist to localStorage whenever methods change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(methods));
-    } catch (error) {
-      console.error("[useLocalPaymentMethods] Failed to persist:", error);
+  const methods = useMemo(() => user ? dbMethods : [], [user, dbMethods]);
+
+  const deleteCard = useCallback(async (id: string) => {
+    if (user) {
+      const { error } = await supabase.functions.invoke("zivo-payment-method-manage", {
+        body: { action: "delete", payment_method_id: id },
+      });
+      if (error) {
+        toast.error("Failed to remove card");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["zivo-payment-methods"] });
+      toast.success("Card removed");
+    } else {
+      toast.error("Sign in to manage payment methods");
     }
-  }, [methods]);
+  }, [user, queryClient]);
 
-  const addCard = useCallback((card: CardInput) => {
-    const newCard: LocalPaymentMethod = {
-      ...card,
-      id: `pm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: Date.now(),
-      isDefault: false,
-    };
-
-    setMethods((prev) => {
-      // If this is the first card, make it default
-      if (prev.length === 0) {
-        newCard.isDefault = true;
+  const setDefault = useCallback(async (id: string) => {
+    if (user) {
+      const { error } = await supabase.functions.invoke("zivo-payment-method-manage", {
+        body: { action: "set_default", payment_method_id: id },
+      });
+      if (error) {
+        toast.error("Failed to update default card");
+        return;
       }
-      return [...prev, newCard];
-    });
+      queryClient.invalidateQueries({ queryKey: ["zivo-payment-methods"] });
+    } else {
+      toast.error("Sign in to manage payment methods");
+    }
+  }, [user, queryClient]);
 
-    return newCard;
-  }, []);
-
-  const deleteCard = useCallback((id: string) => {
-    setMethods((prev) => {
-      const updated = prev.filter((m) => m.id !== id);
-      // If we deleted the default card, make the first remaining card default
-      const hasDefault = updated.some((m) => m.isDefault);
-      if (!hasDefault && updated.length > 0) {
-        updated[0].isDefault = true;
-      }
-      return updated;
-    });
-  }, []);
-
-  const setDefault = useCallback((id: string) => {
-    setMethods((prev) =>
-      prev.map((m) => ({
-        ...m,
-        isDefault: m.id === id,
-      }))
-    );
+  const addCard = useCallback((_card: CardInput) => {
+    toast.error("Use secure card setup to save a payment method");
+    return null;
   }, []);
 
   const getDefault = useCallback(() => {
-    return methods.find((m) => m.isDefault) || methods[0] || null;
+    return methods.find(m => m.isDefault) || methods[0] || null;
   }, [methods]);
 
   return {
@@ -176,5 +175,6 @@ export function useLocalPaymentMethods() {
     setDefault,
     getDefault,
     isEmpty: methods.length === 0,
+    isLoading,
   };
 }

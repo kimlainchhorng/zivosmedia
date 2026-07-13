@@ -61,7 +61,7 @@ export default function DealsPage() {
       <SEOHead 
         title="Today's Best Travel Deals - Flights, Hotels & Cars | ZIVO"
         description="Find the best travel deals on flights, hotels, and car rentals. Compare prices from 500+ travel partners and book with confidence. No booking fees on ZIVO."
-        canonical="https://hizivo.com/deals"
+        canonical="https://zivosmedia.com/deals"
       />
       <OrganizationSchema />
       
@@ -69,7 +69,7 @@ export default function DealsPage() {
 
       <main className="pt-16">
         {/* Hero Section */}
-        <section className="relative py-16 sm:py-24 overflow-hidden bg-gradient-to-br from-primary/10 via-background to-sky-500/5">
+        <section className="relative py-16 sm:py-24 overflow-hidden bg-gradient-to-br from-primary/10 via-background">
           <div className="container mx-auto px-4 relative z-10">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
@@ -96,7 +96,7 @@ export default function DealsPage() {
               {/* Quick Search Buttons */}
               <div className="flex flex-wrap justify-center gap-4">
                 <Link to="/flights">
-                  <Button size="lg" className="h-12 gap-2 bg-sky-500 hover:bg-sky-600">
+                  <Button size="lg" className="h-12 gap-2 bg-foreground hover:bg-foreground">
                     <Plane className="h-5 w-5" />
                     Search Flights
                   </Button>
@@ -172,8 +172,8 @@ export default function DealsPage() {
             {/* Flights Section */}
             <div className="mb-12">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center">
-                  <Plane className="w-6 h-6 text-sky-500" />
+                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+                  <Plane className="w-6 h-6 text-foreground" />
                 </div>
                 <div>
                   <h2 className="font-display text-2xl font-bold">Flight Deals</h2>
@@ -191,11 +191,11 @@ export default function DealsPage() {
                       to={getFlightRouteUrl(route)}
                       className="group"
                     >
-                      <Card className="border hover:border-sky-500/50 transition-all group-hover:shadow-lg">
+                      <Card className="border hover:border-border transition-all group-hover:shadow-lg">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between mb-2">
-                            <Badge variant="outline" className="text-sky-500 border-sky-500/30">Flight</Badge>
-                            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-sky-500 transition-colors" />
+                            <Badge variant="outline" className="text-foreground border-border">Flight</Badge>
+                            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                           </div>
                           <p className="font-semibold">{fromName} → {toName}</p>
                           <p className="text-sm text-muted-foreground">Compare prices</p>

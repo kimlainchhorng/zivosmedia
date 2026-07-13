@@ -101,11 +101,11 @@ const Careers = () => {
       <SEOHead
         title="Careers | ZIVO"
         description="Join ZIVO and help build the future of travel. Remote-first, global-minded, innovation-driven."
-        canonical="https://hizivo.com/careers"
+        canonical="https://zivosmedia.com/careers"
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Hero Section */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="text-center mb-16">
@@ -123,7 +123,7 @@ const Careers = () => {
           </motion.div>
 
           {/* Mission Banner */}
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-sky-500/5 mb-16">
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 mb-16">
             <CardContent className="p-8 text-center">
               <Sparkles className="w-10 h-10 text-primary mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
@@ -209,7 +209,7 @@ const Careers = () => {
                     notified when new opportunities become available.
                   </p>
                   <Button variant="outline" className="gap-2" asChild>
-                    <a href="mailto:careers@hizivo.com">
+                    <a href="mailto:careers@zivosmedia.com">
                       <Mail className="w-4 h-4" />
                       Get Notified
                     </a>
@@ -364,7 +364,7 @@ const Careers = () => {
 
           {/* DEI Commitment */}
           <section className="mb-16">
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-violet-500/5">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5">
               <CardContent className="p-8 text-center">
                 <h2 className="text-2xl font-bold mb-4">Diversity & Inclusion</h2>
                 <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
@@ -388,7 +388,7 @@ const Careers = () => {
           </section>
 
           {/* Contact Section */}
-          <section className="text-center p-12 rounded-3xl bg-gradient-to-br from-primary/10 via-transparent to-sky-500/10 border border-primary/20">
+          <section className="text-center p-12 rounded-3xl bg-gradient-to-br from-primary/10 via-transparent border border-primary/20">
             <Mail className="w-12 h-12 text-primary mx-auto mb-6" />
             <h2 className="text-3xl font-bold mb-4">Get in Touch</h2>
             <p className="text-muted-foreground max-w-xl mx-auto mb-6">
@@ -396,9 +396,9 @@ const Careers = () => {
               talent. Send us your resume and tell us how you'd contribute.
             </p>
             <Button size="lg" className="gap-2" asChild>
-              <a href="mailto:careers@hizivo.com">
+              <a href="mailto:careers@zivosmedia.com">
                 <Mail className="w-4 h-4" />
-                careers@hizivo.com
+                careers@zivosmedia.com
               </a>
             </Button>
           </section>

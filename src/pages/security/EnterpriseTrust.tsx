@@ -190,7 +190,7 @@ export default function EnterpriseTrust() {
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
-                <Link to="/business/partner-audit">
+                <Link to="/partner-audit-docs">
                   <Button variant="outline" className="gap-2">
                     Partner Audit Docs
                     <ArrowRight className="w-4 h-4" />
@@ -244,8 +244,8 @@ export default function EnterpriseTrust() {
         <div className="text-center mt-12 text-sm text-muted-foreground">
           <p>
             For security questionnaires or enterprise inquiries, contact{" "}
-            <a href="mailto:security@hizivo.com" className="text-primary hover:underline">
-              security@hizivo.com
+            <a href="mailto:security@zivosmedia.com" className="text-primary hover:underline">
+              security@zivosmedia.com
             </a>
           </p>
         </div>

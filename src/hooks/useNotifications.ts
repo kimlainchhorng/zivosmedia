@@ -4,13 +4,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { subscribeToPooledPostgresChanges } from '@/services/chatRealtimePool';
+import {
+  clearInAppNotifications,
+  deleteNotificationsById,
+  markAllNotificationsRead,
+  markNotificationsRead,
+  snoozeNotificationById,
+} from '@/lib/notifications/notificationManage';
+
+const NOTIFICATIONS_MARK_ALL_READ_EVENT = 'zivo:notifications:mark-all-read';
 
 interface Notification {
   id: string;
   user_id: string | null;
   order_id: string | null;
   channel: 'email' | 'in_app' | 'sms';
-  category: 'transactional' | 'account' | 'operational' | 'marketing';
+  category: 'transactional' | 'account' | 'operational' | 'marketing' | 'order' | 'social';
   template: string;
   title: string;
   body: string;
@@ -19,6 +29,7 @@ interface Notification {
   is_read: boolean;
   read_at: string | null;
   created_at: string;
+  snoozed_until: string | null;
   metadata: Record<string, any>;
 }
 
@@ -30,6 +41,9 @@ interface UseNotificationsResult {
   fetchNotifications: () => Promise<void>;
   markAsRead: (notificationIds: string[]) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  deleteNotifications: (notificationIds: string[]) => Promise<boolean>;
+  clearAll: () => Promise<void>;
+  snoozeNotification: (notificationId: string, durationMs: number) => Promise<void>;
 }
 
 export function useNotifications(limit = 50): UseNotificationsResult {
@@ -51,7 +65,8 @@ export function useNotifications(limit = 50): UseNotificationsResult {
         return;
       }
 
-      // Fetch notifications
+      // Fetch — filter snoozed rows client-side so this works whether or
+      // not the snoozed_until column has been deployed yet.
       const { data, error: fetchError } = await supabase
         .from('notifications')
         .select('*')
@@ -62,7 +77,11 @@ export function useNotifications(limit = 50): UseNotificationsResult {
 
       if (fetchError) throw fetchError;
 
-      const typedData = (data || []) as unknown as Notification[];
+      const nowMs = Date.now();
+      const typedData = ((data || []) as unknown as Notification[]).filter((n) => {
+        if (!n.snoozed_until) return true;
+        return +new Date(n.snoozed_until) <= nowMs;
+      });
       setNotifications(typedData);
 
       // Count unread
@@ -78,28 +97,24 @@ export function useNotifications(limit = 50): UseNotificationsResult {
   }, [limit]);
 
   const markAsRead = useCallback(async (notificationIds: string[]) => {
-    try {
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update({ 
-          is_read: true, 
-          read_at: new Date().toISOString() 
-        })
-        .in('id', notificationIds);
-
-      if (updateError) throw updateError;
-
-      // Update local state
-      setNotifications(prev => 
-        prev.map(n => 
-          notificationIds.includes(n.id) 
-            ? { ...n, is_read: true, read_at: new Date().toISOString() }
-            : n
-        )
+    // Optimistic update first — no spinner flash
+    const nowIso = new Date().toISOString();
+    let prevSnapshot: Notification[] = [];
+    setNotifications(prev => {
+      prevSnapshot = prev;
+      return prev.map(n =>
+        notificationIds.includes(n.id) ? { ...n, is_read: true, read_at: nowIso } : n
       );
-      setUnreadCount(prev => Math.max(0, prev - notificationIds.length));
+    });
+    const unreadDelta = prevSnapshot.filter(n => notificationIds.includes(n.id) && !n.is_read).length;
+    setUnreadCount(prev => Math.max(0, prev - unreadDelta));
 
+    try {
+      await markNotificationsRead(notificationIds);
     } catch (err: any) {
+      // Rollback on failure
+      setNotifications(prevSnapshot);
+      setUnreadCount(prev => prev + unreadDelta);
       console.error('Error marking notifications as read:', err);
       toast({
         title: 'Error',
@@ -114,22 +129,19 @@ export function useNotifications(limit = 50): UseNotificationsResult {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) return;
 
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update({ 
-          is_read: true, 
-          read_at: new Date().toISOString() 
-        })
-        .eq('user_id', session.session.user.id)
-        .eq('is_read', false);
-
-      if (updateError) throw updateError;
+      await markAllNotificationsRead();
 
       // Update local state
       setNotifications(prev => 
         prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() }))
       );
       setUnreadCount(0);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(NOTIFICATIONS_MARK_ALL_READ_EVENT, {
+          detail: { userId: session.session.user.id },
+        }));
+      }
 
       toast({
         title: 'All caught up!',
@@ -146,6 +158,107 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     }
   }, [toast]);
 
+  const deleteNotifications = useCallback(async (notificationIds: string[]): Promise<boolean> => {
+    if (notificationIds.length === 0) return false;
+    const prevSnapshot = notifications;
+    const removed = prevSnapshot.filter(n => notificationIds.includes(n.id));
+    const removedUnread = removed.filter(n => !n.is_read).length;
+    setNotifications(prev => prev.filter(n => !notificationIds.includes(n.id)));
+    setUnreadCount(prev => Math.max(0, prev - removedUnread));
+
+    try {
+      await deleteNotificationsById(notificationIds);
+      return true;
+    } catch (err: any) {
+      setNotifications(prevSnapshot);
+      setUnreadCount(prev => prev + removedUnread);
+      console.error('Error deleting notifications:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete notification',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [notifications, toast]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleMarkAllRead = () => {
+      const nowIso = new Date().toISOString();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read_at: n.read_at || nowIso })));
+      setUnreadCount(0);
+    };
+
+    window.addEventListener(NOTIFICATIONS_MARK_ALL_READ_EVENT, handleMarkAllRead);
+    return () => window.removeEventListener(NOTIFICATIONS_MARK_ALL_READ_EVENT, handleMarkAllRead);
+  }, []);
+
+  const clearAll = useCallback(async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) return;
+
+      const prevSnapshot = notifications;
+      setNotifications([]);
+      setUnreadCount(0);
+
+      try {
+        await clearInAppNotifications();
+      } catch (delError) {
+        setNotifications(prevSnapshot);
+        setUnreadCount(prevSnapshot.filter(n => !n.is_read).length);
+        throw delError;
+      }
+
+      toast({
+        title: 'Cleared',
+        description: 'All notifications removed',
+      });
+    } catch (err: any) {
+      console.error('Error clearing notifications:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to clear notifications',
+        variant: 'destructive',
+      });
+    }
+  }, [notifications, toast]);
+
+  const snoozeNotification = useCallback(async (notificationId: string, durationMs: number) => {
+    const target = notifications.find(n => n.id === notificationId);
+    if (!target) return;
+    const until = new Date(Date.now() + durationMs).toISOString();
+    const wasUnread = !target.is_read;
+
+    // Optimistic remove from local state.
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
+
+    try {
+      await snoozeNotificationById(notificationId, until);
+
+      const minutes = Math.round(durationMs / 60000);
+      const label = minutes >= 60
+        ? `${Math.round(minutes / 60)}h`
+        : `${minutes}m`;
+      toast({
+        title: 'Snoozed',
+        description: `We'll remind you in ${label}.`,
+      });
+    } catch (err: any) {
+      setNotifications(prev => [target, ...prev].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)));
+      if (wasUnread) setUnreadCount(prev => prev + 1);
+      console.error('Error snoozing notification:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to snooze notification',
+        variant: 'destructive',
+      });
+    }
+  }, [notifications, toast]);
+
   // Initial fetch
   useEffect(() => {
     fetchNotifications();
@@ -153,42 +266,88 @@ export function useNotifications(limit = 50): UseNotificationsResult {
 
   // Subscribe to real-time updates
   useEffect(() => {
-    const setupSubscription = async () => {
+    let cancelled = false;
+    let unsubscribe: (() => void) | null = null;
+
+    (async () => {
       const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) return;
+      if (cancelled || !session?.session?.user) return;
 
-      const channel = supabase
-        .channel('notifications-realtime')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${session.session.user.id}`
-          },
-          (payload) => {
-            const newNotification = payload.new as unknown as Notification;
-            if (newNotification.channel === 'in_app') {
-              setNotifications(prev => [newNotification, ...prev].slice(0, limit));
-              setUnreadCount(prev => prev + 1);
-              
-              // Show toast for new notification
-              toast({
-                title: newNotification.title,
-                description: newNotification.body.substring(0, 100),
-              });
+      const userId = session.session.user.id;
+      unsubscribe = subscribeToPooledPostgresChanges(
+        {
+          poolKey: `notifications:${userId}`,
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const eventType = (payload as any).eventType as string | undefined;
+
+          if (eventType === 'INSERT') {
+            const newNotification = payload.new as Notification;
+            if (newNotification.channel !== 'in_app') return;
+            setNotifications((prev) => {
+              // De-dupe — if dispatcher fired twice with same id, don't double-insert.
+              if (prev.some((n) => n.id === newNotification.id)) return prev;
+              return [newNotification, ...prev].slice(0, limit);
+            });
+            if (!newNotification.is_read) {
+              setUnreadCount((prev) => prev + 1);
             }
+            toast({
+              title: newNotification.title,
+              description: newNotification.body.substring(0, 100),
+            });
+            return;
           }
-        )
-        .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+          if (eventType === 'UPDATE') {
+            const updated = payload.new as Notification;
+            const previous = payload.old as Notification | undefined;
+            const nowMs = Date.now();
+            const isCurrentlySnoozed = updated.snoozed_until && +new Date(updated.snoozed_until) > nowMs;
+
+            setNotifications((prev) => {
+              const exists = prev.some((n) => n.id === updated.id);
+              if (isCurrentlySnoozed) {
+                // Just got snoozed (or extended) — drop from view.
+                return prev.filter((n) => n.id !== updated.id);
+              }
+              if (!exists) {
+                // Resurfacing from snooze — prepend, keep date order.
+                return [updated, ...prev].slice(0, limit);
+              }
+              return prev.map((n) => (n.id === updated.id ? { ...n, ...updated } : n));
+            });
+
+            // Adjust unread count delta based on read-state transition.
+            const wasRead = previous?.is_read ?? false;
+            const isRead = updated.is_read;
+            if (wasRead && !isRead) setUnreadCount((c) => c + 1);
+            else if (!wasRead && isRead) setUnreadCount((c) => Math.max(0, c - 1));
+            return;
+          }
+
+          if (eventType === 'DELETE') {
+            const removed = payload.old as Notification;
+            let wasUnread = false;
+            setNotifications((prev) => {
+              const target = prev.find((n) => n.id === removed.id);
+              wasUnread = !!target && !target.is_read;
+              return prev.filter((n) => n.id !== removed.id);
+            });
+            if (wasUnread) setUnreadCount((c) => Math.max(0, c - 1));
+          }
+        },
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+      if (unsubscribe) unsubscribe();
     };
-
-    setupSubscription();
   }, [limit, toast]);
 
   return {
@@ -198,6 +357,9 @@ export function useNotifications(limit = 50): UseNotificationsResult {
     error,
     fetchNotifications,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    deleteNotifications,
+    clearAll,
+    snoozeNotification,
   };
 }

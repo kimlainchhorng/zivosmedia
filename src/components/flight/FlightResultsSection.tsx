@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
+import { getAllInPrice } from "@/utils/flightPricing";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -9,21 +9,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  SlidersHorizontal, 
-  ArrowUpDown, 
-  Zap, 
+import {
+  ArrowUpDown,
+  Zap,
   TrendingDown,
   Clock,
   Plane,
   CheckCircle,
-  ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
-import { toast } from "sonner";
 import CrossSellSection from "./CrossSellSection";
+import { AirlineLogo } from "@/components/flight/AirlineLogo";
 import type { GeneratedFlight } from "@/data/flightGenerator";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 interface FlightResultsSectionProps {
   searchResults: GeneratedFlight[];
@@ -61,7 +60,7 @@ export default function FlightResultsSection({
       return match ? parseInt(match[1]) : 0;
     });
     return {
-      lowestPrice: Math.min(...prices),
+      lowestPrice: Math.round(getAllInPrice(Math.min(...prices))),
       fastestDuration: Math.min(...durations),
       directFlights: searchResults.filter(f => f.stops === 0).length,
       realPrices: searchResults.filter(f => f.isRealPrice).length,
@@ -96,7 +95,7 @@ export default function FlightResultsSection({
               <span className="font-semibold text-foreground">Book directly with ZIVO:</span>{" "}
               <span className="hidden sm:inline">Secure checkout, instant e-ticket, and full booking support — all handled by ZIVO. </span>
               No hidden fees. No redirects.{" "}
-              <a href="/partner-disclosure" className="text-emerald-500 hover:underline">Learn more</a>
+              <Link to="/legal/partner-disclosure" className="text-emerald-500 hover:underline">Learn more</Link>
             </p>
           </div>
         </div>
@@ -105,7 +104,7 @@ export default function FlightResultsSection({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div>
             <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="text-sky-500">{searchResults.length}</span> flights found
+              <span className="text-foreground">{searchResults.length}</span> flights found
               {stats.realPrices > 0 && (
                 <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] sm:text-xs">
                   <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
@@ -175,9 +174,12 @@ export default function FlightResultsSection({
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3 sm:gap-4">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-muted flex items-center justify-center font-bold text-sm">
-                        {flight.airlineCode}
-                      </div>
+                      <AirlineLogo
+                        iataCode={flight.airlineCode}
+                        airlineName={flight.airline}
+                        size={48}
+                        className="shrink-0 border border-border/30 bg-card/70"
+                      />
                       <div>
                         <p className="font-semibold text-sm sm:text-base">{flight.airline}</p>
                         <p className="text-xs text-muted-foreground">{flight.flightNumber} • {flight.aircraft || "Boeing 737"}</p>
@@ -191,7 +193,7 @@ export default function FlightResultsSection({
                       <div className="flex flex-col items-center gap-1">
                         <p className="text-xs text-muted-foreground">{flight.duration}</p>
                         <div className="w-16 sm:w-24 h-px bg-border relative">
-                          <Plane className="w-3 h-3 text-sky-500 absolute -top-1.5 right-0" />
+                          <Plane className="w-3 h-3 text-foreground absolute -top-1.5 right-0" />
                         </div>
                         <p className="text-[10px] text-muted-foreground">
                           {flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
@@ -203,7 +205,7 @@ export default function FlightResultsSection({
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-sky-500">${flight.price}</p>
+                      <p className="text-2xl font-bold text-foreground">${flight.price}</p>
                       <p className="text-[10px] text-muted-foreground">per person</p>
                       {flight.isRealPrice && (
                         <Badge className="mt-1 bg-emerald-500/20 text-emerald-500 text-[10px]">

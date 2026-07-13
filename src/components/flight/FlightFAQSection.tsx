@@ -30,7 +30,7 @@ export default function FlightFAQSection({ className }: FlightFAQSectionProps) {
     },
     {
       question: "Who do I contact for support?",
-      answer: "Contact ZIVO support at support@hizivo.com for booking changes, cancellations, or any questions. We handle all support requests according to airline fare rules."
+      answer: "Contact ZIVO support at support@zivosmedia.com for booking changes, cancellations, or any questions. We handle all support requests according to airline fare rules."
     },
     {
       question: "How do I get my e-ticket?",

@@ -1,147 +1,282 @@
 /**
- * ZIVO Mobile Bottom Navigation — Premium 2026
- * Travel-focused 5-tab nav with refined micro-interactions
+ * ZIVO Mobile Bottom Navigation — 2026 floating pill
+ * Dynamic Island–inspired: active tab expands to show icon + label.
+ * Frosted-glass capsule floats above safe-area with spring-animated layout.
  */
+import { forwardRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Search, Briefcase, Bell, User } from "lucide-react";
+import { Home, User, Film, Newspaper, Car, Compass, Luggage, Wallet, CreditCard, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
-import { usePriceAlerts } from "@/hooks/usePriceAlerts";
+import { motion } from "framer-motion";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useI18n } from "@/hooks/useI18n";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useLiveActivityCount } from "@/hooks/useLiveActivityCount";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
+import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 
 interface NavTab {
   id: string;
-  label: string;
+  labelKey?: string;
+  label?: string;
   icon: typeof Home;
   path: string;
   badge?: number;
+  fillable?: boolean;
 }
 
-const ZivoMobileNav = () => {
+type NavNotificationLike = {
+  action_url: string | null;
+  category?: string | null;
+  template?: string | null;
+  metadata?: Record<string, any> | null;
+  is_read?: boolean;
+};
+
+const isChatNotification = (notification: NavNotificationLike) => {
+  const template = (notification.template || "").toLowerCase();
+  const category = (notification.category || "").toLowerCase();
+  const actionUrl = (notification.action_url || "").toLowerCase();
+  const metadata = notification.metadata || {};
+
+  return (
+    category === "chat" ||
+    template === "chat_message" ||
+    template === "bot_reply" ||
+    template.includes("chat") ||
+    actionUrl.startsWith("/chat") ||
+    actionUrl.includes("?with=") ||
+    actionUrl.includes("&with=") ||
+    Boolean(metadata.thread_id || metadata.chat_id || metadata.conversation_id || metadata.message_id)
+  );
+};
+
+const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, ref) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeAlertsCount } = usePriceAlerts();
   const { impact } = useHaptics();
+  const { t } = useI18n();
+  const { user } = useAuth();
+  const { data: profile } = useUserProfile();
+  const { notifications } = useNotifications(20);
+  const liveActivity = useLiveActivityCount();
 
-  const tabs: NavTab[] = [
-    { id: "home", label: "Home", icon: Home, path: "/" },
-    { id: "search", label: "Search", icon: Search, path: "/flights" },
-    { id: "trips", label: "Trips", icon: Briefcase, path: "/my-trips" },
-    { id: "alerts", label: "Alerts", icon: Bell, path: "/notifications", badge: activeAlertsCount },
-    { id: "account", label: "Account", icon: User, path: "/profile" },
+  const { prefetch } = useRoutePrefetch();
+
+  const accountUnread = useMemo(
+    () => notifications.filter((n) => !n.is_read && !isChatNotification(n)).length,
+    [notifications],
+  );
+
+  // On the Zivo Travel host (or `?zt=1` preview) the bottom nav becomes a
+  // travel-only tab set — never the social Feed/Reels/Ride tabs.
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
+
+  const gated = (path: string) =>
+    user ? path : `/login?redirect=${encodeURIComponent(path)}`;
+
+  const socialTabs: NavTab[] = [
+    { id: "home",    labelKey: "nav.home",    icon: Home,          path: "/",                                   badge: liveActivity.total, fillable: true },
+    { id: "feed",    labelKey: "nav.feed",    icon: Newspaper,     path: SOCIAL_ROUTE_PATHS.feed },
+    { id: "reels",   labelKey: "nav.reel",    icon: Film,          path: SOCIAL_ROUTE_PATHS.reels },
+    { id: "ride",    labelKey: "nav.ride",    icon: Car,           path: "/rides/hub" },
+    { id: "account", labelKey: "nav.account", icon: User,          path: gated(SOCIAL_ROUTE_PATHS.profile),    badge: accountUnread },
   ];
+
+  // Mirrors the TravelUtilityShell bottom nav so the travel host has ONE
+  // consistent tab set across booking pages + utility pages.
+  const travelTabs: NavTab[] = [
+    { id: "home",    label: "Home",    icon: Compass,    path: "/",                       fillable: true },
+    { id: "trips",   label: "Trips",   icon: Luggage,    path: gated("/my-trips") },
+    { id: "wallet",  label: "Wallet",  icon: Wallet,     path: gated("/wallet") },
+    { id: "cards",   label: "Cards",   icon: CreditCard, path: gated("/payment-methods") },
+    { id: "account", label: "Account", icon: UserRound,  path: gated("/account"),         badge: accountUnread },
+  ];
+
+  const tabs = isTravel ? travelTabs : socialTabs;
 
   const getActiveTab = () => {
     const path = location.pathname;
+    if (isTravel) {
+      if (path.startsWith("/my-trips")) return "trips";
+      if (path.startsWith("/wallet")) return "wallet";
+      if (path.startsWith("/payment-methods")) return "cards";
+      if (path.startsWith("/account")) return "account";
+      return "home";
+    }
     if (path === "/" || path === "") return "home";
-    if (path.startsWith("/search") || 
-        path.startsWith("/flights") || 
-        path.startsWith("/hotels") || 
-        path.startsWith("/rent-car") ||
-        path.startsWith("/car-rental")) return "search";
-    if (path.startsWith("/trips") || path.startsWith("/my-trips") || path.startsWith("/my-orders")) return "trips";
-    if (path.startsWith("/alerts") || path.startsWith("/price-alerts") || path.startsWith("/notifications")) return "alerts";
-    if (path.startsWith("/account") || path.startsWith("/profile")) return "account";
+    if (path.startsWith(SOCIAL_ROUTE_PATHS.reels)) return "reels";
+    if (path.startsWith("/rides")) return "ride";
+    if (path.startsWith(SOCIAL_ROUTE_PATHS.feed)) return "feed";
+    if (
+      path.startsWith("/account") ||
+      path.startsWith(SOCIAL_ROUTE_PATHS.profile) ||
+      path.startsWith("/user/") ||
+      path.startsWith("/more") ||
+      path.startsWith("/personal-dashboard") ||
+      path.startsWith("/personal/") ||
+      path.startsWith("/shop-dashboard")
+    )
+      return "account";
     return "home";
   };
 
   const activeTab = getActiveTab();
 
-  return (
+  const nav = (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      ref={ref}
+      data-zivo-mobile-nav
+      aria-label="Primary"
+      className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe pointer-events-none"
     >
-      {/* Frosted glass background */}
-      <div className="absolute inset-0 bg-card/92 backdrop-blur-2xl border-t border-border/30 shadow-[0_-4px_20px_-4px_hsl(var(--foreground)/0.05)]" />
-      {/* Top highlight line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
-
-      <div className="relative flex items-stretch justify-around h-[64px] max-w-lg mx-auto">
+      {/* Instagram-style floating glass bar — clean frosted capsule, icon-only,
+          with a soft neutral pill behind the active icon. No rainbow accents. */}
+      <div className="relative px-3 pb-3">
+        <div
+          className={cn(
+            "pointer-events-auto relative flex w-full items-stretch px-1.5 py-2",
+            "rounded-[26px]",
+            /* Instagram-style frosted surface — present enough to stay a stable
+               bright bar in light mode (so the active pill always reads), while
+               blur+saturate still let content bleed softly through. */
+            "bg-white/[0.45] backdrop-blur-3xl backdrop-saturate-[2]",
+            /* Rim-light border — bright specular edge */
+            "border border-white/40",
+            /* Specular highlights (bright top, faint bottom) + soft diffuse float */
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),inset_0_-0.5px_0_rgba(255,255,255,0.1),0_8px_40px_rgba(0,0,0,0.1),0_2px_12px_rgba(0,0,0,0.05)]",
+            /* Dark mode glass */
+            "dark:bg-zinc-900/[0.55] dark:border-white/[0.10]",
+            "dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-0.5px_0_rgba(255,255,255,0.02),0_8px_40px_rgba(0,0,0,0.5),0_2px_12px_rgba(0,0,0,0.25)]",
+          )}
+        >
+        {/* Glassy sheen — diagonal highlight catch */}
+        <div
+          className="pointer-events-none absolute inset-0 rounded-[26px] bg-gradient-to-br from-white/[0.12] via-transparent to-transparent dark:from-white/[0.04] dark:via-transparent dark:to-transparent"
+          aria-hidden
+        />
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-          
+          const Icon = tab.icon;
+          const label = tab.label ?? (tab.labelKey ? t(tab.labelKey) : "");
+          const isAccountWithAvatar = tab.id === "account" && !!user;
+
           return (
             <button
               key={tab.id}
+              type="button"
+              onPointerDown={() => {
+                const target = tab.path.startsWith("/login")
+                  ? decodeURIComponent(tab.path.split("redirect=")[1] || "")
+                  : tab.path;
+                if (target && activeTab !== tab.id) prefetch(target);
+              }}
               onClick={() => {
+                if (!isTravel && tab.id === "account" && activeTab === "account") {
+                  impact("light");
+                  navigate(location.pathname.startsWith("/more") ? gated("/profile") : "/more");
+                  return;
+                }
                 if (activeTab !== tab.id) {
-                  impact('light');
+                  impact("light");
                   navigate(tab.path);
                 }
               }}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 gap-[3px] transition-colors duration-200 touch-manipulation active:scale-90 relative min-w-[48px] min-h-[48px]",
-                isActive ? "text-primary" : "text-muted-foreground/60"
+                "group relative flex flex-1 min-h-[52px] min-w-[44px] touch-manipulation items-center justify-center",
+                "rounded-2xl px-0.5 transition-all duration-200 ease-out active:scale-[0.92]",
+                isActive
+                  ? "text-zinc-900 dark:text-white"
+                  : "text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300",
               )}
-              aria-label={tab.label}
+              aria-label={
+                typeof tab.badge === "number" && tab.badge > 0
+                  ? `${label}, ${tab.badge > 99 ? "99+" : tab.badge} unread`
+                  : label
+              }
               aria-current={isActive ? "page" : undefined}
+              title={label}
             >
-              {/* Active pill background */}
-              <motion.div 
-                className="relative flex items-center justify-center"
-                whileTap={{ scale: 0.8 }}
-              >
-                <AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                      className="absolute inset-0 -mx-2 -my-0.5 rounded-full bg-primary/12"
-                      style={{ width: 44, height: 28, left: -12, top: -4 }}
-                    />
-                  )}
-                </AnimatePresence>
+              {/* Instagram-style active pill — a soft neutral lozenge behind the
+                  selected icon. Plain CSS transition (no framer-motion layoutId):
+                  shared-layout layoutId loops ("Maximum update depth") when
+                  ZivoMobileNav is mounted more than once on a page (e.g. MorePage
+                  renders its own instance). */}
+              <div
+                className={cn(
+                  "pointer-events-none absolute inset-x-1.5 inset-y-1.5 rounded-[16px] transition-all duration-300 ease-out",
+                  isActive
+                    ? "scale-100 opacity-100 bg-black/[0.08] shadow-[inset_0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/[0.12] dark:shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.06)]"
+                    : "scale-90 opacity-0",
+                )}
+                aria-hidden
+              />
 
-                <tab.icon
-                  className={cn(
-                    "w-[20px] h-[20px] relative z-10 transition-transform duration-200",
-                    isActive && "scale-110"
-                  )}
-                  strokeWidth={isActive ? 2.4 : 1.7}
-                />
-                
-                {/* Badge */}
-                {typeof tab.badge === 'number' && tab.badge > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 20 }}
-                    className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] px-1 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full flex items-center justify-center shadow-sm z-20"
-                  >
-                    {tab.badge > 9 ? '9+' : tab.badge}
-                  </motion.span>
-                )}
-              </motion.div>
-              
-              <span className={cn(
-                "text-[10px] leading-none transition-all duration-200",
-                isActive ? "font-bold text-primary" : "font-medium"
-              )}>
-                {tab.label}
-              </span>
-              
-              {/* Active dot indicator */}
-              <AnimatePresence>
-                {isActive && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className="absolute bottom-1 w-1 h-1 bg-primary rounded-full"
-                    layoutId="nav-dot"
+              {/* Icon / avatar */}
+              {isAccountWithAvatar ? (
+                <div className="relative z-10 shrink-0 rounded-full transition-all duration-300">
+                  <Avatar className={cn("block transition-all duration-200", isActive ? "h-7 w-7" : "h-6 w-6")}>
+                    <AvatarImage
+                      src={profile?.avatar_url || user.user_metadata?.avatar_url || undefined}
+                      alt="Account"
+                      className="object-cover"
+                    />
+                    <AvatarFallback className={cn(
+                      "text-[10px] font-bold",
+                      isActive
+                        ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white"
+                        : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+                    )}>
+                      {(profile?.full_name?.[0] || user.email?.[0] || "Z").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              ) : (
+                <div className="relative z-10 shrink-0">
+                  <Icon
+                    className={cn(
+                      "h-[22px] w-[22px] transition-all duration-200",
+                      isActive && "scale-[1.08] drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]",
+                    )}
+                    strokeWidth={isActive ? 2.4 : 1.6}
+                    fill={isActive && tab.fillable ? "currentColor" : "none"}
+                    aria-hidden
                   />
-                )}
-              </AnimatePresence>
+                </div>
+              )}
+
+              {/* Badge */}
+              {typeof tab.badge === "number" && tab.badge > 0 && (
+                <motion.span
+                  aria-hidden
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 520, damping: 22 }}
+                  className={cn(
+                    "absolute right-[16%] top-0 z-20 flex h-[15px] min-w-[15px] items-center justify-center",
+                    "rounded-full px-[4px] text-[8px] font-black leading-none",
+                    "bg-rose-500 text-white shadow-[0_2px_6px_rgba(244,63,94,0.35)]",
+                  )}
+                >
+                  {tab.badge > 99 ? "99+" : tab.badge}
+                </motion.span>
+              )}
             </button>
           );
         })}
+        </div>
       </div>
     </nav>
   );
-};
+
+  return typeof document !== "undefined" ? createPortal(nav, document.body) : nav;
+});
+
+ZivoMobileNav.displayName = "ZivoMobileNav";
 
 export default ZivoMobileNav;

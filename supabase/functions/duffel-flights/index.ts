@@ -1,5 +1,6 @@
 import { serve, createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
+import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 
 /**
  * Duffel Flights API Edge Function
@@ -237,6 +238,10 @@ interface CreateOrderParams {
     currency: string;
   }>;
   metadata?: Record<string, string>;
+  services?: Array<{
+    id: string;
+    quantity: number;
+  }>;
 }
 
 // Helper to make Duffel API requests
@@ -343,14 +348,16 @@ async function createOfferRequest(params: CreateOfferRequestParams) {
     return { error: limitsCheck.reason || 'API limit reached' };
   }
   
-  const result = await duffelRequest('/air/offer_requests', 'POST', {
+  // Omit cabin_class so Duffel returns all cabin classes (Economy, Business, First)
+  // The frontend groups them as fare variants so users can upgrade within the same flight
+  const requestBody: Record<string, unknown> = {
     data: {
       slices: params.slices,
       passengers: params.passengers,
-      cabin_class: cabinClass,
       max_connections: params.max_connections ?? 2,
     }
-  });
+  };
+  const result = await duffelRequest('/air/offer_requests', 'POST', requestBody);
 
   const responseTimeMs = Date.now() - startTime;
 
@@ -380,8 +387,17 @@ async function createOfferRequest(params: CreateOfferRequestParams) {
   };
 
   const offersCount = offerRequest.offers?.length || 0;
+  console.log('[Duffel] Raw offers count:', offersCount);
+  console.log('[Duffel] Environment:', DUFFEL_ENV);
+  if (offersCount > 0) {
+    const sampleOffer = offerRequest.offers[0] as Record<string, unknown>;
+    const sampleSlices = (sampleOffer.slices || []) as Array<Record<string, unknown>>;
+    const sampleSegs = sampleSlices[0] ? (sampleSlices[0].segments || []) as unknown[] : [];
+    const carrier = sampleSegs.length > 0 ? (sampleSegs[0] as Record<string, unknown>).operating_carrier : null;
+    console.log('[Duffel] Sample offer - airline:', JSON.stringify(carrier), 'slices:', sampleSlices.length, 'segments:', sampleSegs.length, 'price:', sampleOffer.total_amount, sampleOffer.total_currency);
+  }
   const transformedOffers = transformOffers(offerRequest.offers || []);
-  console.log('[Duffel] Offer request created:', offerRequest.id, 'with', offersCount, 'initial offers');
+  console.log('[Duffel] Offer request created:', offerRequest.id, 'with', offersCount, 'raw offers,', transformedOffers.length, 'transformed');
 
   // Log successful search
   await logSearch({
@@ -453,6 +469,12 @@ async function getOffer(params: GetOfferParams) {
   const result = await duffelRequest(`/air/offers/${params.offer_id}`);
 
   if (result.error) {
+    const errStr = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+    const isNotFound = errStr.includes('not_found') || errStr.includes('Not found') || errStr.includes('does not exist');
+    if (isNotFound) {
+      console.log('[Duffel] Offer not found (likely expired), returning null offer');
+      return { offer: null, expired: true };
+    }
     return { error: result.error };
   }
 
@@ -474,6 +496,7 @@ async function createOrder(params: CreateOrderParams) {
       passengers: params.passengers,
       payments: params.payments || [],
       metadata: params.metadata || {},
+      ...(params.services && params.services.length > 0 ? { services: params.services } : {}),
     }
   });
 
@@ -502,6 +525,71 @@ async function createOrder(params: CreateOrderParams) {
   };
 }
 
+/**
+ * Parse ISO 8601 duration (e.g. PT20H44M, PT45M, P0DT20H44M0S)
+ */
+function parseISO8601Duration(dur: string): { hours: number; minutes: number; totalMinutes: number } {
+  if (!dur) return { hours: 0, minutes: 0, totalMinutes: 0 };
+  let totalMinutes = 0;
+  const dayMatch = dur.match(/(\d+)D/);
+  const hourMatch = dur.match(/(\d+)H/);
+  const minMatch = dur.match(/(\d+)M/);
+  if (dayMatch) totalMinutes += parseInt(dayMatch[1]) * 24 * 60;
+  if (hourMatch) totalMinutes += parseInt(hourMatch[1]) * 60;
+  if (minMatch) totalMinutes += parseInt(minMatch[1]);
+  return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60, totalMinutes };
+}
+
+/**
+ * Calculate duration from timestamps as fallback
+ */
+function calcDurationFromTimestamps(departAt: string, arriveAt: string): { hours: number; minutes: number; totalMinutes: number } {
+  try {
+    const diff = new Date(arriveAt).getTime() - new Date(departAt).getTime();
+    const totalMinutes = Math.max(0, Math.round(diff / 60000));
+    return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60, totalMinutes };
+  } catch {
+    return { hours: 0, minutes: 0, totalMinutes: 0 };
+  }
+}
+
+function readFareBrandName(
+  offer: Record<string, unknown>,
+  firstSlice: Record<string, unknown> | undefined,
+  firstSegment: Record<string, unknown> | undefined,
+  passengers: Array<Record<string, unknown>>,
+): string {
+  const firstSlicePassenger = ((firstSlice?.passengers as Array<Record<string, unknown>> | undefined) || [])[0];
+  const firstSegmentPassenger = ((firstSegment?.passengers as Array<Record<string, unknown>> | undefined) || [])[0];
+  const firstOfferPassenger = passengers[0];
+
+  // Prefer the most specific passenger-level fare brand first.
+  // Duffel often exposes generic cabin marketing labels like "Economy"
+  // alongside the actual branded fare like "Basic" or "Main".
+  const candidateValues: unknown[] = [
+    firstSlicePassenger?.fare_brand_name,
+    firstSegmentPassenger?.fare_brand_name,
+    firstOfferPassenger?.fare_brand_name,
+    offer.fare_brand_name,
+    firstSlice?.fare_brand_name,
+    firstSlicePassenger?.cabin_class_marketing_name,
+    firstOfferPassenger?.cabin_class_marketing_name,
+    firstSegmentPassenger?.cabin_class_marketing_name,
+    (firstSlice?.cabin as Record<string, unknown> | undefined)?.marketing_name,
+    (firstSlicePassenger?.cabin as Record<string, unknown> | undefined)?.marketing_name,
+    (firstSegmentPassenger?.cabin as Record<string, unknown> | undefined)?.marketing_name,
+    (firstOfferPassenger?.cabin as Record<string, unknown> | undefined)?.marketing_name,
+  ];
+
+  for (const candidate of candidateValues) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return '';
+}
+
 // Transform Duffel offer to our format
 function transformOffer(offer: unknown): DuffelOfferTransformed | null {
   if (!offer || typeof offer !== 'object') return null;
@@ -514,47 +602,202 @@ function transformOffer(offer: unknown): DuffelOfferTransformed | null {
   const firstSlice = slices[0];
   if (!firstSlice) return null;
   
-  const segments = (firstSlice.segments || []) as Array<Record<string, unknown>>;
+  // Flatten ALL slices' segments for round-trip support
+  const firstSliceSegments = (firstSlice.segments || []) as Array<Record<string, unknown>>;
+  const allSegments: Array<Record<string, unknown>> = [];
+  for (const slice of slices) {
+    const sliceSegs = (slice.segments || []) as Array<Record<string, unknown>>;
+    allSegments.push(...sliceSegs);
+  }
+  const segments = firstSliceSegments; // outbound-only for departure/arrival metadata
+  const allSegs = allSegments; // all slices for full segment list
   const firstSegment = segments[0];
   const lastSegment = segments[segments.length - 1];
   
   if (!firstSegment || !lastSegment) return null;
 
-  // Extract carrier info
-  const operatingCarrier = firstSegment.operating_carrier as Record<string, string> | undefined;
-  const marketingCarrier = firstSegment.marketing_carrier as Record<string, string> | undefined;
-  const carrier = operatingCarrier || marketingCarrier;
+  // Extract all unique carriers from segments
+  const carrierMap = new Map<string, { name: string; code: string; isOperating: boolean }>();
+  let operatedBy: string | null = null;
+  const firstMarketingCarrier = firstSegment.marketing_carrier as Record<string, string> | undefined;
+
+  for (const seg of segments) {
+    const opCarrier = seg.operating_carrier as Record<string, string> | undefined;
+    const mkCarrier = seg.marketing_carrier as Record<string, string> | undefined;
+    const opCode = opCarrier?.iata_code;
+    const mkCode = mkCarrier?.iata_code;
+
+    if (opCode && !carrierMap.has(opCode)) {
+      carrierMap.set(opCode, { name: opCarrier?.name || opCode, code: opCode, isOperating: true });
+    }
+    if (mkCode && !carrierMap.has(mkCode)) {
+      carrierMap.set(mkCode, { name: mkCarrier?.name || mkCode, code: mkCode, isOperating: false });
+    }
+    // Detect codeshare: marketing differs from operating
+    if (opCode && mkCode && opCode !== mkCode && !operatedBy) {
+      operatedBy = `Operated by ${opCarrier?.name || opCode}`;
+    }
+  }
+
+  const carriers = Array.from(carrierMap.values());
+  // Build display name: max 2 carrier names
+  const uniqueNames = [...new Set(carriers.map(c => c.name))];
+  let airlineName: string;
+  if (uniqueNames.length === 1) {
+    airlineName = uniqueNames[0];
+  } else if (uniqueNames.length === 2) {
+    airlineName = `${uniqueNames[0]} + ${uniqueNames[1]}`;
+  } else {
+    airlineName = `${uniqueNames[0]} + ${uniqueNames[1]} +${uniqueNames.length - 2} more`;
+  }
+  const firstCarrier = carriers[0];
+  const airlineCode = firstCarrier?.code || 'XX';
 
   // Extract airports
   const origin = firstSegment.origin as Record<string, string> | undefined;
   const destination = lastSegment.destination as Record<string, string> | undefined;
 
-  // Calculate duration
-  const duration = firstSlice.duration as string || '';
-  const durationMatch = duration.match(/PT(\d+)H(\d+)?M?/);
-  const hours = durationMatch?.[1] || '0';
-  const mins = durationMatch?.[2] || '0';
-  const durationFormatted = `${hours}h ${mins}m`;
+  // Calculate duration with robust parser
+  const rawDuration = firstSlice.duration as string || '';
+  let dur = parseISO8601Duration(rawDuration);
+  // Fallback: calculate from timestamps if parser returns 0
+  if (dur.totalMinutes === 0 && firstSegment.departing_at && lastSegment.arriving_at) {
+    dur = calcDurationFromTimestamps(firstSegment.departing_at as string, lastSegment.arriving_at as string);
+  }
+  const durationFormatted = `${dur.hours}h ${dur.minutes}m`;
 
-  // Get stops
+  // Get stops + stopDetails with layover durations
   const stops = Math.max(0, segments.length - 1);
-  const stopCities = segments.slice(0, -1).map(seg => {
-    const dest = seg.destination as Record<string, string> | undefined;
-    return dest?.iata_code || '';
-  }).filter(Boolean);
+  const stopCities: string[] = [];
+  const stopDetails: Array<{ code: string; city: string; layoverDuration: string }> = [];
+  for (let i = 0; i < segments.length - 1; i++) {
+    const segDest = segments[i].destination as Record<string, string> | undefined;
+    const code = segDest?.iata_code || '';
+    const city = segDest?.city_name || segDest?.name || code;
+    stopCities.push(code);
+    // Layover = next segment departure - this segment arrival
+    let layoverDuration = '';
+    try {
+      const arriveAt = segments[i].arriving_at as string;
+      const departAt = segments[i + 1].departing_at as string;
+      if (arriveAt && departAt) {
+        const diffMs = new Date(departAt).getTime() - new Date(arriveAt).getTime();
+        const layoverMin = Math.max(0, Math.round(diffMs / 60000));
+        const lH = Math.floor(layoverMin / 60);
+        const lM = layoverMin % 60;
+        layoverDuration = `${lH}h ${lM}m`;
+      }
+    } catch { /* ignore */ }
+    stopDetails.push({ code, city, layoverDuration });
+  }
 
-  // Baggage info
-  const baggageInfo = (o.passenger_identity_documents_required === false) ? 'Personal item' : 'Varies by fare';
+  // Baggage info - read from SEGMENTS' passengers (Duffel puts baggages at slice.segment.passengers[].baggages[])
+  // Also check offer-level passengers as fallback
+  let baggageInfo = 'No bags included';
+  let carryOnIncluded = false;
+  let checkedBagsIncluded = false;
+  let checkedBagQuantity = 0;
+  let carryOnQuantity = 0;
+  const fareBrandName = readFareBrandName(o, firstSlice, firstSegment, passengers);
+  let checkedBagWeightKg: number | null = null;
+  let checkedBagWeightLb: number | null = null;
+  let carryOnWeightKg: number | null = null;
+  let carryOnWeightLb: number | null = null;
+
+  const extractBaggageWeights = (baggages: Array<Record<string, unknown>>) => {
+    const checkedBags = baggages.filter(b => b.type === 'checked');
+    const carryOn = baggages.filter(b => b.type === 'carry_on');
+    carryOnQuantity = carryOn.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+    carryOnIncluded = carryOnQuantity > 0;
+    checkedBagQuantity = checkedBags.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0);
+    checkedBagsIncluded = checkedBagQuantity > 0;
+    // Extract weight info from first bag of each type
+    if (checkedBags.length > 0) {
+      const cb = checkedBags[0];
+      if (cb.max_weight_kg) checkedBagWeightKg = Number(cb.max_weight_kg);
+      if (cb.max_weight_lb) checkedBagWeightLb = Number(cb.max_weight_lb);
+      // Fallback: convert if only one unit present
+      if (checkedBagWeightKg && !checkedBagWeightLb) checkedBagWeightLb = Math.round(checkedBagWeightKg * 2.205);
+      if (checkedBagWeightLb && !checkedBagWeightKg) checkedBagWeightKg = Math.round(checkedBagWeightLb / 2.205);
+    }
+    if (carryOn.length > 0) {
+      const co = carryOn[0];
+      if (co.max_weight_kg) carryOnWeightKg = Number(co.max_weight_kg);
+      if (co.max_weight_lb) carryOnWeightLb = Number(co.max_weight_lb);
+      if (carryOnWeightKg && !carryOnWeightLb) carryOnWeightLb = Math.round(carryOnWeightKg * 2.205);
+      if (carryOnWeightLb && !carryOnWeightKg) carryOnWeightKg = Math.round(carryOnWeightLb / 2.205);
+    }
+  };
+
+  try {
+    // Primary: read from first segment's passengers (where Duffel puts baggage allowances)
+    let foundBaggages = false;
+    const firstSegPax = (firstSegment.passengers as Array<Record<string, unknown>> | undefined);
+    if (firstSegPax && firstSegPax.length > 0) {
+      const segPaxFirst = firstSegPax[0];
+      const segBaggages = segPaxFirst.baggages as Array<Record<string, unknown>> | undefined;
+      if (segBaggages && segBaggages.length > 0) {
+        foundBaggages = true;
+        extractBaggageWeights(segBaggages);
+      }
+    }
+    // Fallback: offer-level passengers
+    if (!foundBaggages) {
+      const firstPax = passengers[0];
+      if (firstPax) {
+        const baggages = firstPax.baggages as Array<Record<string, unknown>> | undefined;
+        if (baggages && baggages.length > 0) {
+          extractBaggageWeights(baggages);
+        }
+      }
+    }
+    // Build display string
+    if (carryOnIncluded && checkedBagsIncluded) {
+      baggageInfo = `Carry-on + ${checkedBagQuantity} checked bag${checkedBagQuantity > 1 ? 's' : ''}`;
+    } else if (checkedBagsIncluded) {
+      baggageInfo = `${checkedBagQuantity} checked bag${checkedBagQuantity > 1 ? 's' : ''}`;
+    } else if (carryOnIncluded) {
+      baggageInfo = 'Carry-on only';
+    } else {
+      baggageInfo = 'Personal item only';
+    }
+    console.log(`[Baggage] offer=${(o.id as string)?.slice(-8)} carry=${carryOnQuantity}(${carryOnWeightKg}kg) checked=${checkedBagQuantity}(${checkedBagWeightKg}kg) brand="${fareBrandName}"`);
+  } catch (err) {
+    console.error('[Baggage] Parse error:', err);
+    baggageInfo = 'Varies by fare';
+  }
+
+  // Cabin class with segment-level fallback
+  let cabinClass = o.cabin_class as string;
+  if (!cabinClass) {
+    try {
+      const segPax = (firstSegment.passengers as Array<Record<string, string>> | undefined);
+      cabinClass = segPax?.[0]?.cabin_class || 'economy';
+    } catch {
+      cabinClass = 'economy';
+    }
+  }
 
   // Conditions (cancellation, change)
   const conditions = o.conditions as Record<string, unknown> | undefined;
-  const isRefundable = conditions?.refund_before_departure !== null;
+  // Duffel conditions are objects like { allowed: true, penalty_amount: "0.00", penalty_currency: "USD" }
+  // or null if not allowed at all
+  const changeCondition = conditions?.change_before_departure as Record<string, unknown> | null | undefined;
+  const refundCondition = conditions?.refund_before_departure as Record<string, unknown> | null | undefined;
+  const isChangeable = changeCondition ? (changeCondition.allowed !== false) : false;
+  const isRefundable = refundCondition ? (refundCondition.allowed !== false) : false;
+  const changePenalty = changeCondition?.penalty_amount ? parseFloat(changeCondition.penalty_amount as string) : null;
+  const refundPenalty = refundCondition?.penalty_amount ? parseFloat(refundCondition.penalty_amount as string) : null;
+  const penaltyCurrency = (changeCondition?.penalty_currency || refundCondition?.penalty_currency || 'USD') as string;
+
+  // Debug logging
+  console.log(`[Transform] offer=${(o.id as string)?.slice(-8)} airline=${airlineName}(${airlineCode}) carriers=${carriers.length} segs=${segments.length} stops=${stops} dur="${durationFormatted}" baggage="${baggageInfo}" cabin="${cabinClass}" price=${o.total_amount}`);
 
   return {
     id: o.id as string,
-    airline: carrier?.name || 'Unknown Airline',
-    airlineCode: carrier?.iata_code || 'XX',
-    flightNumber: `${marketingCarrier?.iata_code || ''}${firstSegment.marketing_carrier_flight_number || ''}`,
+    airline: airlineName,
+    airlineCode,
+    flightNumber: `${firstMarketingCarrier?.iata_code || ''}${firstSegment.marketing_carrier_flight_number || ''}`,
     departure: {
       time: formatTime(firstSegment.departing_at as string),
       date: formatDate(firstSegment.departing_at as string),
@@ -570,21 +813,44 @@ function transformOffer(offer: unknown): DuffelOfferTransformed | null {
       terminal: lastSegment.destination_terminal as string | undefined,
     },
     duration: durationFormatted,
-    durationMinutes: parseInt(hours) * 60 + parseInt(mins),
+    durationMinutes: dur.totalMinutes,
     stops,
     stopCities,
+    stopDetails,
+    carriers,
+    operatedBy,
     price: parseFloat(o.total_amount as string) || 0,
     currency: o.total_currency as string || 'USD',
     pricePerPerson: parseFloat(o.total_amount as string) / Math.max(passengers.length, 1),
-    cabinClass: o.cabin_class as string || 'economy',
+    cabinClass,
+    fareBrandName: fareBrandName || cabinClass,
     baggageIncluded: baggageInfo,
     isRefundable,
     conditions: {
-      changeBeforeDeparture: conditions?.change_before_departure as boolean | null,
-      refundBeforeDeparture: conditions?.refund_before_departure as boolean | null,
+      changeable: isChangeable,
+      refundable: isRefundable,
+      changePenalty,
+      refundPenalty,
+      penaltyCurrency,
     },
-    segments: segments.map(seg => transformSegment(seg)),
-    owner: carrier,
+    baggageDetails: {
+      carryOnIncluded,
+      carryOnQuantity,
+      checkedBagsIncluded,
+      checkedBagQuantity,
+    } as {
+      carryOnIncluded: boolean;
+      carryOnQuantity: number;
+      carryOnWeightKg?: number | null;
+      carryOnWeightLb?: number | null;
+      checkedBagsIncluded: boolean;
+      checkedBagQuantity: number;
+      checkedBagWeightKg?: number | null;
+      checkedBagWeightLb?: number | null;
+      [key: string]: unknown;
+    },
+    segments: allSegs.map(seg => transformSegment(seg)),
+    owner: firstCarrier,
     expiresAt: o.expires_at as string,
     passengers: passengers.length,
   };
@@ -597,10 +863,8 @@ function transformSegment(segment: Record<string, unknown>) {
   const destination = segment.destination as Record<string, string> | undefined;
   const aircraft = segment.aircraft as Record<string, string> | undefined;
 
-  const duration = segment.duration as string || '';
-  const durationMatch = duration.match(/PT(\d+)H(\d+)?M?/);
-  const hours = durationMatch?.[1] || '0';
-  const mins = durationMatch?.[2] || '0';
+  const rawDuration = segment.duration as string || '';
+  const dur = parseISO8601Duration(rawDuration);
 
   return {
     id: segment.id as string,
@@ -624,15 +888,114 @@ function transformSegment(segment: Record<string, unknown>) {
     marketingCarrierCode: marketingCarrier?.iata_code || '',
     flightNumber: `${marketingCarrier?.iata_code || ''}${segment.marketing_carrier_flight_number || ''}`,
     aircraft: aircraft?.name || 'Unknown',
-    duration: `${hours}h ${mins}m`,
+    duration: `${dur.hours}h ${dur.minutes}m`,
     cabinClass: (segment.passengers as Array<Record<string, string>> | undefined)?.[0]?.cabin_class || 'economy',
   };
 }
 
 function transformOffers(offers: unknown[]): DuffelOfferTransformed[] {
-  return offers
+  const transformed = offers
     .map(o => transformOffer(o))
     .filter((o): o is DuffelOfferTransformed => o !== null);
+
+  const buildFareVariantKey = (offer: DuffelOfferTransformed) => {
+    const bag = offer.baggageDetails as Record<string, unknown>;
+    const conditions = offer.conditions;
+    return [
+      offer.cabinClass,
+      (offer.fareBrandName || offer.cabinClass).toLowerCase(),
+      offer.baggageIncluded || '',
+      bag.carryOnIncluded ? 'co1' : 'co0',
+      bag.carryOnQuantity,
+      bag.carryOnWeightKg ?? '',
+      bag.carryOnWeightLb ?? '',
+      bag.checkedBagsIncluded ? 'cb1' : 'cb0',
+      bag.checkedBagQuantity,
+      bag.checkedBagWeightKg ?? '',
+      bag.checkedBagWeightLb ?? '',
+      conditions.changeable ? 'chg1' : 'chg0',
+      conditions.changePenalty ?? '',
+      conditions.refundable ? 'ref1' : 'ref0',
+      conditions.refundPenalty ?? '',
+      conditions.penaltyCurrency || '',
+    ].join('::');
+  };
+
+  // Group by flight fingerprint (same itinerary, different fares)
+  // For round-trips, include ALL segment flight numbers so different return legs stay separate
+  const groups = new Map<string, DuffelOfferTransformed[]>();
+  for (const offer of transformed) {
+    // Build fingerprint from all segment flight numbers + times to uniquely identify the itinerary
+    const segFP = offer.segments.map((s: any) => `${s.marketingCarrierCode}${s.flightNumber}-${s.departingAt}`).join('|');
+    const flightFP = `${offer.airlineCode}-${segFP}`;
+    const group = groups.get(flightFP) || [];
+    // Avoid only truly identical duplicates; preserve same-price Duffel fare bundles with different bags/rules
+    const offerVariantKey = buildFareVariantKey(offer);
+    const exactDup = group.some((g) => g.id === offer.id || buildFareVariantKey(g) === offerVariantKey);
+    if (!exactDup) {
+      group.push(offer);
+      groups.set(flightFP, group);
+    }
+  }
+
+  // For each group, deduplicate by cabinClass+fareBrandName (keep cheapest), then attach as fare variants
+  const result: DuffelOfferTransformed[] = [];
+  for (const group of groups.values()) {
+    // Sort by price ascending
+    group.sort((a, b) => a.price - b.price);
+
+    // Deduplicate: keep only the cheapest offer per materially distinct fare bundle
+    const seen = new Map<string, DuffelOfferTransformed>();
+    for (const g of group) {
+      const key = buildFareVariantKey(g);
+      if (!seen.has(key)) {
+        seen.set(key, g);
+      }
+    }
+    const dedupedGroup = [...seen.values()];
+    dedupedGroup.sort((a, b) => a.price - b.price);
+
+    const primary = dedupedGroup[0];
+    // Attach all fare variants (including primary) as fareVariants
+    const rawVariants = dedupedGroup.map(g => ({
+      id: g.id,
+      fareBrandName: g.fareBrandName || g.cabinClass,
+      price: g.price,
+      pricePerPerson: g.pricePerPerson,
+      currency: g.currency,
+      conditions: g.conditions,
+      baggageDetails: g.baggageDetails,
+      baggageIncluded: g.baggageIncluded,
+      cabinClass: g.cabinClass,
+    }));
+
+    // Smart-label variants that share the same fareBrandName
+    if (rawVariants.length > 1) {
+      const nameCount = new Map<string, number>();
+      for (const v of rawVariants) {
+        const n = (v.fareBrandName || '').toLowerCase();
+        nameCount.set(n, (nameCount.get(n) || 0) + 1);
+      }
+      // For duplicated names, assign tiered labels based on features
+      const nameIndex = new Map<string, number>();
+      for (const v of rawVariants) {
+        const n = (v.fareBrandName || '').toLowerCase();
+        if ((nameCount.get(n) || 0) > 1) {
+          const idx = nameIndex.get(n) || 0;
+          nameIndex.set(n, idx + 1);
+          // Derive label from features: cheapest with least features = Basic, next = Standard, etc.
+          const tierLabels = ['Basic', 'Standard', 'Flexible', 'Premium'];
+          v.fareBrandName = tierLabels[idx] || `${v.fareBrandName} ${idx + 1}`;
+        }
+      }
+    }
+
+    primary.fareVariants = rawVariants;
+    result.push(primary);
+  }
+
+  console.log(`[Transform] ${offers.length} raw -> ${transformed.length} transformed -> ${result.length} grouped (${groups.size} unique flights)`);
+  return result;
 }
 
 function formatTime(dateStr: string): string {
@@ -678,20 +1041,178 @@ interface DuffelOfferTransformed {
   durationMinutes: number;
   stops: number;
   stopCities: string[];
+  stopDetails: Array<{ code: string; city: string; layoverDuration: string }>;
+  carriers: Array<{ name: string; code: string; isOperating: boolean }>;
+  operatedBy: string | null;
   price: number;
   currency: string;
   pricePerPerson: number;
   cabinClass: string;
+  fareBrandName: string | null;
   baggageIncluded: string;
   isRefundable: boolean;
   conditions: {
-    changeBeforeDeparture: boolean | null;
-    refundBeforeDeparture: boolean | null;
+    changeable: boolean;
+    refundable: boolean;
+    changePenalty: number | null;
+    refundPenalty: number | null;
+    penaltyCurrency: string;
+  };
+  baggageDetails: {
+    carryOnIncluded: boolean;
+    carryOnQuantity: number;
+    checkedBagsIncluded: boolean;
+    checkedBagQuantity: number;
   };
   segments: unknown[];
-  owner: Record<string, string> | undefined;
+  owner: { name: string; code: string; isOperating: boolean } | undefined;
   expiresAt: string;
   passengers: number;
+  fareVariants?: Array<{
+    id: string;
+    fareBrandName: string | null;
+    price: number;
+    currency: string;
+    conditions: { changeable: boolean; refundable: boolean; changePenalty: number | null; refundPenalty: number | null; penaltyCurrency: string };
+    baggageDetails: { carryOnIncluded: boolean; carryOnQuantity: number; carryOnWeightKg?: number | null; carryOnWeightLb?: number | null; checkedBagsIncluded: boolean; checkedBagQuantity: number; checkedBagWeightKg?: number | null; checkedBagWeightLb?: number | null };
+    baggageIncluded: string;
+    cabinClass: string;
+  }>;
+}
+
+// ---- Available Services ----
+interface GetAvailableServicesParams {
+  offer_id: string;
+}
+
+async function getAvailableServices(params: GetAvailableServicesParams) {
+  console.log('[Duffel] Fetching available services for offer:', params.offer_id);
+
+  const result = await duffelRequest(`/air/offers/${params.offer_id}/available_services`, 'GET');
+
+  // If the offer expired or doesn't support services, return empty gracefully
+  if (result.error) {
+    const errStr = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+    const isNotFound = errStr.includes('not_found') || errStr.includes('Not found') || errStr.includes('does not exist');
+    if (isNotFound) {
+      console.log('[Duffel] Offer not found for available_services (likely expired), returning empty');
+      return { services: [], grouped: {}, total: 0 };
+    }
+    return { error: result.error };
+  }
+
+  const services = result.data as Array<{
+    id: string;
+    type: string;
+    maximum_quantity: number;
+    total_amount: string;
+    total_currency: string;
+    passenger_ids: string[];
+    segment_ids: string[];
+    metadata?: Record<string, unknown>;
+  }>;
+
+  // Group by type
+  const grouped: Record<string, typeof services> = {};
+  for (const svc of (services || [])) {
+    const t = svc.type || 'other';
+    if (!grouped[t]) grouped[t] = [];
+    grouped[t].push(svc);
+  }
+
+  return { services: services || [], grouped, total: (services || []).length };
+}
+
+// ---- Seat Maps ----
+interface GetSeatMapsParams {
+  offer_id: string;
+}
+
+async function getSeatMaps(params: GetSeatMapsParams) {
+  console.log('[Duffel] Fetching seat maps for offer:', params.offer_id);
+
+  const result = await duffelRequest(`/air/seat_maps?offer_id=${params.offer_id}`, 'GET');
+
+  if (result.error) {
+    const errStr = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+    const isNotFound = errStr.includes('not_found') || errStr.includes('Not found') || errStr.includes('does not exist');
+    if (isNotFound) {
+      console.log('[Duffel] Seat maps not available for this offer (expired or unsupported)');
+      return { seat_maps: [], available: false };
+    }
+    return { error: result.error };
+  }
+
+  const seatMaps = (Array.isArray(result.data) ? result.data : []) as Array<{
+    id: string;
+    slice_id: string;
+    segment_id: string;
+    cabins: Array<{
+      cabin_class: string;
+      deck: number;
+      wings: { first_row_index: number; last_row_index: number };
+      rows: Array<{
+        sections: Array<{
+          elements: Array<{
+            type: string; // 'seat' | 'bassinet' | 'empty' | 'exit_row' | 'lavatory' | 'galley'
+            designator?: string; // e.g. '14A'
+            name?: string;
+            disclosures?: string[];
+            available_services?: Array<{
+              id: string;
+              passenger_id: string;
+              total_amount: string;
+              total_currency: string;
+            }>;
+          }>;
+        }>;
+      }>;
+    }>;
+  }>;
+
+  if (!seatMaps || seatMaps.length === 0) {
+    console.log('[Duffel] No seat maps returned (airline may not support seat selection)');
+    return { seat_maps: [], available: false };
+  }
+
+  console.log(`[Duffel] Got ${seatMaps.length} seat map(s)`);
+
+  // Transform to a cleaner format
+  const transformed = seatMaps.map(sm => ({
+    id: sm.id,
+    slice_id: sm.slice_id,
+    segment_id: sm.segment_id,
+    cabins: sm.cabins.map(cabin => ({
+      cabin_class: cabin.cabin_class,
+      deck: cabin.deck,
+      wings: cabin.wings,
+      rows: cabin.rows.map((row, rowIdx) => ({
+        rowNumber: rowIdx + 1,
+        sections: row.sections.map(section => ({
+          elements: section.elements.map(el => ({
+            type: el.type,
+            designator: el.designator || null,
+            name: el.name || null,
+            disclosures: el.disclosures || [],
+            available_services: (el.available_services || []).map(svc => ({
+              id: svc.id,
+              passenger_id: svc.passenger_id,
+              price: parseFloat(svc.total_amount),
+              currency: svc.total_currency,
+            })),
+            is_available: el.type === 'seat' && (el.available_services || []).length > 0,
+          })),
+        })),
+      })),
+    })),
+  }));
+
+  return { seat_maps: transformed, available: true };
+}
+
+function validateGetSeatMaps(p: Record<string, unknown>): string | null {
+  if (!p.offer_id || typeof p.offer_id !== 'string') return 'offer_id is required';
+  return null;
 }
 
 // ---- Input validation helpers ----
@@ -729,11 +1250,39 @@ function validateGetOffer(p: Record<string, unknown>): string | null {
   return null;
 }
 
-serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+function validateGetAvailableServices(p: Record<string, unknown>): string | null {
+  if (typeof p.offer_id !== 'string' || !p.offer_id) return 'offer_id required';
+  return null;
+}
+
+serve(withSecurity("duffel-flights", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Authentication required" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const { data: { user }, error: authErr } = await createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: authHeader } } }
+  ).auth.getUser();
+  if (authErr || !user) {
+    return new Response(JSON.stringify({ error: "Authentication required" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const rl = await rateLimitDb(user.id, "search");
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: "Too many requests. Please wait before searching again." }), {
+      status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", ...rateLimitHeaders(rl, "search") },
+    });
   }
 
   try {
@@ -742,7 +1291,7 @@ serve(async (req) => {
     console.log('[Duffel] Action:', action);
 
     // Validate action
-    if (typeof action !== 'string' || !['createOfferRequest', 'getOffers', 'getOffer', 'createOrder'].includes(action)) {
+    if (typeof action !== 'string' || !['createOfferRequest', 'getOffers', 'getOffer', 'createOrder', 'getAvailableServices', 'getSeatMaps'].includes(action)) {
       return new Response(
         JSON.stringify({ error: `Unknown action: ${action}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -754,6 +1303,8 @@ serve(async (req) => {
     if (action === 'createOfferRequest') validationError = validateCreateOfferRequest(params);
     else if (action === 'getOffers') validationError = validateGetOffers(params);
     else if (action === 'getOffer') validationError = validateGetOffer(params);
+    else if (action === 'getAvailableServices') validationError = validateGetAvailableServices(params);
+    else if (action === 'getSeatMaps') validationError = validateGetSeatMaps(params);
 
     if (validationError) {
       return new Response(
@@ -779,6 +1330,14 @@ serve(async (req) => {
 
       case 'createOrder':
         result = await createOrder(params as CreateOrderParams);
+        break;
+
+      case 'getAvailableServices':
+        result = await getAvailableServices(params as GetAvailableServicesParams);
+        break;
+
+      case 'getSeatMaps':
+        result = await getSeatMaps(params as GetSeatMapsParams);
         break;
 
       default:
@@ -807,4 +1366,4 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

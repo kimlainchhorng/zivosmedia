@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,7 +70,6 @@ interface TravelCompanionFinderProps {
   onConnectionMade?: (travelerId: string, type: string) => void;
 }
 
-// TODO: Load travelers from API based on shared flight
 const mockTravelers: Traveler[] = [];
 
 const interestIcons: Record<string, typeof Coffee> = {
@@ -102,6 +103,74 @@ const TravelCompanionFinder = ({
   const [seatSwapRequests, setSeatSwapRequests] = useState<SeatSwapRequest[]>([]);
   const [showSwapDialog, setShowSwapDialog] = useState(false);
   const [swapReason, setSwapReason] = useState("");
+  const [travelers, setTravelers] = useState<Traveler[]>(mockTravelers);
+  const [registered, setRegistered] = useState(false);
+  const [registering, setRegistering] = useState(false);
+
+  // Load companions on the same flight from feedback_submissions
+  useEffect(() => {
+    if (!flightNumber) return;
+    supabase
+      .from("feedback_submissions" as any)
+      .select("id, message, created_at")
+      .eq("category", "flight_companion")
+      .eq("status", "pending")
+      .then(({ data }) => {
+        if (!data) return;
+        const companions: Traveler[] = [];
+        for (const row of data) {
+          try {
+            const p = JSON.parse((row as any).message);
+            if (p.flight_number !== flightNumber) continue;
+            companions.push({
+              id: (row as any).id,
+              name: p.name || "Fellow Traveler",
+              avatar: p.avatar || "",
+              verified: false,
+              rating: p.rating ?? 4.5,
+              tripCount: p.trip_count ?? 1,
+              flightNumber: p.flight_number,
+              seatLocation: p.seat || "—",
+              interests: p.interests ?? [],
+              lookingFor: p.looking_for ?? ["meetup"],
+              bio: p.bio || "",
+              languages: p.languages ?? ["English"],
+              responseRate: 90,
+              memberSince: new Date((row as any).created_at).getFullYear().toString(),
+            });
+          } catch { /* skip malformed rows */ }
+        }
+        setTravelers(companions);
+      });
+  }, [flightNumber]);
+
+  const handleRegister = async () => {
+    setRegistering(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const payload = {
+        flight_number: flightNumber,
+        seat: currentSeat,
+        name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Anonymous",
+        looking_for: ["meetup"],
+        bio: "",
+        interests: [],
+      };
+      const { error } = await supabase.functions.invoke("travel-support-submit", { body: {
+        category: "flight_companion",
+        subject: `Flight companion: ${flightNumber}`,
+        payload,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
+      setRegistered(true);
+      toast.success("You're now visible to other travelers on this flight!");
+    } catch {
+      toast.error("Failed to register. Please try again.");
+    } finally {
+      setRegistering(false);
+    }
+  };
 
   const handleConnect = (traveler: Traveler) => {
     setConnections((prev) => [...prev, traveler.id]);
@@ -136,8 +205,8 @@ const TravelCompanionFinder = ({
 
   const filteredTravelers =
     filterType === "all"
-      ? mockTravelers
-      : mockTravelers.filter((t) => t.lookingFor.includes(filterType as typeof t.lookingFor[number]));
+      ? travelers
+      : travelers.filter((t) => t.lookingFor.includes(filterType as typeof t.lookingFor[number]));
 
   const isConnected = (travelerId: string) => connections.includes(travelerId);
 
@@ -189,9 +258,16 @@ const TravelCompanionFinder = ({
                   : "You're browsing anonymously"}
               </p>
             </div>
-            <Button variant="outline" size="sm">
-              Edit Profile
-            </Button>
+            {registered ? (
+              <Badge className="bg-emerald-500/15 text-emerald-600 gap-1">
+                <Check className="h-3 w-3" /> Visible
+              </Badge>
+            ) : (
+              <Button size="sm" disabled={registering} onClick={handleRegister} className="gap-1">
+                <UserPlus className="h-3.5 w-3.5" />
+                {registering ? "Joining…" : "Join"}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -223,6 +299,15 @@ const TravelCompanionFinder = ({
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
+
+      {/* Empty state */}
+      {filteredTravelers.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground">
+          <Users className="h-10 w-10 mx-auto mb-3 opacity-20" />
+          <p className="text-sm font-medium">No travel companions found yet</p>
+          <p className="text-xs mt-1">Be the first to join — click <strong>Join</strong> above so other passengers on flight {flightNumber} can find you.</p>
+        </div>
+      )}
 
       {/* Travelers Grid */}
       <div className="grid gap-4 md:grid-cols-2">

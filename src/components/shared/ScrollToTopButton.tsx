@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Scroll-to-Top Floating Button
  * Appears after scrolling down 400px, smooth scrolls back to top
  */
@@ -20,11 +20,12 @@ export function ScrollToTopButton() {
   }, []);
 
   return (
-    <button
+    <button type="button"
       onClick={scrollToTop}
       aria-label="Scroll to top"
+      style={{ bottom: "calc(var(--zivo-safe-bottom,0px) + 6rem)" }}
       className={cn(
-        "fixed bottom-24 right-4 z-50 w-11 h-11 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 flex items-center justify-center transition-all duration-300 touch-manipulation active:scale-90 hover:scale-110",
+        "fixed right-4 z-50 w-11 h-11 rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/25 flex items-center justify-center transition-all duration-300 touch-manipulation active:scale-90 hover:scale-110",
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
       )}
     >

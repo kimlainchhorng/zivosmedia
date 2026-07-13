@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
+import { FAQStructuredData } from "@/components/seo/StructuredData";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -125,7 +126,7 @@ const faqs = [
   },
   {
     q: "What if the site isn't working properly?",
-    a: "Try clearing your browser cache, disabling extensions, or using a different browser. For persistent issues, contact us at support@hizivo.com with details about the problem."
+    a: "Try clearing your browser cache, disabling extensions, or using a different browser. For persistent issues, contact us at support@zivosmedia.com with details about the problem."
   },
 ];
 
@@ -146,11 +147,12 @@ export default function Help() {
       <SEOHead 
         title="Help Center – ZIVO"
         description="Get help with flights, hotels, car rentals, and technical issues. Find answers to common questions about booking travel on ZIVO."
-        canonical="https://hizivo.com/help"
+        canonical="https://zivosmedia.com/help"
       />
+      <FAQStructuredData faqs={faqs.map(f => ({ question: f.q, answer: f.a }))} />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Hero */}
           <div className="text-center mb-12">
@@ -299,9 +301,9 @@ export default function Help() {
                 </p>
                 <div className="flex flex-wrap justify-center gap-3">
                   <Button asChild>
-                    <a href="mailto:support@hizivo.com" className="gap-2">
+                    <a href="mailto:support@zivosmedia.com" className="gap-2">
                       <Mail className="w-4 h-4" />
-                      support@hizivo.com
+                      support@zivosmedia.com
                     </a>
                   </Button>
                 </div>
@@ -327,15 +329,15 @@ export default function Help() {
 
           {/* Footer Links */}
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground border-t border-border/50 pt-8">
-            <Link to="/terms" className="hover:text-foreground transition-colors">
+            <Link to="/legal/terms" className="hover:text-foreground transition-colors">
               Terms of Service
             </Link>
             <span className="text-border">•</span>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">
+            <Link to="/legal/privacy" className="hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
             <span className="text-border">•</span>
-            <Link to="/partner-disclosure" className="hover:text-foreground transition-colors">
+            <Link to="/legal/partner-disclosure" className="hover:text-foreground transition-colors">
               Partner Disclosure
             </Link>
           </div>

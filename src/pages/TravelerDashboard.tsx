@@ -3,7 +3,8 @@
  * Premium 2026-era traveler profile with glassmorphism
  */
 import { useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useLocation } from "react-router-dom";
+import { withRedirectParam } from "@/lib/authRedirect";
 import { useAuth } from "@/contexts/AuthContext";
 import { TripTimeline, AIConciergeTrigger } from "@/components/profile";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 
 export default function TravelerDashboard() {
+  const location = useLocation();
   const { user, isLoading } = useAuth();
   const [showBucketList, setShowBucketList] = useState(false);
   const [showTravelMap, setShowTravelMap] = useState(false);
@@ -32,7 +34,8 @@ export default function TravelerDashboard() {
   const { bookings, isLoading: bookingsLoading } = useBookingHistory();
 
   if (!isLoading && !user) {
-    return <Navigate to="/login" replace />;
+    const redirectTarget = `${location.pathname}${location.search ?? ""}`;
+    return <Navigate to={withRedirectParam("/login", redirectTarget)} replace />;
   }
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "Traveler";
@@ -68,7 +71,7 @@ export default function TravelerDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-background pb-24 relative overflow-hidden safe-area-top">
       <SEOHead title="My Dashboard – ZIVO" description="View your travel overview, achievements, and upcoming trips on ZIVO." noIndex={true} />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[radial-gradient(circle,hsl(var(--primary)/0.04)_0%,transparent_70%)] pointer-events-none" />
 
@@ -103,7 +106,7 @@ export default function TravelerDashboard() {
 
               {/* Travel Journal */}
               <div>
-                <h2 className="text-lg font-bold mb-3 flex items-center gap-2"><Camera className="w-5 h-5 text-pink-500" /> Travel Journal</h2>
+                <h2 className="text-lg font-bold mb-3 flex items-center gap-2"><Camera className="w-5 h-5 text-foreground" /> Travel Journal</h2>
                 <div className="space-y-2">
                   {travelJournal.map(j => (
                     <Card key={j.trip} className="border-border/40 hover:border-primary/20 transition-all">
@@ -124,7 +127,7 @@ export default function TravelerDashboard() {
 
               {/* Bucket List */}
               <div>
-                <button onClick={() => setShowBucketList(!showBucketList)} className="w-full flex items-center gap-2 text-lg font-bold mb-3">
+                <button type="button" onClick={() => setShowBucketList(!showBucketList)} aria-expanded={showBucketList} className="w-full flex items-center gap-2 text-lg font-bold mb-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Heart className="w-5 h-5 text-destructive" /> Bucket List
                   <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", showBucketList && "rotate-90")} />
                 </button>
@@ -150,8 +153,8 @@ export default function TravelerDashboard() {
 
               {/* Packing Helper */}
               <div>
-                <button onClick={() => setShowPackingHelper(!showPackingHelper)} className="w-full flex items-center gap-2 text-lg font-bold mb-3">
-                  <Package className="w-5 h-5 text-violet-500" /> Smart Packing List
+                <button type="button" onClick={() => setShowPackingHelper(!showPackingHelper)} aria-expanded={showPackingHelper} className="w-full flex items-center gap-2 text-lg font-bold mb-3 transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <Package className="w-5 h-5 text-foreground" /> Smart Packing List
                   <ChevronRight className={cn("w-4 h-4 ml-auto transition-transform", showPackingHelper && "rotate-90")} />
                 </button>
                 {showPackingHelper && (
@@ -239,12 +242,14 @@ export default function TravelerDashboard() {
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 variant="ghost" size="icon" className="h-6 w-6"
+                                aria-label={s.price_alert_enabled ? "Disable price alert" : "Enable price alert"}
                                 onClick={() => toggleAlert({ id: s.id, enabled: !s.price_alert_enabled })}
                               >
                                 {s.price_alert_enabled ? <BellOff className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
                               </Button>
                               <Button
                                 variant="ghost" size="icon" className="h-6 w-6 text-destructive/60 hover:text-destructive"
+                                aria-label="Delete saved search"
                                 onClick={() => deleteSearch(s.id)}
                               >
                                 <Trash2 className="w-3 h-3" />

@@ -3,32 +3,32 @@
  * Super-App home with access to all services
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
+import {
   Plane, Car, UtensilsCrossed, Package, MapPin, Hotel,
-  Wallet, Clock, ChevronRight, HelpCircle, User, Settings, Shield, Star,
+  Wallet, Clock, ChevronRight, HelpCircle, User, Settings,
   CarFront, CarTaxiFront, Building2, CreditCard, type LucideIcon,
-  DollarSign, Globe, Zap, BarChart3, Leaf, CloudSun, AlertTriangle
+  Globe, Zap, BarChart3, Leaf, AlertTriangle
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRecentActivity, useActiveTrips, type UnifiedTrip } from "@/hooks/useUnifiedTrips";
 import { useWalletSummary, getServiceMeta } from "@/hooks/useZivoWallet";
-import MobileBottomNav from "@/components/shared/MobileBottomNav";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 const services = [
-  { id: "ride", name: "Ride", icon: Car, gradient: "from-emerald-500 to-green-600", link: "/rides" },
-  { id: "eats", name: "Eats", icon: UtensilsCrossed, gradient: "from-orange-500 to-red-500", link: "/eats" },
-  { id: "delivery", name: "Delivery", icon: Package, gradient: "from-violet-500 to-purple-600", link: "/delivery" },
-  { id: "flights", name: "Flights", icon: Plane, gradient: "from-sky-500 to-blue-600", link: "/flights" },
-  { id: "hotels", name: "Hotels", icon: Hotel, gradient: "from-amber-500 to-orange-500", link: "/hotels" },
-  { id: "rentals", name: "Rentals", icon: Car, gradient: "from-teal-500 to-cyan-600", link: "/rent-car" },
+  { id: "ride", name: "Ride", icon: Car, gradient: "from-emerald-500 to-green-600", link: "/rides/hub", enabled: true },
+  { id: "eats", name: "Eats", icon: UtensilsCrossed, gradient: "from-orange-500 to-red-500", link: "/eats", enabled: true },
+  { id: "delivery", name: "Delivery", icon: Package, gradient: "from-muted to-muted", link: "/delivery", enabled: false },
+  { id: "flights", name: "Flights", icon: Plane, gradient: "from-sky-500 to-blue-600", link: "/flights", enabled: true },
+  { id: "hotels", name: "Hotels", icon: Hotel, gradient: "from-amber-500 to-orange-500", link: "/hotels", enabled: true },
+  { id: "rentals", name: "Rentals", icon: Car, gradient: "from-teal-500 to-emerald-600", link: "/car-rental", enabled: true },
 ];
 
 const tripIconMap: Record<string, LucideIcon> = {
@@ -73,35 +73,39 @@ export default function UnifiedDashboard() {
   // === WAVE 5: Smart Dashboard Widgets ===
   const [showSpendingBreakdown, setShowSpendingBreakdown] = useState(false);
   const [showTravelStats, setShowTravelStats] = useState(false);
-  const [showCurrencyConverter, setShowCurrencyConverter] = useState(false);
-  const [showWeatherWidget, setShowWeatherWidget] = useState(false);
   const [showSafetyAlerts, setShowSafetyAlerts] = useState(false);
   const [showCarbonTracker, setShowCarbonTracker] = useState(false);
 
-  const spendingByService = [
-    { service: "Flights", amount: 1245, pct: 42, color: "bg-sky-500" },
-    { service: "Hotels", amount: 890, pct: 30, color: "bg-amber-500" },
-    { service: "Rides", amount: 420, pct: 14, color: "bg-emerald-500" },
-    { service: "Eats", amount: 280, pct: 9, color: "bg-orange-500" },
-    { service: "Other", amount: 145, pct: 5, color: "bg-violet-500" },
-  ];
+  const spendingByService = useMemo(() => {
+    const byService = walletSummary?.spentByService ?? {};
+    const entries = Object.entries(byService).sort(([, a], [, b]) => b - a).slice(0, 5);
+    const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
+    const colorMap: Record<string, string> = {
+      flights: "bg-sky-500", hotels: "bg-amber-500", rides: "bg-emerald-500",
+      eats: "bg-orange-500", delivery: "bg-violet-500",
+    };
+    const labelMap: Record<string, string> = {
+      flights: "Flights", hotels: "Hotels", rides: "Rides", eats: "Eats", delivery: "Delivery",
+    };
+    return entries.map(([svc, amt]) => ({
+      service: labelMap[svc] ?? svc.charAt(0).toUpperCase() + svc.slice(1),
+      amount: Math.round(amt),
+      pct: Math.round((amt / total) * 100),
+      color: colorMap[svc] ?? "bg-muted",
+    }));
+  }, [walletSummary]);
 
-  const travelStats = { countriesVisited: 8, citiesVisited: 14, totalFlights: 22, totalNights: 34, totalMiles: 28450, avgTripCost: "$342" };
-
-  const currencies = [
-    { code: "EUR", rate: 0.92, flag: "🇪🇺", name: "Euro" },
-    { code: "GBP", rate: 0.79, flag: "🇬🇧", name: "British Pound" },
-    { code: "JPY", rate: 149.5, flag: "🇯🇵", name: "Japanese Yen" },
-    { code: "CAD", rate: 1.36, flag: "🇨🇦", name: "Canadian Dollar" },
-    { code: "MXN", rate: 17.2, flag: "🇲🇽", name: "Mexican Peso" },
-  ];
-
-  const weatherData = [
-    { city: "Miami", temp: "82°F", condition: "Sunny", icon: "☀️", humidity: "65%" },
-    { city: "New York", temp: "45°F", condition: "Cloudy", icon: "☁️", humidity: "55%" },
-    { city: "Los Angeles", temp: "72°F", condition: "Clear", icon: "🌤️", humidity: "40%" },
-    { city: "London", temp: "48°F", condition: "Rain", icon: "🌧️", humidity: "80%" },
-  ];
+  const travelStats = useMemo(() => {
+    const trips = recentActivity ?? [];
+    return {
+      totalTrips: trips.length,
+      flightCount: trips.filter(t => t.service === "flights").length,
+      hotelCount: trips.filter(t => t.service === "hotels").length,
+      rideCount: trips.filter(t => t.service === "rides").length,
+      eatCount: trips.filter(t => t.service === "eats").length,
+      totalSpent: `$${(walletSummary?.totalSpent ?? 0).toFixed(0)}`,
+    };
+  }, [recentActivity, walletSummary]);
 
   const safetyAlerts = [
     { location: "Paris", level: "Low", type: "Protests planned Mar 8", color: "text-amber-500" },
@@ -114,7 +118,7 @@ export default function UnifiedDashboard() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/40">
+      <div className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur-xl border-b border-border/40">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -131,8 +135,8 @@ export default function UnifiedDashboard() {
 
       <div className="px-4 py-5 space-y-6">
         {/* Wallet */}
-        <Link to="/wallet">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        <Link to="/wallet" className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileTap={{ scale: 0.98 }}
             className="rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-emerald-500 text-primary-foreground p-5 relative overflow-hidden shadow-xl shadow-primary/20">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-12 translate-x-12 blur-2xl" />
             <div className="flex items-center justify-between relative z-10">
@@ -151,16 +155,29 @@ export default function UnifiedDashboard() {
           <div className="grid grid-cols-3 gap-3">
             {services.map((service, i) => (
               <motion.div key={service.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Link to={service.link}>
-                  <Card className="hover:shadow-lg transition-all duration-300 active:scale-95 border-border/40 hover:border-primary/15">
-                    <CardContent className="p-4 flex flex-col items-center gap-2">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.gradient} flex items-center justify-center shadow-md`}>
-                        <service.icon className="w-6 h-6 text-primary-foreground" />
-                      </div>
-                      <span className="text-xs font-bold">{service.name}</span>
-                    </CardContent>
-                  </Card>
-                </Link>
+                {service.enabled ? (
+                  <Link to={service.link} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <Card className="hover:shadow-lg transition-all duration-300 active:scale-95 border-border/40 hover:border-primary/15">
+                      <CardContent className="p-4 flex flex-col items-center gap-2">
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.gradient} flex items-center justify-center shadow-md`}>
+                          <service.icon className="w-6 h-6 text-primary-foreground" />
+                        </div>
+                        <span className="text-xs font-bold">{service.name}</span>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ) : (
+                  <button type="button" className="w-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => toast.info(`${service.name} — coming soon!`)}>
+                    <Card className="transition-all duration-300 active:scale-95 border-border/40 opacity-50">
+                      <CardContent className="p-4 flex flex-col items-center gap-2">
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.gradient} flex items-center justify-center`}>
+                          <service.icon className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground">{service.name}</span>
+                      </CardContent>
+                    </Card>
+                  </button>
+                )}
               </motion.div>
             ))}
           </div>
@@ -171,8 +188,8 @@ export default function UnifiedDashboard() {
           <h2 className="font-bold text-sm flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /> Intelligence</h2>
 
           {/* Spending Breakdown */}
-          <button onClick={() => setShowSpendingBreakdown(!showSpendingBreakdown)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
-            <BarChart3 className="w-3.5 h-3.5 text-violet-500" /> Spending Breakdown
+          <button type="button" aria-expanded={showSpendingBreakdown} onClick={() => setShowSpendingBreakdown(!showSpendingBreakdown)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <BarChart3 className="w-3.5 h-3.5 text-foreground" /> Spending Breakdown
             <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showSpendingBreakdown && "rotate-90")} />
           </button>
           {showSpendingBreakdown && (
@@ -191,20 +208,20 @@ export default function UnifiedDashboard() {
           )}
 
           {/* Travel Stats */}
-          <button onClick={() => setShowTravelStats(!showTravelStats)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
-            <Globe className="w-3.5 h-3.5 text-sky-500" /> Travel Stats
-            <Badge className="bg-sky-500/10 text-sky-500 border-0 text-[8px] ml-auto">{travelStats.countriesVisited} countries</Badge>
+          <button type="button" aria-expanded={showTravelStats} onClick={() => setShowTravelStats(!showTravelStats)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Globe className="w-3.5 h-3.5 text-foreground" /> Travel Stats
+            <Badge className="bg-secondary text-foreground border-0 text-[8px] ml-auto">{travelStats.totalTrips} trips</Badge>
             <ChevronRight className={cn("w-3 h-3 transition-transform", showTravelStats && "rotate-90")} />
           </button>
           {showTravelStats && (
             <div className="grid grid-cols-3 gap-2">
               {[
-                { val: travelStats.countriesVisited, label: "Countries" },
-                { val: travelStats.citiesVisited, label: "Cities" },
-                { val: travelStats.totalFlights, label: "Flights" },
-                { val: travelStats.totalNights, label: "Nights" },
-                { val: `${(travelStats.totalMiles / 1000).toFixed(1)}k`, label: "Miles" },
-                { val: travelStats.avgTripCost, label: "Avg Trip" },
+                { val: travelStats.totalTrips, label: "Total Trips" },
+                { val: travelStats.flightCount, label: "Flights" },
+                { val: travelStats.hotelCount, label: "Hotel Stays" },
+                { val: travelStats.rideCount, label: "Rides" },
+                { val: travelStats.eatCount, label: "Orders" },
+                { val: travelStats.totalSpent, label: "Total Spent" },
               ].map(s => (
                 <div key={s.label} className="text-center p-3 rounded-xl bg-card border border-border/40">
                   <p className="text-sm font-bold text-foreground">{s.val}</p><p className="text-[9px] text-muted-foreground">{s.label}</p>
@@ -213,43 +230,8 @@ export default function UnifiedDashboard() {
             </div>
           )}
 
-          {/* Currency Converter */}
-          <button onClick={() => setShowCurrencyConverter(!showCurrencyConverter)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
-            <DollarSign className="w-3.5 h-3.5 text-emerald-500" /> Currency Rates (vs USD)
-            <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showCurrencyConverter && "rotate-90")} />
-          </button>
-          {showCurrencyConverter && (
-            <div className="space-y-2">
-              {currencies.map(c => (
-                <div key={c.code} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
-                  <span className="text-lg">{c.flag}</span>
-                  <div className="flex-1"><p className="text-xs font-bold text-foreground">{c.name}</p><p className="text-[10px] text-muted-foreground">{c.code}</p></div>
-                  <span className="text-sm font-bold text-foreground">$1 = {c.rate} {c.code}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Weather Widget */}
-          <button onClick={() => setShowWeatherWidget(!showWeatherWidget)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
-            <CloudSun className="w-3.5 h-3.5 text-amber-500" /> Destination Weather
-            <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showWeatherWidget && "rotate-90")} />
-          </button>
-          {showWeatherWidget && (
-            <div className="grid grid-cols-2 gap-2">
-              {weatherData.map(w => (
-                <div key={w.city} className="p-3 rounded-xl bg-card border border-border/40 text-center">
-                  <span className="text-2xl">{w.icon}</span>
-                  <p className="text-xs font-bold text-foreground mt-1">{w.city}</p>
-                  <p className="text-sm font-bold text-foreground">{w.temp}</p>
-                  <p className="text-[9px] text-muted-foreground">{w.condition} · {w.humidity}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Safety Alerts */}
-          <button onClick={() => setShowSafetyAlerts(!showSafetyAlerts)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
+          <button type="button" aria-expanded={showSafetyAlerts} onClick={() => setShowSafetyAlerts(!showSafetyAlerts)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Travel Safety Alerts
             <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showSafetyAlerts && "rotate-90")} />
           </button>
@@ -265,7 +247,7 @@ export default function UnifiedDashboard() {
           )}
 
           {/* Carbon Tracker */}
-          <button onClick={() => setShowCarbonTracker(!showCarbonTracker)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
+          <button type="button" aria-expanded={showCarbonTracker} onClick={() => setShowCarbonTracker(!showCarbonTracker)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Leaf className="w-3.5 h-3.5 text-emerald-500" /> Carbon Footprint
             <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[8px] ml-auto">{carbonData.rank}</Badge>
             <ChevronRight className={cn("w-3 h-3 transition-transform", showCarbonTracker && "rotate-90")} />
@@ -326,7 +308,6 @@ export default function UnifiedDashboard() {
         </div>
       </div>
 
-      <MobileBottomNav />
     </div>
   );
 }

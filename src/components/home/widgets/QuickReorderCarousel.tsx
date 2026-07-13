@@ -1,12 +1,20 @@
 /**
  * QuickReorderCarousel - Swipeable recent rides/food with one-tap rebook
  */
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Car, UtensilsCrossed, Plane, Hotel, RotateCcw, Clock, Star, ChevronRight } from "lucide-react";
+import Car from "lucide-react/dist/esm/icons/car";
+import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
+import Plane from "lucide-react/dist/esm/icons/plane";
+import Hotel from "lucide-react/dist/esm/icons/hotel";
+import RotateCcw from "lucide-react/dist/esm/icons/rotate-ccw";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import Star from "lucide-react/dist/esm/icons/star";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import useEmblaCarousel from "embla-carousel-react";
@@ -23,27 +31,54 @@ interface ReorderItem {
 }
 
 const typeConfig = {
-  ride: { icon: Car, color: "text-emerald-500", bg: "bg-emerald-500/10", accent: "emerald" },
-  food: { icon: UtensilsCrossed, color: "text-orange-500", bg: "bg-orange-500/10", accent: "orange" },
-  flight: { icon: Plane, color: "text-sky-500", bg: "bg-sky-500/10", accent: "sky" },
-  hotel: { icon: Hotel, color: "text-amber-500", bg: "bg-amber-500/10", accent: "amber" },
+  ride: { icon: Car, color: "text-emerald-500", bg: "bg-emerald-500/10", accent: "emerald", vehicleImage: "/vehicles/economy-car-v2.png" },
+  food: { icon: UtensilsCrossed, color: "text-orange-500", bg: "bg-orange-500/10", accent: "orange", vehicleImage: null },
+  flight: { icon: Plane, color: "text-sky-500", bg: "bg-sky-500/10", accent: "sky", vehicleImage: null },
+  hotel: { icon: Hotel, color: "text-amber-500", bg: "bg-amber-500/10", accent: "amber", vehicleImage: null },
 };
 
-// Demo data
-const demoItems: ReorderItem[] = [
-  { id: "r1", type: "ride", title: "Home → Downtown", subtitle: "Economy · 4.2 mi", price: "$14.50", timeAgo: "2 days ago", rating: 4.9, rebookUrl: "/rides" },
-  { id: "r2", type: "food", title: "Sakura Sushi", subtitle: "Dragon Roll, Miso Soup", price: "$32.50", timeAgo: "3 days ago", rating: 4.8, rebookUrl: "/eats" },
-  { id: "r3", type: "ride", title: "Airport Transfer", subtitle: "Premium · 18 mi", price: "$38.00", timeAgo: "1 week ago", rating: 5.0, rebookUrl: "/rides" },
-  { id: "r4", type: "food", title: "Pizza Palace", subtitle: "Margherita, Garlic Bread", price: "$24.99", timeAgo: "5 days ago", rating: 4.7, rebookUrl: "/eats" },
-];
+// No demo data — only real bookings
 
 export default function QuickReorderCarousel() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [emblaRef] = useEmblaCarousel({ align: "start", containScroll: "trimSnaps" });
+  const queryKey = ["home-reorder", user?.id];
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const invalidateReorder = () => {
+      void queryClient.invalidateQueries({ queryKey: ["home-reorder", user.id] });
+    };
+
+    const channel = supabase
+      .channel(`home-reorder-${user.id}-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trips", filter: `rider_id=eq.${user.id}` },
+        invalidateReorder,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `customer_id=eq.${user.id}` },
+        invalidateReorder,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `user_id=eq.${user.id}` },
+        invalidateReorder,
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, user?.id]);
 
   const { data: recentBookings } = useQuery({
-    queryKey: ["home-reorder", user?.id],
+    queryKey,
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -67,16 +102,16 @@ export default function QuickReorderCarousel() {
           price: `$${r.fare_amount?.toFixed(2) || "0"}`,
           timeAgo: formatDistanceToNow(new Date(r.created_at), { addSuffix: true }),
           rating: r.rating || undefined,
-          rebookUrl: "/rides",
+          rebookUrl: "/rides/hub",
         });
       });
 
       // Recent food orders
       const { data: orders } = await supabase
         .from("food_orders")
-        .select("id, total_amount, items, restaurants(name), created_at")
-        .eq("customer_id", user.id)
-        .eq("status", "completed")
+        .select("id, total_amount, items, restaurants(id, name), created_at")
+        .or(`customer_id.eq.${user.id},user_id.eq.${user.id}`)
+        .in("status", ["completed", "delivered"])
         .order("created_at", { ascending: false })
         .limit(3);
 
@@ -99,21 +134,24 @@ export default function QuickReorderCarousel() {
     staleTime: 60000,
   });
 
-  const items = recentBookings?.length ? recentBookings : demoItems;
+  const items = recentBookings || [];
+
+  // No data — hide widget entirely
+  if (!items.length) return null;
 
   return (
-    <div>
+    <div className="px-5 pb-3">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-bold text-foreground flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shadow-sm">
-            <RotateCcw className="w-3.5 h-3.5 text-primary" />
+          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+            <RotateCcw className="w-3.5 h-3.5 text-foreground" strokeWidth={1.8} />
           </div>
           Quick Rebook
           <Badge variant="secondary" className="text-[9px] font-bold bg-primary/10 text-primary border-0 px-1.5 py-0">
             1-Tap
           </Badge>
         </h2>
-        <button onClick={() => navigate("/trips")} className="text-xs text-primary font-bold touch-manipulation active:scale-95 min-w-[44px] min-h-[32px] flex items-center gap-0.5 hover:gap-1.5 transition-all">
+        <button type="button" onClick={() => navigate("/trips")} className="text-xs text-primary font-bold touch-manipulation active:scale-95 min-w-[44px] min-h-[32px] flex items-center gap-0.5 hover:gap-1.5 transition-all">
           History <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -142,8 +180,12 @@ export default function QuickReorderCarousel() {
                 </div>
 
                 <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center border border-border/30`}>
-                    <Icon className={`w-5 h-5 ${cfg.color}`} />
+                  <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center border border-border/30 overflow-hidden`}>
+                    {cfg.vehicleImage ? (
+	                      <img src={cfg.vehicleImage} alt={item.type} className="w-8 h-8 object-contain" loading="lazy" decoding="async" />
+                    ) : (
+                      <Icon className={`w-5 h-5 ${cfg.color}`} />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-foreground truncate">{item.title}</p>

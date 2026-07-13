@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
-import { CarFront, Shield, Clock, CheckCircle, ExternalLink, ShieldCheck, Lock } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { CarFront, CheckCircle, ShieldCheck, Lock } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -9,7 +10,7 @@ import UserTestimonials from "@/components/shared/UserTestimonials";
 import VehicleTypeGallery from "@/components/shared/VehicleTypeGallery";
 import PhotoDestinationGrid from "@/components/shared/PhotoDestinationGrid";
 import PartnerLogosStrip from "@/components/shared/PartnerLogosStrip";
-import { InternalLinkGrid } from "@/components/seo";
+import { InternalLinkGrid, BreadcrumbSchema } from "@/components/seo";
 import { CarSearchFormPro } from "@/components/search";
 import { cn } from "@/lib/utils";
 import { heroPhotos, serviceOverlays } from "@/config/photos";
@@ -26,6 +27,7 @@ const trustBadges = [
 
 export default function CarRentalLanding() {
   const { location } = useParams<{ location?: string }>();
+  const reduceMotion = useReducedMotion();
 
   const formattedLocation = location?.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   
@@ -41,7 +43,27 @@ export default function CarRentalLanding() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead title={pageTitle} description={pageDescription} />
+      <SEOHead
+        title={pageTitle}
+        description={pageDescription}
+        canonical={formattedLocation ? `/rent-car/${location}` : "/rent-car"}
+        ogImage="/og-cars.jpg"
+        appLink="zivo://cars"
+      />
+      <BreadcrumbSchema
+        items={
+          formattedLocation
+            ? [
+                { name: "Home", url: "/" },
+                { name: "Car Rental", url: "/rent-car" },
+                { name: formattedLocation, url: `/rent-car/${location}` },
+              ]
+            : [
+                { name: "Home", url: "/" },
+                { name: "Car Rental", url: "/rent-car" },
+              ]
+        }
+      />
       <Header />
       
       <main className="pt-16">
@@ -51,10 +73,12 @@ export default function CarRentalLanding() {
           <div className="absolute inset-0">
             <img
               src={heroImage.src}
-              alt={heroImage.alt}
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="eager"
-            />
+	              alt={heroImage.alt}
+	              className="absolute inset-0 w-full h-full object-cover"
+	              loading="eager"
+	              decoding="async"
+	              fetchPriority="high"
+	            />
             {/* Gradient Overlay */}
             <div className={cn("absolute inset-0 bg-gradient-to-b", serviceOverlays.cars)} />
             {/* Additional depth */}
@@ -64,33 +88,38 @@ export default function CarRentalLanding() {
           </div>
           
           <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-3xl mx-auto text-center mb-10">
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+              animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="max-w-3xl mx-auto text-center mb-10"
+            >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium mb-6 text-primary-foreground">
-                <CarFront className="w-4 h-4 text-violet-400" />
+                <CarFront className="w-4 h-4 text-primary-foreground" />
                 <span className="text-primary-foreground/80">Compare car rental prices</span>
               </div>
               
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
                 {formattedLocation ? (
-                  <>Car Rental in <span className="text-violet-400">{formattedLocation}</span></>
+                  <>Car Rental in <span className="text-ig-gradient">{formattedLocation}</span></>
                 ) : (
-                  <>Find the <span className="text-violet-400">Best Rental Car Deals</span></>
+                  <>Find the <span className="text-ig-gradient">Best Rental Car Deals</span></>
                 )}
               </h1>
               
               <p className="text-lg text-primary-foreground/80 mb-8">
                 Compare prices from Hertz, Enterprise, Avis, Budget and more. No booking fees on ZIVO.
               </p>
-            </div>
+            </motion.div>
 
             {/* Professional Search Form */}
             <CarSearchFormPro className="max-w-4xl mx-auto" />
 
             {/* Trust Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-6 mt-8">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-8">
               {trustBadges.map((badge) => (
-                <div key={badge.text} className="flex items-center gap-2 text-sm text-primary-foreground/70">
-                  <badge.icon className="w-4 h-4 text-violet-400" />
+                <div key={badge.text} className="flex items-center gap-2 text-sm text-primary-foreground/80">
+                  <badge.icon className="w-4 h-4 text-primary-foreground" />
                   <span>{badge.text}</span>
                 </div>
               ))}
@@ -135,10 +164,10 @@ export default function CarRentalLanding() {
         <TravelFAQ serviceType="cars" />
 
         {/* Locked Disclaimer Banner */}
-        <section className="py-4 bg-violet-500/5 border-y border-violet-500/20">
+        <section className="py-4 bg-secondary border-y border-border">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <ShieldCheck className="w-4 h-4 text-violet-500" />
+              <ShieldCheck className="w-4 h-4 text-foreground" />
               <span className="font-medium">{CAR_DISCLAIMERS.partnerBooking}</span>
             </div>
           </div>
@@ -148,7 +177,7 @@ export default function CarRentalLanding() {
         <section className="py-8 border-t border-border/50">
           <div className="container mx-auto px-4 text-center space-y-2">
             <p className="text-xs text-muted-foreground max-w-2xl mx-auto font-medium flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+              <ShieldCheck className="w-3.5 h-3.5 text-foreground shrink-0" />
               {CAR_DISCLAIMERS.partnerBooking}
             </p>
             <p className="text-xs text-muted-foreground max-w-2xl mx-auto">

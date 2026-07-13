@@ -110,7 +110,7 @@ export default function DestinationActivitiesPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/things-to-do/${citySlug}`}
+        canonical={`https://zivosmedia.com/things-to-do/${citySlug}`}
       />
       <OrganizationSchema />
       <BreadcrumbSchema items={breadcrumbs} />
@@ -126,9 +126,10 @@ export default function DestinationActivitiesPage() {
                 alt={photo.alt}
                 className="absolute inset-0 w-full h-full object-cover"
                 loading="eager"
+                decoding="async"
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/10" />
+              <div className="absolute inset-0 bg-secondary" />
             )}
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
           </div>
@@ -144,12 +145,12 @@ export default function DestinationActivitiesPage() {
               </nav>
               
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium mb-6 text-primary-foreground">
-                <Compass className="w-4 h-4 text-purple-400" />
+                <Compass className="w-4 h-4 text-foreground" />
                 <span className="text-primary-foreground/80">Tours & Experiences</span>
               </div>
               
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
-                Things to Do in <span className="text-purple-400">{displayName}</span>
+                Things to Do in <span className="text-foreground">{displayName}</span>
               </h1>
               
               <p className="text-lg text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
@@ -159,7 +160,7 @@ export default function DestinationActivitiesPage() {
               <Button 
                 onClick={handleSearchActivities}
                 size="lg"
-                className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-primary-foreground rounded-xl hover:opacity-90"
+                className="gap-2 text-primary-foreground rounded-xl hover:opacity-90 bg-foreground"
               >
                 <Compass className="w-5 h-5" />
                 Browse All Activities
@@ -181,7 +182,7 @@ export default function DestinationActivitiesPage() {
           <section className="py-12">
             <div className="container mx-auto px-4">
               <div className="flex items-center gap-2 mb-8">
-                <Sparkles className="w-5 h-5 text-purple-500" />
+                <Sparkles className="w-5 h-5 text-foreground" />
                 <h2 className="font-display text-2xl font-bold">Top Activities in {displayName}</h2>
               </div>
               
@@ -189,12 +190,12 @@ export default function DestinationActivitiesPage() {
                 {cityInfo.topActivities.map((activity) => (
                   <Card 
                     key={activity.name}
-                    className="group cursor-pointer hover:border-purple-500/50 transition-all"
+                    className="group cursor-pointer hover:border-border transition-all"
                     onClick={handleSearchActivities}
                   >
                     <CardContent className="p-4">
                       <Badge variant="outline" className="mb-3 text-xs">{activity.type}</Badge>
-                      <h3 className="font-semibold mb-2 group-hover:text-purple-500 transition-colors">
+                      <h3 className="font-semibold mb-2 group-hover:text-foreground transition-colors">
                         {activity.name}
                       </h3>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
@@ -205,7 +206,7 @@ export default function DestinationActivitiesPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">From</span>
-                        <span className="text-lg font-bold text-purple-500">${activity.priceFrom}</span>
+                        <span className="text-lg font-bold text-foreground">${activity.priceFrom}</span>
                       </div>
                     </CardContent>
                   </Card>

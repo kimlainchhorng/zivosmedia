@@ -42,67 +42,67 @@ const badgeConfig: Record<BadgeVariant, {
   "best-value": {
     icon: Sparkles,
     label: "Best Value",
-    colors: "from-emerald-500 to-emerald-600 text-primary-foreground shadow-emerald-500/30",
+    colors: "from-success to-success text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "popular": {
     icon: TrendingUp,
     label: "Popular",
-    colors: "from-amber-500 to-orange-500 text-primary-foreground shadow-amber-500/30",
+    colors: "from-warning to-warning text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "sale": {
     icon: Zap,
     label: "Sale",
-    colors: "from-red-500 to-rose-600 text-primary-foreground shadow-red-500/30",
+    colors: "from-destructive to-destructive text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "new": {
     icon: Sparkles,
     label: "New",
-    colors: "from-blue-500 to-indigo-600 text-primary-foreground shadow-blue-500/30",
+    colors: "from-primary to-primary text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "premium": {
     icon: Crown,
     label: "Premium",
-    colors: "from-amber-400 to-amber-600 text-primary-foreground shadow-amber-500/30",
+    colors: "bg-ig-gradient text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "verified": {
     icon: Shield,
     label: "Verified",
-    colors: "from-emerald-500 to-teal-600 text-primary-foreground shadow-emerald-500/30",
+    colors: "from-success to-success text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "fast": {
     icon: Zap,
     label: "Fast",
-    colors: "from-sky-500 to-cyan-600 text-primary-foreground shadow-sky-500/30",
+    colors: "from-primary to-primary text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "eco": {
     icon: Leaf,
     label: "Eco",
-    colors: "from-green-500 to-emerald-600 text-primary-foreground shadow-green-500/30",
+    colors: "from-success to-success text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "hot": {
     icon: Flame,
     label: "Hot Deal",
-    colors: "from-orange-500 to-red-500 text-primary-foreground shadow-orange-500/30",
+    colors: "from-destructive to-destructive text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "favorite": {
     icon: Heart,
     label: "Top Pick",
-    colors: "from-pink-500 to-rose-500 text-primary-foreground shadow-pink-500/30",
+    colors: "from-destructive to-destructive text-primary-foreground",
     iconColors: "text-primary-foreground"
   },
   "limited": {
     icon: Clock,
     label: "Limited",
-    colors: "from-purple-500 to-violet-600 text-primary-foreground shadow-purple-500/30",
+    colors: "bg-ig-gradient text-primary-foreground",
     iconColors: "text-primary-foreground"
   }
 };
@@ -172,7 +172,7 @@ export const DiscountBadge = ({ percentage, className, size = "md" }: DiscountBa
       transition={{ type: "spring", stiffness: 500, damping: 25 }}
       className={cn(
         "inline-flex items-center font-bold rounded-xl",
-        "bg-gradient-to-r from-red-500 to-rose-600 text-primary-foreground shadow-lg shadow-red-500/30",
+        "bg-gradient-to-r from-destructive to-destructive text-primary-foreground shadow-lg",
         sizeClasses[size],
         className
       )}
@@ -202,12 +202,12 @@ export const RatingBadge = ({
     <span
       className={cn(
         "inline-flex items-center font-semibold rounded-xl",
-        "bg-amber-500/20 text-amber-600 dark:text-amber-400",
+        "bg-warning/20 text-warning",
         sizeClasses[size],
         className
       )}
     >
-      <Star className={cn(iconSizeClasses[size], "fill-amber-500 text-amber-500")} />
+      <Star className={cn(iconSizeClasses[size], "fill-warning text-warning")} />
       <span>{rating.toFixed(1)}</span>
       {showReviews && reviews && (
         <span className="text-muted-foreground font-normal">({reviews})</span>

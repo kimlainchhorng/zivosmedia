@@ -53,7 +53,7 @@ export default function CarComplianceFooter({
     )}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-violet-400" />
+          <Shield className="w-4 h-4 text-foreground" />
           <span className="text-sm font-medium">Rental Information</span>
         </div>
         
@@ -62,15 +62,15 @@ export default function CarComplianceFooter({
           ZIVO compares prices from multiple car rental partners to help you find the best rates.{' '}
           Prices may change until booking is completed on the partner site.{' '}
           Insurance options are offered by rental partners, not by ZIVO.{' '}
-          <Link to="/partner-disclosure" className="underline hover:text-foreground">
+          <Link to="/legal/partner-disclosure" className="underline hover:text-foreground">
             Partner Disclosure
           </Link>
           {' · '}
-          <Link to="/terms" className="underline hover:text-foreground">
+          <Link to="/legal/terms" className="underline hover:text-foreground">
             Terms
           </Link>
           {' · '}
-          <Link to="/privacy" className="underline hover:text-foreground">
+          <Link to="/legal/privacy" className="underline hover:text-foreground">
             Privacy
           </Link>
         </p>

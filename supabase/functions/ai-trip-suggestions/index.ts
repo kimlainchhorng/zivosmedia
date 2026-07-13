@@ -1,9 +1,6 @@
-import { serve } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { serve, createClient } from "../_shared/deps.ts";
+import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface TripPreferences {
   budget?: 'budget' | 'mid' | 'luxury';
@@ -14,12 +11,33 @@ interface TripPreferences {
   dislikedDestinations?: string[];
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(withSecurity("ai-trip-suggestions", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: { user }, error: authErr } = await createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    ).auth.getUser();
+    if (authErr || !user) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const rl = await rateLimitDb(user.id, "api_general", { max: 20, windowSec: 60 });
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: "Too many requests. Please try again shortly." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", ...rateLimitHeaders(rl, "api_general") },
+      });
+    }
+
     const { preferences } = await req.json() as { preferences: TripPreferences };
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
@@ -123,4 +141,10 @@ Return ONLY a valid JSON array with the destination objects. No additional text.
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-});
+}, {
+  allowedMethods: ["POST"],
+  strictCors: true,
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

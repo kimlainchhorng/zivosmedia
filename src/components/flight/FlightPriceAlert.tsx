@@ -127,7 +127,7 @@ export const FlightPriceAlert = ({
       )}
     >
       {/* Header - Always Visible */}
-      <button
+      <button type="button"
         onClick={() => !isCreated && setIsExpanded(!isExpanded)}
         className={cn(
           "w-full px-5 py-4 flex items-center justify-between transition-colors",
@@ -146,7 +146,7 @@ export const FlightPriceAlert = ({
             {isCreated ? (
               <BellRing className="w-5 h-5 text-emerald-500 animate-pulse" />
             ) : (
-              <Bell className="w-5 h-5 text-sky-500" />
+              <Bell className="w-5 h-5 text-foreground" />
             )}
           </div>
           <div className="text-left">
@@ -178,7 +178,7 @@ export const FlightPriceAlert = ({
               {hasRealPrices && (
                 <Badge
                   variant="outline"
-                  className="bg-sky-500/10 text-sky-500 border-sky-500/30"
+                  className="bg-secondary text-foreground border-border"
                 >
                   <Zap className="w-3 h-3 mr-1" />
                   Live Prices
@@ -215,7 +215,7 @@ export const FlightPriceAlert = ({
             </div>
             <div className="w-px h-4 bg-border hidden sm:block" />
             <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-sky-500" />
+              <Mail className="w-4 h-4 text-foreground" />
               <span className="text-sm text-muted-foreground truncate max-w-32">{existingAlert.email}</span>
             </div>
             <div className="w-px h-4 bg-border hidden sm:block" />
@@ -254,7 +254,7 @@ export const FlightPriceAlert = ({
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-xs text-muted-foreground">Current Price</p>
                     {hasRealPrices && (
-                      <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-sky-500/10 text-sky-500 border-sky-500/30">
+                      <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-secondary text-foreground border-border">
                         <Zap className="w-2 h-2 mr-0.5" />
                         Live
                       </Badge>
@@ -273,7 +273,7 @@ export const FlightPriceAlert = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">Alert me when price drops to</Label>
-                  <span className="text-lg font-bold text-sky-500">${targetPrice}</span>
+                  <span className="text-lg font-bold text-foreground">${targetPrice}</span>
                 </div>
                 <input
                   type="range"
@@ -282,7 +282,7 @@ export const FlightPriceAlert = ({
                   step={5}
                   value={targetPrice}
                   onChange={(e) => setTargetPrice(Number(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-500 [&::-webkit-slider-thumb]:shadow-lg"
+                  className="w-full h-2 bg-muted rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:shadow-lg"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Historical low: ${historicalLow}</span>
@@ -312,7 +312,7 @@ export const FlightPriceAlert = ({
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Notification Method</Label>
                 <div className="grid grid-cols-3 gap-3">
-                  <button
+                  <button type="button"
                     onClick={() =>
                       setNotifications((prev) => ({ ...prev, email: !prev.email }))
                     }
@@ -331,7 +331,7 @@ export const FlightPriceAlert = ({
                     />
                     <span className="text-xs font-medium">Email</span>
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() =>
                       setNotifications((prev) => ({ ...prev, push: !prev.push }))
                     }
@@ -350,7 +350,7 @@ export const FlightPriceAlert = ({
                     />
                     <span className="text-xs font-medium">Push</span>
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() =>
                       setNotifications((prev) => ({ ...prev, sms: !prev.sms }))
                     }
@@ -375,7 +375,7 @@ export const FlightPriceAlert = ({
               {/* Flexible Dates Toggle */}
               <div className="flex items-center justify-between p-4 rounded-xl bg-background/50 border border-border/50 hover:border-primary/20 hover:shadow-sm transition-all duration-200">
                 <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-sky-500" />
+                  <Calendar className="w-5 h-5 text-foreground" />
                   <div>
                     <p className="text-sm font-medium">Flexible Dates</p>
                     <p className="text-xs text-muted-foreground">±3 days around your dates</p>
@@ -390,7 +390,7 @@ export const FlightPriceAlert = ({
               {/* Create Alert Button */}
               <Button
                 onClick={handleCreateAlert}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-primary-foreground font-semibold shadow-lg shadow-sky-500/30 active:scale-[0.97] transition-all duration-200 touch-manipulation"
+                className="w-full h-12 rounded-xl hover:text-primary-foreground font-semibold shadow-lg active:scale-[0.97] transition-all duration-200 touch-manipulation bg-foreground"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
                 Create Price Alert

@@ -13,11 +13,11 @@ export default function OrganizationSchema() {
       "name": "ZIVO",
       "legalName": "ZIVO LLC",
       "alternateName": "ZIVO Travel",
-      "url": "https://hizivo.com",
-      "logo": "https://hizivo.com/og-image.png",
+      "url": "https://zivosmedia.com",
+      "logo": "https://zivosmedia.com/og-image.png",
       "description": "ZIVO is a travel search and comparison platform helping users find the best deals on flights, hotels, and car rentals from 500+ partners.",
       "foundingDate": "2024",
-      "email": "info@hizivo.com",
+      "email": "info@zivosmedia.com",
       "sameAs": [
         "https://twitter.com/zivotravel",
         "https://facebook.com/zivotravel",
@@ -26,19 +26,19 @@ export default function OrganizationSchema() {
       "contactPoint": [
         {
           "@type": "ContactPoint",
-          "email": "info@hizivo.com",
+          "email": "info@zivosmedia.com",
           "contactType": "customer service",
           "availableLanguage": ["English"]
         },
         {
           "@type": "ContactPoint",
-          "email": "payment@hizivo.com",
+          "email": "payment@zivosmedia.com",
           "contactType": "billing support",
           "availableLanguage": ["English"]
         },
         {
           "@type": "ContactPoint",
-          "email": "kimlain@hizivo.com",
+          "email": "kimlain@zivosmedia.com",
           "contactType": "business inquiries",
           "availableLanguage": ["English"]
         }

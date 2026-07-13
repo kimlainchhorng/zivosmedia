@@ -9,8 +9,12 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
+import Share2 from "lucide-react/dist/esm/icons/share-2";
+import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StarRating } from "@/components/shared/StarRating";
+import SafeCaption from "@/components/social/SafeCaption";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -37,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { format, addDays, differenceInDays } from "date-fns";
 import { useP2PVehicleDetail, useBookingPricing, useVehicleReviews } from "@/hooks/useP2PBooking";
 import { useAuth } from "@/contexts/AuthContext";
+import { withRedirectParam } from "@/lib/authRedirect";
 
 export default function CarDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -51,17 +56,14 @@ export default function CarDetailPage() {
   // Queries
   const { data: vehicle, isLoading } = useP2PVehicleDetail(id);
   const { data: reviews = [] } = useVehicleReviews(id);
-  const { data: pricing } = useBookingPricing(
-    id,
-    pickupDate ? format(pickupDate, "yyyy-MM-dd") : undefined,
-    returnDate ? format(returnDate, "yyyy-MM-dd") : undefined
-  );
+  const totalDays = pickupDate && returnDate ? Math.max(1, differenceInDays(returnDate, pickupDate)) : 0;
+  const { data: pricing } = useBookingPricing(id, totalDays);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-16 container mx-auto px-4">
+        <main className="pt-safe-header pb-16 container mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               <Skeleton className="aspect-[16/10] rounded-xl" />
@@ -80,7 +82,7 @@ export default function CarDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-16 container mx-auto px-4 text-center">
+        <main className="pt-safe-header pb-16 container mx-auto px-4 text-center">
           <Car className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h1 className="text-2xl font-bold mb-2">Vehicle Not Found</h1>
           <p className="text-muted-foreground mb-4">This vehicle is no longer available.</p>
@@ -94,11 +96,10 @@ export default function CarDetailPage() {
   }
 
   const images = (vehicle.images as string[]) || [];
-  const totalDays = pickupDate && returnDate ? differenceInDays(returnDate, pickupDate) : 0;
 
   const handleBookNow = () => {
     if (!user) {
-      navigate(`/auth?redirect=/cars/${id}`);
+      navigate(withRedirectParam("/login", `/cars/${id}`));
       return;
     }
     navigate(`/cars/${id}/checkout?pickup=${format(pickupDate!, "yyyy-MM-dd")}&return=${format(returnDate!, "yyyy-MM-dd")}`);
@@ -133,6 +134,8 @@ export default function CarDetailPage() {
                       src={images[currentImageIndex]}
                       alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                     {images.length > 1 && (
                       <>
@@ -156,7 +159,7 @@ export default function CarDetailPage() {
                         </Button>
                         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                           {images.map((_, idx) => (
-                            <button
+                            <button type="button"
                               key={idx}
                               aria-label={`Go to image ${idx + 1}`}
                               onClick={() => setCurrentImageIndex(idx)}
@@ -299,25 +302,13 @@ export default function CarDetailPage() {
                       <Card key={review.id}>
                         <CardContent className="p-4">
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="flex">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={cn(
-                                    "w-4 h-4",
-                                    i < (review.rating || 0)
-                                      ? "fill-amber-400 text-amber-400"
-                                      : "text-muted"
-                                  )}
-                                />
-                              ))}
-                            </div>
+                            <StarRating value={review.rating || 0} size="md" />
                             <span className="text-sm text-muted-foreground">
                               {format(new Date(review.created_at), "MMM d, yyyy")}
                             </span>
                           </div>
                           {review.comment && (
-                            <p className="text-sm text-muted-foreground">{review.comment}</p>
+                            <p className="text-sm text-muted-foreground"><SafeCaption text={review.comment} /></p>
                           )}
                         </CardContent>
                       </Card>
@@ -389,7 +380,7 @@ export default function CarDetailPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">
-                          ${pricing.dailyRate.toFixed(2)} × {pricing.totalDays} days
+                          ${pricing.dailyRate.toFixed(2)} × {pricing.days} days
                         </span>
                         <span>${pricing.subtotal.toFixed(2)}</span>
                       </div>
@@ -397,30 +388,49 @@ export default function CarDetailPage() {
                         <span className="text-muted-foreground">Service fee</span>
                         <span>${pricing.serviceFee.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Insurance</span>
-                        <span>${pricing.insuranceFee.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Taxes</span>
-                        <span>${pricing.taxes.toFixed(2)}</span>
-                      </div>
+                      {pricing.cleaningFee > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Cleaning fee</span>
+                          <span>${pricing.cleaningFee.toFixed(2)}</span>
+                        </div>
+                      )}
                       <Separator />
                       <div className="flex justify-between font-semibold text-base">
                         <span>Total</span>
-                        <span>${pricing.totalAmount.toFixed(2)}</span>
+                        <span>${pricing.total.toFixed(2)}</span>
                       </div>
+                      {pricing.deposit > 0 && (
+                        <p className="text-xs text-muted-foreground">+ ${pricing.deposit.toFixed(2)} refundable deposit</p>
+                      )}
                     </div>
                   )}
 
-                  <Button
-                    onClick={handleBookNow}
-                    className="w-full"
-                    size="lg"
-                    disabled={!pickupDate || !returnDate || totalDays <= 0}
-                  >
-                    {vehicle.instant_book ? "Book Now" : "Request to Book"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleBookNow}
+                      className="flex-1"
+                      size="lg"
+                      disabled={!pickupDate || !returnDate || totalDays <= 0}
+                    >
+                      {vehicle.instant_book ? "Book Now" : "Request to Book"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="shrink-0 px-3"
+                      aria-label="Share to chat"
+                      onClick={() => openShareToChat({
+                        kind: "ride",
+                        title: vehicle.name,
+                        subtitle: vehicle.description?.slice(0, 60) || "P2P vehicle rental",
+                        meta: pricing ? `$${pricing.total.toFixed(0)} total · ${totalDays}d` : undefined,
+                        image: vehicle.images?.[0] ?? null,
+                        deepLink: `/cars/${id ?? ""}`,
+                      })}
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </Button>
+                  </div>
 
                   {!user && (
                     <p className="text-xs text-center text-muted-foreground">

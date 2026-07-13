@@ -14,13 +14,13 @@ import { Button } from "@/components/ui/button";
 const CancellationPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead 
-        title="Cancellation Policy – Hizivo Travel"
-        description="Understand cancellation terms for Hotels, Car Rentals, and Flights booked through Hizivo. Different policies apply based on service type."
-        canonical="https://hizivo.com/cancellation-policy"
+      <SEOHead
+        title="Cancellation Policy – ZIVO Travel"
+        description="Understand cancellation terms for Hotels, Car Rentals, and Flights booked through ZIVO. Different policies apply based on service type."
+        canonical="https://zivosmedia.com/legal/cancellation"
       />
       <NavBar />
-      
+
       <main className="pt-24 pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Back Button */}
@@ -45,7 +45,7 @@ const CancellationPolicy = () => {
           <Card className="mb-8">
             <CardContent className="p-6">
               <p className="text-muted-foreground leading-relaxed">
-                Hizivo operates a hybrid business model. Cancellation policies differ based on the service type. 
+                ZIVO operates a hybrid business model. Cancellation policies differ based on the service type.
                 Please review the relevant section for your booking.
               </p>
             </CardContent>
@@ -56,15 +56,15 @@ const CancellationPolicy = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-amber-500" />
-                Hotels (Hizivo is Merchant of Record)
+                Hotels (ZIVO is Merchant of Record)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <p className="text-muted-foreground">
-                For hotel bookings, Hizivo processes cancellations directly. Cancellation terms depend on the 
+                For hotel bookings, ZIVO processes cancellations directly. Cancellation terms depend on the
                 rate type selected at booking:
               </p>
-              
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <div>
@@ -102,8 +102,8 @@ const CancellationPolicy = () => {
                   How to Cancel
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Log in to your Hizivo account → My Trips → Select booking → Cancel Reservation. 
-                  Or contact support@hizivo.com.
+                  Log in to your ZIVO account → My Trips → Select booking → Cancel Reservation.
+                  Or contact support@zivosmedia.com.
                 </p>
               </div>
             </CardContent>
@@ -114,14 +114,14 @@ const CancellationPolicy = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Car className="h-5 w-5 text-emerald-500" />
-                Car Rentals (Hizivo is Merchant of Record)
+                Car Rentals (ZIVO is Merchant of Record)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <p className="text-muted-foreground">
-                For car rental bookings, Hizivo processes cancellations. Refund amounts depend on timing:
+                For car rental bookings, ZIVO processes cancellations. Refund amounts depend on timing:
               </p>
-              
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <div>
@@ -155,7 +155,7 @@ const CancellationPolicy = () => {
                   Early Return
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  If you return the vehicle early, partial refunds for unused days may be available 
+                  If you return the vehicle early, partial refunds for unused days may be available
                   minus a processing fee. Contact support for early return requests.
                 </p>
               </div>
@@ -166,7 +166,7 @@ const CancellationPolicy = () => {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Plane className="h-5 w-5 text-sky-500" />
+                <Plane className="h-5 w-5 text-foreground" />
                 Flights (Partner Ticketing)
               </CardTitle>
             </CardHeader>
@@ -177,15 +177,15 @@ const CancellationPolicy = () => {
                   Important
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Hizivo does NOT issue airline tickets. Flight cancellations are handled by the airline 
+                  ZIVO does NOT issue airline tickets. Flight cancellations are handled by the airline
                   partner who issued your ticket. Contact the airline partner listed in your confirmation email.
                 </p>
               </div>
-              
+
               <p className="text-muted-foreground">
                 General airline cancellation policies (actual terms set by airline):
               </p>
-              
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
                   <div>
@@ -217,7 +217,7 @@ const CancellationPolicy = () => {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                *Non-refundable fares may be eligible for change with fee, or refund in case of airline cancellation. 
+                *Non-refundable fares may be eligible for change with fee, or refund in case of airline cancellation.
                 24-hour free cancellation may apply for US departures (DOT regulations).
               </p>
             </CardContent>
@@ -228,36 +228,36 @@ const CancellationPolicy = () => {
             <CardContent className="p-6 text-center">
               <h3 className="font-bold text-lg mb-2">Need Help?</h3>
               <p className="text-muted-foreground mb-4">
-                For hotel and car rental cancellations, contact Hizivo support. 
+                For hotel and car rental cancellations, contact ZIVO support.
                 For flight cancellations, contact your airline partner.
               </p>
-              <a 
-                href="mailto:support@hizivo.com" 
+              <a
+                href="mailto:support@zivosmedia.com"
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="w-4 h-4" />
-                support@hizivo.com
+                support@zivosmedia.com
               </a>
             </CardContent>
           </Card>
 
           {/* Related Links */}
           <div className="flex flex-wrap gap-4 justify-center pt-8 border-t border-border mt-8">
-            <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/refunds" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Refund Policy
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Terms of Service
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Partner Disclosure
             </Link>
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

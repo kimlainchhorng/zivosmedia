@@ -13,7 +13,7 @@ const PartnerAgreement = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 safe-area-top z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Link to="/">
             <Button variant="ghost" size="icon" aria-label="Go back">
@@ -495,10 +495,10 @@ const PartnerAgreement = () => {
               <p><strong>Hours:</strong> Monday-Friday, 9 AM - 6 PM EST</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link to="/terms-of-service">
+              <Link to="/legal/terms">
                 <Button variant="outline" size="sm">Terms of Service</Button>
               </Link>
-              <Link to="/privacy-policy">
+              <Link to="/legal/privacy">
                 <Button variant="outline" size="sm">Privacy Policy</Button>
               </Link>
               <Link to="/help">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,8 @@ import {
   Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePriceAlerts, PriceAlert } from '@/hooks/usePriceAlerts';
+import { usePriceAlerts } from '@/hooks/usePriceAlerts';
+import type { PriceAlert } from '@/hooks/usePriceAlerts';
 import { format, formatDistanceToNow } from 'date-fns';
 
 interface PriceAlertsDashboardProps {
@@ -146,13 +147,13 @@ export function PriceAlertsDashboard({ className, onBookNow }: PriceAlertsDashbo
         <div className="flex items-center gap-1 text-xs">
           <span className="text-muted-foreground">Sort:</span>
           {['date', 'price', 'savings'].map((option) => (
-            <button
+            <button type="button"
               key={option}
               onClick={() => setSortBy(option as typeof sortBy)}
               className={cn(
                 "px-2 py-1 rounded transition-colors capitalize",
                 sortBy === option 
-                  ? "bg-primary text-primary-foreground" 
+                  ? "bg-ig-gradient text-white" 
                   : "hover:bg-muted"
               )}
             >

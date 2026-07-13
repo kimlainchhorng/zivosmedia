@@ -40,17 +40,17 @@ const companyFacts = [
 const pressContacts = [
   {
     label: "Media Inquiries",
-    email: "press@hizivo.com",
+    email: "press@zivosmedia.com",
     description: "For press releases, interviews, and media coverage",
   },
   {
     label: "Business Partnerships",
-    email: "partners@hizivo.com",
+    email: "partners@zivosmedia.com",
     description: "For partnership and integration opportunities",
   },
   {
     label: "Corporate Accounts",
-    email: "business@hizivo.com",
+    email: "business@zivosmedia.com",
     description: "For enterprise and corporate travel solutions",
   },
 ];
@@ -75,15 +75,15 @@ const Press = () => {
       <SEOHead
         title="Press & Media | ZIVO"
         description="ZIVO press resources, media kit, and contact information for journalists and media outlets."
-        canonical="https://hizivo.com/press"
+        canonical="https://zivosmedia.com/press"
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-sky-500/20 text-sky-500 border-sky-500/30">
+            <Badge className="mb-4 bg-secondary text-foreground border-border">
               <Newspaper className="w-3 h-3 mr-1" />
               Press & Media
             </Badge>
@@ -325,7 +325,7 @@ const Press = () => {
 
               {/* Media Coverage Stats */}
               <section className="mt-12">
-                <Card className="border-sky-500/20 bg-sky-500/5">
+                <Card className="border-border bg-secondary">
                   <CardContent className="p-6">
                     <h3 className="font-bold text-lg text-center mb-4">Media Coverage</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
@@ -337,7 +337,7 @@ const Press = () => {
                       ].map(s => (
                         <div key={s.label}>
                           <span className="text-xl">{s.emoji}</span>
-                          <p className="text-xl font-bold text-sky-500 mt-1">{s.stat}</p>
+                          <p className="text-xl font-bold text-foreground mt-1">{s.stat}</p>
                           <p className="text-[10px] text-muted-foreground">{s.label}</p>
                         </div>
                       ))}
@@ -355,7 +355,7 @@ const Press = () => {
                     { event: "Phocuswright Conference", topic: "AI-Powered Travel Personalization", date: "Nov 2024", location: "Los Angeles", emoji: "🤖" },
                     { event: "TravelTech Show", topic: "Building a Unified Travel Platform", date: "Jun 2024", location: "London", emoji: "🌍" },
                   ].map(e => (
-                    <Card key={e.event} className="border-border/50 hover:border-sky-500/20 transition-all">
+                    <Card key={e.event} className="border-border/50 hover:border-border transition-all">
                       <CardContent className="p-4">
                         <span className="text-lg">{e.emoji}</span>
                         <p className="font-bold text-sm mt-2">{e.event}</p>
@@ -376,10 +376,10 @@ const Press = () => {
                   <CardContent className="p-6">
                     <h3 className="font-bold mb-3">About ZIVO (Boilerplate)</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      ZIVO (hizivo.com) is a travel search and comparison platform that helps users find and compare flights, hotels, car rentals, and travel services from trusted partners worldwide. Founded in 2024, ZIVO's mission is to connect how the world moves by building a unified platform for travel and mobility. ZIVO does not sell tickets or process payments — when users select an option, they are redirected to trusted travel partners to complete their booking. ZIVO is free for users and earns revenue through affiliate commissions from travel partners. For more information, visit hizivo.com.
+                      ZIVO (zivosmedia.com) is a travel search and comparison platform that helps users find and compare flights, hotels, car rentals, and travel services from trusted partners worldwide. Founded in 2024, ZIVO's mission is to connect how the world moves by building a unified platform for travel and mobility. ZIVO does not sell tickets or process payments — when users select an option, they are redirected to trusted travel partners to complete their booking. ZIVO is free for users and earns revenue through affiliate commissions from travel partners. For more information, visit zivosmedia.com.
                     </p>
                     <p className="text-xs text-muted-foreground mt-3 italic">
-                      Copy-paste ready for publications. For custom quotes, contact press@hizivo.com.
+                      Copy-paste ready for publications. For custom quotes, contact press@zivosmedia.com.
                     </p>
                   </CardContent>
                 </Card>
@@ -388,7 +388,34 @@ const Press = () => {
 
             {/* Press Kit Tab */}
             <TabsContent value="assets">
-              <p className="text-muted-foreground text-center py-8">Press kit assets coming soon.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { label: "ZIVO Logo Pack", desc: "SVG + PNG in light/dark variants", icon: "🎨", size: "2.4 MB" },
+                  { label: "Brand Guidelines", desc: "Colors, typography, and usage rules", icon: "📐", size: "1.1 MB" },
+                  { label: "App Screenshots", desc: "iOS & Android — 6.7\" and 6.1\" sizes", icon: "📱", size: "18 MB" },
+                  { label: "Founder Photos", desc: "High-res press photos, 300 DPI", icon: "👤", size: "8.2 MB" },
+                  { label: "Product One-Pager", desc: "Key stats, mission, and product overview", icon: "📄", size: "540 KB" },
+                  { label: "Fact Sheet 2026", desc: "Users, markets, funding, milestones", icon: "📊", size: "320 KB" },
+                ].map(asset => (
+                  <Card key={asset.label} className="flex items-center gap-4 p-4">
+                    <div className="text-3xl">{asset.icon}</div>
+                    <div className="flex-1">
+                      <p className="font-semibold">{asset.label}</p>
+                      <p className="text-sm text-muted-foreground">{asset.desc}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{asset.size}</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="gap-1 shrink-0"
+                      onClick={() => window.open("mailto:press@zivosmedia.com?subject=Press Kit Request: " + asset.label)}>
+                      <Download className="w-3 h-3" /> Request
+                    </Button>
+                  </Card>
+                ))}
+                <Card className="col-span-full p-4 text-center bg-muted/30">
+                  <p className="text-sm text-muted-foreground">
+                    Need a custom asset or higher resolution? Email <a href="mailto:press@zivosmedia.com" className="text-primary underline">press@zivosmedia.com</a>
+                  </p>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

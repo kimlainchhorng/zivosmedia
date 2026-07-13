@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -32,13 +33,12 @@ export default {
   				'sans-serif'
   			],
   			serif: [
-  				'Lora',
-  				'ui-serif',
-  				'Georgia',
-  				'Cambria',
-  				'Times New Roman',
-  				'Times',
-  				'serif'
+  				'Inter',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'-apple-system',
+  				'BlinkMacSystemFont',
+  				'sans-serif'
   			],
   			mono: [
   				'Inconsolata',
@@ -245,6 +245,11 @@ export default {
 			'shimmer': {
 				'0%': { transform: 'translateX(-100%)' },
 				'100%': { transform: 'translateX(100%)' }
+			},
+			'flip-in': {
+				'0%': { transform: 'perspective(1200px) rotateY(-90deg)', opacity: '0' },
+				'60%': { opacity: '1' },
+				'100%': { transform: 'perspective(1200px) rotateY(0deg)', opacity: '1' }
 			}
 		},
 		animation: {
@@ -253,7 +258,8 @@ export default {
 			'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
 			'ping-slow': 'ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite',
 			'ping-medium': 'ping-medium 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-			'shimmer': 'shimmer 2s infinite'
+			'shimmer': 'shimmer 2s infinite',
+			'flip-in': 'flip-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both'
 		},
   		spacing: {
   			'18': '4.5rem',
@@ -261,5 +267,5 @@ export default {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

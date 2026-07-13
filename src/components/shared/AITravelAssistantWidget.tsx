@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { 
   Bot, 
   Send, 
@@ -89,7 +89,7 @@ const AITravelAssistantWidget = ({
           </div>
           <h3 className="font-semibold text-sm">AI Travel Assistant</h3>
         </div>
-        <Badge className="bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-0">
+        <Badge className="bg-gradient-to-r from-primary/20 text-primary border-0">
           <Sparkles className="w-3 h-3 mr-1" />
           Powered by AI
         </Badge>
@@ -114,7 +114,7 @@ const AITravelAssistantWidget = ({
               className={cn(
                 "max-w-[85%] p-3 rounded-xl text-sm",
                 message.role === "user"
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/50 border border-border/30"
               )}
             >
@@ -143,7 +143,7 @@ const AITravelAssistantWidget = ({
         {quickSuggestions.map((suggestion) => {
           const Icon = suggestion.icon;
           return (
-            <button
+            <button type="button"
               key={suggestion.id}
               onClick={() => handleSend(suggestion.text)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-muted/30 border border-border/30 text-xs hover:bg-muted/50 transition-all duration-200"
@@ -161,7 +161,7 @@ const AITravelAssistantWidget = ({
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSend(input)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend(input)}
           placeholder="Ask anything about your trip..."
           className="flex-1 px-3 py-2 rounded-xl bg-muted/30 border border-border/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />

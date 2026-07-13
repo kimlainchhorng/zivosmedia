@@ -3,10 +3,12 @@
  * Inspired by Uber's surge pricing visualization
  */
 import { useState, useEffect } from "react";
+import { useVisibleInterval } from "@/hooks/useVisibleInterval";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, TrendingUp, Zap, Clock, MapPin, Info, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SurgeZone {
   id: string;
@@ -26,33 +28,38 @@ const demandConfig = {
   extreme: { color: "from-red-500/35 to-red-500/5", border: "border-red-500/30", text: "text-red-500", label: "Very high", badge: "bg-red-500/15" },
 };
 
-// Simulated surge zones
-const mockSurgeZones: SurgeZone[] = [
-  { id: "1", name: "Downtown", multiplier: 2.1, demand: "extreme", eta_minutes: 3, x: 45, y: 35, radius: 60 },
-  { id: "2", name: "Airport", multiplier: 1.8, demand: "high", eta_minutes: 5, x: 75, y: 55, radius: 50 },
-  { id: "3", name: "Midtown", multiplier: 1.4, demand: "moderate", eta_minutes: 4, x: 30, y: 60, radius: 45 },
-  { id: "4", name: "Suburbs", multiplier: 1.0, demand: "low", eta_minutes: 8, x: 15, y: 25, radius: 40 },
-  { id: "5", name: "University", multiplier: 1.6, demand: "high", eta_minutes: 6, x: 60, y: 75, radius: 42 },
-];
-
 export default function SurgePricingMap() {
-  const [zones, setZones] = useState<SurgeZone[]>(mockSurgeZones);
+  const [zones, setZones] = useState<SurgeZone[]>([]);
   const [selectedZone, setSelectedZone] = useState<SurgeZone | null>(null);
   const [showInfo, setShowInfo] = useState(false);
 
-  // Simulate live updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      setZones(prev => prev.map(z => ({
-        ...z,
-        multiplier: Math.max(1, z.multiplier + (Math.random() - 0.5) * 0.2),
-        eta_minutes: Math.max(2, z.eta_minutes + Math.floor(Math.random() * 3) - 1),
-      })));
-    }, 10000);
-    return () => clearInterval(interval);
+    supabase.from("surge_zones").select("id, name, base_multiplier, manual_multiplier, is_active, surge_enabled, lat, lng, radius_km")
+      .eq("is_active", true).eq("surge_enabled", true).then(({ data }) => {
+        if (data && data.length > 0) {
+          setZones(data.map((z, i) => ({
+            id: z.id,
+            name: z.name,
+            multiplier: z.manual_multiplier ?? z.base_multiplier,
+            demand: z.manual_multiplier && z.manual_multiplier > 2 ? "extreme" : z.manual_multiplier && z.manual_multiplier > 1.5 ? "high" : z.base_multiplier > 1.2 ? "moderate" : "low",
+            eta_minutes: Math.round(5 + Math.random() * 10),
+            x: 15 + (i * 22) % 75,
+            y: 20 + (i * 17) % 60,
+            radius: z.radius_km ? Math.max(30, Math.min(80, z.radius_km * 6)) : 50,
+          })));
+        }
+      });
   }, []);
 
-  const avgSurge = zones.reduce((s, z) => s + z.multiplier, 0) / zones.length;
+  useVisibleInterval(() => {
+    setZones(prev => prev.map(z => ({
+      ...z,
+      multiplier: Math.max(1, z.multiplier + (Math.random() - 0.5) * 0.1),
+      eta_minutes: Math.max(2, z.eta_minutes + Math.floor(Math.random() * 3) - 1),
+    })));
+  }, 15000);
+
+  const avgSurge = zones.length ? zones.reduce((s, z) => s + z.multiplier, 0) / zones.length : 0;
 
   return (
     <div className="rounded-2xl bg-card border border-border/40 overflow-hidden">
@@ -72,7 +79,7 @@ export default function SurgePricingMap() {
             <TrendingUp className="w-3 h-3 mr-1" />
             Avg {avgSurge.toFixed(1)}x
           </Badge>
-          <button onClick={() => setShowInfo(!showInfo)} className="p-1 rounded-lg hover:bg-muted/50">
+          <button type="button" onClick={() => setShowInfo(!showInfo)} className="p-1 rounded-lg hover:bg-muted/50">
             <Info className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
         </div>
@@ -164,7 +171,7 @@ export default function SurgePricingMap() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => setSelectedZone(null)} className="p-1 rounded-full hover:bg-muted">
+              <button type="button" onClick={() => setSelectedZone(null)} className="p-1 rounded-full hover:bg-muted">
                 <X className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
             </div>

@@ -1,522 +1,1090 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+/**
+ * ZIVO ID — Login page
+ * - Drive-style saved accounts: tap an avatar, restore session or ask password
+ * - Full email+password form for new/other accounts
+ * - Remember me saves avatar/name to localStorage for quick re-login
+ */
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Loader2, Eye, EyeOff, UserPlus, X, ChevronLeft, AlertTriangle, MoreHorizontal, ExternalLink, ShieldCheck, Wrench, CalendarCheck, BadgeCheck, CheckCircle2 } from "lucide-react";
+import { supabase, setRememberMePreference } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Mail, Lock, User, ArrowRight, Shield, Home } from "lucide-react";
 import { toast } from "sonner";
-import { Provider } from "@supabase/supabase-js";
-import { motion } from "framer-motion";
 import SEOHead from "@/components/SEOHead";
+import {
+  ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
+  isAutoRepairSoftwareHost,
+  isZivoSoftwareRedirectTarget,
+} from "@/config/autoRepairDomain";
+import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
+import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
+import { getSafeRedirectTarget, isExternalRedirectTarget, withProductContext } from "@/lib/authRedirect";
+import {
+  buildSoftwareMediaConnectHref,
+  createSoftwareMediaConnectState,
+  rememberSoftwareMediaConnect,
+} from "@/lib/softwareMediaConnect";
+import serviceCars from "@/assets/service-cars.jpg";
+import serviceShopping from "@/assets/service-shopping.png";
 
-// Login schema
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+function ZivoSoftwareAuthLogo() {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative mb-2 flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[#101412] shadow-[0_16px_34px_rgba(17,20,18,0.18)]">
+        <span className="absolute -right-1 -top-1 h-4 w-4 rounded-md bg-[#48e7af] shadow-[0_10px_20px_rgba(72,231,175,0.38)]" />
+        <span className="absolute bottom-2 left-2 h-2 w-2 rounded-sm bg-[#35a8ff]/85" />
+        <svg viewBox="0 0 44 44" aria-hidden="true" className="relative h-7 w-7">
+          <defs>
+            <linearGradient id="zivoAuthMark" x1="8" y1="8" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="#ffffff" />
+              <stop offset="0.5" stopColor="#48e7af" />
+              <stop offset="1" stopColor="#35a8ff" />
+            </linearGradient>
+          </defs>
+          <path d="M10 8h26v7.2H22.4L36 15.3 16.1 36H8l20-20.8H10V8Z" fill="url(#zivoAuthMark)" />
+          <path d="M13.2 28.8h20.9V36H6.8l6.4-7.2Z" fill="#f8fffc" />
+        </svg>
+      </div>
+      <h1 className="text-center text-xl font-black tracking-[0.22em] text-[#101412]">ZIVO</h1>
+      <p className="mt-1 text-center text-[9px] font-black uppercase tracking-[0.22em] text-[#138f68]">Software</p>
+    </div>
+  );
+}
 
-// Signup schema (extends login with name + confirm)
-const signupSchema = z.object({
-  fullName: z.string().min(2, "Name must be at least 2 characters").max(100),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+function ZivoSoftwareMiniScene({ mode }: { mode: "login" | "signup" }) {
+  return (
+    <div className="relative mx-auto my-3 h-[5.8rem] w-full max-w-[18rem] [perspective:900px]" aria-hidden="true">
+      <div className="absolute inset-x-8 bottom-0 h-8 rounded-full bg-[#101412]/15 blur-2xl" />
+      <img src={serviceCars} alt="" className="absolute right-5 top-5 h-12 w-20 rounded-xl object-cover shadow-[0_16px_30px_rgba(17,20,18,0.22)] [transform:rotateX(42deg)_rotateZ(10deg)]" />
+      <img src={serviceShopping} alt="" className="absolute left-5 bottom-1 h-10 w-16 rounded-xl object-cover shadow-[0_16px_28px_rgba(17,20,18,0.16)] [transform:rotateX(42deg)_rotateZ(-12deg)]" />
+      <div className="absolute left-12 top-2 h-16 w-28 rounded-2xl bg-[#101412] p-3 text-white shadow-[0_22px_48px_rgba(17,20,18,0.3)] [transform:rotateX(58deg)_rotateZ(-16deg)]">
+        <div className="flex items-center justify-between">
+          <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/50">Board</span>
+          <BadgeCheck className="h-3.5 w-3.5 text-[#48e7af]" />
+        </div>
+        <div className="mt-3 text-xl font-black">{mode === "login" ? "$18.4k" : "1"}</div>
+        <div className="text-[9px] font-semibold text-white/55">{mode === "login" ? "weekly revenue" : "business page"}</div>
+      </div>
+      <div className="absolute right-10 top-0 h-14 w-20 rounded-2xl bg-[#48e7af] p-2 text-[#102018] shadow-[0_18px_34px_rgba(25,183,127,0.32)] [transform:rotateX(54deg)_rotateZ(13deg)]">
+        <CalendarCheck className="h-3.5 w-3.5" />
+        <div className="mt-2 text-lg font-black">{mode === "login" ? "42" : "1"}</div>
+        <div className="text-[8px] font-bold">{mode === "login" ? "bookings" : "setup"}</div>
+      </div>
+      <div className="absolute bottom-1 left-[45%] h-14 w-24 rounded-2xl border border-black/5 bg-white p-2 text-[#101412] shadow-[0_20px_42px_rgba(17,20,18,0.18)] [transform:rotateX(55deg)_rotateZ(4deg)]">
+        <Wrench className="h-3.5 w-3.5" />
+        <div className="mt-2 text-[10px] font-black">{mode === "login" ? "Work orders" : "Setup"}</div>
+        <div className="text-[8px] font-bold text-[#64706a]">ready</div>
+      </div>
+    </div>
+  );
+}
 
-type LoginFormData = z.infer<typeof loginSchema>;
-type SignupFormData = z.infer<typeof signupSchema>;
+function ZivoSoftwareAuthGraphic({ mode }: { mode: "login" | "signup" }) {
+  return (
+    <section className="relative hidden min-h-[520px] overflow-hidden rounded-[1.25rem] bg-[#101412] p-7 text-white shadow-[0_30px_74px_rgba(17,20,18,0.2)] lg:block">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(72,231,175,0.28),transparent_30%),radial-gradient(circle_at_92%_18%,rgba(53,168,255,0.22),transparent_32%)]" />
+      <div className="relative z-10 flex h-full flex-col justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-white/70">
+            <ShieldCheck className="h-4 w-4 text-[#48e7af]" />
+            Secure business access
+          </div>
+          <h2 className="mt-7 max-w-md text-3xl font-black leading-[0.98] tracking-normal">
+            {mode === "login" ? "Open the workspace that runs the day." : "Create the workspace your team comes back to."}
+          </h2>
+          <p className="mt-5 max-w-sm text-base leading-7 text-white/62">
+            ZIVO Software keeps bookings, work orders, payments, customers, and reports connected for local operators.
+          </p>
+        </div>
 
-const Login = () => {
-  const [searchParams] = useSearchParams();
-  const initialMode = searchParams.get("mode") === "signup" ? false : true;
-  
-  const [isLogin, setIsLogin] = useState(initialMode);
+        <div className="relative min-h-[260px] [perspective:1100px]">
+          <div className="absolute left-4 top-4 w-[78%] rounded-[1.25rem] border border-white/14 bg-white/10 p-4 shadow-[0_30px_70px_rgba(0,0,0,0.24)] backdrop-blur [transform:rotateX(54deg)_rotateZ(-18deg)]">
+            <div className="rounded-xl bg-white p-4 text-[#101412]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-[0.16em] text-[#64706a]">Dashboard</span>
+                <BadgeCheck className="h-5 w-5 text-[#19b77f]" />
+              </div>
+              <div className="mt-7 text-4xl font-black">$18.4k</div>
+              <div className="mt-1 text-sm font-semibold text-[#64706a]">weekly revenue</div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-[#48e7af] p-4 text-[#102018]">
+                <CalendarCheck className="h-5 w-5" />
+                <div className="mt-7 text-2xl font-black">42</div>
+                <div className="text-xs font-bold">bookings</div>
+              </div>
+              <div className="rounded-xl bg-white/90 p-4 text-[#101412]">
+                <Wrench className="h-5 w-5" />
+                <div className="mt-7 text-2xl font-black">16</div>
+                <div className="text-xs font-bold text-[#64706a]">open jobs</div>
+              </div>
+            </div>
+          </div>
+          <img src={serviceCars} alt="Auto repair dashboard preview" className="absolute bottom-5 right-0 h-32 w-48 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.3)] [transform:rotate(7deg)]" />
+          <img src={serviceShopping} alt="Business software checkout preview" className="absolute bottom-0 left-0 h-24 w-36 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.24)] [transform:rotate(-8deg)]" />
+        </div>
+      </div>
+    </section>
+  );
+}
 
-  // Capture affiliate_code from URL for attribution tracking
-  useEffect(() => {
-    const affiliateCode = searchParams.get("affiliate_code");
-    if (affiliateCode) {
-      sessionStorage.setItem("signup_affiliate_code", affiliateCode);
-    }
-  }, [searchParams]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<string | null>(null);
-  const { signIn, signUp, signInWithProvider } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/";
+function ZivoSoftwareLegalLinks({
+  connectHref,
+  mediaConnected = false,
+  onConnectClick,
+}: {
+  connectHref?: string;
+  mediaConnected?: boolean;
+  onConnectClick?: () => void;
+}) {
+  return (
+    <div className="mt-3 space-y-3">
+      {mediaConnected && (
+        <div className="flex items-start gap-2 rounded-2xl border border-[#48e7af]/45 bg-[#48e7af]/12 px-4 py-3 text-left text-xs font-semibold text-[#101412]">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#138f68]" />
+          <span>ZIVO Media is connected. Sign in here to open your ZIVO Software workspace.</span>
+        </div>
+      )}
+      {connectHref && (
+        <a
+          href={connectHref}
+          onClick={onConnectClick}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#101412]/15 bg-white/90 text-sm font-black text-[#101412] shadow-sm transition hover:border-[#138f68] hover:text-[#138f68]"
+        >
+          <ExternalLink className="h-4 w-4" />
+          {mediaConnected ? "Continue with ZIVO Media" : "Connect with ZIVO Media"}
+        </a>
+      )}
+      <p className="text-center text-xs font-medium text-[#66736d]">
+        By continuing, you agree to the{" "}
+        <Link to="/legal/terms" className="font-black text-[#101412] underline-offset-4 hover:underline">ZIVO Software Terms</Link>
+        {" "}and{" "}
+        <Link to="/legal/privacy" className="font-black text-[#101412] underline-offset-4 hover:underline">Privacy Policy</Link>.
+      </p>
+    </div>
+  );
+}
 
-  // Login form
-  const loginForm = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+// ── Saved account avatar card ────────────────────────────────────────────────
+// In `editing` mode the X delete button is shown on each avatar. In normal
+// mode the avatar is a clean tap-to-switch target with no UI chrome — that's
+// the Facebook/Instagram pattern (clean by default, edit on demand via "...").
+function AccountCard({
+  account,
+  onSelect,
+  onRemove,
+  editing = false,
+  softwareStyle = false,
+}: {
+  account: SavedAccount;
+  onSelect: (account: SavedAccount) => void;
+  onRemove: (email: string) => void;
+  editing?: boolean;
+  softwareStyle?: boolean;
+}) {
+  const initials = account.fullName
+    ? account.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : account.email[0].toUpperCase();
 
-  // Signup form
-  const signupForm = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      fullName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
-
-  // Reset forms when switching modes
-  useEffect(() => {
-    if (isLogin) {
-      signupForm.reset();
-    } else {
-      loginForm.reset();
-    }
-  }, [isLogin, loginForm, signupForm]);
-
-  const onLoginSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
-    const { error } = await signIn(data.email, data.password);
-
-    if (error) {
-      setIsLoading(false);
-      toast.error(error.message || "Failed to sign in");
-      return;
-    }
-
-    // Check user and email verification status
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      // Check email verification for email/password users
-      if (!user.email_confirmed_at) {
-        setIsLoading(false);
-        navigate("/verify-email", { replace: true });
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("setup_complete")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      setIsLoading(false);
-      toast.success("Welcome back!");
-
-      if (!profile || profile.setup_complete !== true) {
-        navigate("/setup", { replace: true });
-      } else {
-        navigate(from, { replace: true });
-      }
-    } else {
-      setIsLoading(false);
-      navigate(from, { replace: true });
-    }
-  };
-
-  const onSignupSubmit = async (data: SignupFormData) => {
-    setIsLoading(true);
-    
-    // Check if email is on allowlist before attempting signup
-    try {
-      const { data: allowlistResponse, error: allowlistError } = await supabase.functions.invoke(
-        "check-signup-allowlist",
-        { body: { email: data.email } }
-      );
-
-      if (allowlistError) {
-        setIsLoading(false);
-        toast.error("Unable to verify email authorization. Please try again.");
-        return;
-      }
-
-      if (!allowlistResponse?.allowed) {
-        setIsLoading(false);
-        if (allowlistResponse?.existingUser) {
-          toast.info("An account with this email already exists. Please sign in instead.");
-          setIsLogin(true); // Switch to login mode
-        } else {
-          toast.error(allowlistResponse?.message || "This email is not authorized to sign up.");
-        }
-        return;
-      }
-    } catch (err) {
-      setIsLoading(false);
-      toast.error("Unable to verify email authorization. Please try again.");
-      return;
-    }
-
-    const { error } = await signUp(data.email, data.password, data.fullName);
-
-    if (error) {
-      setIsLoading(false);
-      toast.error(error.message || "Failed to create account");
-      return;
-    }
-
-    // Get the user ID for OTP tracking
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id;
-
-    // Send OTP email
-    try {
-      const { data: otpResponse, error: otpError } = await supabase.functions.invoke(
-        "send-otp-email",
-        { body: { email: data.email, userId } }
-      );
-
-      if (otpError || !otpResponse?.success) {
-        console.error("Failed to send OTP:", otpError || otpResponse?.error);
-        // Fall back to old verification email flow
-        setIsLoading(false);
-        toast.success("Account created! Please check your email to verify.");
-        navigate("/verify-email");
-        return;
-      }
-    } catch (err) {
-      console.error("OTP send error:", err);
-      // Fall back to old verification email flow
-      setIsLoading(false);
-      toast.success("Account created! Please check your email to verify.");
-      navigate("/verify-email");
-      return;
-    }
-
-    setIsLoading(false);
-    toast.success("Verification code sent to your email!");
-    navigate("/verify-otp", { state: { email: data.email, userId } });
-  };
-
-  const handleSocialLogin = async (provider: Provider) => {
-    setSocialLoading(provider);
-    const { error } = await signInWithProvider(provider);
-    if (error) {
-      toast.error(error.message || `Failed to sign in with ${provider}`);
-      setSocialLoading(null);
-    }
-  };
-
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
+  const handleClick = () => {
+    if (editing) return; // In edit mode, only the X is interactive
+    onSelect(account);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/50 px-4 py-6 sm:py-8 safe-area-top safe-area-bottom relative overflow-hidden">
-      <SEOHead title={isLogin ? "Sign In – ZIVO" : "Create Account – ZIVO"} description="Sign in or create your ZIVO account to search flights, hotels, and car rentals." noIndex={true} />
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/3 w-[80%] h-[80%] bg-gradient-to-br from-primary/15 to-transparent rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute -bottom-1/3 -right-1/4 w-[60%] h-[60%] bg-gradient-to-tl from-[hsl(var(--flights))/0.1] to-transparent rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '1.5s' }} />
-        <div className="absolute top-1/3 right-1/4 w-[30%] h-[30%] bg-gradient-to-bl from-[hsl(var(--hotels))/0.08] to-transparent rounded-full blur-[60px] animate-pulse" style={{ animationDelay: '3s' }} />
-      </div>
-      <div className="w-full max-w-md relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-card/80 backdrop-blur-2xl border border-border/60 rounded-3xl shadow-2xl shadow-black/[0.08] p-6 sm:p-8"
+    <div
+      className="relative"
+    >
+      {/* Remove button — only shown in edit mode, after the user taps "..." */}
+      {editing && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const name = account.fullName || account.email;
+            toast(`Remove ${name}?`, {
+              description: "You'll need to enter your email next time.",
+              action: { label: "Remove", onClick: () => onRemove(account.email) },
+              cancel: { label: "Cancel", onClick: () => {} },
+            });
+          }}
+          className="absolute -top-1 -right-1 z-10 w-6 h-6 rounded-full bg-zinc-800 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center transition active:scale-90 shadow-md ring-2 ring-white dark:ring-zinc-900"
+          aria-label={`Remove ${account.fullName || account.email}`}
+          title="Remove this account"
         >
-          {/* Header */}
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-              ZIVO ID
-            </h1>
-            <motion.p 
-              key={isLogin ? "login" : "signup"}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-muted-foreground mt-2 text-sm sm:text-base"
-            >
-              {isLogin ? "Welcome back, Traveler" : "Get Started Free — No credit card needed"}
-            </motion.p>
+          <X className="w-3.5 h-3.5" strokeWidth={3} />
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={handleClick}
+        tabIndex={editing ? -1 : 0}
+        aria-disabled={editing}
+        aria-label={`Continue as ${account.fullName || account.email}`}
+        className={`group flex flex-col items-center gap-2 ${editing ? "cursor-default" : "cursor-pointer"}`}
+      >
+        {/* Avatar — Instagram-style circular ring with brand gradient. The
+            gentle wiggle in edit mode hints "tap the X to remove" without
+            requiring any extra label. */}
+        <div className={`w-16 h-16 rounded-full p-[2px] shadow-md transition ${
+          softwareStyle ? "bg-gradient-to-br from-[#48e7af] via-[#101412] to-[#35a8ff]" : "bg-ig-gradient"
+        } ${editing ? "animate-pulse opacity-90" : "group-hover:scale-105 group-active:scale-95"}`}>
+          <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center">
+            {account.avatarUrl ? (
+              <img
+                src={account.avatarUrl}
+                alt={account.fullName || account.email}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className={`font-bold text-lg ${
+                softwareStyle ? "text-[#101412]" : "bg-ig-gradient bg-clip-text text-transparent"
+              }`}>{initials}</span>
+            )}
           </div>
+        </div>
 
-          {/* Forms */}
-          {isLogin ? (
-            <Form {...loginForm}>
-              <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                <FormField
-                  control={loginForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-muted-foreground text-sm font-medium">Email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input
-                            type="email"
-                            placeholder="you@example.com"
-                            autoComplete="email"
-                            className="w-full bg-muted border border-border rounded-xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-base"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-destructive" />
-                    </FormItem>
-                  )}
-                />
+        <span className={`text-xs font-medium text-center max-w-[72px] truncate ${
+          softwareStyle ? "text-[#3f4742]" : "text-zinc-700 dark:text-zinc-300"
+        }`}>
+          {account.fullName || account.email.split("@")[0]}
+        </span>
+      </button>
+    </div>
+  );
+}
 
-                <FormField
-                  control={loginForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="text-muted-foreground text-sm font-medium">Password</FormLabel>
-                        <Link
-                          to="/forgot-password"
-                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-                        >
-                          Forgot?
-                        </Link>
-                      </div>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input
-                            type="password"
-                            placeholder="••••••••"
-                            autoComplete="current-password"
-                            className="w-full bg-muted border border-border rounded-xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-base"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-destructive" />
-                    </FormItem>
-                  )}
-                />
+type LoginAuthError = Error & {
+  code?: string;
+  status?: number;
+  name?: string;
+  _emailExists?: boolean;
+};
 
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl mt-6 touch-manipulation active:scale-[0.98] transition-all" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      Sign In
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
-          ) : (
-            <Form {...signupForm}>
-              <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-3">
-                <FormField
-                  control={signupForm.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-muted-foreground text-sm font-medium">Full Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input
-                            placeholder="John Doe"
-                            autoComplete="name"
-                            className="w-full bg-muted border border-border rounded-xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-base"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-destructive" />
-                    </FormItem>
-                  )}
-                />
+const getLoginErrorFacts = (error: Error) => {
+  const authError = error as LoginAuthError;
+  const message = authError.message || "";
+  const msg = message.toLowerCase();
+  const code = (authError.code || "").toLowerCase();
 
-                <FormField
-                  control={signupForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-muted-foreground text-sm font-medium">Email</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input
-                            type="email"
-                            placeholder="you@example.com"
-                            autoComplete="email"
-                            className="w-full bg-muted border border-border rounded-xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-base"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-destructive" />
-                    </FormItem>
-                  )}
-                />
+  return {
+    emailExists: typeof authError._emailExists === "boolean" ? authError._emailExists : null,
+    isBadCredentials:
+      code === "invalid_credentials" ||
+      msg.includes("invalid login") ||
+      msg.includes("invalid credentials") ||
+      msg.includes("invalid login credentials") ||
+      msg.includes("user not found"),
+    isEmailNotConfirmed: code === "email_not_confirmed" || msg.includes("email not confirmed"),
+    isRateLimited:
+      authError.status === 429 ||
+      code.includes("rate_limit") ||
+      code.includes("too_many") ||
+      msg.includes("too many") ||
+      msg.includes("rate limit"),
+    isNetwork:
+      authError.name === "AuthRetryableFetchError" ||
+      msg.includes("failed to fetch") ||
+      msg.includes("load failed") ||
+      msg.includes("network") ||
+      msg.includes("timeout") ||
+      msg.includes("timed out") ||
+      msg.includes("transport failure"),
+    message,
+  };
+};
 
-                <FormField
-                  control={signupForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-muted-foreground text-sm font-medium">Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input
-                            type="password"
-                            placeholder="••••••••"
-                            autoComplete="new-password"
-                            className="w-full bg-muted border border-border rounded-xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-base"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-destructive" />
-                    </FormItem>
-                  )}
-                />
+// ── Main login page ──────────────────────────────────────────────────────────
+const Login = () => {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const mediaConnected = params.get("connected") === "zivosmedia";
+  const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
+  const isZivoSoftwareHost = isAutoRepairSoftwareHost(currentHostname);
+  const isZivoChatDomain = isZivoChatHost(currentHostname);
+  const rawRedirect = params.get("redirect");
+  const handoffSource = params.get("source");
+  const handoffProduct = params.get("product");
+  const handoffIntent = params.get("intent");
+  const isConnectedHandoff = handoffSource === "zivosmedia" || handoffSource === "zivo-admin";
+  const redirect = withProductContext(
+    getSafeRedirectTarget(
+      rawRedirect ||
+        (isZivoSoftwareHost || mediaConnected
+          ? ZIVO_SOFTWARE_AUTH_REDIRECT_PATH
+          : isZivoChatDomain
+            ? ZIVO_CHAT_HOME_PATH
+            : undefined),
+    ),
+    params.get("product"),
+    params.get("intent"),
+    params.get("handoff_id") || params.get("handoff"),
+  );
+  const isZivoSoftwareDomain =
+    isZivoSoftwareHost ||
+    isZivoSoftwareRedirectTarget(redirect);
+  const zivoMediaConnectState = useMemo(() => createSoftwareMediaConnectState(), []);
+  const zivoMediaConnectHref = useMemo(() => {
+    return buildSoftwareMediaConnectHref({ redirect, state: zivoMediaConnectState });
+  }, [redirect, zivoMediaConnectState]);
+  const handleZivoMediaConnectClick = useCallback(() => {
+    rememberSoftwareMediaConnect(zivoMediaConnectState, redirect);
+  }, [redirect, zivoMediaConnectState]);
+  const finishAuthRedirect = useCallback((target: string) => {
+    if (isExternalRedirectTarget(target)) {
+      window.location.assign(target);
+      return;
+    }
+    navigate(target, { replace: true });
+  }, [navigate]);
+  const { signIn, user, isLoading: authLoading } = useAuth();
+  const { accounts, remove, refresh } = useSavedAccounts();
 
-                <FormField
-                  control={signupForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-muted-foreground text-sm font-medium">Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input
-                            type="password"
-                            placeholder="••••••••"
-                            autoComplete="new-password"
-                            className="w-full bg-muted border border-border rounded-xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-base"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-destructive" />
-                    </FormItem>
-                  )}
-                />
+  // "picker" = show saved accounts, "password" = selected an account (email locked),
+  // "expired" = session expired, show one-tap link login (no password shown),
+  // "full" = show email+password form for a new account
+  type Mode = "picker" | "password" | "full";
+  const [mode, setMode] = useState<Mode>("picker");
+  const [selectedAccount, setSelectedAccount] = useState<SavedAccount | null>(null);
 
-                <Button 
-                  type="submit" 
-                  className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl mt-4 touch-manipulation active:scale-[0.98] transition-all" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      Create Account
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [quickSignInLabel, setQuickSignInLabel] = useState("Signing in...");
+  // Edit mode — toggled by the "..." button in picker, surfaces the X delete
+  // buttons on each avatar. Default off so the picker feels clean (FB/IG).
+  const [editingAccounts, setEditingAccounts] = useState(false);
+
+  // Honor ?email= handoffs (e.g. SwitchAccountSheet falls back here when a
+  // saved refresh token is rejected): preselect the matching saved account in
+  // password mode, or prefill the full form for an unknown address. Mount-only
+  // — we deliberately skip the one-tap refreshSession retry since the token
+  // was just rejected upstream.
+  const emailParamHandledRef = useRef(false);
+  useEffect(() => {
+    if (emailParamHandledRef.current) return;
+    const target = params.get("email")?.trim().toLowerCase();
+    if (!target) { emailParamHandledRef.current = true; return; }
+    emailParamHandledRef.current = true;
+    const match = accounts.find((a) => a.email.toLowerCase() === target);
+    if (match) {
+      setSelectedAccount(match);
+      setEmail(match.email);
+      setMode("password");
+    } else {
+      setEmail(target);
+      setMode("full");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const activeEmail = (mode === "password" ? selectedAccount?.email ?? "" : email).trim().toLowerCase();
+  const forgotPasswordHref = useMemo(() => {
+    const forgotParams = new URLSearchParams();
+    if (activeEmail) forgotParams.set("email", activeEmail);
+    if (redirect) forgotParams.set("redirect", redirect);
+    const query = forgotParams.toString();
+    return `/forgot-password${query ? `?${query}` : ""}`;
+  }, [activeEmail, redirect]);
+  const canSubmit =
+    !submitting &&
+    password.length > 0 &&
+    (mode === "password" ? !!selectedAccount : email.trim().length > 0);
+
+  const passwordKeyHandlers = {
+    onKeyUp: (e: React.KeyboardEvent<HTMLInputElement>) =>
+      setCapsLockOn(e.getModifierState("CapsLock")),
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) =>
+      setCapsLockOn(e.getModifierState("CapsLock")),
+    onBlur: () => setCapsLockOn(false),
+  };
+
+  const capsLockNotice = capsLockOn ? (
+    <p role="alert" className="flex items-center gap-1.5 text-xs text-amber-400 mt-1">
+      <AlertTriangle className="w-3.5 h-3.5" />
+      Caps Lock is on
+    </p>
+  ) : null;
+
+  useEffect(() => {
+    if (!authLoading && user) finishAuthRedirect(redirect);
+  }, [authLoading, user, finishAuthRedirect, redirect]);
+
+  useEffect(() => {
+    if (isZivoSoftwareDomain && params.get("connected") === "zivosmedia") {
+      toast.success("ZIVO Media connection checked. Sign in to ZIVO Software to continue.");
+    }
+  }, [isZivoSoftwareDomain, params]);
+
+  // When accounts change (e.g. all removed), fall back to full form and exit
+  // edit mode so users don't get stuck staring at "Tap × to remove" with no
+  // accounts left.
+  useEffect(() => {
+    if (accounts.length === 0) {
+      setEditingAccounts(false);
+    }
+  }, [accounts.length]);
+
+  const handleSelectAccount = async (account: SavedAccount) => {
+    if (submitting) return;
+    // Tap-to-sign-in flow:
+    //   1) If the live session already matches this account, continue.
+    //   2) Otherwise restore via stored refresh_token.
+    //   3) If the trusted token is absent/expired, ask for password.
+    //
+    // Do not auto-send an email link from an account tap. Saved accounts should
+    // feel like a trusted-device picker; email link stays an explicit fallback.
+    setSelectedAccount(account);
+    setEmail(account.email);
+    setPassword("");
+    setShowPassword(false);
+    setMode("picker");
+    setSubmitting(true);
+    setQuickSignInLabel("Checking saved login...");
+
+    // ── Step 1: reuse a still-live session ────────────────────────────────
+    try {
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      if (session?.user?.email?.toLowerCase() === account.email.toLowerCase()) {
+        saveAccount({
+          ...account,
+          lastLoginAt: new Date().toISOString(),
+          refreshToken: session.refresh_token ?? account.refreshToken,
+          accessToken: session.access_token ?? account.accessToken,
+          expiresAt: session.expires_at ?? account.expiresAt ?? null,
+        });
+        refresh();
+        setSubmitting(false);
+        finishAuthRedirect(redirect);
+        return;
+      }
+    } catch {
+      // Continue to the trusted-token check.
+    }
+
+    // ── Step 2: try one-tap session restore ──────────────────────────────
+    // We use refreshSession() (not setSession()) because the stored access
+    // token expires after 1 hour while the refresh token lives much longer
+    // (~30 days). setSession({access_token, refresh_token}) installs the
+    // expired access token locally and then any subsequent auth call returns
+    // "Auth session missing!" — defeating the one-tap UX.
+    //
+    // refreshSession({refresh_token}) calls Supabase's token exchange
+    // endpoint: server validates the refresh_token, returns a fresh pair, and
+    // installs the live session client-side. This is exactly the FB / IG
+    // "trusted device" flow.
+    if (account.refreshToken) {
+      try {
+        const { data, error } = await supabase.auth.refreshSession({
+          refresh_token: account.refreshToken,
+        });
+        if (!error && data?.session) {
+          saveAccount({
+            ...account,
+            lastLoginAt: new Date().toISOString(),
+            refreshToken: data.session.refresh_token ?? account.refreshToken,
+            accessToken: data.session.access_token ?? account.accessToken,
+            expiresAt: data.session.expires_at ?? null,
+          });
+          refresh();
+          setSubmitting(false);
+          finishAuthRedirect(redirect);
+          return;
+        }
+      } catch {
+        // Fall through to password mode.
+      }
+    }
+
+    // ── Step 3: session fully expired — show password form ───────────────
+    setSubmitting(false);
+    setMode("password");
+  };
+
+  const handleAddAccount = () => {
+    setSelectedAccount(null);
+    setEmail("");
+    setPassword("");
+    setQuickSignInLabel("Signing in...");
+    setMode("full");
+  };
+
+  const handleBack = () => {
+    setPassword("");
+    setQuickSignInLabel("Signing in...");
+    setMode("picker");
+  };
+
+  // Webmail provider detection — used to label the secondary email-code option.
+  const detectMailProvider = (addr: string): { name: string; url: string } | null => {
+    const domain = addr.split("@")[1]?.toLowerCase() || "";
+    if (!domain) return null;
+    if (domain === "gmail.com" || domain === "googlemail.com") return { name: "Gmail", url: "https://mail.google.com/mail/u/0/#inbox" };
+    if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live.com")) return { name: "Outlook", url: "https://outlook.live.com/mail/" };
+    if (domain === "yahoo.com" || domain === "ymail.com") return { name: "Yahoo Mail", url: "https://mail.yahoo.com/" };
+    if (domain === "icloud.com" || domain === "me.com" || domain === "mac.com") return { name: "iCloud Mail", url: "https://www.icloud.com/mail" };
+    if (domain === "proton.me" || domain === "protonmail.com") return { name: "Proton Mail", url: "https://mail.proton.me/" };
+    return null;
+  };
+
+  const getEmailRedirectTo = () => {
+    const redirectParams = new URLSearchParams();
+    redirectParams.set("redirect", redirect);
+    return `${window.location.origin}/auth-callback?${redirectParams.toString()}`;
+  };
+
+  const getVerifyOtpPath = (targetEmail: string) =>
+    `/verify-otp?email=${encodeURIComponent(targetEmail)}&mode=login&entry=link${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ""}`;
+
+  // Google / Apple SSO. signInWithOAuth redirects to the provider; on return,
+  // /auth-callback exchanges the code and AuthContext restores the session.
+  const handleOAuthSignIn = async (provider: "google" | "apple") => {
+    if (submitting) return;
+    setSubmitting(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: getEmailRedirectTo(),
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    // Only reached on error; on success the browser navigates to the provider.
+    if (error) {
+      setSubmitting(false);
+      toast.error(error.message || "Could not start sign-in. Please try again.");
+    }
+  };
+
+  const requestSignInCode = async (targetEmail: string): Promise<
+    { ok: true; email: string } | { ok: false; message: string }
+  > => {
+    const trimmed = targetEmail.trim().toLowerCase();
+    if (!trimmed) {
+      return { ok: false, message: "Please enter your email first." };
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email: trimmed,
+      options: { emailRedirectTo: getEmailRedirectTo() },
+    });
+    if (error) {
+      return { ok: false, message: error.message || "Could not send sign-in link. Try again." };
+    }
+    return { ok: true, email: trimmed };
+  };
+
+  // Passwordless sign-in — sends the Supabase magic-link email
+  // and routes to /verify-otp. Used as a fallback when the user can't remember
+  // their password and doesn't want a full reset cycle.
+  const sendEmailCode = async (targetEmail: string) => {
+    if (submitting) return false;
+    setSubmitting(true);
+    const result = await requestSignInCode(targetEmail);
+    setSubmitting(false);
+    if (result.ok === false) {
+      toast.error(result.message);
+      return false;
+    }
+    toast.success("We sent a secure sign-in link to your email.");
+    navigate(getVerifyOtpPath(result.email));
+    return true;
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+    const trimmedEmail = (mode === "password" ? selectedAccount!.email : email).trim();
+    if (!trimmedEmail || !password) {
+      setFieldError("Please enter your email and password.");
+      return;
+    }
+    setSubmitting(true);
+
+    setRememberMePreference(true);
+    const { error } = await signIn(trimmedEmail, password);
+
+    if (error) {
+      setSubmitting(false);
+      if (error.message === "DRIVER_ACCOUNT") {
+        toast.error("This is a ZIVO Driver account. Please use the ZIVO Driver app to sign in.", {
+          duration: 6000,
+          description: "Driver accounts cannot access the passenger app.",
+          action: {
+            label: "Driver App",
+            onClick: () => window.open("https://apps.apple.com/us/app/zivodrivers/id6759507131", "_blank", "noopener"),
+          },
+        });
+        return;
+      }
+      const facts = getLoginErrorFacts(error);
+
+      if (facts.emailExists === false) {
+        setFieldError("No account found for this email.");
+      } else if (facts.isEmailNotConfirmed) {
+        setFieldError("Please verify your email before logging in. Check your inbox.");
+      } else if (facts.isBadCredentials) {
+        setFieldError(facts.emailExists === true ? "Wrong password — please try again." : "Email or password is incorrect.");
+      } else if (facts.isRateLimited) {
+        setFieldError("Too many attempts. Please wait a moment and try again.");
+      } else if (facts.isNetwork) {
+        setFieldError("Connection issue — check your internet and try again.");
+      } else {
+        setFieldError(facts.message || "Sign in failed. Please try again.");
+      }
+      return;
+    }
+
+    // Save account + session tokens for one-tap login next time.
+    // We capture the live session so the next visit can call setSession()
+    // and resume without a password — that's the FB/IG "tap to log in" feel.
+    try {
+      const [{ data: profile }, { data: sessionData }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, avatar_url, role")
+          .eq("email", trimmedEmail)
+          .maybeSingle(),
+        supabase.auth.getSession(),
+      ]);
+
+      saveAccount({
+        email: trimmedEmail,
+        fullName: profile?.full_name || trimmedEmail.split("@")[0],
+        avatarUrl: profile?.avatar_url ?? null,
+        lastLoginAt: new Date().toISOString(),
+        role: profile?.role ?? null,
+        refreshToken: sessionData?.session?.refresh_token ?? null,
+        accessToken: sessionData?.session?.access_token ?? null,
+        expiresAt: sessionData?.session?.expires_at ?? null,
+      });
+      refresh();
+    } catch {}
+
+    setSubmitting(false);
+    finishAuthRedirect(redirect);
+  };
+
+  return (
+    <div className={`relative min-h-[100dvh] w-full overflow-hidden flex items-center justify-center px-4 py-3 ${
+      isZivoSoftwareDomain ? "bg-[#f4f8f6] text-[#101412]" : "bg-white dark:bg-black"
+    }`}>
+      <SEOHead
+        title={isZivoSoftwareDomain ? "Sign in to ZIVO Software" : isZivoChatDomain ? "Sign in to ZIVO Chat" : "Sign in to ZIVO"}
+        description={isZivoSoftwareDomain ? "Sign in to your ZIVO Software business workspace." : isZivoChatDomain ? "Sign in with your ZIVO Media account for chat." : "Sign in to your ZIVO account"}
+      />
+
+      {isZivoSoftwareDomain ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(72,231,175,0.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(53,168,255,0.2),transparent_30%),linear-gradient(180deg,#f4f8f6_0%,#ffffff_100%)]" />
+      ) : (
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full bg-gradient-to-br from-fuchsia-300/30 via-orange-200/30 to-rose-200/30 blur-3xl dark:from-fuchsia-600/20 dark:via-orange-600/20 dark:to-rose-600/20" />
+          <div className="absolute -bottom-32 -left-32 w-[420px] h-[420px] rounded-full bg-gradient-to-tr from-amber-200/30 via-pink-200/30 to-purple-200/30 blur-3xl dark:from-amber-600/15 dark:via-pink-600/15 dark:to-purple-600/15" />
+        </div>
+      )}
+
+      <div className={`relative grid w-full items-center gap-6 ${
+        isZivoSoftwareDomain ? "max-w-[23.5rem] lg:max-w-5xl lg:grid-cols-[1.05fr_0.82fr]" : "max-w-sm"
+      }`}>
+        {isZivoSoftwareDomain && <ZivoSoftwareAuthGraphic mode="login" />}
+        <div className="mx-auto flex w-full max-w-[23.5rem] flex-col items-stretch">
+        {/* IG-style stack: card → "OR" → footer card */}
+
+        {/* Main card */}
+        <div className={`relative ${
+          isZivoSoftwareDomain
+            ? "overflow-hidden rounded-[1.15rem] border border-black/10 bg-white/92 px-4 pt-4 pb-4 shadow-[0_18px_50px_rgba(17,20,18,0.1)] backdrop-blur sm:px-5"
+            : "bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/10 rounded-xl px-8 pt-10 pb-6 shadow-sm"
+        }`}>
+          {isZivoSoftwareDomain && (
+            <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(72,231,175,0.08),transparent_38%),radial-gradient(circle_at_88%_12%,rgba(53,168,255,0.1),transparent_28%)]" />
+          )}
+          {/* "..." More menu in picker mode — toggles edit mode for removing
+              saved accounts. Hidden when there are no saved accounts. */}
+          {mode === "picker" && accounts.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setEditingAccounts((v) => !v)}
+              aria-label={editingAccounts ? "Done editing" : "More options"}
+              title={editingAccounts ? "Done" : "Edit saved accounts"}
+              className="absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 active:scale-95 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              {editingAccounts ? (
+                <span className={`text-xs font-semibold ${isZivoSoftwareDomain ? "text-[#138f68]" : "text-rose-500"}`}>Done</span>
+              ) : (
+                <MoreHorizontal className="w-5 h-5" />
+              )}
+            </button>
           )}
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-4 text-muted-foreground">Or continue with</span>
-            </div>
+          {/* Brand wordmark — IG-style script logo */}
+          <div className={`relative flex flex-col items-center ${isZivoSoftwareDomain ? "mb-3" : "mb-8"}`}>
+            {isZivoSoftwareDomain ? (
+              <ZivoSoftwareAuthLogo />
+            ) : (
+              <>
+                <div className="relative w-16 h-16 rounded-2xl bg-ig-gradient flex items-center justify-center mb-5 shadow-lg shadow-rose-500/20">
+                  <span className="brand-script-mark text-white font-black text-3xl tracking-tight italic">Z</span>
+                </div>
+                <h1 className="text-center text-3xl font-black tracking-[0.12em] text-zinc-900 dark:text-white">
+                  {isZivoChatDomain ? "ZIVO Chat" : "Zivo"}
+                </h1>
+              </>
+            )}
+            {isZivoSoftwareDomain && (
+              <p className="mt-2 max-w-[14rem] text-center text-xs font-semibold leading-5 text-zinc-500 dark:text-zinc-400">
+                Sign in to manage your business workspace.
+              </p>
+            )}
+            {isZivoChatDomain && (
+              <p className="mt-2 max-w-[14rem] text-center text-xs font-semibold leading-5 text-zinc-500 dark:text-zinc-400">
+                Use your ZIVO Media account.
+              </p>
+            )}
+            {isZivoSoftwareDomain && <ZivoSoftwareMiniScene mode="login" />}
           </div>
 
-          {/* Social Login - 2 columns only */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => handleSocialLogin('google')}
-              disabled={socialLoading !== null}
-              className="h-12 flex items-center justify-center bg-muted border border-border hover:bg-muted/80 hover:border-border/80 text-foreground rounded-xl touch-manipulation active:scale-95 transition-all disabled:opacity-50"
-            >
-              {socialLoading === 'google' ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Google
-                </>
+          {isConnectedHandoff && (
+            <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50/80 px-3 py-2 text-center text-xs font-medium text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200">
+              Connected workflow{handoffProduct ? ` · ${handoffProduct}` : ""}{handoffIntent ? ` · ${handoffIntent}` : ""}. Sign in to continue.
+            </div>
+          )}
+
+          {/* ── MODE: saved account picker ── */}
+          {mode === "picker" && (
+            <div className="space-y-4 relative">
+              {/* Inline spinner overlay shown when a tap-to-sign-in is in
+                  flight (setSession or signInWithOtp). Avatars stay visible
+                  but unclickable so the user gets visual feedback. */}
+              {submitting && !editingAccounts && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-sm pointer-events-auto dark:bg-zinc-900/70">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className={`w-6 h-6 animate-spin ${isZivoSoftwareDomain ? "text-[#138f68]" : "text-rose-500"}`} />
+                    <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200">{quickSignInLabel}</span>
+                  </div>
+                </div>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSocialLogin('apple')}
-              disabled={socialLoading !== null}
-              className="h-12 flex items-center justify-center bg-muted border border-border hover:bg-muted/80 hover:border-border/80 text-foreground rounded-xl touch-manipulation active:scale-95 transition-all disabled:opacity-50"
-            >
-              {socialLoading === 'apple' ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-                  </svg>
-                  Apple
-                </>
+              <p className={`text-center text-sm ${
+                isZivoSoftwareDomain ? "font-semibold text-[#66736d]" : "text-zinc-500 dark:text-zinc-400"
+              }`}>
+                {editingAccounts
+                  ? "Tap × to remove an account"
+                  : accounts.length > 0
+                  ? "Log in as"
+                  : "Your account will be saved for quick sign-in next time"}
+              </p>
+
+              <div className="flex justify-center gap-5 flex-wrap">
+                {accounts.slice(0, 4).map((acc) => (
+                  <AccountCard
+                    key={acc.email}
+                    editing={editingAccounts}
+                    account={acc}
+                    softwareStyle={isZivoSoftwareDomain}
+                    onSelect={handleSelectAccount}
+                    onRemove={(email) => { remove(email); }}
+                  />
+                ))}
+
+                <button
+                  type="button"
+                  className="flex flex-col items-center gap-2 cursor-pointer group"
+                  onClick={handleAddAccount}
+                >
+                  <div className={`w-16 h-16 rounded-full border-2 border-dashed bg-zinc-50 dark:bg-zinc-800/40 flex items-center justify-center transition ${
+                    isZivoSoftwareDomain
+                      ? "border-[#101412]/20 group-hover:border-[#48e7af] group-hover:bg-[#eefdf7]"
+                      : "border-zinc-300 dark:border-zinc-700 group-hover:border-rose-400 group-hover:bg-rose-50/50 dark:group-hover:border-rose-500 dark:group-hover:bg-rose-950/30"
+                  }`}>
+                    <UserPlus className={`w-6 h-6 transition ${
+                      isZivoSoftwareDomain ? "text-[#66736d] group-hover:text-[#138f68]" : "text-zinc-400 group-hover:text-rose-500"
+                    }`} />
+                  </div>
+                  <span className={`text-xs font-medium ${
+                    isZivoSoftwareDomain ? "text-[#66736d] group-hover:text-[#138f68]" : "text-zinc-500 dark:text-zinc-400"
+                  }`}>Add account</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddAccount}
+                className={`w-full text-center text-sm font-semibold pt-2 ${
+                  isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"
+                }`}
+              >
+                {accounts.length > 0 ? "Log into another account" : "Sign in with email"}
+              </button>
+
+            </div>
+          )}
+
+          {/* ── MODE: selected account — password only ──
+              Facebook-style "trusted" feel: avatar + name + tiny email, the
+              browser fills the password from saved credentials, the user just
+              taps "Log in". Hidden username field hints autofill which account
+              to fill for. */}
+          {mode === "password" && selectedAccount && (
+            <form onSubmit={onSubmit} className="relative space-y-2">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition mb-1"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Back
+              </button>
+
+              <div className="flex flex-col items-center gap-1 pb-1">
+                <div className={`h-12 w-12 rounded-full p-[2px] shadow-md ${
+                  isZivoSoftwareDomain ? "bg-gradient-to-br from-[#48e7af] via-[#101412] to-[#35a8ff]" : "bg-ig-gradient"
+                }`}>
+                  <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-zinc-900 flex items-center justify-center">
+                    {selectedAccount.avatarUrl ? (
+                      <img
+                        src={selectedAccount.avatarUrl}
+                        alt={selectedAccount.fullName || selectedAccount.email}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className={`font-bold text-xl ${
+                        isZivoSoftwareDomain ? "text-[#101412]" : "bg-ig-gradient bg-clip-text text-transparent"
+                      }`}>
+                        {selectedAccount.fullName ? selectedAccount.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : selectedAccount.email[0].toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm font-bold text-zinc-900 dark:text-white truncate max-w-full">{selectedAccount.fullName || selectedAccount.email.split("@")[0]}</p>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate max-w-full">{selectedAccount.email}</p>
+              </div>
+
+              {/* Hidden email — tells the browser's password manager which
+                  account this password belongs to, so autofill picks the right
+                  saved credential without asking. */}
+              <input
+                type="email"
+                name="email"
+                autoComplete="username"
+                value={selectedAccount.email}
+                readOnly
+                tabIndex={-1}
+                aria-hidden="true"
+                className="visually-hidden-auth"
+              />
+
+              <div className="relative">
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  enterKeyHint="go"
+                  autoFocus
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  {...passwordKeyHandlers}
+                  placeholder="Password"
+                  disabled={submitting}
+                  className="w-full h-10 px-3 pr-12 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {capsLockNotice}
+
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={`w-full h-10 rounded-lg text-sm font-bold text-white active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 ${
+                  isZivoSoftwareDomain
+                    ? "bg-[#101412] shadow-[0_14px_30px_rgba(17,20,18,0.18)] hover:bg-black"
+                    : "bg-ig-gradient hover:opacity-95 shadow-md shadow-rose-500/20"
+                }`}
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
+              </button>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <Link to={forgotPasswordHref} className="inline-flex min-h-[40px] items-center font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white">
+                  Forgot password?
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const name = selectedAccount.fullName || selectedAccount.email;
+                    toast(`Remove ${name}?`, {
+                      description: "You'll need to enter your email next time.",
+                      action: {
+                        label: "Remove",
+                        onClick: () => {
+                          remove(selectedAccount.email);
+                          setSelectedAccount(null);
+                          setPassword("");
+                          setMode("picker");
+                        },
+                      },
+                      cancel: { label: "Cancel", onClick: () => {} },
+                    });
+                  }}
+                  className={`font-medium ${isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"}`}
+                >
+                  Remove this account
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── MODE: full email + password form ── */}
+          {mode === "full" && (
+            <form onSubmit={onSubmit} className="space-y-2.5">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition mb-1"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> {accounts.length > 0 ? "Saved accounts" : "Back"}
+              </button>
+
+              <input
+                id="login-email"
+                type="text"
+                inputMode="email"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="next"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setFieldError(null); }}
+                placeholder="Phone number, username, or email"
+                disabled={submitting}
+                className="w-full h-11 px-3 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-zinc-400 dark:focus:border-zinc-500 outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition"
+              />
+
+              <div className="relative">
+                <input
+                  id="login-password-full"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  enterKeyHint="go"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setFieldError(null); }}
+                  {...passwordKeyHandlers}
+                  placeholder="Password"
+                  disabled={submitting}
+                  className={`w-full h-11 px-3 pr-12 rounded-md bg-zinc-50 dark:bg-zinc-800/60 border outline-none text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 transition focus:border-zinc-400 dark:focus:border-zinc-500 ${fieldError ? "border-red-400 dark:border-red-500" : "border-zinc-200 dark:border-zinc-700"}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {fieldError && (
+                <p className="text-xs text-red-500 dark:text-red-400 -mt-1 px-0.5">{fieldError}</p>
               )}
-            </button>
-          </div>
+              {capsLockNotice}
 
-          {/* Trust badges */}
-          <div className="flex items-center justify-center gap-4 mt-4 text-muted-foreground text-[10px]">
-            <div className="flex items-center gap-1">
-              <Shield className="w-3 h-3" />
-              <span>256-bit encrypted</span>
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={`w-full h-11 mt-2 rounded-lg text-sm font-bold text-white active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 ${
+                  isZivoSoftwareDomain
+                    ? "bg-[#101412] shadow-[0_14px_30px_rgba(17,20,18,0.18)] hover:bg-black"
+                    : "bg-ig-gradient hover:opacity-95 shadow-md shadow-rose-500/20"
+                }`}
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log in"}
+              </button>
+
+
+              <div className="text-center pt-2">
+                <Link to={forgotPasswordHref} className="inline-flex min-h-[40px] items-center px-1 text-xs font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white">
+                  Forgot password?
+                </Link>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* SSO / OAuth entrypoints — Continue with Google / Apple */}
+        {!isZivoSoftwareDomain && (
+          <div className="mt-3">
+            <div className="flex items-center gap-3">
+              <span className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
+              <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">or continue with</span>
+              <span className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
             </div>
-            <div className="w-px h-3 bg-border" />
-            <div className="flex items-center gap-1">
-              <Mail className="w-3 h-3" />
-              <span>No spam, ever</span>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleOAuthSignIn("google")}
+                disabled={submitting}
+                aria-label="Continue with Google"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
+              >
+                <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOAuthSignIn("apple")}
+                disabled={submitting}
+                aria-label="Continue with Apple"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
+              >
+                <svg className="h-[18px] w-[18px] text-zinc-900 dark:text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+                Apple
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Toggle Mode */}
-          <div className="text-center mt-6">
-            <button
-              type="button"
-              onClick={toggleMode}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        {/* Footer card — IG-style "Don't have an account?" */}
+        <div className={`mt-2 ${
+          isZivoSoftwareDomain
+            ? "rounded-[1rem] border border-black/10 bg-white/82 px-5 py-3 text-center shadow-sm backdrop-blur"
+            : "bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-white/10 rounded-xl px-6 py-5 text-center shadow-sm"
+        }`}>
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">
+            Don't have an account?{" "}
+            <Link
+              to={`/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+              className={`inline-flex min-h-[40px] items-center font-semibold ${
+                isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"
+              }`}
             >
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <span className="text-primary font-semibold">
-                {isLogin ? "Sign Up" : "Log In"}
-              </span>
-            </button>
-          </div>
-        </motion.div>
+              Sign up
+            </Link>
+          </p>
+        </div>
 
-        <p className="mt-4 sm:mt-6 text-center text-xs text-muted-foreground">
-          {isLogin ? "Protected by enterprise-grade security" : "By signing up, you agree to our Terms of Service"}
+        {(isZivoSoftwareDomain || mediaConnected) && (
+          <ZivoSoftwareLegalLinks
+            connectHref={zivoMediaConnectHref}
+            mediaConnected={mediaConnected}
+            onConnectClick={handleZivoMediaConnectClick}
+          />
+        )}
+
+        <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-500 mt-3">
+          Protected by enterprise-grade security
         </p>
-
-        {/* Go to Home */}
-        <button
-          onClick={() => navigate("/")}
-          className="mt-4 w-full flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
-        >
-          <Home className="h-4 w-4" />
-          Go to Home
-        </button>
+        </div>
       </div>
     </div>
   );

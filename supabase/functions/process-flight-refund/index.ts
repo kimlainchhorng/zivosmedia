@@ -6,7 +6,7 @@
 
 import { serve, createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const DUFFEL_API_URL = "https://api.duffel.com";
 
@@ -16,10 +16,13 @@ interface RefundRequest {
   action: 'request' | 'process' | 'auto';
 }
 
-serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+serve(withSecurity("process-flight-refund", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   // Auth: require service role key or authenticated user
@@ -47,14 +50,19 @@ serve(async (req) => {
   }
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
   const duffelApiKey = Deno.env.get("DUFFEL_API_KEY");
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
   try {
-    const { bookingId, reason, action }: RefundRequest = await req.json();
+    const { bookingId, reason: rawReason, action }: RefundRequest = await req.json();
 
     if (!bookingId) {
       throw new Error("bookingId is required");
     }
+
+    // Sanitize reason: plain text only, max 500 chars
+    const reason = typeof rawReason === "string"
+      ? rawReason.replace(/[<>&"']/g, "").trim().slice(0, 500)
+      : undefined;
 
     console.log(`[FlightRefund] Processing ${action} refund for booking:`, bookingId);
 
@@ -242,4 +250,4 @@ serve(async (req) => {
       }
     );
   }
-});
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 85 }));

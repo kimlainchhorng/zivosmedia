@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ScheduleRideSheet - Schedule rides for future dates/times with recurring options
  */
 import { useState } from "react";
@@ -7,11 +7,10 @@ import { Calendar, Clock, Repeat, ChevronRight, Check, Bell, MapPin, X, Plus, Tr
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Calendar as CalendarPicker } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import DateScrollWheelPicker from "./DateScrollWheelPicker";
 
 interface ScheduledRide {
   id: string;
@@ -51,7 +50,7 @@ export default function ScheduleRideSheet({
   onSchedule,
   onClose,
 }: ScheduleRideSheetProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [recurring, setRecurring] = useState("none");
   const [customDays, setCustomDays] = useState<string[]>([]);
@@ -82,7 +81,7 @@ export default function ScheduleRideSheet({
           <h3 className="text-sm font-bold text-foreground">Schedule Ride</h3>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-muted">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-muted">
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
@@ -104,31 +103,19 @@ export default function ScheduleRideSheet({
         </div>
       </div>
 
-      {/* Date picker */}
+      {/* Date picker — 2026 scroll wheel */}
       <div className="px-4 py-3">
         <span className="text-xs font-bold text-foreground mb-2 block">Select Date</span>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-full justify-start text-left h-11 text-sm", !selectedDate && "text-muted-foreground")}>
-              <Calendar className="w-4 h-4 mr-2" />
-              {selectedDate ? format(selectedDate, "EEEE, MMM d, yyyy") : "Pick a date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <CalendarPicker
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              disabled={(date) => date < new Date()}
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
+        <DateScrollWheelPicker
+          selectedDate={selectedDate ?? new Date()}
+          onDateChange={(d) => setSelectedDate(d)}
+          compact
+        />
       </div>
 
       {/* Time picker */}
       <div className="px-4 pb-3">
-        <button
+        <button type="button"
           onClick={() => setShowTimes(!showTimes)}
           className={cn(
             "w-full flex items-center justify-between h-11 px-3 rounded-lg border text-sm transition-all",
@@ -154,13 +141,13 @@ export default function ScheduleRideSheet({
             >
               <div className="flex flex-wrap gap-1.5 mt-2 max-h-32 overflow-y-auto">
                 {timeSlots.map((time) => (
-                  <button
+                  <button type="button"
                     key={time}
                     onClick={() => { setSelectedTime(time); setShowTimes(false); }}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
                       selectedTime === time
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-ig-gradient text-white"
                         : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
                     )}
                   >
@@ -180,13 +167,13 @@ export default function ScheduleRideSheet({
         </span>
         <div className="flex flex-wrap gap-1.5">
           {recurringOptions.map((opt) => (
-            <button
+            <button type="button"
               key={opt.id}
               onClick={() => setRecurring(opt.id)}
               className={cn(
                 "px-3 py-1.5 rounded-full text-xs font-bold transition-all",
                 recurring === opt.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-ig-gradient text-white"
                   : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
               )}
             >
@@ -199,13 +186,13 @@ export default function ScheduleRideSheet({
         {recurring === "custom" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-1.5 mt-2">
             {weekDays.map((day) => (
-              <button
+              <button type="button"
                 key={day}
                 onClick={() => toggleDay(day)}
                 className={cn(
                   "flex-1 py-2 rounded-lg text-[10px] font-bold transition-all",
                   customDays.includes(day)
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted/30 text-muted-foreground"
                 )}
               >

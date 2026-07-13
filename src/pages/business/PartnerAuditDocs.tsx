@@ -314,8 +314,8 @@ export default function PartnerAuditDocs() {
         <div className="mt-12 text-center text-sm text-muted-foreground">
           <p>
             For partner inquiries, contact{" "}
-            <a href="mailto:partners@hizivo.com" className="text-primary hover:underline">
-              partners@hizivo.com
+            <a href="mailto:partners@zivosmedia.com" className="text-primary hover:underline">
+              partners@zivosmedia.com
             </a>
           </p>
         </div>

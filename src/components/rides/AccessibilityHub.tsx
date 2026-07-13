@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AccessibilityHub - Accessibility features panel with assisted boarding, voice commands
  */
 import { useState } from "react";
@@ -46,11 +46,19 @@ const categories = [
   { id: "cognitive", label: "Cognitive", icon: MessageSquare, color: "text-amber-500" },
 ];
 
+const PREFS_KEY = "zivo_a11y_prefs";
+
 export default function AccessibilityHub() {
-  const [features, setFeatures] = useState<Record<string, boolean>>(
-    Object.fromEntries(a11yFeatures.map(f => [f.id, f.enabled]))
-  );
+  const [features, setFeatures] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || "null");
+      return saved ?? Object.fromEntries(a11yFeatures.map(f => [f.id, f.enabled]));
+    } catch {
+      return Object.fromEntries(a11yFeatures.map(f => [f.id, f.enabled]));
+    }
+  });
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
 
   const toggleFeature = (id: string) => {
     setFeatures(prev => {
@@ -59,6 +67,34 @@ export default function AccessibilityHub() {
       toast.success(`${feat?.label} ${newState[id] ? "enabled" : "disabled"}`);
       return newState;
     });
+  };
+
+  const savePreferences = () => {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(features));
+    toast.success("Accessibility preferences saved!");
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.info("Voice commands not supported in this browser");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const command = event.results[0][0].transcript.toLowerCase();
+      setIsListening(false);
+      if (command.includes("home")) toast.success(`Heard: "${command}" — booking ride home`);
+      else if (command.includes("eta")) toast.success(`Heard: "${command}" — checking ETA`);
+      else toast.info(`Heard: "${command}"`);
+    };
+    recognition.onerror = () => { setIsListening(false); toast.error("Could not hear command"); };
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
   };
 
   const enabledCount = Object.values(features).filter(Boolean).length;
@@ -84,11 +120,11 @@ export default function AccessibilityHub() {
 
         {/* Category filters */}
         <div className="flex gap-1.5">
-          <button
+          <button type="button"
             onClick={() => setActiveCategory(null)}
             className={cn(
               "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
-              !activeCategory ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground"
+              !activeCategory ? "bg-ig-gradient text-white" : "bg-muted/30 text-muted-foreground"
             )}
           >
             All
@@ -96,12 +132,12 @@ export default function AccessibilityHub() {
           {categories.map((cat) => {
             const Icon = cat.icon;
             return (
-              <button
+              <button type="button"
                 key={cat.id}
                 onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
                 className={cn(
                   "flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
-                  activeCategory === cat.id ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground"
+                  activeCategory === cat.id ? "bg-ig-gradient text-white" : "bg-muted/30 text-muted-foreground"
                 )}
               >
                 <Icon className="w-3 h-3" />
@@ -157,8 +193,9 @@ export default function AccessibilityHub() {
             <p className="text-[10px] text-muted-foreground mt-1">
               Try: "Book a ride home" or "What's my ETA?"
             </p>
-            <Button size="sm" className="mt-3 h-8 text-xs" onClick={() => toast.info("Listening...")}>
-              <Mic className="w-3 h-3 mr-1.5" /> Start Listening
+            <Button size="sm" className="mt-3 h-8 text-xs" onClick={startListening} disabled={isListening}>
+              <Mic className={`w-3 h-3 mr-1.5 ${isListening ? "animate-pulse" : ""}`} />
+              {isListening ? "Listening..." : "Start Listening"}
             </Button>
           </div>
         </motion.div>
@@ -167,7 +204,7 @@ export default function AccessibilityHub() {
       {/* Save preferences */}
       <div className="px-4 pb-4">
         <Button
-          onClick={() => toast.success("Accessibility preferences saved!")}
+          onClick={savePreferences}
           className="w-full h-11 rounded-xl font-bold"
         >
           <Check className="w-4 h-4 mr-2" /> Save Preferences

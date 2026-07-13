@@ -78,17 +78,10 @@ export function useSetDefaultPaymentMethod() {
 
   return useMutation({
     mutationFn: async (paymentMethodId: string) => {
-      // First, unset all defaults
-      await (supabase as any)
-        .from("zivo_payment_methods")
-        .update({ is_default: false })
-        .eq("user_id", user!.id);
-
-      // Set the new default
-      const { error } = await (supabase as any)
-        .from("zivo_payment_methods")
-        .update({ is_default: true })
-        .eq("id", paymentMethodId);
+      if (!user?.id) throw new Error("Not authenticated");
+      const { error } = await supabase.functions.invoke("zivo-payment-method-manage", {
+        body: { action: "set_default", payment_method_id: paymentMethodId },
+      });
 
       if (error) throw error;
     },
@@ -104,10 +97,9 @@ export function useDeletePaymentMethod() {
 
   return useMutation({
     mutationFn: async (paymentMethodId: string) => {
-      const { error } = await (supabase as any)
-        .from("zivo_payment_methods")
-        .delete()
-        .eq("id", paymentMethodId);
+      const { error } = await supabase.functions.invoke("zivo-payment-method-manage", {
+        body: { action: "delete", payment_method_id: paymentMethodId },
+      });
 
       if (error) throw error;
     },

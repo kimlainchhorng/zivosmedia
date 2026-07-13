@@ -1,11 +1,15 @@
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
+import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 
-Deno.serve(async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: cors });
+Deno.serve(withSecurity("create-payment-intent", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
+    });
   }
 
   try {
@@ -34,6 +38,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    const rl = await rateLimitDb(user.id, "payment");
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: "Too many requests. Please try again shortly." }), {
+        status: 429,
+        headers: { ...cors, "Content-Type": "application/json", ...rateLimitHeaders(rl, "payment") },
+      });
+    }
+
     const { job_id } = await req.json();
     if (!job_id) {
       return new Response(JSON.stringify({ error: "job_id required" }), {
@@ -42,7 +54,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // Load job + verify ownership
     const { data: job, error: jobErr } = await admin
@@ -121,7 +133,7 @@ Deno.serve(async (req) => {
     console.error("[create-payment-intent] Error:", e);
     return new Response(JSON.stringify({ error: String(e) }), {
       status: 500,
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

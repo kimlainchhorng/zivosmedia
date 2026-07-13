@@ -48,15 +48,15 @@ export default function LocalizedFlightRoutePage() {
       <Helmet>
         <title>{title}</title>
         <meta name="description" content={description} />
-        <link rel="canonical" href={`https://hizivo.com/${countrySlug}/flights/${routeSlug}`} />
+        <link rel="canonical" href={`https://zivosmedia.com/${countrySlug}/flights/${routeSlug}`} />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         
         {/* hreflang for international SEO */}
-        <link rel="alternate" hrefLang="en-gb" href={`https://hizivo.com/uk/flights/${routeSlug}`} />
-        <link rel="alternate" hrefLang="en-us" href={`https://hizivo.com/us/flights/${routeSlug}`} />
-        <link rel="alternate" hrefLang="en-ca" href={`https://hizivo.com/ca/flights/${routeSlug}`} />
-        <link rel="alternate" hrefLang="x-default" href={`https://hizivo.com/flights/${routeSlug}`} />
+        <link rel="alternate" hrefLang="en-gb" href={`https://zivosmedia.com/uk/flights/${routeSlug}`} />
+        <link rel="alternate" hrefLang="en-us" href={`https://zivosmedia.com/us/flights/${routeSlug}`} />
+        <link rel="alternate" hrefLang="en-ca" href={`https://zivosmedia.com/ca/flights/${routeSlug}`} />
+        <link rel="alternate" hrefLang="x-default" href={`https://zivosmedia.com/flights/${routeSlug}`} />
       </Helmet>
       
       <div className="min-h-screen flex flex-col bg-background">
@@ -79,10 +79,10 @@ export default function LocalizedFlightRoutePage() {
           </div>
           
           {/* Hero */}
-          <section className="py-12 bg-gradient-to-br from-sky-500/10 via-background to-primary/5">
+          <section className="py-12 via-background to-primary/5 bg-secondary">
             <div className="container mx-auto px-4">
               <div className="flex items-center gap-3 mb-4">
-                <Badge className="bg-sky-500/10 text-sky-500 border-sky-500/30">
+                <Badge className="bg-secondary text-foreground border-border">
                   <Plane className="w-3 h-3 mr-1" />
                   Flights
                 </Badge>
@@ -130,8 +130,8 @@ export default function LocalizedFlightRoutePage() {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 rounded-xl bg-sky-500/10">
-                        <Plane className="w-5 h-5 text-sky-500" />
+                      <div className="p-2 rounded-xl bg-secondary">
+                        <Plane className="w-5 h-5 text-foreground" />
                       </div>
                       <h3 className="font-semibold">Direct Flights</h3>
                     </div>

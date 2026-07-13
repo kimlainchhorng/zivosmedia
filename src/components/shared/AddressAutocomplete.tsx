@@ -21,24 +21,33 @@ interface Suggestion {
   description: string;
   place_id: string;
   main_text: string;
+  canonical_place_id?: string;
 }
 
 interface AddressAutocompleteProps {
   placeholder?: string;
   value?: string;
   onSelect: (place: Place) => void;
+  onClear?: () => void;
+  onFocus?: () => void;
+  onInputChange?: (value: string) => void;
   proximity?: { lat: number; lng: number };
   disabled?: boolean;
   className?: string;
+  country?: string;
 }
 
 export function AddressAutocomplete({
   placeholder = "Enter address",
   value = "",
   onSelect,
+  onClear,
+  onFocus,
+  onInputChange,
   proximity,
   disabled = false,
   className,
+  country,
 }: AddressAutocompleteProps) {
   const [inputValue, setInputValue] = useState(value);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -78,7 +87,7 @@ export function AddressAutocomplete({
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("maps-autocomplete", {
-        body: { input, proximity },
+        body: { input, proximity, country },
       });
 
       if (fnError) throw fnError;
@@ -99,11 +108,20 @@ export function AddressAutocomplete({
     } finally {
       setIsLoading(false);
     }
-  }, [proximity]);
+  }, [proximity, country]);
+
+  // Reset stale suggestions when country filter changes
+  useEffect(() => {
+    setSuggestions([]);
+    setIsOpen(false);
+    setSelectedIndex(-1);
+    setError(null);
+  }, [country]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
+    onInputChange?.(newValue);
 
     // Debounce API calls
     if (debounceRef.current) {
@@ -123,13 +141,15 @@ export function AddressAutocomplete({
     setError(null);
 
     try {
-      // Try Place Details first
+      // Use canonical_place_id for synthetic entries (::pickup, ::dropoff, ::terminal)
+      const rawPlaceId = suggestion.place_id;
+      const selectedPlaceId = suggestion.canonical_place_id || rawPlaceId.replace(/::[a-z0-9-]+$/i, "");
       const { data, error: fnError } = await supabase.functions.invoke("maps-place-details", {
-        body: { place_id: suggestion.place_id },
+        body: { place_id: selectedPlaceId },
       });
 
       if (!fnError && data?.ok && data.lat != null && data.lng != null) {
-        console.log("[AddressAutocomplete] Place details success:", data.address, data.lat, data.lng);
+        if (import.meta.env.DEV) console.log("[AddressAutocomplete] Place details success:", data.address, data.lat, data.lng);
         onSelect({
           address: data.address || suggestion.description,
           lat: data.lat,
@@ -146,7 +166,7 @@ export function AddressAutocomplete({
       });
 
       if (!geoError && geoData?.ok && geoData.lat != null && geoData.lng != null) {
-        console.log("[AddressAutocomplete] Geocode fallback success:", geoData.lat, geoData.lng);
+        if (import.meta.env.DEV) console.log("[AddressAutocomplete] Geocode fallback success:", geoData.lat, geoData.lng);
         onSelect({
           address: suggestion.description,
           lat: geoData.lat,
@@ -205,6 +225,8 @@ export function AddressAutocomplete({
     setSuggestions([]);
     setIsOpen(false);
     setError(null);
+    onInputChange?.("");
+    onClear?.();
   };
 
   return (
@@ -215,7 +237,7 @@ export function AddressAutocomplete({
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => suggestions.length > 0 && setIsOpen(true)}
+          onFocus={() => { suggestions.length > 0 && setIsOpen(true); onFocus?.(); }}
           placeholder={placeholder}
           disabled={disabled}
           className="pl-10 pr-10"
@@ -239,11 +261,10 @@ export function AddressAutocomplete({
       )}
 
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-80 overflow-auto">
           {suggestions.map((suggestion, index) => (
-            <button
+            <button type="button"
               key={suggestion.place_id}
-              type="button"
               onClick={() => handleSelectSuggestion(suggestion)}
               className={cn(
                 "w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors",

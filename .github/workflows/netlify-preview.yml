@@ -1,0 +1,72 @@
+name: Netlify Preview Deploy
+
+# Builds the site on every PR and deploys a Netlify preview, then comments
+# the preview URL on the PR.
+#
+# Required repo secrets:
+#   NETLIFY_AUTH_TOKEN  - Personal access token from Netlify user settings
+#   NETLIFY_SITE_ID     - Site API ID from Netlify site settings -> general
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: netlify-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    name: Build and deploy preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Netlify preview build gate
+        env:
+          NETLIFY: "true"
+          CONTEXT: deploy-preview
+          NODE_OPTIONS: "--max-old-space-size=8192"
+        run: node scripts/deploy/netlify-build.mjs
+
+      - name: Check Netlify secrets
+        id: netlify-secrets
+        run: |
+          if [ -n "${{ secrets.NETLIFY_AUTH_TOKEN }}" ] && [ -n "${{ secrets.NETLIFY_SITE_ID }}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip preview deploy (missing Netlify secrets)
+        if: steps.netlify-secrets.outputs.available != 'true'
+        run: echo "Skipping Netlify preview deploy because NETLIFY_AUTH_TOKEN or NETLIFY_SITE_ID is missing."
+
+      - name: Deploy preview to Netlify
+        if: steps.netlify-secrets.outputs.available == 'true'
+        id: netlify
+        uses: nwtgck/actions-netlify@v4.0
+        with:
+          publish-dir: ./dist
+          deploy-message: "PR #${{ github.event.number }} - ${{ github.event.pull_request.title }}"
+          alias: pr-${{ github.event.number }}
+          enable-pull-request-comment: true
+          enable-commit-comment: false
+          overwrites-pull-request-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

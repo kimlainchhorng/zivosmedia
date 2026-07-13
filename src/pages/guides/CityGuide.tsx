@@ -112,9 +112,9 @@ export default function CityGuide() {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: "https://hizivo.com" },
-        { "@type": "ListItem", position: 2, name: "Guides", item: "https://hizivo.com/guides" },
-        { "@type": "ListItem", position: 3, name: city.name, item: `https://hizivo.com/guides/${citySlug}` },
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://zivosmedia.com" },
+        { "@type": "ListItem", position: 2, name: "Guides", item: "https://zivosmedia.com/guides" },
+        { "@type": "ListItem", position: 3, name: city.name, item: `https://zivosmedia.com/guides/${citySlug}` },
       ],
     };
     const script = document.createElement("script");
@@ -153,7 +153,7 @@ export default function CityGuide() {
           name="description" 
           content={`Complete travel guide for ${city.name}. Find flights, hotels, attractions, and insider tips for your trip.`} 
         />
-        <link rel="canonical" href={`https://hizivo.com/guides/${citySlug}`} />
+        <link rel="canonical" href={`https://zivosmedia.com/guides/${citySlug}`} />
       </Helmet>
 
       <NavBar />
@@ -170,6 +170,7 @@ export default function CityGuide() {
                 alt={photo.alt}
                 className="absolute inset-0 w-full h-full object-cover"
                 loading="eager"
+                decoding="async"
               />
             ) : null;
           })()}
@@ -269,8 +270,8 @@ export default function CityGuide() {
                   to={`/airports/${airport.code.toLowerCase()}`}
                   className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border hover:border-primary/30 transition-colors group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center">
-                    <Plane className="w-6 h-6 text-sky-500" />
+                  <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+                    <Plane className="w-6 h-6 text-foreground" />
                   </div>
                   <div>
                     <p className="font-bold text-lg">{airport.code}</p>

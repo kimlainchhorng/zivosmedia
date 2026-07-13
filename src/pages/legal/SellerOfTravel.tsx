@@ -36,7 +36,7 @@ const SellerOfTravel = () => {
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Header */}
           <div className="text-center mb-12">
@@ -88,8 +88,8 @@ const SellerOfTravel = () => {
                     <Mail className="w-4 h-4 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm text-muted-foreground">Customer Support Email</p>
-                      <a href="mailto:support@hizivo.com" className="font-medium text-primary hover:underline">
-                        support@hizivo.com
+                      <a href="mailto:support@zivosmedia.com" className="font-medium text-primary hover:underline">
+                        support@zivosmedia.com
                       </a>
                     </div>
                   </div>
@@ -133,14 +133,12 @@ const SellerOfTravel = () => {
                     <p className="text-sm text-muted-foreground">
                       Seller of Travel Registration: Application submitted
                     </p>
-                    <a 
-                      href="https://www.ag.ca.gov/consumers/travel" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <button type="button" 
+                      onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://www.ag.ca.gov/consumers/travel"))}
                       className="text-xs text-primary hover:underline flex items-center gap-1 mt-2"
                     >
                       CA Attorney General <ExternalLink className="w-3 h-3" />
-                    </a>
+                    </button>
                   </div>
                   
                   <div className="p-4 rounded-lg border hover:border-primary/20 hover:shadow-sm transition-all duration-200">
@@ -153,14 +151,12 @@ const SellerOfTravel = () => {
                     <p className="text-sm text-muted-foreground">
                       Seller of Travel Registration: Application submitted
                     </p>
-                    <a 
-                      href="https://www.fdacs.gov/Consumer-Resources/Travel" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <button type="button" 
+                      onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://www.fdacs.gov/Consumer-Resources/Travel"))}
                       className="text-xs text-primary hover:underline flex items-center gap-1 mt-2"
                     >
                       FL DACS <ExternalLink className="w-3 h-3" />
-                    </a>
+                    </button>
                   </div>
                 </div>
               </CardContent>
@@ -235,8 +231,8 @@ const SellerOfTravel = () => {
                   <p className="font-medium mb-2">Complaint Process</p>
                   <p className="text-sm text-muted-foreground mb-3">
                     If you have a complaint about your booking, please contact us first at{" "}
-                    <a href="mailto:support@hizivo.com" className="text-primary hover:underline">
-                      support@hizivo.com
+                    <a href="mailto:support@zivosmedia.com" className="text-primary hover:underline">
+                      support@zivosmedia.com
                     </a>. 
                     We aim to resolve all issues within 72 hours.
                   </p>

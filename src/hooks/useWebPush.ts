@@ -223,7 +223,7 @@ export function useWebPush() {
       // Fallback to local notification if not logged in
       if (Notification.permission === "granted") {
         const registration = await navigator.serviceWorker.ready;
-        await registration.showNotification("hiZIVO Test", {
+        await registration.showNotification("ZIVO Test", {
           body: "Push notifications are working!",
           icon: "/pwa-icons/icon-192x192.png",
           badge: "/pwa-icons/icon-192x192.png",
@@ -233,14 +233,17 @@ export function useWebPush() {
       return;
     }
 
-    // Send real push via edge function (end-to-end test)
+    // Send through the production dispatcher so the test respects the user's
+    // master push opt-out and quiet-hours preferences.
     try {
-      const { error } = await supabase.functions.invoke("send-push-notification", {
+      const { error } = await supabase.functions.invoke("notify-dispatch", {
         body: {
           user_id: user.id,
-          notification_type: "test",
-          title: "hiZIVO Push Test",
+          event_type: "push_test",
+          title: "ZIVO Push Test",
           body: "Push notifications are working end-to-end!",
+          channels: ["push"],
+          category: "transactional",
           data: { type: "test", url: "/account" },
         },
       });
@@ -249,7 +252,7 @@ export function useWebPush() {
         console.error("[useWebPush] Test notification error:", error);
         // Fallback to local
         const registration = await navigator.serviceWorker.ready;
-        await registration.showNotification("hiZIVO Test", {
+        await registration.showNotification("ZIVO Test", {
           body: "Push notifications are working locally!",
           icon: "/pwa-icons/icon-192x192.png",
           badge: "/pwa-icons/icon-192x192.png",

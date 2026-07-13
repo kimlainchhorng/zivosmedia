@@ -130,7 +130,7 @@ export default function DestinationHotelsPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/hotels/${citySlug}`}
+        canonical={`https://zivosmedia.com/hotels/${citySlug}`}
       />
       <OrganizationSchema />
       <BreadcrumbSchema items={breadcrumbs} />
@@ -147,6 +147,7 @@ export default function DestinationHotelsPage() {
                 alt={photo.alt}
                 className="absolute inset-0 w-full h-full object-cover"
                 loading="eager"
+                decoding="async"
               />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-hotels/20 to-amber-500/10" />

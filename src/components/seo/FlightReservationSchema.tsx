@@ -64,10 +64,19 @@ export default function FlightReservationSchema({
     }),
   };
 
+  // Escape the HTML-significant characters as JSON \uXXXX sequences so attacker-
+  // controlled fields (passengerName, bookingReference, airline) can't break out of
+  // the <script> with a literal "</script>". The JSON-LD parser still reads the
+  // original characters, so the structured data is unchanged.
+  const json = JSON.stringify(schema)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: json }}
     />
   );
 }

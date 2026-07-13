@@ -10,13 +10,13 @@ const Terms = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Terms of Service - Hizivo | Travel Platform"
-        description="Read the terms of service for using Hizivo. Understand how we handle Hotels, Car Rentals (direct sale), and Flights (partner ticketing)."
-        canonical="https://hizivo.com/terms"
+        title="Terms of Service - ZIVO | Travel Platform"
+        description="Read the terms of service for using ZIVO. Understand how we handle Hotels, Car Rentals (direct sale), and Flights (partner ticketing)."
+        canonical="https://zivosmedia.com/legal/terms"
       />
-      
+
       <Header />
-      
+
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Back Button */}
         <Link to="/">
@@ -48,34 +48,34 @@ const Terms = () => {
           {/* Introduction */}
           <section className="bg-card/50 rounded-2xl p-6 border border-border">
             <p className="text-foreground leading-relaxed">
-              By accessing or using Hizivo, you agree to these Terms of Service. Please read them carefully.
+              By accessing or using ZIVO, you agree to these Terms of Service. Please read them carefully.
             </p>
           </section>
 
-          {/* 1. Hizivo Services */}
+          {/* 1. ZIVO Services */}
           <section>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-sky-500/10">
-                <Search className="w-5 h-5 text-sky-500" />
+              <div className="p-2 rounded-lg bg-secondary">
+                <Search className="w-5 h-5 text-foreground" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">1. Hizivo Services</h2>
+              <h2 className="text-2xl font-bold text-foreground">1. ZIVO Services</h2>
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Hizivo is an online travel platform that allows users to search, compare, and book travel services including flights, hotels, and car rentals. Hizivo operates a <strong>hybrid business model</strong>:
+                ZIVO is an online travel platform that allows users to search, compare, and book travel services including flights, hotels, and car rentals. ZIVO operates a <strong>hybrid business model</strong>:
               </p>
               <ul className="mt-4 space-y-3">
                 <li className="flex items-start gap-3">
                   <Building2 className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
-                  <span><strong>Hotels:</strong> Hizivo is the merchant of record. Payments are processed by Hizivo.</span>
+                  <span><strong>Hotels:</strong> ZIVO is the merchant of record. Payments are processed by ZIVO.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Car className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
-                  <span><strong>Car Rentals:</strong> Hizivo is the merchant of record. Payments are processed by Hizivo.</span>
+                  <span><strong>Car Rentals:</strong> ZIVO is the merchant of record. Payments are processed by ZIVO.</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Plane className="w-5 h-5 text-sky-500 mt-0.5 shrink-0" />
-                  <span><strong>Flights:</strong> Hizivo is NOT the merchant of record. Flight bookings are completed with licensed airline partners who process payments and issue tickets.</span>
+                  <Plane className="w-5 h-5 text-foreground mt-0.5 shrink-0" />
+                  <span><strong>Flights:</strong> ZIVO is NOT the merchant of record. Flight bookings are completed with licensed airline partners who process payments and issue tickets.</span>
                 </li>
               </ul>
             </div>
@@ -91,12 +91,12 @@ const Terms = () => {
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border space-y-4">
               <p className="text-foreground leading-relaxed">
-                For hotel and car rental bookings, Hizivo acts as the <strong>merchant of record</strong>. This means:
+                For hotel and car rental bookings, ZIVO acts as the <strong>merchant of record</strong>. This means:
               </p>
               <ul className="list-disc list-inside space-y-2 text-foreground">
-                <li>Hizivo collects payment via secure payment processors (Stripe, Adyen)</li>
-                <li>Hizivo issues booking confirmations directly to you</li>
-                <li>Hizivo handles customer support for bookings made on our platform</li>
+                <li>ZIVO collects payment via secure payment processors (Stripe, Adyen)</li>
+                <li>ZIVO issues booking confirmations directly to you</li>
+                <li>ZIVO handles customer support for bookings made on our platform</li>
                 <li>Refunds and cancellations are processed according to our policies</li>
               </ul>
               <p className="text-foreground leading-relaxed">
@@ -108,14 +108,14 @@ const Terms = () => {
           {/* 3. Flights (Partner Ticketing) */}
           <section>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-sky-500/10">
-                <Plane className="w-5 h-5 text-sky-500" />
+              <div className="p-2 rounded-lg bg-secondary">
+                <Plane className="w-5 h-5 text-foreground" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">3. Flights (Partner Ticketing)</h2>
             </div>
             <div className="bg-amber-500/10 rounded-2xl p-6 border border-amber-500/20 space-y-4">
               <p className="text-foreground leading-relaxed font-medium">
-                <AlertTriangle className="w-4 h-4 inline mr-1 text-amber-500" /> Important: Hizivo does not issue airline tickets.
+                <AlertTriangle className="w-4 h-4 inline mr-1 text-amber-500" /> Important: ZIVO does not issue airline tickets.
               </p>
               <p className="text-foreground leading-relaxed">
                 Flight bookings are completed with licensed airline partners. When you select a flight offer:
@@ -142,7 +142,7 @@ const Terms = () => {
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Hizivo works with various third-party suppliers, including hotel properties, car rental companies, and airline partners. While we source inventory from licensed providers, the actual service (accommodation, vehicle, or flight) is delivered by the respective property, rental company, or airline.
+                ZIVO works with various third-party suppliers, including hotel properties, car rental companies, and airline partners. While we source inventory from licensed providers, the actual service (accommodation, vehicle, or flight) is delivered by the respective property, rental company, or airline.
               </p>
             </div>
           </section>
@@ -157,7 +157,7 @@ const Terms = () => {
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Hizivo displays information provided by third-party suppliers. While we strive for accuracy, we do not guarantee pricing, availability, or completeness of information. Prices may change before checkout is completed.
+                ZIVO displays information provided by third-party suppliers. While we strive for accuracy, we do not guarantee pricing, availability, or completeness of information. Prices may change before checkout is completed.
               </p>
             </div>
           </section>
@@ -172,7 +172,7 @@ const Terms = () => {
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                You agree not to misuse the platform, attempt unauthorized access, scrape data, make fraudulent bookings, or use Hizivo for unlawful purposes.
+                You agree not to misuse the platform, attempt unauthorized access, scrape data, make fraudulent bookings, or use ZIVO for unlawful purposes.
               </p>
             </div>
           </section>
@@ -187,7 +187,7 @@ const Terms = () => {
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Hizivo acts as a travel booking platform and sub-agent. Hizivo does not operate airlines, hotels, or transportation services. All services are provided by independent third-party providers.
+                ZIVO acts as a travel booking platform and sub-agent. ZIVO does not operate airlines, hotels, or transportation services. All services are provided by independent third-party providers.
               </p>
             </div>
           </section>
@@ -195,14 +195,14 @@ const Terms = () => {
           {/* 8. Limitation of Liability */}
           <section>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-purple-500/10">
-                <Scale className="w-5 h-5 text-purple-500" />
+              <div className="p-2 rounded-lg bg-secondary">
+                <Scale className="w-5 h-5 text-foreground" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">8. Limitation of Liability</h2>
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                To the maximum extent permitted by law, Hizivo shall not be liable for any indirect, incidental, or consequential damages. Hizivo is not responsible for delays, cancellations, overbookings, or service failures caused by third-party providers.
+                To the maximum extent permitted by law, ZIVO shall not be liable for any indirect, incidental, or consequential damages. ZIVO is not responsible for delays, cancellations, overbookings, or service failures caused by third-party providers.
               </p>
             </div>
           </section>
@@ -217,7 +217,7 @@ const Terms = () => {
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Hizivo is not liable for disruptions caused by events beyond reasonable control, including natural disasters, strikes, system outages, pandemics, acts of terrorism, or government actions.
+                ZIVO is not liable for disruptions caused by events beyond reasonable control, including natural disasters, strikes, system outages, pandemics, acts of terrorism, or government actions.
               </p>
             </div>
           </section>
@@ -232,7 +232,7 @@ const Terms = () => {
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Hizivo reserves the right to cancel bookings, suspend accounts, or refuse service in cases of suspected fraud or abuse. We employ automated fraud detection systems to protect users and partners.
+                ZIVO reserves the right to cancel bookings, suspend accounts, or refuse service in cases of suspected fraud or abuse. We employ automated fraud detection systems to protect users and partners.
               </p>
             </div>
           </section>
@@ -240,14 +240,14 @@ const Terms = () => {
           {/* 11. Changes */}
           <section>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-indigo-500/10">
-                <RefreshCw className="w-5 h-5 text-indigo-500" />
+              <div className="p-2 rounded-lg bg-secondary">
+                <RefreshCw className="w-5 h-5 text-foreground" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">11. Changes</h2>
             </div>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Hizivo may update these Terms at any time. Continued use of the platform constitutes acceptance of the updated Terms.
+                ZIVO may update these Terms at any time. Continued use of the platform constitutes acceptance of the updated Terms.
               </p>
             </div>
           </section>
@@ -264,27 +264,27 @@ const Terms = () => {
               <p className="text-foreground mb-4">
                 For questions about these Terms:
               </p>
-              <a 
-                href="mailto:support@hizivo.com" 
+              <a
+                href="mailto:support@zivosmedia.com"
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="w-4 h-4" />
-                support@hizivo.com
+                support@zivosmedia.com
               </a>
             </div>
           </section>
 
           {/* Related Links */}
           <div className="flex flex-wrap gap-4 justify-center pt-8 border-t border-border">
-            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Privacy Policy
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/refunds" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Refund Policy
             </Link>
             <span className="text-muted-foreground">•</span>
-            <Link to="/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/legal/partner-disclosure" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Partner Disclosure
             </Link>
           </div>

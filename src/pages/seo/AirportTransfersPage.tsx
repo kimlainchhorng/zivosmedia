@@ -2,8 +2,9 @@
  * SEO Airport Transfers Landing Page
  * Optimized for organic search with proper meta tags and structured data
  */
+import { useState } from "react";
 import { Car, MapPin, Clock, Shield, CheckCircle, Users, Briefcase, Plane } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,17 @@ const vehicleTypes = [
 ];
 
 export default function AirportTransfersPage() {
+  const navigate = useNavigate();
+  const [pickup, setPickup] = useState("");
+  const [dropoff, setDropoff] = useState("");
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (pickup.trim()) params.set("from", pickup.trim());
+    if (dropoff.trim()) params.set("to", dropoff.trim());
+    navigate(`/cars${params.toString() ? `?${params}` : ""}`);
+  };
+
   const pageTitle = "Airport Transfers - Book Private Car Service | ZIVO";
   const pageDescription = "Book reliable airport transfers worldwide. Compare prices for private cars, shared shuttles, and luxury vehicles. Door-to-door service with meet & greet.";
   
@@ -46,7 +58,7 @@ export default function AirportTransfersPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical="https://hizivo.com/airport-transfers"
+        canonical="https://zivosmedia.com/airport-transfers"
       />
       <OrganizationSchema />
       <BreadcrumbSchema items={breadcrumbs} />
@@ -81,29 +93,35 @@ export default function AirportTransfersPage() {
               <Card className="p-6 bg-card/90 backdrop-blur-sm border-border/50">
                 <div className="grid sm:grid-cols-2 gap-4 mb-4">
                   <div className="text-left">
-                    <label className="text-sm font-medium mb-2 block">Pickup</label>
+                    <label htmlFor="airport-transfer-pickup" className="text-sm font-medium mb-2 block">Pickup</label>
                     <div className="relative">
                       <Plane className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input 
+                      <input
+                        id="airport-transfer-pickup"
                         type="text"
+                        value={pickup}
+                        onChange={(e) => setPickup(e.target.value)}
                         placeholder="Airport or address"
                         className="w-full pl-10 h-12 rounded-xl bg-muted/30 border border-border/50 focus:border-teal-500/50 outline-none px-4"
                       />
                     </div>
                   </div>
                   <div className="text-left">
-                    <label className="text-sm font-medium mb-2 block">Drop-off</label>
+                    <label htmlFor="airport-transfer-dropoff" className="text-sm font-medium mb-2 block">Drop-off</label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input 
+                      <input
+                        id="airport-transfer-dropoff"
                         type="text"
+                        value={dropoff}
+                        onChange={(e) => setDropoff(e.target.value)}
                         placeholder="Hotel or destination"
                         className="w-full pl-10 h-12 rounded-xl bg-muted/30 border border-border/50 focus:border-teal-500/50 outline-none px-4"
                       />
                     </div>
                   </div>
                 </div>
-                <Button className="w-full h-12 rounded-xl bg-gradient-to-r from-teal-500 to-primary text-primary-foreground font-semibold">
+                <Button onClick={handleSearch} className="w-full h-12 rounded-xl bg-gradient-to-r from-teal-500 to-primary text-primary-foreground font-semibold">
                   Search Transfers
                 </Button>
                 <p className="text-xs text-muted-foreground mt-3">

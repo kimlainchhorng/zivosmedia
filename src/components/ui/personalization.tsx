@@ -51,17 +51,17 @@ const typeConfig = {
     border: "border-eats/30",
     glow: "shadow-eats/20"
   },
-  hotel: { 
-    color: "text-amber-400", 
-    bg: "bg-gradient-to-br from-amber-500/25 to-amber-500/5",
-    border: "border-amber-500/30",
-    glow: "shadow-amber-500/20"
+  hotel: {
+    color: "text-warning",
+    bg: "bg-gradient-to-br from-warning/25 to-warning/5",
+    border: "border-warning/30",
+    glow: "shadow-warning/20"
   },
-  flight: { 
-    color: "text-sky-400", 
-    bg: "bg-gradient-to-br from-sky-500/25 to-sky-500/5",
-    border: "border-sky-500/30",
-    glow: "shadow-sky-500/20"
+  flight: {
+    color: "text-primary",
+    bg: "bg-gradient-to-br from-primary/25 to-primary/5",
+    border: "border-primary/30",
+    glow: "shadow-primary/20"
   },
   car: { 
     color: "text-primary", 
@@ -182,9 +182,9 @@ export const FavoritesList: React.FC<FavoritesListProps> = ({
         <motion.div
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500/20 to-red-500/5 flex items-center justify-center mx-auto mb-4"
+          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center mx-auto mb-4"
         >
-          <Heart className="w-8 h-8 text-red-400 opacity-50" />
+          <Heart className="w-8 h-8 text-destructive opacity-50" />
         </motion.div>
         <p className="text-sm text-muted-foreground font-medium">{emptyMessage}</p>
         <p className="text-xs text-muted-foreground/60 mt-1">Start exploring to add favorites</p>
@@ -203,7 +203,7 @@ export const FavoritesList: React.FC<FavoritesListProps> = ({
           whileHover={{ x: 4 }}
           className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-card/80 to-card/50 border border-white/10 hover:border-white/20 transition-all group"
         >
-          <button
+          <button type="button"
             onClick={() => onItemClick?.(item)}
             className="flex items-center gap-4 flex-1 min-w-0 text-left"
           >
@@ -211,7 +211,7 @@ export const FavoritesList: React.FC<FavoritesListProps> = ({
               whileHover={{ scale: 1.1, rotate: 5 }}
               className="w-14 h-14 rounded-2xl bg-gradient-to-br from-muted/50 to-muted/20 flex items-center justify-center text-2xl shrink-0 shadow-lg"
             >
-              <Heart className="w-6 h-6 text-red-400/70" />
+              <Heart className="w-6 h-6 text-destructive/70" />
             </motion.div>
             <div className="flex-1 min-w-0">
               <p className="font-bold truncate group-hover:text-primary transition-colors">
@@ -220,9 +220,9 @@ export const FavoritesList: React.FC<FavoritesListProps> = ({
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
                 {item.subtitle && <span className="truncate">{item.subtitle}</span>}
                 {item.rating && (
-                  <span className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                    <span className="text-xs font-semibold text-amber-500">{item.rating}</span>
+                  <span className="flex items-center gap-1 bg-warning/10 px-2 py-0.5 rounded-full">
+                    <Star className="w-3 h-3 fill-warning text-warning" />
+                    <span className="text-xs font-semibold text-warning">{item.rating}</span>
                   </span>
                 )}
               </div>
@@ -233,9 +233,9 @@ export const FavoritesList: React.FC<FavoritesListProps> = ({
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => onRemove(item.id)}
-              className="p-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
+              className="p-2.5 rounded-xl bg-destructive/10 hover:bg-destructive/20 transition-colors opacity-0 group-hover:opacity-100"
             >
-              <Heart className="w-4 h-4 fill-red-500 text-red-500" />
+              <Heart className="w-4 h-4 fill-destructive text-destructive" />
             </motion.button>
           )}
         </motion.div>
@@ -259,40 +259,40 @@ interface PersonalizedGreetingProps {
 }
 
 const tierConfig = {
-  bronze: { 
-    gradient: "from-amber-600 via-amber-700 to-amber-800", 
-    glow: "shadow-amber-600/30",
-    icon: Award, 
+  bronze: {
+    gradient: "from-warning via-warning to-warning",
+    glow: "shadow-warning/30",
+    icon: Award,
     label: "Bronze",
-    textColor: "text-amber-600"
+    textColor: "text-warning"
   },
-  silver: { 
-    gradient: "from-muted-foreground/60 via-muted-foreground/80 to-muted-foreground", 
+  silver: {
+    gradient: "from-muted-foreground/60 via-muted-foreground/80 to-muted-foreground",
     glow: "shadow-muted-foreground/30",
-    icon: Award, 
+    icon: Award,
     label: "Silver",
     textColor: "text-muted-foreground"
   },
-  gold: { 
-    gradient: "from-amber-400 via-yellow-500 to-amber-600", 
-    glow: "shadow-amber-500/40",
-    icon: Crown, 
+  gold: {
+    gradient: "from-warning via-warning to-warning",
+    glow: "shadow-warning/40",
+    icon: Crown,
     label: "Gold",
-    textColor: "text-amber-400"
+    textColor: "text-warning"
   },
-  platinum: { 
-    gradient: "from-violet-400 via-purple-500 to-violet-600", 
-    glow: "shadow-violet-500/40",
-    icon: Crown, 
+  platinum: {
+    gradient: "from-muted to-muted",
+    glow: "shadow-foreground/40",
+    icon: Crown,
     label: "Platinum",
-    textColor: "text-violet-400"
+    textColor: "text-ig-gradient"
   },
-  diamond: { 
-    gradient: "from-cyan-400 via-blue-500 to-indigo-600", 
-    glow: "shadow-cyan-500/50",
-    icon: Sparkles, 
+  diamond: {
+    gradient: "from-muted to-muted",
+    glow: "shadow-foreground/50",
+    icon: Sparkles,
     label: "Diamond",
-    textColor: "text-cyan-400"
+    textColor: "text-ig-gradient"
   },
 };
 
@@ -316,9 +316,9 @@ export const PersonalizedGreeting: React.FC<PersonalizedGreetingProps> = ({
 
   const GreetingIcon = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return <Sun className="w-5 h-5 text-amber-400" />;
-    if (hour < 18) return <CloudSun className="w-5 h-5 text-sky-400" />;
-    return <Moon className="w-5 h-5 text-indigo-400" />;
+    if (hour < 12) return <Sun className="w-5 h-5 text-warning" />;
+    if (hour < 18) return <CloudSun className="w-5 h-5 text-foreground" />;
+    return <Moon className="w-5 h-5 text-foreground" />;
   };
 
   return (
@@ -380,13 +380,13 @@ export const PersonalizedGreeting: React.FC<PersonalizedGreetingProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex items-center gap-2 mt-4 p-3 rounded-xl bg-gradient-to-r from-orange-500/15 to-orange-500/5 border border-orange-500/20"
+          className="flex items-center gap-2 mt-4 p-3 rounded-xl bg-gradient-to-r from-warning/15 to-warning/5 border border-warning/20"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500/30 to-orange-500/10 flex items-center justify-center">
-            <Flame className="w-5 h-5 text-orange-500" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-warning/30 to-warning/10 flex items-center justify-center">
+            <Flame className="w-5 h-5 text-warning" />
           </div>
           <div>
-            <p className="text-sm font-bold text-orange-500">{streak} day streak!</p>
+            <p className="text-sm font-bold text-warning">{streak} day streak!</p>
             <p className="text-xs text-muted-foreground">Keep it up!</p>
           </div>
         </motion.div>
@@ -424,9 +424,9 @@ export const PersonalizedGreeting: React.FC<PersonalizedGreetingProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
               whileHover={{ y: -2 }}
-              className="flex-1 p-3 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5"
+              className="flex-1 p-3 rounded-2xl bg-gradient-to-br from-success/20 to-success/5"
             >
-              <p className="text-3xl font-bold text-emerald-500">${stats.savings}</p>
+              <p className="text-3xl font-bold text-success">${stats.savings}</p>
               <p className="text-xs text-muted-foreground font-medium">Saved</p>
             </motion.div>
           )}
@@ -451,28 +451,28 @@ interface PromoBannerProps {
 
 const promoVariants = {
   default: {
-    bg: "from-primary/20 via-primary/10 to-teal-500/20",
-    accent: "from-primary to-teal-400",
+    bg: "from-primary/20 via-primary/10 to-primary/20",
+    accent: "from-primary to-primary",
     icon: Gift,
     glow: "shadow-primary/20",
   },
   urgent: {
-    bg: "from-red-500/20 via-red-500/10 to-orange-500/20",
-    accent: "from-red-500 to-orange-500",
+    bg: "from-destructive/20 via-destructive/10 to-destructive/20",
+    accent: "from-destructive to-destructive",
     icon: Zap,
-    glow: "shadow-red-500/20",
+    glow: "shadow-destructive/20",
   },
   special: {
-    bg: "from-violet-500/20 via-violet-500/10 to-purple-500/20",
-    accent: "from-violet-500 to-purple-500",
+    bg: "from-muted via-muted to-muted",
+    accent: "from-primary to-primary",
     icon: Sparkles,
-    glow: "shadow-violet-500/20",
+    glow: "shadow-foreground/20",
   },
   referral: {
-    bg: "from-emerald-500/20 via-emerald-500/10 to-teal-500/20",
-    accent: "from-emerald-500 to-teal-500",
+    bg: "from-success/20 via-success/10 to-success/20",
+    accent: "from-success to-success",
     icon: Heart,
-    glow: "shadow-emerald-500/20",
+    glow: "shadow-success/20",
   },
 };
 
@@ -603,16 +603,16 @@ const recommendationColors = {
     glow: "hover:shadow-eats/20",
   },
   sky: {
-    gradient: "from-sky-500/25 to-sky-500/5",
-    border: "border-sky-400/30",
-    text: "text-sky-400",
-    glow: "hover:shadow-sky-500/20",
+    gradient: "from-muted to-muted",
+    border: "border-primary/30",
+    text: "text-primary",
+    glow: "hover:shadow-primary/20",
   },
   amber: {
-    gradient: "from-amber-500/25 to-amber-500/5",
-    border: "border-amber-400/30",
-    text: "text-amber-400",
-    glow: "hover:shadow-amber-500/20",
+    gradient: "from-warning/25 to-warning/5",
+    border: "border-warning/30",
+    text: "text-warning",
+    glow: "hover:shadow-warning/20",
   },
   primary: {
     gradient: "from-primary/25 to-primary/5",
@@ -661,7 +661,7 @@ export const RecommendationCard: React.FC<RecommendationProps> = ({
         <motion.span 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="absolute top-4 left-4 px-3 py-1 text-xs font-bold bg-gradient-to-r from-eats to-orange-500 text-primary-foreground rounded-full shadow-lg"
+          className="absolute top-4 left-4 px-3 py-1 text-xs font-bold bg-gradient-to-r from-eats to-warning text-primary-foreground rounded-full shadow-lg"
         >
           {badge}
         </motion.span>
@@ -693,8 +693,8 @@ export const RecommendationCard: React.FC<RecommendationProps> = ({
       <div className="flex items-center justify-between mt-5 pt-4 border-t border-white/10">
         <div className="flex items-center gap-4">
           {rating && (
-            <span className="flex items-center gap-1.5 text-sm bg-amber-500/15 px-3 py-1.5 rounded-xl">
-              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            <span className="flex items-center gap-1.5 text-sm bg-warning/15 px-3 py-1.5 rounded-xl">
+              <Star className="w-4 h-4 fill-warning text-warning" />
               <span className="font-bold">{rating}</span>
             </span>
           )}
@@ -918,7 +918,7 @@ export const FeatureTour: React.FC<FeatureTourProps> = ({
             <Button 
               size="sm" 
               onClick={isLast ? onComplete : onNext}
-              className="bg-gradient-to-r from-primary to-teal-400 rounded-xl shadow-lg shadow-primary/30 font-bold px-4"
+              className="bg-gradient-to-r from-primary to-primary rounded-xl shadow-lg shadow-primary/30 font-bold px-4"
             >
               {isLast ? (
                 <>

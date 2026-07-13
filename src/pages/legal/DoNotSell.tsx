@@ -18,7 +18,7 @@ export default function DoNotSell() {
       />
       <Header />
 
-      <main className="pt-24 pb-16">
+      <main className="pt-safe-header pb-16">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -41,9 +41,9 @@ export default function DoNotSell() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-3">Does ZIVO Sell Personal Information?</h2>
+              <h2 className="text-xl font-semibold mb-3">Does ZIVO Sell or Share Personal Information?</h2>
               <p className="text-muted-foreground leading-relaxed">
-                ZIVO does not sell personal information in the traditional sense. However, under the CCPA's broad definition of "sale," certain data-sharing activities with our travel partners (such as sharing search preferences to display relevant offers) may be considered a "sale." These activities are essential to providing our price comparison and booking referral services.
+                ZIVO does not sell personal information in the traditional sense. Under CCPA/CPRA, certain data-sharing activities may be considered a "sale" or "sharing," including limited audience, conversion, or campaign signals used for targeted advertising with partners such as Meta, Google Ads, TikTok, and X. These activities are optional and subject to your cookie, privacy, and marketing choices.
               </p>
             </section>
 
@@ -66,6 +66,10 @@ export default function DoNotSell() {
                   <span className="text-primary mt-1">•</span>
                   <span><strong>Geolocation data:</strong> Approximate location for service delivery</span>
                 </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary mt-1">•</span>
+                  <span><strong>Advertising signals:</strong> Cookie IDs, campaign attribution, and conversion events when marketing cookies are enabled</span>
+                </li>
               </ul>
             </section>
 
@@ -78,9 +82,9 @@ export default function DoNotSell() {
                 <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/20 hover:shadow-sm transition-all duration-200">
                   <h3 className="font-medium mb-1">1. Manage Cookie Preferences</h3>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Adjust your cookie settings to limit data sharing with third-party partners.
+                    Reject marketing cookies to disable optional Meta, Google Ads, TikTok, X, and campaign attribution sharing.
                   </p>
-                  <Link to="/cookies">
+                  <Link to="/legal/cookies">
                     <Button variant="outline" size="sm" className="gap-2">
                       <ExternalLink className="w-3.5 h-3.5" />
                       Cookie Settings
@@ -93,10 +97,10 @@ export default function DoNotSell() {
                   <p className="text-sm text-muted-foreground mb-2">
                     Send a request to our privacy team and we will process your opt-out within 15 business days.
                   </p>
-                  <a href="mailto:privacy@hizivo.com">
+                  <a href="mailto:privacy@zivosmedia.com">
                     <Button variant="outline" size="sm" className="gap-2">
                       <Mail className="w-3.5 h-3.5" />
-                      privacy@hizivo.com
+                      privacy@zivosmedia.com
                     </Button>
                   </a>
                 </div>
@@ -104,7 +108,7 @@ export default function DoNotSell() {
                 <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/20 hover:shadow-sm transition-all duration-200">
                   <h3 className="font-medium mb-1">3. Account Privacy Controls</h3>
                   <p className="text-sm text-muted-foreground mb-2">
-                    If you have a ZIVO account, manage your privacy preferences in your account settings.
+                    If you have a ZIVO account, manage privacy, cookie, marketing, and Do Not Sell or Share preferences in your account settings.
                   </p>
                   <Link to="/account/privacy">
                     <Button variant="outline" size="sm" className="gap-2">
@@ -126,11 +130,11 @@ export default function DoNotSell() {
             <section>
               <h2 className="text-xl font-semibold mb-3">Related Policies</h2>
               <div className="flex flex-wrap gap-3">
-                <Link to="/privacy" className="text-primary hover:underline text-sm">Privacy Policy</Link>
+                <Link to="/legal/privacy" className="text-primary hover:underline text-sm">Privacy Policy</Link>
                 <span className="text-muted-foreground">•</span>
-                <Link to="/cookies" className="text-primary hover:underline text-sm">Cookie Policy</Link>
+                <Link to="/legal/cookies" className="text-primary hover:underline text-sm">Cookie Policy</Link>
                 <span className="text-muted-foreground">•</span>
-                <Link to="/terms" className="text-primary hover:underline text-sm">Terms of Service</Link>
+                <Link to="/legal/terms" className="text-primary hover:underline text-sm">Terms of Service</Link>
               </div>
             </section>
 

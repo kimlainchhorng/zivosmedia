@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SplitFareSheet - Fare splitting UI with contact picker & per-person breakdown
  * Inspired by Uber/Lyft's split fare flow
  */
@@ -79,7 +79,7 @@ export default function SplitFareSheet({ totalFare = 24.50, onClose, onSendReque
           <h3 className="text-sm font-bold text-foreground">Split Fare</h3>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-muted">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-muted">
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
@@ -90,20 +90,20 @@ export default function SplitFareSheet({ totalFare = 24.50, onClose, onSendReque
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Fare</span>
         <div className="text-3xl font-black text-foreground mt-1">${totalFare.toFixed(2)}</div>
         <div className="flex items-center justify-center gap-2 mt-2">
-          <button
+          <button type="button"
             onClick={() => setSplitType("equal")}
             className={cn(
               "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-              splitType === "equal" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+              splitType === "equal" ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
             )}
           >
             Split equally
           </button>
-          <button
+          <button type="button"
             onClick={() => setSplitType("custom")}
             className={cn(
               "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-              splitType === "custom" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground"
+              splitType === "custom" ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground"
             )}
           >
             Custom amounts
@@ -154,7 +154,7 @@ export default function SplitFareSheet({ totalFare = 24.50, onClose, onSendReque
                 </div>
               </div>
               <span className="text-sm font-bold text-foreground">${perPersonEqual.toFixed(2)}</span>
-              <button onClick={() => removeContact(contact.id)} className="p-1 rounded-full hover:bg-muted">
+              <button type="button" onClick={() => removeContact(contact.id)} className="p-1 rounded-full hover:bg-muted">
                 <X className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
             </motion.div>
@@ -163,7 +163,7 @@ export default function SplitFareSheet({ totalFare = 24.50, onClose, onSendReque
 
         {/* Add person button */}
         {contacts.length < 4 && !showAdd && (
-          <button
+          <button type="button"
             onClick={() => setShowAdd(true)}
             className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all"
           >
@@ -190,7 +190,7 @@ export default function SplitFareSheet({ totalFare = 24.50, onClose, onSendReque
                   {suggestedContacts
                     .filter(sc => !contacts.find(c => c.name === sc.name))
                     .map((sc) => (
-                      <button
+                      <button type="button"
                         key={sc.id}
                         onClick={() => addContact(sc.name, sc.initials)}
                         className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all shrink-0"

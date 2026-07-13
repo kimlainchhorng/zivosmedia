@@ -1,0 +1,6 @@
+Contact: mailto:security@zivosmedia.com
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://zivosmedia.com/.well-known/security.txt
+Policy: https://zivosmedia.com/legal/security
+Acknowledgments: https://zivosmedia.com/legal/vdp

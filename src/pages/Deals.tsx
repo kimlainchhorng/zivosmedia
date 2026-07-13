@@ -5,6 +5,8 @@
  */
 
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -12,38 +14,37 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import {
-  Flame,
-  Search,
-  Bell,
-  Sparkles,
-  Clock,
-  Gift,
-  Plane,
-  BedDouble,
-  Car,
-  Timer,
-  ArrowRight,
-  Crown,
-  Zap,
-  Shield,
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  Star,
-  MapPin,
-  Calendar,
-  ChevronRight,
-  Heart,
-  Eye,
-  DollarSign,
-  Percent,
-  Target,
-  Leaf,
-  Loader2,
-  Package,
-} from "lucide-react";
+import Flame from "lucide-react/dist/esm/icons/flame";
+import Search from "lucide-react/dist/esm/icons/search";
+import Bell from "lucide-react/dist/esm/icons/bell";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import Gift from "lucide-react/dist/esm/icons/gift";
+import Plane from "lucide-react/dist/esm/icons/plane";
+import BedDouble from "lucide-react/dist/esm/icons/bed-double";
+import Car from "lucide-react/dist/esm/icons/car";
+import Timer from "lucide-react/dist/esm/icons/timer";
+import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
+import Crown from "lucide-react/dist/esm/icons/crown";
+import Zap from "lucide-react/dist/esm/icons/zap";
+import Shield from "lucide-react/dist/esm/icons/shield";
+import TrendingUp from "lucide-react/dist/esm/icons/trending-up";
+import TrendingDown from "lucide-react/dist/esm/icons/trending-down";
+import BarChart3 from "lucide-react/dist/esm/icons/bar-chart-3";
+import Star from "lucide-react/dist/esm/icons/star";
+import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import Calendar from "lucide-react/dist/esm/icons/calendar";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import Heart from "lucide-react/dist/esm/icons/heart";
+import Eye from "lucide-react/dist/esm/icons/eye";
+import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
+import Percent from "lucide-react/dist/esm/icons/percent";
+import Target from "lucide-react/dist/esm/icons/target";
+import Leaf from "lucide-react/dist/esm/icons/leaf";
+import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import Package from "lucide-react/dist/esm/icons/package";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useRecommendedDeals, type DealCategory } from "@/hooks/useRecommendedDeals";
@@ -61,8 +62,10 @@ const categoryConfig: Record<DealCategoryType, { label: string; icon: typeof Pla
 };
 
 export default function Deals() {
+  const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<DealCategoryType>('all');
   const [email, setEmail] = useState("");
+  const [submittingDeals, setSubmittingDeals] = useState(false);
 
   // Fetch live deals from Supabase
   const apiCategory = activeCategory === 'last-minute' ? 'all' : activeCategory as DealCategory;
@@ -73,10 +76,29 @@ export default function Deals() {
     ? allDeals.filter(d => d.deal_type === 'last-minute' || d.deal_type === 'flash')
     : allDeals;
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("You'll be notified of new deals!");
-    setEmail("");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email");
+      return;
+    }
+    setSubmittingDeals(true);
+    try {
+      const { error } = await supabase.functions.invoke("marketing-interest-submit", { body: {
+        category: "deals_alert_signup",
+        subject: "Deals page alert signup",
+        email,
+        context: activeCategory,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
+      toast.success("You'll be notified of new deals!");
+      setEmail("");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not subscribe. Please try again.");
+    } finally {
+      setSubmittingDeals(false);
+    }
   };
 
   return (
@@ -84,11 +106,11 @@ export default function Deals() {
       <SEOHead
         title="Deals & Flash Sales – ZIVO"
         description="Discover limited-time travel deals on flights, hotels, and car rentals. Flash sales with up to 50% off."
-        canonical="https://hizivo.com/deals"
+        canonical="https://zivosmedia.com/deals"
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         {/* Hero Section — Premium */}
         <section className="relative overflow-hidden pb-8">
           <div className="absolute inset-0 bg-gradient-to-br from-destructive/8 via-orange-500/5 to-amber-500/8" />
@@ -142,15 +164,22 @@ export default function Deals() {
                     required
                   />
                 </div>
-                <Button 
-                  type="submit" 
-                  size="lg" 
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={submittingDeals}
                   className="h-13 px-6 rounded-2xl font-bold shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-primary-foreground active:scale-[0.98] transition-all"
                 >
                   <Bell className="w-4 h-4 mr-2" />
-                  Notify Me
+                  {submittingDeals ? "Subscribing…" : "Notify Me"}
                 </Button>
               </motion.form>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Deal alerts are marketing messages. You can unsubscribe anytime. See our{" "}
+                <Link to="/legal/privacy" className="underline underline-offset-2">Privacy Policy</Link>
+                {" "}and{" "}
+                <Link to="/legal/terms" className="underline underline-offset-2">Terms</Link>.
+              </p>
             </div>
           </div>
         </section>
@@ -193,8 +222,17 @@ export default function Deals() {
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden">
+                    <Skeleton className="h-40 w-full rounded-none" />
+                    <div className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                      <Skeleton className="h-9 w-full mt-3" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : filteredDeals.length > 0 ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -246,8 +284,9 @@ export default function Deals() {
                 ZIVO Plus members get 24-hour early access to flash deals, 
                 priority price alerts, and exclusive member discounts.
               </p>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
+                onClick={() => navigate("/zivo-plus")}
                 className="gap-2 rounded-2xl font-bold shadow-lg shadow-primary/25 bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-primary-foreground active:scale-[0.98] transition-all h-13 px-8"
               >
                 <Gift className="w-5 h-5" />
@@ -271,7 +310,7 @@ export default function Deals() {
                 <Card key={p.route} className="border-border/40 hover:border-primary/20 transition-all">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Plane className="w-3.5 h-3.5 text-sky-500" />
+                      <Plane className="w-3.5 h-3.5 text-foreground" />
                       <span className="text-xs font-bold text-foreground">{p.route}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -369,7 +408,7 @@ export default function Deals() {
 
           {/* Deal Score Explainer */}
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Target className="w-5 h-5 text-violet-500" /> How We Score Deals</h2>
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Target className="w-5 h-5 text-foreground" /> How We Score Deals</h2>
             <div className="grid sm:grid-cols-3 gap-3">
               {[
                 { factor: "Price vs Historical", weight: "40%", desc: "Compared to 90-day average", icon: BarChart3, color: "text-sky-500" },

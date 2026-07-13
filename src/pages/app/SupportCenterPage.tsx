@@ -131,7 +131,7 @@ export default function SupportCenterPage() {
   };
 
   const statusIcons: Record<string, React.ReactNode> = {
-    open: <AlertCircle className="w-4 h-4 text-sky-500" />,
+    open: <AlertCircle className="w-4 h-4 text-foreground" />,
     in_progress: <Clock className="w-4 h-4 text-amber-500" />,
     resolved: <CheckCircle className="w-4 h-4 text-emerald-500" />,
     closed: <CheckCircle className="w-4 h-4 text-muted-foreground" />,
@@ -140,7 +140,7 @@ export default function SupportCenterPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/40">
+      <div className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur-xl border-b border-border/40">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -167,10 +167,11 @@ export default function SupportCenterPage() {
         {/* Status Tabs */}
         <div className="flex gap-1 bg-muted/50 rounded-xl p-1">
           {[{ id: "all", label: "All" }, { id: "open", label: "Open" }, { id: "in_progress", label: "Active" }, { id: "resolved", label: "Resolved" }].map((f) => (
-            <button
+            <button type="button"
               key={f.id}
               onClick={() => setStatusFilter(f.id)}
-              className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all duration-200 touch-manipulation ${
+              aria-pressed={statusFilter === f.id}
+              className={`flex-1 text-[11px] font-bold py-2.5 rounded-xl transition-all duration-200 touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 statusFilter === f.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
               }`}
             >
@@ -191,7 +192,7 @@ export default function SupportCenterPage() {
                 const meta = getServiceMeta(ticket.service_type);
                 return (
                   <motion.div key={ticket.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                    <Link to={`/support/${ticket.id}`}>
+                    <Link to={`/support/${ticket.id}`} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <Card className="hover:shadow-lg transition-all duration-300 border-border/40 hover:border-primary/15 group">
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">

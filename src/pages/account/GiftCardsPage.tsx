@@ -1,16 +1,17 @@
-/**
+﻿/**
  * Gift Cards Page
  * Buy, send, and redeem ZIVO gift cards
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Gift, Send, Ticket, Copy, Check, Loader2, ShieldCheck, CreditCard, Wallet } from "lucide-react";
+import { ArrowLeft, Gift, Send, Ticket, Copy, Check, Loader2, ShieldCheck, CreditCard, Wallet, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGiftCards, type GiftCard } from "@/hooks/useGiftCards";
 import { useAuth } from "@/contexts/AuthContext";
 import SEOHead from "@/components/SEOHead";
+import { useI18n } from "@/hooks/useI18n";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -25,13 +26,32 @@ const PRESET_AMOUNTS = [
 export default function GiftCardsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
   const { myGiftCards, cardsLoading, purchaseGiftCard, redeemGiftCard } = useGiftCards();
 
   // Buy tab state
   const [selectedAmount, setSelectedAmount] = useState(2500);
+  const [customMode, setCustomMode] = useState(false);
+  const [customAmount, setCustomAmount] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [message, setMessage] = useState("");
+
+  // My cards filter
+  type CardFilter = "all" | "active" | "redeemed" | "expired";
+  const [cardFilter, setCardFilter] = useState<CardFilter>("all");
+
+  // Custom amount validation
+  const MIN_AMOUNT_CENTS = 500;   // $5
+  const MAX_AMOUNT_CENTS = 50000; // $500
+  const customAmountCents = useMemo(() => {
+    const n = parseFloat(customAmount);
+    if (Number.isFinite(n) && n > 0) return Math.round(n * 100);
+    return 0;
+  }, [customAmount]);
+  const customAmountValid = customAmountCents >= MIN_AMOUNT_CENTS && customAmountCents <= MAX_AMOUNT_CENTS;
+  const effectiveAmount = customMode ? customAmountCents : selectedAmount;
+  const canPurchase = customMode ? customAmountValid : true;
 
   // Redeem tab state
   const [redeemCode, setRedeemCode] = useState("");
@@ -48,10 +68,14 @@ export default function GiftCardsPage() {
       toast.error("Please enter the recipient's email");
       return;
     }
+    if (customMode && !customAmountValid) {
+      toast.error(`Amount must be between $${MIN_AMOUNT_CENTS / 100} and $${MAX_AMOUNT_CENTS / 100}`);
+      return;
+    }
 
     const origin = window.location.origin;
     const result = await purchaseGiftCard.mutateAsync({
-      amount_cents: selectedAmount,
+      amount_cents: effectiveAmount,
       recipient_email: recipientEmail || undefined,
       recipient_name: recipientName || undefined,
       message: message || undefined,
@@ -61,7 +85,7 @@ export default function GiftCardsPage() {
     });
 
     if (result.url) {
-      window.location.href = result.url;
+      import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(result.url));
     }
   };
 
@@ -96,20 +120,59 @@ export default function GiftCardsPage() {
   };
 
   const AmountSelector = () => (
-    <div className="grid grid-cols-4 gap-3">
-      {PRESET_AMOUNTS.map((amt) => (
-        <button
-          key={amt.cents}
-          onClick={() => setSelectedAmount(amt.cents)}
-          className={`py-3 rounded-xl font-bold text-lg transition-all ${
-            selectedAmount === amt.cents
-              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+    <div className="space-y-3">
+      <div className="grid grid-cols-5 gap-2">
+        {PRESET_AMOUNTS.map((amt) => (
+          <button type="button"
+            key={amt.cents}
+            onClick={() => { setCustomMode(false); setSelectedAmount(amt.cents); }}
+            aria-pressed={!customMode && selectedAmount === amt.cents}
+            className={`py-3 rounded-xl font-bold text-base transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              !customMode && selectedAmount === amt.cents
+                ? "bg-ig-gradient text-white shadow-lg shadow-primary/30"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            {amt.label}
+          </button>
+        ))}
+        <button type="button"
+          onClick={() => setCustomMode(true)}
+          aria-pressed={customMode}
+          className={`py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center justify-center gap-1 ${
+            customMode
+              ? "bg-ig-gradient text-white shadow-lg shadow-primary/30"
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
-          {amt.label}
+          <Pencil className="w-3.5 h-3.5" />
+          Custom
         </button>
-      ))}
+      </div>
+      {customMode && (
+        <div className="space-y-1.5">
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-muted-foreground">$</span>
+            <Input
+              type="number"
+              inputMode="decimal"
+              placeholder="Enter amount"
+              value={customAmount}
+              onChange={(e) => setCustomAmount(e.target.value)}
+              min={5}
+              max={500}
+              step={1}
+              autoFocus
+              className="h-12 pl-9 rounded-xl bg-muted border-border text-lg font-bold"
+            />
+          </div>
+          <p className={`text-[11px] ${customAmount && !customAmountValid ? "text-rose-500" : "text-muted-foreground"}`}>
+            {customAmount && !customAmountValid
+              ? `Must be between $${MIN_AMOUNT_CENTS / 100} and $${MAX_AMOUNT_CENTS / 100}`
+              : `Min $${MIN_AMOUNT_CENTS / 100} · Max $${MAX_AMOUNT_CENTS / 100}`}
+          </p>
+        </div>
+      )}
     </div>
   );
 
@@ -143,20 +206,21 @@ export default function GiftCardsPage() {
       <SEOHead title="Gift Cards — ZIVO" description="Buy, send, and redeem ZIVO gift cards" />
 
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+      <div className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center justify-between px-6 py-4">
-          <button
+          <button type="button"
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center"
+            aria-label="Back"
+            className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-bold text-lg">Gift Cards</h1>
+          <h1 className="font-bold text-lg">{t("gift.title")}</h1>
           <div className="w-10" />
         </div>
       </div>
 
-      <div className="px-6 py-6 space-y-6">
+      <div className="px-6 py-6 space-y-6 max-w-2xl mx-auto">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -166,36 +230,36 @@ export default function GiftCardsPage() {
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
             <Gift className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="text-xl font-bold mb-1">ZIVO Gift Cards</h2>
-          <p className="text-sm text-muted-foreground">Give the gift of travel. Redeemable for wallet credits.</p>
+          <h2 className="text-xl font-bold mb-1">{t("gift.hero_title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("gift.hero_desc")}</p>
         </motion.div>
 
         {/* Tabs */}
         <Tabs defaultValue="buy" className="space-y-4">
           <TabsList className="w-full bg-muted border border-border/50 rounded-xl h-12 p-1">
-            <TabsTrigger value="buy" className="flex-1 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
+            <TabsTrigger value="buy" className="flex-1 rounded-xl data-[state=active]:bg-ig-gradient data-[state=active]:text-white gap-1.5">
               <CreditCard className="w-4 h-4" />
-              Buy
+              {t("gift.buy")}
             </TabsTrigger>
-            <TabsTrigger value="send" className="flex-1 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
+            <TabsTrigger value="send" className="flex-1 rounded-xl data-[state=active]:bg-ig-gradient data-[state=active]:text-white gap-1.5">
               <Send className="w-4 h-4" />
-              Send
+              {t("gift.send")}
             </TabsTrigger>
-            <TabsTrigger value="redeem" className="flex-1 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5">
+            <TabsTrigger value="redeem" className="flex-1 rounded-xl data-[state=active]:bg-ig-gradient data-[state=active]:text-white gap-1.5">
               <Ticket className="w-4 h-4" />
-              Redeem
+              {t("gift.redeem")}
             </TabsTrigger>
           </TabsList>
 
           {/* Buy Tab */}
           <TabsContent value="buy" className="space-y-4">
             <div className="bg-card border border-border/50 rounded-2xl p-5 space-y-5">
-              <h3 className="font-bold">Select Amount</h3>
+              <h3 className="font-bold">{t("gift.select_amount")}</h3>
               <AmountSelector />
               <RecipientFields required={false} />
               <Button
                 onClick={() => handlePurchase(false)}
-                disabled={purchaseGiftCard.isPending}
+                disabled={purchaseGiftCard.isPending || !canPurchase}
                 className="w-full h-12 rounded-xl font-bold"
               >
                 {purchaseGiftCard.isPending ? (
@@ -203,7 +267,7 @@ export default function GiftCardsPage() {
                 ) : (
                   <CreditCard className="w-5 h-5 mr-2" />
                 )}
-                Purchase ${(selectedAmount / 100).toFixed(0)} Gift Card
+                Purchase ${(effectiveAmount / 100).toFixed(effectiveAmount % 100 === 0 ? 0 : 2)} Gift Card
               </Button>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="w-4 h-4" />
@@ -225,7 +289,7 @@ export default function GiftCardsPage() {
                   <p className="text-xs text-muted-foreground mb-2">Preview</p>
                   <div className="bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl p-4 border border-primary/20">
                     <Gift className="w-6 h-6 text-primary mb-2" />
-                    <p className="font-bold">${(selectedAmount / 100).toFixed(0)} ZIVO Gift Card</p>
+                    <p className="font-bold">${(effectiveAmount / 100).toFixed(effectiveAmount % 100 === 0 ? 0 : 2)} ZIVO Gift Card</p>
                     {recipientName && <p className="text-sm text-muted-foreground">To: {recipientName}</p>}
                     {message && <p className="text-sm text-muted-foreground mt-2 italic">"{message}"</p>}
                   </div>
@@ -234,7 +298,7 @@ export default function GiftCardsPage() {
 
               <Button
                 onClick={() => handlePurchase(true)}
-                disabled={purchaseGiftCard.isPending}
+                disabled={purchaseGiftCard.isPending || !canPurchase}
                 className="w-full h-12 rounded-xl font-bold"
               >
                 {purchaseGiftCard.isPending ? (
@@ -242,7 +306,7 @@ export default function GiftCardsPage() {
                 ) : (
                   <Send className="w-5 h-5 mr-2" />
                 )}
-                Send ${(selectedAmount / 100).toFixed(0)} Gift Card
+                Send ${(effectiveAmount / 100).toFixed(effectiveAmount % 100 === 0 ? 0 : 2)} Gift Card
               </Button>
             </div>
           </TabsContent>
@@ -310,22 +374,94 @@ export default function GiftCardsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <h2 className="font-bold text-lg mb-4">My Gift Cards</h2>
-          {cardsLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-20 bg-muted/50 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : myGiftCards.length === 0 ? (
-            <div className="bg-card border border-border/50 rounded-2xl p-8 text-center">
-              <Gift className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">No gift cards yet</p>
-              <p className="text-sm text-muted-foreground/60 mt-1">Buy or redeem a gift card to get started</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {myGiftCards.map((card) => {
+          {(() => {
+            // Categorize cards once
+            const counts = { all: myGiftCards.length, active: 0, redeemed: 0, expired: 0 };
+            const totalActiveBalance = myGiftCards.reduce((sum, c) => {
+              const isExpired = c.expires_at && new Date(c.expires_at) < new Date();
+              const isRedeemed = c.current_balance <= 0;
+              if (isExpired) counts.expired++;
+              else if (isRedeemed) counts.redeemed++;
+              else if (c.is_active) counts.active++;
+              if (c.is_active && !isExpired && !isRedeemed) return sum + c.current_balance;
+              return sum;
+            }, 0);
+
+            const visibleCards = myGiftCards.filter((c) => {
+              const isExpired = c.expires_at && new Date(c.expires_at) < new Date();
+              const isRedeemed = c.current_balance <= 0;
+              if (cardFilter === "all") return true;
+              if (cardFilter === "expired") return isExpired;
+              if (cardFilter === "redeemed") return isRedeemed && !isExpired;
+              return c.is_active && !isExpired && !isRedeemed;
+            });
+
+            return (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-bold text-lg">My Gift Cards</h2>
+                  {totalActiveBalance > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      <span className="font-bold text-emerald-500">${totalActiveBalance.toFixed(2)}</span> active
+                    </span>
+                  )}
+                </div>
+
+                {/* Status filter pills */}
+                {myGiftCards.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3 -mx-1 px-1">
+                    {([
+                      { key: "all", label: "All" },
+                      { key: "active", label: "Active" },
+                      { key: "redeemed", label: "Redeemed" },
+                      { key: "expired", label: "Expired" },
+                    ] as const).map((opt) => {
+                      const c = counts[opt.key];
+                      return (
+                        <button type="button"
+                          key={opt.key}
+                          onClick={() => setCardFilter(opt.key)}
+                          aria-pressed={cardFilter === opt.key}
+                          className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                            cardFilter === opt.key
+                              ? "bg-ig-gradient text-white border-primary"
+                              : "bg-card text-muted-foreground border-border/40 hover:border-primary/30"
+                          }`}
+                        >
+                          {opt.label}
+                          {c > 0 && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${cardFilter === opt.key ? "bg-primary-foreground/20" : "bg-muted"}`}>
+                              {c}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {cardsLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="h-20 bg-muted/50 rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : myGiftCards.length === 0 ? (
+                  <div className="bg-card border border-border/50 rounded-2xl p-8 text-center">
+                    <Gift className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+                    <p className="text-muted-foreground">No gift cards yet</p>
+                    <p className="text-sm text-muted-foreground/60 mt-1">Buy or redeem a gift card to get started</p>
+                  </div>
+                ) : visibleCards.length === 0 ? (
+                  <div className="bg-card border border-border/50 rounded-2xl p-6 text-center">
+                    <p className="text-sm text-muted-foreground">No {cardFilter} gift cards</p>
+                    <Button variant="link" size="sm" onClick={() => setCardFilter("all")} className="mt-1 text-xs">
+                      Show all
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {visibleCards.map((card) => {
                 const status = getCardStatus(card);
                 return (
                   <div
@@ -336,9 +472,10 @@ export default function GiftCardsPage() {
                       <div className="flex items-center gap-2">
                         <Gift className="w-4 h-4 text-primary" />
                         <span className="font-mono text-sm">{card.code}</span>
-                        <button
+                        <button type="button"
                           onClick={() => copyCode(card.code, card.id)}
-                          className="p-1 rounded hover:bg-muted"
+                          aria-label="Copy code"
+                          className="p-1 rounded hover:bg-muted active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {copiedId === card.id ? (
                             <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -364,8 +501,11 @@ export default function GiftCardsPage() {
                   </div>
                 );
               })}
-            </div>
-          )}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </motion.div>
       </div>
     </div>

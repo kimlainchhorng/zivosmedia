@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Lub d Siem Reap - Near Pub Street & Angkor Wat",
+    "bookingUrl": "https://www.booking.com/hotel/kh/lub-d-cambodia-siem-reap.html?aid=304142&label=gen173nr-10CAQoggI46wdIMVgEaJcCiAEBmAEzuAEHyAEM2AED6AEB-AEBiAIBqAIBuAKT6Z_QBsACAdICJDJiMjVhODg0LWUwNjItNDM4NS04ZDNiLTdjNDBjNzllY2MwNdgCAeACAQ&ucfs=1&arphpl=1&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&req_adults=2&no_rooms=1&group_children=0&req_children=0&hpos=25&hapos=25&sr_order=popularity&srpvid=0b742089f4510446&srepoch=1778906269&all_sr_blocks=247656904_327312242_2_0_0&highlighted_blocks=247656904_327312242_2_0_0&matching_block_id=247656904_327312242_2_0_0&sr_pri_blocks=247656904_327312242_2_0_0__1862&from=searchresults",
+    "rating": null,
+    "reviewScore": 9.3,
+    "address": "",
+    "cityName": "Siem Reap",
+    "cityLat": 13.3671,
+    "cityLng": 103.8448,
+    "cleanUrl": "https://www.booking.com/hotel/kh/lub-d-cambodia-siem-reap.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+    "status": "added",
+    "slug": "lub-d-siem-reap-near-pub-street-and-angkor-wat",
+    "storeId": "0aeb0a7a-ffb9-4e47-a406-2ed90300acbf"
+  },
+  {
+    "name": "Le Grand Palais Hotel",
+    "bookingUrl": "https://www.booking.com/hotel/kh/le-grand-palais-phnom-penh.html?aid=304142&label=gen173nr-10CAQoggI46wdIMVgEaJcCiAEBmAEzuAEHyAEM2AED6AEB-AEBiAIBqAIBuALh7J_QBsACAdICJGUyNmFiY2QyLTdjZGEtNDI4MC1hYTAzLWY4YWE4NTdhYzMwZNgCAeACAQ&ucfs=1&arphpl=1&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&req_adults=2&no_rooms=1&group_children=0&req_children=0&hpos=17&hapos=17&sr_order=popularity&srpvid=de462170b99903cc&srepoch=1778906731&all_sr_blocks=1641227601_434414553_2_0_0&highlighted_blocks=1641227601_434414553_2_0_0&matching_block_id=1641227601_434414553_2_0_0&sr_pri_blocks=1641227601_434414553_2_0_0__2232&from=searchresults",
+    "rating": null,
+    "reviewScore": null,
+    "address": "",
+    "cityName": "Phnom Penh",
+    "cityLat": 11.5564,
+    "cityLng": 104.9282,
+    "cleanUrl": "https://www.booking.com/hotel/kh/le-grand-palais-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+    "status": "added",
+    "slug": "le-grand-palais-hotel",
+    "storeId": "5c417e60-7842-4a41-9089-525973bd76e2"
+  }
+]

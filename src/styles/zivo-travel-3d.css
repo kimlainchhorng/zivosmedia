@@ -1,0 +1,271 @@
+/*
+ * Zivo Travel 3D theme — scoped entirely under `.zivo-travel-3d` so it ONLY
+ * applies on zivostravel.com (the provider adds that class to <html> on the
+ * travel host). zivosmedia.com and every other domain are untouched.
+ */
+
+.zivo-travel-3d {
+  /* depth + brand tokens */
+  --zt-bg: #060912;
+  --zt-bg-soft: #0b1222;
+  --zt-ink: #f4f7ff;
+  --zt-muted: #9fb0c8;
+  --zt-emerald: #34d399;
+  --zt-sky: #0ea5e9;
+  --zt-violet: #7c3aed;
+  --zt-glass: rgba(255, 255, 255, 0.06);
+  --zt-glass-border: rgba(255, 255, 255, 0.12);
+  --zt-shadow: 0 40px 90px rgba(2, 6, 23, 0.55);
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zivo-travel-3d {
+    scroll-behavior: auto;
+  }
+}
+
+/* Custom scrollbar for the immersive feel */
+.zivo-travel-3d ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.zivo-travel-3d ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--zt-emerald), var(--zt-sky), var(--zt-violet));
+  border-radius: 9999px;
+}
+.zivo-travel-3d ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Reusable utility classes (used by the kit + pages) */
+.zt-perspective {
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+.zt-preserve-3d {
+  transform-style: preserve-3d;
+}
+.zt-glass {
+  background: var(--zt-glass);
+  border: 1px solid var(--zt-glass-border);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--zt-shadow);
+}
+.zt-depth {
+  box-shadow: var(--zt-shadow);
+}
+.zt-gradient-text {
+  background-image: linear-gradient(90deg, var(--zt-emerald), var(--zt-sky), var(--zt-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.zt-aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 50% at 15% 20%, rgba(52, 211, 153, 0.18), transparent 60%),
+    radial-gradient(45% 55% at 85% 25%, rgba(14, 165, 233, 0.18), transparent 60%),
+    radial-gradient(50% 60% at 50% 100%, rgba(124, 58, 237, 0.16), transparent 60%);
+  filter: blur(20px);
+}
+
+/* Light travel skin. This intentionally remaps the existing dark glass utility
+ * classes only inside Zivo Travel so the rest of the multi-domain app is safe.
+ */
+.zivo-travel-light {
+  --zt-bg: #f8fbff;
+  --zt-bg-soft: #eef7ff;
+  --zt-ink: #0f172a;
+  --zt-muted: #64748b;
+  --zt-glass: rgba(255, 255, 255, 0.76);
+  --zt-glass-border: rgba(15, 23, 42, 0.12);
+  --zt-shadow: 0 34px 90px rgba(15, 23, 42, 0.14);
+  background:
+    radial-gradient(circle at 15% 8%, rgba(14, 165, 233, 0.18), transparent 34rem),
+    radial-gradient(circle at 88% 22%, rgba(52, 211, 153, 0.18), transparent 32rem),
+    linear-gradient(180deg, #ffffff 0%, #f6fbff 42%, #eef8ff 100%) !important;
+  color: var(--zt-ink) !important;
+}
+
+.zivo-travel-light .zt-aurora {
+  opacity: 0.62;
+  filter: blur(12px);
+}
+
+.zivo-travel-light [class*="bg-zinc-950"],
+.zivo-travel-light [class*="bg-zinc-900"],
+.zivo-travel-light [class*="bg-[#0"],
+.zivo-travel-light [class*="bg-[#1"] {
+  background-color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.zivo-travel-light header[class*="bg-zinc-950"],
+.zivo-travel-light [class*="bg-zinc-950/70"] {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.zivo-travel-light [class*="bg-white/"],
+.zivo-travel-light [class*="bg-white["] {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.zivo-travel-light [class*="border-white"] {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+.zivo-travel-light .text-white,
+.zivo-travel-light [class*="text-white/"],
+.zivo-travel-light .text-zinc-200,
+.zivo-travel-light .text-zinc-300,
+.zivo-travel-light .text-zinc-400,
+.zivo-travel-light .text-slate-300,
+.zivo-travel-light .text-slate-400 {
+  color: var(--zt-ink) !important;
+}
+
+.zivo-travel-light .text-zinc-500,
+.zivo-travel-light .text-zinc-600 {
+  color: var(--zt-muted) !important;
+}
+
+.zivo-travel-light input,
+.zivo-travel-light select,
+.zivo-travel-light textarea {
+  color: var(--zt-ink) !important;
+  color-scheme: light;
+}
+
+.zivo-travel-light input::placeholder,
+.zivo-travel-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.zivo-travel-light form,
+.zivo-travel-light [class*="backdrop-blur"] {
+  box-shadow: var(--zt-shadow);
+}
+
+.zivo-travel-light [class*="shadow-[0_"],
+.zivo-travel-light .shadow-xl,
+.zivo-travel-light .shadow-lg {
+  box-shadow: var(--zt-shadow) !important;
+}
+
+.zivo-travel-light [class*="from-zinc-950"],
+.zivo-travel-light [class*="via-zinc-950"],
+.zivo-travel-light [class*="to-zinc-950"] {
+  --tw-gradient-from: rgba(255, 255, 255, 0.92) var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: rgba(248, 251, 255, 0.82) var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: rgba(239, 246, 255, 0.72) var(--tw-gradient-to-position) !important;
+}
+
+.zivo-travel-light .bg-gradient-to-br,
+.zivo-travel-light .bg-gradient-to-b {
+  background-blend-mode: normal;
+}
+
+.zivo-travel-light .zt-on-media,
+.zivo-travel-light .zt-on-media .text-white,
+.zivo-travel-light .zt-on-media [class*="text-white/"] {
+  color: #ffffff !important;
+}
+
+.zivo-travel-light .zt-on-media .text-zinc-200,
+.zivo-travel-light .zt-on-media .text-zinc-300,
+.zivo-travel-light .zt-on-media .text-zinc-400,
+.zivo-travel-light .zt-on-media .text-slate-300,
+.zivo-travel-light .zt-on-media .text-slate-400,
+.zivo-travel-light .zt-on-media [class*="text-white/70"],
+.zivo-travel-light .zt-on-media [class*="text-white/78"],
+.zivo-travel-light .zt-on-media [class*="text-white/80"],
+.zivo-travel-light .zt-on-media [class*="text-white/82"] {
+  color: rgba(255, 255, 255, 0.84) !important;
+}
+
+.zivo-travel-light .zt-launch-loader {
+  background:
+    radial-gradient(circle at 24% 18%, rgba(14, 165, 233, 0.18), transparent 26rem),
+    radial-gradient(circle at 74% 28%, rgba(52, 211, 153, 0.2), transparent 26rem),
+    radial-gradient(circle at 50% 100%, rgba(124, 58, 237, 0.1), transparent 32rem),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 58%, #eef8ff 100%) !important;
+}
+
+.zivo-travel-light .zt-launch-loader [class*="border-white"],
+.zivo-travel-light .zt-launch-loader [class*="border-slate"] {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Snap rails for horizontal (left/right) scroll sections */
+.zt-rail {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.zt-rail::-webkit-scrollbar {
+  display: none;
+}
+.zt-rail > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+.zt-loader-orbit {
+  animation: zt-loader-orbit 5s linear infinite;
+  transform-origin: center;
+}
+
+.zt-loader-float {
+  animation: zt-loader-float 3.8s ease-in-out infinite;
+}
+
+.zt-loader-scan {
+  animation: zt-loader-scan 2.4s ease-in-out infinite;
+}
+
+@keyframes zt-loader-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes zt-loader-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotateX(0deg);
+  }
+  50% {
+    transform: translate3d(0, -10px, 18px) rotateX(6deg);
+  }
+}
+
+@keyframes zt-loader-scan {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  25%,
+  70% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zt-loader-orbit,
+  .zt-loader-float,
+  .zt-loader-scan {
+    animation: none;
+  }
+}

@@ -1,24 +1,95 @@
-/**
+﻿/**
  * App Home Screen - 2026 Travel Super-App Layout
  * Premium scrollable design with saved places, quick estimate, popular services,
- * quick actions, promos, rewards, and personalized content.
+ * quick actions, service navigation, and personalized content.
+ * @module AppHome
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import SEOHead from "@/components/SEOHead";
+import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
+import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 import { useNavigate } from "react-router-dom";
+import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
+import { useI18n } from "@/hooks/useI18n";
+import { useCountry } from "@/hooks/useCountry";
 import { motion } from "framer-motion";
-import {
-  Search, Plane, Car, Utensils, BedDouble,
-  MapPin, Bell, LucideIcon, Package, Star, Sparkles,
-  UtensilsCrossed, Heart, History, Hotel, Gift, Users, Share2, Clock,
-  Wallet, CreditCard, Home, Briefcase, Plus, Timer, DollarSign,
-  TrendingUp, Navigation, ChevronRight, ArrowRight, Zap, Shield,
-  Globe, Crown, Flame
-} from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import Search from "lucide-react/dist/esm/icons/search";
+import Plane from "lucide-react/dist/esm/icons/plane";
+import Car from "lucide-react/dist/esm/icons/car";
+import BedDouble from "lucide-react/dist/esm/icons/bed-double";
+import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import Package from "lucide-react/dist/esm/icons/package";
+import Bus from "lucide-react/dist/esm/icons/bus";
+import Star from "lucide-react/dist/esm/icons/star";
+import Heart from "lucide-react/dist/esm/icons/heart";
+import Home from "lucide-react/dist/esm/icons/home";
+import Briefcase from "lucide-react/dist/esm/icons/briefcase";
+import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePersonalizedHome, HomeRestaurant } from "@/hooks/usePersonalizedHome";
+import type { HomeRestaurant } from "@/hooks/usePersonalizedHome";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import zivoRideIcon from "@/assets/zivo-ride-icon.webp";
+import zivoEatsIcon from "@/assets/zivo-eats-icon.webp";
+import zivoFlightsIcon from "@/assets/zivo-flights-icon.webp";
+import zivoHotelsIcon from "@/assets/zivo-hotels-icon.webp";
+import zivoRentalCarIcon from "@/assets/zivo-rental-car.webp";
+import zivoShoppingIcon from "@/assets/zivo-shopping.webp";
+
+// Lazy-load below-fold heavy components
+const LiveTripTracker = lazy(() => import("@/components/home/widgets/LiveTripTracker"));
+const QuickReorderCarousel = lazy(() => import("@/components/home/widgets/QuickReorderCarousel"));
+const PriceAlertsWidget = lazy(() => import("@/components/home/widgets/PriceAlertsWidget"));
+const ZivoMobileNav = lazy(() => import("@/components/app/ZivoMobileNav"));
+const UniversalSearchOverlay = lazy(() => import("@/components/search/UniversalSearchOverlay"));
+const PlanTripBundle = lazy(() => import("@/components/home/PlanTripBundle"));
+const SmartIntentSearch = lazy(() => import("@/components/home/SmartIntentSearch"));
+const StoriesRail = lazy(() => import("@/components/home/StoriesRail"));
+const NetworkPromoStrip = lazy(() => import("@/components/home/NetworkPromoStrip"));
+const ConciergeLauncher = lazy(() => import("@/components/home/ConciergeLauncher"));
+const TodayPlanWidget = lazy(() => import("@/components/home/TodayPlanWidget"));
+const SpendTrackerWidget = lazy(() => import("@/components/home/SpendTrackerWidget"));
+
+// Icons used below-fold (still small, but needed)
+import Utensils from "lucide-react/dist/esm/icons/utensils";
+import Hotel from "lucide-react/dist/esm/icons/hotel";
+import Gift from "lucide-react/dist/esm/icons/gift";
+import Users from "lucide-react/dist/esm/icons/users";
+import Share2 from "lucide-react/dist/esm/icons/share-2";
+import Copy from "lucide-react/dist/esm/icons/copy";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import Wallet from "lucide-react/dist/esm/icons/wallet";
+import CreditCard from "lucide-react/dist/esm/icons/credit-card";
+import Plus from "lucide-react/dist/esm/icons/plus";
+import Timer from "lucide-react/dist/esm/icons/timer";
+import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
+import TrendingUp from "lucide-react/dist/esm/icons/trending-up";
+import Navigation from "lucide-react/dist/esm/icons/navigation";
+import Shield from "lucide-react/dist/esm/icons/shield";
+import Globe from "lucide-react/dist/esm/icons/globe";
+import Crown from "lucide-react/dist/esm/icons/crown";
+import Calendar from "lucide-react/dist/esm/icons/calendar";
+import Bell from "lucide-react/dist/esm/icons/bell";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles";
+import Coffee from "lucide-react/dist/esm/icons/coffee";
+import Target from "lucide-react/dist/esm/icons/target";
+import Trophy from "lucide-react/dist/esm/icons/trophy";
+import Flame from "lucide-react/dist/esm/icons/flame";
+import Sunrise from "lucide-react/dist/esm/icons/sunrise";
+import Sun from "lucide-react/dist/esm/icons/sun";
+import Sunset from "lucide-react/dist/esm/icons/sunset";
+import Moon from "lucide-react/dist/esm/icons/moon";
+import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
+import Tv from "lucide-react/dist/esm/icons/tv";
+import Rocket from "lucide-react/dist/esm/icons/rocket";
+import Gem from "lucide-react/dist/esm/icons/gem";
+import Dumbbell from "lucide-react/dist/esm/icons/dumbbell";
+import { Progress } from "@/components/ui/progress";
 import { useLoyaltyPoints } from "@/hooks/useLoyaltyPoints";
 import { useUserRewards } from "@/hooks/useUserRewards";
 import { ZIVO_TIERS, getTierFromPoints, getPointsToNextTier, type ZivoTier } from "@/config/zivoPoints";
@@ -27,25 +98,50 @@ import { REFERRAL_REWARDS } from "@/config/referralProgram";
 import { useScheduledBookingsQuery } from "@/hooks/useScheduledBookings";
 import { useCustomerWallet } from "@/hooks/useCustomerWallet";
 import { useLocalPaymentMethods } from "@/hooks/useLocalPaymentMethods";
-import { useUserProfile } from "@/hooks/useUserProfile";
 import { useRecommendedDeals } from "@/hooks/useRecommendedDeals";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useSavedLocations } from "@/hooks/useSavedLocations";
-import { useCustomerActivityFeed } from "@/hooks/useCustomerActivityFeed";
-import ActivityTimeline from "@/components/shared/ActivityTimeline";
 import { destinationPhotos } from "@/config/photos";
+import PartnerBadge from "@/components/shared/PartnerBadge";
+import { useDestinationPrices } from "@/hooks/useDestinationPrices";
 import { getRestaurantPhoto } from "@/config/restaurantPhotos";
 import { formatDistanceToNow, format } from "date-fns";
-import useEmblaCarousel from "embla-carousel-react";
-import ZivoMobileNav from "@/components/app/ZivoMobileNav";
-import UniversalSearchOverlay from "@/components/search/UniversalSearchOverlay";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { AD_SLOTS } from "@/config/adSlots";
 import { useDeviceIntegrityCheck } from "@/hooks/useDeviceIntegrityCheck";
-import LiveTripTracker from "@/components/home/widgets/LiveTripTracker";
-import PriceAlertsWidget from "@/components/home/widgets/PriceAlertsWidget";
-import TravelItineraryCard from "@/components/home/widgets/TravelItineraryCard";
-import QuickReorderCarousel from "@/components/home/widgets/QuickReorderCarousel";
+import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
+import { useLodgeRooms } from "@/hooks/lodging/useLodgeRooms";
+import { useLodgePropertyProfile } from "@/hooks/lodging/useLodgePropertyProfile";
+import { useLodgeReservations } from "@/hooks/lodging/useLodgeReservations";
+import { useLodgingPhase5Counts } from "@/hooks/lodging/useLodgingPhase5Counts";
+import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
+import { buildHotelsPath } from "@/lib/lodging/hotelRoutes";
 
+import tabFlightsBg from "@/assets/tab-flights-bg.jpg";
+import tabHotelsBg from "@/assets/tab-hotels-bg.jpg";
+import tabCarsBg from "@/assets/tab-cars-bg.jpg";
+import tabRidesBg from "@/assets/tab-rides-bg.jpg";
+import tabEatsBg from "@/assets/tab-eats-bg.jpg";
+
+const tabBgMap: Record<string, string> = {
+  rides: tabRidesBg,
+  eats: tabEatsBg,
+  flights: tabFlightsBg,
+  hotels: tabHotelsBg,
+};
+
+const tabCssVarMap: Record<string, string> = {
+  rides: "var(--rides)",
+  eats: "var(--eats)",
+  flights: "var(--flights)",
+  hotels: "var(--hotels)",
+};
+
+const DEFAULT_HOTELS_PATH = buildHotelsPath();
 // ─── Saved Places Icon Map ───
+// ─── Dynamic search placeholder by tab ───
+// Search placeholder is now handled inside the component with t()
+
 const savedPlaceIconMap: Record<string, LucideIcon> = {
   home: Home,
   work: Briefcase,
@@ -53,28 +149,37 @@ const savedPlaceIconMap: Record<string, LucideIcon> = {
   pin: MapPin,
 };
 
+// ─── Top service tabs (Uber-style) ───
+// These are now built inside the component with t() for translation
+// See homeTabs and suggestions inside AppHome component
+
 // ─── Restaurant Card (Premium) ───
 const RestaurantCard = ({ restaurant, onNavigate }: { restaurant: HomeRestaurant; onNavigate: () => void }) => (
   <motion.button
     onClick={onNavigate}
-    whileTap={{ scale: 0.96 }}
-    className="shrink-0 w-[170px] rounded-2xl overflow-hidden bg-card border border-border/40 shadow-sm hover:shadow-xl transition-all duration-300 touch-manipulation text-left group"
+    whileTap={{ scale: 0.97 }}
+    className="shrink-0 w-[170px] rounded-2xl overflow-hidden bg-background/92 border border-border/30 shadow-sm hover:border-border/50 transition-colors touch-manipulation text-left group"
+    
   >
     <div className="relative h-[120px] overflow-hidden">
       <img
         src={restaurant.cover_image_url || restaurant.logo_url || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400"}
         alt={restaurant.name}
+        width={170}
+        height={120}
         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         loading="lazy"
+        decoding="async"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
       {restaurant.rating && (
-        <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/50 backdrop-blur-xl rounded-full px-2 py-0.5">
+        <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/60 rounded-full px-2 py-0.5">
           <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
           <span className="text-[10px] font-bold text-primary-foreground">{restaurant.rating.toFixed(1)}</span>
         </div>
       )}
-      <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+      <PartnerBadge size="xs" className="absolute top-2 left-2" />
+      <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
         <Heart className="w-3.5 h-3.5 text-primary-foreground" />
       </div>
     </div>
@@ -88,799 +193,881 @@ const RestaurantCard = ({ restaurant, onNavigate }: { restaurant: HomeRestaurant
 );
 
 // ─── Section Header (Premium) ───
-const SectionHeader = ({ icon: Icon, iconColor, title, badge, onSeeAll }: { icon: LucideIcon; iconColor: string; title: string; badge?: string; onSeeAll: () => void }) => (
+type SmartNowConfig = {
+  icon: LucideIcon;
+  greeting: string;
+  primary: { label: string; to: string };
+  chips: { label: string; to: string }[];
+  gradient: string;
+  iconBg: string;
+  iconColor: string;
+};
+
+const getSmartNow = (hour: number): SmartNowConfig => {
+  if (hour >= 5 && hour < 11) return {
+    icon: Sunrise,
+    greeting: "Good morning",
+    primary: { label: "Order coffee nearby", to: "/eats?q=coffee" },
+    chips: [
+      { label: "Ride to work", to: "/rides/hub" },
+      { label: "Breakfast", to: "/eats?q=breakfast" },
+    ],
+    gradient: "from-amber-500/15 via-orange-500/8 to-transparent",
+    iconBg: "bg-amber-500/15",
+    iconColor: "text-amber-500",
+  };
+  if (hour >= 11 && hour < 14) return {
+    icon: UtensilsCrossed,
+    greeting: "Lunchtime",
+    primary: { label: "Lunch deals near you", to: "/eats?q=lunch" },
+    chips: [
+      { label: "Quick bite", to: "/eats?q=fast" },
+      { label: "Reserve a table", to: "/eats" },
+    ],
+    gradient: "from-foreground to-foreground/80",
+    iconBg: "bg-orange-500/15",
+    iconColor: "text-orange-500",
+  };
+  if (hour >= 14 && hour < 17) return {
+    icon: Sun,
+    greeting: "Afternoon",
+    primary: { label: "Plan your evening", to: "/things-to-do" },
+    chips: [
+      { label: "Coffee break", to: "/eats?q=coffee" },
+      { label: "Trip ideas", to: "/flights" },
+    ],
+    gradient: "from-foreground to-foreground/80",
+    iconBg: "bg-sky-500/15",
+    iconColor: "text-sky-500",
+  };
+  if (hour >= 17 && hour < 21) return {
+    icon: Sunset,
+    greeting: "Evening",
+    primary: { label: "Order dinner", to: "/eats?q=dinner" },
+    chips: [
+      { label: "Ride home", to: "/rides/hub" },
+      { label: "Reserve a table", to: "/eats" },
+    ],
+    gradient: "from-foreground to-foreground/80",
+    iconBg: "bg-rose-500/15",
+    iconColor: "text-rose-500",
+  };
+  return {
+    icon: Moon,
+    greeting: "Tonight",
+    primary: { label: "Plan tomorrow", to: "/trips" },
+    chips: [
+      { label: "Late-night eats", to: "/eats" },
+      { label: "Hotel stays", to: DEFAULT_HOTELS_PATH },
+    ],
+    gradient: "from-foreground to-foreground/80",
+    iconBg: "bg-indigo-500/15",
+    iconColor: "text-indigo-400",
+  };
+};
+
+const SmartNowCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
+  const cfg = useMemo(() => getSmartNow(new Date().getHours()), []);
+  const Icon = cfg.icon;
+  return (
+    <div className="px-4 pb-3">
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-2xl border border-border/30 bg-background/92 shadow-sm hover:border-border/50 p-4"
+      >
+        <div className="flex items-center gap-3">
+          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", cfg.iconBg)}>
+            <Icon className={cn("w-5 h-5", cfg.iconColor)} strokeWidth={1.8} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-muted-foreground">{cfg.greeting}</p>
+            <button
+              type="button"
+              onClick={() => onNavigate(cfg.primary.to)}
+              className="mt-0.5 flex min-h-[40px] items-center gap-1 text-sm font-semibold text-foreground active:opacity-70 transition-opacity touch-manipulation"
+            >
+              {cfg.primary.label}
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 flex gap-2 flex-wrap">
+          {cfg.chips.map((chip) => (
+            <motion.button
+              key={chip.label}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => onNavigate(chip.to)}
+              className="min-h-[40px] text-[11px] font-semibold text-foreground bg-muted/20 border border-border/30 rounded-full px-3 py-2 touch-manipulation active:bg-muted/40 transition-colors"
+            >
+              {chip.label}
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+type QuickPick = {
+  icon: LucideIcon;
+  label: string;
+  to: string;
+  iconColor: string;
+  iconBg: string;
+};
+
+const QUICK_PICKS: QuickPick[] = [
+  { icon: Coffee,          label: "Coffee",     to: "/eats?q=coffee",     iconColor: "text-amber-600",   iconBg: "bg-amber-500/10" },
+  { icon: UtensilsCrossed, label: "Pizza",      to: "/eats?q=pizza",      iconColor: "text-orange-500",  iconBg: "bg-orange-500/10" },
+  { icon: Plane,           label: "Flights",    to: "/flights",            iconColor: "text-indigo-500",  iconBg: "bg-indigo-500/10" },
+  { icon: Hotel,           label: "Hotels",     to: DEFAULT_HOTELS_PATH,    iconColor: "text-violet-500",  iconBg: "bg-violet-500/10" },
+  { icon: Car,             label: "Ride",       to: "/rides/hub",          iconColor: "text-emerald-500", iconBg: "bg-emerald-500/10" },
+  { icon: Package,         label: "Delivery",   to: "/delivery",           iconColor: "text-sky-500",     iconBg: "bg-sky-500/10" },
+];
+
+type DailyMission = {
+  icon: LucideIcon;
+  title: string;
+  cta: string;
+  to: string;
+  accent: string;
+};
+
+const DAILY_MISSIONS: DailyMission[] = [
+  // Sunday → adventurous start
+  { icon: Plane, title: "Browse a new flight destination", cta: "Explore", to: "/flights", accent: "sky" },
+  // Monday → commute / ride
+  { icon: Target, title: "Take a ride this week", cta: "Book a ride", to: "/rides/hub", accent: "emerald" },
+  // Tuesday → eats
+  { icon: UtensilsCrossed, title: "Try a new restaurant on Eats", cta: "Order now", to: "/eats", accent: "orange" },
+  // Wednesday → social
+  { icon: Gift, title: "Refer a friend today", cta: "Share invite", to: "/refer", accent: "violet" },
+  // Thursday → reservations
+  { icon: Calendar, title: "Reserve a table for the weekend", cta: "Find a spot", to: "/eats", accent: "rose" },
+  // Friday → hotels / stays
+  { icon: Hotel, title: "Plan a weekend stay", cta: "Browse hotels", to: DEFAULT_HOTELS_PATH, accent: "indigo" },
+  // Saturday → bundle
+  { icon: Trophy, title: "Bundle a flight + hotel", cta: "See bundles", to: "/flights?bundle=1", accent: "amber" },
+];
+
+const ACCENT_STYLES: Record<string, { iconBg: string; iconColor: string; gradient: string; ringColor: string; ctaBg: string }> = {
+  sky:      { iconBg: "bg-sky-500/15",     iconColor: "text-sky-500",     gradient: "from-foreground to-foreground/80",         ringColor: "border-sky-500/25",     ctaBg: "bg-sky-500 text-white" },
+  emerald:  { iconBg: "bg-emerald-500/15", iconColor: "text-emerald-500", gradient: "from-emerald-500/12 via-emerald-500/5 to-transparent", ringColor: "border-emerald-500/25", ctaBg: "bg-emerald-500 text-white" },
+  orange:   { iconBg: "bg-orange-500/15",  iconColor: "text-orange-500",  gradient: "from-orange-500/12 via-orange-500/5 to-transparent",   ringColor: "border-orange-500/25",  ctaBg: "bg-orange-500 text-white" },
+  violet:   { iconBg: "bg-violet-500/15",  iconColor: "text-violet-500",  gradient: "from-foreground to-foreground/80",   ringColor: "border-violet-500/25",  ctaBg: "bg-violet-500 text-white" },
+  rose:     { iconBg: "bg-rose-500/15",    iconColor: "text-rose-500",    gradient: "from-foreground to-foreground/80",       ringColor: "border-rose-500/25",    ctaBg: "bg-rose-500 text-white" },
+  indigo:   { iconBg: "bg-indigo-500/15",  iconColor: "text-indigo-500",  gradient: "from-foreground to-foreground/80",   ringColor: "border-indigo-500/25",  ctaBg: "bg-indigo-500 text-white" },
+  amber:    { iconBg: "bg-amber-500/15",   iconColor: "text-amber-600",   gradient: "from-amber-500/12 via-amber-500/5 to-transparent",     ringColor: "border-amber-500/25",   ctaBg: "bg-amber-500 text-white" },
+};
+
+const DailyMissionCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
+  const mission = useMemo(() => DAILY_MISSIONS[new Date().getDay()], []);
+  const Icon = mission.icon;
+  const dayLabel = useMemo(() =>
+    new Date().toLocaleDateString("en-US", { weekday: "long" }),
+  []);
+
+  return (
+    <div className="px-4 pb-3">
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-2xl border border-border/30 bg-background/92 shadow-sm hover:border-border/50 p-4"
+      >
+        <div className="flex items-center gap-3">
+          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", ACCENT_STYLES[mission.accent].iconBg)}>
+            <Icon className={cn("w-5 h-5", ACCENT_STYLES[mission.accent].iconColor)} strokeWidth={1.8} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-semibold text-muted-foreground">{dayLabel} mission</p>
+            </div>
+            <p className="mt-0.5 text-sm font-semibold text-foreground truncate">{mission.title}</p>
+          </div>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => onNavigate(mission.to)}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 active:opacity-80 transition-opacity touch-manipulation"
+        >
+          {mission.cta}
+          <ChevronRight className="w-3.5 h-3.5" />
+        </motion.button>
+      </motion.div>
+    </div>
+  );
+};
+
+const STREAK_KEY = "zivo:streak:v1";
+const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100];
+const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"]; // Sun → Sat to match getDay()
+
+type StreakState = { count: number; lastVisitISO: string };
+type LodgingRoomWithAddons = { addons?: unknown[] };
+type ScheduledBookingCard = {
+  id: string;
+  status?: string | null;
+  type?: string | null;
+  service?: string | null;
+  scheduledDate?: string | null;
+  scheduled_date?: string | null;
+  scheduledTime?: string | null;
+  scheduled_time?: string | null;
+  pickupAddress?: string | null;
+  pickup_address?: string | null;
+  dropoffAddress?: string | null;
+  dropoff_address?: string | null;
+};
+type RecentItemCard = {
+  id: string;
+  item_id: string;
+  item_type: "restaurant" | "hotel" | "flight" | "ride" | string;
+  title?: string | null;
+  subtitle?: string | null;
+  image_url?: string | null;
+  thumbnail_url?: string | null;
+};
+type LoyaltySummary = { tier?: string | null; points_balance?: number | null };
+
+const readStreak = (): StreakState => {
+  try {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(STREAK_KEY) : null;
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return { count: 0, lastVisitISO: "" };
+};
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+const StreakCard = ({ onNavigate }: { onNavigate: (to: string) => void }) => {
+  const [state] = useState<StreakState>(() => {
+    const current = readStreak();
+    const todayKey = startOfDay(new Date());
+    const last = current.lastVisitISO ? startOfDay(new Date(current.lastVisitISO)) : 0;
+    if (todayKey === last) return current;
+    const diffDays = last ? Math.round((todayKey - last) / 86_400_000) : Infinity;
+    const next: StreakState = {
+      count: diffDays === 1 ? current.count + 1 : 1,
+      lastVisitISO: new Date().toISOString(),
+    };
+    try { window.localStorage.setItem(STREAK_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    return next;
+  });
+
+  const todayDow = new Date().getDay(); // 0..6, Sun..Sat
+  const completedThisWeek = Math.min(state.count, todayDow + 1);
+  const earliestCompletedIdx = todayDow - completedThisWeek + 1;
+  const nextMilestone = STREAK_MILESTONES.find((m) => m > state.count) ?? STREAK_MILESTONES[STREAK_MILESTONES.length - 1];
+  const toGo = Math.max(0, nextMilestone - state.count);
+
+  return (
+    <div className="px-4 pb-3">
+      <motion.button
+        type="button"
+        onClick={() => onNavigate("/rewards")}
+        whileTap={{ scale: 0.98 }}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full text-left relative overflow-hidden rounded-2xl border border-border/30 bg-background/92 p-4 shadow-sm hover:border-border/50 touch-manipulation"
+      >
+        <div className="relative flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-orange-500/12 flex items-center justify-center shrink-0">
+            <Flame className="w-6 h-6 text-orange-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-orange-600">Daily streak</p>
+            <p className="text-base font-semibold text-foreground leading-tight">
+              {state.count} {state.count === 1 ? "day" : "days"} <span className="text-xs font-semibold text-muted-foreground">in a row</span>
+            </p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-xs font-semibold text-muted-foreground">Next</p>
+            <p className="text-xs font-bold text-amber-600">{toGo === 0 ? "Reached!" : `${toGo}d → ${nextMilestone}d`}</p>
+          </div>
+        </div>
+
+        {/* 7-day dots */}
+        <div className="relative mt-3 flex items-center justify-between">
+          {DAY_LABELS.map((d, i) => {
+            const isToday = i === todayDow;
+            const isFuture = i > todayDow;
+            const isComplete = !isFuture && i >= earliestCompletedIdx;
+            return (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <div
+                  className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-all",
+                    isFuture
+                      ? "bg-muted/40 text-muted-foreground/50"
+                      : isComplete
+                        ? "bg-orange-500 text-white"
+                        : "bg-muted/60 text-muted-foreground border border-dashed border-orange-500/40",
+                    isToday && "ring-2 ring-orange-500/40 ring-offset-2 ring-offset-background scale-110",
+                  )}
+                >
+                  {isComplete && !isFuture ? "✓" : d}
+                </div>
+                <span className={cn("text-[9px] font-semibold", isToday ? "text-orange-600" : "text-muted-foreground/60")}>{d}</span>
+              </div>
+            );
+          })}
+        </div>
+      </motion.button>
+    </div>
+  );
+};
+
+const SectionHeader = ({ icon: Icon, iconColor, title, badge, actionLabel, onSeeAll }: { icon: LucideIcon; iconColor: string; title: string; badge?: string; actionLabel?: string; onSeeAll: () => void }) => (
   <div className="flex items-center justify-between mb-4">
-    <h2 className="text-sm font-bold text-foreground flex items-center gap-2.5">
-      <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-muted/80 to-muted/40 flex items-center justify-center shadow-sm">
+    <h2 className="text-sm font-semibold text-foreground flex items-center gap-2.5">
+      <div className="w-7 h-7 rounded-full bg-muted/20 border border-border/30 flex items-center justify-center">
         <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
       </div>
       {title}
       {badge && (
-        <Badge variant="secondary" className="text-[9px] font-bold bg-primary/10 text-primary border-0 px-1.5 py-0">
+        <Badge variant="secondary" className="text-[10px] font-semibold bg-primary/10 text-primary border-0 px-1.5 py-0">
           {badge}
         </Badge>
       )}
     </h2>
-    <button onClick={onSeeAll} className="text-xs text-primary font-bold touch-manipulation active:scale-95 min-w-[44px] min-h-[32px] flex items-center gap-0.5 hover:gap-1.5 transition-all">
-      See all
+    <button type="button" onClick={onSeeAll} className="text-xs text-primary font-semibold touch-manipulation active:scale-95 min-w-[44px] min-h-[32px] flex items-center gap-0.5 hover:gap-1.5 transition-all">
+      {actionLabel}
       <ChevronRight className="w-3.5 h-3.5" />
     </button>
   </div>
 );
 
-// ─── Quick Actions Grid (3x2 - Ultra Premium) ───
-const quickActions = [
-  { label: "Ride", icon: Car, href: "/rides", gradient: "from-emerald-500 to-green-600", bg: "bg-emerald-500/8", iconBg: "bg-gradient-to-br from-emerald-400/25 to-emerald-600/15", color: "text-emerald-600 dark:text-emerald-400", accent: "bg-emerald-500", tagline: "Go anywhere" },
-  { label: "Eats", icon: UtensilsCrossed, href: "/eats", gradient: "from-orange-500 to-red-500", bg: "bg-orange-500/8", iconBg: "bg-gradient-to-br from-orange-400/25 to-orange-600/15", color: "text-orange-600 dark:text-orange-400", accent: "bg-orange-500", tagline: "Order food" },
-  { label: "Delivery", icon: Package, href: "/delivery", gradient: "from-violet-500 to-purple-600", bg: "bg-violet-500/8", iconBg: "bg-gradient-to-br from-violet-400/25 to-violet-600/15", color: "text-violet-600 dark:text-violet-400", accent: "bg-violet-500", tagline: "Send packages" },
-  { label: "Flights", icon: Plane, href: "/flights", gradient: "from-sky-500 to-blue-600", bg: "bg-sky-500/8", iconBg: "bg-gradient-to-br from-sky-400/25 to-sky-600/15", color: "text-sky-600 dark:text-sky-400", accent: "bg-sky-500", tagline: "Best deals" },
-  { label: "Hotels", icon: BedDouble, href: "/hotels", gradient: "from-amber-500 to-orange-500", bg: "bg-amber-500/8", iconBg: "bg-gradient-to-br from-amber-400/25 to-amber-600/15", color: "text-amber-600 dark:text-amber-400", accent: "bg-amber-500", tagline: "Stay in style" },
-  { label: "Rentals", icon: Car, href: "/rent-car", gradient: "from-teal-500 to-cyan-600", bg: "bg-teal-500/8", iconBg: "bg-gradient-to-br from-teal-400/25 to-teal-600/15", color: "text-teal-600 dark:text-teal-400", accent: "bg-teal-500", tagline: "Drive free" },
-];
-
 // ─── Promo banners ───
-const promos = [
-  { title: "50% off first ride", subtitle: "Use code ZIVO50", gradient: "from-emerald-500 to-teal-600", icon: Car, cta: "Claim Now" },
-  { title: "Free delivery", subtitle: "On orders over $25", gradient: "from-orange-500 to-amber-600", icon: Package, cta: "Order Now" },
-  { title: "Flight deals from $49", subtitle: "Book by this weekend", gradient: "from-sky-500 to-blue-600", icon: Plane, cta: "Explore" },
-  { title: "Hotel flash sale", subtitle: "Up to 60% off", gradient: "from-violet-500 to-purple-600", icon: BedDouble, cta: "Book Now" },
-];
+// Promos and trending rides are built inside the component for translation
 
 // ─── Trending Rides (static) ───
-const trendingRides = [
-  { name: "Airport Transfer", eta: "~15 min", price: "$22-35", icon: Plane, popular: true },
-  { name: "Downtown", eta: "~8 min", price: "$12-18", icon: Navigation, popular: false },
-  { name: "Beach", eta: "~20 min", price: "$18-28", icon: TrendingUp, popular: false },
-];
+// trendingRides built inside component for translation
 
-// ─── Popular Destinations (subset) ───
-const popularDestKeys = ["miami", "las-vegas", "new-york", "cancun", "los-angeles"] as const;
-const popularDestPrices: Record<string, string> = {
-  miami: "$89",
-  "las-vegas": "$79",
-  "new-york": "$99",
-  cancun: "$149",
-  "los-angeles": "$69",
-};
+// ─── Popular Destinations (expanded with real photos) ───
+const popularDestKeysUS = [
+  "miami", "las-vegas", "new-york", "cancun", "los-angeles",
+  "orlando", "san-francisco", "chicago", "barcelona", "paris",
+  "san-diego", "dallas", "atlanta", "phoenix",
+  "honolulu", "nashville", "denver", "seattle", "boston", "san-juan",
+  "tampa", "charlotte", "minneapolis", "portland", "austin",
+  "fort-lauderdale", "new-orleans", "washington",
+  "toronto", "mexico-city", "london", "tokyo", "dubai",
+  "rome", "istanbul", "seoul", "kuala-lumpur", "bali",
+  "singapore", "sydney", "manila", "taipei", "mumbai",
+  "phuket", "hanoi", "bangkok", "amsterdam",
+] as const;
+
+// Cambodia destinations (using local photos from config)
+const cambodiaDestKeysKH = [
+  "phnom-penh", "siem-reap", "sihanoukville", "kampot", "battambang", "kep",
+  "bangkok", "ho-chi-minh", "hanoi", "phuket", "kuala-lumpur", "bali",
+  "seoul", "tokyo", "singapore", "manila", "taipei", "mumbai",
+] as const;
+
 
 // ─── Recently viewed type config ───
-const typeConfig: Record<string, { icon: LucideIcon; color: string }> = {
-  hotel: { icon: Hotel, color: "bg-amber-500" },
-  flight: { icon: Plane, color: "bg-sky-500" },
-  car: { icon: Car, color: "bg-emerald-500" },
-  restaurant: { icon: Utensils, color: "bg-orange-500" },
-};
-
-// ─── Smart ETA logic ───
-const getQuickEstimate = () => {
-  const hour = new Date().getHours();
-  const isPeak = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
-  return {
-    pickupEta: isPeak ? "~8 min" : "~4 min",
-    priceRange: isPeak ? "$15-22" : "$12-18",
-    label: isPeak ? "Peak hours" : "Normal",
-    surge: isPeak,
-  };
-};
 
 const AppHome = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { t, currentLanguage } = useI18n();
+  const { isCambodia: isKH } = useCountry();
   useDeviceIntegrityCheck();
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { recommended, favorites, orderAgain } = usePersonalizedHome();
-  const { data: profile } = useUserProfile();
-  const { data: deals = [] } = useRecommendedDeals("all", 6);
+  const [activeHomeTab, setActiveHomeTab] = useState<"rides" | "eats" | "flights" | "hotels">("rides");
+  // Prefetch the route a tab/search-button leads to on touch-down so the
+  // chunk is in memory by the time the click fires (~80–150 ms head-start
+  // on mobile).
+  const { prefetch } = useRoutePrefetch();
+  const hotelsPath = useMemo(() => buildHotelsPath(), []);
+  const tabRoutes: Record<"rides" | "eats" | "flights" | "hotels", string> = {
+    rides: "/rides/hub",
+    eats: "/eats",
+    flights: "/flights",
+    hotels: hotelsPath,
+  };
+
+  const homeTabs = [
+    { id: "rides", label: t("home.rides"), icon: null, image: zivoRideIcon },
+    { id: "eats", label: t("home.eats"), icon: null, image: zivoEatsIcon },
+    { id: "flights", label: t("home.flights"), icon: null, image: zivoFlightsIcon },
+    { id: "hotels", label: t("home.hotels"), icon: null, image: zivoHotelsIcon },
+  ] as const;
+
+  const suggestions = [
+    { label: t("home.ride"), icon: null, image: zivoRideIcon, href: "/rides/hub", badge: null, badgeVariant: "promo" as const },
+    { label: t("home.flights"), icon: null, image: zivoFlightsIcon, href: "/flights", badge: null, badgeVariant: "discount" as const },
+    { label: t("home.rental_cars"), icon: null, image: zivoRentalCarIcon, href: "/rent-car", badge: null, badgeVariant: "promo" as const },
+    ...(isKH ? [{ label: t("home.shopping"), icon: null, image: zivoShoppingIcon, href: "/grocery", badge: null, badgeVariant: "promo" as const }] : []),
+  ];
+
+  function getSearchPlaceholder(tab: string): string {
+    if (tab === "rides") return t("home.book_ride");
+    if (tab === "eats") {
+      const hour = new Date().getHours();
+      if (hour >= 6 && hour < 11) return t("home.breakfast");
+      if (hour >= 11 && hour < 17) return t("home.lunch");
+      if (hour >= 17 && hour < 22) return t("home.dinner");
+      return t("home.late_night");
+    }
+    if (tab === "flights") return t("home.search_flights");
+    if (tab === "hotels") return t("home.search_hotels");
+    return t("home.where_to");
+  }
+  const { data: profile, isError: hasProfileError } = useUserProfile();
+  const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
+  const lodgingStoreId = ownerStore?.isLodging ? ownerStore.id : "";
+  const lodgingRooms = useLodgeRooms(lodgingStoreId);
+  const lodgingProfile = useLodgePropertyProfile(lodgingStoreId);
+  const lodgingReservations = useLodgeReservations(lodgingStoreId, "all");
+  const lodgingPhase5 = useLodgingPhase5Counts(lodgingStoreId);
+  const lodgingCompletion = ownerStore?.isLodging ? getLodgingCompletion({
+    rooms: lodgingRooms.data || [],
+    profile: lodgingProfile.data,
+    addons: ((lodgingRooms.data || []) as LodgingRoomWithAddons[]).flatMap((room) => room.addons || []),
+    housekeepingCount: lodgingPhase5.housekeepingCount,
+    maintenanceReady: true,
+    reportsReady: Boolean((lodgingRooms.data || []).length) || (lodgingReservations.data?.length ?? 0) > 0,
+    mealPlansCount: lodgingPhase5.mealPlansCount,
+    staffCount: lodgingPhase5.staffCount,
+    channelConnectionsCount: lodgingPhase5.channelConnectionsCount,
+    promotionsCount: lodgingPhase5.promotionsCount,
+    reviewsAwaitingReply: lodgingPhase5.reviewsAwaitingReply,
+    reservationsCount: lodgingReservations.data?.length ?? 0,
+  }) : null;
+  const lodgingProgress = lodgingCompletion ? { complete: lodgingCompletion.complete, total: lodgingCompletion.total, percent: lodgingCompletion.percent } : null;
+  const { data: deals = [], isError: hasDealsError } = useRecommendedDeals("all", 6);
   const { items: recentItems } = useRecentlyViewed();
-  const { data: savedLocations } = useSavedLocations(user?.id);
+  const { data: savedLocations, isError: hasSavedLocationsError } = useSavedLocations(user?.id);
   const { points, getNextTierProgress } = useLoyaltyPoints();
+  const loyaltySummary = points as LoyaltySummary | null;
   const { active: activeRewards } = useUserRewards();
-  const { referralCode, shareReferral } = useReferrals();
+  const {
+    referralCode,
+    referrals = [],
+    isLoading: referralsLoading,
+    getCurrentTier,
+    getNextTier,
+    getShareUrl,
+    copyReferralLink,
+    shareReferral,
+  } = useReferrals();
+  const destKeys = isKH ? [...cambodiaDestKeysKH] : [...popularDestKeysUS];
+  const { data: destPrices = {}, isLoading: destPricesLoading } = useDestinationPrices(destKeys, isKH);
   const { data: allBookings = [] } = useScheduledBookingsQuery();
-  const upcomingBookings = allBookings.filter((b) => {
-    if (b.status !== "scheduled" && b.status !== "confirmed") return false;
-    const bookingDate = new Date(`${b.scheduled_date}T${b.scheduled_time}`);
+  const upcomingBookings = (allBookings as ScheduledBookingCard[]).filter((b) => {
+    if (b.status !== "scheduled" && b.status !== "confirmed" && b.status !== "pending") return false;
+    const sd = b.scheduledDate || b.scheduled_date;
+    const st = b.scheduledTime || b.scheduled_time;
+    if (!sd || !st) return false;
+    const bookingDate = new Date(`${sd}T${st}`);
     return bookingDate > new Date();
-  }).sort((a, b) => new Date(`${a.scheduled_date}T${a.scheduled_time}`).getTime() - new Date(`${b.scheduled_date}T${b.scheduled_time}`).getTime());
+  }).sort((a, b) => {
+    const ad = a.scheduledDate || a.scheduled_date;
+    const at2 = a.scheduledTime || a.scheduled_time;
+    const bd = b.scheduledDate || b.scheduled_date;
+    const bt = b.scheduledTime || b.scheduled_time;
+    return new Date(`${ad}T${at2}`).getTime() - new Date(`${bd}T${bt}`).getTime();
+  });
   const { balanceDollars } = useCustomerWallet();
   const { getDefault } = useLocalPaymentMethods();
   const defaultCard = getDefault();
+  const completedReferralCount = referrals.filter((referral) => referral.status === "qualified" || referral.status === "credited").length;
+  const pendingReferralCount = referrals.filter((referral) => referral.status === "pending").length;
+  const totalReferralCount = referralCode?.total_referrals ?? referrals.length;
+  const referralPointsEarned = totalReferralCount * REFERRAL_REWARDS.referrer.pointsPerReferral;
+  const currentReferralTier = getCurrentTier();
+  const nextReferralTier = getNextTier();
+  const referralsToNextTier = nextReferralTier ? Math.max(nextReferralTier.min_referrals - totalReferralCount, 0) : 0;
+  const referralTierProgress = nextReferralTier
+    ? Math.min((totalReferralCount / Math.max(nextReferralTier.min_referrals, 1)) * 100, 100)
+    : 100;
+  const referralShareUrl = referralCode?.code ? getShareUrl() : "";
 
-  const estimate = getQuickEstimate();
-  const { items: activityItems, hasActiveItems } = useCustomerActivityFeed();
+  const hasAnyHomeData =
+    Boolean(profile) ||
+    deals.length > 0 ||
+    (savedLocations?.length ?? 0) > 0 ||
+    recentItems.length > 0 ||
+    Object.keys(destPrices).length > 0;
 
-  // Promo carousel
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-  const [activePromo, setActivePromo] = useState(0);
+  const hasHomeRefreshError =
+    hasAnyHomeData && (hasProfileError || hasDealsError || hasSavedLocationsError);
 
-  useEffect(() => {
-    if (!emblaApi) return;
-    const onSelect = () => setActivePromo(emblaApi.selectedScrollSnap());
-    emblaApi.on("select", onSelect);
-    const autoplay = setInterval(() => emblaApi.scrollNext(), 4000);
-    return () => { clearInterval(autoplay); emblaApi.off("select", onSelect); };
-  }, [emblaApi]);
+  const shouldShowHomeRecovery =
+    Boolean(user) && !hasAnyHomeData && !destPricesLoading && (hasProfileError || hasDealsError || hasSavedLocationsError);
+
+  const retryHomeQueries = useCallback(() => {
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user?.id] }),
+      queryClient.invalidateQueries({ queryKey: ["travel-deals", "all", 6] }),
+      queryClient.invalidateQueries({ queryKey: ["saved-locations", user?.id] }),
+      queryClient.invalidateQueries({ queryKey: ["destination-prices"] }),
+    ]);
+  }, [queryClient, user?.id]);
+
+  const estimate = (() => {
+    const hour = new Date().getHours();
+    const isPeak = (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19);
+    if (isKH) {
+      return {
+        pickupEta: isPeak ? "~៨ នាទី" : "~៤ នាទី",
+        priceRange: isPeak ? "៛61,000-៛89,000" : "៛49,000-៛73,000",
+        label: isPeak ? t("home.peak_hours") : t("home.normal"),
+        surge: isPeak,
+      };
+    }
+    return {
+      pickupEta: isPeak ? "~8 min" : "~4 min",
+      priceRange: isPeak ? "$15-22" : "$12-18",
+      label: isPeak ? t("home.peak_hours") : t("home.normal"),
+      surge: isPeak,
+    };
+  })();
 
   const greeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
+    if (hour < 12) return t("home.good_morning");
+    if (hour < 17) return t("home.good_afternoon");
+    return t("home.good_evening");
   };
 
   const userName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "Traveler";
   const avatarUrl = profile?.avatar_url;
   const initials = (profile?.full_name || user?.email || "Z").charAt(0).toUpperCase();
 
-  return (
-    <div className="relative min-h-[100dvh] bg-background font-sans text-foreground selection:bg-primary/30" role="main">
-      {/* Scrollable content */}
-      <div className="overflow-y-auto pb-24 scroll-momentum">
-        {/* ─── PREMIUM HEADER ZONE ─── */}
-        <div className="bg-gradient-to-b from-primary/10 via-primary/4 to-background relative overflow-hidden">
-          {/* Animated decorative orbs */}
-          <div className="absolute -top-20 -right-20 w-48 h-48 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute top-16 -left-16 w-36 h-36 bg-emerald-500/8 rounded-full blur-3xl" />
-          <div className="absolute top-40 right-10 w-20 h-20 bg-sky-500/6 rounded-full blur-2xl" />
+  // The notch / Dynamic-Island safe-area padding is only needed inside the
+  // installed native app. In a regular browser there's no notch under the web
+  // content, so the forced 64px `pt-safe` floor just leaves an empty gap — drop
+  // it on the website and use normal header padding instead.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
 
-          {/* Greeting bar */}
-          <div className="px-5 pt-4 pb-3 flex justify-between items-center safe-area-top relative z-10">
-            <div className="flex items-center gap-3">
-              <motion.div
-                whileTap={{ scale: 0.92 }}
-                className="relative"
-              >
-                <div className="w-12 h-12 rounded-2xl border-2 border-primary/25 p-0.5 overflow-hidden bg-card shadow-md shadow-primary/10">
+  return (
+    <div>
+    <SEOHead title="ZIVO – Your Travel Super-App" description="Book rides, flights, hotels, and grocery delivery — all in one app." />
+    <div className="relative min-h-[100dvh] bg-background font-sans text-foreground selection:bg-primary/30 overflow-x-hidden" role="main">
+      {/* Safe-area top backdrop — Capacitor's `overlaysWebView: true` lets web
+          content paint up to the very top of the screen for full-bleed cover
+          photos. Without this strip, scrolled content slides BEHIND the Dynamic
+          Island / status bar and the clock, battery, and signal icons collide
+          with whatever cards happen to be at the top of the viewport. A fixed
+          blurred bar covering exactly var(--zivo-safe-top,0px) keeps that area
+          legible without forcing the rest of the page to lose the edge-to-edge
+          feel. */}
+      {isNativeApp && (
+        <div
+          aria-hidden
+          className="zivo-safe-top-none fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl pointer-events-none [height:var(--zivo-safe-top-sticky)]"
+        />
+      )}
+
+      {/* 3D Ambient orbs — contained within scrollable area only */}
+
+      {/* Scrollable content */}
+      <div className="scroll-momentum relative z-10 [padding-bottom:calc(56px+var(--zivo-safe-bottom,0px))]">
+        {shouldShowHomeRecovery ? (
+          <LoadFailureCard
+            className="px-4 pt-safe pb-6"
+            title="Home refresh failed"
+            description="We couldn&apos;t load your home updates right now. Retry to restore recommendations and account shortcuts."
+            onRetry={retryHomeQueries}
+            onSecondary={() => navigate("/feed")}
+            secondaryLabel="Go Feed"
+            trackingContext="home"
+          />
+        ) : (
+          <div>
+        {hasHomeRefreshError && (
+          <DegradedDataBanner
+            className="px-4 pt-safe pb-2"
+            message="Showing cached home data. Refresh failed."
+            onRetry={retryHomeQueries}
+            trackingContext="home"
+          />
+        )}
+        {/* Ambient orbs removed on mobile — they triggered CLS and constant repaints. */}
+        {/* ─── HEADER ─── */}
+        <div className="bg-background relative">
+
+          {/* ─── GREETING HEADER ─── */}
+          {user ? (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className={`flex items-center justify-between px-5 pb-4 ${isNativeApp ? "pt-safe" : "pt-3"}`}
+            >
+              <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-3 touch-manipulation active:opacity-75 transition-opacity">
+                <div className="shrink-0 p-[2px] rounded-full bg-ig-gradient">
                   {avatarUrl ? (
-                    <img src={avatarUrl} className="w-full h-full rounded-xl object-cover" alt="Profile" loading="lazy" />
+                    <img src={avatarUrl} alt={userName} width={44} height={44} className="w-11 h-11 rounded-full object-cover block" loading="lazy" decoding="async" />
                   ) : (
-                    <div className="w-full h-full rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                      {initials}
+                    <div className="w-11 h-11 rounded-full bg-primary/12 flex items-center justify-center">
+                      <span className="text-base font-semibold text-primary">{initials}</span>
                     </div>
                   )}
                 </div>
-                {/* Online dot */}
-                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background shadow-sm shadow-emerald-500/30" />
-              </motion.div>
-              <div>
-                <div className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-[0.2em]">{greeting()}</div>
-                <div className="text-lg font-bold text-foreground -mt-0.5">{userName}</div>
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground leading-none mb-1">{greeting()}</p>
+                  <p className="text-[17px] font-bold text-foreground leading-none tracking-tight">{userName}</p>
+                </div>
+              </button>
+              <div className="flex items-center gap-2">
+                {balanceDollars != null && balanceDollars > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/account/wallet")}
+                    className="flex items-center gap-1.5 bg-primary/10 rounded-full px-3 py-1.5 touch-manipulation active:scale-95 transition-transform"
+                  >
+                    <Wallet className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-xs font-bold text-primary">${balanceDollars.toFixed(2)}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label="Activity"
+                  onClick={() => navigate("/activity")}
+                  className="relative w-10 h-10 rounded-full bg-muted/20 border border-border/30 flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
+                >
+                  <Bell className="w-[18px] h-[18px] text-foreground" strokeWidth={1.8} />
+                </button>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <motion.button
-                whileTap={{ scale: 0.88 }}
-                onClick={() => navigate("/rewards")}
-                className="w-10 h-10 min-w-[44px] min-h-[44px] bg-card/80 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-border/50 shadow-sm active:bg-muted/80 transition-all relative touch-manipulation"
-              >
-                <Gift className="w-[18px] h-[18px] text-primary" />
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.88 }}
-                onClick={() => navigate("/alerts")}
-                className="w-10 h-10 min-w-[44px] min-h-[44px] bg-card/80 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-border/50 shadow-sm active:bg-muted/80 transition-all relative touch-manipulation"
-              >
-                <Bell className="w-[18px] h-[18px] text-muted-foreground" />
-                <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-destructive rounded-full ring-2 ring-background animate-pulse" />
-              </motion.button>
-            </div>
-          </div>
+            </motion.div>
+          ) : null}
 
-          {/* ─── SEARCH BAR (Ultra Premium Glass) ─── */}
-          <div className="px-5 pb-3">
-            <motion.button
-              whileTap={{ scale: 0.985 }}
-              onClick={() => setIsSearchOpen(true)}
-              className="w-full touch-manipulation"
-            >
-              <div className="bg-card/90 backdrop-blur-2xl border border-border/40 rounded-2xl px-4 py-4 flex items-center gap-3 shadow-lg shadow-black/[0.06] min-h-[56px] transition-all active:shadow-md hover:border-primary/20">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center border border-primary/10">
-                  <Search className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 text-left">
-                  <span className="text-muted-foreground font-semibold text-sm block">Where to?</span>
-                  <span className="text-muted-foreground/50 text-[10px]">Flights · Hotels · Cars · Rides · Eats</span>
-                </div>
-                <div className="h-8 w-px bg-border/50" />
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <MapPin className="w-4.5 h-4.5 text-primary" />
-                </div>
-              </div>
-            </motion.button>
-          </div>
-
-          {/* ─── SAVED PLACES ROW ─── */}
-          <div className="px-5 pb-5">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-              {(savedLocations || []).slice(0, 4).map((loc) => {
-                const Icon = savedPlaceIconMap[loc.icon] || MapPin;
+          {/* ─── ALL SERVICES (moved to top) ─── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 280, damping: 28, delay: 0.1 }}
+            className={cn("pb-5", user ? "pt-1" : "pt-safe")}
+          >
+            <div className="flex items-center justify-between mb-3 px-5">
+              <h2 className="text-[17px] font-bold text-foreground">{t("home.more_services")}</h2>
+              <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
+                <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
+              </button>
+            </div>
+            {/* Row 1 */}
+            <div className="grid grid-cols-4 gap-3 px-5 pb-3">
+              {([
+                { label: t("home.ride"), image: zivoRideIcon, href: "/rides/hub", badge: null, badgeVariant: "promo" as const },
+                { label: t("home.eats"), image: zivoEatsIcon, href: "/eats", badge: null, badgeVariant: "promo" as const },
+                { label: t("home.flights"), image: zivoFlightsIcon, href: "/flights", badge: null, badgeVariant: "discount" as const },
+                { label: t("home.hotels"), image: zivoHotelsIcon, href: hotelsPath, badge: null, badgeVariant: "promo" as const },
+              ].filter(Boolean) as Array<{ label: string; image: string; href: string; badge: string | null; badgeVariant: "promo" | "discount" }>).map((s, i) => (
+                <motion.button
+                  key={s.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.12 + i * 0.06 }}
+                  whileTap={{ scale: 0.91 }}
+                  onPointerDown={() => prefetch(s.href)}
+                  onClick={() => navigate(s.href)}
+                  className="flex flex-col items-center gap-2 touch-manipulation relative group"
+                >
+                  {s.badge && (
+                    <div className={cn(
+                      "absolute -top-2.5 -right-2 z-10 text-[8px] font-semibold px-2 py-[2px] rounded-full",
+                      s.badgeVariant === "discount"
+                        ? "bg-pink-500/12 text-pink-600"
+                        : "bg-amber-500/12 text-amber-600"
+                    )}>
+                      {s.badge}
+                    </div>
+                  )}
+                  <div className="w-[64px] h-[64px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center group-active:scale-95 group-hover:border-border/50 transition-all duration-200">
+                    <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-muted-foreground text-center leading-tight group-hover:text-foreground transition-colors">{s.label}</span>
+                </motion.button>
+              ))}
+            </div>
+            {/* Row 2 */}
+            <div className="grid grid-cols-4 gap-3 px-5 pb-2">
+              {(([
+                { label: t("home.rental_cars"), image: zivoRentalCarIcon, icon: null, href: "/rent-car", badge: null },
+                { label: "Bus", image: null, icon: Bus, href: "/bus", badge: null },
+                { label: t("home.shopping"), image: zivoShoppingIcon, icon: null, href: "/grocery", badge: null },
+                { label: "Delivery", image: null, icon: Package, href: "/delivery", badge: null },
+              ].filter(Boolean)) as Array<{ label: string; image: string | null; icon: typeof Package | null; href: string; badge: string | null }>).map((s, idx2) => {
+                const SvcIcon = s.icon;
                 return (
                   <motion.button
-                    key={loc.id}
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => navigate("/rides")}
-                    className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card/80 backdrop-blur-sm border border-border/40 shadow-sm transition-all touch-manipulation min-h-[40px] hover:border-primary/20 hover:shadow-md"
+                    key={s.label}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.28 + (idx2 * 0.06) }}
+                    whileTap={{ scale: 0.91 }}
+                    onPointerDown={() => prefetch(s.href)}
+                    onClick={() => navigate(s.href)}
+                    className="flex flex-col items-center gap-2 touch-manipulation relative group"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Icon className="w-3 h-3 text-primary" />
+                    {s.badge && (
+                      <div className="absolute -top-2.5 -right-2 z-10 text-[8px] font-semibold px-2 py-[2px] rounded-full bg-amber-500/12 text-amber-600">
+                        {s.badge}
+                      </div>
+                    )}
+                    <div className="w-[64px] h-[64px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center group-active:scale-95 group-hover:border-border/50 transition-all duration-200">
+                      {s.image ? (
+                        <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
+                      ) : SvcIcon ? (
+                        <SvcIcon className="w-7 h-7 text-primary" />
+                      ) : null}
                     </div>
-                    <span className="text-xs font-bold text-foreground whitespace-nowrap">{loc.label}</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground text-center leading-tight group-hover:text-foreground transition-colors">{s.label}</span>
                   </motion.button>
                 );
               })}
-              {(!savedLocations || savedLocations.length < 2) && (
-                <motion.button
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => navigate("/account/saved-places")}
-                  className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-muted/30 border border-dashed border-border/60 transition-all touch-manipulation min-h-[40px] hover:border-primary/30"
-                >
-                  <Plus className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Add Place</span>
-                </motion.button>
-              )}
             </div>
-          </div>
-        </div>
+          </motion.div>
 
-        {/* ─── MAIN CONTENT ─── */}
-        <div className="px-5 space-y-8">
+          {/* ─── TODAY'S PLAN ─── */}
+          <Suspense fallback={null}>
+            <TodayPlanWidget />
+          </Suspense>
 
-          {/* ─── LIVE TRIP TRACKER ─── */}
-          <LiveTripTracker />
 
-          {/* ─── QUICK ESTIMATE CARD (Ultra Premium) ─── */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate("/rides")}
-            className="w-full rounded-2xl bg-gradient-to-br from-primary/10 via-emerald-500/5 to-primary/8 border border-primary/15 p-5 flex items-center gap-4 touch-manipulation text-left group relative overflow-hidden shadow-sm shadow-primary/5"
-          >
-            {/* Animated shine */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/25 to-emerald-500/15 flex items-center justify-center border border-primary/15 shadow-inner">
-              <Zap className="w-7 h-7 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                Quick Ride
-                {estimate.surge && <Flame className="w-3.5 h-3.5 text-amber-500" />}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                <span className="text-primary font-bold">{estimate.pickupEta}</span> pickup · <span className="font-bold text-foreground">{estimate.priceRange}</span> to Downtown
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <Badge variant="outline" className={`text-[9px] font-bold shrink-0 ${estimate.surge ? 'border-amber-500/30 text-amber-600 bg-amber-500/5' : 'border-primary/20 text-primary bg-primary/5'}`}>
-                {estimate.label}
-              </Badge>
-              <ArrowRight className="w-4 h-4 text-primary/60" />
-            </div>
-          </motion.button>
+          {/* ─── LIVE TRIP TRACKER (moved up — surface active trip ASAP) ─── */}
+          <Suspense fallback={null}><LiveTripTracker /></Suspense>
 
-          {/* ─── QUICK ACTIONS GRID (3x2 Ultra Premium) ─── */}
-          <div className="grid grid-cols-3 gap-3" role="navigation" aria-label="Quick actions">
-            {quickActions.map((action, i) => (
-              <motion.button
-                key={action.label}
-                whileTap={{ scale: 0.93 }}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.35, ease: "easeOut" }}
-                onClick={() => navigate(action.href)}
-                className="relative flex flex-col items-center gap-2 py-5 px-2 rounded-2xl bg-card/90 backdrop-blur-sm border border-border/40 shadow-sm hover:shadow-lg transition-all duration-300 touch-manipulation overflow-hidden group min-h-[120px]"
-              >
-                {/* Top accent bar with gradient */}
-                <div className={`absolute top-0 left-3 right-3 h-[2.5px] rounded-b-full bg-gradient-to-r ${action.gradient} opacity-70 group-active:opacity-100 transition-opacity`} />
-                {/* Hover glow */}
-                <div className={`absolute inset-0 bg-gradient-to-b ${action.gradient} opacity-0 group-hover:opacity-[0.03] transition-opacity`} />
-                {/* Icon container */}
-                <div className={`w-14 h-14 rounded-2xl ${action.iconBg} border border-white/[0.08] flex items-center justify-center transition-all duration-300 group-active:scale-90 shadow-sm`}>
-                  <action.icon className={`w-7 h-7 ${action.color}`} strokeWidth={1.8} />
-                </div>
-                <div className="text-center">
-                  <span className="text-xs font-bold text-foreground tracking-tight block">{action.label}</span>
-                  <span className="text-[8px] text-muted-foreground/60 font-medium">{action.tagline}</span>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-
-          {/* ─── QUICK REORDER CAROUSEL ─── */}
-          <QuickReorderCarousel />
-
-          {/* ─── TRAVEL ITINERARY CARD ─── */}
-          <TravelItineraryCard />
-
-          {/* ─── PRICE ALERTS WIDGET ─── */}
-          <PriceAlertsWidget />
-
-          {/* ─── ORDER AGAIN ─── */}
-          {user && orderAgain.length > 0 && (
-            <div>
-              <SectionHeader icon={History} iconColor="text-orange-500" title="Order Again" badge="Quick" onSeeAll={() => navigate("/eats")} />
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {orderAgain.map((r) => (
-                  <motion.button
-                    key={r.id}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => navigate(`/eats/restaurant/${r.id}`)}
-                    className="shrink-0 w-[170px] rounded-2xl overflow-hidden bg-card border border-border/40 shadow-sm hover:shadow-lg transition-all duration-300 touch-manipulation text-left group"
-                  >
-                    <div className="relative h-[100px] overflow-hidden">
-                      <img
-                        src={r.cover_image_url || r.logo_url || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400"}
-                        alt={r.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                      <div className="absolute bottom-2 right-2 bg-orange-500/90 backdrop-blur-sm rounded-full px-2.5 py-0.5 shadow-sm">
-                        <span className="text-[9px] font-bold text-primary-foreground flex items-center gap-0.5"><Zap className="w-2.5 h-2.5" /> Reorder</span>
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <div className="text-xs font-bold text-foreground truncate">{r.name}</div>
-                      {r.cuisine_type && (
-                        <div className="text-[10px] text-muted-foreground truncate mt-0.5">{r.cuisine_type}</div>
-                      )}
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ─── RECENT ACTIVITY ─── */}
-          {user && activityItems.length > 0 && (
-            <div>
-              <SectionHeader icon={Clock} iconColor="text-primary" title="Recent Activity" onSeeAll={() => navigate("/trips")} />
-              <ActivityTimeline
-                items={activityItems}
-                maxHeight="280px"
-                emptyMessage="No recent activity"
-              />
-            </div>
-          )}
-
-          {/* ─── POPULAR NEAR YOU ─── */}
-          <div>
-            <SectionHeader icon={TrendingUp} iconColor="text-emerald-500" title="Popular Near You" badge="Hot" onSeeAll={() => navigate("/eats")} />
-
-            {/* Popular Restaurants */}
-            {recommended.length > 0 && (
-              <div className="mb-6">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-[0.2em] mb-3">Restaurants</p>
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  {recommended.slice(0, 5).map((r) => (
-                    <RestaurantCard key={r.id} restaurant={r} onNavigate={() => navigate(`/eats/restaurant/${r.id}`)} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Popular Destinations */}
-            <div className="mb-6">
-              <p className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-[0.2em] mb-3">Destinations</p>
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {popularDestKeys.map((key, i) => {
-                  const dest = destinationPhotos[key];
+          {/* ─── UPCOMING BOOKINGS (moved up — show personal trips before browse) ─── */}
+          {user && upcomingBookings.length > 0 && (
+            <div className="px-5 pb-3">
+              <SectionHeader icon={Calendar} iconColor="text-sky-500" title="Upcoming Trips" badge={String(upcomingBookings.length)} actionLabel="See all" onSeeAll={() => navigate("/trips")} />
+              <div className="space-y-2">
+                {upcomingBookings.slice(0, 2).map((booking) => {
+                  const sd = booking.scheduledDate || booking.scheduled_date;
+                  const st = booking.scheduledTime || booking.scheduled_time;
+                  const bookingDate = new Date(`${sd}T${st}`);
                   return (
                     <motion.button
-                      key={key}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => navigate(`/search?tab=flights&to=${dest.city}`)}
-                      className="shrink-0 w-[170px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 touch-manipulation text-left group relative"
+                      key={booking.id}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => navigate("/trips")}
+                      className="w-full flex items-center gap-3 bg-background/92 border border-border/30 hover:border-border/50 rounded-2xl p-4 shadow-sm text-left touch-manipulation"
                     >
-                      <div className="relative h-[120px] overflow-hidden">
-                        <img src={dest.src} alt={dest.alt} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                        {i < 2 && (
-                          <div className="absolute top-2 left-2 bg-amber-500/90 backdrop-blur-sm rounded-full px-2 py-0.5 shadow-sm">
-                            <span className="text-[8px] font-bold text-primary-foreground uppercase tracking-wider">Trending</span>
-                          </div>
-                        )}
-                        <div className="absolute bottom-3 left-3 right-3">
-                          <div className="text-xs font-bold text-primary-foreground">{dest.city}</div>
-                          <div className="text-[10px] text-primary-foreground/80 font-semibold flex items-center gap-1">
-                            <Plane className="w-2.5 h-2.5" />
-                            from {popularDestPrices[key]}
-                          </div>
-                        </div>
+                      <div className="w-10 h-10 rounded-xl bg-muted/20 flex items-center justify-center shrink-0 border border-border/30">
+                        <Calendar className="w-5 h-5 text-foreground" />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate capitalize">{(booking.type || booking.service || "Trip").replace(/_/g, " ")}</p>
+                        <p className="text-[11px] text-muted-foreground">{format(bookingDate, "MMM d 'at' h:mm a")}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[9px] font-semibold text-foreground border-border/30 bg-muted/20 shrink-0 capitalize">
+                        {booking.status || "Scheduled"}
+                      </Badge>
                     </motion.button>
                   );
                 })}
               </div>
             </div>
+          )}
 
-            {/* Trending Rides */}
-            <div>
-              <p className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-[0.2em] mb-3">Trending Rides</p>
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {trendingRides.map((ride) => (
+          {/* ─── QUICK REBOOK (moved up — personal cluster) ─── */}
+          <Suspense fallback={null}><QuickReorderCarousel /></Suspense>
+
+          {/* ─── RECENTLY VIEWED (moved up — personal cluster) ─── */}
+          {user && recentItems.length > 0 && (
+            <div className="px-5 pb-3">
+              <SectionHeader icon={Clock} iconColor="text-muted-foreground" title="Recently Viewed" actionLabel="Clear" onSeeAll={() => navigate("/more")} />
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-5 px-5">
+                {(recentItems as RecentItemCard[]).slice(0, 8).map((item) => (
                   <motion.button
-                    key={ride.name}
+                    key={item.id}
                     whileTap={{ scale: 0.96 }}
-                    onClick={() => navigate("/rides")}
-                    className="shrink-0 w-[170px] rounded-2xl bg-card/90 backdrop-blur-sm border border-border/40 p-4 shadow-sm hover:shadow-lg transition-all duration-300 touch-manipulation text-left relative overflow-hidden group"
+                    onClick={() => {
+                      if (item.item_type === "restaurant") navigate(`/eats/restaurant/${item.item_id}`);
+                      else if (item.item_type === "store") navigate(`/store/${item.item_id}`);
+                      else if (item.item_type === "hotel") navigate(`/hotel/${item.item_id}`);
+                      else navigate("/more");
+                    }}
+                    className="shrink-0 flex flex-col items-center gap-1.5 touch-manipulation group"
                   >
-                    {ride.popular && (
-                      <div className="absolute top-0 right-0">
-                        <div className="bg-primary/90 text-[7px] font-bold text-primary-foreground px-2 py-0.5 rounded-bl-lg">POPULAR</div>
-                      </div>
-                    )}
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/8 flex items-center justify-center mb-3 border border-primary/10 shadow-inner group-hover:scale-105 transition-transform">
-                      <ride.icon className="w-5 h-5 text-primary" />
+                    <div className="w-[60px] h-[60px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center overflow-hidden group-hover:border-border/50 transition-colors">
+                      {item.thumbnail_url ? (
+                        <img src={item.thumbnail_url} alt={item.title || "Item"} width={60} height={60} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                      ) : (
+                        <Globe className="w-5 h-5 text-muted-foreground" />
+                      )}
                     </div>
-                    <div className="text-xs font-bold text-foreground">{ride.name}</div>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="text-[10px] text-primary font-bold">{ride.eta}</span>
-                      <span className="text-[10px] text-muted-foreground/40">·</span>
-                      <span className="text-[10px] font-bold text-foreground">{ride.price}</span>
-                    </div>
+                    <p className="text-[10px] font-medium text-muted-foreground text-center truncate max-w-[64px]">{item.title || item.item_type}</p>
                   </motion.button>
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* ─── PROMO BANNER CAROUSEL (Ultra Premium) ─── */}
-          <div>
-            <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
-              <div className="flex">
-                {promos.map((promo, i) => (
-                  <div key={i} className="flex-[0_0_100%] min-w-0 px-0.5">
-                    <div className={`bg-gradient-to-br ${promo.gradient} rounded-2xl p-6 text-primary-foreground relative overflow-hidden min-h-[130px] flex flex-col justify-between`}>
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-12 translate-x-12 blur-xl" />
-                      <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-8 -translate-x-8 blur-xl" />
-                      <div className="relative z-10">
-                        <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-2">
-                          <promo.icon className="w-5 h-5 text-primary-foreground" />
-                        </div>
-                        <h3 className="text-lg font-bold mb-0.5">{promo.title}</h3>
-                        <p className="text-sm opacity-90">{promo.subtitle}</p>
-                      </div>
-                      <div className="relative z-10 mt-3">
-                        <span className="inline-flex items-center gap-1 text-xs font-bold bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5">
-                          {promo.cta} <ArrowRight className="w-3 h-3" />
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-center gap-1.5 mt-3">
-              {promos.map((_, i) => (
-                <div
-                  key={i}
-                  className={`rounded-full transition-all duration-300 ${
-                    i === activePromo ? "bg-primary w-6 h-1.5" : "bg-muted-foreground/20 w-1.5 h-1.5"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* ─── REWARDS WALLET CARD (Ultra Premium) ─── */}
-          {user && (() => {
-            const tierName = getTierFromPoints(points.lifetime_points);
-            const tierConfig = ZIVO_TIERS[tierName];
-            const { nextTier, pointsNeeded } = getPointsToNextTier(points.lifetime_points);
-            const { progress } = getNextTierProgress();
-            const recentRewards = activeRewards.slice(0, 3);
-
-            return (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl bg-gradient-to-br from-primary/10 via-emerald-500/5 to-primary/8 border border-primary/15 p-6 relative overflow-hidden shadow-sm"
-              >
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-20 h-20 bg-emerald-500/8 rounded-full blur-2xl" />
-                <div className="flex items-center justify-between mb-4 relative z-10">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shadow-inner">
-                      <Crown className="w-4.5 h-4.5 text-primary" />
-                    </div>
-                    <span className="text-sm font-bold text-foreground">My Rewards</span>
-                  </div>
-                  <Badge variant="outline" className={`text-[10px] font-bold ${tierConfig.color} ${tierConfig.borderColor} shadow-sm`}>
-                    {tierConfig.icon} {tierConfig.displayName}
-                  </Badge>
-                </div>
-                <p className="text-4xl font-bold text-foreground mb-2 relative z-10">
-                  {points.points_balance.toLocaleString()}
-                  <span className="text-sm text-muted-foreground ml-2 font-semibold">pts</span>
-                </p>
-                <Progress value={progress} className="h-2.5 mb-2 relative z-10" />
-                <p className="text-xs text-muted-foreground mb-5 relative z-10">
-                  {nextTier ? `${pointsNeeded.toLocaleString()} pts to ${ZIVO_TIERS[nextTier].displayName}` : "Max tier reached!"}
-                </p>
-
-                {recentRewards.length > 0 && (
-                  <div className="space-y-2 mb-5 relative z-10">
-                    {recentRewards.map((r) => (
-                      <div key={r.id} className="flex justify-between items-center text-xs p-2 rounded-lg bg-card/30">
-                        <span className="text-primary font-bold">+{r.reward_value} pts</span>
-                        <span className="text-muted-foreground">{r.reward_type}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <Button
-                  onClick={() => navigate("/rewards")}
-                  className="w-full bg-gradient-to-r from-primary to-emerald-500 text-primary-foreground rounded-xl h-12 font-bold relative z-10 shadow-md shadow-primary/20"
-                  size="sm"
-                >
-                  <Gift className="w-4 h-4 mr-2" />
-                  Redeem Points
-                  <ArrowRight className="w-4 h-4 ml-auto" />
-                </Button>
-              </motion.div>
-            );
-          })()}
-
-          {/* ─── INVITE FRIENDS REFERRAL CARD (Ultra Premium) ─── */}
-          {user && (() => {
-            const totalInvited = referralCode?.total_referrals || 0;
-            const totalEarned = referralCode?.total_earnings || 0;
-
-            return (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="rounded-2xl bg-gradient-to-br from-violet-500/10 via-pink-500/5 to-violet-500/8 border border-violet-500/15 p-6 relative overflow-hidden shadow-sm"
-              >
-                <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-violet-500/10 rounded-full blur-3xl" />
-                <div className="flex items-center justify-between mb-4 relative z-10">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-500/10 flex items-center justify-center shadow-inner">
-                      <Users className="w-4.5 h-4.5 text-violet-500" />
-                    </div>
-                    <span className="text-sm font-bold text-foreground">Invite Friends</span>
-                  </div>
-                  <button onClick={() => navigate("/account/referrals")} className="text-[10px] text-violet-500 font-bold flex items-center gap-0.5 hover:gap-1.5 transition-all">
-                    Details <ChevronRight className="w-3 h-3" />
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground mb-4 relative z-10">
-                  Earn <span className="font-bold text-violet-500">{REFERRAL_REWARDS.referrer.pointsPerReferral.toLocaleString()} pts</span> for every friend who books
-                </p>
-
-                {referralCode?.code && (
-                  <div className="flex items-center gap-2 mb-4 relative z-10">
-                    <Badge variant="outline" className="font-mono text-xs tracking-wider px-4 py-2 bg-card/50 border-violet-500/25 shadow-sm">
-                      {referralCode.code}
-                    </Badge>
-                  </div>
-                )}
-
-                <div className="flex gap-8 mb-5 text-xs relative z-10">
-                  <div>
-                    <span className="text-muted-foreground">Invited</span>
-                    <p className="font-bold text-foreground text-lg">{totalInvited}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Earned</span>
-                    <p className="font-bold text-foreground text-lg">{totalEarned.toLocaleString()} pts</p>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => shareReferral()}
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-violet-500/25 text-violet-600 hover:bg-violet-500/10 rounded-xl h-12 font-bold relative z-10 shadow-sm"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share & Earn
-                </Button>
-              </motion.div>
-            );
-          })()}
-
-          {/* ─── UPCOMING SCHEDULED BOOKINGS (Premium) ─── */}
-          {user && upcomingBookings.length > 0 && (() => {
-            const next = upcomingBookings[0];
-            const nextDate = new Date(`${next.scheduled_date}T${next.scheduled_time}`);
-            const schedTypeConfig: Record<string, { icon: typeof Car; color: string; label: string }> = {
-              ride: { icon: Car, color: "text-primary", label: "Ride" },
-              eats: { icon: UtensilsCrossed, color: "text-orange-500", label: "Food" },
-              delivery: { icon: Package, color: "text-violet-500", label: "Delivery" },
-            };
-            const cfg = schedTypeConfig[next.booking_type] || schedTypeConfig.ride;
-            const Icon = cfg.icon;
-            const formatTime12 = (t: string) => {
-              const [h, m] = t.split(":").map(Number);
-              const ampm = h >= 12 ? "PM" : "AM";
-              const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-              return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
-            };
-
-            return (
-              <div className="rounded-2xl bg-gradient-to-br from-primary/8 to-emerald-500/5 border border-primary/12 p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center shadow-inner">
-                      <Clock className="w-4 h-4 text-primary" />
-                    </div>
-                    <span className="text-sm font-bold text-foreground">Scheduled</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {upcomingBookings.length > 1 && (
-                      <Badge variant="outline" className="text-[10px] text-primary border-primary/20 bg-primary/5 font-bold">
-                        +{upcomingBookings.length - 1} more
-                      </Badge>
-                    )}
-                    <button onClick={() => navigate("/scheduled")} className="text-[10px] text-primary font-bold">
-                      View All
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-card/50 border border-border/30">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary/10 border border-primary/10">
-                    <Icon className={`w-5 h-5 ${cfg.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">
-                      {cfg.label}{next.destination_address ? ` to ${next.destination_address}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(nextDate, "MMM d")} · {formatTime12(next.scheduled_time)}
-                    </p>
-                    {next.pickup_address && (
-                      <p className="text-[10px] text-muted-foreground/70 truncate">{next.pickup_address}</p>
-                    )}
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* ─── WALLET SUMMARY CARD (Ultra Premium) ─── */}
-          {user && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="rounded-2xl bg-gradient-to-br from-emerald-500/10 via-primary/5 to-emerald-500/8 border border-emerald-500/15 p-6 relative overflow-hidden shadow-sm"
-            >
-              <div className="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/10 rounded-full blur-3xl" />
-              <div className="flex items-center justify-between mb-4 relative z-10">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 flex items-center justify-center shadow-inner">
-                    <Wallet className="w-4.5 h-4.5 text-emerald-500" />
-                  </div>
-                  <span className="text-sm font-bold text-foreground">Wallet</span>
-                </div>
-                <button onClick={() => navigate("/wallet")} className="text-[10px] text-emerald-500 font-bold flex items-center gap-0.5 hover:gap-1.5 transition-all">
-                  Manage <ChevronRight className="w-3 h-3" />
-                </button>
-              </div>
-              <div className="flex items-end gap-2 mb-3 relative z-10">
-                <p className="text-4xl font-bold text-foreground">
-                  ${balanceDollars.toFixed(2)}
-                </p>
-                <span className="text-xs text-muted-foreground mb-1.5 font-medium">balance</span>
-              </div>
-              {defaultCard && (
-                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-card/40 border border-border/30 relative z-10">
-                  <CreditCard className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-foreground">
-                    •••• {defaultCard.last4}
-                  </span>
-                  <Badge variant="outline" className="text-[8px] ml-auto border-primary/20 text-primary bg-primary/5 font-bold">
-                    Default
-                  </Badge>
-                </div>
-              )}
-              {!defaultCard && (
-                <Button
-                  onClick={() => navigate("/wallet")}
-                  variant="outline"
-                  size="sm"
-                  className="w-full rounded-xl h-11 font-bold border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10 relative z-10"
-                >
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Add Payment Method
-                </Button>
-              )}
-            </motion.div>
           )}
 
-          {/* ─── WAVE 5: Smart Home Widgets ─── */}
-          <div className="space-y-3">
-            <h2 className="text-xs font-bold text-muted-foreground flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-primary" /> SMART INSIGHTS
-            </h2>
+          {/* ─── ZIVO CONCIERGE ─── */}
+          <Suspense fallback={<div className="h-[140px] mx-4 my-2 rounded-2xl bg-muted/40 animate-pulse" />}>
+            <ConciergeLauncher />
+          </Suspense>
 
-            {/* Weekly Spending */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl bg-card border border-border/40 p-4">
-              <p className="text-xs font-bold text-foreground mb-3">This Week's Spending</p>
-              <div className="flex items-end gap-1.5 h-14">
-                {[32, 18, 45, 12, 28, 52, 8].map((val, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                    <motion.div initial={{ height: 0 }} animate={{ height: `${(val / 60) * 100}%` }} transition={{ duration: 0.6, delay: i * 0.08 }}
-                      className={`w-full rounded-t ${i === new Date().getDay() ? "bg-primary" : "bg-primary/20"}`} />
-                    <span className="text-[8px] text-muted-foreground">{["S","M","T","W","T","F","S"][i]}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
-                <span>Total: <b className="text-foreground">$195</b></span>
-                <span className="text-emerald-500">↓ 12% vs last week</span>
-              </div>
-            </motion.div>
+          {/* ─── PLAN A TRIP BUNDLE ─── */}
+          <Suspense fallback={<div className="h-[140px] mx-4 my-2 rounded-2xl bg-muted/40 animate-pulse" />}>
+            <PlanTripBundle />
+          </Suspense>
 
-            {/* Travel Streak */}
-            <div className="rounded-2xl bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                  <Flame className="w-6 h-6 text-amber-500" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-foreground">7-Day Booking Streak! 🔥</p>
-                  <p className="text-[10px] text-muted-foreground">Keep it going for bonus ZIVO points</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-lg font-bold text-amber-500">7</p>
-                  <p className="text-[8px] text-muted-foreground">days</p>
-                </div>
-              </div>
-            </div>
+          {/* ─── ZIVO NETWORK PROMO ─── */}
+          <Suspense fallback={<div className="h-[68px] mx-4 my-2 rounded-xl bg-muted/40 animate-pulse" />}>
+            <NetworkPromoStrip />
+          </Suspense>
 
-            {/* Nearby Attractions */}
-            <div className="rounded-2xl bg-card border border-border/40 p-4">
-              <p className="text-xs font-bold text-foreground mb-3 flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-violet-500" /> Nearby Attractions</p>
-              <div className="space-y-2">
-                {[
-                  { name: "Central Park", distance: "0.5 mi", rating: 4.8, type: "Park" },
-                  { name: "Museum of Art", distance: "1.2 mi", rating: 4.9, type: "Museum" },
-                  { name: "Broadway District", distance: "0.8 mi", rating: 4.7, type: "Entertainment" },
-                ].map(a => (
-                  <div key={a.name} className="flex items-center gap-2 p-2 rounded-xl hover:bg-muted/30 transition-colors">
-                    <div className="flex-1"><p className="text-xs font-bold text-foreground">{a.name}</p><p className="text-[10px] text-muted-foreground">{a.distance} · {a.type}</p></div>
-                    <span className="text-[10px] font-bold text-amber-500">★ {a.rating}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* ─── SPEND TRACKER (this month) ─── */}
+          <Suspense fallback={null}>
+            <SpendTrackerWidget />
+          </Suspense>
 
-            {/* Smart Suggestions */}
-            <div className="rounded-2xl bg-sky-500/5 border border-sky-500/20 p-4">
-              <p className="text-xs font-bold text-foreground mb-2 flex items-center gap-2"><TrendingUp className="w-3.5 h-3.5 text-sky-500" /> Smart Suggestions</p>
-              <div className="space-y-1.5">
-                <p className="text-[11px] text-muted-foreground">💡 Flights to Miami are 23% cheaper next Tuesday</p>
-                <p className="text-[11px] text-muted-foreground">🏨 Hotel prices drop 15% for mid-week stays</p>
-                <p className="text-[11px] text-muted-foreground">🚗 Book rental cars 3 weeks ahead to save $40+</p>
-              </div>
-            </div>
+          {/* ─── SPONSORED (Google AdSense) — renders nothing until AD_SLOTS.homeFeed + publisher id are set ─── */}
+          <div className="px-5 pb-3">
+            <AdSenseUnit slot={AD_SLOTS.homeFeed} />
           </div>
+
+          {/* "What's New" widget removed — was a hardcoded marketing block
+              (4 cards with fake "X NEW" badges and made-up feature lists).
+              No release-notes feed backed it, so badges never updated and the
+              same "new" features would stay marked NEW indefinitely. Reclaims
+              ~250px of home-screen real estate. Wire to a real release-notes
+              table later if a fresh-features rail is desired. */}
+
+
+
+
+
+        </div>
+
+        {/* ─── MAIN CONTENT ─── */}
+        <div className="px-5 space-y-8">
+
+          {/* ─── PRICE ALERTS WIDGET ─── */}
+          <Suspense fallback={null}><PriceAlertsWidget /></Suspense>
+
+
 
           {/* ─── GUEST SIGN-UP CTA ─── */}
           {!user && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl bg-gradient-to-br from-primary/12 via-sky-500/6 to-primary/10 border border-primary/20 p-6 relative overflow-hidden shadow-sm"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              className="rounded-2xl bg-primary/10 border border-primary/20 p-6 relative overflow-hidden shadow-sm"
             >
-              <div className="absolute -top-10 -right-10 w-28 h-28 bg-primary/10 rounded-full blur-3xl" />
               <div className="relative z-10">
-                <h3 className="text-base font-bold text-foreground mb-1">Join ZIVO — it's free</h3>
+                <h3 className="text-base font-bold text-foreground mb-1">{t("home.join_free")}</h3>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Earn rewards, save trips, get price alerts, and access exclusive deals.
+                  {t("home.join_desc")}
                 </p>
                 <div className="flex gap-2">
                   <Button
                     onClick={() => navigate("/signup")}
                     size="sm"
-                    className="flex-1 h-11 rounded-xl font-bold shadow-md shadow-primary/20"
+                    className="flex-1 h-11 rounded-xl font-semibold"
                   >
-                    Sign Up Free
+                    {t("home.sign_up_free")}
                   </Button>
                   <Button
                     onClick={() => navigate("/login")}
@@ -888,37 +1075,27 @@ const AppHome = () => {
                     size="sm"
                     className="h-11 px-5 rounded-xl font-medium"
                   >
-                    Log In
+                    {t("home.log_in")}
                   </Button>
                 </div>
               </div>
             </motion.div>
           )}
-
-          {/* ─── TRUST BAR ─── */}
-          <div className="flex items-center justify-center gap-6 py-4">
-            <div className="flex items-center gap-1.5 text-muted-foreground/50">
-              <Shield className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-medium">Secure</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground/50">
-              <Globe className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-medium">500K+ travelers</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground/50">
-              <Star className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-medium">4.8 rating</span>
-            </div>
+          {/* Spacer for fixed bottom nav */}
+          <div className="h-24 md:h-8" aria-hidden="true" />
           </div>
+          </div>
+        )}
         </div>
       </div>
 
-      {/* Search Overlay */}
-      <UniversalSearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <Suspense fallback={null}>
+        <UniversalSearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      </Suspense>
 
-      {/* Bottom Nav */}
-      <ZivoMobileNav />
-    </div>
+    {/* Bottom Nav */}
+    <Suspense fallback={<div className="fixed inset-x-0 bottom-0 h-16 bg-background border-t border-border lg:hidden pb-safe" />}><ZivoMobileNav /></Suspense>
+      </div>
   );
 };
 

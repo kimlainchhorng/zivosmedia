@@ -7,7 +7,7 @@ import { Button } from "./button";
 // Premium Spinner
 interface SpinnerProps {
   size?: "sm" | "md" | "lg" | "xl";
-  color?: "primary" | "white" | "muted";
+  color?: "primary" | "white" | "muted" | "brand";
   className?: string;
 }
 
@@ -22,6 +22,7 @@ const spinnerColors = {
   primary: "text-primary",
   white: "text-primary-foreground",
   muted: "text-muted-foreground",
+  brand: "text-[#dc2743]",
 };
 
 export const Spinner: React.FC<SpinnerProps> = ({
@@ -42,7 +43,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
 // Pulse Loader (three dots)
 interface PulseLoaderProps {
   size?: "sm" | "md" | "lg";
-  color?: "primary" | "white" | "muted";
+  color?: "primary" | "white" | "muted" | "brand";
   className?: string;
 }
 
@@ -61,6 +62,7 @@ export const PulseLoader: React.FC<PulseLoaderProps> = ({
     primary: "bg-primary",
     white: "bg-white",
     muted: "bg-muted-foreground",
+    brand: "bg-ig-gradient",
   };
 
   return (
@@ -95,10 +97,10 @@ interface ProgressLoaderProps {
 }
 
 const progressColors = {
-  primary: "bg-gradient-to-r from-primary to-teal-400",
-  green: "bg-gradient-to-r from-emerald-500 to-green-400",
-  amber: "bg-gradient-to-r from-amber-500 to-orange-400",
-  sky: "bg-gradient-to-r from-sky-500 to-blue-400",
+  primary: "bg-ig-gradient",
+  green: "bg-success",
+  amber: "bg-warning",
+  sky: "bg-primary",
 };
 
 export const ProgressLoader: React.FC<ProgressLoaderProps> = ({
@@ -243,14 +245,21 @@ export const PageLoader: React.FC<PageLoaderProps> = ({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm"
     >
-      <motion.div
-        animate={{ scale: [1, 1.1, 1] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
-        className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center shadow-lg shadow-primary/30 mb-6"
-      >
-        <Spinner size="lg" color="white" />
-      </motion.div>
-      <p className="text-lg font-semibold">{message}</p>
+      <div className="relative mb-6">
+        <motion.div
+          animate={{ scale: [1, 1.25, 1], opacity: [0.35, 0.15, 0.35] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute inset-0 rounded-2xl bg-ig-gradient blur-xl"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="relative w-16 h-16 rounded-2xl bg-ig-gradient flex items-center justify-center shadow-lg shadow-black/10"
+        >
+          <Spinner size="lg" color="white" />
+        </motion.div>
+      </div>
+      <p className="text-lg font-semibold tracking-tight">{message}</p>
       {submessage && (
         <p className="text-sm text-muted-foreground mt-1">{submessage}</p>
       )}
@@ -319,8 +328,11 @@ export const StatusLoader: React.FC<StatusLoaderProps> = ({
             exit={{ opacity: 0, scale: 0.9 }}
             className="flex flex-col items-center"
           >
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-              <Spinner size="lg" />
+            <div className="relative mb-4">
+              <div className="absolute inset-0 rounded-2xl bg-ig-gradient opacity-25 blur-md animate-pulse" />
+              <div className="relative w-14 h-14 rounded-2xl bg-ig-gradient flex items-center justify-center shadow-md shadow-black/10">
+                <Spinner size="lg" color="white" />
+              </div>
             </div>
             <p className="text-muted-foreground">{loadingMessage}</p>
           </motion.div>
@@ -338,11 +350,11 @@ export const StatusLoader: React.FC<StatusLoaderProps> = ({
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4"
+              className="w-14 h-14 rounded-2xl bg-success/10 flex items-center justify-center mb-4"
             >
-              <CheckCircle className="w-8 h-8 text-emerald-500" />
+              <CheckCircle className="w-8 h-8 text-success" />
             </motion.div>
-            <p className="font-medium text-emerald-500">{successMessage}</p>
+            <p className="font-medium text-success">{successMessage}</p>
           </motion.div>
         )}
         
@@ -354,10 +366,10 @@ export const StatusLoader: React.FC<StatusLoaderProps> = ({
             exit={{ opacity: 0, scale: 0.9 }}
             className="flex flex-col items-center"
           >
-            <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
-              <XCircle className="w-8 h-8 text-red-500" />
+            <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
+              <XCircle className="w-8 h-8 text-destructive" />
             </div>
-            <p className="font-medium text-red-500 mb-3">{errorMessage}</p>
+            <p className="font-medium text-destructive mb-3">{errorMessage}</p>
             {onRetry && (
               <Button variant="outline" size="sm" onClick={onRetry} className="gap-2">
                 <RefreshCcw className="w-4 h-4" />

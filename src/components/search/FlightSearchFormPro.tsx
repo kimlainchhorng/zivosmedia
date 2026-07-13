@@ -12,7 +12,8 @@
  * - Multi-city search support
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import tabFlightsBg from "@/assets/tab-flights-bg.jpg";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Plane, 
@@ -40,12 +41,16 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import LocationAutocomplete, { type LocationOption } from "./LocationAutocomplete";
 import { useAirportSearch } from "./hooks/useLocationSearch";
 import MultiCityLegs from "./MultiCityLegs";
-import { MobileDatePickerSheet, MobilePassengerCabinSheet } from "@/components/mobile";
+import { MobileDatePickerSheet, MobileDateRangePickerSheet, MobilePassengerCabinSheet } from "@/components/mobile";
 import { useFlightFunnel } from "@/hooks/useFlightFunnel";
 import { useTranslation } from "@/hooks/useI18n";
+import { recordSearchAttempt } from "@/lib/recordSearchAttempt";
+import { resolveAirportSeed } from "@/lib/flightDeepLink";
 
 type TripType = "roundtrip" | "oneway" | "multicity";
 type CabinClass = "economy" | "premium" | "business" | "first";
+
+const TRIP_TYPES: TripType[] = ["roundtrip", "oneway", "multicity"];
 
 interface FlightSearchFormProProps {
   initialFrom?: string;
@@ -73,6 +78,7 @@ export default function FlightSearchFormPro({
   className,
 }: FlightSearchFormProProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const { search: searchAirports, getPopular, getByCode, allOptions } = useAirportSearch();
   const { trackSearchStarted } = useFlightFunnel();
@@ -80,6 +86,21 @@ export default function FlightSearchFormPro({
 
   // Trip type
   const [tripType, setTripType] = useState<TripType>(initialTripType);
+
+  // Swipe left/right to cycle trip types
+  const swipeTouchStartX = useRef<number | null>(null);
+  const onTripSwipeStart = useCallback((e: React.TouchEvent) => {
+    swipeTouchStartX.current = e.touches[0].clientX;
+  }, []);
+  const onTripSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (swipeTouchStartX.current === null) return;
+    const diff = e.changedTouches[0].clientX - swipeTouchStartX.current;
+    swipeTouchStartX.current = null;
+    if (Math.abs(diff) < 55) return;
+    const idx = TRIP_TYPES.indexOf(tripType);
+    if (diff < 0 && idx < TRIP_TYPES.length - 1) setTripType(TRIP_TYPES[idx + 1]);
+    else if (diff > 0 && idx > 0) setTripType(TRIP_TYPES[idx - 1]);
+  }, [tripType]);
 
   // Location state
   const [fromOption, setFromOption] = useState<LocationOption | null>(null);
@@ -89,10 +110,10 @@ export default function FlightSearchFormPro({
 
   // Date state
   const [departDate, setDepartDate] = useState<Date | undefined>(
-    initialDepartDate || addDays(new Date(), 7)
+    initialDepartDate
   );
   const [returnDate, setReturnDate] = useState<Date | undefined>(
-    initialReturnDate || addDays(new Date(), 14)
+    initialReturnDate
   );
 
   // Passengers & cabin
@@ -111,7 +132,7 @@ export default function FlightSearchFormPro({
   // Initialize from props
   useEffect(() => {
     if (initialFrom) {
-      const option = getByCode(initialFrom);
+      const option = getByCode(resolveAirportSeed(initialFrom));
       if (option) {
         setFromOption(option);
         setFromDisplay(option.label);
@@ -120,7 +141,7 @@ export default function FlightSearchFormPro({
       }
     }
     if (initialTo) {
-      const option = getByCode(initialTo);
+      const option = getByCode(resolveAirportSeed(initialTo));
       if (option) {
         setToOption(option);
         setToDisplay(option.label);
@@ -180,10 +201,37 @@ export default function FlightSearchFormPro({
       depart: departDateStr,
       passengers: String(passengers),
       cabin: cabin,
+      tripType,
     });
     if (returnDateStr) resultsParams.set("return", returnDateStr);
-    navigate(`/flights/results?${resultsParams.toString()}`);
+
+    [
+      "source",
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content",
+      "utm_term",
+      "creator",
+      "subid",
+    ].forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) resultsParams.set(key, value);
+    });
+
+    if (navigateOnSearch) navigate(`/flights/results?${resultsParams.toString()}`);
     if (onSearch) onSearch(resultsParams);
+
+    // Telemetry: record this flight search for re-engagement / price alerts.
+    void recordSearchAttempt("flight", {
+      origin: fromCode,
+      destination: toCode,
+      departureDate: departDateStr,
+      returnDate: returnDateStr ?? null,
+      passengers,
+      cabinClass: cabin,
+      tripType,
+    });
   };
 
   const isFormValid = useMemo(() => {
@@ -202,32 +250,60 @@ export default function FlightSearchFormPro({
   ];
 
   return (
-    <div className={cn(
-      "bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl p-4 sm:p-6 shadow-2xl",
-      className
-    )}>
-      {/* Accent bar */}
-      <div className="h-1 bg-gradient-to-r from-sky-500 via-blue-500 to-cyan-500 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 rounded-t-2xl mb-4 sm:mb-5" />
+    <div
+      className={cn(
+        "relative bg-card/80 backdrop-blur-2xl border border-border/20 rounded-3xl p-5 sm:p-7 overflow-hidden",
+        "shadow-[0_8px_40px_-8px_hsl(var(--primary)/0.12),0_2px_12px_-4px_hsl(var(--primary)/0.08)]",
+        "before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-b before:from-white/[0.06] before:to-transparent before:pointer-events-none",
+        className
+      )}
+      style={{ transformStyle: "preserve-3d" }}
+      onTouchStart={onTripSwipeStart}
+      onTouchEnd={onTripSwipeEnd}
+    >
+      {/* Background image */}
+      <img
+        src={tabFlightsBg}
+	        alt=""
+	        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+	        loading="lazy"
+	        decoding="async"
+	        style={{ opacity: 0.3 }}
+	      />
+      <span className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, hsl(var(--card) / 0.55) 0%, hsl(var(--card) / 0.7) 50%, hsl(var(--card) / 0.6) 100%)" }} />
+
+      {/* Accent bar with 3D lift */}
+      <div
+        className="relative h-1.5 -mx-5 sm:-mx-7 -mt-5 sm:-mt-7 rounded-t-3xl mb-5 sm:mb-6 shadow-[0_2px_12px_hsl(var(--primary)/0.3)] bg-secondary"
+        style={{ transform: "translateZ(4px)" }}
+      />
 
       {/* Trip Type Toggle */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="relative flex gap-2 mb-5 flex-wrap" style={{ transform: "translateZ(8px)" }}>
         {[
           { id: "roundtrip" as TripType, label: t("flights.roundtrip"), icon: RefreshCw },
           { id: "oneway" as TripType, label: t("flights.oneway"), icon: Plane },
           { id: "multicity" as TripType, label: "Multi-City", icon: MapPin },
         ].map((type) => (
-          <button
+          <button type="button"
             key={type.id}
             onClick={() => setTripType(type.id)}
             className={cn(
-              "px-3 sm:px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm",
+              "relative min-h-[44px] px-3.5 sm:px-5 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm overflow-hidden touch-manipulation",
               tripType === type.id
-                ? "bg-gradient-to-r from-sky-500 to-blue-600 text-primary-foreground shadow-lg shadow-sky-500/30"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                ? "text-primary-foreground shadow-[0_4px_16px_hsl(var(--primary)/0.35),inset_0_1px_0_rgba(255,255,255,0.2)] active:scale-[0.96]"
+                : "bg-muted/60 text-muted-foreground hover:bg-muted/80 hover:shadow-md active:scale-[0.97] border border-border/30"
             )}
+            style={tripType === type.id ? { transform: "translateZ(6px)" } : {}}
           >
-            <type.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            {type.label}
+            {tripType === type.id && (
+              <>
+	                <img src={tabFlightsBg} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" style={{ opacity: 0.5 }} />
+                <span className="absolute inset-0" style={{ background: "linear-gradient(135deg, hsl(var(--flights) / 0.7), hsl(var(--flights) / 0.5))" }} />
+              </>
+            )}
+            <type.icon className="relative z-10 w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="relative z-10">{type.label}</span>
           </button>
         ))}
       </div>
@@ -238,7 +314,7 @@ export default function FlightSearchFormPro({
       ) : (
         <>
           {/* Search Fields Grid */}
-          <div className="space-y-4">
+          <div className="relative space-y-4">
             {/* Row 1: From / Swap / To */}
             <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-3 items-end">
               <LocationAutocomplete
@@ -262,7 +338,7 @@ export default function FlightSearchFormPro({
                 variant="outline"
                 size="icon"
                 onClick={handleSwap}
-                className="h-11 sm:h-12 w-11 sm:w-12 rounded-full border-dashed hover:border-sky-500 hover:bg-sky-500/10 shrink-0 transition-all hover:rotate-180 duration-500 hidden md:flex"
+                className="h-11 sm:h-12 w-11 sm:w-12 rounded-full border-dashed hover:border-border hover:bg-secondary shrink-0 transition-all hover:rotate-180 duration-500 hidden md:flex shadow-md hover:shadow-lg active:scale-[0.95] active:shadow-sm"
                 aria-label="Swap cities"
               >
                 <ArrowLeftRight className="w-4 h-4" />
@@ -290,150 +366,178 @@ export default function FlightSearchFormPro({
               type="button"
               variant="outline"
               onClick={handleSwap}
-              className="w-full h-10 md:hidden rounded-xl border-dashed gap-2"
+              className="w-full h-11 md:hidden rounded-xl border-dashed gap-2 shadow-sm hover:shadow-md active:scale-[0.97] transition-all"
             >
               <ArrowLeftRight className="w-4 h-4" />
               Swap
             </Button>
 
             {/* Row 2: Dates */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Departure Date */}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">
-                  {t("flights.departure")} <span className="text-destructive">*</span>
-                </Label>
-                
-                {isMobile ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => setDepartSheetOpen(true)}
-                      className={cn(
-                        "w-full h-12 justify-start text-left font-normal rounded-xl touch-manipulation",
-                        !departDate && "text-muted-foreground",
-                        errors.depart && "border-destructive"
-                      )}
-                    >
-                      <CalendarIcon className="w-4 h-4 mr-2 text-sky-500" />
-                      {departDate ? format(departDate, "EEE, MMM d") : "Select date"}
-                    </Button>
-                    <MobileDatePickerSheet
-                      open={departSheetOpen}
-                      onOpenChange={setDepartSheetOpen}
-                      selectedDate={departDate}
-                      onDateSelect={(date) => {
-                        setDepartDate(date);
-                        if (date && returnDate && isBefore(returnDate, date)) {
-                          setReturnDate(addDays(date, 7));
-                        }
-                      }}
-                      label="Departure Date"
-                      accentColor="sky"
-                    />
-                  </>
-                ) : (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full h-11 sm:h-12 justify-start text-left font-normal rounded-xl",
-                          !departDate && "text-muted-foreground",
-                          errors.depart && "border-destructive"
-                        )}
-                      >
-                        <CalendarIcon className="w-4 h-4 mr-2 text-sky-500" />
-                        {departDate ? format(departDate, "EEE, MMM d") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={departDate}
-                        onSelect={(date) => {
-                          setDepartDate(date);
-                          if (date && returnDate && isBefore(returnDate, date)) {
-                            setReturnDate(addDays(date, 7));
-                          }
-                        }}
-                        disabled={(date) => isBefore(date, startOfToday())}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
-                
-                {errors.depart && (
-                  <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    {errors.depart}
-                  </p>
-                )}
-              </div>
+            <div>
+              <Label className="text-xs font-semibold text-foreground/80 mb-1.5 block">
+                {tripType === "roundtrip" ? `${t("flights.departure")} & ${t("flights.return")}` : t("flights.departure")}
+                <span className="text-destructive"> *</span>
+              </Label>
 
-              {/* Return Date (roundtrip only) */}
-              {tripType === "roundtrip" && (
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">
-                    {t("flights.return")} <span className="text-destructive">*</span>
-                  </Label>
-                  
+              <div
+                className={cn(
+                  "rounded-2xl border border-border/30 bg-background/80 backdrop-blur-sm overflow-hidden shadow-sm",
+                  (errors.depart || errors.return) && "border-destructive"
+                )}
+              >
+                <div className={cn("grid", tripType === "roundtrip" ? "grid-cols-2" : "grid-cols-1")}>
                   {isMobile ? (
                     <>
                       <Button
-                        variant="outline"
-                        onClick={() => setReturnSheetOpen(true)}
+                        variant="ghost"
+                        type="button"
+                        onClick={() => setDepartSheetOpen(true)}
                         className={cn(
-                          "w-full h-12 justify-start text-left font-normal rounded-xl touch-manipulation",
-                          !returnDate && "text-muted-foreground",
-                          errors.return && "border-destructive"
+                          "h-14 justify-start rounded-none px-4 text-left font-normal touch-manipulation",
+                          !departDate && "text-muted-foreground",
+                          tripType === "roundtrip" && "border-r border-border"
                         )}
                       >
-                        <CalendarIcon className="w-4 h-4 mr-2 text-orange-500" />
-                        {returnDate ? format(returnDate, "EEE, MMM d") : "Select date"}
+                        <CalendarIcon className="w-4 h-4 mr-3 text-primary" />
+                        <div className="flex flex-col items-start">
+                          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            {t("flights.departure")}
+                          </span>
+                          <span>{departDate ? format(departDate, "EEE, MMM d") : "Select date"}</span>
+                        </div>
                       </Button>
-                      <MobileDatePickerSheet
-                        open={returnSheetOpen}
-                        onOpenChange={setReturnSheetOpen}
-                        selectedDate={returnDate}
-                        onDateSelect={setReturnDate}
-                        label="Return Date"
-                        minDate={departDate}
-                        accentColor="orange"
-                      />
-                    </>
-                  ) : (
-                    <Popover>
-                      <PopoverTrigger asChild>
+
+                      {tripType === "roundtrip" && (
                         <Button
-                          variant="outline"
+                          variant="ghost"
+                          type="button"
+                          onClick={() => setDepartSheetOpen(true)}
                           className={cn(
-                            "w-full h-11 sm:h-12 justify-start text-left font-normal rounded-xl",
-                            !returnDate && "text-muted-foreground",
-                            errors.return && "border-destructive"
+                            "h-14 justify-start rounded-none px-4 text-left font-normal touch-manipulation",
+                            !returnDate && "text-muted-foreground"
                           )}
                         >
-                          <CalendarIcon className="w-4 h-4 mr-2 text-orange-500" />
-                          {returnDate ? format(returnDate, "EEE, MMM d") : "Select date"}
+                          <CalendarIcon className="w-4 h-4 mr-3 text-primary" />
+                          <div className="flex flex-col items-start">
+                            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                              {t("flights.return")}
+                            </span>
+                            <span>{returnDate ? format(returnDate, "EEE, MMM d") : "Select date"}</span>
+                          </div>
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={returnDate}
-                          onSelect={setReturnDate}
-                          disabled={(date) => departDate ? isBefore(date, departDate) : isBefore(date, startOfToday())}
-                          initialFocus
-                          className="pointer-events-auto"
+                      )}
+
+                      {tripType === "roundtrip" ? (
+                        <MobileDateRangePickerSheet
+                          open={departSheetOpen}
+                          onOpenChange={setDepartSheetOpen}
+                          departDate={departDate}
+                          returnDate={returnDate}
+                          onRangeConfirmed={(dep, ret) => {
+                            setDepartDate(dep);
+                            setReturnDate(ret);
+                          }}
+                          label="Departure → Return"
+                          origin={fromOption?.value}
+                          destination={toOption?.value}
+                          cabinClass={cabin}
                         />
-                      </PopoverContent>
-                    </Popover>
+                      ) : (
+                        <MobileDatePickerSheet
+                          open={departSheetOpen}
+                          onOpenChange={setDepartSheetOpen}
+                          selectedDate={departDate}
+                          onDateSelect={setDepartDate}
+                          label="Departure Date"
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            type="button"
+                            className={cn(
+                              "h-14 justify-start rounded-none px-4 text-left font-normal hover:bg-muted/50",
+                              !departDate && "text-muted-foreground",
+                              tripType === "roundtrip" && "border-r border-border"
+                            )}
+                          >
+                            <CalendarIcon className="w-4 h-4 mr-3 text-primary" />
+                            <div className="flex flex-col items-start">
+                              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                {t("flights.departure")}
+                              </span>
+                              <span>{departDate ? format(departDate, "EEE, MMM d") : "Select date"}</span>
+                            </div>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={departDate}
+                            onSelect={(date) => {
+                              setDepartDate(date);
+                              if (date && returnDate && isBefore(returnDate, date)) {
+                                setReturnDate(addDays(date, 7));
+                              }
+                            }}
+                            disabled={(date) => isBefore(date, startOfToday())}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+
+                      {tripType === "roundtrip" && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              type="button"
+                              className={cn(
+                                "h-14 justify-start rounded-none px-4 text-left font-normal hover:bg-muted/50",
+                                !returnDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="w-4 h-4 mr-3 text-primary" />
+                              <div className="flex flex-col items-start">
+                                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                  {t("flights.return")}
+                                </span>
+                                <span>{returnDate ? format(returnDate, "EEE, MMM d") : "Select date"}</span>
+                              </div>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={returnDate}
+                              onSelect={setReturnDate}
+                              disabled={(date) => departDate ? isBefore(date, departDate) : isBefore(date, startOfToday())}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </>
                   )}
-                  
+                </div>
+              </div>
+
+              {(errors.depart || errors.return) && (
+                <div className="mt-1 space-y-1">
+                  {errors.depart && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {errors.depart}
+                    </p>
+                  )}
                   {errors.return && (
-                    <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                    <p className="text-xs text-destructive flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
                       {errors.return}
                     </p>
@@ -451,9 +555,9 @@ export default function FlightSearchFormPro({
                     <Button
                       variant="outline"
                       onClick={() => setPassengerSheetOpen(true)}
-                      className="w-full h-12 justify-start text-left font-normal rounded-xl touch-manipulation"
+                      className="w-full h-14 justify-start text-left font-normal rounded-2xl touch-manipulation shadow-sm border-border/30 hover:shadow-md transition-all active:scale-[0.98]"
                     >
-                      <Users className="w-4 h-4 mr-2 text-purple-500" />
+                      <Users className="w-4 h-4 mr-2 text-foreground" />
                       {passengers} {passengers === 1 ? "Traveler" : "Travelers"} • {cabin.charAt(0).toUpperCase() + cabin.slice(1)}
                     </Button>
                     <MobilePassengerCabinSheet
@@ -474,9 +578,9 @@ export default function FlightSearchFormPro({
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
-                          className="w-full h-11 sm:h-12 justify-start text-left font-normal rounded-xl"
+                          className="w-full h-11 sm:h-12 justify-start text-left font-normal rounded-2xl shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
                         >
-                          <Users className="w-4 h-4 mr-2 text-purple-500" />
+                          <Users className="w-4 h-4 mr-2 text-foreground" />
                           {passengers} {passengers === 1 ? "Traveler" : "Travelers"}
                         </Button>
                       </PopoverTrigger>
@@ -524,7 +628,7 @@ export default function FlightSearchFormPro({
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
-                          className="w-full h-11 sm:h-12 justify-start text-left font-normal rounded-xl"
+                          className="w-full h-11 sm:h-12 justify-start text-left font-normal rounded-2xl shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
                         >
                           <Crown className={cn(
                             "w-4 h-4 mr-2",
@@ -537,7 +641,7 @@ export default function FlightSearchFormPro({
                       <PopoverContent className="w-48 p-2" align="start">
                         <div className="space-y-1">
                           {cabinOptions.map((opt) => (
-                            <button
+                            <button type="button"
                               key={opt.value}
                               onClick={() => setCabin(opt.value)}
                               className={cn(
@@ -559,24 +663,26 @@ export default function FlightSearchFormPro({
             </div>
           </div>
 
-          {/* Search Button */}
+          {/* Search Button — solid, high-contrast */}
           <Button
             onClick={handleSearch}
             disabled={!isFormValid}
             size="lg"
             className={cn(
-              "w-full h-12 sm:h-14 mt-5 font-bold text-base sm:text-lg rounded-xl",
-              "bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 hover:from-sky-600 hover:via-blue-700 hover:to-sky-600",
-              "text-primary-foreground shadow-xl shadow-sky-500/30 hover:shadow-sky-500/40",
-              "transition-all duration-200 active:scale-[0.98]",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
+              "relative w-full h-13 sm:h-14 mt-6 font-bold text-base sm:text-lg rounded-2xl overflow-hidden",
+              "text-white",
+              "bg-[hsl(var(--flights))] hover:bg-[hsl(var(--flights))]/90",
+              "shadow-[0_8px_24px_-6px_hsl(var(--flights)/0.55),inset_0_1px_0_rgba(255,255,255,0.18)]",
+              "hover:shadow-[0_12px_32px_-6px_hsl(var(--flights)/0.65)]",
+              "hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:scale-[0.98]",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
             )}
           >
-            <Search className="w-5 h-5 mr-2" />
-            {t("flights.search_title")}
+            <Search className="relative z-10 w-5 h-5 mr-2" />
+            <span className="relative z-10 tracking-wide">{t("flights.search_title")}</span>
           </Button>
           
-          <p className="text-xs text-muted-foreground text-center mt-2">
+          <p className="relative text-xs text-muted-foreground text-center mt-3">
             Payment completed securely on ZIVO. Tickets issued by licensed partners.
           </p>
         </>

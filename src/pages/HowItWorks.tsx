@@ -99,7 +99,7 @@ export default function HowItWorks() {
       />
       <Header />
       
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Header */}
           <motion.div 
@@ -168,8 +168,8 @@ export default function HowItWorks() {
               
               <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
                 <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-card border border-border hover:border-primary/20 hover:shadow-sm transition-all duration-200">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center">
-                    <Search className="w-5 h-5 text-sky-500" />
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                    <Search className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
                     <p className="font-semibold text-sm">Search</p>
@@ -180,8 +180,8 @@ export default function HowItWorks() {
                 <ArrowRight className="w-5 h-5 text-muted-foreground rotate-90 md:rotate-0" />
                 
                 <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-card border border-border hover:border-primary/20 hover:shadow-sm transition-all duration-200">
-                  <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-violet-500" />
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
                     <p className="font-semibold text-sm">Compare</p>
@@ -408,7 +408,7 @@ export default function HowItWorks() {
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link to="/book-flight">
-                <Button size="lg" className="bg-gradient-to-r from-sky-500 to-blue-600 gap-2">
+                <Button size="lg" className="gap-2 bg-secondary">
                   <Plane className="w-4 h-4" />
                   Search Flights
                 </Button>
@@ -420,7 +420,7 @@ export default function HowItWorks() {
                 </Button>
               </Link>
               <Link to="/rent-car">
-                <Button size="lg" className="bg-gradient-to-r from-violet-500 to-purple-500 gap-2">
+                <Button size="lg" className="gap-2 bg-secondary">
                   <Car className="w-4 h-4" />
                   Rent a Car
                 </Button>

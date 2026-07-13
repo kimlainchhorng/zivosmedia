@@ -1,247 +1,179 @@
 project_id = "slirphzzwcogdbkeicff"
-[functions.calculate-price]
-verify_jwt = false
 
-
-[functions.create-auth-token]
-verify_jwt = false
-
-[functions.exchange-auth-token]
-verify_jwt = false
-
-[functions.ai-trip-suggestions]
-verify_jwt = false
-
-[functions.send-onboarding-email]
-verify_jwt = false
-
-[functions.create-ride-checkout]
-verify_jwt = false
-
-[functions.create-eats-checkout]
-verify_jwt = false
-
-[functions.stripe-webhook]
-verify_jwt = false
-
-[functions.process-refund]
-verify_jwt = true
-
-[functions.exchange-rates]
-verify_jwt = false
-
-[functions.rate-limiter]
-verify_jwt = false
-
-[functions.create-p2p-checkout]
-verify_jwt = true
-
-[functions.process-p2p-payout]
-verify_jwt = true
-
-[functions.process-p2p-refund]
-verify_jwt = true
-
-[functions.send-driver-notification]
-verify_jwt = false
-
-[functions.create-stripe-connect-link]
-verify_jwt = true
-
-[functions.check-stripe-connect-status]
-verify_jwt = true
-
-[functions.execute-p2p-payout]
-verify_jwt = true
-
-[functions.send-renter-invite]
-verify_jwt = true
-
-[functions.create-flight-checkout]
-verify_jwt = false
-
-[functions.issue-flight-ticket]
-verify_jwt = false
-
-[functions.process-flight-refund]
-verify_jwt = false
-
-[functions.duffel-flights]
-verify_jwt = false
-
-[functions.check-flight-health]
-verify_jwt = false
-
-[functions.send-incident-notification]
-verify_jwt = false
-
-[functions.resolve-flight-incident]
-verify_jwt = false
-
-[functions.send-flight-email]
-verify_jwt = false
-
-[functions.hotelbeds-hotels]
-verify_jwt = false
-
-[functions.hotelbeds-activities]
-verify_jwt = false
-
-[functions.hotelbeds-transfers]
-verify_jwt = false
-
-[functions.search-hotels]
-verify_jwt = false
-
-[functions.create-travel-order]
-verify_jwt = false
-
-[functions.create-travel-checkout]
-verify_jwt = false
-
-[functions.confirm-hotelbeds-booking]
-verify_jwt = false
-
-[functions.send-travel-confirmation]
-verify_jwt = false
-
-[functions.resend-travel-confirmation]
-verify_jwt = false
-
-[functions.request-travel-cancellation]
-verify_jwt = false
-
-[functions.process-travel-cancellation]
-verify_jwt = true
-
-[functions.send-notification]
-verify_jwt = false
-
-[functions.notifications-api]
-verify_jwt = false
-
-[functions.assess-fraud]
-verify_jwt = false
-
-[functions.send-push-notification]
-verify_jwt = false
-
-[functions.ratehawk-hotels]
-verify_jwt = false
-
-[functions.check-signup-allowlist]
-verify_jwt = false
-
-[functions.send-otp-email]
-verify_jwt = false
-
-[functions.verify-otp-code]
-verify_jwt = false
-
-[functions.check-driver-rate-limit]
-verify_jwt = false
-
-[functions.update-driver-location]
-verify_jwt = false
-
-[functions.maps-autocomplete]
-verify_jwt = false
-
-[functions.maps-place-details]
-verify_jwt = false
-
-[functions.maps-route]
-verify_jwt = false
-
-[functions.process-order-notifications]
-verify_jwt = false
-
-[functions.maps-api-key]
-verify_jwt = false
-
-[functions.register-push-token]
-verify_jwt = false
-
-[functions.register-web-push]
-verify_jwt = true
-
-[functions.sync-offline-actions]
-verify_jwt = false
-
-[functions.create-eats-payment-intent]
-verify_jwt = false
-
-[functions.eats-call-session]
-verify_jwt = true
-
-[functions.eats-call-start]
-verify_jwt = true
-
-[functions.eats-twilio-voice]
-verify_jwt = false
-
-[functions.eats-twilio-status]
-verify_jwt = false
-
-[functions.send-segment-push]
-verify_jwt = true
-
-[functions.push-campaign-scheduler]
-verify_jwt = false
-
-[functions.send-otp-sms]
-verify_jwt = false
-
-[functions.verify-otp-sms]
-verify_jwt = false
-
-[functions.twilio-sms-status]
-verify_jwt = false
-
-[functions.twilio-sms-inbound]
-verify_jwt = false
-
-[functions.run-database-backup]
-verify_jwt = false
-
-[functions.run-storage-backup]
-verify_jwt = false
-
-[functions.update-eats-order]
-verify_jwt = false
-
-[functions.process-automated-triggers]
-verify_jwt = false
-
-[functions.ai-support-chat]
-verify_jwt = false
-
-[functions.purchase-gift-card]
-verify_jwt = false
-
-[functions.verify-gift-card-purchase]
-verify_jwt = false
-
-[functions.redeem-gift-card]
-verify_jwt = false
-
-[functions.otp-generate]
-verify_jwt = false
-
-[functions.otp-get]
-verify_jwt = false
-
-[functions.stripe-hold-create]
-verify_jwt = false
-
-[functions.create-payment-intent]
-verify_jwt = false
-
-[functions.capture-payment]
-verify_jwt = false
-
-[functions.cancel-job-payment]
-verify_jwt = false
-
-[functions.maps-geocode]
-verify_jwt = false
+[functions]
+  [functions.notify-dispatch]
+    verify_jwt = false
+  [functions.send-sms]
+    verify_jwt = false
+  [functions.send-test-notification]
+    verify_jwt = true
+  [functions.notifications-cron]
+    verify_jwt = false
+  [functions.notifications-weekly-digest]
+    verify_jwt = false
+  [functions.supplier-proxy]
+    verify_jwt = false
+  [functions.scan-invoice]
+    verify_jwt = true
+  [functions.account-export]
+    verify_jwt = true
+  [functions.account-delete-self]
+    verify_jwt = true
+  [functions.ar-receipts-helper]
+    verify_jwt = false
+  [functions.stripe-ride-webhook]
+    verify_jwt = false
+  [functions.stripe-webhook]
+    verify_jwt = false
+  [functions.create-zivo-plus-checkout]
+    verify_jwt = true
+  [functions.zivo-plus-portal]
+    verify_jwt = true
+  [functions.cancel-membership]
+    verify_jwt = true
+  [functions.chat-send-gift]
+    verify_jwt = true
+  [functions.chat-send-premium-gift]
+    verify_jwt = true
+  [functions.chat-unlock-group-media]
+    verify_jwt = true
+  [functions.stripe-lodging-webhook]
+    verify_jwt = false
+  [functions.dispatch-escalate]
+    verify_jwt = false
+  [functions.ads-studio-generate]
+    verify_jwt = false
+  [functions.ads-studio-export]
+    verify_jwt = false
+  [functions.ads-studio-track]
+    verify_jwt = false
+  [functions.ads-studio-auto-winner]
+    verify_jwt = false
+  [functions.ads-studio-publish]
+    verify_jwt = false
+  [functions.aba-payway-checkout]
+    verify_jwt = false
+  [functions.bakong-verify]
+    verify_jwt = true
+  [functions.verify-aba-telegram]
+    verify_jwt = true
+  [functions.create-bakong-ride]
+    verify_jwt = true
+  [functions.resolve-bakong-ride-refund]
+    verify_jwt = true
+  [functions.complete-ride-request]
+    verify_jwt = true
+  [functions.resolve-driver-earning-payout]
+    verify_jwt = true
+  [functions.generate-trip-receipt]
+    verify_jwt = true
+  [functions.account-summary]
+    verify_jwt = false
+  [functions.admin-create-user-post]
+    verify_jwt = false
+  [functions.admin-list-created-users]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.check-device-integrity]
+    verify_jwt = false
+  [functions.check-zivo-plus]
+    verify_jwt = false
+  [functions.costco-search]
+    verify_jwt = false
+  [functions.create-reel-boost]
+    verify_jwt = false
+  [functions.dispatch-start]
+    verify_jwt = false
+  [functions.duffel-flights]
+    verify_jwt = false
+  [functions.geo-detect]
+    verify_jwt = false
+  [functions.get-ice-servers]
+    verify_jwt = false
+  [functions.handle-email-suppression]
+    verify_jwt = false
+  [functions.handle-email-unsubscribe]
+    verify_jwt = false
+  [functions.kroger-search]
+    verify_jwt = false
+  [functions.live-signal]
+    verify_jwt = false
+  [functions.lookup-store-id]
+    verify_jwt = false
+  [functions.meta-capi-bridge]
+    verify_jwt = false
+  [functions.meta-conversion-bridge]
+    verify_jwt = false
+  [functions.meta-conversion-handler]
+    verify_jwt = false
+  [functions.analytics-event-track]
+    verify_jwt = false
+  [functions.notification-manage]
+    verify_jwt = true
+  [functions.social-notification-manage]
+    verify_jwt = true
+  [functions.push-device-manage]
+    verify_jwt = true
+  [functions.talent-invite-notification]
+    verify_jwt = true
+  [functions.admin-broadcast-notification]
+    verify_jwt = true
+  [functions.marketing-event-track]
+    verify_jwt = false
+  [functions.meta-oauth-start]
+    verify_jwt = false
+  [functions.google-ads-oauth-start]
+    verify_jwt = false
+  [functions.google-ads-oauth-callback]
+    verify_jwt = false
+  [functions.notifications-summary]
+    verify_jwt = false
+  [functions.oauth-callback]
+    verify_jwt = false
+  [functions.pair-go-live]
+    verify_jwt = false
+  [functions.post-og]
+    verify_jwt = false
+  [functions.channel-og]
+    verify_jwt = false
+  [functions.preview-transactional-email]
+    verify_jwt = false
+  [functions.profile-og]
+    verify_jwt = false
+  [functions.register-push-token]
+    verify_jwt = false
+  [functions.send-push-notification]
+    verify_jwt = false
+  [functions.send-transactional-email]
+    verify_jwt = false
+  [functions.send-otp-email]
+    verify_jwt = false
+  [functions.mint-sso-handoff]
+    verify_jwt = true
+  [functions.target-search]
+    verify_jwt = false
+  [functions.wallet-summary]
+    verify_jwt = false
+  [functions.walmart-search]
+    verify_jwt = false
+  [functions.lodging-ical-import]
+    verify_jwt = false
+  [functions.lodging-ical-export]
+    verify_jwt = false
+  [functions.create-p2p-transfer]
+    verify_jwt = false
+  [functions.create-bus-payment-intent]
+    verify_jwt = true
+  [functions.capture-bus-payment]
+    verify_jwt = true
+  [functions.software-media-handoff]
+    verify_jwt = false
+  [functions.zivo-domain-summary]
+    verify_jwt = false
+  [functions.zivosmedia-health]
+    verify_jwt = false
+  [functions.zivosmedia-auth-issue-code]
+    verify_jwt = true
+  [functions.zivosmedia-auth-validate-code]
+    verify_jwt = false

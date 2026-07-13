@@ -41,7 +41,7 @@ export default function SeasonalDealPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-12">
+        <main className="pt-safe-header pb-12">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-2xl font-bold mb-4">Deal Not Found</h1>
             <p className="text-muted-foreground mb-6">This deal page doesn't exist.</p>
@@ -68,7 +68,7 @@ export default function SeasonalDealPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/deals/${slug}`}
+        canonical={`https://zivosmedia.com/deals/${slug}`}
       />
       
       <Header />

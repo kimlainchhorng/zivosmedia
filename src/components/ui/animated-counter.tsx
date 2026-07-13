@@ -105,8 +105,8 @@ export const AnimatedStatCard = ({
               className={cn(
                 "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold",
                 trend.isPositive
-                  ? "bg-emerald-500/10 text-emerald-500"
-                  : "bg-red-500/10 text-red-500"
+                  ? "bg-success/10 text-success"
+                  : "bg-destructive/10 text-destructive"
               )}
             >
               <span>{trend.isPositive ? "↑" : "↓"}</span>

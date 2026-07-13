@@ -28,6 +28,8 @@ export interface Membership {
   user_id: string;
   plan_id: string;
   status: "active" | "trialing" | "past_due" | "cancelled" | "incomplete";
+  plan_code?: "monthly" | "chat" | "pro" | "annual" | null;
+  billing_cycle?: string | null;
   current_period_end: string | null;
   stripe_subscription_id: string | null;
   created_at: string;
@@ -67,6 +69,8 @@ export function useMembership() {
         user_id: data.user_id,
         plan_id: data.plan_id,
         status: data.status as Membership["status"],
+        plan_code: ((data as any).plan_code ?? null) as Membership["plan_code"],
+        billing_cycle: (data as any).billing_cycle ?? null,
         current_period_end: data.current_period_end,
         stripe_subscription_id: data.stripe_subscription_id,
         created_at: data.created_at,
@@ -163,25 +167,12 @@ export function useCreateMembershipCheckout() {
         throw new Error("You must be logged in to subscribe");
       }
 
-      const response = await fetch(
-        "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/create-membership-checkout",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.session.access_token}`,
-          },
-          body: JSON.stringify({ plan_id: planId, billing_cycle: billingCycle }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create checkout session");
-      }
-
-      const data = await response.json();
-      return data as { url: string; session_id: string };
+      const plan = billingCycle === "yearly" ? "annual" : "monthly";
+      const { data, error } = await supabase.functions.invoke("create-zivo-plus-checkout", {
+        body: { plan, plan_id: planId },
+      });
+      if (error) throw new Error(error.message || "Failed to create checkout session");
+      return data as { url: string; session_id?: string };
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -202,23 +193,9 @@ export function useCancelMembership() {
         throw new Error("You must be logged in to cancel");
       }
 
-      const response = await fetch(
-        "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/cancel-membership",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.session.access_token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to cancel membership");
-      }
-
-      return await response.json();
+      const { data, error } = await supabase.functions.invoke("cancel-membership");
+      if (error) throw new Error(error.message || "Failed to cancel membership");
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["membership"] });
@@ -241,27 +218,12 @@ export function useOpenCustomerPortal() {
         throw new Error("You must be logged in");
       }
 
-      const response = await fetch(
-        "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/customer-portal-membership",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.session.access_token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to open portal");
-      }
-
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke("zivo-plus-portal");
+      if (error) throw new Error(error.message || "Failed to open portal");
       return data as { url: string };
     },
     onSuccess: (data) => {
-      window.open(data.url, "_blank", "noopener,noreferrer");
+      import("@/lib/openExternalUrl").then(({ openExternalUrl: oe }) => oe(data.url));
     },
     onError: (error: Error) => {
       toast.error(error.message);

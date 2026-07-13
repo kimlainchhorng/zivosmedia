@@ -70,15 +70,15 @@ export default function TravelBookingsSupport() {
       <SEOHead 
         title="Travel Booking Support – ZIVO"
         description="Learn how to get support for flight, hotel, and car rental bookings. Understand the support process and contact the right team."
-        canonical="https://hizivo.com/support/travel-bookings"
+        canonical="https://zivosmedia.com/support/travel-bookings"
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Hero */}
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-sky-500/20 text-sky-500 border-sky-500/30">
+            <Badge className="mb-4 bg-secondary text-foreground border-border">
               <ExternalLink className="w-3 h-3 mr-1" />
               Booking Support
             </Badge>
@@ -132,9 +132,9 @@ export default function TravelBookingsSupport() {
           {/* Responsibility Split */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             {/* Partner Handles */}
-            <Card className="border-sky-500/30 hover:shadow-md transition-all duration-200">
+            <Card className="border-border hover:shadow-md transition-all duration-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-sky-500">
+                <CardTitle className="flex items-center gap-2 text-foreground">
                   <ExternalLink className="w-5 h-5" />
                   Travel Partner Handles
                 </CardTitle>
@@ -144,7 +144,7 @@ export default function TravelBookingsSupport() {
                 <ul className="space-y-3">
                   {partnerResponsibilities.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      <CheckCircle className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-foreground mt-0.5 flex-shrink-0" />
                       <span className="text-sm">{item}</span>
                     </li>
                   ))}
@@ -190,18 +190,18 @@ export default function TravelBookingsSupport() {
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-muted/50 border border-border/50 hover:border-sky-500/30 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
+                <div className="p-4 rounded-xl bg-muted/50 border border-border/50 hover:border-border hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
                   <div className="flex items-center gap-3 mb-3">
-                    <Plane className="w-5 h-5 text-sky-500" />
+                    <Plane className="w-5 h-5 text-foreground" />
                     <span className="font-semibold">Flights</span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">
                     Contact the airline or travel agency listed on your confirmation.
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-muted/50 border border-border/50 hover:border-violet-500/30 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
+                <div className="p-4 rounded-xl bg-muted/50 border border-border/50 hover:border-border hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200">
                   <div className="flex items-center gap-3 mb-3">
-                    <Hotel className="w-5 h-5 text-violet-500" />
+                    <Hotel className="w-5 h-5 text-foreground" />
                     <span className="font-semibold">Hotels</span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">

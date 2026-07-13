@@ -1,11 +1,13 @@
 /**
  * Checkout Trust Footer Component
- * Support contact and trust signals for checkout pages
+ * Support contact, trust signals, and legal compliance for checkout pages
  */
 
 import { Lock, Users, DollarSign, Shield, Mail, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHECKOUT_FOOTER } from "@/config/checkoutCompliance";
+import { ZIVO_SOT_REGISTRATION } from "@/config/flightMoRCompliance";
+import { Link } from "react-router-dom";
 
 interface CheckoutTrustFooterProps {
   className?: string;
@@ -38,7 +40,7 @@ export default function CheckoutTrustFooter({
             );
           })}
         </div>
-        <p>
+        <p className="mb-2">
           {CHECKOUT_FOOTER.help}{" "}
           <a 
             href={`mailto:${CHECKOUT_FOOTER.supportEmail}`}
@@ -46,6 +48,23 @@ export default function CheckoutTrustFooter({
           >
             Contact Support
           </a>
+        </p>
+        {/* Legal links */}
+        <div className="flex items-center justify-center gap-2 flex-wrap text-[10px] text-muted-foreground/60 mb-2">
+          <Link to="/legal/terms" className="hover:text-primary hover:underline">Terms</Link>
+          <span>·</span>
+          <Link to="/legal/privacy" className="hover:text-primary hover:underline">Privacy</Link>
+          <span>·</span>
+          <Link to="/legal/flight-terms" className="hover:text-primary hover:underline">Flight Terms</Link>
+          <span>·</span>
+          <Link to="/legal/partner-disclosure" className="hover:text-primary hover:underline">Partner Disclosure</Link>
+        </div>
+        {/* SOT + final */}
+        <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+          {CHECKOUT_FOOTER.final}
+        </p>
+        <p className="text-[10px] text-muted-foreground/50 mt-1">
+          {ZIVO_SOT_REGISTRATION.footerShort}
         </p>
       </div>
     );
@@ -84,11 +103,27 @@ export default function CheckoutTrustFooter({
         </a>
       </div>
 
-      {/* Final Disclaimer */}
+      {/* Legal Links */}
+      <div className="flex items-center justify-center gap-3 flex-wrap text-xs text-muted-foreground">
+        <Link to="/legal/terms" className="hover:text-primary hover:underline">Terms of Service</Link>
+        <span className="text-border">·</span>
+        <Link to="/legal/privacy" className="hover:text-primary hover:underline">Privacy Policy</Link>
+        <span className="text-border">·</span>
+        <Link to="/legal/flight-terms" className="hover:text-primary hover:underline">Flight Terms</Link>
+        <span className="text-border">·</span>
+        <Link to="/legal/partner-disclosure" className="hover:text-primary hover:underline">Partner Disclosure</Link>
+      </div>
+
+      {/* Final Disclaimer + SOT */}
       {showFinalNote && (
-        <p className="text-xs text-center text-muted-foreground/70 pt-2">
-          {CHECKOUT_FOOTER.final}
-        </p>
+        <div className="text-center pt-2 space-y-1">
+          <p className="text-xs text-muted-foreground/70">
+            {CHECKOUT_FOOTER.final}
+          </p>
+          <p className="text-[11px] text-muted-foreground/50">
+            {ZIVO_SOT_REGISTRATION.footerShort}
+          </p>
+        </div>
       )}
     </div>
   );

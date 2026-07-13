@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideSpecialtyModes — Pet-friendly, child seat, package delivery, special occasion rides
  */
 import { useState } from "react";
@@ -109,7 +109,7 @@ export default function RideSpecialtyModes() {
 
           return (
             <motion.div key={mode.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <button
+              <button type="button"
                 onClick={() => setSelectedMode(isExpanded ? null : mode.id)}
                 className={cn("w-full flex items-center gap-3 p-4 rounded-2xl border text-left transition-all", isActive ? `${mode.bg} ${mode.border}` : "bg-card border-border/40 hover:border-primary/20")}
               >
@@ -150,7 +150,7 @@ export default function RideSpecialtyModes() {
                           <h4 className="text-xs font-bold text-foreground mb-2">Seat Type</h4>
                           <div className="flex gap-2">
                             {(["rear", "forward", "booster"] as const).map(type => (
-                              <button key={type} onClick={() => setChildSeatType(type)} className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold border capitalize transition-all", childSeatType === type ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                              <button type="button" key={type} onClick={() => setChildSeatType(type)} className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold border capitalize transition-all", childSeatType === type ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                                 {type === "rear" ? "Rear-facing" : type === "forward" ? "Forward" : "Booster"}
                               </button>
                             ))}
@@ -170,7 +170,7 @@ export default function RideSpecialtyModes() {
                           <h4 className="text-xs font-bold text-foreground">Occasion Type</h4>
                           <div className="flex flex-wrap gap-1.5">
                             {["Birthday", "Anniversary", "Prom", "Wedding", "Date Night", "Other"].map(o => (
-                              <button key={o} onClick={() => setOccasionType(o)} className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all", occasionType === o ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                              <button type="button" key={o} onClick={() => setOccasionType(o)} className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all", occasionType === o ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                                 {o}
                               </button>
                             ))}

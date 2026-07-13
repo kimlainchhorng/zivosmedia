@@ -1,10 +1,12 @@
 /**
  * Booking Management Page
- * User-facing page to view and manage individual bookings
+ * Fetches real booking data from travel_orders table
  */
 
-import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -35,6 +37,7 @@ import {
   ExternalLink,
   Info,
   Shield,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -59,26 +62,6 @@ interface BookingDetails {
   baggagePolicy: string;
   refundEligibility: string;
 }
-
-// Mock booking data (would be fetched from API)
-const mockBooking: BookingDetails = {
-  bookingRef: "ZV-ABC123",
-  airlineCode: "DL1234",
-  status: "issued",
-  flightNumber: "DL1234",
-  airline: "Delta Air Lines",
-  origin: "New York (JFK)",
-  destination: "Los Angeles (LAX)",
-  departureDate: "February 10, 2024",
-  passengers: 2,
-  cabinClass: "Economy",
-  providerPhone: "1-800-221-1212",
-  providerEmail: "support@delta.com",
-  changePolicy: "Changes permitted for $75 fee up to 24 hours before departure",
-  cancelPolicy: "Refundable with $50 fee if cancelled 24+ hours before departure",
-  baggagePolicy: "1 carry-on bag included. Checked bags from $35",
-  refundEligibility: "Eligible for refund minus cancellation fee",
-};
 
 const statusConfig: Record<TicketStatus, { label: string; icon: typeof CheckCircle2; color: string; bg: string }> = {
   issued: {
@@ -109,7 +92,82 @@ const statusConfig: Record<TicketStatus, { label: string; icon: typeof CheckCirc
 
 const BookingManagement = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
-  const [booking] = useState<BookingDetails>(mockBooking);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const { data: booking, isLoading } = useQuery({
+    queryKey: ["booking-management", bookingId, user?.id],
+    queryFn: async (): Promise<BookingDetails | null> => {
+      if (!user?.id || !bookingId) return null;
+
+      // Fetch order + items
+      const { data: order } = await supabase
+        .from("travel_orders")
+        .select("*, travel_order_items(*)")
+        .eq("user_id", user.id)
+        .eq("order_number", bookingId)
+        .maybeSingle();
+
+      if (!order) return null;
+
+      const items = (order as any).travel_order_items || [];
+      const flightItem = items.find((i: any) => i.type === "flight") || items[0];
+      const meta = (flightItem?.meta as any) || {};
+
+      const statusMap: Record<string, TicketStatus> = {
+        confirmed: "issued",
+        pending: "pending",
+        cancelled: "cancelled",
+      };
+
+      return {
+        bookingRef: order.order_number || bookingId,
+        airlineCode: meta.airline_code || meta.flightNumber || "—",
+        status: statusMap[order.status || "pending"] || "pending",
+        flightNumber: meta.flightNumber || "—",
+        airline: meta.airline || order.provider || "Travel Partner",
+        origin: meta.origin || flightItem?.title?.split("→")?.[0]?.trim() || "—",
+        destination: meta.destination || flightItem?.title?.split("→")?.[1]?.trim() || "—",
+        departureDate: flightItem?.start_date
+          ? new Date(flightItem.start_date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+          : "—",
+        passengers: flightItem?.adults || 1,
+        cabinClass: meta.cabin_class || "Economy",
+        providerPhone: meta.provider_phone || "Contact via partner website",
+        providerEmail: meta.provider_email || "support@partner.com",
+        changePolicy: flightItem?.cancellation_policy || "Please check the partner's website for change and modification policies.",
+        cancelPolicy: flightItem?.cancellation_policy || "Please check the partner's website for cancellation policies.",
+        baggagePolicy: meta.baggage_policy || "Please check the partner's website for baggage allowance details.",
+        refundEligibility: meta.refund_policy || "Refund eligibility is governed by the travel partner's rules.",
+      };
+    },
+    enabled: !!user?.id && !!bookingId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-safe-header pb-20">
+          <div className="container mx-auto px-4 max-w-3xl text-center">
+            <Info className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Booking Not Found</h1>
+            <p className="text-muted-foreground mb-6">We couldn't find a booking with reference "{bookingId}".</p>
+            <Button onClick={() => navigate("/my-trips")}>View My Trips</Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   const status = statusConfig[booking.status];
   const StatusIcon = status.icon;
@@ -119,11 +177,11 @@ const BookingManagement = () => {
       <SEOHead
         title={`Booking ${bookingId} | ZIVO`}
         description="Manage your booking, view ticket status, and access provider contact information."
-        canonical={`https://hizivo.com/bookings/${bookingId}`}
+        canonical={`https://zivosmedia.com/bookings/${bookingId}`}
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="container mx-auto px-4 max-w-3xl">
           {/* Back Navigation */}
           <Link
@@ -313,12 +371,12 @@ const BookingManagement = () => {
           {/* Quick Actions Grid */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[
-              { icon: Phone, label: "Call Airline", action: () => window.open(`tel:${booking.providerPhone.replace(/-/g, "")}`, '_self') },
-              { icon: Mail, label: "Email Airline", action: () => window.open(`mailto:${booking.providerEmail}`, '_self') },
+              { icon: Phone, label: "Call Airline", action: () => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl(`tel:${booking.providerPhone.replace(/-/g, "")}`)) },
+              { icon: Mail, label: "Email Airline", action: () => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl(`mailto:${booking.providerEmail}`)) },
               { icon: FileText, label: "View Receipt", action: () => {} },
               { icon: ExternalLink, label: "Airline Website", action: () => {} },
             ].map((act) => (
-              <button
+              <button type="button"
                 key={act.label}
                 onClick={act.action}
                 className="flex items-center gap-3 p-4 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-muted/30 transition-all duration-200 active:scale-[0.98] touch-manipulation"

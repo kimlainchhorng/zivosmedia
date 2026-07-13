@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideLoyaltyRewards — Points system, tier progression, streak bonuses, partner perks
  */
 import { useState } from "react";
@@ -29,7 +29,8 @@ export default function RideLoyaltyRewards() {
   const streakDays = 12;
   const bestStreak = 21;
 
-  const [perks] = useState<Perk[]>([
+  const [points, setPoints] = useState(currentPoints);
+  const [perks, setPerks] = useState<Perk[]>([
     { id: "1", partner: "Starbucks", offer: "Free Grande Drink", pointsCost: 500, category: "Food & Drink", redeemed: false },
     { id: "2", partner: "Spotify", offer: "1 Month Premium", pointsCost: 1200, category: "Entertainment", redeemed: false },
     { id: "3", partner: "Nike", offer: "15% Off Purchase", pointsCost: 800, category: "Shopping", redeemed: false },
@@ -64,7 +65,7 @@ export default function RideLoyaltyRewards() {
         {sections.map(s => {
           const Icon = s.icon;
           return (
-            <button key={s.id} onClick={() => setSection(s.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", section === s.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+            <button type="button" key={s.id} onClick={() => setSection(s.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", section === s.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               <Icon className="w-3.5 h-3.5" /> {s.label}
             </button>
           );
@@ -79,7 +80,7 @@ export default function RideLoyaltyRewards() {
             <div className="space-y-4">
               <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-amber-500/10 border border-primary/20 p-5 text-center">
                 <Sparkles className="w-8 h-8 text-primary mx-auto mb-1" />
-                <p className="text-3xl font-black text-foreground">{currentPoints.toLocaleString()}</p>
+                <p className="text-3xl font-black text-foreground">{points.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground font-bold mt-1">Available Points</p>
                 <div className="flex items-center justify-center gap-4 mt-3">
                   <div>
@@ -173,7 +174,7 @@ export default function RideLoyaltyRewards() {
                     const isToday = i === 4;
                     return (
                       <div key={i} className="flex flex-col items-center gap-1.5">
-                        <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors", completed ? "bg-primary text-primary-foreground" : isToday ? "bg-primary/20 text-primary border-2 border-primary" : "bg-muted/30 text-muted-foreground")}>
+                        <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors", completed ? "bg-ig-gradient text-white" : isToday ? "bg-primary/20 text-primary border-2 border-primary" : "bg-muted/30 text-muted-foreground")}>
                           {completed ? <CheckCircle className="w-4 h-4" /> : d}
                         </div>
                         <span className="text-[9px] font-bold text-muted-foreground">{d}</span>
@@ -213,7 +214,7 @@ export default function RideLoyaltyRewards() {
               <div className="rounded-2xl bg-card border border-border/40 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-foreground">Partner Perks</h3>
-                  <Badge variant="outline" className="text-[9px] font-bold">{currentPoints.toLocaleString()} pts available</Badge>
+                  <Badge variant="outline" className="text-[9px] font-bold">{points.toLocaleString()} pts available</Badge>
                 </div>
 
                 <div className="space-y-2">
@@ -229,7 +230,11 @@ export default function RideLoyaltyRewards() {
                       {perk.redeemed ? (
                         <Badge variant="secondary" className="text-[8px] font-bold">Redeemed</Badge>
                       ) : (
-                        <Button size="sm" variant={currentPoints >= perk.pointsCost ? "default" : "outline"} className="h-7 text-[10px] font-bold rounded-lg" disabled={currentPoints < perk.pointsCost} onClick={() => toast.success(`${perk.partner} perk redeemed!`)}>
+                        <Button size="sm" variant={points >= perk.pointsCost ? "default" : "outline"} className="h-7 text-[10px] font-bold rounded-lg" disabled={points < perk.pointsCost} onClick={() => {
+                          setPoints(p => p - perk.pointsCost);
+                          setPerks(prev => prev.map(pk => pk.id === perk.id ? { ...pk, redeemed: true } : pk));
+                          toast.success(`${perk.partner} perk redeemed!`);
+                        }}>
                           {perk.pointsCost} pts
                         </Button>
                       )}

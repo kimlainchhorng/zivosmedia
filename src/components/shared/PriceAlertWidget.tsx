@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Bell, 
   BellRing,
@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PriceAlert {
   id: string;
@@ -35,7 +37,6 @@ interface PriceAlertWidgetProps {
   className?: string;
 }
 
-// TODO: Load price alerts from user's saved alerts in database
 const INITIAL_ALERTS: PriceAlert[] = [];
 
 const typeIcons = {
@@ -51,18 +52,53 @@ const typeColors = {
 };
 
 const PriceAlertWidget = ({ className }: PriceAlertWidgetProps) => {
+  const { user } = useAuth();
   const [alerts, setAlerts] = useState<PriceAlert[]>(INITIAL_ALERTS);
   const [showAll, setShowAll] = useState(false);
 
-  const toggleAlert = (id: string) => {
-    setAlerts(prev => prev.map(alert => 
-      alert.id === id ? { ...alert, isActive: !alert.isActive } : alert
-    ));
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("price_alerts").select("id, origin_code, destination_code, current_price, target_price, is_active, triggered")
+      .eq("user_id", user.id).then(({ data }) => {
+        if (data && data.length > 0) {
+          setAlerts(data.map(a => ({
+            id: a.id,
+            type: "flight" as const,
+            route: `${a.origin_code} → ${a.destination_code}`,
+            currentPrice: a.current_price ?? 0,
+            targetPrice: a.target_price ?? 0,
+            lastPrice: a.current_price ?? 0,
+            trend: (a.current_price ?? 0) <= (a.target_price ?? 0) ? "down" as const : "up" as const,
+            isActive: a.is_active ?? true,
+            notified: a.triggered ?? false,
+          })));
+        }
+      });
+  }, [user]);
+
+  const toggleAlert = async (id: string) => {
+    const alert = alerts.find(a => a.id === id);
+    if (!alert) return;
+    const newActive = !alert.isActive;
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, isActive: newActive } : a));
+    const { error } = await supabase.from("price_alerts").update({ is_active: newActive }).eq("id", id);
+    if (error) {
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, isActive: alert.isActive } : a));
+      toast.error("Couldn't update alert");
+      return;
+    }
     toast.success("Alert updated");
   };
 
-  const removeAlert = (id: string) => {
-    setAlerts(prev => prev.filter(alert => alert.id !== id));
+  const removeAlert = async (id: string) => {
+    const prevAlerts = alerts;
+    setAlerts(prev => prev.filter(a => a.id !== id));
+    const { error } = await supabase.from("price_alerts").update({ is_active: false }).eq("id", id);
+    if (error) {
+      setAlerts(prevAlerts);
+      toast.error("Couldn't remove alert");
+      return;
+    }
     toast.success("Alert removed");
   };
 
@@ -173,7 +209,7 @@ const PriceAlertWidget = ({ className }: PriceAlertWidgetProps) => {
                     onCheckedChange={() => toggleAlert(alert.id)}
                     className="scale-75"
                   />
-                  <button
+                  <button type="button"
                     onClick={() => removeAlert(alert.id)}
                     aria-label="Remove alert"
                     className="p-1 rounded hover:bg-destructive/10 transition-colors"
@@ -198,7 +234,7 @@ const PriceAlertWidget = ({ className }: PriceAlertWidgetProps) => {
 
         {/* Show More */}
         {alerts.length > 3 && (
-          <button
+          <button type="button"
             onClick={() => setShowAll(!showAll)}
             className="w-full text-center text-sm text-primary hover:underline py-2"
           >

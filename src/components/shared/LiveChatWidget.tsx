@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { MessageCircle, X, Send, Bot, User, Headphones, Loader2, Sparkles, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { streamZivoAiChat } from "@/lib/zivoAiChat";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 
 type ChatMessage = {
   id: number;
@@ -31,11 +32,9 @@ const ESCALATION_CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-support-chat`;
-
 const LiveChatWidget = () => {
   const location = useLocation();
-  const isRidesPage = location.pathname.startsWith("/rides");
+  const isRidesPage = location.pathname.startsWith("/rides") || location.pathname.startsWith("/airport-transfers");
   const [isOpen, setIsOpen] = useState(false);
   const [chatMode, setChatMode] = useState<ChatMode>("ai");
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -48,6 +47,7 @@ const LiveChatWidget = () => {
   const [escalationMessage, setEscalationMessage] = useState("");
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
   const [pulseVisible, setPulseVisible] = useState(true);
+  const [isDismissed, setIsDismissed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -86,91 +86,23 @@ const LiveChatWidget = () => {
       content: m.content,
     }));
 
-    const resp = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({ messages: apiMessages }),
-      signal: controller.signal,
-    });
-
-    if (!resp.ok) {
-      const errorData = await resp.json().catch(() => ({}));
-      if (resp.status === 429) {
-        toast.error("AI is busy, please try again in a moment");
-      } else if (resp.status === 402) {
-        toast.error("Service temporarily unavailable");
-      } else {
-        toast.error(errorData.error || "Something went wrong");
-      }
-      throw new Error(errorData.error || "Stream failed");
-    }
-
-    if (!resp.body) throw new Error("No response body");
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
     let assistantContent = "";
     const assistantId = Date.now() + 1;
-
     setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-
-      let newlineIdx: number;
-      while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-        let line = buffer.slice(0, newlineIdx);
-        buffer = buffer.slice(newlineIdx + 1);
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
-
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") break;
-
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const delta = parsed.choices?.[0]?.delta?.content;
-          if (delta) {
-            assistantContent += delta;
-            const snapshot = assistantContent;
-            setMessages((prev) =>
-              prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
-            );
-          }
-        } catch {
-          buffer = line + "\n" + buffer;
-          break;
-        }
-      }
-    }
-
-    if (buffer.trim()) {
-      for (let raw of buffer.split("\n")) {
-        if (!raw) continue;
-        if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-        if (!raw.startsWith("data: ")) continue;
-        const jsonStr = raw.slice(6).trim();
-        if (jsonStr === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const delta = parsed.choices?.[0]?.delta?.content;
-          if (delta) {
-            assistantContent += delta;
-            const snapshot = assistantContent;
-            setMessages((prev) =>
-              prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
-            );
-          }
-        } catch { /* ignore */ }
-      }
-    }
+    await streamZivoAiChat({
+      mode: "support",
+      provider: "auto",
+      messages: apiMessages,
+      signal: controller.signal,
+      onDelta: (delta) => {
+        assistantContent += delta;
+        const snapshot = assistantContent;
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
+        );
+      },
+    });
   };
 
   const sendMessage = async (text: string) => {
@@ -192,6 +124,7 @@ const LiveChatWidget = () => {
     } catch (e) {
       if ((e as Error).name !== "AbortError") {
         console.error("Chat error:", e);
+        toast.error(e instanceof Error ? e.message : "AI is unavailable");
       }
     } finally {
       setIsStreaming(false);
@@ -207,20 +140,15 @@ const LiveChatWidget = () => {
     setIsSubmittingTicket(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const ticketNumber = `ZS-${Date.now().toString().slice(-6)}`;
-
-      const { error } = await supabase.from("support_tickets").insert({
-        ticket_number: ticketNumber,
-        user_id: user?.id || null,
+      const { data, error } = await supabase.functions.invoke("support-ticket-submit", { body: {
         subject: ESCALATION_CATEGORIES.find((c) => c.value === escalationCategory)?.label || "Support Request",
-        description: escalationMessage || "Customer requested human support via AI chat",
-        category: escalationCategory,
-        priority: escalationCategory === "safety" ? "urgent" : "normal",
-        status: "open",
-      });
+        message: escalationMessage || "Customer requested human support via AI chat",
+        source: `live_chat:${escalationCategory}`,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
 
       if (error) throw error;
+      const ticketNumber = (data as any)?.ticket_number ?? "ZS-SUPPORT";
 
       setMessages((prev) => [
         ...prev,
@@ -243,27 +171,41 @@ const LiveChatWidget = () => {
     }
   };
 
+  if (isRidesPage || isDismissed) return null;
+
   return (
     <>
       {/* Floating Action Button */}
       <AnimatePresence>
-        {!isOpen && !isRidesPage && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            onClick={() => setIsOpen(true)}
-            className="fixed right-4 md:right-6 z-50 w-14 h-14 bg-gradient-to-r from-primary to-primary/80 rounded-full shadow-xl shadow-primary/25 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform touch-manipulation"
-            style={{ bottom: "calc(72px + 88px + env(safe-area-inset-bottom, 0px))" }}
-          >
-            <MessageCircle className="w-6 h-6 text-primary-foreground" />
-            {/* Online dot */}
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
-            {/* Pulse ring */}
-            {pulseVisible && (
-              <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-            )}
-          </motion.button>
+        {!isOpen && (
+          <div className="fixed right-4 md:right-6 z-50" style={{ bottom: "calc(72px + 88px + var(--zivo-safe-bottom,0px))" }}>
+            <motion.button
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              drag
+              dragConstraints={{ top: -400, bottom: 100, left: -300, right: 0 }}
+              dragElastic={0.1}
+              dragMomentum={false}
+              whileDrag={{ scale: 1.1 }}
+              onClick={() => setIsOpen(true)}
+              className="w-14 h-14 bg-gradient-to-r from-primary to-primary/80 rounded-full shadow-xl shadow-primary/25 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform touch-manipulation cursor-grab active:cursor-grabbing"
+            >
+              <MessageCircle className="w-6 h-6 text-primary-foreground" />
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
+              {pulseVisible && (
+                <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+              )}
+            </motion.button>
+            {/* Dismiss button */}
+            <button type="button"
+              onClick={(e) => { e.stopPropagation(); setIsDismissed(true); }}
+              className="absolute -top-1.5 -left-1.5 w-6 h-6 bg-muted border border-border rounded-full flex items-center justify-center shadow-md hover:bg-destructive hover:text-destructive-foreground transition-colors z-10"
+              aria-label="Close chat widget"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
         )}
       </AnimatePresence>
 
@@ -275,7 +217,7 @@ const LiveChatWidget = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-20 md:bottom-6 right-2 md:right-6 z-50 w-[calc(100vw-16px)] md:w-[380px] h-[520px] bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-[calc(var(--zivo-safe-bottom,0px)+5rem)] md:bottom-6 right-2 md:right-6 z-50 w-[calc(100vw-16px)] md:w-[380px] h-[520px] bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-primary to-primary/80 flex items-center justify-between shrink-0">
@@ -301,14 +243,14 @@ const LiveChatWidget = () => {
               </div>
               <div className="flex items-center gap-2">
                 {/* Mode toggle */}
-                <button
+                <button type="button"
                   onClick={() => switchMode(chatMode === "ai" ? "human" : "ai")}
                   className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
                   title={chatMode === "ai" ? "Switch to human" : "Switch to AI"}
                 >
                   <ArrowLeftRight className="w-4 h-4 text-primary-foreground" />
                 </button>
-                <button onClick={() => setIsOpen(false)} className="text-primary-foreground/80 hover:text-primary-foreground">
+                <button type="button" onClick={() => setIsOpen(false)} className="text-primary-foreground/80 hover:text-primary-foreground">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -316,7 +258,7 @@ const LiveChatWidget = () => {
 
             {/* Mode indicator bar */}
             <div className="flex border-b border-border/30 shrink-0">
-              <button
+              <button type="button"
                 onClick={() => switchMode("ai")}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
                   chatMode === "ai" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"
@@ -325,7 +267,7 @@ const LiveChatWidget = () => {
                 <Sparkles className="w-3 h-3" />
                 AI Assistant
               </button>
-              <button
+              <button type="button"
                 onClick={() => switchMode("human")}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
                   chatMode === "human" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground hover:text-foreground"
@@ -358,7 +300,7 @@ const LiveChatWidget = () => {
                     className={`max-w-[78%] p-3 rounded-2xl text-sm whitespace-pre-wrap leading-relaxed ${
                       msg.role === "assistant"
                         ? "bg-muted/60 rounded-tl-sm"
-                        : "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-ig-gradient text-white rounded-tr-sm"
                     }`}
                   >
                     {msg.content || (isStreaming && msg.role === "assistant" ? (
@@ -378,12 +320,12 @@ const LiveChatWidget = () => {
                 <p className="text-xs font-semibold text-foreground">Connect to human support</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {ESCALATION_CATEGORIES.map((cat) => (
-                    <button
+                    <button type="button"
                       key={cat.value}
                       onClick={() => setEscalationCategory(cat.value)}
                       className={`px-2.5 py-1 text-xs rounded-full border transition-all duration-200 ${
                         escalationCategory === cat.value
-                          ? "bg-primary text-primary-foreground border-primary"
+                          ? "bg-ig-gradient text-white border-primary"
                           : "bg-muted border-border hover:bg-muted/80"
                       }`}
                     >
@@ -423,7 +365,7 @@ const LiveChatWidget = () => {
               <div className="px-4 pb-2 shrink-0">
                 <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-hide">
                   {quickReplies.map((reply) => (
-                    <button
+                    <button type="button"
                       key={reply}
                       onClick={() => sendMessage(reply)}
                       disabled={isStreaming}

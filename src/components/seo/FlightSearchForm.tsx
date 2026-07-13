@@ -73,7 +73,7 @@ export default function FlightSearchForm({
 
   return (
     <Card className="max-w-4xl mx-auto overflow-hidden border-0 bg-card/95 backdrop-blur-2xl shadow-2xl shadow-black/40 ring-1 ring-white/10">
-      <div className="h-1.5 bg-gradient-to-r from-sky-500 via-blue-500 to-cyan-500" />
+      <div className="h-1.5 bg-secondary" />
       <CardContent className="p-6">
         {/* Trip Type Toggle */}
         <div className="flex flex-wrap gap-2 mb-6">
@@ -82,7 +82,7 @@ export default function FlightSearchForm({
             { id: "oneway", label: "One Way", icon: Plane },
             { id: "multicity", label: "Multi-City", icon: MapPin },
           ].map((type) => (
-            <button
+            <button type="button"
               key={type.id}
               onClick={() => setTripType(type.id as typeof tripType)}
               className={cn(
@@ -113,7 +113,7 @@ export default function FlightSearchForm({
               size="icon"
               aria-label="Swap cities"
               onClick={swapCities}
-              className="h-12 w-12 rounded-full border-dashed hover:border-sky-500 hover:bg-sky-500/10 shrink-0 transition-all hover:rotate-180 duration-500"
+              className="h-12 w-12 rounded-full border-dashed hover:border-border hover:bg-secondary shrink-0 transition-all hover:rotate-180 duration-500"
             >
               <ArrowLeftRight className="w-4 h-4" />
             </Button>
@@ -134,8 +134,8 @@ export default function FlightSearchForm({
                 className="h-14 justify-start text-left font-normal bg-background/50 hover:bg-background/80"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center">
-                    <Sunrise className="h-5 w-5 text-sky-500" />
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                    <Sunrise className="h-5 w-5 text-foreground" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Departure</p>
@@ -191,8 +191,8 @@ export default function FlightSearchForm({
             <Select value={passengers} onValueChange={setPassengers}>
               <SelectTrigger className="h-14 bg-background/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-purple-500" />
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                    <Users className="w-5 h-5 text-foreground" />
                   </div>
                   <div className="text-left">
                     <p className="text-xs text-muted-foreground">Travelers</p>
@@ -248,7 +248,7 @@ export default function FlightSearchForm({
           onClick={handleSearch}
           disabled={!fromCity || !toCity || !departDate}
           size="lg"
-          className="w-full h-14 bg-gradient-to-r from-sky-500 via-blue-600 to-sky-500 hover:from-sky-600 hover:via-blue-700 hover:to-sky-600 text-primary-foreground font-bold text-lg shadow-xl shadow-sky-500/30 transition-all hover:shadow-sky-500/50"
+          className="w-full h-14 hover:text-primary-foreground font-bold text-lg shadow-xl transition-all bg-foreground"
         >
           <Search className="w-5 h-5 mr-2" />
           Search Flights

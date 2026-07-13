@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { 
   Users, 
   Mail, 
@@ -31,7 +31,6 @@ interface CompanionInviteProps {
   className?: string;
 }
 
-// TODO: Load companions from trip database
 const INITIAL_COMPANIONS: Companion[] = [];
 
 const CompanionInvite = ({ tripName = "Paris Trip", className }: CompanionInviteProps) => {
@@ -103,7 +102,7 @@ const CompanionInvite = ({ tripName = "Paris Trip", className }: CompanionInvite
           {/* You (organizer) */}
           <div className="flex items-center gap-3 p-2 rounded-xl bg-primary/5 border border-primary/20">
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+              <AvatarFallback className="bg-ig-gradient text-white text-xs">
                 You
               </AvatarFallback>
             </Avatar>
@@ -111,7 +110,7 @@ const CompanionInvite = ({ tripName = "Paris Trip", className }: CompanionInvite
               <p className="text-sm font-medium">You</p>
               <p className="text-xs text-muted-foreground">Organizer</p>
             </div>
-            <Badge className="bg-primary text-primary-foreground text-xs">
+            <Badge className="bg-ig-gradient text-white text-xs">
               Host
             </Badge>
           </div>
@@ -134,7 +133,7 @@ const CompanionInvite = ({ tripName = "Paris Trip", className }: CompanionInvite
               <Badge className={cn("text-xs", statusColors[companion.status])}>
                 {companion.status}
               </Badge>
-              <button
+              <button type="button"
                 onClick={() => handleRemoveCompanion(companion.id)}
                 className="p-1 rounded hover:bg-destructive/10 transition-colors"
               >

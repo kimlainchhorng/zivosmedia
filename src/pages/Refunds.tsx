@@ -28,11 +28,11 @@ const Refunds = () => {
       <SEOHead 
         title="Refund Policy | ZIVO"
         description="Learn about ZIVO's refund policy. All bookings are processed by our travel partners who handle refunds directly."
-        canonical="https://hizivo.com/refunds"
+        canonical="https://zivosmedia.com/legal/refunds"
       />
       <Header />
       
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Header */}
           <div className="text-center mb-12">
@@ -241,7 +241,7 @@ const Refunds = () => {
                     who acts as the merchant of record. They process your payment, issue your ticket 
                     or reservation, and handle all post-booking support including refunds.
                   </p>
-                  <Link to="/partner-disclosure">
+                  <Link to="/legal/partner-disclosure">
                     <Button variant="outline" size="sm" className="gap-2">
                       <ExternalLink className="w-3 h-3" />
                       View Partner Disclosure

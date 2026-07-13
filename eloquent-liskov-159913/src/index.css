@@ -1,0 +1,2483 @@
+/* Fonts loaded via <link> in index.html to avoid render-blocking @import */
+
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+
+@layer base {
+  :root {
+    /* =============================================
+       ZIVO DESIGN SYSTEM — Instagram-style Mono
+       Pure white canvas, true-black ink, hairline
+       borders. The IG gradient lives in --ig-gradient
+       and is used only for accents (logo, story
+       rings, like burst), never for surfaces.
+       ============================================= */
+
+    /* Base Colors — pure mono */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    /* Primary — IG uses solid black for primary ink (text, primary buttons) */
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — neutral surface */
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
+
+    /* Muted */
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    /* Accent — IG action blue for inline links / "Follow" CTA */
+    --accent: 204 100% 96%;
+    --accent-foreground: 204 100% 40%;
+
+    /* Destructive */
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & Inputs — IG-style hairline */
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 0%;
+    --radius: 0.5rem;
+
+    /* IG action blue (used by buttons / "Follow" links) */
+    --ig-blue: 204 100% 50%;
+    --ig-blue-foreground: 0 0% 100%;
+
+    /* =============================================
+       PRODUCT ACCENT COLORS (HSL)
+       ============================================= */
+
+    /* Flights - Blue */
+    --flights: 221 83% 53%;
+    --flights-light: 221 91% 91%;
+
+    /* Hotels - Amber */
+    --hotels: 38 92% 50%;
+    --hotels-light: 45 93% 88%;
+
+    /* Cars - Purple */
+    --cars: 263 70% 50%;
+    --cars-light: 263 75% 92%;
+
+    /* Rides - ZIVO Emerald/Teal Brand */
+    --rides: 160 84% 39%;           /* Emerald-500 */
+    --rides-light: 160 84% 92%;
+    --rides-secondary: 174 72% 40%; /* Teal-500 */
+    --rides-cream: 35 100% 98%;     /* Warm cream background */
+    --rides-surge: 0 76% 71%;       /* Coral for surge */
+
+    /* Eats - Red */
+    --eats: 0 84% 60%;
+    --eats-light: 0 86% 92%;
+
+    /* More - Slate */
+    --more: 215 16% 47%;
+    --more-light: 215 20% 93%;
+
+    /* Success/Warning */
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+
+    /* =============================================
+       SHADOWS (Ramp-style Soft Shadows)
+       ============================================= */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-md: 0 2px 8px -2px rgb(0 0 0 / 0.08), 0 4px 16px -4px rgb(0 0 0 / 0.06);
+    --shadow-lg: 0 4px 16px -2px rgb(0 0 0 / 0.08), 0 12px 32px -8px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 8px 24px -4px rgb(0 0 0 / 0.1), 0 16px 40px -8px rgb(0 0 0 / 0.12);
+
+    /* Premium Card Shadow */
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 4px 16px -2px rgb(0 0 0 / 0.06);
+    --shadow-card-hover: 0 8px 30px -5px rgb(0 0 0 / 0.1), 0 4px 12px -3px rgb(0 0 0 / 0.04);
+
+    /* =============================================
+       SIDEBAR
+       ============================================= */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142 20% 96%;
+    --sidebar-accent-foreground: 142 50% 20%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 142 71% 45%;
+    --sidebar: 0 0% 98%;
+
+    /* =============================================
+       CHARTS
+       ============================================= */
+    --chart-1: 158 64% 51%;
+    --chart-2: 141 69% 58%;
+    --chart-3: 172 66% 50%;
+    --chart-4: 82 77% 55%;
+    --chart-5: 0 0% 45%;
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-serif: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'Inconsolata', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    /* =============================================
+       ZIVO DARK THEME — true black for OLED
+       ============================================= */
+
+    /* Base Colors */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Primary — flips to white on dark */
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+
+    /* Secondary — slightly lifted off background */
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Muted */
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 64%;
+
+    /* Accent — IG action blue, dimmed */
+    --accent: 204 60% 14%;
+    --accent-foreground: 204 100% 60%;
+
+    /* Destructive */
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders & Inputs — IG-style hairline on near-black */
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 0 0% 100%;
+
+    /* Product Colors */
+    --flights: 217 91% 60%;
+    --flights-light: 217 91% 20%;
+
+    --hotels: 38 92% 55%;
+    --hotels-light: 38 50% 20%;
+
+    --cars: 263 70% 60%;
+    --cars-light: 263 50% 20%;
+
+    --rides: 142 71% 50%;
+    --rides-light: 142 40% 18%;
+
+    --eats: 0 84% 60%;
+    --eats-light: 0 50% 20%;
+
+    --more: 215 20% 55%;
+    --more-light: 215 20% 18%;
+
+    /* Shadows (darker) */
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+
+    /* Sidebar */
+    --sidebar: 0 0% 14%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 172 66% 50%;
+    --sidebar-accent-foreground: 178 84% 10%;
+    --sidebar-border: 0 0% 32%;
+    --sidebar-ring: 142 71% 45%;
+    --chart-1: 156 71% 66%;
+    --chart-2: 141 76% 73%;
+    --chart-3: 170 76% 64%;
+    --chart-4: 81 84% 67%;
+    --chart-5: 0 0% 45%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  }
+}
+
+@layer utilities {
+  .zivo-shell-mobile {
+    min-height: 100dvh;
+    padding-bottom: calc(4.5rem + var(--zivo-safe-bottom, 0px));
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  .zivo-sticky-mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: hsl(var(--background) / 0.97);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid hsl(var(--border) / 0.3);
+  }
+
+  .zivo-mobile-header-row {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+  }
+
+  .zivo-pt-safe-sticky {
+    padding-top: var(--zivo-safe-top-sticky);
+  }
+
+  .zivo-pt-safe-overlay {
+    padding-top: var(--zivo-safe-top-overlay);
+  }
+
+  .zivo-pb-safe-inset {
+    padding-bottom: var(--zivo-safe-bottom, 0px);
+  }
+
+  .zivo-reels-bottom-spacer {
+    height: max(calc(var(--zivo-safe-bottom, 0px) + 6rem), 6rem);
+  }
+
+  .zivo-reel-close-offset {
+    top: var(--zivo-safe-top-overlay);
+    left: max(env(safe-area-inset-left, 0px), 16px);
+  }
+
+  .zivo-reel-actions-offset {
+    bottom: max(calc(var(--zivo-safe-bottom, 0px) + 1.5rem), 2.5rem);
+  }
+
+  .zivo-reel-product-offset {
+    bottom: max(calc(var(--zivo-safe-bottom, 0px) + 5.5rem), 7rem);
+  }
+
+  .zivo-reel-caption-offset {
+    padding-bottom: max(calc(var(--zivo-safe-bottom, 0px) + 1rem), 2rem);
+  }
+
+  .zivo-touch-no-callout {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .zivo-reel-no-callout,
+  .zivo-reel-no-callout * {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  body.zivo-reels-active :where(*):not(input):not(textarea):not([contenteditable='true']) {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .zivo-live-topbar-safe {
+    padding-top: calc(var(--zivo-safe-top, 0px) + 8px);
+  }
+
+  .zivo-live-viewers-offset {
+    top: calc(var(--zivo-safe-top, 0px) + 80px);
+  }
+
+  .zivo-live-actions-offset {
+    bottom: calc(var(--zivo-safe-bottom, 0px) + 160px);
+  }
+
+  .zivo-live-chat-offset {
+    bottom: calc(var(--zivo-safe-bottom, 0px) + 60px);
+  }
+
+  .zivo-live-input-offset {
+    bottom: var(--zivo-safe-bottom, 0px);
+  }
+
+  .zivo-live-gift-panel {
+    max-height: 55vh;
+    padding-bottom: calc(var(--zivo-safe-bottom, 0px) + 8px);
+  }
+
+  .zivo-live-gifts-scroll-compact {
+    max-height: calc(55vh - 210px);
+  }
+
+  .zivo-live-gifts-scroll-default {
+    max-height: calc(55vh - 140px);
+  }
+
+  .zivo-live-fab-offset {
+    bottom: calc(var(--zivo-safe-bottom, 0px) + 88px);
+  }
+
+  .zivo-pb-safe-action {
+    padding-bottom: max(0.75rem, var(--zivo-safe-bottom, 0px));
+  }
+
+  .zivo-profile-cover-height {
+    height: 9.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .zivo-profile-cover-height {
+      height: 10rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .zivo-profile-cover-height {
+      height: calc(10rem + var(--zivo-safe-top, 0px));
+    }
+  }
+
+  .zivo-profile-cover-scrim {
+    height: calc(var(--zivo-safe-top, 0px) + 24px);
+  }
+
+  .zivo-typing-dot-1 {
+    animation-delay: 0s;
+    animation-duration: 0.8s;
+  }
+
+  .zivo-typing-dot-2 {
+    animation-delay: 0.15s;
+    animation-duration: 0.8s;
+  }
+
+  .zivo-typing-dot-3 {
+    animation-delay: 0.3s;
+    animation-duration: 0.8s;
+  }
+
+  .zivo-anim-delay-0 {
+    animation-delay: 0s;
+  }
+
+  .zivo-anim-delay-100 {
+    animation-delay: 0.1s;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    position: relative;
+  }
+
+  /* Smooth-scroll only for fine pointers (desktop). On iOS WKWebView /
+     touch, CSS smooth-scroll fights native momentum and makes route
+     navigations + scrollIntoView feel sticky. */
+  @media (pointer: fine) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply font-bold tracking-tight;
+    letter-spacing: -0.015em;
+  }
+
+  /* Refined text selection — uses brand ink instead of OS default */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.92);
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* Slim, themed scrollbar (desktop only) */
+  @media (pointer: fine) {
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: hsl(var(--muted-foreground) / 0.28);
+      border-radius: 9999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+      transition: background-color 200ms ease;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: hsl(var(--muted-foreground) / 0.55);
+      background-clip: content-box;
+    }
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    }
+  }
+
+  /* Crisper, brand-coloured focus ring everywhere */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.85);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Smooth out images so they don't look harsh on hi-DPI */
+  img, video {
+    image-rendering: -webkit-optimize-contrast;
+  }
+
+  /* Buttons / links — slim transition baseline. Excluding `transform` from the
+     global transition so :active scale feels instant on tap (the 180ms
+     transform transition was masking touch responsiveness on iOS). Per-component
+     active styles can still opt in to a transform transition explicitly. */
+  button, a {
+    transition:
+      background-color 150ms ease,
+      color 150ms ease,
+      border-color 150ms ease,
+      opacity 150ms ease;
+  }
+  button:active:not(:disabled), a:active {
+    transform: scale(0.985);
+    transition: transform 80ms ease-out;
+  }
+
+  /* Typography Scale */
+  .text-display-lg {
+    @apply text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight;
+  }
+
+  .text-display {
+    @apply text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight;
+  }
+
+  .text-heading-lg {
+    @apply text-2xl sm:text-3xl font-bold tracking-tight;
+  }
+
+  .text-heading {
+    @apply text-xl sm:text-2xl font-bold tracking-tight;
+  }
+
+  .text-subheading {
+    @apply text-lg font-semibold;
+  }
+
+  .text-body-lg {
+    @apply text-base sm:text-lg;
+  }
+
+  .text-body {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-small {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-caption {
+    @apply text-[0.75rem] leading-4 tracking-wide;
+  }
+}
+
+@layer base {
+  /* =============================================
+     SHARED SAFE-AREA TOKENS
+     ---------------------------------------------
+     `env(safe-area-inset-top)` can resolve to 0px in some Capacitor / PWA
+     webview contexts even on notched iPhones (Dynamic Island ~ 59px). These
+     variables guarantee a minimum visual clearance for full-screen overlays
+     and sheet headers so the close button / avatar never sit under the
+     status bar. Use the variable, never inline `env()` directly.
+     ============================================= */
+  :root {
+    --zivo-safe-top: env(safe-area-inset-top, 0px);
+    --zivo-safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* Derived variables chain through --zivo-safe-top so E2E tests can inject
+       a simulated inset by overriding only the root variable. */
+    /* Fullscreen overlays (post-detail header, ReelSlide close button,
+       For You / Following tabs over reels). Adds 1.25rem of breathing
+       room above the safe-area inset so floating buttons don't sit
+       flush against the Dynamic Island / notch. */
+    --zivo-safe-top-overlay: max(calc(var(--zivo-safe-top, 0px) + 1.25rem), 80px);
+    /* Bottom-sheet headers (Comments, Share, post menu, etc.) */
+    --zivo-safe-top-sheet: max(var(--zivo-safe-top, 0px), 44px);
+    /* Sticky sub-headers (feed, search) */
+    --zivo-safe-top-sticky: max(calc(var(--zivo-safe-top, 0px) + 0.125rem), 44px);
+  }
+
+  /* Desktop has no notch — drop the 48px mobile floor so the fixed NavBar
+     stays at its intended ~60px height. The sidebars expect lg:pt-[60px] of
+     navbar clearance; with the mobile floor we end up ~108px tall and content
+     slips under the navbar. */
+  @media (min-width: 1024px) {
+    :root {
+      --zivo-safe-top-sticky: var(--zivo-safe-top, 0px);
+      --zivo-safe-top-overlay: var(--zivo-safe-top, 0px);
+      --zivo-safe-top-sheet: var(--zivo-safe-top, 0px);
+    }
+  }
+
+  @media (max-width: 480px) {
+    @supports (-webkit-touch-callout: none) {
+      :root {
+        --zivo-safe-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+      }
+    }
+  }
+}
+
+@layer components {
+  /* Safe area support for mobile apps & PWA
+     NOTE: Use !important so these classes remain effective even when combined
+     with Tailwind padding utilities like py-3/pt-4 (which would otherwise override). */
+  .safe-area-top {
+    /* Use the shared sticky-header token so this utility always reserves a
+       safe minimum (≥ 48px) even when env(safe-area-inset-top) returns 0
+       (Lovable mobile preview, some Capacitor / PWA WebView contexts).
+       !important so Tailwind padding utilities (py-3, pt-4, p-3 …) declared
+       on the same element cannot override the top padding. */
+    --_safe-top: var(--zivo-safe-top-sticky);
+    padding-top: var(--_safe-top) !important;
+  }
+
+  /* Additive variants when combined with Tailwind padding utilities */
+  .safe-area-top.pt-1,
+  .safe-area-top.py-1,
+  .safe-area-top.p-1 {
+    padding-top: calc(var(--_safe-top) + 0.25rem) !important;
+  }
+
+  .safe-area-top.pt-2,
+  .safe-area-top.py-2,
+  .safe-area-top.p-2 {
+    padding-top: calc(var(--_safe-top) + 0.5rem) !important;
+  }
+
+  .safe-area-top.pt-3,
+  .safe-area-top.py-3,
+  .safe-area-top.p-3 {
+    padding-top: calc(var(--_safe-top) + 0.75rem) !important;
+  }
+
+  .safe-area-top.pt-4,
+  .safe-area-top.py-4,
+  .safe-area-top.p-4 {
+    padding-top: calc(var(--_safe-top) + 1rem) !important;
+  }
+
+  .safe-area-top.pt-5,
+  .safe-area-top.py-5,
+  .safe-area-top.p-5 {
+    padding-top: calc(var(--_safe-top) + 1.25rem) !important;
+  }
+
+  .safe-area-top.pt-6,
+  .safe-area-top.py-6,
+  .safe-area-top.p-6 {
+    padding-top: calc(var(--_safe-top) + 1.5rem) !important;
+  }
+
+  .safe-area-bottom {
+    --_safe-bottom: var(--zivo-safe-bottom, env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--_safe-bottom) !important;
+  }
+
+  @media (max-width: 480px) {
+    @supports (-webkit-touch-callout: none) {
+      .safe-area-bottom {
+        --_safe-bottom: var(--zivo-safe-bottom, max(env(safe-area-inset-bottom, 0px), 16px));
+      }
+    }
+  }
+
+  .safe-area-bottom.pb-2,
+  .safe-area-bottom.py-2,
+  .safe-area-bottom.p-2 {
+    padding-bottom: calc(var(--_safe-bottom) + 0.5rem) !important;
+  }
+
+  .safe-area-bottom.pb-3,
+  .safe-area-bottom.py-3,
+  .safe-area-bottom.p-3 {
+    padding-bottom: calc(var(--_safe-bottom) + 0.75rem) !important;
+  }
+
+  .safe-area-bottom.pb-4,
+  .safe-area-bottom.py-4,
+  .safe-area-bottom.p-4 {
+    padding-bottom: calc(var(--_safe-bottom) + 1rem) !important;
+  }
+
+  .safe-area-bottom.pb-6,
+  .safe-area-bottom.py-6,
+  .safe-area-bottom.p-6 {
+    padding-bottom: calc(var(--_safe-bottom) + 1.5rem) !important;
+  }
+
+  .safe-area-bottom.pb-20 {
+    padding-bottom: calc(var(--_safe-bottom) + 5rem) !important;
+  }
+
+  /* Edge-to-edge mode (Capacitor StatusBar.overlaysWebView = true):
+     visual content goes full-bleed, but interactive containers wrapped in
+     .pt-safe / .pb-safe must always clear the notch and home indicator —
+     even in browser/PWA contexts where env(safe-area-inset-*) returns 0.
+     !important so Tailwind padding utilities (py-3, pt-4, p-3 …) declared on
+     the same element cannot override the safe top padding. */
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px) !important;
+  }
+
+  .pt-safe {
+    padding-top: var(--zivo-safe-top-sticky) !important;
+  }
+
+  /* Mobile-native overscroll behavior */
+  .overscroll-contain {
+    overscroll-behavior: contain;
+  }
+
+  .overscroll-none {
+    overscroll-behavior: none;
+  }
+
+  /* Native-like scroll snap for carousels */
+  .snap-x-mandatory {
+    scroll-snap-type: x mandatory;
+  }
+
+  .snap-y-mandatory {
+    scroll-snap-type: y mandatory;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  /* Prevent text selection on interactive elements (native feel) */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Chat bubble gesture surface — fully kills the iOS native
+     "Copy / Look Up / Translate" callout AND the selection loupe so our
+     custom long-press action sheet can take over. Applies to children too
+     because iOS can otherwise select nested timestamps / labels. */
+  .chat-no-callout,
+  .chat-no-callout * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  .chat-no-callout img,
+  .chat-no-callout video {
+    pointer-events: none;
+  }
+
+  /* iOS-style momentum scrolling */
+  .scroll-momentum {
+    overflow-y: auto;
+  }
+
+  /* Mobile touch target - ensures 48px minimum */
+  .touch-target {
+    min-width: 48px;
+    min-height: 48px;
+    @apply flex items-center justify-center touch-manipulation;
+  }
+
+  /* Native-like tap highlight */
+  .tap-highlight-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Bottom nav spacer — adds space for fixed bottom nav */
+  .pb-nav {
+    padding-bottom: calc(4rem + var(--zivo-safe-bottom, 0px));
+  }
+
+  /* Shared top offset for feed overlays/actions aligned to safe area */
+  .top-safe-overlay {
+    top: max(var(--zivo-safe-top-overlay, 12px), 16px);
+  }
+
+  /* Reel viewport scrolling host */
+  .reel-scroll-host {
+    -ms-overflow-style: none;
+  }
+
+  .reel-scroll-host::-webkit-scrollbar {
+    display: none;
+  }
+
+  .brand-script-mark {
+    font-family: "Brush Script MT", cursive;
+  }
+
+  .brand-script-wordmark {
+    font-family: "Snell Roundhand", "Brush Script MT", cursive;
+    font-weight: 600;
+  }
+
+  .visually-hidden-auth {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .honeypot-hidden {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  /* Premium Card Styles */
+  .card-elevated {
+    @apply bg-card rounded-2xl shadow-md border border-border/50;
+  }
+
+  .card-soft {
+    @apply bg-card rounded-2xl shadow-sm border border-border/30;
+  }
+
+  /* Service Badge Styles */
+  .badge-flights {
+    @apply bg-[hsl(var(--flights-light))] text-[hsl(var(--flights))];
+  }
+
+  .badge-hotels {
+    @apply bg-[hsl(var(--hotels-light))] text-[hsl(var(--hotels))];
+  }
+
+  .badge-cars {
+    @apply bg-[hsl(var(--cars-light))] text-[hsl(var(--cars))];
+  }
+
+  .badge-rides {
+    @apply bg-[hsl(var(--rides-light))] text-[hsl(var(--rides))];
+  }
+
+  .badge-eats {
+    @apply bg-[hsl(var(--eats-light))] text-[hsl(var(--eats))];
+  }
+
+  .badge-more {
+    @apply bg-[hsl(var(--more-light))] text-[hsl(var(--more))];
+  }
+
+  /* Status Badges */
+  .badge-live {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400;
+  }
+
+  .badge-live::before {
+    content: '';
+    @apply w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse;
+  }
+
+  .badge-coming-soon {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400;
+  }
+
+  /* Skeleton Loader */
+  .skeleton {
+    @apply bg-muted animate-pulse rounded-lg;
+  }
+
+  /* Glass Effect (subtle) */
+  .glass {
+    @apply bg-background/80 backdrop-blur-lg;
+  }
+
+  /* Focus Ring */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* =============================================
+     INSTAGRAM GRADIENT — accent only
+     ---------------------------------------------
+     Reserved for: app wordmark, story-rail rings,
+     like-burst, "New" pills. Never use as a card
+     surface — that's the candy-look we just left.
+     ============================================= */
+  :root {
+    --ig-gradient: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  }
+
+  .bg-ig-gradient { background: var(--ig-gradient); }
+
+  .text-ig-gradient {
+    background: var(--ig-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Story-ring wrapper — put avatar inside a div with this class */
+  .ring-ig-gradient {
+    background: var(--ig-gradient);
+    padding: 2px;
+    border-radius: 9999px;
+  }
+  .ring-ig-gradient > * {
+    background: hsl(var(--background));
+    padding: 2px;
+    border-radius: 9999px;
+    display: block;
+  }
+
+  /* Legacy gradient hooks — neutralized to mono so any leftover
+     references render as plain dark surfaces instead of candy. */
+  .gradient-rides,
+  .gradient-eats {
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
+  }
+
+  /* =============================================
+     GLASSMORPHIC CARD
+     ============================================= */
+  .glass-card {
+    background: hsl(var(--card) / 0.6);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    border: 1px solid hsl(var(--border) / 0.3);
+  }
+
+  /* Glow effects neutralized — IG uses no colored glows */
+  .glow-rides,
+  .glow-eats {
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* =============================================
+     CARD VARIANTS
+     ============================================= */
+  .card-glass {
+    background: hsl(var(--card) / 0.5);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border) / 0.3);
+  }
+
+  .card-interactive {
+    @apply transition-all duration-200;
+  }
+
+  .card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* =============================================
+     SPACING UTILITIES
+     ============================================= */
+  .space-section {
+    @apply py-4;
+  }
+
+  .space-section-lg {
+    @apply py-6;
+  }
+
+  .space-card {
+    @apply p-4 sm:p-6;
+  }
+
+  /* =============================================
+     SKELETON LOADERS
+     ============================================= */
+  .skeleton-card {
+    @apply animate-pulse rounded-2xl bg-muted h-32;
+  }
+
+  .skeleton-text {
+    @apply animate-pulse rounded-lg bg-muted h-4;
+  }
+
+  .skeleton-avatar {
+    @apply animate-pulse rounded-full bg-muted w-10 h-10;
+  }
+
+  /* =============================================
+     ICON SIZING
+     ============================================= */
+  .icon-xs {
+    @apply w-3 h-3;
+  }
+
+  .icon-sm {
+    @apply w-4 h-4;
+  }
+
+  .icon-md {
+    @apply w-5 h-5;
+  }
+
+  .icon-lg {
+    @apply w-6 h-6;
+  }
+
+  .icon-xl {
+    @apply w-8 h-8;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Touch optimization */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Animations */
+  .animate-in {
+    animation: animate-in 0.3s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.4s ease-out;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  /* Premium card with hover lift */
+  .card-premium {
+    @apply rounded-2xl bg-card border border-border/50 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-300;
+  }
+
+  /* Filter chip styles */
+  .chip-active {
+    @apply bg-primary text-primary-foreground shadow-md rounded-full px-5 py-2 text-sm font-medium;
+  }
+
+  .chip-inactive {
+    @apply bg-card border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30 rounded-full px-5 py-2 text-sm font-medium transition-all;
+  }
+
+  /* Gradient text */
+  .gradient-text-primary {
+    @apply bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent;
+  }
+
+  /* Section padding consistency */
+  .section-padding {
+    @apply py-16 sm:py-24;
+  }
+  }
+
+  /* Animated gradient background for hero sections */
+  .bg-gradient-animated {
+    background: linear-gradient(-45deg, hsl(var(--background)), hsl(var(--muted)), hsl(var(--background)), hsl(var(--accent)));
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+  }
+
+  /* Stagger children animation */
+  .stagger-children > * {
+    opacity: 0;
+    animation: fade-in-up 0.5s ease forwards;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+  .stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+  .stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+  .stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+  .stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+  .stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+
+  /* Scroll-reveal utility */
+  .reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal-on-scroll.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Smooth border glow for focused cards */
+  .border-glow {
+    transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  }
+  .border-glow:hover, .border-glow:focus-within {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08), 0 0 20px hsl(var(--primary) / 0.06);
+  }
+
+  /* Mobile bottom sheet handle */
+  .sheet-handle {
+    @apply w-10 h-1 rounded-full bg-muted-foreground/20 mx-auto mb-3;
+  }
+
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes navRainbowShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Marquee Animations for Airline Carousels */
+@keyframes marquee-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes soundbar {
+  0% { height: 2px; }
+  100% { height: 8px; }
+}
+/* Staggered fade in up */
+@keyframes fade-in-up {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.animate-marquee-left {
+  animation: marquee-left 40s linear infinite;
+}
+
+.animate-marquee-right {
+  animation: marquee-right 40s linear infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+/* Pause on hover for accessibility */
+.group:hover .animate-marquee-left,
+.group:hover .animate-marquee-right {
+  animation-play-state: paused;
+}
+
+ /* =============================================
+    2026 PREMIUM SCROLL MOTION-BLUR EFFECT
+    ============================================= */
+
+ .premium-scroll-image {
+   transition: filter 0.3s ease-out, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+   will-change: filter, transform;
+ }
+
+ .scrolling-fast .premium-scroll-image {
+   filter: blur(4px);
+   transform: scale(0.98);
+ }
+
+ /* Opt-out class for critical images that should never blur */
+ .no-motion-blur {
+   filter: none !important;
+   transform: none !important;
+ }
+
+ /* Reduced motion preference */
+ @media (prefers-reduced-motion: reduce) {
+   .premium-scroll-image {
+     transition: none;
+   }
+   .scrolling-fast .premium-scroll-image {
+     filter: none;
+     transform: none;
+   }
+ }
+
+ /* 2026 Spatial UI - Glass Effects */
+ .glass-dark {
+   background: hsl(var(--card) / 0.6);
+   -webkit-backdrop-filter: blur(24px);
+   backdrop-filter: blur(24px);
+   border: 1px solid hsl(var(--border) / 0.5);
+ }
+
+ .glow-blue {
+   box-shadow: 0 0 100px 20px hsl(var(--primary) / 0.2);
+ }
+
+  .glow-primary {
+    box-shadow: 0 0 60px 10px hsl(var(--primary) / 0.15);
+  }
+
+  /* =============================================
+     ZIVO GREEN GLOW UTILITIES
+     ============================================= */
+  .glow-green-btn {
+    box-shadow: 0 0 20px hsl(142 71% 45% / 0.3);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .glow-green-btn:hover {
+    box-shadow: 0 0 35px hsl(142 71% 45% / 0.55), 0 0 60px hsl(142 71% 45% / 0.2);
+  }
+
+  .hero-glow-bg {
+    position: relative;
+  }
+
+  .hero-glow-bg::before {
+    content: '';
+    position: absolute;
+    top: 20%;
+    right: 30%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, hsl(142 71% 45% / 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glass-chip {
+    background: hsl(0 0% 100% / 0.08);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+  }
+
+  /* =============================================
+     PREMIUM ANIMATION UTILITIES
+     ============================================= */
+
+  /* Shimmer effect for trust chips */
+  .shimmer-chip {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer-chip::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.06), transparent);
+    animation: shimmer-sweep 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes shimmer-sweep {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+  }
+
+  /* Glow border on hover */
+  .glow-border-hover {
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .glow-border-hover:hover {
+    border-color: hsl(142 71% 45% / 0.4);
+    box-shadow: 0 0 20px hsl(142 71% 45% / 0.12), inset 0 0 20px hsl(142 71% 45% / 0.04);
+  }
+
+  /* Gentle floating animation for icons */
+  .float-gentle {
+    animation: float-gentle 3s ease-in-out infinite;
+  }
+
+  @keyframes float-gentle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* Pulse ring for sticky CTA */
+  .pulse-ring {
+    position: relative;
+  }
+
+  .pulse-ring::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: hsl(142 71% 45% / 0.3);
+    animation: pulse-ring 2s ease-out infinite;
+    z-index: -1;
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+
+  /* Nav bottom glow border */
+  .nav-glow-border {
+    box-shadow: 0 1px 0 hsl(142 71% 45% / 0.3), 0 2px 8px hsl(142 71% 45% / 0.1);
+  }
+
+  /* =============================================
+     2026 PREMIUM POLISH UTILITIES
+     ============================================= */
+
+  /* Input focus glow - premium feel on search inputs */
+  .input-focus-glow {
+    @apply transition-all duration-300;
+  }
+  .input-focus-glow:focus-within {
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12), 0 0 16px hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.4);
+  }
+
+  /* Animated gradient border - rotating conic gradient */
+  .border-gradient-animated {
+    position: relative;
+    border: none !important;
+  }
+  .border-gradient-animated::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--gradient-angle, 0deg),
+      hsl(var(--flights)),
+      hsl(var(--hotels)),
+      hsl(var(--cars)),
+      hsl(var(--primary)),
+      hsl(var(--flights))
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: rotate-gradient 6s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  @keyframes rotate-gradient {
+    to { --gradient-angle: 360deg; }
+  }
+
+  @property --gradient-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  /* Card hover lift with service-specific glow */
+  .card-hover-flights:hover {
+    box-shadow: 0 8px 30px -8px hsl(var(--flights) / 0.15), var(--shadow-card-hover);
+  }
+  .card-hover-hotels:hover {
+    box-shadow: 0 8px 30px -8px hsl(var(--hotels) / 0.15), var(--shadow-card-hover);
+  }
+  .card-hover-cars:hover {
+    box-shadow: 0 8px 30px -8px hsl(var(--cars) / 0.15), var(--shadow-card-hover);
+  }
+
+  /* Smooth counter ticker */
+  .counter-tick {
+    display: inline-block;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .counter-tick:hover {
+    transform: scale(1.08);
+  }
+
+  /* Radial gradient background for sections */
+  .bg-gradient-radial {
+    background: radial-gradient(ellipse at 50% 0%, hsl(var(--primary) / 0.06) 0%, transparent 60%);
+  }
+
+  /* Stagger children with CSS - extended for results lists */
+  .stagger-results > * {
+    opacity: 0;
+    animation: fade-in-up 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  .stagger-results > *:nth-child(1) { animation-delay: 0s; }
+  .stagger-results > *:nth-child(2) { animation-delay: 0.06s; }
+  .stagger-results > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger-results > *:nth-child(4) { animation-delay: 0.18s; }
+  .stagger-results > *:nth-child(5) { animation-delay: 0.24s; }
+  .stagger-results > *:nth-child(6) { animation-delay: 0.3s; }
+  .stagger-results > *:nth-child(7) { animation-delay: 0.36s; }
+  .stagger-results > *:nth-child(8) { animation-delay: 0.42s; }
+  .stagger-results > *:nth-child(n+9) { animation-delay: 0.48s; }
+
+/* =============================================
+   MOBILE RESPONSIVE FIXES
+   ============================================= */
+
+/* Prevent iOS zoom on input focus */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Hide scrollbar but allow scroll */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile-first glass widget tabs */
+.glass-tabs-scroll {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+.glass-tabs-scroll > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* =============================================
+   GOLDEN TICKET ANIMATIONS
+   ============================================= */
+
+/* Metallic shine sweep effect */
+.metallic-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.metallic-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    hsl(45 100% 70% / 0.15) 50%,
+    transparent 60%
+  );
+  animation: shine-sweep 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shine-sweep {
+  from { transform: translateX(-100%) rotate(45deg); }
+  to { transform: translateX(100%) rotate(45deg); }
+}
+
+/* Golden gradient backgrounds */
+.golden-gradient {
+  background: linear-gradient(
+    135deg,
+    hsl(45 80% 45%) 0%,
+    hsl(40 85% 55%) 25%,
+    hsl(50 90% 60%) 50%,
+    hsl(40 85% 55%) 75%,
+    hsl(45 80% 45%) 100%
+  );
+}
+
+.golden-border {
+  border: 2px solid hsl(45 70% 55%);
+  box-shadow: 
+    0 0 20px hsl(45 70% 50% / 0.3),
+    inset 0 1px 0 hsl(50 90% 80% / 0.3);
+}
+
+/* Ticket perforated edge effect */
+.ticket-edge {
+  --perforation-size: 10px;
+  --perforation-gap: 8px;
+  position: relative;
+}
+
+.ticket-edge::before,
+.ticket-edge::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: var(--perforation-size);
+  height: var(--perforation-size);
+  background: hsl(var(--background));
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.ticket-edge::before {
+  top: calc(var(--perforation-size) / -2);
+}
+
+.ticket-edge::after {
+  bottom: calc(var(--perforation-size) / -2);
+}
+
+/* =============================================
+   SECURE VAULT CHECKOUT STYLES
+   ============================================= */
+
+.vault-checkout {
+  padding-bottom: var(--zivo-safe-bottom, 16px);
+}
+
+.vault-glass {
+  background: hsl(var(--card) / 0.95);
+  backdrop-filter: blur(32px);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.dark .vault-glass {
+  background: hsl(240 10% 8% / 0.95);
+  border: 1px solid hsl(0 0% 100% / 0.1);
+}
+
+/* Trust badge glow */
+.trust-badge {
+  background: hsl(142 71% 45% / 0.1);
+  border: 1px solid hsl(142 71% 45% / 0.3);
+  color: hsl(142 71% 45%);
+}
+
+.dark .trust-badge {
+  background: hsl(142 71% 45% / 0.15);
+  border: 1px solid hsl(142 71% 45% / 0.4);
+}
+
+/* =============================================
+   MISSION CONTROL THEME (Power User Admin)
+   ============================================= */
+
+.mission-control {
+  --mc-background: 0 0% 2%;
+  --mc-sidebar: 240 6% 10%;
+  --mc-sidebar-alpha: 240 6% 10% / 0.5;
+  --mc-card: 240 6% 10% / 0.4;
+  --mc-border: 0 0% 100% / 0.05;
+  --mc-text: 0 0% 100%;
+  --mc-text-muted: 240 5% 45%;
+  --mc-accent: 221 83% 53%;
+}
+
+/* Grid background pattern */
+.bg-grid-white {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9H0v9h9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Mission Control cards */
+.mc-card {
+  background: hsl(var(--mc-card));
+  border: 1px solid hsl(var(--mc-border));
+  backdrop-filter: blur(16px);
+}
+
+.mc-sidebar {
+  background: hsl(var(--mc-sidebar-alpha));
+  backdrop-filter: blur(24px);
+  border-right: 1px solid hsl(var(--mc-border));
+}
+
+/* Status indicator pulses */
+.status-pulse-healthy {
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.status-pulse-degraded {
+  animation: pulse-amber 1.5s ease-in-out infinite;
+}
+
+.status-pulse-down {
+  animation: pulse-red 1s ease-in-out infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(142 71% 45% / 0.5); }
+  50% { box-shadow: 0 0 0 6px hsl(142 71% 45% / 0); }
+}
+
+@keyframes pulse-amber {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(38 92% 50% / 0.5); }
+  50% { box-shadow: 0 0 0 6px hsl(38 92% 50% / 0); }
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(0 72% 51% / 0.5); }
+  50% { box-shadow: 0 0 0 6px hsl(0 72% 51% / 0); }
+}
+
+/* =============================================
+   PREMIUM TRAVELER DASHBOARD STYLES
+   ============================================= */
+
+/* Holographic border with ambient glow */
+.holographic-border {
+  position: relative;
+}
+
+.holographic-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    hsl(221 83% 53%),
+    hsl(262 83% 58%),
+    hsl(142 69% 58%)
+  );
+  opacity: 0.2;
+  filter: blur(20px);
+  transition: opacity 0.5s ease;
+  z-index: -1;
+}
+
+.holographic-border:hover::before {
+  opacity: 0.4;
+}
+
+/* Grainy texture overlay for depth */
+.grainy-texture {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Timeline connector line */
+.timeline-connector {
+  position: absolute;
+  left: 2rem;
+  top: 4rem;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--primary)),
+    hsl(var(--muted) / 0.3),
+    transparent
+  );
+}
+
+/* Premium passport card glass effect */
+.passport-glass {
+  background: hsl(var(--card) / 0.8);
+  backdrop-filter: blur(32px);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.dark .passport-glass {
+  background: hsl(240 6% 10% / 0.8);
+  border: 1px solid hsl(0 0% 100% / 0.1);
+}
+
+/* Ambient glow for passport */
+.passport-glow {
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(
+    135deg,
+    hsl(221 83% 53% / 0.3),
+    hsl(262 83% 58% / 0.2),
+    hsl(142 69% 58% / 0.3)
+  );
+  filter: blur(40px);
+  opacity: 0.3;
+  transition: opacity 0.5s ease;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+.group:hover .passport-glow {
+  opacity: 0.5;
+}
+
+/* =============================================
+   ZIVO RIDES — PREMIUM 2026 DARK GLASSMORPHISM
+   ============================================= */
+
+/* Fixed map background with gradient overlay */
+.rides-gradient-overlay {
+  background: linear-gradient(
+    to top,
+    hsl(240 10% 4%) 0%,
+    hsl(240 10% 4% / 0.8) 30%,
+    hsl(240 10% 4% / 0.4) 60%,
+    transparent 100%
+  );
+}
+
+/* Dark frosted glass panel */
+.rides-glass-panel {
+  background: hsl(240 10% 8% / 0.6);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border: 1px solid hsl(0 0% 100% / 0.08);
+  transform: translateZ(0);
+}
+
+/* Glass input fields with glow focus */
+.rides-input-glass {
+  background: hsl(0 0% 0% / 0.2);
+  border: 1px solid hsl(0 0% 100% / 0.05);
+  transition: all 0.2s ease;
+}
+
+.rides-input-glass:focus-within {
+  border-color: hsl(217 91% 60% / 0.5);
+  box-shadow: 0 0 20px hsl(217 91% 60% / 0.1);
+}
+
+/* 3D Vehicle cards with hover lift */
+.rides-card-3d {
+  background: hsl(240 10% 8% / 0.8);
+  border: 2px solid hsl(0 0% 100% / 0.1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateZ(0);
+}
+
+.rides-card-3d:hover {
+  transform: translateY(-10px);
+  border-color: hsl(0 0% 100% / 0.2);
+}
+
+.rides-card-3d.rides-card-selected {
+  background: hsl(217 91% 50%);
+  border-color: hsl(217 91% 70%);
+  box-shadow: 0 0 30px hsl(217 91% 50% / 0.3);
+}
+
+/* Rides content visibility fallback */
+.rides-content-visible {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+/* Sticky CTA gradient fade */
+.rides-sticky-fade {
+  background: linear-gradient(
+    to top,
+    hsl(240 10% 4%) 0%,
+    hsl(240 10% 4%) 60%,
+    transparent 100%
+  );
+}
+
+/* =============================================
+   SAFARI/IOS MOBILE POLISH FIXES
+   ============================================= */
+
+/* Safari Glassmorphism Fix - GPU accelerated */
+.glass-panel {
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  /* Triggers GPU acceleration to prevent flickering */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Smooth momentum scrolling for touch devices */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS input zoom prevention already at line 482-486 */
+/* hide-scrollbar already at line 490-496 */
+
+/* Map marker drop-in bounce animation */
+@keyframes markerDropIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* =============================================
+   SLIDE & SHIMMER ANIMATIONS 2026
+   ============================================= */
+
+/* Horizontal slide for image carousels */
+@keyframes slide-left-infinite {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes slide-right-infinite {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.animate-slide-left {
+  animation: slide-left-infinite 30s linear infinite;
+}
+
+.animate-slide-right {
+  animation: slide-right-infinite 30s linear infinite;
+}
+
+/* Subtle parallax float */
+@keyframes parallax-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-8px) rotate(0.5deg); }
+  66% { transform: translateY(4px) rotate(-0.3deg); }
+}
+
+.animate-parallax-float {
+  animation: parallax-float 6s ease-in-out infinite;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .text-shimmer,
+  .bg-gradient-animated,
+  .animate-spin,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
+}
+
+/* Focus-visible ring for keyboard navigation */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Smooth scroll globally */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ═══ Service Icon Tap Animations ═══ */
+
+/* 🚗 Car: 3D driving wiggle */
+@keyframes car-run {
+  0% { transform: translateX(0) translateY(0) rotateY(0deg) scale(1); }
+  10% { transform: translateX(-4px) translateY(-2px) rotateY(-12deg) scale(1.06); }
+  20% { transform: translateX(-2px) translateY(1px) rotateY(-6deg) scale(1.1); }
+  35% { transform: translateX(3px) translateY(-2px) rotateY(8deg) scale(1.08); }
+  50% { transform: translateX(6px) translateY(1px) rotateY(14deg) scale(1.1); }
+  65% { transform: translateX(3px) translateY(-1px) rotateY(6deg) scale(1.06); }
+  80% { transform: translateX(-2px) translateY(1px) rotateY(-4deg) scale(1.03); }
+  100% { transform: translateX(0) translateY(0) rotateY(0deg) scale(1); }
+}
+.animate-car-run {
+  animation: car-run 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  transform-style: preserve-3d;
+}
+
+/* ✈️ Plane: fly up-right with tilt and swoop back */
+@keyframes plane-fly {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  10% { transform: translate(3px, -4px) rotate(-12deg) scale(1.05); }
+  25% { transform: translate(10px, -14px) rotate(-20deg) scale(1.12); }
+  40% { transform: translate(18px, -22px) rotate(-25deg) scale(1.08); opacity: 0.6; }
+  50% { transform: translate(24px, -28px) rotate(-28deg) scale(0.95); opacity: 0; }
+  51% { transform: translate(-20px, 16px) rotate(10deg) scale(0.8); opacity: 0; }
+  65% { transform: translate(-12px, 8px) rotate(5deg) scale(0.95); opacity: 0.6; }
+  80% { transform: translate(-4px, 2px) rotate(-3deg) scale(1.05); opacity: 0.9; }
+  90% { transform: translate(-1px, 0px) rotate(-1deg) scale(1.02); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+}
+.animate-plane-fly {
+  animation: plane-fly 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 📦 Package: drop bounce */
+@keyframes pkg-bounce {
+  0% { transform: translateY(0) scale(1); }
+  12% { transform: translateY(-16px) scale(1.05); }
+  28% { transform: translateY(0) scale(0.92, 1.08); }
+  40% { transform: translateY(-8px) scale(1.04); }
+  54% { transform: translateY(0) scale(0.95, 1.05); }
+  66% { transform: translateY(-3px) scale(1.02); }
+  80% { transform: translateY(0) scale(0.98, 1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+.animate-pkg-bounce {
+  animation: pkg-bounce 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 🍔 Food/Shopping: excited wiggle */
+@keyframes food-wiggle {
+  0% { transform: rotate(0deg) scale(1); }
+  10% { transform: rotate(-12deg) scale(1.08); }
+  20% { transform: rotate(10deg) scale(1.1); }
+  30% { transform: rotate(-10deg) scale(1.12); }
+  42% { transform: rotate(8deg) scale(1.1); }
+  54% { transform: rotate(-6deg) scale(1.08); }
+  66% { transform: rotate(4deg) scale(1.05); }
+  78% { transform: rotate(-2deg) scale(1.02); }
+  90% { transform: rotate(1deg) scale(1.01); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.animate-food-wiggle {
+  animation: food-wiggle 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-car-run,
+  .animate-plane-fly,
+  .animate-pkg-bounce,
+  .animate-food-wiggle {
+    animation: none;
+  }
+}
+
+/* ── Khmer Language Typography ── */
+html[lang="km"],
+html[lang="km"] body,
+html[lang="km"] * {
+  font-family: 'Battambang', 'Noto Sans Khmer', 'Work Sans', system-ui, sans-serif;
+}
+
+html[lang="km"] h1,
+html[lang="km"] h2,
+html[lang="km"] h3,
+html[lang="km"] h4,
+html[lang="km"] h5,
+html[lang="km"] h6,
+html[lang="km"] .font-semibold,
+html[lang="km"] .font-bold,
+html[lang="km"] .font-extrabold {
+  font-family: 'Battambang', 'Noto Sans Khmer', sans-serif;
+  font-weight: 700;
+}
+
+html[lang="km"] p,
+html[lang="km"] span,
+html[lang="km"] a,
+html[lang="km"] button,
+html[lang="km"] label,
+html[lang="km"] input,
+html[lang="km"] textarea {
+  font-family: 'Noto Sans Khmer', 'Battambang', 'Work Sans', sans-serif;
+  letter-spacing: 0.01em;
+  line-height: 1.6;
+}
+
+/* =============================================
+   3D SPATIAL UI SYSTEM — 2026 Alive UX
+   ============================================= */
+
+.perspective-container {
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s ease;
+  will-change: transform;
+}
+
+.card-3d:hover {
+  transform: translateY(-8px) translateZ(20px) rotateX(2deg);
+  box-shadow: 0 25px 50px -12px hsl(var(--primary) / 0.15), 0 12px 24px -8px hsl(0 0% 0% / 0.1);
+}
+
+.card-3d:active {
+  transform: translateY(-2px) translateZ(5px) scale(0.98);
+}
+
+.btn-3d {
+  transform-style: preserve-3d;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow:
+    0 4px 0 hsl(var(--primary) / 0.4),
+    0 6px 20px hsl(var(--primary) / 0.2);
+}
+
+.btn-3d:hover {
+  transform: translateY(-2px) translateZ(8px);
+  box-shadow:
+    0 6px 0 hsl(var(--primary) / 0.4),
+    0 10px 30px hsl(var(--primary) / 0.3);
+}
+
+.btn-3d:active {
+  transform: translateY(2px) translateZ(0px);
+  box-shadow:
+    0 1px 0 hsl(var(--primary) / 0.4),
+    0 2px 8px hsl(var(--primary) / 0.15);
+}
+
+.icon-3d-pop {
+  transform-style: preserve-3d;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.icon-3d-pop:hover {
+  transform: translateY(-6px) translateZ(15px) scale(1.1);
+  filter: drop-shadow(0 8px 16px hsl(var(--primary) / 0.2));
+}
+
+@keyframes orb-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.1); }
+  50% { transform: translate(-20px, -40px) scale(0.95); }
+  75% { transform: translate(15px, -10px) scale(1.05); }
+}
+
+@keyframes orb-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-40px, 20px) scale(1.15); }
+  66% { transform: translate(25px, -30px) scale(0.9); }
+}
+
+.orb-3d-1 {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.12), transparent 70%);
+  filter: blur(60px);
+  animation: orb-float-1 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.orb-3d-2 {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--flights) / 0.1), transparent 70%);
+  filter: blur(50px);
+  animation: orb-float-2 10s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.bg-mesh-3d {
+  background:
+    radial-gradient(ellipse at 20% 50%, hsl(var(--primary) / 0.06), transparent 50%),
+    radial-gradient(ellipse at 80% 20%, hsl(var(--flights) / 0.05), transparent 50%),
+    radial-gradient(ellipse at 50% 80%, hsl(var(--hotels) / 0.04), transparent 50%);
+}
+
+.glass-3d {
+  background: hsl(var(--card) / 0.7);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid hsl(var(--border) / 0.3);
+  box-shadow:
+    0 8px 32px hsl(0 0% 0% / 0.06),
+    inset 0 1px 0 hsl(0 0% 100% / 0.1);
+  transform-style: preserve-3d;
+}
+
+.tab-3d {
+  transform-style: preserve-3d;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tab-3d.active {
+  transform: translateY(-3px) translateZ(10px);
+  box-shadow: 0 8px 24px hsl(var(--primary) / 0.3);
+}
+
+.tab-3d:not(.active):hover {
+  transform: translateY(-1px) translateZ(5px);
+}
+
+@keyframes breathe-glow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+.breathe-glow {
+  animation: breathe-glow 4s ease-in-out infinite;
+}
+
+@keyframes foilShimmer {
+  0%, 100% { background-position: 200% 200%; }
+  50% { background-position: 0% 0%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-3d, .btn-3d, .tab-3d, .icon-3d-pop {
+    transform: none !important;
+    transition: opacity 0.2s ease !important;
+  }
+  .orb-3d-1, .orb-3d-2, .breathe-glow {
+    animation: none !important;
+  }
+}
+
+/* =============================================
+   ZIVO SIGNATURE DESIGN LANGUAGE (2026)
+   Unique identity — NOT copied from any platform
+   ============================================= */
+
+/* Aurora Mesh Background */
+.zivo-aurora {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 40%, hsl(142 71% 45% / 0.08), transparent),
+    radial-gradient(ellipse 60% 80% at 80% 60%, hsl(198 93% 59% / 0.06), transparent),
+    radial-gradient(ellipse 40% 40% at 50% 20%, hsl(263 70% 58% / 0.04), transparent);
+}
+
+/* ZIVO Emerald Ribbon — signature top accent */
+.zivo-ribbon {
+  position: relative;
+  overflow: hidden;
+}
+.zivo-ribbon::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, hsl(142 71% 45%), hsl(172 66% 50%), hsl(198 93% 59%));
+  border-radius: 0 0 4px 4px;
+}
+
+/* Organic Blob Card */
+.zivo-card-organic {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border) / 0.3);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.zivo-card-organic:active {
+  transform: scale(0.97);
+}
+.zivo-card-organic::after {
+  content: '';
+  position: absolute;
+  top: -30%; right: -20%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.04), transparent 70%);
+  pointer-events: none;
+}
+
+/* ZIVO Icon Pill — signature rounded-square icon container */
+.zivo-icon-pill {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.zivo-icon-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, currentColor, transparent);
+  opacity: 0.1;
+  border-radius: inherit;
+}
+
+/* ZIVO Section Divider — organic wave line */
+.zivo-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--border) / 0.6) 30%, hsl(var(--border) / 0.6) 70%, transparent);
+  margin: 1.5rem 0;
+}
+
+/* ZIVO Floating Badge */
+.zivo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.05));
+  color: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary) / 0.2);
+}
+
+/* ZIVO Signature Button */
+.zivo-btn-signature {
+  background: linear-gradient(135deg, hsl(142 71% 45%), hsl(158 64% 51%));
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.zivo-btn-signature::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transition: left 0.5s ease;
+}
+.zivo-btn-signature:hover::before {
+  left: 100%;
+}
+.zivo-btn-signature:active {
+  transform: scale(0.97);
+}
+
+/* ZIVO Stat Orb — circular stat display */
+.zivo-stat-orb {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--card));
+  border: 2px solid hsl(var(--border) / 0.4);
+  box-shadow: 0 4px 16px hsl(var(--primary) / 0.06);
+}
+
+/* ZIVO Category Chip */
+.zivo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: hsl(var(--muted) / 0.5);
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border) / 0.3);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.zivo-chip:hover, .zivo-chip.active {
+  background: hsl(var(--primary) / 0.1);
+  border-color: hsl(var(--primary) / 0.3);
+  color: hsl(var(--primary));
+}
+
+/* ZIVO Progress Ring */
+@keyframes zivo-ring-fill {
+  from { stroke-dashoffset: 283; }
+}
+
+/* ZIVO Mesh Grid Background */
+.zivo-mesh-grid {
+  background-image:
+    linear-gradient(hsl(var(--border) / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border) / 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ZIVO Watermark */
+.zivo-watermark {
+  position: absolute;
+  bottom: -20px;
+  right: -10px;
+  font-size: 80px;
+  font-weight: 900;
+  letter-spacing: -4px;
+  color: hsl(var(--foreground) / 0.02);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* float3d kept — used by .level-badge-3d (see below) */
+@keyframes float3d {
+  0%, 100% { transform: perspective(40px) translateZ(0) translateY(0) rotateX(0deg); }
+  50% { transform: perspective(40px) translateZ(2px) translateY(-2px) rotateX(6deg); }
+}
+
+/* =============================================
+   CV BUILDER — Style Customizer Hooks
+   These rules let the Customize Style panel
+   (accent / header / columns / font scale) take
+   real visual effect over any template.
+   ============================================= */
+.cv-doc { color: #1a1a1a; }
+
+/* Accent surfaces use the live --primary token set inline */
+.cv-doc .cv-accent-bg { background-color: hsl(var(--primary)); color: #fff; }
+.cv-doc .cv-accent-text { color: hsl(var(--primary)); }
+.cv-doc .cv-accent-border { border-color: hsl(var(--primary)); }
+.cv-doc .cv-accent-soft { background-color: hsl(var(--primary) / 0.08); }
+.cv-doc .cv-accent-rule { background-color: hsl(var(--primary)); }
+.cv-doc .cv-accent-ring { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.35); }
+
+/* ── Column overrides ── */
+.cv-doc.cv-cols-1 .cv-sidebar { display: none; }
+.cv-doc.cv-cols-1 .cv-main { width: 100% !important; padding: 1rem 1.25rem; }
+.cv-doc.cv-cols-1 .cv-flex-cols { display: block; }
+
+.cv-doc.cv-cols-2 .cv-sidebar { display: block; width: 38% !important; }
+.cv-doc.cv-cols-2 .cv-main { flex: 1 1 0%; }
+.cv-doc.cv-cols-2 .cv-flex-cols { display: flex; }
+
+/* ── Header style overrides (apply to any template) ── */
+.cv-doc.cv-header-bold .cv-hero h1,
+.cv-doc.cv-header-bold .cv-name { font-weight: 900 !important; letter-spacing: -0.01em; }
+.cv-doc.cv-header-bold .cv-hero { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+
+.cv-doc.cv-header-banner .cv-hero {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7)) !important;
+  color: #fff !important;
+}
+.cv-doc.cv-header-banner .cv-hero h1,
+.cv-doc.cv-header-banner .cv-hero p,
+.cv-doc.cv-header-banner .cv-hero span { color: #fff !important; }
+
+.cv-doc.cv-header-minimal .cv-hero {
+  background: transparent !important;
+  border-bottom: 1px solid hsl(var(--primary) / 0.25);
+  padding: 0.75rem 1rem;
+}
+.cv-doc.cv-header-minimal .cv-hero h1 { font-weight: 600; letter-spacing: 0; }
+.cv-doc.cv-header-minimal .cv-hero .cv-photo { width: 3rem; height: 3rem; }
+
+/* Split header — accent left bar */
+.cv-doc.cv-header-split .cv-hero {
+  border-left: 6px solid hsl(var(--primary)) !important;
+  background: hsl(var(--primary) / 0.05) !important;
+}
+/* Stripe header — top accent stripe */
+.cv-doc.cv-header-stripe .cv-hero {
+  border-top: 5px solid hsl(var(--primary)) !important;
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.08), transparent) !important;
+}
+
+/* ── Photo shape overrides ── */
+.cv-doc.cv-photo-round .cv-photo { border-radius: 9999px !important; }
+.cv-doc.cv-photo-square .cv-photo { border-radius: 0 !important; }
+.cv-doc.cv-photo-rounded .cv-photo { border-radius: 0.75rem !important; }
+
+/* ── Section divider overrides — apply to <h3> headings inside cv-main / cv-sidebar ── */
+.cv-doc.cv-divider-underline .cv-main h3,
+.cv-doc.cv-divider-underline .cv-sidebar h3 {
+  border-bottom: 2px solid hsl(var(--primary) / 0.4) !important;
+  padding-bottom: 0.25rem !important;
+}
+.cv-doc.cv-divider-pill .cv-main h3,
+.cv-doc.cv-divider-pill .cv-sidebar h3 {
+  display: inline-block !important;
+  background: hsl(var(--primary) / 0.12) !important;
+  color: hsl(var(--primary)) !important;
+  padding: 0.15rem 0.6rem !important;
+  border-radius: 9999px !important;
+  border: none !important;
+}
+.cv-doc.cv-divider-bar .cv-main h3,
+.cv-doc.cv-divider-bar .cv-sidebar h3 {
+  border-left: 4px solid hsl(var(--primary)) !important;
+  padding-left: 0.5rem !important;
+  border-bottom: none !important;
+}
+
+
+/* Hide the mobile bottom nav while the fullscreen StoryViewer is open. */
+body[data-story-open="true"] [data-zivo-mobile-nav] {
+  display: none !important;
+}
+
+/* Hide the mobile bottom nav while modal share sheets are open. */
+body[data-share-sheet-open="true"] [data-zivo-mobile-nav] {
+  display: none !important;
+}
+
+/* Utility: hide horizontal scrollbar but keep scrolling */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+@keyframes zivo-reel-skeleton-shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}
+
+.zivo-reel-skeleton-shimmer {
+  background-image: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.08) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: zivo-reel-skeleton-shimmer 1.6s linear infinite;
+}
+
+@media (max-width: 640px) {
+  html,
+  body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ── Accessibility preferences (driven by useAccessibilityPrefs) ── */
+:root {
+  --font-scale: 1;
+}
+html {
+  font-size: calc(16px * var(--font-scale));
+}
+
+/* Reduce motion: kill animations & transitions */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* High contrast: bolder borders, stronger text */
+html.high-contrast {
+  --border: 0 0% 30%;
+  --muted-foreground: 0 0% 25%;
+}
+html.dark.high-contrast {
+  --border: 0 0% 70%;
+  --muted-foreground: 0 0% 80%;
+}
+html.high-contrast :focus-visible {
+  outline: 2px solid hsl(var(--primary)) !important;
+  outline-offset: 2px !important;
+}
+
+/* Always underline links */
+html.underline-links a:not([class*="no-underline"]):not(button) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Sonner toaster — force toasts BELOW both the safe-area inset AND the
+   fixed AppHeader (h-14 = 56px). Sonner's `offset` prop only accepts
+   numbers in some versions; CSS string values get silently ignored, so
+   we override its internal --offset / --mobile-offset variables. */
+[data-sonner-toaster][data-y-position="top"] {
+  --offset: calc(var(--zivo-safe-top-sticky, 60px) + 56px) !important;
+  --mobile-offset: calc(var(--zivo-safe-top-sticky, 60px) + 56px) !important;
+  top: calc(var(--zivo-safe-top-sticky, 60px) + 56px) !important;
+}

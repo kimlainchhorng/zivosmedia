@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { 
   Users, 
   UserPlus, 
@@ -47,7 +47,6 @@ const GroupBookingManager = ({
   totalCost = 4500,
   className 
 }: GroupBookingManagerProps) => {
-  // TODO: Load group members from database
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [newEmail, setNewEmail] = useState("");
   const [showInvite, setShowInvite] = useState(false);
@@ -90,8 +89,8 @@ const GroupBookingManager = ({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-indigo-500/10">
-              <Users className="w-5 h-5 text-indigo-500" />
+            <div className="p-2 rounded-xl bg-secondary">
+              <Users className="w-5 h-5 text-foreground" />
             </div>
             <div>
               <CardTitle className="text-lg">{tripName}</CardTitle>
@@ -164,7 +163,7 @@ const GroupBookingManager = ({
               <Avatar className="h-9 w-9">
                 <AvatarFallback className={cn(
                   "text-xs",
-                  member.id === "1" && "bg-primary text-primary-foreground"
+                  member.id === "1" && "bg-ig-gradient text-white"
                 )}>
                   {member.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
@@ -220,7 +219,7 @@ const GroupBookingManager = ({
                 {member.id !== "1" && (
                   <div className="flex items-center gap-1">
                     {member.status === "pending" && (
-                      <button
+                      <button type="button"
                         onClick={() => handleSendReminder(member)}
                         className="p-1.5 rounded-xl hover:bg-primary/10 transition-all duration-200 hover:scale-110"
                         title="Send reminder"
@@ -228,7 +227,7 @@ const GroupBookingManager = ({
                         <MessageSquare className="w-4 h-4 text-primary" />
                       </button>
                     )}
-                    <button
+                    <button type="button"
                       onClick={() => handleRemove(member.id)}
                       className="p-1.5 rounded-xl hover:bg-destructive/10 transition-all duration-200 hover:scale-110"
                       title="Remove member"
@@ -249,7 +248,7 @@ const GroupBookingManager = ({
             Group Chat
           </Button>
           <Button 
-            className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-500"
+            className="flex-1 bg-secondary"
             disabled={confirmedCount < members.length}
           >
             {confirmedCount === members.length ? "Finalize Booking" : "Awaiting Confirmations"}

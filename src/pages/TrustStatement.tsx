@@ -89,10 +89,10 @@ const commitments = [
 ];
 
 const TrustStatement = () => {
-  const currentDate = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
 
   return (
@@ -100,14 +100,14 @@ const TrustStatement = () => {
       <SEOHead
         title="Trust Statement | ZIVO"
         description="ZIVO's public commitment to transparency, user-first pricing, partner fairness, and data protection."
-        canonical="https://hizivo.com/trust-statement"
+        canonical="https://zivosmedia.com/trust-statement"
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Hero Section */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -121,7 +121,7 @@ const TrustStatement = () => {
               Our Promise to You
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              ZIVO is built on trust. This document outlines our commitments 
+              ZIVO is built on trust. This document outlines our commitments
               to transparency, fairness, and user protection.
             </p>
           </motion.div>
@@ -214,10 +214,10 @@ const TrustStatement = () => {
                 <h2 className="text-2xl font-bold mb-4">Official Trust Statement</h2>
                 <div className="max-w-2xl mx-auto">
                   <p className="text-muted-foreground mb-6 italic">
-                    "We, the ZIVO team, commit to operating with transparency, honesty, 
-                    and integrity in all our dealings with users, partners, and stakeholders. 
-                    We believe that trust is earned through consistent action, not just words. 
-                    This statement represents our ongoing commitment to building a platform 
+                    "We, the ZIVO team, commit to operating with transparency, honesty,
+                    and integrity in all our dealings with users, partners, and stakeholders.
+                    We believe that trust is earned through consistent action, not just words.
+                    This statement represents our ongoing commitment to building a platform
                     that users can rely on."
                   </p>
                   <div className="pt-6 border-t border-border/50">
@@ -237,14 +237,14 @@ const TrustStatement = () => {
             <Shield className="w-8 h-8 text-primary mx-auto mb-3" />
             <h3 className="font-semibold mb-2">Questions About Our Practices?</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              If you have concerns about how we handle your data or conduct our business, 
+              If you have concerns about how we handle your data or conduct our business,
               please reach out.
             </p>
-            <a 
-              href="mailto:info@hizivo.com" 
+            <a
+              href="mailto:info@zivosmedia.com"
               className="text-primary hover:underline"
             >
-              info@hizivo.com
+              info@zivosmedia.com
             </a>
           </div>
         </div>

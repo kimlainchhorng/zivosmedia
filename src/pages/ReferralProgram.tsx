@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReferralProgram Page
  * Dedicated landing page for referral program
  */
@@ -129,9 +129,9 @@ export default function ReferralProgram() {
                 <p className="text-3xl font-bold text-amber-500">{REFERRAL_REWARDS.referrer.pointsPerReferral.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">ZIVO Points per referral</p>
               </div>
-              <div className="text-center p-6 rounded-2xl bg-violet-500/5 border border-violet-500/20 hover:border-violet-500/40 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
-                <Users className="w-10 h-10 text-violet-500 mx-auto mb-3" />
-                <p className="text-3xl font-bold text-violet-500">{REFERRAL_REWARDS.newUser.points.toLocaleString()}</p>
+              <div className="text-center p-6 rounded-2xl bg-secondary border border-border hover:border-border hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                <Users className="w-10 h-10 text-foreground mx-auto mb-3" />
+                <p className="text-3xl font-bold text-foreground">{REFERRAL_REWARDS.newUser.points.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">Your friend gets too</p>
               </div>
             </div>
@@ -153,7 +153,7 @@ export default function ReferralProgram() {
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                       <step.icon className="w-8 h-8 text-primary" />
                     </div>
-                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-ig-gradient text-white text-sm font-bold flex items-center justify-center">
                       {index + 1}
                     </span>
                   </div>
@@ -202,7 +202,7 @@ export default function ReferralProgram() {
                     variant="outline"
                     size="lg"
                     className="gap-2"
-                    onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Join me on ZIVO and get $10 off your first trip! ${shareUrl}`)}`, '_blank', 'noopener,noreferrer')}
+                    onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Join me on ZIVO and get $10 off your first trip! ${shareUrl}`)}`))}
                   >
                     <Twitter className="w-5 h-5" />
                     Twitter
@@ -211,7 +211,7 @@ export default function ReferralProgram() {
                     variant="outline"
                     size="lg"
                     className="gap-2"
-                    onClick={() => window.open(`mailto:?subject=Join ZIVO&body=${encodeURIComponent(`Hey! Check out ZIVO for amazing travel deals: ${shareUrl}`)}`, '_blank', 'noopener,noreferrer')}
+                    onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl(`mailto:?subject=Join ZIVO&body=${encodeURIComponent(`Hey! Check out ZIVO for amazing travel deals: ${shareUrl}`)}`))}
                   >
                     <Mail className="w-5 h-5" />
                     Email
@@ -220,7 +220,7 @@ export default function ReferralProgram() {
                     variant="outline"
                     size="lg"
                     className="gap-2"
-                    onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Check out ZIVO for amazing travel deals! ${shareUrl}`)}`, '_blank', 'noopener,noreferrer')}
+                    onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(`https://wa.me/?text=${encodeURIComponent(`Check out ZIVO for amazing travel deals! ${shareUrl}`)}`))}
                   >
                     <MessageCircle className="w-5 h-5" />
                     WhatsApp

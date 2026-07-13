@@ -1,7 +1,7 @@
 /**
  * Hizovo Outbound Click Tracking
  * 
- * Handles logging affiliate clicks to the database
+ * Handles logging affiliate clicks through the server-side tracking gate
  * and generating tracked redirect URLs
  * 
  * STANDARDIZED TRACKING PARAMS:
@@ -97,18 +97,9 @@ export async function logOutboundClick(data: OutboundClickData): Promise<{
     referrer: typeof document !== 'undefined' ? document.referrer : undefined,
   };
   
-  // Get current user if authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    (logEntry as any).user_id = user.id;
-  }
-  
-  // Log to database
-  const { data: insertedLog, error } = await supabase
-    .from('affiliate_click_logs')
-    .insert(logEntry as any)
-    .select('id')
-    .single();
+  const { data: insertedLog, error } = await supabase.functions.invoke('affiliate-click-log', {
+    body: logEntry,
+  });
   
   if (error) {
     console.warn('[OutboundTracking] Failed to log click:', error);
@@ -121,7 +112,7 @@ export async function logOutboundClick(data: OutboundClickData): Promise<{
     success: true, 
     finalUrl, 
     subid: searchSessionId,
-    logId: insertedLog?.id 
+    logId: insertedLog?.id
   };
 }
 
@@ -240,12 +231,8 @@ export function exportLogsToCSV(logs: ClickLogEntry[]): string {
 /**
  * Download CSV file
  */
-export function downloadCSV(csvContent: string, filename: string): void {
+export async function downloadCSV(csvContent: string, filename: string): Promise<void> {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const { exportBlob } = await import("@/lib/native/exportFile");
+  await exportBlob(blob, filename, filename);
 }

@@ -17,7 +17,7 @@ interface FlightSupportCTAProps {
 
 export default function FlightSupportCTA({ className, variant = 'default' }: FlightSupportCTAProps) {
   const isCompact = variant === 'compact';
-  
+
   return (
     <div className={cn(
       "flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/20 hover:shadow-sm transition-all duration-200",
@@ -30,20 +30,20 @@ export default function FlightSupportCTA({ className, variant = 'default' }: Fli
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Need help? </span>
-          <a 
-            href="mailto:support@hizivo.com" 
+          <a
+            href="mailto:support@zivosmedia.com"
             className="font-medium text-primary hover:underline"
           >
-            support@hizivo.com
+            support@zivosmedia.com
           </a>
         </div>
       </div>
-      
+
       <div className="h-4 w-px bg-border hidden sm:block" />
-      
-      <Button 
-        variant="ghost" 
-        size="sm" 
+
+      <Button
+        variant="ghost"
+        size="sm"
         className="text-muted-foreground hover:text-foreground gap-1.5 cursor-not-allowed opacity-70"
         disabled
       >
@@ -53,11 +53,11 @@ export default function FlightSupportCTA({ className, variant = 'default' }: Fli
           Soon
         </Badge>
       </Button>
-      
+
       <div className="h-4 w-px bg-border hidden sm:block" />
-      
-      <Link 
-        to="/security/scams" 
+
+      <Link
+        to="/security/scams"
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
         <Shield className="w-3 h-3" />

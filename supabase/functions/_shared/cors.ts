@@ -1,49 +1,137 @@
-/**
- * Shared CORS Module - Origin Whitelist for Sensitive Edge Functions
- * 
- * Use getCorsHeaders(req) in payment, payout, backup, and admin functions.
- * Public functions (search, exchange-rates, maps) can continue using wildcard.
- */
+// Shared CORS helpers for Supabase Edge Functions.
+//
+// Three modes:
+//  1. corsHeaders        — wildcard "*" (backward-compat, kept for public/webhook routes)
+//  2. getCorsHeaders()   — echoes caller Origin (legacy; use strictCorsHeaders on new routes)
+//  3. strictCorsHeaders() — validates Origin against allowlist; 403 for unknown origins
 
-const ALLOWED_ORIGINS = new Set([
-  // Production
-  "https://hizovo.com",
-  "https://www.hizovo.com",
-  // Lovable preview
-  "https://id-preview--72f99340-9c9f-453a-acff-60e5a9b25774.lovable.app",
-  // Lovable alternate
-  "https://72f99340-9c9f-453a-acff-60e5a9b25774.lovableproject.com",
-  // Published
-  "https://myzivo.lovable.app",
-]);
+const ALLOWED_HEADERS =
+  "authorization, x-client-info, apikey, content-type, stripe-signature, x-lovable-signature, x-lovable-timestamp, idempotency-key, x-application-name, x-device-fingerprint, x-request-id, x-cron-secret, x-pair-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
 
-const DEV_ORIGIN_PATTERN = /^http:\/\/localhost:\d+$/;
+declare const Deno:
+  | {
+      env: {
+        get(name: string): string | undefined;
+      };
+    }
+  | undefined;
 
-const STANDARD_HEADERS = "authorization, x-client-info, apikey, content-type, stripe-signature, x-rate-limit-action, x-session-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version";
-
-export function isAllowedOrigin(origin: string | null): boolean {
-  if (!origin) return false;
-  if (ALLOWED_ORIGINS.has(origin)) return true;
-  if (DEV_ORIGIN_PATTERN.test(origin)) return true;
-  return false;
+function readEnv(name: string): string {
+  try {
+    return typeof Deno !== "undefined" ? Deno.env.get(name) ?? "" : "";
+  } catch {
+    return "";
+  }
 }
 
-export function getCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("origin") || "";
-  const allowedOrigin = isAllowedOrigin(origin) ? origin : "";
+function parseCsvEnv(name: string): string[] {
+  return readEnv(name)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
 
+// Production origins. Add staging / preview domains through CORS_ALLOWED_ORIGINS.
+const ALLOWED_ORIGINS = new Set<string>([
+  "https://zivosmedia.com",
+  "https://www.zivosmedia.com",
+  "https://app.zivosmedia.com",
+  "https://preview.zivosmedia.com",
+  "https://zivoschat.com",
+  "https://www.zivoschat.com",
+  "https://zivosoftware.com",
+  "https://www.zivosoftware.com",
+  "https://zivostravel.com",
+  "https://www.zivostravel.com",
+  "https://zivodriver.com",
+  "https://www.zivodriver.com",
+  "https://zivo-web.myzivo.workers.dev",
+  // Supabase Studio (used by edge-function test runner)
+  "https://supabase.com",
+  ...parseCsvEnv("CORS_ALLOWED_ORIGINS"),
+]);
+
+// Domains whose origin prefixes are allowed (e.g. branch previews).
+const ALLOWED_ORIGIN_SUFFIXES = [
+  ".zivosmedia.com",
+  ".zivoschat.com",
+  ".zivosoftware.com",
+  ".zivostravel.com",
+  ".zivodriver.com",
+  ...parseCsvEnv("CORS_ALLOWED_ORIGIN_SUFFIXES"),
+];
+
+// Native WebView origins for our own Capacitor shells. iOS WKWebView serves the
+// app from capacitor://localhost; Ionic's older scheme is ionic://localhost.
+// (Android uses https://localhost, already covered by isLocalDevelopmentOrigin.)
+// Strict-CORS routes still enforce a bearer JWT + app_integrations checks, so
+// this only opens the browser preflight gate to our own native apps.
+const NATIVE_APP_ORIGINS = new Set<string>([
+  "capacitor://localhost",
+  "ionic://localhost",
+]);
+
+function isPrivateLanHost(hostname: string): boolean {
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]") return true;
+  if (hostname.startsWith("192.168.")) return true;
+  if (hostname.startsWith("10.")) return true;
+  const parts = hostname.split(".").map((part) => Number(part));
+  return parts.length === 4 && parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
+}
+
+function isLocalDevelopmentOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    return isPrivateLanHost(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  if (NATIVE_APP_ORIGINS.has(origin)) return true;
+  if (isLocalDevelopmentOrigin(origin)) return true;
+  try {
+    const url = new URL(origin);
+    return ALLOWED_ORIGIN_SUFFIXES.some(s => url.hostname.endsWith(s));
+  } catch {
+    return false;
+  }
+}
+
+// ── Legacy / public-route exports (backward-compatible) ────────────────────────
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+  "Access-Control-Allow-Methods": "POST, GET, PUT, DELETE, PATCH, OPTIONS",
+};
+
+export const publicCorsHeaders = corsHeaders;
+
+// Per-request variant (legacy): echoes Origin, falls back to "*".
+export function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") ?? "*";
   return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": STANDARD_HEADERS,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+    "Access-Control-Allow-Methods": "POST, GET, PUT, DELETE, PATCH, OPTIONS",
     "Vary": "Origin",
   };
 }
 
-/**
- * Wildcard CORS for public, non-sensitive endpoints
- */
-export const publicCorsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": STANDARD_HEADERS,
-};
+// ── Strict origin-validated headers (use on authenticated routes) ──────────────
+export function strictCorsHeaders(req: Request): Record<string, string> | null {
+  const origin = req.headers.get("origin");
+  if (!isOriginAllowed(origin)) return null; // caller should return 403
+  return {
+    "Access-Control-Allow-Origin": origin!,
+    "Access-Control-Allow-Headers": ALLOWED_HEADERS,
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Credentials": "true",
+    "Vary": "Origin",
+  };
+}

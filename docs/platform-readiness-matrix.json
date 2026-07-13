@@ -1,0 +1,625 @@
+{
+  "generated": "2026-06-08T16:39:55.757Z",
+  "totals": {
+    "pageFiles": 707,
+    "componentFiles": 1375,
+    "sourceFiles": 2712,
+    "edgeFunctions": 449,
+    "migrations": 1110,
+    "testFiles": 153,
+    "docsFiles": 105
+  },
+  "currentGate": {
+    "mode": "soft",
+    "readyForCurrentGate": true,
+    "readyForProductionGate": false,
+    "remoteMigrationHistoryStatus": "access_token_missing",
+    "productionBlockers": [
+      "Missing SUPABASE_URL for production backend cron/runtime settings.",
+      "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+      "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+      "API readiness has 19 warning(s).",
+      "Database readiness has 1 blocker(s).",
+      "Database readiness has 1 warning(s).",
+      "Supabase remote migration history is unavailable (access_token_missing).",
+      "Supabase migrations have 6 unresolved duplicate version(s)."
+    ]
+  },
+  "productionBlockers": [
+    "Missing SUPABASE_URL for production backend cron/runtime settings.",
+    "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+    "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+    "API readiness has 19 warning(s).",
+    "Database readiness has 1 blocker(s).",
+    "Database readiness has 1 warning(s).",
+    "Supabase remote migration history is unavailable (access_token_missing).",
+    "Supabase migrations have 6 unresolved duplicate version(s)."
+  ],
+  "lanes": [
+    {
+      "id": "release-safety",
+      "label": "Release Safety Foundation",
+      "evidenceCount": 1508,
+      "evidenceBreakdown": {
+        "pages": 16,
+        "components": 20,
+        "otherSource": 15,
+        "edgeFunctions": 198,
+        "migrations": 1110,
+        "tests": 87,
+        "docs": 62
+      },
+      "testGap": {
+        "implementationEvidence": 1359,
+        "testEvidence": 87,
+        "testCoverageRatio": 0.0577,
+        "targetTestEvidence": 31,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/LegalPoliciesPage.tsx",
+        "src/pages/account/LinkDevicePage.tsx",
+        "src/pages/admin/AdminAdsAnalyticsPage.tsx",
+        "src/pages/admin/AdminTelegramSystemPage.tsx",
+        "src/pages/admin/HotelAdminLaunchPage.tsx",
+        "src/pages/app/personal/ApplyJobHubPage.tsx",
+        "src/pages/ChatHubPage.tsx",
+        "src/pages/FeedPage.tsx",
+        "src/pages/InspectionViewPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/releaseSafetyPreflight.test.ts",
+        "src/test/releaseSafetyMigrationDrift.test.ts",
+        "src/test/releaseSafetyArtifactContracts.test.ts",
+        "src/test/releaseSafetyProductionSecretsContracts.test.ts",
+        "src/test/deployEnvPreflight.test.ts",
+        "src/test/deployWorkflowGates.test.ts",
+        "src/test/secretScanner.test.ts"
+      ],
+      "verificationCommands": [
+        "npm run test -- src/test/deployEnvPreflight.test.ts src/test/secretScanner.test.ts",
+        "npm run deploy:preflight:strict",
+        "npm run security:scan",
+        "npm run supabase:upgrade-readiness"
+      ],
+      "nextAction": "Resolve production preflight blockers and keep Supabase token misuse/leakage tests green before schema pushes or production deploys."
+    },
+    {
+      "id": "auth-sso-sessions",
+      "label": "Auth, SSO, Sessions, and Account Protection",
+      "evidenceCount": 2483,
+      "evidenceBreakdown": {
+        "pages": 480,
+        "components": 371,
+        "otherSource": 235,
+        "edgeFunctions": 401,
+        "migrations": 813,
+        "tests": 100,
+        "docs": 83
+      },
+      "testGap": {
+        "implementationEvidence": 2300,
+        "testEvidence": 100,
+        "testCoverageRatio": 0.0403,
+        "targetTestEvidence": 50,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/About.tsx",
+        "src/pages/account/AccountAnalyticsPage.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSessionsPage.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/AccountSubscriptionsPage.tsx",
+        "src/pages/account/AccountTipsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/AddressesPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "tests/e2e/auth-sso-role-matrix.spec.ts",
+        "src/test/authSessionSecurity.test.ts",
+        "tests/e2e/admin-two-step-required.spec.ts"
+      ],
+      "verificationCommands": [
+        "npm run qa:sso-auth-contracts",
+        "npm run test -- src/test/authSessionSecurity.test.ts src/test/workflows/sso-auth-sessions.test.ts",
+        "npx playwright test tests/e2e/sso-session-roles.spec.ts tests/e2e/auth-sso-role-matrix.spec.ts tests/e2e/admin-two-step-required.spec.ts",
+        "npm run test:e2e -- tests/e2e/mobile-auth-feed-smoke.spec.ts"
+      ],
+      "nextAction": "Keep OAuth, passwordless OTP, MFA step-up, trusted devices, active sessions, and role-aware route gates green."
+    },
+    {
+      "id": "role-workflows",
+      "label": "Customer, Shop Owner, Staff, Driver, Creator, Admin Workflows",
+      "evidenceCount": 3813,
+      "evidenceBreakdown": {
+        "pages": 693,
+        "components": 1214,
+        "otherSource": 466,
+        "edgeFunctions": 429,
+        "migrations": 818,
+        "tests": 95,
+        "docs": 98
+      },
+      "testGap": {
+        "implementationEvidence": 3620,
+        "testEvidence": 95,
+        "testCoverageRatio": 0.0249,
+        "targetTestEvidence": 77,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/About.tsx",
+        "src/pages/account/AccountAnalyticsPage.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSessionsPage.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/AccountSubscriptionsPage.tsx",
+        "src/pages/account/AccountTipsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/AddressesPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/roleWorkflowMatrix.test.ts",
+        "src/test/crossVerticalRoleNavigation.test.ts",
+        "src/test/staffDriverCreatorRoleAccess.test.ts",
+        "src/test/merchantPayoutOwnerOpsAccess.test.ts",
+        "src/test/adminModerationRoleAccess.test.ts",
+        "src/test/adminSupportAccountRoleAccess.test.ts",
+        "tests/e2e/customer-booking-payment.spec.ts",
+        "tests/e2e/shop-owner-dashboard-permissions.spec.ts",
+        "tests/e2e/staff-driver-creator-role-access.spec.ts"
+      ],
+      "verificationCommands": [
+        "npm run qa:customer-booking-contracts",
+        "npm run qa:shop-owner-contracts",
+        "npm run qa:client-staff-contracts",
+        "npm run test -- src/test/roleWorkflowMatrix.test.ts src/test/crossVerticalRoleNavigation.test.ts src/test/staffDriverCreatorRoleAccess.test.ts src/test/merchantPayoutOwnerOpsAccess.test.ts src/test/adminModerationRoleAccess.test.ts src/test/adminSupportAccountRoleAccess.test.ts",
+        "npx playwright test tests/e2e/customer-booking-payment.spec.ts tests/e2e/shop-owner-dashboard-permissions.spec.ts tests/e2e/staff-driver-creator-role-access.spec.ts"
+      ],
+      "nextAction": "Keep customer booking, shop owner, staff, driver, creator, support, and admin role workflows green."
+    },
+    {
+      "id": "payments-payouts",
+      "label": "Payments, Payouts, Refunds, and Webhooks",
+      "evidenceCount": 1518,
+      "evidenceBreakdown": {
+        "pages": 343,
+        "components": 418,
+        "otherSource": 123,
+        "edgeFunctions": 218,
+        "migrations": 268,
+        "tests": 64,
+        "docs": 84
+      },
+      "testGap": {
+        "implementationEvidence": 1370,
+        "testEvidence": 64,
+        "testCoverageRatio": 0.0422,
+        "targetTestEvidence": 31,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/About.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/AccountSubscriptionsPage.tsx",
+        "src/pages/account/GiftCardsPage.tsx",
+        "src/pages/account/GiftCardSuccessPage.tsx",
+        "src/pages/account/LegalPoliciesPage.tsx",
+        "src/pages/account/NotificationSettings.tsx",
+        "src/pages/account/PrivacySettingsPage.tsx",
+        "src/pages/account/ProfileEditPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/paymentWebhookIdempotency.test.ts",
+        "src/test/payoutAuthorization.test.ts",
+        "tests/e2e/checkout-refund-state.spec.ts"
+      ],
+      "verificationCommands": [
+        "npm run qa:payments-refunds-contracts",
+        "npm run qa:payouts-earnings-contracts",
+        "npm run test -- src/test/paymentWebhookIdempotency.test.ts src/test/payoutAuthorization.test.ts",
+        "npx playwright test tests/e2e/checkout-refund-state.spec.ts",
+        "npm run security:api-readiness:report"
+      ],
+      "nextAction": "Keep provider webhooks, checkout/refund state, payout auth, idempotency, and wallet ledgers green."
+    },
+    {
+      "id": "email-push-marketing",
+      "label": "Email, Push, SMS, and Marketing",
+      "evidenceCount": 1454,
+      "evidenceBreakdown": {
+        "pages": 302,
+        "components": 351,
+        "otherSource": 215,
+        "edgeFunctions": 220,
+        "migrations": 258,
+        "tests": 67,
+        "docs": 41
+      },
+      "testGap": {
+        "implementationEvidence": 1346,
+        "testEvidence": 67,
+        "testCoverageRatio": 0.0461,
+        "targetTestEvidence": 30,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/About.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/BusinessInvoicesPage.tsx",
+        "src/pages/account/GiftCardsPage.tsx",
+        "src/pages/account/GiftCardSuccessPage.tsx",
+        "src/pages/account/LegalPoliciesPage.tsx",
+        "src/pages/account/LinkedDevicesPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/marketingConsentSuppression.test.ts",
+        "src/test/pushTokenLifecycle.test.ts",
+        "tests/e2e/transactional-vs-marketing-messages.spec.ts"
+      ],
+      "verificationCommands": [
+        "npm run qa:email-marketing-contracts",
+        "npm run qa:push-notification-contracts",
+        "npm run test -- src/test/marketingConsentSuppression.test.ts src/test/pushTokenLifecycle.test.ts src/test/workflows/email-marketing-consent.test.ts src/test/workflows/push-notifications-workflow.test.ts",
+        "npx playwright test tests/e2e/transactional-vs-marketing-messages.spec.ts",
+        "npm run security:api-readiness:report"
+      ],
+      "nextAction": "Keep transactional-vs-marketing separation, suppression, consent, push tokens, digest dispatch, and campaign event logging green."
+    },
+    {
+      "id": "database-storage-media",
+      "label": "Database, Storage, and Media",
+      "evidenceCount": 2884,
+      "evidenceBreakdown": {
+        "pages": 524,
+        "components": 571,
+        "otherSource": 253,
+        "edgeFunctions": 449,
+        "migrations": 870,
+        "tests": 121,
+        "docs": 96
+      },
+      "testGap": {
+        "implementationEvidence": 2667,
+        "testEvidence": 121,
+        "testCoverageRatio": 0.042,
+        "targetTestEvidence": 58,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/About.tsx",
+        "src/pages/account/AccountAnalyticsPage.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSessionsPage.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/AccountSubscriptionsPage.tsx",
+        "src/pages/account/AccountTipsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/AddressesPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/rls/dataApiGrantCoverage.test.ts",
+        "src/test/fileUploadSecurity.test.ts",
+        "src/test/storageBucketPolicies.test.ts",
+        "tests/e2e/media-upload-delete-retention.spec.ts"
+      ],
+      "verificationCommands": [
+        "npm run qa:database-storage-contracts",
+        "npm run qa:storage-media-contracts",
+        "npm run platform:test:storage-media",
+        "npm run test:rls",
+        "npm run perf:media-report",
+        "npm run supabase:migrations:linked:strict"
+      ],
+      "nextAction": "Keep `npm run qa:database-storage-contracts`, `npm run qa:storage-media-contracts`, and `npm run platform:test:storage-media` green for Data API grants, RLS, storage policies, signed media, upload validation, Postgres upgrade checks, and media/CDN gates."
+    },
+    {
+      "id": "security-anti-abuse",
+      "label": "Security, Anti-Abuse, and Hacker Protection",
+      "evidenceCount": 2184,
+      "evidenceBreakdown": {
+        "pages": 322,
+        "components": 438,
+        "otherSource": 97,
+        "edgeFunctions": 448,
+        "migrations": 724,
+        "tests": 94,
+        "docs": 61
+      },
+      "testGap": {
+        "implementationEvidence": 2029,
+        "testEvidence": 94,
+        "testCoverageRatio": 0.043,
+        "targetTestEvidence": 44,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/About.tsx",
+        "src/pages/account/AccountAnalyticsPage.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSessionsPage.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/AddressesPage.tsx",
+        "src/pages/account/LegalPoliciesPage.tsx",
+        "src/pages/account/LinkDevicePage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/securityAttackDrills.test.ts",
+        "src/test/rateLimitRiskDecisions.test.ts",
+        "tests/e2e/account-takeover-protection.spec.ts"
+      ],
+      "verificationCommands": [
+        "npm run qa:security-anti-abuse-contracts",
+        "npm run test -- src/test/securityAttackDrills.test.ts src/test/rateLimitRiskDecisions.test.ts src/test/workflows/security-anti-abuse.test.ts",
+        "npx playwright test tests/e2e/account-takeover-protection.spec.ts",
+        "npm run security:scan",
+        "npm run security:api-readiness:report",
+        "npm run deploy:preflight:strict"
+      ],
+      "nextAction": "Keep account takeover, card testing, spam, scraping, fake booking, key leakage, WAF, rate-limit, network-risk, and strict preflight controls green."
+    },
+    {
+      "id": "legal-policy-compliance",
+      "label": "Law, Policy, Compliance, and Trust",
+      "evidenceCount": 3726,
+      "evidenceBreakdown": {
+        "pages": 704,
+        "components": 1340,
+        "otherSource": 597,
+        "edgeFunctions": 176,
+        "migrations": 749,
+        "tests": 90,
+        "docs": 70
+      },
+      "testGap": {
+        "implementationEvidence": 3566,
+        "testEvidence": 90,
+        "testCoverageRatio": 0.0242,
+        "targetTestEvidence": 75,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/About.tsx",
+        "src/pages/account/AccountAnalyticsPage.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSessionsPage.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/AccountSubscriptionsPage.tsx",
+        "src/pages/account/AccountTipsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/AddressesPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/legalRouteSurface.test.ts",
+        "src/test/legalHubCanonicalLinks.test.ts",
+        "src/test/publicLegalNavigationCanonical.test.ts",
+        "src/test/checkoutLegalCanonicalLinks.test.ts",
+        "src/test/accountDeletionDataRightsLinks.test.ts",
+        "src/test/travelLegalCanonicalLinks.test.ts",
+        "src/test/groceryBusinessLegalCanonicalLinks.test.ts",
+        "src/test/legalPolicyPageRelatedLinks.test.ts",
+        "src/test/supportFlightLegalCanonicalLinks.test.ts",
+        "src/test/residualPublicLegalCanonicalLinks.test.ts",
+        "src/test/legalCanonicalSeoUrls.test.ts",
+        "src/test/policyAcceptanceVersioning.test.ts",
+        "src/test/legalAcceptanceEdgeAllowlists.test.ts",
+        "src/test/accountDeletionLifecycle.test.ts",
+        "src/test/accountExportManifest.test.ts",
+        "src/test/privacyExportDeletePromises.test.ts",
+        "src/test/legalTrustIntakeContracts.test.ts",
+        "src/test/refundSupportTrustIntake.test.ts",
+        "src/test/creatorMonetizationLegalDisclosure.test.ts",
+        "src/test/adsMarketingPrivacyDisclosure.test.ts",
+        "src/test/adsMarketingConsentRuntime.test.ts",
+        "src/test/marketingLeadPrivacyIntake.test.ts",
+        "src/test/ageEligibilitySafetyDisclosure.test.ts",
+        "src/test/aiAutomatedDecisionDisclosure.test.ts",
+        "src/test/automatedLegalPolicyHub.test.ts",
+        "src/test/dataRightsLegalPolicyHub.test.ts",
+        "src/test/sensitiveDataLegalPolicyHub.test.ts",
+        "tests/e2e/refund-policy-flow.spec.ts"
+      ],
+      "verificationCommands": [
+        "npm run qa:legal-policy-contracts",
+        "npm run test -- src/test/workflows/legal-policy-workflow.test.ts src/test/legalRouteSurface.test.ts src/test/legalHubCanonicalLinks.test.ts src/test/publicLegalNavigationCanonical.test.ts src/test/checkoutLegalCanonicalLinks.test.ts src/test/accountDeletionDataRightsLinks.test.ts src/test/travelLegalCanonicalLinks.test.ts src/test/groceryBusinessLegalCanonicalLinks.test.ts src/test/legalPolicyPageRelatedLinks.test.ts src/test/supportFlightLegalCanonicalLinks.test.ts src/test/residualPublicLegalCanonicalLinks.test.ts src/test/legalCanonicalSeoUrls.test.ts src/test/policyAcceptanceVersioning.test.ts src/test/legalAcceptanceEdgeAllowlists.test.ts src/test/accountDeletionLifecycle.test.ts src/test/accountExportManifest.test.ts src/test/privacyExportDeletePromises.test.ts src/test/legalTrustIntakeContracts.test.ts src/test/refundSupportTrustIntake.test.ts src/test/creatorMonetizationLegalDisclosure.test.ts src/test/adsMarketingPrivacyDisclosure.test.ts src/test/adsMarketingConsentRuntime.test.ts src/test/marketingLeadPrivacyIntake.test.ts src/test/ageEligibilitySafetyDisclosure.test.ts src/test/aiAutomatedDecisionDisclosure.test.ts src/test/automatedLegalPolicyHub.test.ts src/test/dataRightsLegalPolicyHub.test.ts src/test/sensitiveDataLegalPolicyHub.test.ts",
+        "npx playwright test tests/e2e/refund-policy-flow.spec.ts",
+        "npm run security:api-readiness:report"
+      ],
+      "nextAction": "Keep legal pages, canonical links, consent logs, export/delete rights, privacy intake, refund support, monetization disclosures, ads consent, AI notices, and policy-backed booking flows green."
+    },
+    {
+      "id": "frontend-graphics-speed",
+      "label": "Frontend, Graphics, Design, and Speed",
+      "evidenceCount": 2588,
+      "evidenceBreakdown": {
+        "pages": 628,
+        "components": 805,
+        "otherSource": 425,
+        "edgeFunctions": 412,
+        "migrations": 208,
+        "tests": 58,
+        "docs": 52
+      },
+      "testGap": {
+        "implementationEvidence": 2478,
+        "testEvidence": 58,
+        "testCoverageRatio": 0.0224,
+        "targetTestEvidence": 52,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/account/AccountAnalyticsPage.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSessionsPage.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/AccountSubscriptionsPage.tsx",
+        "src/pages/account/AccountTipsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/AddressesPage.tsx",
+        "src/pages/account/BusinessInvoicesPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "tests/visual/workflow-visual-readiness.spec.ts",
+        "tests/e2e/mobile-layout-no-overlap.spec.ts",
+        "src/test/visualWorkflowCoverageContracts.test.ts",
+        "src/test/safeAreaVisualBaselineContracts.test.ts",
+        "src/test/feedMobileVisualContracts.test.ts",
+        "src/test/mobileBottomNavVisualContracts.test.ts",
+        "src/test/createPostComposerVisualContracts.test.ts",
+        "src/test/mediaRenderingPerformanceContracts.test.ts",
+        "src/test/feedResponsiveShellContracts.test.ts",
+        "src/test/loadingEmptyReliabilityContracts.test.ts",
+        "src/test/loadingErrorStates.test.tsx"
+      ],
+      "verificationCommands": [
+        "npm run qa:frontend-visual-contracts",
+        "npm run test -- src/test/visualWorkflowCoverageContracts.test.ts src/test/safeAreaVisualBaselineContracts.test.ts src/test/feedMobileVisualContracts.test.ts src/test/mobileBottomNavVisualContracts.test.ts src/test/createPostComposerVisualContracts.test.ts src/test/mediaRenderingPerformanceContracts.test.ts src/test/feedResponsiveShellContracts.test.ts src/test/loadingEmptyReliabilityContracts.test.ts src/test/loadingErrorStates.test.tsx",
+        "npx playwright test tests/e2e/mobile-layout-no-overlap.spec.ts",
+        "npm run test:visual",
+        "npm run qa:safe-area:all",
+        "npm run perf:media-report",
+        "npm run build"
+      ],
+      "nextAction": "Keep visual route coverage, compact mobile feed controls, safe-area baselines, bottom navigation, composer controls, lazy media, loading/error states, and no-overlap checks green."
+    },
+    {
+      "id": "native-mobile-release",
+      "label": "Native iOS, Android, OTA, and Store Release",
+      "evidenceCount": 1616,
+      "evidenceBreakdown": {
+        "pages": 506,
+        "components": 553,
+        "otherSource": 213,
+        "edgeFunctions": 97,
+        "migrations": 162,
+        "tests": 44,
+        "docs": 41
+      },
+      "testGap": {
+        "implementationEvidence": 1531,
+        "testEvidence": 44,
+        "testCoverageRatio": 0.0272,
+        "targetTestEvidence": 33,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/About.tsx",
+        "src/pages/account/AccountAnalyticsPage.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSessionsPage.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/AccountTipsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/AddressesPage.tsx",
+        "src/pages/account/BusinessInvoicesPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/workflows/native-app-release.test.ts",
+        "src/test/nativePermissionsDeepLinks.test.ts",
+        "src/test/nativeStoreListingCanonicalUrls.test.ts",
+        "src/test/nativeStoreAssets.test.ts",
+        "src/test/nativeStoreScreenshotSpecs.test.ts",
+        "src/test/nativeSubmissionCommands.test.ts",
+        "src/test/nativeVersionReleaseAlignment.test.ts",
+        "src/test/nativeReleaseChecklist.test.ts",
+        "src/test/nativeSafeAreaBridgeContracts.test.ts",
+        "src/test/otaDeployBypass.test.ts",
+        "scripts/qa/native-app-contracts.mjs",
+        "scripts/native/doctor.mjs"
+      ],
+      "verificationCommands": [
+        "npm run qa:native-app-contracts",
+        "npm run test -- src/test/workflows/native-app-release.test.ts src/test/nativePermissionsDeepLinks.test.ts src/test/nativeStoreListingCanonicalUrls.test.ts src/test/nativeStoreAssets.test.ts src/test/nativeStoreScreenshotSpecs.test.ts src/test/nativeSubmissionCommands.test.ts src/test/nativeVersionReleaseAlignment.test.ts src/test/nativeReleaseChecklist.test.ts src/test/nativeSafeAreaBridgeContracts.test.ts src/test/otaDeployBypass.test.ts",
+        "npm run native:doctor",
+        "npm run native:sync",
+        "npm run ios:build:sim",
+        "npm run android:build:debug"
+      ],
+      "nextAction": "Keep Capacitor config, native permissions, deep links, push extensions, iOS/Android store metadata, screenshots, safe-area bridge, OTA bypass safety, version alignment, native sync, and simulator/debug builds green."
+    },
+    {
+      "id": "api-server-operations",
+      "label": "API, Server Speed, Observability, and Operations",
+      "evidenceCount": 3700,
+      "evidenceBreakdown": {
+        "pages": 678,
+        "components": 1199,
+        "otherSource": 575,
+        "edgeFunctions": 449,
+        "migrations": 610,
+        "tests": 113,
+        "docs": 76
+      },
+      "testGap": {
+        "implementationEvidence": 3511,
+        "testEvidence": 113,
+        "testCoverageRatio": 0.0305,
+        "targetTestEvidence": 74,
+        "testsNeededForHigh": 0,
+        "testsNeededForOk": 0,
+        "priority": "ok"
+      },
+      "sampleEvidence": [
+        "src/pages/account/AccountAnalyticsPage.tsx",
+        "src/pages/account/AccountExportPage.tsx",
+        "src/pages/account/AccountSecurity.tsx",
+        "src/pages/account/AccountSessionsPage.tsx",
+        "src/pages/account/AccountSettingsPage.tsx",
+        "src/pages/account/AccountSubscriptionsPage.tsx",
+        "src/pages/account/AccountTipsPage.tsx",
+        "src/pages/account/ActivityLogPage.tsx",
+        "src/pages/account/AddressesPage.tsx",
+        "src/pages/account/BusinessInvoicesPage.tsx"
+      ],
+      "suggestedTestFiles": [
+        "src/test/apiObservabilityContracts.test.ts",
+        "src/test/webhookFailureAlerting.test.ts",
+        "src/test/apiOperationsReportSurfaces.test.ts",
+        "tests/e2e/server-error-fallbacks.spec.ts"
+      ],
+      "verificationCommands": [
+        "npm run qa:api-operations-contracts",
+        "npm run test -- src/test/workflows/api-operations-readiness.test.ts src/test/apiObservabilityContracts.test.ts src/test/webhookFailureAlerting.test.ts src/test/apiOperationsReportSurfaces.test.ts",
+        "npx playwright test tests/e2e/server-error-fallbacks.spec.ts",
+        "npm run security:api-readiness:report",
+        "npm run deploy:preflight:strict"
+      ],
+      "nextAction": "Keep wrapper observability, preflight artifacts, runtime settings, operations runbook owners, webhook failure surfaces, cron monitors, server-error fallbacks, and API readiness green."
+    }
+  ],
+  "priorityTestGapActions": []
+}

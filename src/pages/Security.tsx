@@ -5,8 +5,8 @@
 
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  Shield, Lock, Eye, CreditCard, AlertTriangle, 
+import {
+  Shield, Lock, Eye, CreditCard, AlertTriangle,
   Mail, CheckCircle2, Server, Users, FileSearch
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ export default function Security() {
       <main className="min-h-screen pt-20 pb-16 bg-background">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Hero */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -173,21 +173,21 @@ export default function Security() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                We believe in working with security researchers to keep ZIVO safe. If you discover a security vulnerability, 
+                We believe in working with security researchers to keep ZIVO safe. If you discover a security vulnerability,
                 we encourage you to report it responsibly. We will acknowledge your contribution and work to address the issue promptly.
               </p>
               <div className="p-4 rounded-lg bg-background border border-border hover:border-primary/20 hover:shadow-sm transition-all duration-200">
                 <p className="font-medium mb-2">Report a security issue:</p>
-                <a 
-                  href="mailto:security@hizivo.com" 
+                <a
+                  href="mailto:security@zivosmedia.com"
                   className="inline-flex items-center gap-2 text-primary hover:underline"
                 >
                   <Mail className="w-4 h-4" />
-                  security@hizivo.com
+                  security@zivosmedia.com
                 </a>
               </div>
               <p className="text-sm text-muted-foreground">
-                Please include a detailed description of the vulnerability, steps to reproduce, and any potential impact. 
+                Please include a detailed description of the vulnerability, steps to reproduce, and any potential impact.
                 We ask that you give us reasonable time to address the issue before public disclosure.
               </p>
             </CardContent>
@@ -203,7 +203,7 @@ export default function Security() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                ZIVO implements a Zero-Trust security model with advanced protections against 
+                ZIVO implements a Zero-Trust security model with advanced protections against
                 hackers, data theft, insider threats, and account takeovers.
               </p>
               <div className="grid sm:grid-cols-2 gap-3">

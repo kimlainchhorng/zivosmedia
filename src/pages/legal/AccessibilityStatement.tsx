@@ -87,7 +87,7 @@ const AccessibilityStatement = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 safe-area-top z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Link to="/">
             <Button variant="ghost" size="icon" aria-label="Go back">
@@ -213,7 +213,6 @@ const AccessibilityStatement = () => {
                   <li>• JAWS (Windows)</li>
                   <li>• NVDA (Windows)</li>
                   <li>• VoiceOver (macOS, iOS)</li>
-                  <li>• TalkBack (Android)</li>
                   <li>• Dragon NaturallySpeaking</li>
                 </ul>
               </div>
@@ -242,13 +241,13 @@ const AccessibilityStatement = () => {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold mb-3">Android</h4>
+                <h4 className="font-semibold mb-3">Web</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• TalkBack support</li>
-                  <li>• Font size scaling</li>
-                  <li>• Switch Access compatible</li>
-                  <li>• High contrast text</li>
-                  <li>• Magnification gestures</li>
+                  <li>• Screen reader support</li>
+                  <li>• Keyboard navigation</li>
+                  <li>• Zoom and text scaling support</li>
+                  <li>• High contrast compatibility</li>
+                  <li>• Focus indicators for interactive elements</li>
                 </ul>
               </div>
             </div>
@@ -312,7 +311,7 @@ const AccessibilityStatement = () => {
           <Link to="/help">
             <Button variant="outline">Help Center</Button>
           </Link>
-          <Link to="/terms-of-service">
+          <Link to="/legal/terms">
             <Button variant="outline">Terms of Service</Button>
           </Link>
           <Link to="/community-guidelines">

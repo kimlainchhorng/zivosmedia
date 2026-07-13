@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Universal Search Overlay
  * Full-screen cross-service search hub for the Super App
  * Searches: restaurants, food items, past orders, trips, saved addresses, help articles
@@ -10,6 +10,8 @@ import {
   Search, X, Clock, Car, Utensils, Package, Plane, BedDouble,
   ChevronRight, Sparkles, MapPin, Trash2, ShoppingBag, HelpCircle,
   RotateCcw, Navigation, History, BookOpen,
+  Briefcase, Tv, Activity, Rocket, Heart, Crown, Gem, Hash,
+  Mic, Video, Dumbbell, Stethoscope, Pill, Brain, MessageCircle, Film,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,12 +35,51 @@ const TABS: { key: TabKey; label: string; icon: typeof Search }[] = [
 ];
 
 const POPULAR_SERVICES = [
+  { label: "Feed", icon: MessageCircle, href: "/feed", color: "bg-sky-500/10 text-sky-500 border-sky-500/20" },
+  { label: "Reels", icon: Film, href: "/reels", color: "bg-rose-500/10 text-rose-500 border-rose-500/20" },
+  { label: "Chat", icon: MessageCircle, href: "/chat", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
+  { label: "Meet", icon: Video, href: "/chat/contacts", color: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
   { label: "Flights", icon: Plane, href: "/flights", color: "bg-sky-500/10 text-sky-500 border-sky-500/20" },
   { label: "Hotels", icon: BedDouble, href: "/hotels", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
   { label: "Rentals", icon: Car, href: "/rent-car", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
-  { label: "Rides", icon: Car, href: "/rides", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
+  { label: "Rides", icon: Car, href: "/rides/hub", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
   { label: "Eats", icon: Package, href: "/eats", color: "bg-orange-500/10 text-orange-500 border-orange-500/20" },
   { label: "Delivery", icon: Package, href: "/delivery", color: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
+  { label: "Workplace", icon: Briefcase, href: "/personal-dashboard", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
+  { label: "Live", icon: Tv, href: "/live", color: "bg-rose-500/10 text-rose-500 border-rose-500/20" },
+  { label: "Creator", icon: Rocket, href: "/creator-dashboard", color: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
+  { label: "Wellness", icon: Heart, href: "/wellness", color: "bg-teal-500/10 text-teal-500 border-teal-500/20" },
+  { label: "ZIVO Plus", icon: Crown, href: "/zivo-plus", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
+  { label: "Rewards", icon: Gem, href: "/rewards", color: "bg-pink-500/10 text-pink-500 border-pink-500/20" },
+];
+
+// Quick-jump shortcuts that match by keyword (renders in flat results when query matches)
+const FEATURE_SHORTCUTS: { keywords: string[]; label: string; sub: string; icon: any; href: string; accent: string }[] = [
+  { keywords: ["facebook", "social", "feed", "post", "friends"], label: "Social Feed", sub: "Posts, stories, friends, and creators", icon: MessageCircle, href: "/feed", accent: "text-sky-500" },
+  { keywords: ["tiktok", "reel", "reels", "shorts", "video"], label: "Reels", sub: "Full-screen short videos", icon: Film, href: "/reels", accent: "text-rose-500" },
+  { keywords: ["telegram", "chat", "message", "dm", "group"], label: "Chat", sub: "Messages, groups, stickers, and calls", icon: MessageCircle, href: "/chat", accent: "text-blue-500" },
+  { keywords: ["meet", "google meet", "video call", "call", "room"], label: "Meet", sub: "Start a video call or room", icon: Video, href: "/chat/contacts", accent: "text-violet-500" },
+  { keywords: ["uber", "ride", "taxi", "cab", "pickup"], label: "ZIVO Ride", sub: "Book, reserve, and track a ride", icon: Car, href: "/rides/hub", accent: "text-emerald-500" },
+  { keywords: ["uber eat", "ubereats", "food", "restaurant", "delivery", "eat"], label: "ZIVO Eats", sub: "Order food and track delivery", icon: Utensils, href: "/eats", accent: "text-orange-500" },
+  { keywords: ["booking", "booking.com", "hotel", "stay", "room"], label: "Hotels", sub: "Search places to stay", icon: BedDouble, href: "/hotels", accent: "text-amber-500" },
+  { keywords: ["package", "courier", "delivery", "send"], label: "Delivery", sub: "Send packages and manage courier runs", icon: Package, href: "/delivery", accent: "text-violet-500" },
+  { keywords: ["onlyfans", "fans", "subscription", "subscriber"], label: "Creator Hub", sub: "Subscriptions, tips, and creator earnings", icon: Rocket, href: "/creator-dashboard", accent: "text-violet-500" },
+  { keywords: ["job", "career", "work", "hire", "apply", "workplace", "clock", "employee"], label: "Workplace", sub: "Clock in, jobs & schedule", icon: Briefcase, href: "/personal-dashboard", accent: "text-blue-500" },
+  { keywords: ["resume", "cv"], label: "Build CV", sub: "Create your resume", icon: Briefcase, href: "/personal/create-cv", accent: "text-blue-500" },
+  { keywords: ["live", "stream", "broadcast"], label: "Live Streams", sub: "Watch creators broadcasting now", icon: Tv, href: "/live", accent: "text-rose-500" },
+  { keywords: ["go live", "broadcast"], label: "Go Live", sub: "Start streaming", icon: Video, href: "/go-live", accent: "text-rose-500" },
+  { keywords: ["space", "audio", "voice room"], label: "Audio Spaces", sub: "Voice rooms & live talks", icon: Mic, href: "/spaces", accent: "text-purple-500" },
+  { keywords: ["channel"], label: "Channels", sub: "Discover & follow channels", icon: Hash, href: "/channels", accent: "text-blue-500" },
+  { keywords: ["creator", "monetize", "earn"], label: "Creator Hub", sub: "Earnings, analytics, growth", icon: Rocket, href: "/creator-dashboard", accent: "text-violet-500" },
+  { keywords: ["payout", "earning", "tips"], label: "Live Earnings", sub: "Tips & gifts in real time", icon: Activity, href: "/creator/live-earnings", accent: "text-violet-500" },
+  { keywords: ["wellness", "health"], label: "Wellness Hub", sub: "Activity, vitals, goals & meditation", icon: Heart, href: "/wellness", accent: "text-teal-500" },
+  { keywords: ["workout", "fitness", "exercise", "gym"], label: "Workouts", sub: "Plans & guided sessions", icon: Dumbbell, href: "/wellness/workouts", accent: "text-rose-500" },
+  { keywords: ["meditate", "meditation", "calm", "mindful"], label: "Mindfulness", sub: "Guided meditations & breathing", icon: Brain, href: "/wellness/mindfulness", accent: "text-purple-500" },
+  { keywords: ["doctor", "telehealth", "consult"], label: "Telehealth", sub: "Talk to a licensed doctor", icon: Stethoscope, href: "/wellness/telehealth", accent: "text-sky-500" },
+  { keywords: ["medication", "pill", "med"], label: "Medications", sub: "Reminders & refills", icon: Pill, href: "/wellness/meds", accent: "text-amber-500" },
+  { keywords: ["zivo plus", "premium"], label: "ZIVO Plus", sub: "Unlock premium perks", icon: Crown, href: "/zivo-plus", accent: "text-yellow-500" },
+  { keywords: ["reward", "points", "loyalty"], label: "Rewards", sub: "Earn points daily", icon: Gem, href: "/rewards", accent: "text-pink-500" },
+  { keywords: ["referral", "invite friend"], label: "Refer a Friend", sub: "Invite & earn rewards", icon: Sparkles, href: "/referrals", accent: "text-emerald-500" },
 ];
 
 // Help articles (static, could be pulled from DB)
@@ -245,6 +286,28 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
   const cards: ResultCard[] = [];
 
   if (hasQuery) {
+    // Feature shortcuts — match before service results so users find new sections fast
+    const q = debouncedQuery.toLowerCase();
+    FEATURE_SHORTCUTS.forEach((s) => {
+      const matched =
+        s.label.toLowerCase().includes(q) ||
+        s.sub.toLowerCase().includes(q) ||
+        s.keywords.some((k) => q.includes(k) || k.includes(q));
+      if (matched) {
+        cards.push({
+          key: `feat-${s.label}`,
+          category: "all",
+          icon: s.icon,
+          iconColor: s.accent,
+          iconBg: `${s.accent.replace("text-", "bg-")}/10`,
+          title: s.label,
+          subtitle: s.sub,
+          action: () => handleNavigate(s.href),
+          badge: "Open",
+        });
+      }
+    });
+
     // Restaurants
     restaurantResults?.forEach((r) => {
       cards.push({
@@ -299,7 +362,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
         iconBg: "bg-emerald-500/10",
         title: t.dropoff_address || "Trip",
         subtitle: `From ${t.pickup_address || "Unknown"} · ${t.status}`,
-        action: () => handleNavigate(`/rides`),
+        action: () => handleNavigate(`/rides/hub?tab=history`),
         badge: "Rebook",
       });
     });
@@ -313,7 +376,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
       iconBg: "bg-emerald-500/10",
       title: `Book a ride to "${debouncedQuery}"`,
       subtitle: "ZIVO Ride",
-      action: () => handleNavigate(`/rides?dropoff=${encodeURIComponent(debouncedQuery)}`),
+      action: () => handleNavigate(`/rides/hub?destination=${encodeURIComponent(debouncedQuery)}`),
     });
 
     cards.push({
@@ -385,7 +448,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="fixed inset-0 z-[100] bg-background flex flex-col"
+          className="fixed inset-0 z-[1450] bg-background flex flex-col"
         >
           {/* Header */}
           <div className="safe-area-top px-4 pt-4 pb-2 flex items-center gap-3 border-b border-border">
@@ -395,16 +458,16 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search food, rides, hotels, orders..."
+                placeholder="Search apps, rides, food, hotels, creators..."
                 className="w-full bg-muted border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
               />
               {query && (
-                <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               )}
             </div>
-            <button
+            <button type="button"
               onClick={onClose}
               className="text-sm text-muted-foreground font-medium active:text-foreground transition-all duration-200 touch-manipulation"
             >
@@ -419,12 +482,12 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                 const count = tabCounts[tab.key];
                 const isActive = activeTab === tab.key;
                 return (
-                  <button
+                  <button type="button"
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
                     className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all touch-manipulation ${
                       isActive
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-ig-gradient text-white"
                         : "bg-muted text-muted-foreground hover:bg-accent"
                     }`}
                   >
@@ -451,7 +514,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Recent</h3>
-                      <button
+                      <button type="button"
                         onClick={handleClearHistory}
                         className="text-xs text-destructive font-medium flex items-center gap-1 active:opacity-70 touch-manipulation"
                       >
@@ -461,7 +524,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                     </div>
                     <div className="space-y-0.5">
                       {recentSearches.map((s, i) => (
-                        <button
+                        <button type="button"
                           key={i}
                           onClick={() => setQuery(s.query)}
                           className="w-full flex items-center gap-3 py-2.5 px-2 rounded-xl hover:bg-accent active:bg-accent/80 transition-all duration-200 text-left touch-manipulation"
@@ -480,7 +543,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Quick Access</h3>
                   <div className="flex flex-wrap gap-2">
                     {POPULAR_SERVICES.map((svc) => (
-                      <button
+                      <button type="button"
                         key={svc.label}
                         onClick={() => handleNavigate(svc.href)}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border ${svc.color} active:scale-95 transition-transform touch-manipulation`}
@@ -497,7 +560,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Popular Searches</h3>
                   <div className="flex flex-wrap gap-2">
                     {["Pizza", "Airport", "Sushi", "Coffee", "Hotel"].map((term) => (
-                      <button
+                      <button type="button"
                         key={term}
                         onClick={() => setQuery(term)}
                         className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-accent touch-manipulation transition-all duration-200 hover:scale-105 active:scale-[0.97]"
@@ -517,7 +580,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                     </h3>
                     <div className="space-y-0.5">
                       {nearbyRestaurants.map((r) => (
-                        <button
+                        <button type="button"
                           key={r.id}
                           onClick={() => handleNavigate(`/eats/restaurant/${r.id}`)}
                           className="w-full flex items-center gap-3 py-2.5 px-2 rounded-xl hover:bg-accent active:bg-accent/80 transition-colors text-left touch-manipulation"
@@ -547,7 +610,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                   </div>
                 )}
                 {filteredCards.map((card) => (
-                  <button
+                  <button type="button"
                     key={card.key}
                     onClick={card.action}
                     className="w-full flex items-center gap-3 py-3 px-2 rounded-xl hover:bg-accent active:bg-accent/80 transition-colors text-left touch-manipulation"

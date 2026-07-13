@@ -1,17 +1,19 @@
-/**
+﻿/**
  * RideWallet — Enhanced payment management with split fare, top-up, transaction history
  */
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CreditCard, Plus, Tag, Gift, DollarSign, Wallet, Percent, Trash2, Zap, X, ArrowUpRight, ArrowDownLeft, Users, Send, Copy, CheckCircle, Clock, TrendingUp, Banknote } from "lucide-react";
+import { CreditCard, Plus, Tag, Gift, Wallet, Percent, Trash2, Zap, ArrowUpRight, ArrowDownLeft, Users, Send, Copy, CheckCircle, TrendingUp, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useLocalPaymentMethods, formatCardNumber, formatExpiry, parseExpiry, detectCardBrand, validateCardNumber, validateExpiry, validateCVV, type CardInput } from "@/hooks/useLocalPaymentMethods";
+import { getPublicOrigin } from "@/lib/getPublicOrigin";
+import { useLocalPaymentMethods } from "@/hooks/useLocalPaymentMethods";
 import { useCustomerWallet } from "@/hooks/useCustomerWallet";
+import AddCardForm from "@/components/wallet/AddCardForm";
 
 export default function RideWallet() {
   const [activeTab, setActiveTab] = useState<"methods" | "promos" | "wallet" | "split">("methods");
@@ -29,7 +31,7 @@ export default function RideWallet() {
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+            <button type="button" key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               <Icon className="w-3.5 h-3.5" /> {tab.label}
             </button>
           );
@@ -49,35 +51,8 @@ export default function RideWallet() {
 }
 
 function PaymentMethodsTab() {
-  const { methods, addCard, deleteCard, setDefault, getDefault } = useLocalPaymentMethods();
+  const { methods, deleteCard, setDefault } = useLocalPaymentMethods();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const brand = detectCardBrand(cardNumber);
-
-  const handleAddCard = () => {
-    if (!validateCardNumber(cardNumber.replace(/\s/g, ""))) { toast.error("Invalid card number"); return; }
-    if (!validateExpiry(expiry)) { toast.error("Invalid or expired date"); return; }
-    if (!validateCVV(cvv)) { toast.error("Invalid CVV"); return; }
-    if (!cardName.trim()) { toast.error("Enter cardholder name"); return; }
-
-    setSaving(true);
-    const parsed = parseExpiry(expiry)!;
-    const cleaned = cardNumber.replace(/\s/g, "");
-
-    setTimeout(() => {
-      const card: CardInput = { type: "card", brand, last4: cleaned.slice(-4), expMonth: parsed.month, expYear: parsed.year, cardholderName: cardName.trim() };
-      addCard(card);
-      setCardNumber(""); setCardName(""); setExpiry(""); setCvv("");
-      setShowAddForm(false);
-      setSaving(false);
-      toast.success(`${brand} •••• ${cleaned.slice(-4)} added!`);
-    }, 800);
-  };
 
   return (
     <div className="space-y-3">
@@ -95,7 +70,7 @@ function PaymentMethodsTab() {
           layout
           className={cn("flex items-center gap-3 p-3.5 rounded-2xl border transition-all", pm.isDefault ? "border-primary/30 bg-primary/5 shadow-sm" : "border-border/40 bg-card")}
         >
-          <button onClick={() => { setDefault(pm.id); toast.success(`${pm.brand} set as default`); }} className="flex items-center gap-3 flex-1 text-left touch-manipulation">
+          <button type="button" onClick={() => { setDefault(pm.id); toast.success(`${pm.brand} set as default`); }} className="flex items-center gap-3 flex-1 text-left touch-manipulation">
             <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", pm.isDefault ? "bg-primary/10" : "bg-muted/50")}>
               <CreditCard className={cn("w-5 h-5", pm.isDefault ? "text-primary" : "text-muted-foreground")} />
             </div>
@@ -105,7 +80,7 @@ function PaymentMethodsTab() {
             </div>
           </button>
           {pm.isDefault && <Badge className="bg-primary/10 text-primary border-0 text-[9px] font-bold">Default</Badge>}
-          <button onClick={() => { deleteCard(pm.id); toast.success("Card removed"); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors" aria-label="Remove card">
+          <button type="button" onClick={() => { deleteCard(pm.id); toast.success("Card removed"); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors" aria-label="Remove card">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </motion.div>
@@ -114,36 +89,7 @@ function PaymentMethodsTab() {
       <AnimatePresence>
         {showAddForm && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="rounded-2xl border border-primary/20 bg-card p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-foreground">Add Card</h3>
-                <button onClick={() => setShowAddForm(false)} className="w-6 h-6 rounded-full bg-muted/50 flex items-center justify-center"><X className="w-3 h-3 text-muted-foreground" /></button>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Card Number</label>
-                <div className="relative">
-                  <Input placeholder="1234 5678 9012 3456" value={cardNumber} onChange={e => setCardNumber(formatCardNumber(e.target.value))} className="h-11 rounded-xl text-sm font-mono pr-16" maxLength={19} inputMode="numeric" />
-                  {brand !== "Card" && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-primary">{brand}</span>}
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Cardholder Name</label>
-                <Input placeholder="John Doe" value={cardName} onChange={e => setCardName(e.target.value)} className="h-11 rounded-xl text-sm" />
-              </div>
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Expiry</label>
-                  <Input placeholder="MM/YY" value={expiry} onChange={e => setExpiry(formatExpiry(e.target.value))} className="h-11 rounded-xl text-sm font-mono" maxLength={5} inputMode="numeric" />
-                </div>
-                <div className="flex-1">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">CVV</label>
-                  <Input type="password" placeholder="•••" value={cvv} onChange={e => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} className="h-11 rounded-xl text-sm font-mono" maxLength={4} inputMode="numeric" />
-                </div>
-              </div>
-              <Button onClick={handleAddCard} disabled={saving} className="w-full h-11 rounded-xl text-sm font-bold">
-                {saving ? "Adding..." : "Add Card"}
-              </Button>
-            </div>
+            <AddCardForm onClose={() => setShowAddForm(false)} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -158,21 +104,14 @@ function PaymentMethodsTab() {
 }
 
 function WalletTab() {
-  const { balanceDollars } = useCustomerWallet();
+  const { balanceDollars, transactions } = useCustomerWallet();
   const walletBalance = balanceDollars || 0;
   const [topUpAmount, setTopUpAmount] = useState("");
   const [showTopUp, setShowTopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
-  const transactions = [
-    { label: "Referral bonus", amount: 10, type: "credit", date: "Today", icon: Gift },
-    { label: "Ride to Airport", amount: -5.50, type: "debit", date: "Yesterday", icon: ArrowUpRight },
-    { label: "Welcome credit", amount: 15, type: "credit", date: "Mar 1", icon: Zap },
-    { label: "Downtown ride", amount: -12.30, type: "debit", date: "Feb 28", icon: ArrowUpRight },
-    { label: "Promo credit", amount: 5, type: "credit", date: "Feb 25", icon: Percent },
-  ];
-
   const topUpPresets = [10, 25, 50, 100];
+  const visibleTransactions = showHistory ? transactions : transactions.slice(0, 3);
 
   return (
     <div className="space-y-4">
@@ -207,15 +146,15 @@ function WalletTab() {
               </h3>
               <div className="grid grid-cols-4 gap-2">
                 {topUpPresets.map(amt => (
-                  <button key={amt} onClick={() => setTopUpAmount(String(amt))} className={cn("py-2.5 rounded-xl text-sm font-bold border transition-all", topUpAmount === String(amt) ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40 hover:border-primary/30")}>
+                  <button type="button" key={amt} onClick={() => setTopUpAmount(String(amt))} className={cn("py-2.5 rounded-xl text-sm font-bold border transition-all", topUpAmount === String(amt) ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40 hover:border-primary/30")}>
                     ${amt}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
                 <Input placeholder="Custom amount" value={topUpAmount} onChange={e => setTopUpAmount(e.target.value.replace(/[^\d.]/g, ""))} className="h-11 rounded-xl text-sm font-mono" inputMode="decimal" />
-                <Button className="h-11 px-5 rounded-xl font-bold" disabled={!topUpAmount || parseFloat(topUpAmount) <= 0} onClick={() => { toast.success(`$${topUpAmount} added to wallet!`); setTopUpAmount(""); setShowTopUp(false); }}>
-                  Add
+                <Button className="h-11 px-5 rounded-xl font-bold" disabled={!topUpAmount || parseFloat(topUpAmount) <= 0} onClick={() => toast.info("Wallet top-up checkout is not available from this screen yet.")}>
+                  Continue
                 </Button>
               </div>
             </div>
@@ -240,22 +179,22 @@ function WalletTab() {
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
           {showHistory ? "All Transactions" : "Recent"}
         </h3>
-        {walletBalance === 0 && !showHistory ? (
+        {visibleTransactions.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border/40 p-4 text-center">
             <p className="text-xs text-muted-foreground">No transactions yet</p>
           </div>
         ) : (
-          (showHistory ? transactions : transactions.slice(0, 3)).map((tx, i) => {
-            const Icon = tx.icon;
-            const isCredit = tx.amount > 0;
+          visibleTransactions.map((tx, i) => {
+            const isCredit = tx.amount_cents > 0;
+            const Icon = isCredit ? ArrowDownLeft : ArrowUpRight;
             return (
-              <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
+              <motion.div key={tx.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
                 <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", isCredit ? "bg-emerald-500/10" : "bg-red-500/10")}>
                   <Icon className={cn("w-4 h-4", isCredit ? "text-emerald-500" : "text-red-500")} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium text-foreground">{tx.label}</span>
-                  <p className="text-[9px] text-muted-foreground">{tx.date}</p>
+                  <span className="text-xs font-medium text-foreground">{tx.description || tx.type}</span>
+                  <p className="text-[9px] text-muted-foreground">{tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : "Recent"}</p>
                 </div>
                 <span className={cn("text-xs font-bold", isCredit ? "text-emerald-500" : "text-red-500")}>
                   {isCredit ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
@@ -272,28 +211,14 @@ function WalletTab() {
 function PromosTab() {
   const [promoInput, setPromoInput] = useState("");
   const [applyingPromo, setApplyingPromo] = useState(false);
-  const [appliedPromos, setAppliedPromos] = useState<Array<{ code: string; discount: string; status: string; expires: string }>>([
-    { code: "WELCOME20", discount: "20% off", status: "active", expires: "Mar 15" },
-    { code: "ZIVO10", discount: "$10 credit", status: "used", expires: "Feb 28" },
-  ]);
+  const appliedPromos: Array<{ code: string; discount: string; status: string; expires: string }> = [];
 
   const handleApplyPromo = () => {
     if (!promoInput.trim()) return;
     setApplyingPromo(true);
-    setTimeout(() => {
-      setApplyingPromo(false);
-      const code = promoInput.toUpperCase();
-      if (appliedPromos.some(p => p.code === code)) {
-        toast.error("Promo already applied");
-      } else if (code === "ZIVO50" || code === "RIDE25" || code === "FIRST10") {
-        const newPromo = { code, discount: code === "ZIVO50" ? "50% off" : code === "RIDE25" ? "$25 credit" : "$10 off", status: "active", expires: "Apr 30" };
-        setAppliedPromos(prev => [newPromo, ...prev]);
-        toast.success(`Promo applied: ${newPromo.discount}!`);
-      } else {
-        toast.error("Invalid or expired promo code");
-      }
-      setPromoInput("");
-    }, 1200);
+    setApplyingPromo(false);
+    toast.info("Promo validation is not connected from this screen yet.");
+    setPromoInput("");
   };
 
   return (
@@ -308,11 +233,14 @@ function PromosTab() {
             {applyingPromo ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full" /> : "Apply"}
           </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground">Try: ZIVO50, RIDE25, FIRST10</p>
       </div>
       <div className="space-y-2">
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Your Promos</h3>
-        {appliedPromos.map(p => (
+        {appliedPromos.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border/40 p-4 text-center">
+            <p className="text-xs text-muted-foreground">No promos on this account yet</p>
+          </div>
+        ) : appliedPromos.map(p => (
           <div key={p.code} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
             <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", p.status === "active" ? "bg-emerald-500/10" : "bg-muted/50")}>
               <Percent className={cn("w-4 h-4", p.status === "active" ? "text-emerald-500" : "text-muted-foreground")} />
@@ -349,17 +277,17 @@ function SplitFareTab() {
   };
 
   const generateLink = () => {
-    const link = `hizovo.com/split/${Date.now().toString(36)}`;
+    const link = `${getPublicOrigin()}/split/${Date.now().toString(36)}`;
     setSplitLink(link);
-    navigator.clipboard.writeText(`https://${link}`);
+    navigator.clipboard.writeText(link);
     toast.success("Split link copied!");
   };
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-gradient-to-br from-violet-500/10 to-primary/5 border border-violet-500/20 p-5">
+      <div className="rounded-2xl to-primary/5 border border-border p-5 bg-secondary">
         <div className="flex items-center gap-2 mb-3">
-          <Users className="w-5 h-5 text-violet-500" />
+          <Users className="w-5 h-5 text-foreground" />
           <h3 className="text-sm font-bold text-foreground">Split This Fare</h3>
         </div>
 
@@ -411,7 +339,7 @@ function SplitFareTab() {
       {splitLink && (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/20 border border-border/30">
           <span className="text-[10px] text-muted-foreground flex-1 font-mono truncate">{splitLink}</span>
-          <button onClick={() => { navigator.clipboard.writeText(`https://${splitLink}`); toast.success("Copied!"); }}>
+          <button type="button" onClick={() => { navigator.clipboard.writeText(splitLink); toast.success("Copied!"); }}>
             <Copy className="w-3.5 h-3.5 text-primary" />
           </button>
         </div>

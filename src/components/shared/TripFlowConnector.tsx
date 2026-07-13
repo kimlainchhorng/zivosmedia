@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Plane, 
@@ -107,7 +107,7 @@ const TripFlowConnector = ({
           
           <div className="space-y-3">
             {steps.map((step, index) => (
-              <button
+              <button type="button"
                 key={step.id}
                 onClick={() => navigate(step.href)}
                 className={cn(
@@ -120,7 +120,7 @@ const TripFlowConnector = ({
                 {/* Icon with status */}
                 <div className={cn(
                   "relative z-10 w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-                  step.completed && "bg-primary text-primary-foreground",
+                  step.completed && "bg-ig-gradient text-white",
                   step.active && "bg-primary/20 text-primary border-2 border-primary",
                   !step.completed && !step.active && "bg-muted text-muted-foreground"
                 )}>

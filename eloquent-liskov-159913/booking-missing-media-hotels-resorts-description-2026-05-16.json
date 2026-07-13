@@ -1,0 +1,116 @@
+{
+  "run_at": "2026-05-16T23:17:52.576Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort"
+    ]
+  },
+  "summary": {
+    "total": 11,
+    "updated": 0,
+    "not_found": 5,
+    "errors": 6
+  },
+  "results": [
+    {
+      "id": "7322b460-2c23-4d3d-bdc5-55a31cc65fab",
+      "name": "Koh Sdach Resort by EHM កោះស្ដេច រីសត",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "5c532e75-fa71-4713-acd1-1e2bb56e44e7",
+      "name": "Nature Lodge",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "024d9dd7-e326-4b41-8ee3-617e968eae32",
+      "name": "Peaceful Home for Big Groups",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/peaceful-home-for-big-groups.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "id": "ad7aa6b3-8b4b-430c-9247-b97512102251",
+      "name": "Sela Home - Private Rental",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sela-home-private-rental.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "id": "942a5cd9-25fa-4bf5-834d-08a955af9045",
+      "name": "Shinta Mani Angkor",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "f19d65c1-66bd-471d-b089-e6d9a7335177",
+      "name": "Sihanouk Star Bay 西港星汇",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sihanouk-star-bay-xi-gang-xing-hui.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "id": "7126ba5e-1b86-4d02-8c36-5a628434a6a7",
+      "name": "Starbay condotel",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/starbay-condotel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "id": "71ac016b-880f-467c-8cd7-501e39de6c08",
+      "name": "SVR homestay",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/svr-homestay.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Target page, context or browser has been closed"
+    },
+    {
+      "id": "05790d87-5eab-4d9a-8af1-b443dd2ca8b8",
+      "name": "The Star Polaris 23 Condominium",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "dff02c60-bff7-4953-87e1-a2818dd0ad7b",
+      "name": "The Urban",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "16189408-24fd-4c8d-a139-e6b8e0cf4e24",
+      "name": "WAT-KROM Villa",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/wat-krom-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.goto: Target page, context or browser has been closed"
+    }
+  ]
+}

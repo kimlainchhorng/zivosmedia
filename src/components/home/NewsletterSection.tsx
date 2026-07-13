@@ -3,11 +3,17 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, ArrowRight, CheckCircle2, Sparkles, TrendingDown, Bell } from "lucide-react";
+import Mail from "lucide-react/dist/esm/icons/mail";
+import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
+import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles";
+import TrendingDown from "lucide-react/dist/esm/icons/trending-down";
+import Bell from "lucide-react/dist/esm/icons/bell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 const perks = [
   { icon: TrendingDown, text: "Weekly fare drops & secret deals" },
@@ -104,7 +110,7 @@ export default function NewsletterSection() {
 
                   <p className="text-xs text-muted-foreground/60 mt-4 text-center">
                     No spam, unsubscribe anytime. Read our{" "}
-                    <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+                    <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
                   </p>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,8 +86,8 @@ export const AirlinePartnersHub = ({ className, zivoMiles = 45680 }: AirlinePart
       <CardHeader className="pb-4 border-b border-border/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-500/10 border border-sky-500/40 flex items-center justify-center">
-              <Globe className="w-6 h-6 text-sky-400" />
+            <div className="w-12 h-12 rounded-xl border border-border flex items-center justify-center bg-secondary">
+              <Globe className="w-6 h-6 text-foreground" />
             </div>
             <div>
               <CardTitle className="text-xl">Airline Partners</CardTitle>
@@ -119,8 +119,8 @@ export const AirlinePartnersHub = ({ className, zivoMiles = 45680 }: AirlinePart
                   className="flex-shrink-0 p-3 rounded-xl bg-card/50 border border-border/50 min-w-[180px]"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500/20 to-blue-500/20 flex items-center justify-center">
-                      <Plane className="w-4 h-4 text-sky-400" />
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary">
+                      <Plane className="w-4 h-4 text-foreground" />
                     </div>
                     <div>
                       <p className="font-medium text-sm">{partner.code}</p>
@@ -148,13 +148,13 @@ export const AirlinePartnersHub = ({ className, zivoMiles = 45680 }: AirlinePart
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {ALLIANCES.map(alliance => (
-              <button
+              <button type="button"
                 key={alliance}
                 onClick={() => setSelectedAlliance(alliance)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-all",
                   selectedAlliance === alliance
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "bg-muted/50 text-muted-foreground hover:bg-muted"
                 )}
               >
@@ -179,8 +179,8 @@ export const AirlinePartnersHub = ({ className, zivoMiles = 45680 }: AirlinePart
                   : "bg-muted/30 border-border/50 hover:border-border"
               )}
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 flex items-center justify-center">
-                <Plane className="w-5 h-5 text-sky-400" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-secondary">
+                <Plane className="w-5 h-5 text-foreground" />
               </div>
               
               <div className="flex-1 min-w-0">

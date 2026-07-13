@@ -1,0 +1,311 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-16T23:00:51.014Z",
+  "store_id": "942a5cd9-25fa-4bf5-834d-08a955af9045",
+  "store_account_id": "CBD942A5CD9",
+  "property_name": "Shinta Mani Angkor",
+  "source_note": "Generated for ZIVO missing-media remediation. Booking.com/bstatic media must not be used unless the property/rightsholder or Booking.com has granted written reuse permission for ZIVO. Put property-owned/authorized files in the referenced local media folder, set media_authorized=true, and keep proof of permission.",
+  "permission_required": true,
+  "permission_status": "pending-written-authorization",
+  "permission_evidence": null,
+  "media_authorized": false,
+  "expected_media_folder": "data/hotel-imports/missing-media-2026-05-16/shinta-mani-angkor-media/",
+  "media": {
+    "logo_file": "shinta-mani-angkor-media/profile.jpg",
+    "banner_file": "shinta-mani-angkor-media/cover.jpg",
+    "gallery_images": [
+      {
+        "file": "shinta-mani-angkor-media/gallery/01.jpg",
+        "caption": "Shinta Mani Angkor property photo",
+        "order": 0
+      },
+      {
+        "file": "shinta-mani-angkor-media/gallery/02.jpg",
+        "caption": "Shinta Mani Angkor property photo",
+        "order": 1
+      },
+      {
+        "file": "shinta-mani-angkor-media/gallery/03.jpg",
+        "caption": "Shinta Mani Angkor property photo",
+        "order": 2
+      }
+    ]
+  },
+  "store_profile": {
+    "name": "Shinta Mani Angkor",
+    "category": "hotel",
+    "market": "KH",
+    "address": "Junction of Oum Khun, Street 14th Mondul 2, Siem Reap",
+    "phone": null,
+    "description": "Shinta Mani Angkor is a luxury boutique hotel designed by acclaimed architect Bill Bensley, located in Siem Reap's Royal District. Features 105 rooms and suites plus 10 exclusive pool villas, set in tropical gardens with Angkor-inspired design. Dining at Kroya restaurant for Khmer cuisine and Baitong for street food. Proudly funds the Shinta Mani Foundation supporting Cambodia's people and ecosystems.",
+    "rating": 9.6,
+    "latitude": 13.359399,
+    "longitude": 103.857947,
+    "is_active": true
+  },
+  "remediation_needs": [
+    "profile/logo image",
+    "cover/banner image",
+    "property gallery images",
+    "room photos",
+    "original price or discount fields",
+    "phone"
+  ],
+  "rooms": [
+    {
+      "name": "Angkor Room",
+      "room_type": "Standard",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "King"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 35000,
+      "original_rate_cents": null,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Beautifully designed Angkor-inspired room by Bill Bensley featuring hand-picked local artifacts and works by Cambodian artists. Access to tropical gardens and pools.",
+      "amenities": [
+        "Air conditioning",
+        "Free WiFi",
+        "Khmer-inspired design",
+        "Tropical gardens",
+        "Pool access",
+        "Kroya restaurant",
+        "Baitong bar",
+        "Spa"
+      ],
+      "is_active": true,
+      "existing_photo_count": 1,
+      "photos": []
+    },
+    {
+      "name": "Deluxe Double Room",
+      "room_type": "Deluxe",
+      "beds": "1 Queen",
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Queen"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": 30,
+      "units_total": 4,
+      "base_rate_cents": 2800,
+      "original_rate_cents": 5040,
+      "weekend_rate_cents": 3136,
+      "breakfast_rate_cents": 3300,
+      "weekly_discount_pct": 8,
+      "monthly_discount_pct": 15,
+      "description": "Comfortable double room with queen bed, air conditioning, Wi-Fi, work desk, and attached bathroom.",
+      "amenities": [
+        "Free toiletries",
+        "Towels",
+        "Toilet",
+        "Shower",
+        "Toilet paper",
+        "Air conditioning",
+        "Free Wi-Fi",
+        "Wardrobe or closet",
+        "Desk",
+        "Tea/Coffee maker",
+        "Attached bathroom",
+        "Non-smoking"
+      ],
+      "is_active": true,
+      "existing_photo_count": 0,
+      "photos": [
+        {
+          "file": "shinta-mani-angkor-media/rooms/deluxe-double-room/01.jpg",
+          "caption": "Deluxe Double Room",
+          "order": 0
+        },
+        {
+          "file": "shinta-mani-angkor-media/rooms/deluxe-double-room/02.jpg",
+          "caption": "Deluxe Double Room",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "name": "Deluxe Suite",
+      "room_type": "Suite",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "King"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 50000,
+      "original_rate_cents": null,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Elegant suite with spacious living area, Bensley-designed furnishings, and access to all resort amenities in Siem Reap's Royal District.",
+      "amenities": [
+        "Air conditioning",
+        "Free WiFi",
+        "Living area",
+        "Khmer design",
+        "Pool access",
+        "Butler service",
+        "Kroya restaurant",
+        "Baitong bar",
+        "Spa access"
+      ],
+      "is_active": true,
+      "existing_photo_count": 1,
+      "photos": []
+    },
+    {
+      "name": "Family Room",
+      "room_type": "Family",
+      "beds": "1 Queen and 1 Twin",
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Queen"
+        },
+        {
+          "qty": 1,
+          "type": "Twin"
+        }
+      ],
+      "max_guests": 3,
+      "size_sqm": 45,
+      "units_total": 2,
+      "base_rate_cents": 4600,
+      "original_rate_cents": 8280,
+      "weekend_rate_cents": 5152,
+      "breakfast_rate_cents": 5100,
+      "weekly_discount_pct": 8,
+      "monthly_discount_pct": 15,
+      "description": "Family-friendly room with flexible bedding, air conditioning, Wi-Fi, and attached bathroom.",
+      "amenities": [
+        "Free toiletries",
+        "Towels",
+        "Toilet",
+        "Shower",
+        "Toilet paper",
+        "Air conditioning",
+        "Free Wi-Fi",
+        "Wardrobe or closet",
+        "Desk",
+        "Tea/Coffee maker",
+        "Attached bathroom",
+        "Non-smoking"
+      ],
+      "is_active": true,
+      "existing_photo_count": 0,
+      "photos": [
+        {
+          "file": "shinta-mani-angkor-media/rooms/family-room/01.jpg",
+          "caption": "Family Room",
+          "order": 0
+        },
+        {
+          "file": "shinta-mani-angkor-media/rooms/family-room/02.jpg",
+          "caption": "Family Room",
+          "order": 1
+        }
+      ]
+    },
+    {
+      "name": "Pool Villa",
+      "room_type": "Villa",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "King"
+        }
+      ],
+      "max_guests": 4,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 80000,
+      "original_rate_cents": null,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Decadent duplex pool villa with private pool, rooftop living area, butler service, and VIP amenities. The ultimate Angkor experience.",
+      "amenities": [
+        "Air conditioning",
+        "Free WiFi",
+        "Private pool",
+        "Rooftop living area",
+        "Butler service",
+        "VIP amenities",
+        "Khmer art",
+        "Kroya restaurant",
+        "Spa"
+      ],
+      "is_active": true,
+      "existing_photo_count": 1,
+      "photos": []
+    },
+    {
+      "name": "Twin Room",
+      "room_type": "Twin",
+      "beds": "2 Twin",
+      "bed_config": [
+        {
+          "qty": 2,
+          "type": "Twin"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": 32,
+      "units_total": 4,
+      "base_rate_cents": 3500,
+      "original_rate_cents": 6300,
+      "weekend_rate_cents": 3920,
+      "breakfast_rate_cents": 4000,
+      "weekly_discount_pct": 8,
+      "monthly_discount_pct": 15,
+      "description": "Twin room with two beds, Wi-Fi, air conditioning, storage, and attached bathroom.",
+      "amenities": [
+        "Free toiletries",
+        "Towels",
+        "Toilet",
+        "Shower",
+        "Toilet paper",
+        "Air conditioning",
+        "Free Wi-Fi",
+        "Wardrobe or closet",
+        "Desk",
+        "Tea/Coffee maker",
+        "Attached bathroom",
+        "Non-smoking"
+      ],
+      "is_active": true,
+      "existing_photo_count": 0,
+      "photos": [
+        {
+          "file": "shinta-mani-angkor-media/rooms/twin-room/01.jpg",
+          "caption": "Twin Room",
+          "order": 0
+        },
+        {
+          "file": "shinta-mani-angkor-media/rooms/twin-room/02.jpg",
+          "caption": "Twin Room",
+          "order": 1
+        }
+      ]
+    }
+  ]
+}

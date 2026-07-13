@@ -1,0 +1,191 @@
+name: Safe-Area Visual Regression
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/visual/**"
+      - "index.html"
+      - "capacitor.config.ts"
+      - "playwright.config.ts"
+      - ".github/workflows/safe-area-visual.yml"
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "website/**"
+      - "**/*.md"
+      - "**/*.log"
+      - "booking-*.json"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Seed authenticated storage state (optional)
+        env:
+          QA_TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          QA_TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+        run: |
+          if [ -n "$QA_TEST_EMAIL" ] && [ -n "$QA_TEST_PASSWORD" ]; then
+            npx playwright test tests/visual/auth.setup.ts || true
+          else
+            echo "QA_TEST_EMAIL/QA_TEST_PASSWORD not set — authenticated routes will be skipped."
+          fi
+
+      - name: Run safe-area visual regression
+        id: visual
+        continue-on-error: true
+        run: |
+          npx playwright test tests/visual/safe-area.spec.ts \
+            --reporter=html,json,list \
+            --output=test-results/visual
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: visual-results.json
+
+      - name: Upload Playwright HTML report
+        if: always()
+        id: html-report
+        uses: actions/upload-artifact@v4
+        with:
+          name: safe-area-visual-report
+          path: playwright-report/
+          if-no-files-found: ignore
+
+      - name: Upload diff images
+        if: always()
+        id: diffs
+        uses: actions/upload-artifact@v4
+        with:
+          name: safe-area-visual-diffs
+          path: test-results/visual/
+          if-no-files-found: ignore
+
+      - name: Summarize results for PR comment
+        if: always() && github.event_name == 'pull_request'
+        id: summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            let summary = { passed: 0, failed: 0, skipped: 0, failures: [] };
+            const candidates = [
+              'visual-results.json',
+              'playwright-report/results.json',
+              'test-results/visual/results.json',
+            ];
+            let raw = null;
+            for (const p of candidates) {
+              if (fs.existsSync(p)) { raw = fs.readFileSync(p, 'utf8'); break; }
+            }
+            if (raw) {
+              try {
+                const json = JSON.parse(raw);
+                const walk = (suites) => {
+                  for (const s of suites || []) {
+                    for (const spec of s.specs || []) {
+                      for (const test of spec.tests || []) {
+                        const r = test.results?.[0];
+                        const status = r?.status || test.status;
+                        if (status === 'passed' || status === 'expected') summary.passed++;
+                        else if (status === 'skipped') summary.skipped++;
+                        else { summary.failed++; summary.failures.push(spec.title); }
+                      }
+                    }
+                    walk(s.suites);
+                  }
+                };
+                walk(json.suites);
+              } catch (e) { core.warning('Could not parse results JSON: ' + e.message); }
+            }
+            core.setOutput('passed', summary.passed);
+            core.setOutput('failed', summary.failed);
+            core.setOutput('skipped', summary.skipped);
+            core.setOutput('failures', summary.failures.slice(0, 20).join('\n'));
+
+      - name: Post / update PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- safe-area-visual -->';
+            const passed  = '${{ steps.summary.outputs.passed }}'  || '0';
+            const failed  = '${{ steps.summary.outputs.failed }}'  || '0';
+            const skipped = '${{ steps.summary.outputs.skipped }}' || '0';
+            const failures = `${{ steps.summary.outputs.failures }}` || '';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const status = Number(failed) === 0 ? '✅ All safe-area snapshots match' : `❌ ${failed} snapshot(s) drifted`;
+            const failList = failures ? '\n\n**Failing tests:**\n' + failures.split('\n').map(t => `- ${t}`).join('\n') : '';
+            const body = [
+              marker,
+              `### Safe-Area Visual Regression`,
+              ``,
+              status,
+              ``,
+              `| Passed | Failed | Skipped |`,
+              `|-------:|-------:|--------:|`,
+              `| ${passed} | ${failed} | ${skipped} |`,
+              ``,
+              `📦 [HTML report & diff images](${runUrl}) — open the run, scroll to "Artifacts".`,
+              `   • \`safe-area-visual-report\` — full HTML report`,
+              `   • \`safe-area-visual-diffs\` — per-test \`*-actual.png\`, \`*-diff.png\``,
+              ``,
+              `_If snapshots are intentionally different, run \`npx playwright test tests/visual/safe-area.spec.ts --update-snapshots\` locally and commit the new baselines._`,
+              failList,
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.issue.number, body,
+              });
+            }
+
+      - name: Fail job if visual tests failed
+        if: steps.visual.outcome == 'failure'
+        run: exit 1

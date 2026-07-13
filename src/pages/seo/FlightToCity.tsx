@@ -14,6 +14,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import FlightSearchSchema from "@/components/seo/FlightSearchSchema";
+import { BreadcrumbSchema } from "@/components/seo";
 import TravelFAQ from "@/components/shared/TravelFAQ";
 import GlobalTrustBar from "@/components/shared/GlobalTrustBar";
 import PartnerLogosStrip from "@/components/shared/PartnerLogosStrip";
@@ -80,18 +81,39 @@ export default function FlightToCity() {
   return (
     <div className="min-h-screen bg-background">
       {/* SEO Meta */}
-      <SEOHead 
-        title={pageTitle} 
+      <SEOHead
+        title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/flights/to-${citySlug}`}
+        canonical={`https://zivosmedia.com/flights/to-${citySlug}`}
+        ogImage="/og-flights.jpg"
+        appLink={`zivo://flights/to/${citySlug}`}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "TravelAction",
+          "agent": { "@type": "Organization", "name": "ZIVO", "url": "https://zivosmedia.com" },
+          "toLocation": {
+            "@type": "City",
+            "name": cityName,
+            "url": `https://zivosmedia.com/flights/to-${citySlug}`,
+          },
+          "actionStatus": "https://schema.org/PotentialActionStatus",
+          "target": `https://zivosmedia.com${searchUrl}`,
+        }}
       />
       <FlightSearchSchema destination={cityName} />
+      <BreadcrumbSchema
+        items={[
+          { name: "Home", url: "/" },
+          { name: "Flights", url: "/flights" },
+          { name: `Flights to ${cityName}`, url: `/flights/to-${citySlug}` },
+        ]}
+      />
       
       <Header />
 
       <main className="pt-16">
         {/* Hero Section */}
-        <section className="relative py-16 sm:py-24 overflow-hidden bg-gradient-to-br from-sky-500/10 via-background to-blue-500/5">
+        <section className="relative py-16 sm:py-24 overflow-hidden via-background bg-secondary">
           <div className="container mx-auto px-4 relative z-10">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
@@ -103,8 +125,8 @@ export default function FlightToCity() {
             </nav>
             
             <div className="max-w-3xl mb-10">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-500/10 border border-sky-500/20 text-sm font-medium mb-6">
-                <MapPin className="w-4 h-4 text-sky-500" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border text-sm font-medium mb-6">
+                <MapPin className="w-4 h-4 text-foreground" />
                 <span className="text-muted-foreground">Popular Destination</span>
               </div>
               
@@ -117,7 +139,7 @@ export default function FlightToCity() {
               </p>
 
               <Link to={searchUrl}>
-                <Button size="lg" className="h-14 px-8 bg-gradient-to-r from-sky-500 to-blue-600 text-primary-foreground shadow-lg">
+                <Button size="lg" className="h-14 px-8 text-primary-foreground shadow-lg bg-foreground">
                   <Plane className="h-5 w-5 mr-2" />
                   Search Flights to {cityName}
                 </Button>
@@ -128,7 +150,7 @@ export default function FlightToCity() {
             <div className="flex flex-wrap items-center gap-6">
               {TRUST_BADGES.map((badge) => (
                 <div key={badge.text} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <badge.icon className="w-4 h-4 text-sky-500" />
+                  <badge.icon className="w-4 h-4 text-foreground" />
                   <span>{badge.text}</span>
                 </div>
               ))}
@@ -173,18 +195,18 @@ export default function FlightToCity() {
                     to={`/flights/${originSlug}-to-${citySlug}`}
                     className="group"
                   >
-                    <Card className="border hover:border-sky-500/50 transition-all group-hover:shadow-lg">
+                    <Card className="border hover:border-border transition-all group-hover:shadow-lg">
                       <CardContent className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center">
-                            <Plane className="h-5 w-5 text-sky-500" />
+                          <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                            <Plane className="h-5 w-5 text-foreground" />
                           </div>
                           <div>
                             <p className="font-semibold">{origin.city}</p>
                             <p className="text-xs text-muted-foreground">{origin.code} → {cityName}</p>
                           </div>
                         </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-sky-500 transition-colors" />
+                        <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                       </CardContent>
                     </Card>
                   </Link>
@@ -201,7 +223,7 @@ export default function FlightToCity() {
         <section className="py-12 bg-muted/20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
-              <Badge className="mb-3 bg-sky-500/10 text-sky-500 border-sky-500/20">
+              <Badge className="mb-3 bg-secondary text-foreground border-border">
                 <Sparkles className="w-3 h-3 mr-1" />
                 Smart Booking Tips
               </Badge>
@@ -230,12 +252,12 @@ export default function FlightToCity() {
         </section>
 
         {/* Price Alert CTA */}
-        <section className="py-12 bg-gradient-to-br from-sky-500/5 to-blue-500/5">
+        <section className="py-12 bg-secondary">
           <div className="container mx-auto px-4">
-            <Card className="max-w-2xl mx-auto border-sky-500/20 bg-card/50">
+            <Card className="max-w-2xl mx-auto border-border bg-card/50">
               <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6">
-                <div className="w-16 h-16 rounded-2xl bg-sky-500/10 flex items-center justify-center shrink-0">
-                  <Bell className="w-8 h-8 text-sky-500" />
+                <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shrink-0">
+                  <Bell className="w-8 h-8 text-foreground" />
                 </div>
                 <div className="text-center sm:text-left flex-1">
                   <h3 className="font-bold text-lg mb-1">Track Price Drops</h3>
@@ -244,7 +266,7 @@ export default function FlightToCity() {
                   </p>
                 </div>
                 <Link to={searchUrl}>
-                  <Button className="bg-sky-500 hover:bg-sky-600">
+                  <Button className="bg-foreground hover:bg-foreground">
                     Set Alert
                   </Button>
                 </Link>
@@ -257,10 +279,10 @@ export default function FlightToCity() {
         <TravelFAQ serviceType="flights" className="bg-muted/20" />
 
         {/* Compliance Disclaimer */}
-        <section className="py-6 bg-sky-500/5 border-y border-sky-500/20">
+        <section className="py-6 bg-secondary border-y border-border">
           <div className="container mx-auto px-4 text-center">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Info className="w-4 h-4 text-sky-500" />
+              <Info className="w-4 h-4 text-foreground" />
               <span>{FLIGHT_SEO_DISCLAIMERS.otaClarification}</span>
             </div>
           </div>
@@ -276,7 +298,7 @@ export default function FlightToCity() {
               Compare real-time prices from trusted travel partners and book securely on ZIVO.
             </p>
             <Link to={searchUrl}>
-              <Button size="lg" className="h-14 px-8 bg-gradient-to-r from-sky-500 to-blue-600 text-primary-foreground shadow-lg">
+              <Button size="lg" className="h-14 px-8 text-primary-foreground shadow-lg bg-foreground">
                 <Plane className="h-5 w-5 mr-2" />
                 Search Flights Now
               </Button>

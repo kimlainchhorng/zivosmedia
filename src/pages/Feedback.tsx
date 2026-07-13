@@ -26,6 +26,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 // PriceMismatchReport removed
 
 type FeedbackType = "rating" | "price_mismatch" | "suggestion" | "bug";
@@ -66,16 +68,28 @@ export default function Feedback() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // TODO: Submit feedback to backend API
-
-
-    setIsSubmitted(true);
-    setIsSubmitting(false);
+    try {
+      const { error } = await supabase.functions.invoke("feedback-submit", { body: {
+        category: selectedType,
+        rating: selectedType === "rating" ? rating : null,
+        message: feedback,
+        subject: feedbackTypes.find(t => t.id === selectedType)?.label ?? selectedType,
+        email: user?.email ?? (email || null),
+        device_info: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
+      setIsSubmitted(true);
+    } catch {
+      toast({ title: "Failed to submit", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -103,7 +117,7 @@ export default function Feedback() {
 
   return (
     <>
-      <SEOHead title="Feedback | ZIVO" description="Share your feedback to help us improve ZIVO." canonical="https://hizivo.com/feedback" />
+      <SEOHead title="Feedback | ZIVO" description="Share your feedback to help us improve ZIVO." canonical="https://zivosmedia.com/feedback" />
 
       <Header />
 
@@ -119,7 +133,7 @@ export default function Feedback() {
           {/* Feedback Type Selection */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {feedbackTypes.map((type) => (
-              <button
+              <button type="button"
                 key={type.id}
                 onClick={() => setSelectedType(type.id)}
                 className={cn(
@@ -153,13 +167,29 @@ export default function Feedback() {
             </CardHeader>
             <CardContent>
               {selectedType === "price_mismatch" ? (
-                <div className="text-center py-6">
-                  <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-6">
-                    Found a different price on the partner site? Click below to report it.
-                  </p>
-                  <p className="text-sm text-muted-foreground">Price mismatch reporting coming soon.</p>
-                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 text-amber-600 text-sm">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    Found a lower price elsewhere? We'll investigate and match it if valid.
+                  </div>
+                  <div>
+                    <Label htmlFor="pm-url">Partner site URL</Label>
+                    <Input id="pm-url" type="url" placeholder="https://…" value={feedback.split('\n')[0] ?? ""} onChange={e => setFeedback(e.target.value + (feedback.includes('\n') ? '\n' + feedback.split('\n').slice(1).join('\n') : ""))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="pm-detail">Details (service, price you found, ZIVO price)</Label>
+                    <Textarea id="pm-detail" placeholder="e.g. Flight JFK→LAX on June 10, found $189 on SkyScanner vs $219 on ZIVO" className="min-h-[80px]" value={feedback} onChange={e => setFeedback(e.target.value)} />
+                  </div>
+                  {!user && (
+                    <div>
+                      <Label htmlFor="pm-email">Your email (so we can follow up)</Label>
+                      <Input id="pm-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+                    </div>
+                  )}
+                  <Button type="submit" disabled={isSubmitting || !feedback.trim()} className="w-full gap-2">
+                    <Send className="w-4 h-4" /> {isSubmitting ? "Submitting…" : "Submit Report"}
+                  </Button>
+                </form>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Star Rating (for rating type) */}
@@ -168,9 +198,8 @@ export default function Feedback() {
                       <Label>How would you rate your experience?</Label>
                       <div className="flex gap-2">
                         {[1, 2, 3, 4, 5].map((star) => (
-                          <button
+                          <button type="button"
                             key={star}
-                            type="button"
                             onMouseEnter={() => setHoverRating(star)}
                             onMouseLeave={() => setHoverRating(0)}
                             onClick={() => setRating(star)}

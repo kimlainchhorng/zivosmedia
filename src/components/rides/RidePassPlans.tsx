@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RidePassPlans - Subscription tier cards (like Uber One / Lyft Pink)
  */
 import { useState } from "react";
@@ -29,7 +29,7 @@ const plans: Plan[] = [
     period: "/month",
     icon: Car,
     color: "text-sky-500",
-    gradient: "from-sky-500/15 to-sky-500/5",
+    gradient: "from-muted to-muted",
     savings: "Save ~$15/mo",
     features: [
       "5% off all rides",
@@ -113,7 +113,7 @@ export default function RidePassPlans({ onSubscribe }: { onSubscribe?: (planId: 
               )}
             >
               {plan.popular && (
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[9px] font-black px-3 py-1 rounded-bl-xl">
+                <div className="absolute top-0 right-0 bg-ig-gradient text-white text-[9px] font-black px-3 py-1 rounded-bl-xl">
                   MOST POPULAR
                 </div>
               )}

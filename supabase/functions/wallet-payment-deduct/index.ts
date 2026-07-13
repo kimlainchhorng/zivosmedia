@@ -1,0 +1,88 @@
+/**
+ * wallet-payment-deduct
+ * ---------------------
+ * Server-gated customer wallet debit for checkout payments.
+ */
+import { createClient, serve } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+const MAX_PAYMENT_CENTS = 5_000_000;
+
+type Body = {
+  user_id?: unknown;
+  amount_cents?: unknown;
+  order_id?: unknown;
+  description?: unknown;
+};
+
+serve(withSecurity("wallet-payment-deduct", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const token = req.headers.get("Authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) return json({ error: "Unauthorized" }, 401);
+
+  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } }) as any;
+  const { data: authData } = await admin.auth.getUser(token);
+  const user = authData.user;
+  if (!user) return json({ error: "Unauthorized" }, 401);
+
+  const body = await req.json().catch(() => ({})) as Body;
+  const requestedUserId = cleanUuid(body.user_id);
+  const orderId = cleanUuid(body.order_id);
+  const amountCents = cleanAmount(body.amount_cents);
+  const description = cleanDescription(body.description);
+  if (!requestedUserId || requestedUserId !== user.id || !orderId || amountCents === null) {
+    return json({ error: "Invalid wallet payment request" }, 400);
+  }
+
+  const { data, error } = await admin.rpc("process_customer_wallet_payment", {
+    p_user_id: user.id,
+    p_amount_cents: amountCents,
+    p_description: description,
+    p_reference_id: orderId,
+  });
+
+  if (error) {
+    const message = String(error.message ?? "");
+    if (message.includes("wallet_not_found")) return json({ error: "Wallet not found" }, 404);
+    if (message.includes("insufficient_funds")) return json({ error: "Insufficient wallet balance" }, 400);
+    if (message.includes("invalid_amount")) return json({ error: "Invalid amount" }, 400);
+    console.error("[wallet-payment-deduct]", error.message);
+    return json({ error: "Wallet payment failed" }, 500);
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  return json({
+    ok: true,
+    transactionId: result?.transaction_id ?? null,
+    newBalance: Number(result?.new_balance_cents ?? 0),
+  });
+}, { allowedMethods: ["POST"], strictCors: true, rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));
+
+function cleanUuid(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const id = value.trim();
+  return UUID_RE.test(id) ? id : null;
+}
+
+function cleanAmount(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value)) return null;
+  if (value <= 0 || value > MAX_PAYMENT_CENTS) return null;
+  return value;
+}
+
+function cleanDescription(value: unknown): string {
+  if (typeof value !== "string") return "Wallet payment";
+  const description = value.trim().slice(0, 180);
+  return description || "Wallet payment";
+}

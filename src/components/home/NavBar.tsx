@@ -1,17 +1,39 @@
 /**
  * NavBar - ZIVO Desktop Navigation
- * Clean white nav with centered service tabs + active route highlight
+ * Premium 3D spatial header with glass depth + floating elevation
  */
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { forwardRef } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  Plane, Hotel, CarFront, Car, UtensilsCrossed, Package,
-  Menu, X, User, ChevronDown, HelpCircle, ExternalLink,
-  Sparkles, Users, Award, Crown
-} from "lucide-react";
+import Plane from "lucide-react/dist/esm/icons/plane";
+import Hotel from "lucide-react/dist/esm/icons/hotel";
+import CarFront from "lucide-react/dist/esm/icons/car-front";
+import Car from "lucide-react/dist/esm/icons/car";
+import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
+import Package from "lucide-react/dist/esm/icons/package";
+import Menu from "lucide-react/dist/esm/icons/menu";
+import X from "lucide-react/dist/esm/icons/x";
+import User from "lucide-react/dist/esm/icons/user";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
+import HelpCircle from "lucide-react/dist/esm/icons/help-circle";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles";
+import Users from "lucide-react/dist/esm/icons/users";
+import Award from "lucide-react/dist/esm/icons/award";
+import Crown from "lucide-react/dist/esm/icons/crown";
+import LogOut from "lucide-react/dist/esm/icons/log-out";
+import UserCircle from "lucide-react/dist/esm/icons/user-circle";
+import Briefcase from "lucide-react/dist/esm/icons/briefcase";
+import Building2 from "lucide-react/dist/esm/icons/building-2";
+import Globe from "lucide-react/dist/esm/icons/globe";
+import Check from "lucide-react/dist/esm/icons/check";
+import Newspaper from "lucide-react/dist/esm/icons/newspaper";
+import Film from "lucide-react/dist/esm/icons/film";
+import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import Rss from "lucide-react/dist/esm/icons/rss";
+import Search from "lucide-react/dist/esm/icons/search";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useMembership } from "@/hooks/useMembership";
 import { ZivoPlusBadge } from "@/components/premium/ZivoPlusBadge";
 import {
@@ -21,16 +43,50 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ZivoLogo from "@/components/ZivoLogo";
+import AppSwitcher from "@/components/cross-app/AppSwitcher";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { optimizeAvatar } from "@/utils/optimizeAvatar";
+import { motion, AnimatePresence } from "framer-motion";
+import CurrencySelector from "@/components/shared/CurrencySelector";
+import { useI18n } from "@/hooks/useI18n";
+import { useSupportedLanguages } from "@/hooks/useGlobalExpansion";
+import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
+
+import { withRedirectParam } from "@/lib/authRedirect";
+import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
+import { resolvePublicBusinessPageRoute } from "@/lib/business/dashboardRoute";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Plus from "lucide-react/dist/esm/icons/plus";
+import Bell from "lucide-react/dist/esm/icons/bell";
+import Bus from "lucide-react/dist/esm/icons/bus";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const serviceNavItems = [
-  { label: "Flights", href: "/flights", icon: Plane },
-  { label: "Hotels", href: "/hotels", icon: Hotel },
-  { label: "Cars", href: "/rent-car", icon: CarFront },
-  { label: "Rides", href: "/rides", icon: Car },
-  { label: "Eats", href: "/eats", icon: UtensilsCrossed },
+  { label: "Flights", href: "/flights", icon: Plane, cssVar: "var(--flights)" },
+  { label: "Hotels", href: "/hotels", icon: Hotel, cssVar: "var(--hotels)" },
+  { label: "Cars", href: "/rent-car", icon: CarFront, cssVar: "var(--cars)" },
+];
+
+const directNavItems = [
+  { label: "Feed", href: "/feed", icon: Newspaper, cssVar: "var(--flights)" },
+  { label: "Reels", href: "/reels", icon: Film, cssVar: "var(--eats)" },
+];
+
+// On zivostravel.com the top nav shows travel services instead of the social pills.
+const travelNavItems = [
+  { label: "Flights", href: "/flights", icon: Plane, cssVar: "var(--flights)" },
+  { label: "Hotels", href: "/hotels", icon: Hotel, cssVar: "var(--hotels)" },
+  { label: "Cars", href: "/cars", icon: CarFront, cssVar: "var(--cars)" },
+  { label: "Bus", href: "/bus", icon: Bus, cssVar: "var(--rides)" },
+];
+
+const communityNavItems = [
+  { label: "Feed", description: "Posts & updates", href: "/feed", icon: Newspaper, color: "text-blue-500" },
+  { label: "Reels", description: "Short videos", href: "/reels", icon: Film, color: "text-pink-500" },
+  { label: "Map", description: "Explore nearby stores", href: "/store-map", icon: MapPin, color: "text-orange-500" },
 ];
 
 const moreItems = [
@@ -41,22 +97,56 @@ const moreItems = [
 ];
 
 const legalItems = [
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
-  { label: "Partner Disclosure", href: "/partner-disclosure" },
-  { label: "Cookies", href: "/cookies" },
+  { label: "Privacy Policy", href: "/legal/privacy" },
+  { label: "Terms of Service", href: "/legal/terms" },
+  { label: "Partner Disclosure", href: "/legal/partner-disclosure" },
+  { label: "Cookies", href: "/legal/cookies" },
 ];
 
 const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
   const { isActive: isMember } = useMembership();
+  const { data: ownerStores = [] } = useOwnerStores();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const { currentLanguage, changeLanguage, t } = useI18n();
+  const { prefetch } = useRoutePrefetch();
+  const { unreadCount: notificationUnread } = useNotifications(20);
+  const { data: supportedLanguages } = useSupportedLanguages(true);
+  const activeLanguages = (supportedLanguages || []).filter((l) => l.is_active);
+  const currentLangData = activeLanguages.find((l) => l.code === currentLanguage);
+
+  // Fetch user profile avatar
+  useEffect(() => {
+    if (!user?.id) { setAvatarUrl(null); setUserName(null); return; }
+    
+    // Try metadata first as immediate fallback
+    const metaAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+    const metaName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0];
+    if (metaAvatar) setAvatarUrl(metaAvatar);
+    if (metaName) setUserName(metaName);
+
+    supabase.from("profiles").select("avatar_url, full_name").or(`id.eq.${user.id},user_id.eq.${user.id}`).limit(1).single()
+      .then(({ data }) => {
+        if (data) {
+          if (data.avatar_url) setAvatarUrl(data.avatar_url);
+          if (data.full_name) setUserName(data.full_name);
+        }
+      });
+  }, [user?.id]);
+
   const moreRef = useRef<HTMLDivElement>(null);
+  const socialRef = useRef<HTMLDivElement>(null);
+  const servicesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -71,315 +161,574 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
       if (moreRef.current && !moreRef.current.contains(event.target as Node)) {
         setMoreOpen(false);
       }
+      if (socialRef.current && !socialRef.current.contains(event.target as Node)) {
+        setSocialOpen(false);
+      }
+      if (servicesRef.current && !servicesRef.current.contains(event.target as Node)) {
+        setServicesOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isHomePage = location.pathname === "/";
+  const shouldFillTopSafeArea = !isHomePage || scrolled;
+  const prefetchIfEligible = (path: string) => {
+    if (!path) return;
+    if (path.startsWith("/login")) {
+      const redirectPart = path.split("redirect=")[1] || "";
+      const target = redirectPart ? decodeURIComponent(redirectPart) : "";
+      if (target) prefetch(target);
+      return;
+    }
+    prefetch(path);
+  };
+  const openFeedSearch = () => {
+    if (location.pathname.startsWith("/feed")) {
+      window.dispatchEvent(new CustomEvent("zivo-open-feed-search"));
+      return;
+    }
+    navigate("/feed?search=1");
+  };
+  const desktopNavItems = isTravel ? travelNavItems : directNavItems;
+  const desktopSearchHint = isTravel
+    ? "Flights, stays, cars, and support"
+    : "Apps, rides, food, creators";
+
   return (
     <>
-      <header className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled
-          ? "bg-background/95 backdrop-blur-xl shadow-lg border-b border-border/40"
-          : "bg-background border-b border-border/20"
-      )}>
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <motion.div
-              className="cursor-pointer shrink-0"
-              onClick={() => navigate("/")}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              <ZivoLogo size="md" />
-            </motion.div>
+      {/* 3D Perspective wrapper */}
+      <div
+        className={cn(
+          "fixed top-0 left-0 right-0 z-50 overflow-x-clip transition-colors duration-500",
+          shouldFillTopSafeArea
+            ? "bg-background/95 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/85"
+            : "bg-transparent"
+        )}
+        style={{
+          paddingTop: "var(--zivo-safe-top-sticky)",
+        }}
+      >
+        <motion.header
+          ref={ref}
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 25, delay: 0.1 }}
+          className={cn(
+            "transition-all duration-500 origin-top",
+            scrolled
+              ? [
+                  "bg-background/70 backdrop-blur-3xl",
+                  "shadow-[0_8px_40px_-8px_hsl(var(--foreground)/0.08),0_2px_12px_-2px_hsl(var(--primary)/0.06)]",
+                  "border-b border-border/20",
+                ].join(" ")
+              : isHomePage
+                ? "bg-transparent"
+                : "bg-background/90 backdrop-blur-2xl border-b border-border/15 shadow-[0_4px_20px_-4px_hsl(var(--foreground)/0.04)]"
+          )}
+        >
+          <div className="mx-auto max-w-[1400px] px-2 sm:px-4">
+            <div className="flex min-h-[72px] items-center gap-3 py-2">
+              {/* Logo — 3D float */}
+              <motion.div
+                className="cursor-pointer shrink-0"
+                onClick={() => navigate("/")}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isTravel ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-base font-black text-white">Z</span>
+                    <span className="text-base font-black tracking-tight">
+                      <span className="text-foreground">ZIVO</span>{" "}
+                      <span className="bg-gradient-to-r from-emerald-400 to-sky-500 bg-clip-text text-transparent">TRAVEL</span>
+                    </span>
+                  </span>
+                ) : (
+                  <ZivoLogo size="sm" />
+                )}
+              </motion.div>
 
-            {/* Center: Service Tabs */}
-            <nav className="hidden lg:flex items-center gap-1" role="tablist" aria-label="Travel services">
-              {serviceNavItems.map((item) => {
-                const isActive = location.pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className={cn(
-                      "relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 group",
-                      isActive
-                        ? "text-primary bg-primary/5"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    <item.icon className={cn("w-4 h-4 transition-all duration-200", isActive ? "text-primary" : "text-muted-foreground group-hover:text-primary")} />
-                    {item.label}
-                    <span className={cn(
-                      "absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-primary rounded-full transition-all duration-200",
-                      isActive ? "w-8" : "w-0 group-hover:w-8"
-                    )} />
-                  </Link>
-                );
-              })}
-
-              {/* More Dropdown */}
-              <div ref={moreRef} className="relative">
-                <button
-                  onClick={() => setMoreOpen(!moreOpen)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
-                    moreOpen 
-                      ? "text-foreground bg-muted/50" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}
+              <div className="hidden min-w-0 flex-1 items-center gap-4 lg:flex">
+                <nav
+                  className="flex min-w-0 flex-1 items-center gap-1.5 rounded-[28px] border border-border/55 bg-background/88 px-2 py-2 shadow-[0_20px_50px_-34px_hsl(var(--foreground)/0.32)] backdrop-blur-2xl"
+                  role="tablist"
+                  aria-label="Navigation"
                 >
-                  More
-                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", moreOpen && "rotate-180")} />
-                </button>
-                
-                {moreOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-full right-0 mt-2 w-72 bg-card border border-border/50 rounded-2xl shadow-xl p-2"
-                  >
-                    {moreItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        to={item.href}
-                        onClick={() => setMoreOpen(false)}
-                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/80 transition-all duration-200 group"
-                      >
-                        <div className={cn("w-9 h-9 rounded-xl bg-muted flex items-center justify-center group-hover:scale-110 transition-transform duration-200", item.color)}>
-                          <item.icon className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{item.label}</p>
-                          <p className="text-xs text-muted-foreground">{item.description}</p>
-                        </div>
-                      </Link>
-                    ))}
-                    
-                    <div className="border-t border-border/50 my-2" />
-                    
-                    <Link
-                      to="/help"
-                      onClick={() => setMoreOpen(false)}
-                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/80 transition-all duration-200"
-                    >
-                      <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
-                        <HelpCircle className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Help Center</p>
-                        <p className="text-xs text-muted-foreground">FAQs & support</p>
-                      </div>
-                    </Link>
-
-                    <div className="border-t border-border/50 my-2" />
-                    
-                    <div className="px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Legal</p>
-                      <div className="flex flex-wrap gap-2">
-                        {legalItems.map((item) => (
+                    {desktopNavItems.map((item) => {
+                      const isActive = location.pathname.startsWith(item.href);
+                      const targetPath = item.href;
+                      return (
+                        <motion.div
+                          key={item.href}
+                          whileHover={{ y: -2, scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                          transition={{ type: "spring", stiffness: 420, damping: 24 }}
+                        >
                           <Link
-                            key={item.href}
-                            to={item.href}
-                            onClick={() => setMoreOpen(false)}
-                            className="text-xs text-muted-foreground hover:text-primary transition-all duration-200"
+                            to={targetPath}
+                            onMouseEnter={() => prefetchIfEligible(targetPath)}
+                            onFocus={() => prefetchIfEligible(targetPath)}
+                            onTouchStart={() => prefetchIfEligible(targetPath)}
+                            className={cn(
+                              "flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold tracking-wide transition-all duration-300 whitespace-nowrap border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                              isActive
+                                ? ""
+                                : "border-transparent bg-transparent text-foreground/72 hover:border-border/60 hover:bg-muted/65 hover:text-foreground"
+                            )}
+                            style={
+                              isActive
+                                ? {
+                                    background: `linear-gradient(135deg, hsl(${item.cssVar} / 0.2), hsl(${item.cssVar} / 0.09))`,
+                                    borderColor: `hsl(${item.cssVar} / 0.32)`,
+                                    boxShadow: `inset 0 1px 0 hsl(var(--background) / 0.68), 0 12px 24px -18px hsl(${item.cssVar} / 0.92)`,
+                                    color: `hsl(${item.cssVar})`,
+                                  }
+                                : undefined
+                            }
                           >
+                            <item.icon className="h-4 w-4" style={isActive ? undefined : { color: `hsl(${item.cssVar})` }} />
                             {item.label}
                           </Link>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            </nav>
+                        </motion.div>
+                      );
+                    })}
+                  </nav>
 
-            {/* Right: Auth */}
-            <div className="hidden md:flex items-center gap-3">
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  onClick={openFeedSearch}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openFeedSearch();
+                    }
+                  }}
+                  className="group flex min-w-[290px] max-w-[390px] flex-1 items-center gap-3 rounded-[28px] border border-border/55 bg-muted/[0.28] px-4 py-3 text-left shadow-[0_20px_50px_-34px_hsl(var(--foreground)/0.32)] transition-all duration-300 hover:-translate-y-0.5 hover:border-border/75 hover:bg-muted/[0.38] hover:shadow-[0_24px_60px_-30px_hsl(var(--foreground)/0.34)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label="Open search"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background/92 text-muted-foreground shadow-sm transition-colors group-hover:text-foreground">
+                    <Search className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-foreground/90">
+                      {desktopSearchHint}
+                    </span>
+                    <span className="block text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
+                      Quick search
+                    </span>
+                  </span>
+                  <span className="hidden rounded-full border border-border/55 bg-background/92 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground xl:inline-flex">
+                    Enter
+                  </span>
+                </button>
+              </div>
+
+              {/* Right: Language, Currency, Auth */}
+              <div
+                className="ml-auto hidden items-center gap-2 md:flex lg:gap-1.5 lg:rounded-[26px] lg:border lg:border-border/40 lg:bg-background/76 lg:px-2 lg:py-1.5 lg:shadow-[0_16px_40px_-30px_hsl(var(--foreground)/0.3)] lg:backdrop-blur-2xl"
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                {/* Notification bell — desktop entry point for /account/notifications.
+                    Mobile gets a bell in the FeedPage sticky header instead. */}
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/notifications")}
+                    className="relative hidden h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors active:scale-95 hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:flex"
+                    aria-label={notificationUnread > 0 ? `Notifications, ${notificationUnread} unread` : "Notifications"}
+                    title="Notifications"
+                  >
+                    <Bell className="w-[18px] h-[18px]" />
+                    {notificationUnread > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center leading-none">
+                        {notificationUnread > 99 ? "99+" : notificationUnread}
+                      </span>
+                    )}
+                  </button>
+                )}
+                {/* ZIVO app switcher — jump across the app network (one identity) */}
+                <AppSwitcher className="rounded-full border border-transparent bg-transparent hover:border-border/40 hover:bg-muted/50" />
+                <div className="hidden xl:block">
+                  <CurrencySelector
+                    variant="dropdown"
+                    className="h-9 rounded-full border border-transparent bg-transparent px-3 text-muted-foreground hover:border-border/40 hover:bg-muted/50 hover:text-foreground"
+                  />
+                </div>
+                <Popover open={isLangOpen} onOpenChange={setIsLangOpen}>
+                  <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="gap-2 rounded-xl"
+                      className={cn(
+                        "h-9 gap-1.5 rounded-full px-3 transition-all duration-200",
+                        scrolled || !isHomePage
+                          ? "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                          : "text-foreground/85 hover:bg-foreground/5 hover:text-foreground"
+                      )}
                     >
-                      <div className="relative">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-                          <User className="h-4 w-4 text-primary" />
-                        </div>
-                        {isMember && (
-                          <div className="absolute -top-1 -right-1">
-                            <ZivoPlusBadge variant="small" className="w-4 h-4" />
-                          </div>
-                        )}
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      <Globe className="w-3.5 h-3.5" />
+                      {currentLangData?.flag_svg ? (
+	                        <img src={currentLangData.flag_svg} alt="" className="w-5 h-3.5 rounded-[2px] object-cover shadow-sm border border-foreground/10" loading="lazy" decoding="async" />
+                      ) : (
+                        <span className="text-xs">{currentLangData?.flag_emoji || "🌐"}</span>
+                      )}
+                      <span className="text-xs font-medium">{currentLanguage.toUpperCase()}</span>
+                      <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", isLangOpen && "rotate-180")} />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 rounded-2xl">
-                    {isMember && (
-                      <>
-                        <DropdownMenuItem onClick={() => navigate("/account/membership")} className="cursor-pointer text-amber-500">
-                          <Crown className="w-4 h-4 mr-2" /> ZIVO+ Member
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-0 bg-card/95 backdrop-blur-2xl border-border/50 shadow-2xl rounded-2xl overflow-hidden" align="end" sideOffset={8}>
+                    {/* Header with background flag watermark */}
+                    <div className="relative p-3 border-b border-border/50 bg-muted/30 overflow-hidden">
+                      {currentLangData?.flag_svg && (
+	                        <img src={currentLangData.flag_svg} alt="" className="absolute -right-4 -top-4 w-32 h-32 opacity-[0.07] pointer-events-none blur-[1px]" loading="lazy" decoding="async" style={{ transform: "rotate(-12deg) scale(1.3)" }} />
+                      )}
+                      <div className="flex items-center gap-2 relative z-10">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                        <p className="text-sm font-medium">{t("lang.select")}</p>
+                      </div>
+                    </div>
+                    <div className="overflow-y-auto max-h-[360px] p-1">
+                      {activeLanguages.map((lang) => (
+                        <button type="button"
+                          key={lang.code}
+                          onClick={() => { changeLanguage(lang.code); setIsLangOpen(false); }}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative overflow-hidden group",
+                            currentLanguage === lang.code ? "bg-primary/10 text-primary ring-1 ring-primary/20" : "hover:bg-muted/60"
+                          )}
+                        >
+                          {/* Hover background flag watermark */}
+                          {lang.flag_svg && (
+	                            <img src={lang.flag_svg} alt="" className="absolute right-1 top-1/2 -translate-y-1/2 w-16 h-16 opacity-0 group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none blur-[0.5px]" loading="lazy" decoding="async" style={{ transform: "translateY(-50%) rotate(-8deg)" }} />
+                          )}
+                          {lang.flag_svg ? (
+	                            <img src={lang.flag_svg} alt={lang.name} className="w-6 h-[17px] rounded-[3px] object-cover shadow-sm border border-black/10 shrink-0 relative z-10" loading="lazy" decoding="async" />
+                          ) : (
+                            <span className="text-lg">{lang.flag_emoji}</span>
+                          )}
+                          <div className="flex-1 text-left relative z-10">
+                            <p className="font-medium text-sm">{lang.name}</p>
+                            <p className="text-xs text-muted-foreground">{lang.native_name}</p>
+                          </div>
+                          <span className="text-[10px] font-mono text-muted-foreground/70 uppercase relative z-10">{lang.code}</span>
+                          {currentLanguage === lang.code && <Check className="w-4 h-4 text-primary relative z-10" />}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+
+                {user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 rounded-full border border-border/40 px-2 py-1.5 transition-all duration-200 hover:scale-[1.02] hover:border-border/70 hover:bg-muted/40 active:scale-95 group"
+                        style={{
+                          background: "hsl(var(--background) / 0.72)",
+                          boxShadow: "0 10px 24px -18px hsl(var(--foreground) / 0.2), inset 0 1px 1px hsl(var(--background) / 0.55)",
+                        }}
+                      >
+                        <div className="relative">
+                          <div className={cn(
+                            "w-9 h-9 rounded-full overflow-hidden flex items-center justify-center transition-all duration-300",
+                            isMember
+                              ? "border-2 border-amber-400/40"
+                              : "border-2 border-primary/20 group-hover:border-primary/40"
+                          )}
+                            style={{ boxShadow: isMember ? "0 0 12px hsl(45 90% 50% / 0.15)" : "0 0 8px hsl(var(--primary) / 0.1)" }}
+                          >
+                            {avatarUrl ? (
+	                              <img src={optimizeAvatar(avatarUrl, 72) || avatarUrl || undefined} alt={userName || ""} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                            ) : (
+                              <div className={cn("w-full h-full flex items-center justify-center", isMember ? "bg-gradient-to-br from-amber-400/20 to-amber-600/20" : "bg-primary/10")}>
+                                <User className={cn("h-4 w-4", isMember ? "text-amber-600" : "text-primary")} />
+                              </div>
+                            )}
+                          </div>
+                          {isMember && (
+                            <div className="absolute -top-1 -right-1">
+                              <ZivoPlusBadge variant="small" className="w-4 h-4" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="hidden min-w-0 text-left xl:block">
+                          <p className="max-w-[120px] truncate text-xs font-semibold text-foreground/90">
+                            {userName || user.email?.split("@")[0] || "Account"}
+                          </p>
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                            {isMember ? "ZIVO+ member" : "Account"}
+                          </p>
+                        </div>
+                        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground transition-colors group-hover:text-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-52 rounded-2xl p-1.5"
+                      style={{
+                        boxShadow: [
+                          "0 24px 80px -12px hsl(var(--foreground) / 0.12)",
+                          "0 8px 24px -4px hsl(var(--primary) / 0.06)",
+                          "inset 0 1px 1px hsl(var(--background) / 0.5)",
+                        ].join(", "),
+                        backdropFilter: "blur(40px)",
+                        background: "hsl(var(--card) / 0.9)",
+                      }}
+                    >
+                      <div>
+                        <div className="px-3 py-2.5 mb-1">
+                          <p className="text-sm font-semibold text-foreground truncate">{user.email}</p>
+                          {isMember && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 mt-0.5">
+                              <Crown className="w-3 h-3" /> ZIVO+ Member
+                            </span>
+                          )}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer rounded-lg py-2.5 gap-2.5">
+                          <UserCircle className="w-4 h-4 text-muted-foreground" /> My Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate("/trips")} className="cursor-pointer rounded-lg py-2.5 gap-2.5">
+                          <Briefcase className="w-4 h-4 text-muted-foreground" /> My Trips
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                      </>
-                    )}
-                    <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">My Profile</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/trips")} className="cursor-pointer">My Trips</DropdownMenuItem>
-                    {!isMember && (
-                      <DropdownMenuItem onClick={() => navigate("/membership")} className="cursor-pointer text-amber-500">
-                        <Crown className="w-4 h-4 mr-2" /> Join ZIVO+
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => signOut()} className="text-destructive cursor-pointer">Sign out</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate("/login")}
-                    className="rounded-xl font-medium text-foreground"
-                  >
-                    Log in
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => navigate("/signup")}
-                    className="rounded-full font-semibold px-5 shadow-[0_0_15px_hsl(var(--primary)/0.3)] hover:shadow-[0_0_25px_hsl(var(--primary)/0.4)] transition-shadow"
-                  >
-                    Sign up
-                  </Button>
-                </>
-              )}
-            </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 -mr-2 text-foreground hover:bg-muted rounded-xl transition-all touch-manipulation active:scale-90 min-w-[44px] min-h-[44px] flex items-center justify-center"
-              onClick={() => setIsMobileMenuOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
+                        <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Your Business Pages
+                        </div>
+                        {ownerStores.length > 0 ? (
+                          ownerStores.map((store) => (
+                            <DropdownMenuItem
+                              key={store.id}
+                              onClick={() => {
+                                navigate(resolvePublicBusinessPageRoute(store.category, store.id, (store as any).slug));
+                              }}
+                              className="cursor-pointer rounded-lg py-2 gap-2.5"
+                            >
+                              <Avatar className="w-6 h-6 shrink-0">
+                                <AvatarImage src={store.logo_url || undefined} alt={store.name || "Business"} />
+                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                  {(store.name || "B").charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{store.name || "Untitled page"}</p>
+                                {store.normalizedCategory && (
+                                  <p className="text-[10px] text-muted-foreground capitalize truncate">{store.normalizedCategory}</p>
+                                )}
+                              </div>
+                            </DropdownMenuItem>
+                          ))
+                        ) : (
+                          <DropdownMenuItem onClick={() => navigate("/business")} className="cursor-pointer rounded-lg py-2.5 gap-2.5">
+                            <Building2 className="w-4 h-4 text-muted-foreground" /> Business Page
+                          </DropdownMenuItem>
+                        )}
+                        {ownerStores.length > 0 && <DropdownMenuSeparator />}
+                        <DropdownMenuItem
+                          onClick={() => navigate("/business/new?new=1")}
+                          className="cursor-pointer rounded-lg py-2 gap-2.5 text-black focus:text-black"
+                        >
+                          <Building2 className="w-4 h-4 text-black" /> Create new Business
+                        </DropdownMenuItem>
+                        {!isMember && (
+                          <DropdownMenuItem onClick={() => navigate("/membership")} className="cursor-pointer rounded-lg py-2.5 gap-2.5 text-amber-600">
+                            <Crown className="w-4 h-4" /> Join ZIVO+
+                          </DropdownMenuItem>
+                        )}
+                        {isMember && (
+                          <DropdownMenuItem onClick={() => navigate("/account/membership")} className="cursor-pointer rounded-lg py-2.5 gap-2.5">
+                            <Crown className="w-4 h-4 text-amber-500" /> Membership
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => signOut()}
+                          className="cursor-pointer rounded-lg py-2.5 gap-2.5 text-destructive focus:text-destructive"
+                        >
+                          <LogOut className="w-4 h-4" /> Sign out
+                        </DropdownMenuItem>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(withRedirectParam("/login", location.pathname === "/" ? null : `${location.pathname}${location.search ?? ""}`))}
+                        className={cn(
+                          "rounded-full font-semibold text-[13px] px-5 h-9 transition-all duration-300",
+                          scrolled || !isHomePage
+                            ? "text-foreground hover:bg-muted/60"
+                            : "text-foreground/90 hover:text-foreground hover:bg-foreground/5"
+                        )}
+                      >
+                        Log in
+                      </Button>
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ y: -2, scale: 1.03 }}
+                      whileTap={{ scale: 0.96 }}
+                      style={{ transformStyle: "preserve-3d" }}
+                    >
+                      <Button
+                        size="sm"
+                        onClick={() => navigate("/signup")}
+                        className="rounded-full font-bold text-[13px] px-6 h-9 transition-all duration-300"
+                        style={{
+                          boxShadow: "0 4px 20px -4px hsl(var(--primary) / 0.4), 0 1px 3px hsl(var(--primary) / 0.2), inset 0 1px 1px hsl(var(--background) / 0.15)",
+                        }}
+                      >
+                        Sign up
+                      </Button>
+                    </motion.div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Menu Button */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+                className="md:hidden p-2 -mr-2 text-foreground hover:bg-muted rounded-xl transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                onClick={() => setIsMobileMenuOpen(true)}
+                aria-label="Open menu"
+              >
+                <Menu className="w-6 h-6" />
+              </motion.button>
+            </div>
           </div>
-        </div>
-      </header>
+        </motion.header>
+      </div>
 
       {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] md:hidden">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-background/80 backdrop-blur-md"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-[60] md:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/60 backdrop-blur-md"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
 
-           <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-card border-l border-border shadow-2xl safe-area-top safe-area-bottom"
-          >
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <ZivoLogo size="sm" />
-               <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 hover:bg-muted rounded-xl transition-all touch-manipulation active:scale-90 min-w-[44px] min-h-[44px] flex items-center justify-center"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <nav className="p-4 space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider px-4 py-2">Services</p>
-              {serviceNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="absolute right-0 top-0 h-full w-72 max-w-[85vw] border-l border-border/20 safe-area-top safe-area-bottom"
+              style={{
+                background: "hsl(var(--card) / 0.9)",
+                backdropFilter: "blur(40px) saturate(1.4)",
+                boxShadow: "-20px 0 80px -20px hsl(var(--foreground) / 0.1)",
+              }}
+            >
+              <div className="p-4 border-b border-border/20 flex items-center justify-between">
+                <ZivoLogo size="sm" />
+                <button type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium hover:bg-muted transition-all touch-manipulation active:scale-[0.98] active:bg-muted min-h-[48px]"
+                  className="p-2 hover:bg-muted rounded-xl transition-all touch-manipulation active:scale-90 min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
-                  <item.icon className="w-5 h-5 text-muted-foreground" />
-                  {item.label}
-                </Link>
-              ))}
-              
-              <div className="border-t border-border my-3" />
-              
-              <Link
-                to="/help"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium hover:bg-muted transition-all touch-manipulation active:scale-[0.98] active:bg-muted min-h-[48px]"
-              >
-                <HelpCircle className="w-5 h-5 text-muted-foreground" />
-                Help Center
-              </Link>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-              <div className="border-t border-border my-3" />
-              
-              <p className="text-xs text-muted-foreground uppercase tracking-wider px-4 py-2">More</p>
-              {moreItems.map((link) => (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium hover:bg-muted transition-all touch-manipulation active:scale-[0.98] active:bg-muted min-h-[48px]"
-                >
-                  <link.icon className="w-5 h-5 text-muted-foreground" />
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card">
-              {user ? (
-                <Button
-                  variant="outline"
-                  className="w-full rounded-xl"
-                  onClick={() => {
-                    signOut();
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
-                  Sign out
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <Button
-                    className="w-full rounded-xl"
-                    onClick={() => {
-                      navigate("/signup");
-                      setIsMobileMenuOpen(false);
-                    }}
+              <nav className="p-4 space-y-1 overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-medium px-4 py-2">Services</p>
+                {serviceNavItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    onMouseEnter={() => prefetchIfEligible(item.href)}
+                    onFocus={() => prefetchIfEligible(item.href)}
+                    onTouchStart={() => prefetchIfEligible(item.href)}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium hover:bg-muted transition-all touch-manipulation active:scale-[0.98] active:bg-muted min-h-[48px]"
                   >
-                    Sign up
-                  </Button>
+                    <item.icon className="w-5 h-5 text-muted-foreground" />
+                    {item.label}
+                  </Link>
+                ))}
+
+                <div className="border-t border-border/20 my-3" />
+
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.15em] font-medium px-4 py-2">More</p>
+                {moreItems.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onMouseEnter={() => prefetchIfEligible(link.href)}
+                    onFocus={() => prefetchIfEligible(link.href)}
+                    onTouchStart={() => prefetchIfEligible(link.href)}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium hover:bg-muted transition-all touch-manipulation active:scale-[0.98] active:bg-muted min-h-[48px]"
+                  >
+                    <link.icon className="w-5 h-5 text-muted-foreground" />
+                    {link.label}
+                  </Link>
+                ))}
+
+                <div className="border-t border-border/20 my-3" />
+
+                <Link
+                  to="/help"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium hover:bg-muted transition-all touch-manipulation active:scale-[0.98] active:bg-muted min-h-[48px]"
+                >
+                  <HelpCircle className="w-5 h-5 text-muted-foreground" />
+                  Help Center
+                </Link>
+              </nav>
+
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/20 bg-card/80 backdrop-blur-xl">
+                {user ? (
                   <Button
                     variant="outline"
                     className="w-full rounded-xl"
                     onClick={() => {
-                      navigate("/login");
+                      signOut();
                       setIsMobileMenuOpen(false);
                     }}
                   >
-                    Log in
+                    Sign out
                   </Button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-      )}
+                ) : (
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full rounded-xl font-bold"
+                      style={{ boxShadow: "0 4px 14px -2px hsl(var(--primary) / 0.35)" }}
+                      onClick={() => {
+                        navigate("/signup");
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      Sign up
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl"
+                      onClick={() => {
+                        navigate(withRedirectParam("/login", location.pathname === "/" ? null : `${location.pathname}${location.search ?? ""}`));
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      Log in
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 });

@@ -3,7 +3,8 @@ import { Helmet } from "react-helmet-async";
 import { AnimatedCityHero, BreadcrumbSchema, DestinationFAQ, AffiliateDisclaimer, PopularDestinationsGrid } from "@/components/seo";
 import LiveRatesGrid from "@/components/seo/LiveRatesGrid";
 import GlobalTrustBar from "@/components/shared/GlobalTrustBar";
-import { destinationPhotos, DestinationCity } from "@/config/photos";
+import { destinationPhotos } from "@/config/photos";
+import type { DestinationCity } from "@/config/photos";
 import { addDays, format } from "date-fns";
 import { useMultiProviderHotelSearch } from "@/hooks/useMultiProviderHotelSearch";
 import { useEffect, useMemo } from "react";
@@ -61,12 +62,12 @@ export default function CityLandingPage() {
   // SEO metadata
   const title = `${city} Travel Guide ${dynamicYear} | Flights & Hotels | ZIVO`;
   const description = `Book the best flights and hotels in ${city}. Compare prices from 500+ airlines and top hotel suppliers. Secure booking with ZIVO.`;
-  const canonicalUrl = `https://hizivo.com/city/${citySlug}`;
+  const canonicalUrl = `https://zivosmedia.com/city/${citySlug}`;
 
   // Breadcrumb items
   const breadcrumbItems = [
-    { name: "Home", url: "https://hizivo.com" },
-    { name: "Destinations", url: "https://hizivo.com/hotels" },
+    { name: "Home", url: "https://zivosmedia.com" },
+    { name: "Destinations", url: "https://zivosmedia.com/hotels" },
     { name: city, url: canonicalUrl },
   ];
 

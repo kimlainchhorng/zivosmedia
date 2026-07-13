@@ -2,8 +2,15 @@
  * TravelItineraryCard - Upcoming trips timeline with flight, hotel, car in one card
  */
 import { useNavigate } from "react-router-dom";
+import { useI18n } from "@/hooks/useI18n";
 import { motion } from "framer-motion";
-import { Plane, Hotel, Car, Calendar, MapPin, ChevronRight, Luggage } from "lucide-react";
+import Plane from "lucide-react/dist/esm/icons/plane";
+import Hotel from "lucide-react/dist/esm/icons/hotel";
+import Car from "lucide-react/dist/esm/icons/car";
+import Calendar from "lucide-react/dist/esm/icons/calendar";
+import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import Luggage from "lucide-react/dist/esm/icons/luggage";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -27,26 +34,17 @@ interface TripGroup {
 }
 
 const itemConfig = {
-  flight: { icon: Plane, color: "text-sky-500", bg: "bg-sky-500/10", border: "border-sky-500/15" },
-  hotel: { icon: Hotel, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/15" },
-  car: { icon: Car, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/15" },
+  flight: { icon: Plane },
+  hotel: { icon: Hotel },
+  car: { icon: Car },
 };
 
-// Demo trip for guest/no-data users
-const demoTrip: TripGroup = {
-  destination: "Miami, FL",
-  startDate: new Date(Date.now() + 7 * 86400000).toISOString(),
-  daysUntil: 7,
-  items: [
-    { id: "f1", type: "flight", title: "JFK → MIA", subtitle: "Delta · 3h 10m", date: new Date(Date.now() + 7 * 86400000).toISOString(), status: "confirmed" },
-    { id: "h1", type: "hotel", title: "The Setai Miami Beach", subtitle: "4 nights · Ocean view", date: new Date(Date.now() + 7 * 86400000).toISOString(), status: "confirmed" },
-    { id: "c1", type: "car", title: "Tesla Model 3", subtitle: "4 days · Airport pickup", date: new Date(Date.now() + 7 * 86400000).toISOString(), status: "pending" },
-  ],
-};
+// No demo trip — show empty state for guests
 
 export default function TravelItineraryCard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const { data: tripData } = useQuery({
     queryKey: ["home-itinerary", user?.id],
@@ -58,7 +56,10 @@ export default function TravelItineraryCard() {
         .from("trip_itineraries")
         .select("id, title, destination, start_date, end_date, status")
         .eq("user_id", user.id)
-        .gte("start_date", new Date().toISOString().split("T")[0])
+        // Local YYYY-MM-DD. toISOString() is the UTC day, which in Cambodia
+        // (UTC+7) reads as yesterday before 07:00 local — an early-morning user
+        // would otherwise see a trip that already started yesterday as "upcoming".
+        .gte("start_date", format(new Date(), "yyyy-MM-dd"))
         .order("start_date", { ascending: true })
         .limit(1);
 
@@ -89,31 +90,57 @@ export default function TravelItineraryCard() {
     staleTime: 60000,
   });
 
-  const trip = tripData || demoTrip;
+  const trip = tripData;
+
+  // No trip data — show CTA to book
+  if (!trip) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-lg bg-card border border-border p-5 relative"
+      >
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+            <Luggage className="w-4 h-4 text-foreground" strokeWidth={1.8} />
+          </div>
+          <div>
+            <span className="text-sm font-semibold text-foreground">{t("home.no_trips")}</span>
+            <p className="text-[10px] text-muted-foreground">{t("home.plan_adventure")}</p>
+          </div>
+        </div>
+        <button type="button"
+          onClick={() => navigate("/flights")}
+          className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground py-2.5 rounded-lg bg-primary touch-manipulation active:opacity-80 transition-opacity"
+        >
+          <Plane className="w-3.5 h-3.5" />
+          {t("home.search_flights")}
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl bg-gradient-to-br from-sky-500/8 via-amber-500/4 to-emerald-500/6 border border-sky-500/12 p-5 relative overflow-hidden shadow-sm"
+      className="rounded-lg bg-card border border-border p-5 relative"
     >
-      {/* Decorative */}
-      <div className="absolute -top-10 -right-10 w-24 h-24 bg-sky-500/8 rounded-full blur-3xl" />
-
       {/* Header */}
       <div className="flex items-center justify-between mb-4 relative z-10">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500/20 to-sky-500/10 flex items-center justify-center shadow-inner">
-            <Luggage className="w-4 h-4 text-sky-500" />
+          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+            <Luggage className="w-4 h-4 text-foreground" strokeWidth={1.8} />
           </div>
           <div>
-            <span className="text-sm font-bold text-foreground">Upcoming Trip</span>
+            <span className="text-sm font-semibold text-foreground">{t("home.upcoming_trip")}</span>
             <p className="text-[10px] text-muted-foreground flex items-center gap-1">
               <MapPin className="w-2.5 h-2.5" /> {trip.destination}
             </p>
           </div>
         </div>
-        <Badge variant="outline" className="text-[10px] font-bold text-sky-500 border-sky-500/20 bg-sky-500/5">
+        <Badge variant="outline" className="text-[10px] font-bold text-foreground border-border bg-muted">
           {trip.daysUntil <= 0 ? "Today!" : `${trip.daysUntil}d away`}
         </Badge>
       </div>
@@ -129,25 +156,19 @@ export default function TravelItineraryCard() {
             <div key={item.id} className="flex gap-3">
               {/* Timeline line */}
               <div className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-lg ${cfg.bg} ${cfg.border} border flex items-center justify-center shrink-0`}>
-                  <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <Icon className="w-3.5 h-3.5 text-foreground" strokeWidth={1.8} />
                 </div>
-                {!isLast && <div className="w-px flex-1 bg-border/50 my-1" />}
+                {!isLast && <div className="w-px flex-1 bg-border my-1" />}
               </div>
 
               {/* Content */}
               <div className={`flex-1 ${!isLast ? "pb-3" : ""}`}>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-foreground">{item.title}</p>
+                  <p className="text-xs font-semibold text-foreground">{item.title}</p>
                   <Badge
                     variant="outline"
-                    className={`text-[8px] font-bold ${
-                      item.status === "confirmed"
-                        ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5"
-                        : item.status === "pending"
-                        ? "text-amber-500 border-amber-500/20 bg-amber-500/5"
-                        : "text-muted-foreground border-border/30"
-                    }`}
+                    className="text-[8px] font-bold text-foreground border-border bg-muted"
                   >
                     {item.status}
                   </Badge>
@@ -160,12 +181,12 @@ export default function TravelItineraryCard() {
       </div>
 
       {/* CTA */}
-      <button
+      <button type="button"
         onClick={() => navigate("/trips")}
-        className="mt-4 w-full flex items-center justify-center gap-1.5 text-xs font-bold text-sky-500 py-2.5 rounded-xl bg-sky-500/5 border border-sky-500/15 touch-manipulation active:scale-[0.98] transition-all relative z-10"
+        className="mt-4 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground py-2.5 rounded-lg bg-primary touch-manipulation active:opacity-80 transition-opacity relative z-10"
       >
         <Calendar className="w-3.5 h-3.5" />
-        View Full Itinerary
+        {t("home.view_itinerary")}
         <ChevronRight className="w-3.5 h-3.5" />
       </button>
     </motion.div>

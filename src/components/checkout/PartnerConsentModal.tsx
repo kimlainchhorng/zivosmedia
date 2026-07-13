@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -88,12 +89,14 @@ export default function PartnerConsentModal({
       onOpenChange(false);
       
       // Open partner site
-      window.open(result.finalUrl, '_blank', 'noopener,noreferrer');
+      const { openExternalUrl } = await import("@/lib/openExternalUrl");
+      await openExternalUrl(result.finalUrl);
       
     } catch (err) {
       console.error('[PartnerConsent] Error:', err);
       // Still try to open the URL
-      window.open(destinationUrl, '_blank', 'noopener,noreferrer');
+      const { openExternalUrl } = await import("@/lib/openExternalUrl");
+      await openExternalUrl(destinationUrl);
     } finally {
       setIsRedirecting(false);
     }
@@ -172,13 +175,13 @@ export default function PartnerConsentModal({
               <p className="text-xs text-muted-foreground">
                 {consentText.description}{" "}
                 View our{" "}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+                <Link to="/legal/privacy" className="underline hover:text-primary">
                   Privacy Policy
-                </a>{" "}
+                </Link>{" "}
                 and{" "}
-                <a href="/partner-disclosure" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+                <Link to="/legal/partner-disclosure" className="underline hover:text-primary">
                   Partner Disclosure
-                </a>.
+                </Link>.
               </p>
             </div>
           </div>

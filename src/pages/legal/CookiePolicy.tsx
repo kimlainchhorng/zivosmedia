@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { ArrowLeft, Cookie, Mail, Shield, Settings, CheckCircle2, AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { ArrowLeft, Cookie, Mail, Shield, Settings, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +12,18 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { toast } from "sonner";
+import { COOKIE_CONSENT_STORAGE_KEY } from "@/hooks/useCookiePrefs";
+
+const COOKIE_CONSENT_DATE_STORAGE_KEY = "zivo_cookie_consent_date";
+const COOKIE_CONSENT_UPDATED_EVENT = "zivo:cookie-consent-updated";
+
+function notifyCookieConsentUpdated() {
+  try {
+    window.dispatchEvent(new Event(COOKIE_CONSENT_UPDATED_EVENT));
+  } catch {
+    // ignore environments without Event support
+  }
+}
 
 // Cookie categories with descriptions
 const cookieCategories = [
@@ -37,14 +50,24 @@ const cookieCategories = [
   },
   {
     id: "marketing",
-    title: "Marketing Cookies",
-    description: "Used to deliver relevant ads and measure campaign effectiveness.",
+    title: "Marketing & Advertising Cookies",
+    description: "Help us show relevant offers and measure campaigns when you consent.",
     required: false,
-    examples: ["Ad targeting", "Campaign attribution", "Remarketing"],
+    examples: ["Meta pixel", "Google Ads", "TikTok pixel", "X pixel", "Campaign attribution"],
   },
 ];
 
 const CookiePolicy = () => {
+  const navigate = useNavigate();
+  const isNative = Capacitor.isNativePlatform();
+
+  // On native apps, redirect to home — cookies are not used for tracking
+  useEffect(() => {
+    if (isNative) {
+      navigate("/", { replace: true });
+    }
+  }, [isNative, navigate]);
+
   const [preferences, setPreferences] = useState<Record<string, boolean>>({
     essential: true,
     functional: true,
@@ -59,21 +82,31 @@ const CookiePolicy = () => {
 
   const savePreferences = () => {
     // In production, this would save to localStorage and update tracking scripts
-    localStorage.setItem("cookie_preferences", JSON.stringify(preferences));
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(preferences));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
+    if (preferences.analytics || preferences.marketing) {
+      window.__zivoLoadAnalytics?.();
+    }
     toast.success("Cookie preferences saved");
   };
 
   const acceptAll = () => {
     const allEnabled = { essential: true, functional: true, analytics: true, marketing: true };
     setPreferences(allEnabled);
-    localStorage.setItem("cookie_preferences", JSON.stringify(allEnabled));
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(allEnabled));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
+    window.__zivoLoadAnalytics?.();
     toast.success("All cookies accepted");
   };
 
   const rejectOptional = () => {
     const minimalCookies = { essential: true, functional: false, analytics: false, marketing: false };
     setPreferences(minimalCookies);
-    localStorage.setItem("cookie_preferences", JSON.stringify(minimalCookies));
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(minimalCookies));
+    localStorage.setItem(COOKIE_CONSENT_DATE_STORAGE_KEY, new Date().toISOString());
+    notifyCookieConsentUpdated();
     toast.success("Optional cookies rejected");
   };
 
@@ -82,11 +115,11 @@ const CookiePolicy = () => {
       <SEOHead
         title="Cookie Policy - ZIVO | Travel Search Platform"
         description="Learn how ZIVO uses cookies and similar technologies. Manage your cookie preferences and opt-in/out of non-essential tracking."
-        canonical="https://hizivo.com/cookies"
+        canonical="https://zivosmedia.com/legal/cookies"
       />
-      
+
       <Header />
-      
+
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Back Button */}
         <Link to="/">
@@ -167,8 +200,8 @@ const CookiePolicy = () => {
           {/* Introduction */}
           <section>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-sky-500/10">
-                <Cookie className="w-5 h-5 text-sky-500" />
+              <div className="p-2 rounded-lg bg-secondary">
+                <Cookie className="w-5 h-5 text-foreground" />
               </div>
               <h2 className="text-2xl font-bold text-foreground">How We Use Cookies</h2>
             </div>
@@ -191,9 +224,19 @@ const CookiePolicy = () => {
                 </li>
                 <li className="flex items-start gap-3 text-foreground">
                   <CheckCircle2 className="w-4 h-4 text-green-500 mt-1 shrink-0" />
-                  Support marketing attribution (with your consent)
+                  Measure optional ads and marketing campaigns only when you consent
                 </li>
               </ul>
+              <div className="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="flex items-start gap-2">
+                  <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Consent-based advertising:</strong> ZIVO may use advertising cookies and pixels from
+                    partners such as Meta, Google Ads, TikTok, and X only when you allow marketing cookies. You can
+                    reject optional cookies or change preferences at any time.
+                  </p>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -204,8 +247,8 @@ const CookiePolicy = () => {
               <div>
                 <h3 className="font-semibold text-amber-600 mb-2">EU Users Notice</h3>
                 <p className="text-foreground leading-relaxed">
-                  For users in the European Union: We do not set non-essential cookies until you 
-                  provide explicit consent. You can manage your preferences at any time using the 
+                  For users in the European Union: We do not set non-essential cookies until you
+                  provide explicit consent. You can manage your preferences at any time using the
                   controls above or through your browser settings.
                 </p>
               </div>
@@ -217,8 +260,8 @@ const CookiePolicy = () => {
             <h2 className="text-2xl font-bold text-foreground mb-4">What Are Cookies?</h2>
             <div className="bg-card/50 rounded-2xl p-6 border border-border">
               <p className="text-foreground leading-relaxed">
-                Cookies are small text files stored on your device when you visit websites. 
-                They help websites remember your preferences and provide a better experience. 
+                Cookies are small text files stored on your device when you visit websites.
+                They help websites remember your preferences and provide a better experience.
                 Similar technologies include local storage, session storage, and pixel tags.
               </p>
             </div>
@@ -234,9 +277,12 @@ const CookiePolicy = () => {
               <div className="grid sm:grid-cols-2 gap-3">
                 {[
                   { name: "Google Analytics", purpose: "Usage analytics" },
+                  { name: "Google Ads", purpose: "Consent-based conversion measurement" },
+                  { name: "X Ads", purpose: "Consent-based conversion measurement" },
+                  { name: "Meta", purpose: "Consent-based campaign measurement" },
+                  { name: "TikTok", purpose: "Consent-based campaign measurement" },
                   { name: "Stripe", purpose: "Payment processing" },
                   { name: "Supabase", purpose: "Authentication" },
-                  { name: "Marketing platforms", purpose: "Ad measurement" },
                 ].map((item) => (
                   <div key={item.name} className="p-3 rounded-lg bg-muted/50 text-sm">
                     <p className="font-medium">{item.name}</p>
@@ -244,6 +290,10 @@ const CookiePolicy = () => {
                   </div>
                 ))}
               </div>
+              <p className="text-sm text-muted-foreground mt-4">
+                Advertising partners are optional. They are enabled only when marketing cookies are accepted and
+                can be disabled through the controls above or Account Privacy Controls.
+              </p>
             </div>
           </section>
 
@@ -291,12 +341,12 @@ const CookiePolicy = () => {
               <p className="text-foreground mb-4">
                 Questions about our cookie policy?
               </p>
-              <a 
-                href="mailto:privacy@hizivo.com" 
+              <a
+                href="mailto:privacy@zivosmedia.com"
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="w-4 h-4" />
-                privacy@hizivo.com
+                privacy@zivosmedia.com
               </a>
             </div>
           </section>
@@ -306,13 +356,13 @@ const CookiePolicy = () => {
             <p className="text-sm text-muted-foreground mb-4">Related policies:</p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button variant="outline" size="sm" asChild>
-                <Link to="/privacy">Privacy Policy</Link>
+                <Link to="/legal/privacy">Privacy Policy</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/account/privacy">Privacy Controls</Link>
+                <Link to="/account/data-rights#cookies">Privacy Controls</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/terms">Terms of Service</Link>
+                <Link to="/legal/terms">Terms of Service</Link>
               </Button>
             </div>
           </div>

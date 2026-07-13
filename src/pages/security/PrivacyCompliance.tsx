@@ -101,7 +101,7 @@ export default function PrivacyCompliance() {
               <Shield className="w-4 h-4 mr-2" />
               CCPA Ready
             </Badge>
-            <Badge className="px-4 py-2 text-sm bg-purple-500/10 text-purple-600 border-purple-500/30">
+            <Badge className="px-4 py-2 text-sm bg-secondary text-foreground border-border">
               <Lock className="w-4 h-4 mr-2" />
               Privacy by Design
             </Badge>
@@ -150,8 +150,8 @@ export default function PrivacyCompliance() {
                         Privacy Controls
                       </Link>{" "}
                       to submit data requests, or email{" "}
-                      <a href="mailto:privacy@hizivo.com" className="text-primary hover:underline">
-                        privacy@hizivo.com
+                      <a href="mailto:privacy@zivosmedia.com" className="text-primary hover:underline">
+                        privacy@zivosmedia.com
                       </a>
                     </p>
                   </div>
@@ -268,7 +268,7 @@ export default function PrivacyCompliance() {
                     </li>
                   </ul>
                   <Button variant="outline" size="sm" className="mt-4" asChild>
-                    <Link to="/cookies">View Cookie Policy</Link>
+                    <Link to="/legal/cookies">View Cookie Policy</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -425,10 +425,10 @@ export default function PrivacyCompliance() {
             <p className="text-sm text-muted-foreground mb-4">Related resources:</p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button variant="outline" size="sm" asChild>
-                <Link to="/privacy">Privacy Policy</Link>
+                <Link to="/legal/privacy">Privacy Policy</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/cookies">Cookie Policy</Link>
+                <Link to="/legal/cookies">Cookie Policy</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link to="/security/data-protection">Data Protection</Link>

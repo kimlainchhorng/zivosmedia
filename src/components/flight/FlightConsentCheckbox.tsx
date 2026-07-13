@@ -35,7 +35,7 @@ export default function FlightConsentCheckbox({
         />
         <Label htmlFor="flight-consent" className="text-sm leading-tight cursor-pointer">
           {FLIGHT_CONSENT.checkboxLabel}{" "}
-          <Link to="/privacy" className="text-primary hover:underline">Privacy</Link>
+          <Link to="/legal/privacy" className="text-primary hover:underline">Privacy</Link>
         </Label>
       </div>
     );
@@ -57,14 +57,14 @@ export default function FlightConsentCheckbox({
             htmlFor="flight-consent" 
             className="text-sm font-medium leading-tight cursor-pointer flex items-center gap-2"
           >
-            <ExternalLink className="w-4 h-4 text-sky-500" />
+            <ExternalLink className="w-4 h-4 text-foreground" />
             {FLIGHT_CONSENT.checkboxLabel}
           </Label>
           <p className="text-xs text-muted-foreground">
             {FLIGHT_CONSENT.description}{" "}
-            <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+            <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>
             {" "}·{" "}
-            <Link to="/partner-disclosure" className="text-primary hover:underline">Partner Disclosure</Link>
+            <Link to="/legal/partner-disclosure" className="text-primary hover:underline">Partner Disclosure</Link>
           </p>
         </div>
       </div>

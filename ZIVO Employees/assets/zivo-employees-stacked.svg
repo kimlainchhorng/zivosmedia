@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="540" viewBox="0 0 600 540" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zivoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FEDA75"/>
+      <stop offset="25%" stop-color="#FA7E1E"/>
+      <stop offset="50%" stop-color="#D62976"/>
+      <stop offset="75%" stop-color="#962FBF"/>
+      <stop offset="100%" stop-color="#4F5BD5"/>
+    </linearGradient>
+  </defs>
+  <rect x="180" y="40" width="240" height="240" rx="54" fill="white" stroke="#EEEEEE" stroke-width="1"/>
+  <text x="300" y="232" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="200" font-weight="800" fill="url(#zivoGrad)" letter-spacing="-6">Z</text>
+  <circle cx="372" cy="88" r="24" fill="url(#zivoGrad)"/>
+  <circle cx="372" cy="82" r="8" fill="white"/>
+  <path d="M 358 98 Q 358 88 372 88 Q 386 88 386 98 L 386 102 L 358 102 Z" fill="white"/>
+  <text x="300" y="400" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="100" font-weight="800" fill="#0A0A0A" letter-spacing="-3">ZIVO</text>
+  <text x="300" y="448" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="28" font-weight="500" fill="#666" letter-spacing="5">EMPLOYEES</text>
+</svg>

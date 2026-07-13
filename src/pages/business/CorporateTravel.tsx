@@ -18,6 +18,7 @@ import NavBar from "@/components/home/NavBar";
 import Footer from "@/components/Footer";
 import { useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const FEATURES = [
   {
@@ -67,11 +68,29 @@ export default function CorporateTravel() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // TODO: Submit to backend API
-    
-    toast.success("Thanks for your interest! We'll be in touch soon.");
-    setIsSubmitting(false);
+    const form = e.target as HTMLFormElement;
+    const data = new FormData(form);
+    const email = String(data.get("email") || "");
+    const company = String(data.get("company") || "");
+    const message = `Name: ${data.get("name") || ""}\nSize: ${data.get("size") || ""}\nMessage: ${data.get("message") || ""}`;
+    try {
+      const { error } = await supabase.functions.invoke("marketing-interest-submit", { body: {
+        category: "corporate_lead",
+        subject: "Corporate Travel Inquiry",
+        email,
+        company,
+        message,
+        context: "corporate_travel",
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
+      toast.success("Thanks for your interest! We'll be in touch soon.");
+      form.reset();
+    } catch {
+      toast.error("Failed to submit. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,13 +107,13 @@ export default function CorporateTravel() {
 
       <main className="min-h-screen bg-background pt-20">
         {/* Hero */}
-        <section className="py-20 bg-gradient-to-b from-violet-500/10 to-background relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-violet-500/5 to-transparent" />
+        <section className="py-20 to-background relative overflow-hidden bg-secondary">
+          <div className="absolute top-0 right-0 w-1/2 h-full to-transparent bg-secondary" />
           
           <div className="container mx-auto px-4 relative z-10">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 text-violet-500 text-sm mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary text-foreground text-sm mb-6">
                   <Building2 className="w-4 h-4" />
                   Coming Soon
                 </div>
@@ -117,7 +136,7 @@ export default function CorporateTravel() {
                   ))}
                 </ul>
 
-                <Button asChild size="lg" className="gap-2 bg-violet-500 hover:bg-violet-600">
+                <Button asChild size="lg" className="gap-2 bg-foreground hover:bg-foreground">
                   <a href="#waitlist">
                     Join the Waitlist
                     <ArrowRight className="w-4 h-4" />
@@ -127,8 +146,8 @@ export default function CorporateTravel() {
 
               <div className="hidden lg:block">
                 <div className="relative">
-                  <div className="w-full aspect-square rounded-3xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/20 flex items-center justify-center">
-                    <Building2 className="w-32 h-32 text-violet-500/50" />
+                  <div className="w-full aspect-square rounded-3xl border border-border flex items-center justify-center bg-secondary">
+                    <Building2 className="w-32 h-32 text-foreground/50" />
                   </div>
                   <div className="absolute -bottom-4 -right-4 w-32 h-32 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/20" />
                 </div>
@@ -151,9 +170,9 @@ export default function CorporateTravel() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {FEATURES.map((feature) => (
-                <div key={feature.title} className="p-6 rounded-2xl border border-border bg-card hover:border-violet-500/30 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-violet-500" />
+                <div key={feature.title} className="p-6 rounded-2xl border border-border bg-card hover:border-border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+                  <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-foreground" />
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -228,7 +247,10 @@ export default function CorporateTravel() {
                 </Button>
                 
                 <p className="text-xs text-center text-muted-foreground">
-                  We'll only contact you about ZIVO for Business. No spam.
+                  We'll only contact you about ZIVO for Business. No spam. See our{" "}
+                  <Link to="/legal/privacy" className="underline underline-offset-2">Privacy Policy</Link>
+                  {" "}and{" "}
+                  <Link to="/legal/terms" className="underline underline-offset-2">Terms</Link>.
                 </p>
               </form>
             </div>

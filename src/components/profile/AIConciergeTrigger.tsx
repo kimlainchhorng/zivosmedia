@@ -1,11 +1,13 @@
-/**
+﻿/**
  * AIConciergeTrigger Component
  * Premium 2026-era floating AI concierge with context awareness
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Bot, User } from "lucide-react";
 import { useMyTrips } from "@/hooks/useMyTrips";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ChatIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,35 +29,37 @@ export function AIConciergeTrigger() {
   ]);
   const [input, setInput] = useState("");
 
+  const { user } = useAuth();
   const { data: upcomingTrips } = useMyTrips("upcoming");
   const hasUpcomingTrips = upcomingTrips && upcomingTrips.length > 0;
+  const [alertCount, setAlertCount] = useState(0);
 
-  // Simulated alert count (flight delay alert)
-  const alertCount = hasUpcomingTrips ? 1 : 0;
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("notifications").select("id", { count: "exact", head: true })
+      .eq("user_id", user.id).eq("is_read", false).then(({ count }) => {
+        if (count) setAlertCount(count);
+      });
+  }, [user]);
 
-  const sendMessage = (text: string) => {
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
-
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now(), type: "user", text },
-    ]);
+    setMessages((prev) => [...prev, { id: Date.now(), type: "user", text }]);
     setInput("");
 
-    // Simulated AI response
-    setTimeout(() => {
-      let response = "Thanks for your message! A support agent will assist you shortly. Average wait time: 2 mins.";
-      
-      if (text.toLowerCase().includes("track") || text.toLowerCase().includes("booking")) {
-        response = hasUpcomingTrips 
-          ? `I can see you have ${upcomingTrips.length} upcoming trip(s). Your flight BA-112 to London departs tomorrow at 08:30 AM. Would you like me to show you the details?`
-          : "I don't see any active bookings. Would you like to search for a new trip?";
-      }
+    if (user) {
+      await supabase.functions.invoke("concierge-message-submit", { body: {
+        message: text,
+        has_upcoming_trips: !!hasUpcomingTrips,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+    }
 
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now() + 1, type: "bot", text: response },
-      ]);
+    setTimeout(() => {
+      const response = hasUpcomingTrips
+        ? "Thanks for your message! A support agent will assist you shortly. Average wait time: 2 mins."
+        : "Thanks for reaching out! Our team will get back to you soon. For faster help, check our Help Center.";
+      setMessages((prev) => [...prev, { id: Date.now() + 1, type: "bot", text: response }]);
     }, 1000);
   };
 
@@ -67,7 +71,8 @@ export function AIConciergeTrigger() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-[0_0_30px_hsl(var(--primary)/0.3)] flex items-center justify-center z-50 group"
+          className="fixed right-4 sm:right-8 w-14 h-14 bg-ig-gradient text-white rounded-full shadow-[0_0_30px_hsl(var(--primary)/0.3)] flex items-center justify-center z-50 group"
+          style={{ bottom: "calc(var(--zivo-safe-bottom,0px) + 96px)" }}
         >
           {/* Notification Badge */}
           {alertCount > 0 && (
@@ -90,7 +95,8 @@ export function AIConciergeTrigger() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 w-[360px] h-[500px] bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed right-2 sm:right-6 z-50 w-[calc(100vw-1rem)] sm:w-[360px] max-w-[360px] h-[min(500px,calc(100vh-12rem))] bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            style={{ bottom: "calc(var(--zivo-safe-bottom,0px) + 96px)" }}
           >
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-primary to-accent flex items-center justify-between">
@@ -106,7 +112,7 @@ export function AIConciergeTrigger() {
                   </div>
                 </div>
               </div>
-              <button 
+              <button type="button" 
                 onClick={() => setIsOpen(false)} 
                 className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
               >
@@ -134,7 +140,7 @@ export function AIConciergeTrigger() {
                     className={`max-w-[70%] p-3 rounded-2xl text-sm ${
                       msg.type === "bot"
                         ? "bg-muted rounded-tl-sm text-foreground"
-                        : "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-ig-gradient text-white rounded-tr-sm"
                     }`}
                   >
                     {msg.text}
@@ -147,7 +153,7 @@ export function AIConciergeTrigger() {
             <div className="px-4 pb-2">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {quickReplies.map((reply) => (
-                  <button
+                  <button type="button"
                     key={reply}
                     onClick={() => sendMessage(reply)}
                     className="flex-shrink-0 px-3 py-1.5 text-xs bg-muted rounded-full hover:bg-muted/80 transition-colors text-foreground"
@@ -165,11 +171,11 @@ export function AIConciergeTrigger() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && sendMessage(input)}
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
                   placeholder="Type a message..."
                   className="flex-1 px-4 py-2 bg-muted rounded-full text-sm outline-none focus:ring-2 focus:ring-primary/50 text-foreground placeholder:text-muted-foreground"
                 />
-                <button
+                <button type="button"
                   onClick={() => sendMessage(input)}
                   className="w-10 h-10 bg-primary rounded-full flex items-center justify-center hover:bg-primary/90 transition-colors"
                 >

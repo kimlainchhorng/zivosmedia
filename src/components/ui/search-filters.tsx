@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -39,31 +39,31 @@ const colorConfig = {
   rides: {
     ring: "focus-within:ring-rides/40 focus-within:border-rides/50",
     icon: "text-rides",
-    gradient: "from-rides to-green-400",
+    gradient: "from-muted to-muted",
     bg: "bg-rides/10"
   },
   eats: {
     ring: "focus-within:ring-eats/40 focus-within:border-eats/50",
     icon: "text-eats",
-    gradient: "from-eats to-orange-400",
+    gradient: "from-muted to-muted",
     bg: "bg-eats/10"
   },
   sky: {
-    ring: "focus-within:ring-sky-400/40 focus-within:border-sky-400/50",
-    icon: "text-sky-400",
-    gradient: "from-sky-500 to-blue-400",
-    bg: "bg-sky-500/10"
+    ring: "focus-within:ring-primary/40 focus-within:border-primary/50",
+    icon: "text-primary",
+    gradient: "from-muted to-muted",
+    bg: "bg-primary/10"
   },
   amber: {
-    ring: "focus-within:ring-amber-400/40 focus-within:border-amber-400/50",
-    icon: "text-amber-400",
-    gradient: "from-amber-500 to-orange-400",
-    bg: "bg-amber-500/10"
+    ring: "focus-within:ring-warning/40 focus-within:border-warning/50",
+    icon: "text-warning",
+    gradient: "from-muted to-muted",
+    bg: "bg-warning/10"
   },
   primary: {
     ring: "focus-within:ring-primary/40 focus-within:border-primary/50",
     icon: "text-primary",
-    gradient: "from-primary to-teal-400",
+    gradient: "from-muted to-muted",
     bg: "bg-primary/10"
   },
 };
@@ -285,11 +285,11 @@ export const FilterChip: React.FC<FilterChipProps> = ({
   onRemove,
 }) => {
   const activeColors = {
-    rides: "bg-gradient-to-r from-rides to-green-400 text-primary-foreground shadow-lg shadow-rides/30",
-    eats: "bg-gradient-to-r from-eats to-orange-400 text-primary-foreground shadow-lg shadow-eats/30",
-    sky: "bg-gradient-to-r from-sky-500 to-blue-500 text-primary-foreground shadow-lg shadow-sky-500/30",
-    amber: "bg-gradient-to-r from-amber-500 to-orange-500 text-primary-foreground shadow-lg shadow-amber-500/30",
-    default: "bg-gradient-to-r from-primary to-teal-400 text-primary-foreground shadow-lg shadow-primary/30",
+    rides: "bg-rides text-primary-foreground shadow-lg shadow-rides/30",
+    eats: "bg-eats text-primary-foreground shadow-lg shadow-eats/30",
+    sky: "bg-ig-gradient text-white shadow-lg shadow-primary/30",
+    amber: "bg-warning text-foreground shadow-lg shadow-warning/30",
+    default: "bg-ig-gradient text-white shadow-lg shadow-primary/30",
   };
 
   return (
@@ -600,7 +600,7 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
             className="flex items-center gap-1.5 pr-1.5 pl-3 py-1.5 rounded-xl bg-primary/10 text-primary border-primary/20 font-medium"
           >
             {filter.label}
-            <button
+            <button type="button"
               onClick={() => onRemove(filter.id)}
               className="ml-1 p-1 rounded-full hover:bg-primary/20 transition-colors"
             >

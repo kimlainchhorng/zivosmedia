@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -9,9 +9,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]",
+        default: "bg-ig-gradient text-white hover:bg-primary/90 active:scale-[0.98]",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:scale-[0.98]",
-        outline: "border border-border bg-transparent hover:bg-muted hover:text-foreground active:scale-[0.98]",
+        outline: "border border-border bg-transparent text-foreground hover:bg-muted hover:text-foreground active:scale-[0.98]",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.98]",
         ghost: "hover:bg-muted hover:text-foreground active:scale-[0.98]",
         link: "text-primary underline-offset-4 hover:underline",
@@ -20,10 +20,11 @@ const buttonVariants = cva(
         eats: "gradient-eats text-primary-foreground glow-eats hover:opacity-90 active:scale-[0.98] font-bold",
         glass: "glass-card text-foreground hover:bg-white/10",
         hero: "bg-foreground text-background hover:bg-foreground/90 active:scale-[0.98] font-bold text-base",
+        ig: "bg-ig-gradient text-white hover:opacity-90 active:scale-[0.98] font-bold border-0",
       },
       size: {
         default: "h-11 px-5 py-2",
-        sm: "h-9 rounded-xl px-3",
+        sm: "h-10 rounded-xl px-3.5",
         lg: "h-14 rounded-2xl px-8 text-base",
         xl: "h-16 rounded-2xl px-12 text-lg",
         icon: "h-10 w-10",

@@ -1,10 +1,16 @@
 /**
  * LiveTripTracker - Real-time card showing active ride/delivery with ETA countdown
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Car, UtensilsCrossed, Package, MapPin, Clock, Navigation, ChevronRight } from "lucide-react";
+import Car from "lucide-react/dist/esm/icons/car";
+import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
+import Package from "lucide-react/dist/esm/icons/package";
+import MapPin from "lucide-react/dist/esm/icons/map-pin";
+import Clock from "lucide-react/dist/esm/icons/clock";
+import Navigation from "lucide-react/dist/esm/icons/navigation";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,18 +27,18 @@ interface ActiveTrip {
 }
 
 const typeConfig = {
-  ride: { icon: Car, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", gradient: "from-emerald-500/10 to-emerald-500/5", label: "Ride" },
-  food: { icon: UtensilsCrossed, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20", gradient: "from-orange-500/10 to-orange-500/5", label: "Food Delivery" },
-  delivery: { icon: Package, color: "text-violet-500", bg: "bg-violet-500/10", border: "border-violet-500/20", gradient: "from-violet-500/10 to-violet-500/5", label: "Package" },
+  ride: { icon: Car, label: "Ride" },
+  food: { icon: UtensilsCrossed, label: "Food Delivery" },
+  delivery: { icon: Package, label: "Package" },
 };
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  driver_assigned: { label: "Driver assigned", color: "text-sky-500" },
-  en_route: { label: "On the way", color: "text-primary" },
-  arriving: { label: "Arriving now", color: "text-amber-500" },
-  picked_up: { label: "In transit", color: "text-primary" },
-  preparing: { label: "Preparing", color: "text-orange-500" },
-  out_for_delivery: { label: "Out for delivery", color: "text-primary" },
+const statusLabels: Record<string, { label: string }> = {
+  driver_assigned: { label: "Driver assigned" },
+  en_route: { label: "On the way" },
+  arriving: { label: "Arriving now" },
+  picked_up: { label: "In transit" },
+  preparing: { label: "Preparing" },
+  out_for_delivery: { label: "Out for delivery" },
 };
 
 export default function LiveTripTracker() {
@@ -40,8 +46,12 @@ export default function LiveTripTracker() {
   const navigate = useNavigate();
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
   const [countdown, setCountdown] = useState(0);
+  const activeTripRef = useRef<ActiveTrip | null>(null);
+  useEffect(() => {
+    activeTripRef.current = activeTrip;
+  }, [activeTrip]);
 
-  // Poll for active trips
+  // Realtime for active trips, with polling as an app-resume/network fallback.
   useEffect(() => {
     if (!user?.id) return;
 
@@ -95,9 +105,61 @@ export default function LiveTripTracker() {
       setActiveTrip(null);
     };
 
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled) return;
+      if (document.visibilityState === "visible") {
+        await fetchActive();
+      }
+      if (cancelled) return;
+      // Poll fast (15s) only when something active is on screen; otherwise back off to 60s.
+      const delay = activeTripRef.current ? 15000 : 60000;
+      timeout = setTimeout(tick, delay);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        if (timeout) clearTimeout(timeout);
+        tick();
+      }
+    };
+
+    const channel = supabase
+      .channel(`home-live-trip-${user.id}-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trips", filter: `rider_id=eq.${user.id}` },
+        () => {
+          void fetchActive();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `customer_id=eq.${user.id}` },
+        () => {
+          void fetchActive();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_orders", filter: `user_id=eq.${user.id}` },
+        () => {
+          void fetchActive();
+        },
+      )
+      .subscribe();
+
     fetchActive();
-    const interval = setInterval(fetchActive, 15000);
-    return () => clearInterval(interval);
+    timeout = setTimeout(tick, 15000);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      if (timeout) clearTimeout(timeout);
+      document.removeEventListener("visibilitychange", onVisibility);
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
 
   // ETA countdown
@@ -106,42 +168,43 @@ export default function LiveTripTracker() {
     setCountdown(activeTrip.eta_minutes * 60);
     const timer = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000);
     return () => clearInterval(timer);
-  }, [activeTrip?.id, activeTrip?.eta_minutes]);
+  }, [activeTrip]);
 
   if (!activeTrip) return null;
 
   const cfg = typeConfig[activeTrip.type];
   const Icon = cfg.icon;
-  const statusInfo = statusLabels[activeTrip.status] || { label: activeTrip.status, color: "text-muted-foreground" };
+  const statusInfo = statusLabels[activeTrip.status] || { label: activeTrip.status };
   const mins = Math.floor(countdown / 60);
   const secs = countdown % 60;
 
   return (
+    <div className="px-5 pb-3">
     <motion.button
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => navigate(activeTrip.type === "ride" ? `/rides/track/${activeTrip.id}` : `/orders/${activeTrip.id}`)}
-      className={`w-full rounded-2xl bg-gradient-to-br ${cfg.gradient} border ${cfg.border} p-5 text-left relative overflow-hidden shadow-md touch-manipulation`}
+      className="w-full rounded-lg bg-card border border-border p-5 text-left relative active:bg-muted/50 transition-colors touch-manipulation"
     >
-      {/* Animated pulse ring */}
+      {/* Live pulse — IG-gradient ring marks "active" */}
       <div className="absolute top-4 right-4">
         <span className="relative flex h-3 w-3">
-          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${cfg.bg} opacity-75`} />
-          <span className={`relative inline-flex rounded-full h-3 w-3 ${cfg.bg}`}>
-            <Navigation className={`w-2 h-2 m-auto ${cfg.color}`} />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ig-gradient opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-ig-gradient items-center justify-center">
+            <Navigation className="w-2 h-2 text-white" />
           </span>
         </span>
       </div>
 
       <div className="flex items-center gap-3 mb-3">
-        <div className={`w-11 h-11 rounded-xl ${cfg.bg} flex items-center justify-center border ${cfg.border}`}>
-          <Icon className={`w-5 h-5 ${cfg.color}`} />
+        <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center">
+          <Icon className="w-5 h-5 text-foreground" strokeWidth={1.8} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-foreground">{cfg.label}</span>
-            <Badge variant="outline" className={`text-[9px] font-bold ${statusInfo.color} border-current/20 bg-current/5`}>
+            <span className="text-sm font-semibold text-foreground">{cfg.label}</span>
+            <Badge variant="outline" className="text-[9px] font-bold text-foreground border-border bg-muted">
               {statusInfo.label}
             </Badge>
           </div>
@@ -158,16 +221,17 @@ export default function LiveTripTracker() {
       {/* ETA countdown */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <Clock className={`w-3.5 h-3.5 ${cfg.color}`} />
+          <Clock className="w-3.5 h-3.5 text-foreground" />
           <span className="text-xs font-bold text-foreground">
             {mins}:{secs.toString().padStart(2, "0")}
           </span>
           <span className="text-[10px] text-muted-foreground">ETA</span>
         </div>
-        <div className="flex items-center gap-1 text-xs font-bold text-primary">
+        <div className="flex items-center gap-1 text-xs font-semibold text-foreground">
           Track <ChevronRight className="w-3.5 h-3.5" />
         </div>
       </div>
     </motion.button>
+    </div>
   );
 }

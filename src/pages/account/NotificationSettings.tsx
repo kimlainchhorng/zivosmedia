@@ -4,9 +4,10 @@
  * Includes SMS consent checkbox, quiet hours, and masked phone display
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import SEOHead from "@/components/SEOHead";
 import {
   ArrowLeft,
   Bell,
@@ -27,6 +28,17 @@ import {
   Loader2,
   Moon,
   AlertTriangle,
+  ShieldCheck,
+  UserPlus,
+  Plane,
+  BadgeCheck,
+  Briefcase,
+  Tv,
+  Activity,
+  Rocket,
+  Pill,
+  Calendar,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,7 +64,10 @@ import {
 } from "@/hooks/useNotificationPreferences";
 import { NotificationChannelCard } from "@/components/account/NotificationChannelCard";
 import { PhoneVerificationDialog } from "@/components/account/PhoneVerificationDialog";
+import InstallAppCard from "@/components/account/InstallAppCard";
 import { toast } from "sonner";
+
+type CategoryGroup = "account" | "social" | "commerce" | "live" | "wellness" | "creator";
 
 interface NotificationCategory {
   id: string;
@@ -60,51 +75,49 @@ interface NotificationCategory {
   description: string;
   icon: React.ElementType;
   defaultEnabled: boolean;
+  group: CategoryGroup;
 }
 
+const GROUP_META: Record<CategoryGroup, { title: string; subtitle: string; anchor: string }> = {
+  account: { title: "Account & Security", subtitle: "Sign-ins, verification, and trust signals", anchor: "account" },
+  social: { title: "Social & Activity", subtitle: "Mentions, follows, and your community", anchor: "social" },
+  commerce: { title: "Orders & Payments", subtitle: "Bookings, deliveries, payouts, and deals", anchor: "commerce" },
+  live: { title: "Live & Streaming", subtitle: "When followed creators go live", anchor: "live" },
+  wellness: { title: "Wellness & Health", subtitle: "Reminders for activity, meds, and appointments", anchor: "wellness" },
+  creator: { title: "Creator & Career", subtitle: "Jobs, monetization, and audience updates", anchor: "creator" },
+};
+
+const GROUP_ORDER: CategoryGroup[] = ["account", "social", "commerce", "live", "wellness", "creator"];
+
 const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
-  {
-    id: "order_updates",
-    label: "Order Updates",
-    description: "Status changes, delivery tracking, and confirmations",
-    icon: Package,
-    defaultEnabled: true,
-  },
-  {
-    id: "chat_messages",
-    label: "Chat & Support",
-    description: "Replies to your support tickets and chat messages",
-    icon: MessageSquare,
-    defaultEnabled: true,
-  },
-  {
-    id: "price_alerts",
-    label: "Price Alerts",
-    description: "Notifications when tracked prices drop",
-    icon: Tag,
-    defaultEnabled: true,
-  },
-  {
-    id: "rewards",
-    label: "Rewards & Loyalty",
-    description: "Points earned, tier upgrades, and referral rewards",
-    icon: Crown,
-    defaultEnabled: true,
-  },
-  {
-    id: "promotions",
-    label: "Deals & Promotions",
-    description: "Exclusive offers, flash sales, and seasonal deals",
-    icon: Gift,
-    defaultEnabled: false,
-  },
-  {
-    id: "announcements",
-    label: "Announcements",
-    description: "New features, service updates, and platform news",
-    icon: Info,
-    defaultEnabled: false,
-  },
+  // Account & Security
+  { id: "security_alerts", label: "Security Alerts", description: "New sign-ins, password changes, and 2FA activity", icon: ShieldCheck, defaultEnabled: true, group: "account" },
+  { id: "verification_updates", label: "Verification Updates", description: "Status changes for your verified badge requests", icon: BadgeCheck, defaultEnabled: true, group: "account" },
+  { id: "announcements", label: "Announcements", description: "New features, service updates, and platform news", icon: Info, defaultEnabled: false, group: "account" },
+
+  // Social & Activity
+  { id: "chat_messages", label: "Chat & Support", description: "Replies to your support tickets and chat messages", icon: MessageSquare, defaultEnabled: true, group: "social" },
+  { id: "social_interactions", label: "Social Interactions", description: "Mentions, comments, friend requests, and follows", icon: UserPlus, defaultEnabled: true, group: "social" },
+
+  // Orders & Payments
+  { id: "order_updates", label: "Order Updates", description: "Status changes, delivery tracking, and confirmations", icon: Package, defaultEnabled: true, group: "commerce" },
+  { id: "booking_travel", label: "Booking & Travel", description: "Trip reminders, check-in alerts, and itinerary changes", icon: Plane, defaultEnabled: true, group: "commerce" },
+  { id: "price_alerts", label: "Price Alerts", description: "Notifications when tracked prices drop", icon: Tag, defaultEnabled: true, group: "commerce" },
+  { id: "rewards", label: "Rewards & Loyalty", description: "Points earned, tier upgrades, and referral rewards", icon: Crown, defaultEnabled: true, group: "commerce" },
+  { id: "promotions", label: "Deals & Promotions", description: "Exclusive offers, flash sales, and seasonal deals", icon: Gift, defaultEnabled: false, group: "commerce" },
+
+  // Live & Streaming
+  { id: "live_streams", label: "Live & Streams", description: "When followed creators go live or start audio spaces", icon: Tv, defaultEnabled: true, group: "live" },
+
+  // Wellness & Health
+  { id: "wellness_reminders", label: "Wellness Reminders", description: "Daily activity, hydration, sleep, and goal nudges", icon: Activity, defaultEnabled: false, group: "wellness" },
+  { id: "medication_reminders", label: "Medication Reminders", description: "Reminders to take and refill medications", icon: Pill, defaultEnabled: false, group: "wellness" },
+  { id: "appointment_reminders", label: "Appointment Reminders", description: "Telehealth visits, bookings, and scheduled events", icon: Calendar, defaultEnabled: true, group: "wellness" },
+
+  // Creator & Career
+  { id: "job_alerts", label: "Job Alerts", description: "New job matches, application updates, and interview reminders", icon: Briefcase, defaultEnabled: true, group: "creator" },
+  { id: "creator_updates", label: "Creator & Monetization", description: "Payouts, brand deals, content milestones, and analytics", icon: Rocket, defaultEnabled: true, group: "creator" },
+  { id: "earnings_payouts", label: "Earnings & Payouts", description: "Driver, shop, and creator payment notifications", icon: DollarSign, defaultEnabled: true, group: "creator" },
 ];
 
 const PREFS_KEY = "zivo_notification_prefs";
@@ -170,14 +183,20 @@ export default function NotificationSettings() {
 
   // Local preferences for categories
   const [preferences, setPreferences] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = localStorage.getItem(PREFS_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return NOTIFICATION_CATEGORIES.reduce((acc, cat) => {
+    const fallback = NOTIFICATION_CATEGORIES.reduce((acc, cat) => {
       acc[cat.id] = cat.defaultEnabled;
       return acc;
     }, {} as Record<string, boolean>);
+    try {
+      const saved = localStorage.getItem(PREFS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Record<string, boolean>;
+        return { ...fallback, ...parsed };
+      }
+    } catch (e) {
+      console.warn("Failed to parse notification preferences:", e);
+    }
+    return fallback;
   });
 
   // Phone verification
@@ -212,9 +231,38 @@ export default function NotificationSettings() {
     }
   }, [prefs]);
 
+  // Hash-anchor scrolling (e.g. /account/notifications#live)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash?.replace("#", "");
+    if (!hash) return;
+    const t = setTimeout(() => {
+      document.getElementById(`notif-group-${hash}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 300);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Group categories for sectioned rendering
+  const groupedCategories = useMemo(() => {
+    const map: Record<CategoryGroup, NotificationCategory[]> = {
+      account: [], social: [], commerce: [], live: [], wellness: [], creator: [],
+    };
+    for (const cat of NOTIFICATION_CATEGORIES) map[cat.group].push(cat);
+    return map;
+  }, []);
+
+  const persistPreferences = (next: Record<string, boolean>) => {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.warn("Failed to save notification preferences:", e);
+    }
+  };
+
   const handleToggleCategory = (id: string) => {
     setPreferences((prev) => {
       const newPrefs = { ...prev, [id]: !prev[id] };
+      persistPreferences(newPrefs);
       toast.success(
         newPrefs[id] ? "Notification enabled" : "Notification disabled"
       );
@@ -222,11 +270,23 @@ export default function NotificationSettings() {
     });
   };
 
+  const handleToggleGroup = (group: CategoryGroup, enable: boolean) => {
+    setPreferences((prev) => {
+      const newPrefs = { ...prev };
+      for (const cat of groupedCategories[group]) {
+        newPrefs[cat.id] = enable;
+      }
+      persistPreferences(newPrefs);
+      return newPrefs;
+    });
+    toast.success(`${GROUP_META[group].title}: ${enable ? "all on" : "all off"}`);
+  };
+
   const handleEnableNotifications = async () => {
     const result = await subscribe();
     if (result) {
       toast.success("Push notifications enabled!");
-      updatePrefs.mutate({ inAppEnabled: true });
+      updatePrefs.mutate({ pushEnabled: true, inAppEnabled: true });
     }
   };
 
@@ -234,7 +294,7 @@ export default function NotificationSettings() {
     const result = await unsubscribe();
     if (result) {
       toast.success("Push notifications disabled");
-      updatePrefs.mutate({ inAppEnabled: false });
+      updatePrefs.mutate({ pushEnabled: false });
     }
   };
 
@@ -309,11 +369,14 @@ export default function NotificationSettings() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <SEOHead title="Notification Settings – ZIVO" description="Customize push, email, and SMS notifications. Set quiet hours, manage notification channels, and control what you're notified about." />
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button
+          <button type="button"
             onClick={() => navigate(-1)}
+            aria-label="Go back"
+            title="Go back"
             className="p-2.5 -ml-2 rounded-full hover:bg-muted touch-manipulation active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -322,7 +385,7 @@ export default function NotificationSettings() {
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-6">
+      <div className="px-4 py-4 space-y-6 max-w-2xl mx-auto">
         {/* Push Notifications Card */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -446,7 +509,7 @@ export default function NotificationSettings() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="+1 (234) 567-8900"
                   value={formatPhoneDisplay(phoneInput) || phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value)}
                   disabled={prefs?.phoneVerified}
@@ -525,39 +588,69 @@ export default function NotificationSettings() {
           <h3 className="text-sm font-medium text-muted-foreground mb-2 px-1">
             Notification Types
           </h3>
-          <Card>
-            <CardContent className="p-0 divide-y divide-border">
-              {NOTIFICATION_CATEGORIES.map((category) => {
-                const Icon = category.icon;
-                return (
-                  <div
-                    key={category.id}
-                    className="flex items-center justify-between p-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Icon className="w-5 h-5 text-muted-foreground mt-0.5" />
-                      <div>
-                        <Label
-                          htmlFor={category.id}
-                          className="font-medium cursor-pointer"
-                        >
-                          {category.label}
-                        </Label>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {category.description}
-                        </p>
-                      </div>
+          <div className="space-y-4">
+            {GROUP_ORDER.map((groupKey) => {
+              const cats = groupedCategories[groupKey];
+              if (cats.length === 0) return null;
+              const meta = GROUP_META[groupKey];
+              const allOn = cats.every((c) => preferences[c.id]);
+              const anyOn = cats.some((c) => preferences[c.id]);
+              return (
+                <section
+                  key={groupKey}
+                  id={`notif-group-${meta.anchor}`}
+                  className="scroll-mt-24"
+                >
+                  <div className="flex items-baseline justify-between px-1 mb-1.5">
+                    <div>
+                      <h4 className="text-[13px] font-semibold text-foreground">{meta.title}</h4>
+                      <p className="text-[11px] text-muted-foreground">{meta.subtitle}</p>
                     </div>
-                    <Switch
-                      id={category.id}
-                      checked={preferences[category.id]}
-                      onCheckedChange={() => handleToggleCategory(category.id)}
-                    />
+                    <button
+                      type="button"
+                      onClick={() => handleToggleGroup(groupKey, !allOn)}
+                      className="text-[11px] font-medium text-primary hover:underline shrink-0"
+                    >
+                      {allOn ? "Disable all" : anyOn ? "Enable all" : "Enable all"}
+                    </button>
                   </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+                  <Card>
+                    <CardContent className="p-0 divide-y divide-border">
+                      {cats.map((category) => {
+                        const Icon = category.icon;
+                        return (
+                          <div
+                            key={category.id}
+                            className="flex items-center justify-between p-4"
+                          >
+                            <div className="flex items-start gap-3">
+                              <Icon className="w-5 h-5 text-muted-foreground mt-0.5" />
+                              <div>
+                                <Label
+                                  htmlFor={category.id}
+                                  className="font-medium cursor-pointer"
+                                >
+                                  {category.label}
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {category.description}
+                                </p>
+                              </div>
+                            </div>
+                            <Switch
+                              id={category.id}
+                              checked={preferences[category.id]}
+                              onCheckedChange={() => handleToggleCategory(category.id)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+                </section>
+              );
+            })}
+          </div>
         </motion.div>
 
         {/* Automated Messages */}
@@ -665,30 +758,7 @@ export default function NotificationSettings() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <Phone className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Get the hiZIVO App</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Install our app for the best notification experience with
-                    instant alerts and background updates.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3"
-                    onClick={() => navigate("/install")}
-                  >
-                    Install App
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <InstallAppCard />
         </motion.div>
 
         {/* Help Text */}

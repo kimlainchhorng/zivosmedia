@@ -1,171 +1,167 @@
+/**
+ * send-otp-email — issues a 6-digit OTP and emails it via Resend.
+ *
+ * Public endpoint (caller is unauthenticated). Uses shared toolkit for CORS,
+ * Zod-style validation, and standardized error envelopes. Success response
+ * shape preserved: { success: true, message, expiresAt }.
+ */
 import { serve, createClient } from "../_shared/deps.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { withSecurity } from "../_shared/withSecurity.ts";
+import { withErrorHandling, HttpError } from "../_shared/errors.ts";
+import { parseBody, v } from "../_shared/validate.ts";
+import { ok, preflight } from "../_shared/respond.ts";
+import type { SecurityContext } from "../_shared/withSecurity.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const Body = v.object({
+  email: v.email,
+  userId: v.optionalString,
+});
 
-interface SendOTPRequest {
-  email: string;
-  userId?: string;
+const SITE_NAME = "ZIVO";
+const FROM_DOMAIN = "zivosmedia.com";
+
+function generateOtpCode(): string {
+  const bytes = new Uint32Array(1);
+  crypto.getRandomValues(bytes);
+  return String(100000 + (bytes[0] % 900000));
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+function renderOtpEmail(code: string, expiresAt: string) {
+  const expiresTime = new Date(expiresAt).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  const text = [
+    `Your ${SITE_NAME} verification code is ${code}.`,
+    `It expires at ${expiresTime}.`,
+    "If you did not request this code, you can ignore this email.",
+    "",
+    "ZIVO LLC",
+    "zivosmedia.com",
+  ].join("\n");
 
-  try {
-    const { email, userId }: SendOTPRequest = await req.json();
-
-    if (!email) {
-      return new Response(
-        JSON.stringify({ error: "Email is required" }),
-        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // Create Supabase client with service role
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Rate limiting: Check for recent OTP requests (max 5 per hour)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count: recentCount } = await supabase
-      .from("otp_codes")
-      .select("*", { count: "exact", head: true })
-      .eq("email", email.toLowerCase())
-      .gte("created_at", oneHourAgo);
-
-    if (recentCount && recentCount >= 5) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Too many verification requests. Please wait before trying again.",
-          retryAfter: 3600 
-        }),
-        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // Generate 6-digit OTP code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Set expiry to 10 minutes from now
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-
-    // Invalidate any existing codes for this email
-    await supabase
-      .from("otp_codes")
-      .update({ verified_at: new Date().toISOString() })
-      .eq("email", email.toLowerCase())
-      .is("verified_at", null);
-
-    // Store the new OTP code
-    const { error: insertError } = await supabase
-      .from("otp_codes")
-      .insert({
-        email: email.toLowerCase(),
-        user_id: userId || null,
-        code,
-        expires_at: expiresAt,
-      });
-
-    if (insertError) {
-      console.error("Failed to store OTP:", insertError);
-      return new Response(
-        JSON.stringify({ error: "Failed to generate verification code" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // Send email via Resend
-    const emailResponse = await resend.emails.send({
-      from: "ZIVO <info@hizivo.com>",
-      to: [email],
-      subject: "Your ZIVO verification code",
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #09090b; padding: 40px 20px;">
+  const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your ${SITE_NAME} verification code</title>
+  </head>
+  <body style="margin:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:32px 18px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;">
             <tr>
-              <td align="center">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 400px; background-color: #18181b; border-radius: 16px; border: 1px solid #27272a; overflow: hidden;">
-                  <!-- Header -->
-                  <tr>
-                    <td style="padding: 32px 32px 24px; text-align: center;">
-                      <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">ZIVO ID</h1>
-                      <p style="margin: 8px 0 0; font-size: 14px; color: #a1a1aa;">Secure Account Verification</p>
-                    </td>
-                  </tr>
-                  
-                  <!-- Content -->
-                  <tr>
-                    <td style="padding: 0 32px 32px;">
-                      <p style="margin: 0 0 24px; font-size: 14px; color: #a1a1aa; text-align: center;">
-                        Enter this code to verify your email address:
-                      </p>
-                      
-                      <!-- OTP Code -->
-                      <div style="background-color: #09090b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
-                        <span style="font-size: 32px; font-weight: 700; color: #ffffff; letter-spacing: 8px; font-family: 'SF Mono', Monaco, 'Courier New', monospace;">${code}</span>
-                      </div>
-                      
-                      <p style="margin: 0; font-size: 12px; color: #71717a; text-align: center;">
-                        This code expires in <strong style="color: #a1a1aa;">10 minutes</strong>
-                      </p>
-                    </td>
-                  </tr>
-                  
-                  <!-- Footer -->
-                  <tr>
-                    <td style="padding: 24px 32px; background-color: #09090b; border-top: 1px solid #27272a;">
-                      <p style="margin: 0; font-size: 11px; color: #52525b; text-align: center;">
-                        If you didn't request this code, you can safely ignore this email.
-                      </p>
-                    </td>
-                  </tr>
-                </table>
-                
-                <!-- Legal footer -->
-                <p style="margin: 24px 0 0; font-size: 11px; color: #52525b; text-align: center;">
-                  © ${new Date().getFullYear()} ZIVO Technologies Inc. All rights reserved.
-                </p>
+              <td align="center" style="padding:0 0 18px;">
+                <div style="width:46px;height:46px;line-height:46px;border-radius:16px;background:linear-gradient(135deg,#111827 0%,#0f766e 62%,#38bdf8 100%);color:#fff;font-size:27px;font-weight:900;text-align:center;">Z</div>
+                <div style="margin-top:8px;color:#0f172a;font-size:13px;font-weight:900;letter-spacing:.24em;">ZIVO</div>
               </td>
             </tr>
+            <tr>
+              <td style="background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:34px 30px;box-shadow:0 18px 45px rgba(15,23,42,.08);">
+                <p style="margin:0 0 10px;color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;">Account verification</p>
+                <h1 style="margin:0 0 14px;color:#0f172a;font-size:26px;line-height:1.18;font-weight:900;">Your verification code</h1>
+                <p style="margin:0 0 18px;color:#475569;font-size:15px;line-height:1.6;">Enter this code in ZIVO to continue. The code expires in 10 minutes.</p>
+                <div style="margin:8px 0 22px;border-radius:18px;border:1px solid #dbeafe;background:#f8fafc;color:#0f172a;font-family:'SF Mono',Consolas,Monaco,monospace;font-size:32px;font-weight:900;letter-spacing:.28em;line-height:1;padding:22px 18px;text-align:center;">${code}</div>
+                <p style="margin:0;color:#64748b;font-size:13px;line-height:1.55;">Expires at <strong style="color:#0f172a;">${expiresTime}</strong>.</p>
+                <p style="margin:18px 0 0;border-top:1px solid #e5e7eb;color:#64748b;font-size:12px;line-height:1.55;padding-top:18px;">If you did not request this code, you can safely ignore this email.</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:18px 0 0;color:#94a3b8;font-size:11px;line-height:1.5;">ZIVO LLC · Secure account email · zivosmedia.com</td>
+            </tr>
           </table>
-        </body>
-        </html>
-      `,
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  return { html, text };
+}
+
+const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): Promise<Response> => {
+  const corsHeaders = ctx?.corsHeaders ?? {};
+  if (req.method === "OPTIONS") return preflight(ctx?.corsHeaders ?? req);
+
+  const body = await parseBody(req, Body);
+  const email = (body.email as string).trim().toLowerCase();
+  const userId = (body.userId as string | undefined) ?? null;
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!supabaseUrl || !supabaseServiceKey || !resendApiKey) {
+    throw new HttpError(500, "Server configuration error");
+  }
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // Rate limiting: max 5 OTP requests per email per hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentCount } = await supabase
+    .from("otp_codes")
+    .select("*", { count: "exact", head: true })
+    .eq("email", email)
+    .gte("created_at", oneHourAgo);
+
+  if (recentCount && recentCount >= 5) {
+    throw new HttpError(429, "Too many verification requests. Please wait before trying again.", {
+      retryAfter: 3600,
+    });
+  }
+
+  const code = generateOtpCode();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  // Invalidate existing pending codes for this email
+  await supabase
+    .from("otp_codes")
+    .update({ verified_at: new Date().toISOString() })
+    .eq("email", email)
+    .is("verified_at", null);
+
+  const { error: insertError } = await supabase
+    .from("otp_codes")
+    .insert({
+      email,
+      user_id: userId,
+      code,
+      expires_at: expiresAt,
     });
 
-    console.log("OTP email sent successfully:", emailResponse);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Verification code sent",
-        expiresAt 
-      }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
-  } catch (error: unknown) {
-    console.error("Error in send-otp-email function:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+  if (insertError) {
+    console.error("Failed to store OTP:", insertError);
+    throw new HttpError(500, "Failed to generate verification code");
   }
-};
 
-serve(handler);
+  const { html, text } = renderOtpEmail(code, expiresAt);
+  const emailResponse = await resend.emails.send({
+    from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+    to: [email],
+    subject: "Your ZIVO verification code",
+    html,
+    text,
+  });
+
+  if (emailResponse.error) {
+    console.error("Failed to send OTP email:", emailResponse.error);
+    throw new HttpError(502, "Failed to send verification email");
+  }
+
+  console.log("OTP email sent successfully", { resendId: emailResponse.data?.id });
+
+  return ok(corsHeaders, { success: true, message: "Verification code sent", expiresAt });
+}, "send-otp-email");
+
+serve(withSecurity("send-otp-email", handler, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "auth_otp",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
+}));

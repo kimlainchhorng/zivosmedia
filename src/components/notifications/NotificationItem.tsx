@@ -1,10 +1,5 @@
-/**
- * Notification Item Component
- * Reusable notification list item with consistent styling
- */
-import { Package, Gift, Headphones, Clock, User, ChevronRight } from 'lucide-react';
+import { Package, Gift, Headphones, Clock, User, ChevronRight, Heart, Repeat2, MessageCircle, AtSign, CheckCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -13,7 +8,7 @@ interface Notification {
   user_id: string | null;
   order_id: string | null;
   channel: 'email' | 'in_app' | 'sms';
-  category: 'transactional' | 'account' | 'operational' | 'marketing';
+  category: 'transactional' | 'account' | 'operational' | 'marketing' | 'order' | 'social';
   template: string;
   title: string;
   body: string;
@@ -31,6 +26,18 @@ interface NotificationItemProps {
   onClick: () => void;
 }
 
+const formatMoneyInText = (value: string) =>
+  value.replace(/\$([0-9]+(?:\.[0-9]+)?)/g, (_match, raw: string) => {
+    const amount = Number(raw);
+    if (!Number.isFinite(amount)) return `$${raw}`;
+    return amount.toLocaleString(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  });
+
 const NotificationItem = ({ notification, onMarkAsRead, onClick }: NotificationItemProps) => {
   const isDelay = notification.template?.toLowerCase().includes('delay') || 
                   notification.title?.toLowerCase().includes('delay');
@@ -40,100 +47,189 @@ const NotificationItem = ({ notification, onMarkAsRead, onClick }: NotificationI
       return {
         icon: Clock,
         label: 'Delay',
-        className: 'bg-destructive/10 text-destructive',
+        badgeClass: 'bg-destructive/15 text-destructive border-destructive/20',
+        iconBg: 'from-destructive/20 to-destructive/10',
+        iconColor: 'text-destructive',
       };
     }
-
+    // Trigger-generated social notifications get topic-specific icons + colors,
+    // not the generic transactional Package box.
+    switch (notification.template) {
+      case 'social_reaction':
+        return {
+          icon: Heart,
+          label: 'Reaction',
+          badgeClass: 'bg-rose-500/12 text-rose-600 border-rose-500/20',
+          iconBg: 'from-rose-500/20 to-rose-500/10',
+          iconColor: 'text-rose-500',
+        };
+      case 'social_repost':
+        return {
+          icon: Repeat2,
+          label: 'Repost',
+          badgeClass: 'bg-emerald-500/12 text-emerald-600 border-emerald-500/20',
+          iconBg: 'from-emerald-500/20 to-emerald-500/10',
+          iconColor: 'text-emerald-500',
+        };
+      case 'social_comment':
+        return {
+          icon: MessageCircle,
+          label: 'Comment',
+          badgeClass: 'bg-blue-500/12 text-blue-600 border-blue-500/20',
+          iconBg: 'from-blue-500/20 to-blue-500/10',
+          iconColor: 'text-blue-500',
+        };
+      case 'social_mention':
+        return {
+          icon: AtSign,
+          label: 'Mention',
+          badgeClass: 'bg-violet-500/12 text-violet-600 border-violet-500/20',
+          iconBg: 'from-violet-500/20 to-violet-500/10',
+          iconColor: 'text-violet-500',
+        };
+    }
     switch (notification.category) {
       case 'transactional':
+      case 'order':
         return {
           icon: Package,
           label: 'Order',
-          className: 'bg-primary/10 text-primary',
+          badgeClass: 'bg-primary/12 text-primary border-primary/20',
+          iconBg: 'from-primary/20 to-primary/10',
+          iconColor: 'text-primary',
+        };
+      case 'social':
+        return {
+          icon: MessageCircle,
+          label: 'Social',
+          badgeClass: 'bg-blue-500/12 text-blue-600 border-blue-500/20',
+          iconBg: 'from-blue-500/20 to-blue-500/10',
+          iconColor: 'text-blue-500',
         };
       case 'marketing':
         return {
           icon: Gift,
           label: 'Promo',
-          className: 'bg-emerald-500/10 text-emerald-600',
+          badgeClass: 'bg-emerald-500/12 text-emerald-600 border-emerald-500/20',
+          iconBg: 'from-emerald-500/20 to-emerald-500/10',
+          iconColor: 'text-emerald-500',
         };
       case 'operational':
         return {
           icon: Headphones,
           label: 'Support',
-          className: 'bg-amber-500/10 text-amber-600',
+          badgeClass: 'bg-amber-500/12 text-amber-600 border-amber-500/20',
+          iconBg: 'from-amber-500/20 to-amber-500/10',
+          iconColor: 'text-amber-500',
         };
       case 'account':
         return {
           icon: User,
           label: 'Account',
-          className: 'bg-blue-500/10 text-blue-600',
+          badgeClass: 'bg-blue-500/12 text-blue-600 border-blue-500/20',
+          iconBg: 'from-blue-500/20 to-blue-500/10',
+          iconColor: 'text-blue-500',
         };
       default:
         return {
           icon: Package,
           label: notification.category,
-          className: 'bg-muted text-muted-foreground',
+          badgeClass: 'bg-muted text-muted-foreground border-border/20',
+          iconBg: 'from-muted/30 to-muted/20',
+          iconColor: 'text-muted-foreground',
         };
     }
   };
 
   const config = getCategoryConfig();
   const Icon = config.icon;
+  const rawTitle = notification.title?.trim() || "";
+  const rawBody = formatMoneyInText(notification.body?.trim() || "");
+  const looksLikePersonOnly = /^[\p{L}\s'.-]{2,40}$/u.test(rawTitle) && !/\b(commented|liked|driver|order|request|accepted|follow|mention|delay|promo|support)\b/i.test(rawTitle);
+  const title = !rawTitle || (config.label === 'Order' && looksLikePersonOnly)
+    ? `${config.label} activity`
+    : rawTitle;
+  const body = !rawBody || /^hi[!.]?$/i.test(rawBody) || rawBody.length < 3
+    ? `Open to view the latest ${config.label.toLowerCase()} details.`
+    : rawBody;
 
   return (
-    <Card
+    <div
+      role="button"
+      tabIndex={0}
       className={cn(
-        "p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/20 active:scale-[0.98] touch-manipulation",
-        !notification.is_read && "border-l-4 border-l-primary bg-primary/5"
+        "group relative w-full overflow-hidden rounded-[1.15rem] border bg-card/95 px-3 py-2.5 text-left shadow-[0_1px_2px_hsl(var(--foreground)/0.05),0_10px_28px_hsl(var(--foreground)/0.04)] transition-colors hover:bg-muted/20",
+        notification.is_read
+          ? "border-border/55"
+          : "border-primary/18 bg-primary/[0.018]"
       )}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
-      <div className="flex items-start gap-3">
-        {/* Icon */}
+      {!notification.is_read && (
+        <span className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-primary/70" aria-hidden="true" />
+      )}
+      <div className="flex items-start gap-2.5">
         <div className={cn(
-          "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
-          config.className
+          "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/70 ring-1 ring-border/50",
+          notification.is_read ? "opacity-75" : "bg-primary/8 ring-primary/15"
         )}>
-          <Icon className="h-5 w-5" />
+          <Icon className={cn("h-4 w-4", config.iconColor)} />
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge 
-              variant="secondary" 
-              className={cn("text-[10px] px-1.5 py-0", config.className)}
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 flex min-w-0 items-center gap-2">
+            <Badge
+              variant="secondary"
+              className={cn("h-4 rounded-full border px-1.5 text-[9px] font-semibold", config.badgeClass)}
             >
               {config.label}
             </Badge>
-            {!notification.is_read && (
-              <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-            )}
+            <span className="ml-auto shrink-0 text-[11px] font-medium text-muted-foreground">
+              {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+            </span>
           </div>
-          
+
           <h4 className={cn(
-            "text-sm line-clamp-1 mb-0.5",
-            !notification.is_read ? "font-semibold" : "font-medium"
+            "line-clamp-1 text-[14px] leading-snug",
+            notification.is_read ? "font-semibold text-foreground/75" : "font-semibold text-foreground"
           )}>
-            {notification.title}
+            {title}
           </h4>
-          
-          <p className="text-xs text-muted-foreground line-clamp-2">
-            {notification.body}
+
+          <p className="mt-0.5 line-clamp-1 text-[12px] leading-snug text-muted-foreground">
+            {body}
           </p>
-          
-          <p className="text-[10px] text-muted-foreground mt-2">
-            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-          </p>
+          {!notification.is_read && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkAsRead();
+              }}
+              className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-foreground/75 ring-1 ring-border/45 transition-colors active:scale-95"
+            >
+              <CheckCheck className="h-3 w-3 text-primary" />
+              Mark read
+            </button>
+          )}
         </div>
 
-        {/* Action arrow */}
-        {notification.action_url && (
-          <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
-        )}
+        <div className="mt-3 flex h-5 w-5 shrink-0 items-center justify-center">
+          {!notification.is_read && (
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/70" />
+          )}
+          {notification.is_read && notification.action_url && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground/45 transition-transform group-hover:translate-x-0.5" />
+          )}
+        </div>
       </div>
-    </Card>
+    </div>
   );
 };
 

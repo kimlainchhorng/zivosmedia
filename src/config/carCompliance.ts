@@ -1,5 +1,5 @@
 /**
- * HIZIVO CAR RENTALS - LOCKED COMPLIANCE TEXT
+ * ZIVO CAR RENTALS - LOCKED COMPLIANCE TEXT
  * 
  * DO NOT MODIFY WITHOUT LEGAL APPROVAL
  * These texts are required for partner compliance
@@ -35,13 +35,13 @@ export const CAR_CTA_TEXT = {
 
 export const CAR_DISCLAIMERS = {
   /** Main MoR disclaimer - REQUIRED on all car rental pages */
-  partnerBooking: "Hizivo is not the merchant of record. Car rentals are fulfilled by licensed third-party providers.",
+  partnerBooking: "ZIVO is not the merchant of record. Car rentals are fulfilled by licensed third-party providers.",
   
   /** Shorter version for inline use */
   partnerBookingShort: "Rentals fulfilled by licensed car rental partners.",
   
   /** Footer disclaimer */
-  footer: "Hizivo is not the merchant of record for car rentals. All car rental bookings, payments, and confirmations are handled by licensed third-party providers.",
+  footer: "ZIVO is not the merchant of record for car rentals. All car rental bookings, payments, and confirmations are handled by licensed third-party providers.",
   
   /** Partner redirect notice */
   redirect: "You will be redirected to our trusted rental partner to complete your reservation securely.",
@@ -53,10 +53,10 @@ export const CAR_DISCLAIMERS = {
   support: "For rental changes, cancellations, or refunds, please contact the rental partner listed in your confirmation email.",
   
   /** Payment disclaimer */
-  payment: "Hizivo does not collect or process payments for car rentals. All payments are handled by the rental partner.",
+  payment: "ZIVO does not collect or process payments for car rentals. All payments are handled by the rental partner.",
   
   /** Insurance disclaimer - NON-ADVICE */
-  insurance: "Insurance options shown are for informational purposes only. Hizivo does not provide insurance advice. Review coverage details with the rental provider.",
+  insurance: "Insurance options shown are for informational purposes only. ZIVO does not provide insurance advice. Review coverage details with the rental provider.",
 } as const;
 
 // ============================================
@@ -71,7 +71,7 @@ export const CAR_CONSENT = {
   description: "Your details will be securely transmitted to our licensed car rental partner to complete your booking. By proceeding, you agree to the partner's terms and conditions.",
   
   /** Privacy notice */
-  privacy: "Your data is encrypted and only shared with the rental partner. Hizivo does not store payment information.",
+  privacy: "Your data is encrypted and only shared with the rental partner. ZIVO does not store payment information.",
   
   /** Terms link text */
   termsLink: "View Partner Terms",
@@ -85,7 +85,7 @@ export const CAR_TRUST_BADGES = {
   secureCheckout: "Secure partner checkout",
   transparentPricing: "Transparent pricing",
   licensedPartner: "Licensed rental partner",
-  noHiddenFees: "No hidden fees from Hizivo",
+  noHiddenFees: "No hidden fees from ZIVO",
   dataEncrypted: "Data encrypted in transit",
 } as const;
 
@@ -115,7 +115,7 @@ export const CAR_ERROR_MESSAGES = {
 // ============================================
 
 export const CAR_TRACKING_PARAMS = {
-  utm_source: 'hizivo',
+  utm_source: 'zivosmedia',
   utm_medium: 'partner',
   utm_campaign: 'cars',
 } as const;

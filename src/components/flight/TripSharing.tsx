@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,8 @@ export const TripSharing = ({
   const [inviteEmail, setInviteEmail] = useState("");
   const [sharedUsers, setSharedUsers] = useState<SharedUser[]>([]);
   const [invitePermission, setInvitePermission] = useState<'view' | 'edit'>('view');
+  const [showQr, setShowQr] = useState(false);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareLink)}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(shareLink);
@@ -110,7 +112,7 @@ export const TripSharing = ({
         break;
     }
     
-    if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer');
+    if (shareUrl) import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(shareUrl));
   };
 
   return (
@@ -118,8 +120,8 @@ export const TripSharing = ({
       <CardHeader className="pb-4 border-b border-border/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 border border-violet-500/40 flex items-center justify-center">
-              <Share2 className="w-5 h-5 text-violet-500" />
+            <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center bg-secondary">
+              <Share2 className="w-5 h-5 text-foreground" />
             </div>
             <div>
               <CardTitle className="text-lg">Share Trip</CardTitle>
@@ -134,13 +136,13 @@ export const TripSharing = ({
               { value: 'link', icon: Link2, label: 'Link' },
               { value: 'public', icon: Globe, label: 'Public' },
             ].map(option => (
-              <button
+              <button type="button"
                 key={option.value}
                 onClick={() => setVisibility(option.value as any)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-all",
                   visibility === option.value
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -181,17 +183,21 @@ export const TripSharing = ({
               variant="outline" 
               size="icon"
               aria-label="Generate QR code"
-              onClick={() => toast.info("QR code generated! Share this with travel companions.")}
+              onClick={() => setShowQr(prev => !prev)}
             >
               <QrCode className="w-4 h-4" />
             </Button>
           </div>
-          
+
           {/* QR Code Display */}
           <div className="flex items-center justify-center p-4 rounded-xl bg-white">
-            <div className="w-24 h-24 bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl flex items-center justify-center">
-              <QrCode className="w-16 h-16 text-primary-foreground" />
-            </div>
+            {showQr ? (
+	              <img src={qrUrl} alt="QR code for trip link" className="w-[180px] h-[180px] rounded-xl" loading="lazy" decoding="async" />
+            ) : (
+              <div className="w-24 h-24 rounded-xl flex items-center justify-center cursor-pointer bg-secondary" onClick={() => setShowQr(true)}>
+                <QrCode className="w-16 h-16 text-primary-foreground" />
+              </div>
+            )}
           </div>
         </div>
 
@@ -237,24 +243,24 @@ export const TripSharing = ({
               />
             </div>
             <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50">
-              <button
+              <button type="button"
                 onClick={() => setInvitePermission('view')}
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm transition-all flex items-center gap-1",
                   invitePermission === 'view'
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "text-muted-foreground"
                 )}
               >
                 <Eye className="w-3 h-3" />
                 View
               </button>
-              <button
+              <button type="button"
                 onClick={() => setInvitePermission('edit')}
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm transition-all flex items-center gap-1",
                   invitePermission === 'edit'
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-ig-gradient text-white"
                     : "text-muted-foreground"
                 )}
               >
@@ -289,7 +295,7 @@ export const TripSharing = ({
                   className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50 hover:border-primary/20 hover:shadow-sm transition-all duration-200"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-sm font-medium text-primary-foreground">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-primary-foreground bg-foreground">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -305,7 +311,7 @@ export const TripSharing = ({
                   
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/50">
-                      <button
+                      <button type="button"
                         onClick={() => updatePermission(user.id, 'view')}
                         className={cn(
                           "px-2 py-1 rounded text-xs transition-all",
@@ -316,7 +322,7 @@ export const TripSharing = ({
                       >
                         View
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => updatePermission(user.id, 'edit')}
                         className={cn(
                           "px-2 py-1 rounded text-xs transition-all",

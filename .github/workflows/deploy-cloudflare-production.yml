@@ -1,0 +1,117 @@
+name: Deploy Cloudflare Production
+
+# zivosmedia.com is served by the Cloudflare Worker `zivo`.
+# Pushing to main updates GitHub, but the live site updates only after this deploy.
+# This workflow runs after CI succeeds on main and publishes the same dist to Cloudflare.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: deploy-cloudflare-production-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Cloudflare Worker production
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: production
+      url: https://zivosmedia.com
+
+    steps:
+      - name: Checkout commit that passed CI
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Detect deploy-relevant changes
+        id: changes
+        run: |
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            git diff --name-only HEAD^ HEAD | node scripts/deploy/production-deploy-relevance.mjs --github-output "$GITHUB_OUTPUT"
+          else
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip deploy (no runtime-affecting changes)
+        if: steps.changes.outputs.relevant != 'true'
+        run: echo "No runtime-affecting files changed in latest commit. Skipping Cloudflare deployment."
+
+      - name: Set up Node.js
+        if: steps.changes.outputs.relevant == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.changes.outputs.relevant == 'true'
+        run: npm ci --no-audit --no-fund && npm install react-dom@19.2.7 --save-exact --no-audit --no-fund
+
+      - name: Check Cloudflare deploy secrets
+        if: steps.changes.outputs.relevant == 'true'
+        run: |
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY VITE_SUPABASE_PROJECT_ID VITE_ZIVO_SOFTWARE_SUPABASE_URL VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "$name is required for Cloudflare production deploy."
+              missing=1
+            fi
+          done
+          exit "$missing"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}
+          VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Deploy Worker to Cloudflare
+        if: steps.changes.outputs.relevant == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}
+          VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run cloudflare:deploy
+
+      - name: Upload preflight reports
+        if: steps.changes.outputs.relevant == 'true' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cloudflare-production-preflight-${{ github.event.workflow_run.head_sha || github.sha }}
+          path: |
+            docs/production-preflight-report.md
+            docs/production-preflight-summary.json
+            docs/api-readiness-report.md
+            docs/database-upgrade-readiness-report.md
+            docs/supabase-migration-drift-report.md
+            docs/supabase-migration-reconciliation-plan.md
+            docs/supabase-migration-reconciliation-candidates.csv
+            docs/supabase-migration-reconciliation-repair-draft.sql
+            docs/supabase-migration-pending-local-review.csv
+            docs/supabase-migration-unmatched-local.csv
+            docs/supabase-migration-unmatched-remote.csv
+          if-no-files-found: warn
+          retention-days: 14

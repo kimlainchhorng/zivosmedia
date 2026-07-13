@@ -1,0 +1,2684 @@
+﻿/**
+ * ChatMessageBubble â€” iMessage 2026-style message bubble
+ * Features: long-press actions (reply/delete/copy/forward/pin), swipe-to-reply, emoji reactions, image/video display
+ * Design: Glassmorphic iMessage aesthetic with gradient bubbles, tail shapes, and depth effects
+ */
+import { useState, useEffect, useRef, useCallback, useMemo, memo, lazy, Suspense, type ComponentType, type MouseEvent as ReactMouseEvent, type PointerEvent, type SVGProps, type TouchEvent as ReactTouchEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useReelFeed, ReelViewer } from "./ReelFeed";
+import { motion, AnimatePresence } from "framer-motion";
+import type { PanInfo } from "framer-motion";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import Music2 from "lucide-react/dist/esm/icons/music-2";
+import Reply from "lucide-react/dist/esm/icons/reply";
+import ReadReceipt, { type ReadReceiptStatus } from "@/components/chat/ReadReceipt";
+import Copy from "lucide-react/dist/esm/icons/copy";
+import Forward from "lucide-react/dist/esm/icons/forward";
+import Link2 from "lucide-react/dist/esm/icons/link-2";
+import Check from "lucide-react/dist/esm/icons/check";
+import Pin from "lucide-react/dist/esm/icons/pin";
+import Bookmark from "lucide-react/dist/esm/icons/bookmark";
+import Timer from "lucide-react/dist/esm/icons/timer";
+import Play from "lucide-react/dist/esm/icons/play";
+import ExternalLink from "lucide-react/dist/esm/icons/external-link";
+import Pause from "lucide-react/dist/esm/icons/pause";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
+import Lock from "lucide-react/dist/esm/icons/lock";
+import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
+import Eye from "lucide-react/dist/esm/icons/eye";
+import Pencil from "lucide-react/dist/esm/icons/pencil";
+import Languages from "lucide-react/dist/esm/icons/languages";
+import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import Flag from "lucide-react/dist/esm/icons/flag";
+import Share2 from "lucide-react/dist/esm/icons/share-2";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
+import { toast } from "sonner";
+import { Capacitor } from "@capacitor/core";
+import { openExternalUrl } from "@/lib/openExternalUrl";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
+import { findZivoTrackBySlug } from "@/lib/zivoSessions";
+import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
+import { assessLinkSync } from "@/hooks/useLinkRisk";
+import { assessChatMessageRisk, assessIncomingChatRisk } from "@/lib/security/chatContentSafety";
+import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
+import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
+import { detectSensitiveContent } from "@/lib/social/sensitiveContent";
+import { formatStarsPrice, getLockedMediaItems, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
+import { recordChatMediaCacheEntry, type ChatMediaCacheBucket } from "@/lib/chat/mediaCache";
+import { useChatMediaGate } from "@/lib/chat/useChatMediaGate";
+import { ChatMediaDownloadOverlay } from "./ChatMediaDownloadOverlay";
+import { useAutoTranslateMessage } from "@/hooks/useAutoTranslateMessage";
+import {
+  parseLegacyMusicShare,
+  slugifySoundName,
+  humanizeSoundSlug,
+  lookupItunesPreviewUrl,
+  extractAppleTrackId,
+  lookupItunesPreviewUrlByTrackId,
+} from "./musicShare";
+import zivoLogoPng from "@/assets/zivo-logo.png";
+
+import { ILLUSTRATED_PACKS } from "@/config/illustratedStickers";
+import { getAnimatedStickerUrl } from "@/config/animatedStickerMap";
+import { getStickerMotionSpec } from "./stickerMotion";
+import RichText from "./RichText";
+import ViewOnceBubble from "./ViewOnceBubble";
+import { viewOnceMediaState } from "@/lib/chat/viewOnce";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
+import { pushRecentEmoji } from "@/config/emojiData";
+import { emitReactionAdded } from "./FloatingReactionsOverlay";
+const EmojiReactionPicker = lazy(() => import("./EmojiReactionPicker"));
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// Lazy-load TransparentStickerVideo â€” heavy chroma-key/WebGL component
+const TransparentStickerVideo = lazy(() => import("./TransparentStickerVideo").then(m => ({ default: m.TransparentStickerVideo })));
+const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
+const HEART_REACTION = "\u2764\uFE0F";
+const REACTION_EMOJIS = [
+  HEART_REACTION,   // \u2764\uFE0F
+  "\u{1F44D}",      // \uD83D\uDC4D
+  "\u{1F44E}",      // \uD83D\uDC4E
+  "\u{1F525}",      // \uD83D\uDD25
+  "\u{1F970}",      // \uD83E\uDD70
+  "\u{1F44F}",      // \uD83D\uDC4F
+  "\u{1F601}",      // \uD83D\uDE01
+];
+const AUTO_MEDIA_MESSAGES = new Set(["Photo", "Video", "Photo album", "Media album"]);
+const CHAT_MEDIA_FRAME_CLASS = "w-[292px] max-w-[76vw]";
+const CHAT_MEDIA_MAX_HEIGHT = "min(520px, 58vh)";
+
+type IconLike = ComponentType<SVGProps<SVGSVGElement>>;
+
+type TranslationResponse = {
+  translated_text?: string;
+  translation?: string;
+  text?: string;
+  source_language?: string;
+};
+
+type MessageReactionRow = {
+  emoji: string;
+  user_id: string;
+};
+
+type StoreProfileRow = {
+  name: string | null;
+};
+
+type UserPostRow = {
+  media_url: string | null;
+  media_type: string | null;
+  caption: string | null;
+  user_id: string | null;
+};
+
+type ProfileLookupRow = {
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
+const dbFrom = (table: string): any => (supabase as any).from(table);
+
+type ParsedStickerMessage = {
+  id: string;
+  src: string;
+  fallbackSrc?: string;
+  animatedSrc?: string;
+};
+
+type ParsedGifMessage = {
+  label?: string;
+  url: string;
+};
+
+type MediaAlbumItem = {
+  id?: string;
+  type: "image" | "video";
+  url: string;
+  thumbnailUrl?: string | null;
+  filename?: string | null;
+  durationMs?: number | null;
+  size?: number | null;
+  protected?: boolean;
+};
+
+type MediaAlbumReaction = {
+  emoji: string;
+  count: number;
+};
+
+type MediaAlbumData = {
+  items: MediaAlbumItem[];
+  viewCount?: number | null;
+  reaction?: MediaAlbumReaction | null;
+  caption?: string | null;
+};
+
+type RawMediaAlbumItem = {
+  id?: string;
+  type?: string | null;
+  kind?: string | null;
+  url?: string | null;
+  media_url?: string | null;
+  path?: string | null;
+  original_path?: string | null;
+  preview_url?: string | null;
+  thumbnail_url?: string | null;
+  thumbnailUrl?: string | null;
+  filename?: string | null;
+  file_name?: string | null;
+  mime_type?: string | null;
+  duration_ms?: number | string | null;
+  durationMs?: number | string | null;
+  duration_seconds?: number | string | null;
+  durationSeconds?: number | string | null;
+  duration?: number | string | null;
+  size?: number | string | null;
+  file_size?: number | string | null;
+  fileSize?: number | string | null;
+  file_size_bytes?: number | string | null;
+  protected?: boolean | null;
+  protected_media?: boolean | null;
+};
+
+type RawMediaAlbumPayload = {
+  album_items?: RawMediaAlbumItem[];
+  media_items?: RawMediaAlbumItem[];
+  items?: RawMediaAlbumItem[];
+  media_album?: RawMediaAlbumPayload;
+  view_count?: number | string | null;
+  views?: number | string | null;
+  reaction?: string | MediaAlbumReaction | null;
+  reactions?: MediaAlbumReaction[];
+  caption?: string | null;
+  protected?: boolean | null;
+  protected_media?: boolean | null;
+};
+
+function formatCompactCount(value?: number | null): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1).replace(/\.0$/, "")}K`;
+  return String(value);
+}
+
+function coerceAlbumCount(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function coerceAlbumDurationMs(item: RawMediaAlbumItem): number | null {
+  const rawMs = item.duration_ms ?? item.durationMs;
+  const rawSeconds = item.duration_seconds ?? item.durationSeconds ?? item.duration;
+  const ms = typeof rawMs === "string" ? Number(rawMs) : rawMs;
+  if (typeof ms === "number" && Number.isFinite(ms) && ms > 0) return Math.round(ms);
+  const seconds = typeof rawSeconds === "string" ? Number(rawSeconds) : rawSeconds;
+  if (typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0) return Math.round(seconds * 1000);
+  return null;
+}
+
+function coerceByteSize(value: unknown): number | null {
+  const bytes = typeof value === "string" ? Number(value) : value;
+  return typeof bytes === "number" && Number.isFinite(bytes) && bytes > 0 ? Math.round(bytes) : null;
+}
+
+function mediaTypeToCacheBucket(type: "image" | "video" | string | null | undefined): ChatMediaCacheBucket {
+  return type === "video" ? "videos" : "photos";
+}
+
+function formatAlbumDurationLabel(durationMs?: number | null): string | null {
+  if (typeof durationMs !== "number" || !Number.isFinite(durationMs) || durationMs <= 0) return null;
+  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function normalizeAlbumReaction(value: unknown): MediaAlbumReaction | null {
+  if (!value) return null;
+  if (typeof value === "string") return { emoji: value, count: 1 };
+  if (typeof value === "object") {
+    const reaction = value as Partial<MediaAlbumReaction>;
+    if (typeof reaction.emoji === "string" && reaction.emoji.trim()) {
+      const count = typeof reaction.count === "number" && reaction.count > 0 ? reaction.count : 1;
+      return { emoji: reaction.emoji, count };
+    }
+  }
+  return null;
+}
+
+function isProtectedFilePayload(filePayload: unknown): boolean {
+  const payload = filePayload as {
+    protected?: unknown;
+    protected_media?: unknown;
+    media_album?: { protected?: unknown; protected_media?: unknown } | null;
+  } | null | undefined;
+  return Boolean(
+    payload?.protected ||
+    payload?.protected_media ||
+    payload?.media_album?.protected ||
+    payload?.media_album?.protected_media,
+  );
+}
+
+function getMediaAlbumData(filePayload: unknown): MediaAlbumData {
+  const payload = filePayload as RawMediaAlbumPayload | null | undefined;
+  const albumPayload = payload?.media_album || payload;
+  const albumProtected = Boolean(payload?.protected || payload?.protected_media || albumPayload?.protected || albumPayload?.protected_media);
+  const rawItems =
+    albumPayload?.album_items ||
+    albumPayload?.media_items ||
+    albumPayload?.items ||
+    [];
+
+  const items = rawItems
+    .map((item): MediaAlbumItem | null => {
+      const mediaUrl = item.url || item.media_url || item.path || item.original_path || item.preview_url || item.thumbnail_url;
+      if (!mediaUrl) return null;
+      const mediaKind = item.type || item.kind || item.mime_type || "";
+      const type = mediaKind.toLowerCase().includes("video") ? "video" : "image";
+      return {
+        id: item.id,
+        type,
+        url: mediaUrl,
+        thumbnailUrl: item.thumbnail_url || item.thumbnailUrl || item.preview_url || null,
+        filename: item.filename || item.file_name || null,
+        durationMs: coerceAlbumDurationMs(item),
+        size: coerceByteSize(item.size ?? item.file_size ?? item.fileSize ?? item.file_size_bytes),
+        protected: albumProtected || Boolean(item.protected || item.protected_media),
+      };
+    })
+    .filter((item): item is MediaAlbumItem => Boolean(item));
+
+  return {
+    items,
+    viewCount: coerceAlbumCount(albumPayload?.view_count ?? albumPayload?.views),
+    reaction: normalizeAlbumReaction(albumPayload?.reaction || albumPayload?.reactions?.[0]),
+    caption: albumPayload?.caption || null,
+  };
+}
+
+const STICKER_LIBRARY = ILLUSTRATED_PACKS
+  .flatMap((pack) => pack.stickers)
+  .reduce<Record<string, { id: string; src: string }>>((acc, sticker) => {
+    acc[sticker.id.toLowerCase()] = { id: sticker.id, src: sticker.src };
+    return acc;
+  }, {});
+
+function normalizeStickerId(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/^sticker[:\-_]/, "")
+    .replace(/\.(png|jpg|jpeg|webp|gif)$/i, "");
+}
+
+function resolveStickerById(rawId: string): { id: string; src: string } | null {
+  const key = normalizeStickerId(rawId);
+  return STICKER_LIBRARY[key] || null;
+}
+
+function isVideoAssetUrl(value: string): boolean {
+  return /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(value);
+}
+
+function isImageAssetUrl(value: string): boolean {
+  return /\.(png|jpe?g|webp|gif|avif|svg)(\?|#|$)/i.test(value);
+}
+
+function parseStickerMessage(messageText: string, msgType?: string): ParsedStickerMessage | null {
+  const trimmed = messageText.trim();
+  if (!trimmed) return null;
+
+  const bracketMatch = trimmed.match(/^\[sticker:([^\]:]+)(?::(.+))?\]$/i);
+  if (bracketMatch) {
+    const rawId = bracketMatch[1].trim();
+    const explicitSrc = bracketMatch[2]?.trim();
+    const resolved = resolveStickerById(rawId);
+    const stickerId = resolved?.id || rawId;
+    const mappedAnimatedSrc = getAnimatedStickerUrl(stickerId);
+
+    const explicitAnimatedSrc = explicitSrc && isVideoAssetUrl(explicitSrc) ? explicitSrc : undefined;
+    const explicitFallbackSrc = explicitSrc && isImageAssetUrl(explicitSrc) ? explicitSrc : undefined;
+    const animatedSrc = explicitAnimatedSrc || mappedAnimatedSrc;
+    const fallbackSrc = resolved?.src || explicitFallbackSrc;
+    const src = fallbackSrc || "";
+
+    if (explicitSrc) {
+      return {
+        id: stickerId,
+        src,
+        fallbackSrc,
+        animatedSrc,
+      };
+    }
+
+    if (resolved) {
+      return { id: resolved.id, src: resolved.src, animatedSrc };
+    }
+
+    if (animatedSrc) {
+      return { id: stickerId, src, fallbackSrc, animatedSrc };
+    }
+  }
+
+  if (msgType === "sticker") {
+    const resolved = resolveStickerById(trimmed);
+    if (resolved) {
+      return {
+        id: resolved.id,
+        src: resolved.src,
+        animatedSrc: getAnimatedStickerUrl(resolved.id),
+      };
+    }
+  }
+
+  return null;
+}
+
+function parseGifMessage(messageText: string, msgType?: string): ParsedGifMessage | null {
+  const trimmed = messageText.trim();
+  if (!trimmed) return null;
+
+  const gifMatch = trimmed.match(/^\[gif\]\s*([^:]+):\s*(https?:\/\/\S+)$/i);
+  if (gifMatch) {
+    return { label: gifMatch[1].trim(), url: gifMatch[2].trim() };
+  }
+
+  if (msgType === "gif") {
+    const urlMatch = trimmed.match(/https?:\/\/\S+/i);
+    if (urlMatch) return { url: urlMatch[0].trim() };
+  }
+
+  return null;
+}
+
+interface ChatMessageBubbleProps {
+  id: string;
+  message: string;
+  time: string;
+  isMe: boolean;
+  isRead?: boolean;
+  isDelivered?: boolean;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  filePayload?: unknown;
+  isPinned?: boolean;
+  expiresAt?: string | null;
+  messageType?: string;
+  senderId?: string;
+  lockedPriceCents?: number | null;
+  lockedPriceCoins?: number | null;
+  lockedPreviewUrl?: string | null;
+  initiallyLocked?: boolean;
+  onUnlockLockedMedia?: (id: string) => Promise<boolean | { unlocked?: boolean }>;
+  onLockedMediaUnlocked?: (id: string) => void;
+  /** ISO timestamp of last edit, if any */
+  editedAt?: string | null;
+  /** ISO timestamp of message creation â€” used to enforce 48h edit window */
+  createdAt?: string | null;
+  /** Pre-loaded reactions from parent (avoids N+1 queries) */
+  initialReactions?: { emoji: string; count: number; reactedByMe: boolean }[];
+  onReply: (id: string, message: string, isMe: boolean) => void;
+  onDelete: (id: string) => void;
+  /** Optional Telegram-style "Delete for me" â€” hides only on this device. */
+  onDeleteForMe?: (id: string) => void;
+  onForward?: (id: string, message: string) => void;
+  /** Copy a deep link to this message. */
+  onCopyLink?: (id: string) => void;
+  /** Telegram-style multi-select. */
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+  onEnterSelect?: (id: string) => void;
+  onPin?: (id: string, pinned: boolean) => void;
+  onEdit?: (id: string, currentText: string) => void;
+  onReport?: (id: string, reason: string) => void | Promise<void>;
+  /** Save (forward to Saved Messages). Hidden when the chat IS Saved Messages. */
+  onSave?: (id: string) => void;
+  /** True when the current chat is the user's own Saved Messages. */
+  hideSave?: boolean;
+  /** Display name of the original sender, when this message was forwarded. */
+  forwardedFromName?: string | null;
+  /** User id of the original sender, used to navigate to their profile from the header. */
+  forwardedFromUserId?: string | null;
+  onMiniAppAction?: (type: string) => void;
+  senderName?: string;
+  senderAvatar?: string | null;
+  /** When true, inbound messages are translated to the user's locale via
+   *  the translate-caption edge fn and rendered below the original text. */
+  autoTranslate?: boolean;
+}
+
+function MiniAppCard({ type, message, isMe, time, onAction }: { type: string; message: string; isMe: boolean; time: string; onAction?: (type: string) => void }) {
+  const isPoll = type === "poll";
+  const isTodo = type === "todo";
+  const isSplit = type === "split_bill";
+  const isBook = type === "book_table";
+  const isTrip = type === "trip_idea";
+
+  const title = message.replace(/\u{1F4CA} Poll: |\u{1F4DD} To-Do List: |\u{1F4B8} Split Bill: |\u{1F37D}\uFE0F Table Booking: |\u2708\uFE0F Trip Idea: /u, "");
+  const icon = isPoll ? "\u{1F4CA}" : isTodo ? "\u{1F4DD}" : isSplit ? "\u{1F4B8}" : isBook ? "\u{1F37D}\uFE0F" : "\u2708\uFE0F";
+  const label = isPoll ? "Poll" : isTodo ? "To-Do List" : isSplit ? "Split Bill" : isBook ? "Table Booking" : "Trip Idea";
+  const buttonText = isPoll ? "View & Vote" : isTodo ? "Open List" : isSplit ? "Pay Split" : isBook ? "View Details" : "See Plan";
+  const colorClass = isPoll ? "bg-blue-500" : isTodo ? "bg-emerald-500" : isSplit ? "bg-amber-500" : isBook ? "bg-orange-500" : "bg-indigo-500";
+
+  return (
+    <div className={`p-4 rounded-2xl border ${isMe ? "bg-primary/10 border-primary/20" : "bg-muted/50 border-border/30"} space-y-3 min-w-[220px] shadow-sm`}>
+      <div className="flex items-center gap-2 mb-1">
+        <div className={`h-8 w-8 rounded-lg ${colorClass} flex items-center justify-center shadow-sm`}>
+          <span className="text-white text-sm">{icon}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 leading-none">{label}</span>
+          <span className="text-[10px] opacity-40 leading-none mt-0.5">{time}</span>
+        </div>
+      </div>
+      <p className="text-[15px] font-bold text-foreground leading-tight">{title}</p>
+      <button type="button" 
+        onClick={(e) => { e.stopPropagation(); onAction?.(type); }}
+        className={`w-full py-2.5 rounded-xl ${colorClass} text-white text-[13px] font-bold shadow-md active:scale-95 transition-transform`}
+      >
+        {buttonText}
+      </button>
+    </div>
+  );
+}
+
+function MusicCard({ message, isMe }: { message: string; isMe: boolean; time: string }) {
+  const lines = message.split("\n");
+  const titleLine = lines[0].replace("\u{1F3B5} ", "").split(" \u2014 ");
+  const title = titleLine[0] || "Unknown Track";
+  const artist = titleLine[1] || "";
+  const metaLine = lines[1] || "";
+  const listenMatch = message.match(/^\s*Listen:\s*(https?:\/\/\S+)\s*$/im);
+  const previewMatch = message.match(/^\s*Preview:\s*(https?:\/\/\S+)\s*$/im);
+  const firstUrlMatch = message.match(/https?:\/\/\S+/i);
+  const listenUrl = listenMatch?.[1] || firstUrlMatch?.[0] || "";
+  const previewUrl = previewMatch?.[1] || "";
+  const [resolvedPreviewUrl, setResolvedPreviewUrl] = useState(previewUrl);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [previewFailed, setPreviewFailed] = useState(false);
+  // Managed imperatively â€” never stored in JSX to avoid stuck error states
+  // and the AbortError that audio.load() + immediate play() causes in browsers.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Pause and discard the audio element on unmount.
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+      audioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const maybeResolvePreview = async () => {
+      if (previewUrl) { setResolvedPreviewUrl(previewUrl); return; }
+      const fromITunes = await lookupItunesPreviewUrl(title, artist || undefined);
+      if (!cancelled && fromITunes) { setResolvedPreviewUrl(fromITunes); setPreviewFailed(false); }
+    };
+    void maybeResolvePreview();
+    return () => { cancelled = true; };
+  }, [artist, previewUrl, title]);
+
+  // Build (or reuse) an Audio object for the given src, wiring up state callbacks.
+  const getAudio = useCallback((src: string): HTMLAudioElement => {
+    const existing = audioRef.current;
+    if (existing && existing.src === src && !existing.error) return existing;
+    existing?.pause();
+    const a = new Audio(src);
+    a.addEventListener("pause",  () => setIsPlaying(false));
+    a.addEventListener("ended",  () => setIsPlaying(false));
+    a.addEventListener("play",   () => setIsPlaying(true));
+    a.addEventListener("error",  () => { setPreviewFailed(true); setIsPlaying(false); });
+    audioRef.current = a;
+    return a;
+  }, []);
+
+  const handlePrimaryAction = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (resolvedPreviewUrl) {
+      const current = audioRef.current;
+
+      // Pause if already playing.
+      if (current && !current.paused) {
+        current.pause();
+        setIsPlaying(false);
+        return;
+      }
+
+      setPreviewFailed(false);
+      const audio = getAudio(resolvedPreviewUrl);
+
+      try {
+        await audio.play();
+        setIsPlaying(true);
+        return;
+      } catch {
+        // play() failed â€” fetch a fresh preview URL and prime the element.
+        // We can't play() again here because the async lookup expires the
+        // user-gesture context; let the user tap once more.
+        const appleTrackId = extractAppleTrackId(listenUrl);
+        const fallbackPreview = appleTrackId
+          ? await lookupItunesPreviewUrlByTrackId(appleTrackId)
+          : await lookupItunesPreviewUrl(title, artist || undefined);
+
+        if (fallbackPreview && fallbackPreview !== resolvedPreviewUrl) {
+          setResolvedPreviewUrl(fallbackPreview);
+          setPreviewFailed(false);
+          getAudio(fallbackPreview); // pre-create so next tap can play immediately
+          toast.info("Preview refreshed \u2014 tap play to listen");
+          return;
+        }
+
+        setPreviewFailed(true);
+        if (listenUrl) toast.info("Preview unavailable \u2014 tap again to open in app");
+        else toast.error("Unable to play preview");
+        return;
+      }
+    }
+
+    if (listenUrl) {
+      await openExternalUrl(listenUrl);
+      return;
+    }
+
+    toast.info("No playable link found in this music share");
+  };
+
+  const previewAvailable = !!resolvedPreviewUrl;
+  const statusLabel = previewFailed
+    ? "Preview unavailable"
+    : previewAvailable
+      ? "Preview"
+      : "Listen";
+  const playButtonClass = isMe
+    ? "bg-white/10 text-white border-white/10 hover:bg-white/20"
+    : "bg-background text-foreground border-border/50 hover:bg-background/80 shadow-black/5";
+  const playIconClass = isMe ? "text-white fill-white" : "text-foreground fill-foreground";
+  const unavailableIconClass = isMe ? "text-white/60" : "text-muted-foreground";
+
+  return (
+    <div className={`p-4 rounded-3xl border ${isMe ? "bg-black text-white border-white/10" : "bg-muted/50 border-border/30"} min-w-[260px] shadow-xl relative overflow-hidden group`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          {artist && (
+            <p className="text-[13px] font-bold opacity-60 flex items-center gap-1.5 mb-1">
+              <Music2 className="w-3.5 h-3.5" /> {artist}
+            </p>
+          )}
+          <p className="text-[17px] font-black leading-tight tracking-tight mb-1">{title}</p>
+          <p className="text-[12px] font-medium opacity-80">{metaLine}</p>
+          <p className={`text-[13px] font-bold mt-2 ${previewFailed ? "opacity-50" : ""}`}>{statusLabel}</p>
+          {previewFailed && listenUrl && (
+            <p className="text-[11px] opacity-40 mt-0.5">Tap to open in app</p>
+          )}
+        </div>
+        <button
+          type="button"
+          aria-label={
+            previewAvailable && !previewFailed
+              ? isPlaying ? "Pause music preview" : "Play music preview"
+              : "Open music link"
+          }
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => void handlePrimaryAction(e)}
+          className={`h-11 w-11 rounded-full backdrop-blur-md flex items-center justify-center transition-all active:scale-90 shrink-0 shadow-lg border ${playButtonClass}`}
+        >
+          {isPlaying ? (
+            <Pause className={`w-5 h-5 ${playIconClass}`} />
+          ) : previewFailed ? (
+            <ExternalLink className={`w-4.5 h-4.5 ${unavailableIconClass}`} />
+          ) : (
+            <Play className={`w-5 h-5 ml-0.5 ${playIconClass}`} />
+          )}
+        </button>
+      </div>
+
+      <div className="mt-3">
+        <span className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isMe ? "bg-white/10 text-white/70" : "bg-background/80 text-foreground/70 border border-border/40"}`}>
+          <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" loading="lazy" decoding="async" />
+          ZIVO
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function LockedAlbumTile({
+  item,
+  locked,
+  messageId,
+  userId,
+}: {
+  item: LockedMediaItem;
+  locked: boolean;
+  messageId: string;
+  userId?: string;
+}) {
+  const path = locked
+    ? item.preview_path
+    : item.original_path || item.preview_path;
+  const url = useSignedMedia(path || null, "chat-media-files", "display");
+  const isVideo = item.kind === "video";
+
+  useEffect(() => {
+    if (!url) return;
+    recordChatMediaCacheEntry({
+      userId,
+      url,
+      bucket: mediaTypeToCacheBucket(item.kind),
+      bytes: item.size,
+      storagePath: path,
+      cacheKind: locked ? "locked-preview" : item.original_path ? "locked-original" : "locked-preview",
+    });
+  }, [item.kind, item.original_path, item.size, path, locked, url, userId]);
+
+  const open = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (locked || !url) return;
+    void import("@/lib/chat/openMedia").then((m) => m.openMedia({ url, type: isVideo ? "video" : "image", id: messageId, protected: true }));
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={locked || !url}
+      className="relative h-full min-h-0 w-full overflow-hidden bg-muted disabled:cursor-default"
+      aria-label={locked ? "Locked media preview" : isVideo ? "Open video" : "Open photo"}
+    >
+      {url ? (
+        isVideo && !locked ? (
+          <video
+            src={`${url}#t=0.1`}
+            className="h-full w-full object-cover"
+            playsInline
+            preload="metadata"
+            muted
+            crossOrigin="anonymous"
+          />
+        ) : (
+          <img
+            src={url}
+            alt=""
+            className={`h-full w-full object-cover transition-transform duration-300 ${locked ? "scale-105 blur-xl" : ""}`}
+            loading="lazy"
+            decoding="async"
+          />
+        )
+      ) : (
+        <div className="h-full w-full animate-pulse bg-muted-foreground/10" />
+      )}
+      {isVideo && (
+        <div className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 p-1 text-white shadow-sm">
+          <Play className="h-3 w-3" fill="currentColor" />
+        </div>
+      )}
+    </button>
+  );
+}
+
+function LockedAlbumGrid({
+  items,
+  locked,
+  messageId,
+  userId,
+}: {
+  items: LockedMediaItem[];
+  locked: boolean;
+  messageId: string;
+  userId?: string;
+}) {
+  const visibleItems = items.slice(0, 10);
+  const columnCount = visibleItems.length <= 1 ? 1 : visibleItems.length <= 4 ? 2 : 3;
+  const rowCount = Math.ceil(visibleItems.length / columnCount);
+
+  return (
+    <div
+      data-testid="locked-album-grid"
+      className="grid h-[min(360px,58vh)] min-h-[220px] w-full gap-0.5 overflow-hidden"
+      style={{
+        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))`,
+      }}
+    >
+      {visibleItems.map((item, index) => (
+        <LockedAlbumTile
+          key={item.id || `${item.preview_path || item.original_path || "item"}-${index}`}
+          item={item}
+          locked={locked}
+          messageId={`${messageId}:${index}`}
+          userId={userId}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MediaAlbumTile({
+  item,
+  messageId,
+  gallery,
+  index,
+  userId,
+  protectedMedia = false,
+  overflowCount = 0,
+}: {
+  item: MediaAlbumItem;
+  messageId: string;
+  gallery: { id: string; url: string; type: "image" | "video"; protected?: boolean }[];
+  index: number;
+  userId?: string;
+  protectedMedia?: boolean;
+  overflowCount?: number;
+}) {
+  const displayUrl = useSignedMedia(item.thumbnailUrl || item.url, "chat-media-files", "display");
+  const openUrl = useSignedMedia(item.url, "chat-media-files", "display");
+  const isVideo = item.type === "video";
+  const durationLabel = formatAlbumDurationLabel(item.durationMs);
+  const gate = useChatMediaGate({
+    userId,
+    kind: isVideo ? "videos" : "photos",
+    sizeBytes: item.size,
+    bypass: protectedMedia || item.protected,
+  });
+
+  useEffect(() => {
+    if (!displayUrl || !gate.shouldLoad) return;
+    const trackedPath = item.thumbnailUrl || item.url;
+    recordChatMediaCacheEntry({
+      userId,
+      url: displayUrl,
+      bucket: mediaTypeToCacheBucket(item.type),
+      bytes: item.thumbnailUrl ? null : item.size,
+      storagePath: trackedPath,
+    });
+  }, [displayUrl, gate.shouldLoad, item.size, item.thumbnailUrl, item.type, item.url, userId]);
+
+  const open = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!openUrl) return;
+    void import("@/lib/chat/openMedia").then((m) => m.openMedia({
+      url: openUrl,
+      type: isVideo ? "video" : "image",
+      id: messageId,
+      gallery,
+      index,
+      protected: protectedMedia || item.protected,
+    }));
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={gate.blocked ? (event) => { event.stopPropagation(); gate.load(); } : open}
+      onContextMenu={protectedMedia || item.protected ? (event) => event.preventDefault() : undefined}
+      onDragStart={protectedMedia || item.protected ? (event) => event.preventDefault() : undefined}
+      data-testid="media-album-tile"
+      data-album-index={index}
+      className="group relative h-full min-h-0 w-full overflow-hidden bg-muted text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      aria-label={gate.blocked ? "Download album media" : isVideo ? "Open album video" : "Open album photo"}
+    >
+      {gate.blocked ? (
+        <ChatMediaDownloadOverlay sizeBytes={item.size} />
+      ) : displayUrl ? (
+        isVideo && !item.thumbnailUrl ? (
+          <video
+            src={`${displayUrl}#t=0.1`}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            playsInline
+            preload={gate.videoPreload}
+            muted
+            crossOrigin="anonymous"
+            controlsList={protectedMedia || item.protected ? "nodownload noplaybackrate" : undefined}
+            disablePictureInPicture={protectedMedia || item.protected}
+          />
+        ) : (
+          <img
+            src={displayUrl}
+            alt={item.filename || ""}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            loading="lazy"
+            decoding="async"
+            draggable={!(protectedMedia || item.protected)}
+          />
+        )
+      ) : (
+        <div className="h-full w-full animate-pulse bg-muted-foreground/10" />
+      )}
+      {isVideo && durationLabel && (
+        <span className="absolute left-1.5 top-1.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white shadow">
+          {durationLabel}
+        </span>
+      )}
+      {isVideo && !durationLabel && (
+        <div className="absolute inset-0 grid place-items-center bg-black/10">
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-black/55 text-white shadow-lg">
+            <Play className="h-4 w-4 translate-x-px" fill="currentColor" />
+          </div>
+        </div>
+      )}
+      {overflowCount > 0 && (
+        <div className="absolute inset-0 grid place-items-center bg-black/55 text-white">
+          <span className="text-xl font-black tracking-tight">+{overflowCount}</span>
+        </div>
+      )}
+    </button>
+  );
+}
+
+type MediaAlbumCellLayout = {
+  gridColumn?: string;
+  gridRow?: string;
+};
+
+function span(value: number) {
+  return `span ${value} / span ${value}`;
+}
+
+function getMediaAlbumLayout(count: number): {
+  columns: number;
+  rows: number;
+  cells: MediaAlbumCellLayout[];
+} {
+  if (count <= 1) {
+    return { columns: 1, rows: 1, cells: [{}] };
+  }
+
+  if (count === 2) {
+    return { columns: 2, rows: 1, cells: [{}, {}] };
+  }
+
+  if (count === 3) {
+    return {
+      columns: 2,
+      rows: 2,
+      cells: [
+        { gridRow: span(2) },
+        {},
+        {},
+      ],
+    };
+  }
+
+  if (count === 4) {
+    return { columns: 2, rows: 2, cells: [{}, {}, {}, {}] };
+  }
+
+  const rowSpansByCount: Record<number, number[]> = {
+    5: [2, 2, 2, 3, 3],
+    6: [2, 2, 2, 2, 2, 2],
+    7: [2, 2, 2, 3, 3, 6],
+    8: [2, 2, 2, 2, 2, 2, 3, 3],
+  };
+  const columns = 6;
+  const cells = (rowSpansByCount[count] || rowSpansByCount[8]).map((columnSpan) => ({
+    gridColumn: span(columnSpan),
+  }));
+
+  return {
+    columns,
+    rows: count <= 6 ? 2 : 3,
+    cells,
+  };
+}
+
+function MediaAlbumGrid({
+  items,
+  messageId,
+  userId,
+  protectedMedia = false,
+}: {
+  items: MediaAlbumItem[];
+  messageId: string;
+  userId?: string;
+  protectedMedia?: boolean;
+}) {
+  const visibleItems = items.slice(0, 8);
+  const overflowCount = Math.max(0, items.length - visibleItems.length);
+  const layout = getMediaAlbumLayout(visibleItems.length);
+  const gallery = items.map((item, index) => ({
+    id: item.id || `${messageId}:${index}`,
+    url: item.url,
+    type: item.type,
+    protected: protectedMedia || item.protected,
+  }));
+
+  return (
+    <div
+      data-testid="media-album-grid"
+      className="grid aspect-[4/5] max-h-[min(440px,58vh)] min-h-[260px] w-full gap-0.5 overflow-hidden"
+      style={{
+        gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+      }}
+    >
+      {visibleItems.map((item, index) => (
+        <div
+          key={item.id || `${item.url}-${index}`}
+          className="min-h-0 min-w-0"
+          style={layout.cells[index]}
+        >
+          <MediaAlbumTile
+            item={item}
+            messageId={`${messageId}:${index}`}
+            gallery={gallery}
+            index={index}
+            userId={userId}
+            protectedMedia={protectedMedia}
+            overflowCount={index === visibleItems.length - 1 ? overflowCount : 0}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const ChatMessageBubble = memo(function ChatMessageBubble({
+  id, message, time, isMe, isRead, isDelivered, imageUrl, videoUrl, filePayload, isPinned, expiresAt, messageType, senderId, lockedPriceCents,
+  lockedPriceCoins, lockedPreviewUrl, initiallyLocked, onUnlockLockedMedia, onLockedMediaUnlocked,
+  editedAt, createdAt,
+  initialReactions,
+  onReply, onDelete, onDeleteForMe, onForward, onCopyLink, selectionMode, selected, onToggleSelect, onEnterSelect, onPin, onEdit, onSave, hideSave, forwardedFromName, forwardedFromUserId,
+  onReport,
+  onMiniAppAction,
+  senderName,
+  senderAvatar,
+  autoTranslate = false,
+}: ChatMessageBubbleProps) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [showActions, setShowActions] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showDeleteSub, setShowDeleteSub] = useState(false);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const reelFeed = useReelFeed();
+  const [reportPaidOpen, setReportPaidOpen] = useState(false);
+  const messageRisk = useMemo(() => isMe ? { warnings: [] } : assessChatMessageRisk(message || ""), [message, isMe]);
+  // Inbound auto-translate. Only fires for messages we received and only when
+  // the parent has the per-conversation toggle on (kebab menu in PersonalChat).
+  const autoTr = useAutoTranslateMessage(message || "", !isMe && autoTranslate);
+  const incomingRisk = useMemo(
+    () => isMe ? null : assessIncomingChatRisk(message || ""),
+    [message, isMe],
+  );
+  const isLockedMediaType = isLockedMediaMessage(messageType);
+  const isLockedTextType = messageType === "locked_text";
+  const isLockedType = isLockedMediaType || isLockedTextType;
+  const isProtectedMedia = isProtectedFilePayload(filePayload);
+  const defaultLockedState = initiallyLocked ?? (isLockedType && !isMe);
+  const [isLocked, setIsLocked] = useState(defaultLockedState);
+
+  // For locked_text, the plaintext lives in direct_message_locked_payloads â€”
+  // RLS-gated on (sender OR an entry in direct_message_unlocks). Recipients
+  // who haven't paid get zero rows. The query runs only when this bubble
+  // will actually render the text (sender, or recipient post-unlock).
+  const needsLockedTextPayload = isLockedTextType && (isMe || !isLocked);
+  const { data: lockedTextPayload } = useQuery({
+    queryKey: ["dm-locked-payload", id],
+    queryFn: async (): Promise<string> => {
+      if (!id) return "";
+      const { data } = await (supabase as any)
+        .from("direct_message_locked_payloads")
+        .select("content")
+        .eq("message_id", id)
+        .maybeSingle();
+      return ((data as { content?: string } | null)?.content) ?? "";
+    },
+    enabled: needsLockedTextPayload && !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // For locked_text the `message` prop is "" (the plaintext lives in the
+  // side-table fetched above). Action handlers like copy / reply / translate
+  // should operate on the resolved payload, not the empty placeholder.
+  const displayMessage = isLockedTextType ? (lockedTextPayload ?? "") : message;
+  const [unlockLoading, setUnlockLoading] = useState(false);
+  const isStarsLocked = typeof lockedPriceCoins === "number" && lockedPriceCoins > 0;
+  const unlockPrice = lockedPriceCents && lockedPriceCents > 0 ? lockedPriceCents : 99;
+  const unlockPriceLabel = isStarsLocked ? formatStarsPrice(lockedPriceCoins) : `$${(unlockPrice / 100).toFixed(2)}`;
+  const unlockButtonLabel = isStarsLocked ? `Unlock for ${unlockPriceLabel}` : `Unlock \u00B7 ${unlockPriceLabel}`;
+  const filePayloadSizeBytes = coerceByteSize((filePayload as {
+    size?: unknown;
+    file_size?: unknown;
+    fileSize?: unknown;
+    file_size_bytes?: unknown;
+  } | null | undefined)?.size
+    ?? (filePayload as { file_size?: unknown } | null | undefined)?.file_size
+    ?? (filePayload as { fileSize?: unknown } | null | undefined)?.fileSize
+    ?? (filePayload as { file_size_bytes?: unknown } | null | undefined)?.file_size_bytes);
+  const [reactions, setReactions] = useState<{ emoji: string; count: number; reactedByMe: boolean }[]>(initialReactions || []);
+  const [actionMenuStyle, setActionMenuStyle] = useState<{ top: number; left?: number; right?: number }>({
+    top: 96,
+    right: 16,
+  });
+  const [showStickerBurst, setShowStickerBurst] = useState(false);
+  const [translation, setTranslation] = useState<{ text: string; sourceLang?: string } | null>(null);
+  const [translating, setTranslating] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const canDeleteMessage = isMe || !!onDeleteForMe;
+  const shouldUseLockedPreview = isLockedType && isLocked && !isMe && !!lockedPreviewUrl;
+  const displayImageUrl = useSignedMedia(shouldUseLockedPreview ? null : imageUrl, "chat-media-files", "display");
+  const displayVideoUrl = useSignedMedia(shouldUseLockedPreview ? null : videoUrl, "chat-media-files", "display");
+  const lockedPreviewDisplayUrl = useSignedMedia(shouldUseLockedPreview ? lockedPreviewUrl : null, "chat-media-files", "display");
+  const lockedImagePreviewUrl = messageType === "locked_image" ? lockedPreviewDisplayUrl : null;
+  const lockedVideoPreviewUrl = messageType === "locked_video" ? lockedPreviewDisplayUrl : null;
+  const imageFrameUrl = displayImageUrl || lockedImagePreviewUrl;
+  const videoFrameUrl = displayVideoUrl || lockedVideoPreviewUrl;
+  const viewOnceState = viewOnceMediaState({ image_url: imageUrl, video_url: videoUrl, file_payload: filePayload }, isMe);
+  const isViewOnceMedia = viewOnceState !== "none";
+
+  // Register this video into the shared Reels feed so the fullscreen viewer can
+  // auto-advance through every playable video in the conversation, in order.
+  const isReelVideo = messageType === "video" || messageType === "locked_video";
+  useEffect(() => {
+    if (!reelFeed || !isReelVideo || !displayVideoUrl) return;
+    reelFeed.register({ id, url: displayVideoUrl, order: createdAt || "", protected: isLockedType || isProtectedMedia });
+    return () => reelFeed.unregister(id);
+  }, [reelFeed, isReelVideo, displayVideoUrl, id, createdAt, isLockedType, isProtectedMedia]);
+  const lockedAlbumItems = useMemo(() => getLockedMediaItems(filePayload as any), [filePayload]);
+  const isLockedAlbum = messageType === "locked_album" && lockedAlbumItems.length > 0;
+  const mediaAlbum = useMemo(() => getMediaAlbumData(filePayload), [filePayload]);
+  const isMediaAlbum = messageType === "media_album" && mediaAlbum.items.length > 0;
+  const mediaAlbumCaption = mediaAlbum.caption || (
+    message && !AUTO_MEDIA_MESSAGES.has(message.trim()) ? message.trim() : ""
+  );
+  const mediaAlbumReaction = reactions[0]
+    ? { emoji: reactions[0].emoji, count: reactions[0].count }
+    : mediaAlbum.reaction;
+  const mediaAlbumViewLabel = formatCompactCount(mediaAlbum.viewCount ?? null);
+  const sensitiveMediaPreference = useSensitiveMediaPreference(user?.id);
+  const filePayloadMeta = filePayload as {
+    sensitive?: boolean;
+    is_sensitive?: boolean;
+    sensitive_reason?: string | null;
+  } | null | undefined;
+  const chatSensitiveMediaMatch = useMemo(
+    () => detectSensitiveContent(message || "", {
+      creatorMarked: Boolean(filePayloadMeta?.sensitive || filePayloadMeta?.is_sensitive),
+      reason: filePayloadMeta?.sensitive_reason || undefined,
+    }),
+    [filePayloadMeta?.is_sensitive, filePayloadMeta?.sensitive, filePayloadMeta?.sensitive_reason, message],
+  );
+  const shouldGateSensitiveMedia = Boolean(imageFrameUrl || videoFrameUrl || isLockedAlbum || isMediaAlbum)
+    && !isLocked
+    && sensitiveMediaPreference.blurSensitiveMedia
+    && chatSensitiveMediaMatch.isSensitive;
+  const [isTinyImage, setIsTinyImage] = useState(false);
+  const shouldHideAutoMediaMessage =
+    (Boolean(imageFrameUrl || videoFrameUrl || isLockedAlbum || isMediaAlbum) || messageType === "image" || messageType === "video" || messageType === "locked_album" || messageType === "media_album") &&
+    AUTO_MEDIA_MESSAGES.has((message || "").trim());
+
+  useEffect(() => {
+    if (!imageFrameUrl) return;
+    recordChatMediaCacheEntry({
+      userId: user?.id,
+      url: imageFrameUrl,
+      bucket: "photos",
+      bytes: filePayloadSizeBytes,
+      storagePath: displayImageUrl ? imageUrl : lockedPreviewUrl,
+      cacheKind: isLockedMediaType ? (displayImageUrl ? "locked-original" : "locked-preview") : "standard",
+    });
+  }, [displayImageUrl, filePayloadSizeBytes, imageFrameUrl, imageUrl, isLockedMediaType, lockedPreviewUrl, user?.id]);
+
+  useEffect(() => {
+    if (!videoFrameUrl) return;
+    recordChatMediaCacheEntry({
+      userId: user?.id,
+      url: videoFrameUrl,
+      bucket: displayVideoUrl ? "videos" : "photos",
+      bytes: displayVideoUrl ? filePayloadSizeBytes : null,
+      storagePath: displayVideoUrl ? videoUrl : lockedPreviewUrl,
+      cacheKind: isLockedMediaType ? (displayVideoUrl ? "locked-original" : "locked-preview") : "standard",
+    });
+  }, [displayVideoUrl, filePayloadSizeBytes, isLockedMediaType, lockedPreviewUrl, user?.id, videoFrameUrl, videoUrl]);
+
+  const canEdit = isMe && !!createdAt && (Date.now() - new Date(createdAt).getTime() < 48 * 60 * 60 * 1000) && !!message?.trim() && !imageUrl && !videoUrl;
+
+  const handleEdit = useCallback(() => {
+    if (!onEdit) return;
+    onEdit(id, message);
+    setShowActions(false);
+    setShowReactions(false);
+  }, [id, message, onEdit]);
+
+  const handleTranslate = useCallback(async () => {
+    setShowActions(false);
+    setShowReactions(false);
+    if (!message?.trim()) return;
+    if (translation) { setShowTranslation((v) => !v); return; }
+    setTranslating(true);
+    setShowTranslation(true);
+    try {
+      const target = (navigator.language || "en").split("-")[0];
+      const { data, error } = await supabase.functions.invoke("translate-caption", {
+        body: { text: message, target_language: target },
+      });
+      if (error) throw error;
+      const translationData = (data || {}) as TranslationResponse;
+      const translated = translationData.translated_text || translationData.translation || translationData.text;
+      if (translated) {
+        setTranslation({ text: translated, sourceLang: translationData.source_language });
+      } else {
+        toast.error("Could not translate");
+        setShowTranslation(false);
+      }
+    } catch (err) {
+      console.error("translate failed", err);
+      toast.error("Translation unavailable");
+      setShowTranslation(false);
+    } finally {
+      setTranslating(false);
+    }
+  }, [message, translation]);
+
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+  const hasMoved = useRef(false);
+  const longPressStart = useRef<{ x: number; y: number } | null>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const lastTapTime = useRef(0);
+  const parsedSticker = useMemo(() => parseStickerMessage(message || "", messageType), [message, messageType]);
+  const parsedGif = useMemo(() => parseGifMessage(message || "", messageType), [message, messageType]);
+
+  useEffect(() => {
+    setIsTinyImage(false);
+  }, [imageFrameUrl]);
+
+  useEffect(() => {
+    setIsLocked(defaultLockedState);
+  }, [defaultLockedState, id]);
+
+  useEffect(() => {
+    if (!parsedSticker || parsedSticker.animatedSrc) {
+      setShowStickerBurst(false);
+      return;
+    }
+    setShowStickerBurst(true);
+    const timer = setTimeout(() => setShowStickerBurst(false), 420);
+    return () => clearTimeout(timer);
+  }, [id, parsedSticker]);
+
+  // Check if already unlocked
+  useEffect(() => {
+    if (!isLockedType || isMe || !id || id.startsWith("opt-") || onUnlockLockedMedia) return;
+    const checkUnlock = async () => {
+      try {
+        const { data } = await supabase.functions.invoke("verify-media-unlock", {
+          body: { message_id: id },
+        });
+        if (data?.unlocked) setIsLocked(false);
+      } catch {
+        // Ignore unlock probe failures; user can still manually unlock.
+      }
+    };
+    checkUnlock();
+  }, [id, isLockedType, isMe, onUnlockLockedMedia]);
+
+  // Unlock payment handler â€” uses in-app browser on native, redirect on web
+  const handleUnlockPayment = useCallback(async () => {
+    if (unlockLoading) return;
+    setUnlockLoading(true);
+    try {
+      if (onUnlockLockedMedia) {
+        const result = await onUnlockLockedMedia(id);
+        const unlocked = result === true || Boolean(result && typeof result === "object" && result.unlocked);
+        if (unlocked) {
+          setIsLocked(false);
+          onLockedMediaUnlocked?.(id);
+          toast.success("Media unlocked");
+        }
+        setUnlockLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("unlock-media-checkout", {
+        body: { message_id: id, seller_id: senderId || "", amount_cents: unlockPrice },
+      });
+      if (error) throw error;
+      if (!data?.url) throw new Error("No checkout URL");
+      if (!isAllowedCheckoutUrl(data.url)) throw new Error("Invalid checkout URL");
+
+      if (Capacitor.isNativePlatform()) {
+        // Native: open in-app browser, then verify on close
+        const { Browser } = await import("@capacitor/browser");
+        const verifyOnClose = async () => {
+          // Small delay to let Stripe process
+          await new Promise((r) => setTimeout(r, 1500));
+          try {
+            const { data: vData } = await supabase.functions.invoke("verify-media-unlock", {
+              body: { message_id: id },
+            });
+            if (vData?.unlocked) {
+              setIsLocked(false);
+              toast.success("Media unlocked! \u{1F513}");
+            } else {
+              toast.info("Payment processing \u2014 media will unlock shortly");
+            }
+          } catch {
+            // Ignore transient verification errors after checkout close.
+          }
+          setUnlockLoading(false);
+        };
+        await Browser.addListener("browserFinished", () => {
+          verifyOnClose();
+          Browser.removeAllListeners();
+        });
+        await Browser.open({ url: data.url });
+      } else {
+        // Web: redirect in same tab â€” auto-verify happens on /chat?unlocked= redirect
+        window.location.href = data.url;
+      }
+    } catch {
+      toast.error(isStarsLocked ? "Unlock failed" : "Payment failed to start");
+      setUnlockLoading(false);
+    }
+  }, [id, isStarsLocked, onLockedMediaUnlocked, onUnlockLockedMedia, senderId, unlockPrice, unlockLoading]);
+
+  // Load reactions only if not pre-loaded from parent
+  useEffect(() => {
+    if (!id || id.startsWith("opt-") || initialReactions) return;
+    const load = async () => {
+      const { data } = await dbFrom("message_reactions")
+        .select("emoji, user_id")
+        .eq("message_id", id);
+      const reactionRows = (data || []) as MessageReactionRow[];
+      if (reactionRows.length > 0) {
+        const grouped = reactionRows.reduce((acc: Record<string, { count: number; reactedByMe: boolean }>, r) => {
+          if (!acc[r.emoji]) acc[r.emoji] = { count: 0, reactedByMe: false };
+          acc[r.emoji].count++;
+          if (r.user_id === user?.id) acc[r.emoji].reactedByMe = true;
+          return acc;
+        }, {} as Record<string, { count: number; reactedByMe: boolean }>);
+        setReactions(Object.entries(grouped).map(([emoji, v]) => ({ emoji, count: v.count, reactedByMe: v.reactedByMe })));
+      }
+    };
+    load();
+  }, [id, user?.id, initialReactions]);
+
+  const toggleReaction = useCallback(async (emoji: string) => {
+    const userId = user?.id;
+    if (!userId || id.startsWith("opt-")) return;
+    const existing = reactions.find((r) => r.emoji === emoji && r.reactedByMe);
+    if (existing) {
+      await dbFrom("message_reactions").delete()
+        .eq("message_id", id).eq("user_id", userId).eq("emoji", emoji);
+      setReactions((prev) =>
+        prev.map((r) => r.emoji === emoji ? { ...r, count: r.count - 1, reactedByMe: false } : r)
+            .filter((r) => r.count > 0)
+      );
+    } else {
+      await dbFrom("message_reactions").insert({
+        message_id: id, user_id: userId, emoji,
+      });
+      setReactions((prev) => {
+        const found = prev.find((r) => r.emoji === emoji);
+        if (found) return prev.map((r) => r.emoji === emoji ? { ...r, count: r.count + 1, reactedByMe: true } : r);
+        return [...prev, { emoji, count: 1, reactedByMe: true }];
+      });
+      const node = bubbleRef.current;
+      if (node) {
+        const r = node.getBoundingClientRect();
+        emitReactionAdded({ emoji, x: r.right - 24, y: r.bottom - 12 });
+      }
+    }
+    setShowReactions(false);
+    setShowActions(false);
+  }, [id, reactions, user?.id]);
+
+  const positionActionMenu = useCallback((anchor?: { x: number; y: number }) => {
+    if (!bubbleRef.current) return;
+    const rect = bubbleRef.current.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    const viewportWidth = viewport?.width || window.innerWidth;
+    const viewportHeight = viewport?.height || window.innerHeight;
+    const viewportTop = viewport?.offsetTop || 0;
+    const menuHeight = 390;
+    const minTop = viewportTop + 72;
+    const maxTop = viewportTop + viewportHeight - menuHeight - 96;
+    const anchorY = anchor ? anchor.y + viewportTop : rect.top + viewportTop;
+    const wantedTop = anchorY > viewportTop + viewportHeight * 0.55
+      ? anchorY - menuHeight - 12
+      : anchorY + 12;
+    const top = Math.max(minTop, Math.min(wantedTop, Math.max(minTop, maxTop)));
+    const edge = 16;
+    setActionMenuStyle(
+      isMe
+        ? { top, right: edge }
+        : { top, left: Math.max(edge, Math.min(anchor?.x ?? rect.left, viewportWidth - 260 - edge)) },
+    );
+  }, [isMe]);
+
+  const startLongPress = useCallback((clientX: number, clientY: number) => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    didLongPress.current = false;
+    hasMoved.current = false;
+    longPressStart.current = { x: clientX, y: clientY };
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      positionActionMenu({ x: clientX, y: clientY });
+      setShowActions(true);
+      setShowReactions(true);
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, 400);
+  }, [positionActionMenu]);
+
+  const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    startLongPress(event.clientX, event.clientY);
+  }, [startLongPress]);
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+    longPressStart.current = null;
+  }, []);
+
+  const cancelLongPressIfMoved = useCallback((clientX: number, clientY: number) => {
+    const start = longPressStart.current;
+    if (!start) return;
+    const moved = Math.hypot(clientX - start.x, clientY - start.y);
+    if (moved < 12) return;
+    hasMoved.current = true;
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }, []);
+
+  const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    cancelLongPressIfMoved(event.clientX, event.clientY);
+  }, [cancelLongPressIfMoved]);
+
+  const handleTouchStart = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    startLongPress(touch.clientX, touch.clientY);
+  }, [startLongPress]);
+
+  const handleTouchMove = useCallback((event: ReactTouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    cancelLongPressIfMoved(touch.clientX, touch.clientY);
+  }, [cancelLongPressIfMoved]);
+
+  const handleContextMenu = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    positionActionMenu({ x: event.clientX, y: event.clientY });
+    setShowActions(true);
+    setShowReactions(true);
+  }, [positionActionMenu]);
+
+  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if ((!isMe && info.offset.x > 60) || (isMe && info.offset.x < -60)) {
+      onReply(id, displayMessage, isMe);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }
+  }, [id, displayMessage, isMe, onReply]);
+
+  const handleTap = useCallback(() => {
+    if (didLongPress.current || hasMoved.current) return;
+    if (showActions) { setShowActions(false); setShowReactions(false); return; }
+    // Double-tap = heart reaction (Telegram/Instagram style)
+    const now = Date.now();
+    if (now - lastTapTime.current < 320 && !id.startsWith("opt-")) {
+      toggleReaction(HEART_REACTION);
+      if (navigator.vibrate) navigator.vibrate([10, 40, 10]);
+    }
+    lastTapTime.current = now;
+  }, [showActions, id, toggleReaction]);
+
+  const isProtectedMessage = isViewOnceMedia || isProtectedMedia;
+  const actionText = displayMessage?.trim()
+    || (isLockedType
+      ? `${messageType === "locked_video" ? "Locked Video" : messageType === "locked_album" ? "Locked Album" : "Locked Photo"} · ${unlockPriceLabel}`
+      : messageType === "video" ? "Video" : messageType === "image" ? "Photo" : "Media");
+  const shareUrl = !isProtectedMessage ? (displayImageUrl || displayVideoUrl || imageUrl || videoUrl || undefined) : undefined;
+
+  const handleCopy = () => {
+    const copyText = actionText;
+    if (copyText) {
+      navigator.clipboard.writeText(copyText);
+      toast.success("Copied to clipboard");
+    }
+    setShowActions(false);
+    setShowReactions(false);
+  };
+
+  const handleForward = () => {
+    onForward?.(id, actionText);
+    setShowActions(false);
+    setShowReactions(false);
+  };
+
+  const handleCopyLink = () => {
+    onCopyLink?.(id);
+    setShowActions(false);
+    setShowReactions(false);
+  };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "ZIVO message",
+          text: actionText,
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl || actionText);
+        toast.success(shareUrl ? "Link copied" : "Copied to clipboard");
+      }
+    } catch {
+      // Share sheets throw when the user cancels; no toast needed.
+    }
+    setShowActions(false);
+    setShowReactions(false);
+  };
+
+  const handlePin = () => {
+    onPin?.(id, !isPinned);
+    setShowActions(false);
+    setShowReactions(false);
+  };
+
+  const isOptimistic = id.startsWith("opt-");
+  const isDisappearing = !!expiresAt;
+  const receiptStatus: ReadReceiptStatus = isOptimistic
+    ? "sending"
+    : isRead
+    ? "read"
+    : isDelivered
+    ? "delivered"
+    : "sent";
+
+  // Gate the standalone (non-album) image attachment on the auto-download prefs.
+  // Locked/protected media keep their own flow (bypass). No-op on Wi-Fi defaults.
+  const singleImageGate = useChatMediaGate({
+    userId: user?.id,
+    kind: "photos",
+    sizeBytes: filePayloadSizeBytes,
+    bypass: isLocked || isProtectedMedia || isLockedType,
+  });
+
+  return (
+    <div
+      ref={bubbleRef}
+      data-testid="chat-message-bubble"
+      className={`chat-no-callout flex ${isMe ? "justify-end" : "justify-start"} relative px-1 mb-1 ${selected ? "rounded-xl bg-primary/10" : ""} ${selectionMode ? "cursor-pointer" : ""}`}
+      onContextMenu={(e) => e.preventDefault()}
+      onContextMenuCapture={handleContextMenu}
+      onDragStartCapture={(e) => e.preventDefault()}
+      style={{ WebkitTouchCallout: "none", WebkitTapHighlightColor: "transparent" }}
+    >
+      {selectionMode && (
+        <>
+          {/* Click-catcher overlay — toggles selection and suppresses tap/long-press. */}
+          <button
+            type="button"
+            aria-label={selected ? "Deselect message" : "Select message"}
+            onClick={(e) => { e.stopPropagation(); onToggleSelect?.(id); }}
+            className="absolute inset-0 z-20"
+          />
+          <span className={`absolute top-1/2 z-30 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border-2 ${isMe ? "left-1.5" : "right-1.5"} ${selected ? "border-primary bg-ig-gradient text-white" : "border-muted-foreground/40 bg-background"}`}>
+            {selected && <Check className="h-3 w-3" />}
+          </span>
+        </>
+      )}
+      {/* Paid-content report sheet â€” opens from the "Report paid content"
+          action on locked_* messages and writes to content_reports
+          (different table from the legacy chat_message_reports used by
+          regular text/media). */}
+      {reportPaidOpen && id && !id.startsWith("opt-") && (
+        <Suspense fallback={null}>
+          <ReportSheet
+            open={reportPaidOpen}
+            onClose={() => setReportPaidOpen(false)}
+            contentType="paid_dm"
+            contentId={id}
+            reportedUserId={senderId ?? null}
+          />
+        </Suspense>
+      )}
+      {/* Sender Avatar for Group Chat */}
+      {!isMe && (senderName || senderAvatar) && (
+        <div className="mr-2 mt-1 shrink-0">
+          <Avatar className="h-7 w-7 border border-border/10 shadow-sm">
+            <AvatarImage src={senderAvatar || undefined} />
+            <AvatarFallback className="text-[9px] bg-muted font-bold">
+              {senderName ? senderName[0].toUpperCase() : "?"}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      )}
+
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: isMe ? -80 : 0, right: isMe ? 0 : 80 }}
+        dragElastic={0.15}
+        onDragEnd={handleDragEnd}
+        dragSnapToOrigin
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerMove={handlePointerMove}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handlePointerUp}
+        onTouchCancel={handlePointerUp}
+        onClick={handleTap}
+        className={`${parsedSticker ? "w-fit max-w-none" : "max-w-[78%]"} select-none touch-pan-y ${isOptimistic ? "opacity-60" : ""}`}
+      >
+        {/* Sender Name for Group Chat */}
+        {!isMe && senderName && (
+          <p className="text-[10px] font-bold text-muted-foreground/80 ml-3 mb-0.5 tracking-tight">
+            {senderName}
+          </p>
+        )}
+
+        {/* Pin indicator */}
+        {isPinned && (
+          <div className={`flex items-center gap-1 mb-0.5 text-[9px] text-primary ${isMe ? "justify-end" : "justify-start"}`}>
+            <Pin className="w-2.5 h-2.5" />
+            <span className="font-medium">Pinned</span>
+          </div>
+        )}
+
+        {/* Forwarded-from header â€” Telegram parity. Shown when this message
+            was created via a forward action (forwarded_from_user_id is set). */}
+        {forwardedFromName && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (forwardedFromUserId) navigate(`/user/${forwardedFromUserId}`);
+            }}
+            className={`flex items-center gap-1 mb-1 text-[10.5px] text-muted-foreground/90 hover:text-foreground transition-colors ${isMe ? "justify-end ml-auto" : "justify-start"}`}
+          >
+            <Forward className="w-2.5 h-2.5 opacity-60" />
+            <span className="italic">Forwarded from</span>
+            <span className="font-semibold not-italic">{forwardedFromName}</span>
+          </button>
+        )}
+
+        {/* Paid media bundle: Telegram-style collage with one Stars unlock. */}
+        {isLockedAlbum && (
+          <div className={`${CHAT_MEDIA_FRAME_CLASS} mb-1 overflow-hidden rounded-2xl border border-border/10 bg-muted shadow-sm relative ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
+            <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
+              <LockedAlbumGrid items={lockedAlbumItems} locked={isLocked && !isMe} messageId={id} userId={user?.id} />
+              {isLocked && !isMe && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 rounded-2xl">
+                  <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-background/90 shadow-lg">
+                    <Lock className="h-6 w-6 text-foreground" />
+                  </div>
+                  <p className="mb-2 text-xs font-semibold text-white drop-shadow">Locked media bundle</p>
+                  <button
+                    type="button"
+                    disabled={unlockLoading}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnlockPayment();
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground shadow-lg transition-transform active:scale-95 disabled:opacity-70"
+                    aria-label={`Unlock locked media bundle for ${unlockPriceLabel}`}
+                  >
+                    {unlockLoading ? (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    ) : (
+                      <span className="text-[13px] leading-none">{"\u2b50"}</span>
+                    )}
+                    {unlockButtonLabel}
+                  </button>
+                </div>
+              )}
+              {isLockedType && isMe && (
+                <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5">
+                  <Lock className="h-3 w-3 text-white" />
+                  <span className="text-[10px] font-medium text-white">Locked {"\u00B7"} {unlockPriceLabel}</span>
+                </div>
+              )}
+              {!isLocked && (
+                <div className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                  {lockedAlbumItems.length} items
+                </div>
+              )}
+            </SensitiveMediaGate>
+          </div>
+        )}
+
+        {/* Media album: collage with caption, reaction chip, views, and timestamp. */}
+        {isMediaAlbum && (
+          <div className={`${CHAT_MEDIA_FRAME_CLASS} mb-1 overflow-hidden rounded-2xl border border-border/10 bg-card shadow-sm relative ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
+            <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
+              <MediaAlbumGrid items={mediaAlbum.items} messageId={id} userId={user?.id} protectedMedia={isProtectedMedia} />
+              <div className="bg-card/95 px-2.5 pb-2 pt-2">
+                {mediaAlbumCaption && (
+                  <p className="mb-2 whitespace-pre-wrap break-words text-[13.5px] leading-snug text-foreground">
+                    <RichText text={mediaAlbumCaption} variant="bold" />
+                  </p>
+                )}
+                <div className="flex min-h-[22px] items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    {mediaAlbumReaction && mediaAlbumReaction.count > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void toggleReaction(mediaAlbumReaction.emoji);
+                        }}
+                        className="inline-flex h-7 items-center gap-1 rounded-full bg-primary/10 px-2 text-[12px] font-bold text-primary active:scale-95"
+                        aria-label={`React with ${mediaAlbumReaction.emoji}`}
+                      >
+                        <span>{mediaAlbumReaction.emoji}</span>
+                        <span>{mediaAlbumReaction.count}</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-medium text-muted-foreground/70">
+                    {mediaAlbumViewLabel && (
+                      <span className="inline-flex items-center gap-0.5">
+                        {mediaAlbumViewLabel}
+                        <Eye className="h-3 w-3" />
+                      </span>
+                    )}
+                    <span>{time}</span>
+                    {isMe && <ReadReceipt status={receiptStatus} className="h-3 w-3" />}
+                  </div>
+                </div>
+              </div>
+            </SensitiveMediaGate>
+          </div>
+        )}
+
+        {/* View-once media â€” gated single-view photo/video (1:1). */}
+        {!isMediaAlbum && isViewOnceMedia && (
+          <div className={`mb-1 ${isMe ? "ml-auto" : ""}`}>
+            <ViewOnceBubble messageId={id} state={viewOnceState as "sent" | "gate" | "opened"} isVideo={!!videoUrl} isMe={isMe} />
+          </div>
+        )}
+
+        {/* Video: compact reel-style thumbnail (normal or locked). */}
+        {!isMediaAlbum && !isViewOnceMedia && videoFrameUrl && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              if (didLongPress.current || isLocked) return;
+              if (reelFeed) reelFeed.open(id);
+              else setShowVideoPlayer(true);
+            }}
+            className={`${CHAT_MEDIA_FRAME_CLASS} overflow-hidden mb-1 relative cursor-pointer ${isMe ? "ml-auto" : ""}`}
+          >
+            <div className={`rounded-2xl overflow-hidden relative bg-muted shadow-sm border border-border/10 ${isMe ? "rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
+              <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
+              {displayVideoUrl ? (
+                <video
+                  src={`${displayVideoUrl}#t=0.1`}
+                  className={`w-full aspect-[9/16] object-cover transition-all duration-300 ${isLocked ? "blur-xl scale-105" : ""}`}
+                  style={{ maxHeight: CHAT_MEDIA_MAX_HEIGHT, pointerEvents: "none" }}
+                  playsInline
+                  preload="none"
+                  muted
+                  crossOrigin="anonymous"
+                  onLoadedData={(e) => {
+                    const v = e.currentTarget;
+                    if (v.readyState >= 2) v.currentTime = 0.1;
+                  }}
+                />
+              ) : (
+                <img
+                  src={videoFrameUrl}
+                  alt=""
+                  className="block w-full aspect-[9/16] object-cover blur-xl scale-105 transition-all duration-300"
+                  style={{ maxHeight: CHAT_MEDIA_MAX_HEIGHT }}
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+              {/* Locked overlay for video */}
+              {isLocked && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-2xl">
+                  <div className="h-14 w-14 rounded-full bg-background/90 flex items-center justify-center shadow-lg mb-2">
+                    <Lock className="h-6 w-6 text-foreground" />
+                  </div>
+                  <p className="text-white text-xs font-semibold mb-2 drop-shadow">Locked Video</p>
+                  <button type="button"
+                    disabled={unlockLoading}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnlockPayment();
+                    }}
+                    className="px-4 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-1.5"
+                  >
+                    {unlockLoading ? (
+                      <span className="animate-spin h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full" />
+                    ) : isStarsLocked ? (
+                      <span className="text-[13px] leading-none">{"\u2b50"}</span>
+                    ) : (
+                      <DollarSign className="h-3.5 w-3.5" />
+                    )}
+                    {unlockButtonLabel}
+                  </button>
+                </div>
+              )}
+              {/* Normal video overlay */}
+              {!isLocked && (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                      <Play className="h-4.5 w-4.5 text-foreground ml-0.5" fill="currentColor" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <svg viewBox="0 0 10 10" className="w-2 h-2"><circle cx="5" cy="5" r="4" fill="#ef4444" /></svg>
+                      <span className="text-[10px] font-bold text-white tracking-wide">Video</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white/15 rounded-full px-2 py-0.5">
+                      <Play className="h-2.5 w-2.5 text-white" fill="white" />
+                      <span className="text-[9px] font-semibold text-white">Play</span>
+                    </div>
+                  </div>
+                </>
+              )}
+              {/* Lock badge for sender */}
+              {isLockedType && isMe && (
+                <div className="absolute top-2 right-2 bg-black/50 rounded-full px-2 py-0.5 flex items-center gap-1">
+                  <Lock className="h-3 w-3 text-white" />
+                 <span className="text-[10px] text-white font-medium">Locked {"\u00B7"} {unlockPriceLabel}</span>
+                </div>
+              )}
+              </SensitiveMediaGate>
+            </div>
+          </div>
+        )}
+
+        {/* Image â€” normal or locked */}
+        {!isMediaAlbum && !isViewOnceMedia && imageFrameUrl && !videoFrameUrl && (
+          <div className={`${isTinyImage ? "w-28 max-w-[32vw]" : CHAT_MEDIA_FRAME_CLASS} rounded-2xl overflow-hidden mb-1 shadow-sm relative bg-muted border border-border/10 ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
+            <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
+            {singleImageGate.blocked ? (
+              <button
+                type="button"
+                aria-label="Download photo"
+                onClick={(e) => { e.stopPropagation(); singleImageGate.load(); }}
+                className="block aspect-[4/3] w-full"
+              >
+                <ChatMediaDownloadOverlay sizeBytes={filePayloadSizeBytes} />
+              </button>
+            ) : (
+              <img
+                src={imageFrameUrl}
+                alt=""
+                onClick={(e) => { if (!isLocked) { e.stopPropagation(); import("@/lib/chat/openMedia").then(m => m.openMedia({ url: imageFrameUrl, type: "image", id, protected: isLockedType || isProtectedMedia })); } }}
+                className={`block w-full object-contain transition-all duration-300 cursor-zoom-in ${isLocked ? "blur-xl scale-105" : ""}`}
+                style={{
+                  maxHeight: CHAT_MEDIA_MAX_HEIGHT,
+                  imageRendering: isTinyImage ? "pixelated" : undefined,
+                }}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  setIsTinyImage((img.naturalWidth || 0) <= 16 && (img.naturalHeight || 0) <= 16);
+                }}
+              />
+            )}
+            {/* Locked overlay */}
+            {isLocked && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 rounded-2xl">
+                <div className="h-14 w-14 rounded-full bg-background/90 flex items-center justify-center shadow-lg mb-2">
+                  <Lock className="h-6 w-6 text-foreground" />
+                </div>
+                <p className="text-white text-xs font-semibold mb-2 drop-shadow">Locked Photo</p>
+                <button type="button"
+                  disabled={unlockLoading}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUnlockPayment();
+                  }}
+                  className="px-4 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-1.5"
+                >
+                  {unlockLoading ? (
+                    <span className="animate-spin h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full" />
+                  ) : isStarsLocked ? (
+                    <span className="text-[13px] leading-none">{"\u2b50"}</span>
+                  ) : (
+                    <DollarSign className="h-3.5 w-3.5" />
+                  )}
+                  {unlockButtonLabel}
+                </button>
+              </div>
+            )}
+            {/* Lock badge for sender */}
+            {isLockedType && isMe && (
+              <div className="absolute top-2 right-2 bg-black/50 rounded-full px-2 py-0.5 flex items-center gap-1">
+                <Lock className="h-3 w-3 text-white" />
+                <span className="text-[10px] text-white font-medium">Locked {"\u00B7"} {unlockPriceLabel}</span>
+              </div>
+            )}
+            </SensitiveMediaGate>
+          </div>
+        )}
+
+        {/* Message body */}
+        {message && !isMediaAlbum && !shouldHideAutoMediaMessage && (() => {
+          if (messageType === "poll" || messageType === "todo" || messageType === "split_bill" || messageType === "book_table" || messageType === "trip_idea") {
+            return <MiniAppCard type={messageType} message={message} isMe={isMe} time={time} onAction={onMiniAppAction} />;
+          }
+
+          if (message.startsWith("\u{1F3B5}")) {
+            return <MusicCard message={message} isMe={isMe} time={time} />;
+          }
+
+          // Sticker rendering (supports legacy + current formats)
+          if (parsedSticker) {
+            const stickerFallbackSrc =
+              (parsedSticker.fallbackSrc && isImageAssetUrl(parsedSticker.fallbackSrc))
+                ? parsedSticker.fallbackSrc
+                : (parsedSticker.src && isImageAssetUrl(parsedSticker.src) ? parsedSticker.src : undefined);
+            const hasAnimatedSticker = Boolean(parsedSticker.animatedSrc);
+            const stickerMotion = hasAnimatedSticker ? null : getStickerMotionSpec(parsedSticker.id);
+            return (
+              <div className="py-1">
+                <div className="h-24 w-24 sm:h-28 sm:w-28 bg-transparent">
+                    {hasAnimatedSticker ? (
+                      <Suspense fallback={<div className="h-full w-full bg-muted/20 rounded-2xl animate-pulse" />}>
+                        <TransparentStickerVideo
+                          src={parsedSticker.animatedSrc!}
+                          fallbackSrc={stickerFallbackSrc}
+                          alt={parsedSticker.id}
+                          preload="auto"
+                          renderMode="webgl"
+                          whiteKeyEnabled={true}
+                        />
+                      </Suspense>
+                    ) : stickerFallbackSrc ? (
+                      <motion.div
+                        className="relative h-full w-full"
+                        initial={{ scale: 0, opacity: 0, y: 40 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 16, mass: 0.8 }}
+                      >
+                        <img
+                          src={stickerFallbackSrc}
+                          alt={parsedSticker.id}
+                          className="h-full w-full object-contain pointer-events-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </motion.div>
+                    ) : (
+                      <div className="h-full w-full rounded-2xl bg-muted/30 border border-border/20 grid place-items-center text-3xl">
+                        {"\u{1F642}"}
+                      </div>
+                    )}
+                </div>
+                <div className={`mt-1 flex items-center ${isMe ? "justify-end pr-1" : "justify-start pl-1"}`}>
+                  <span className="text-[11px] text-muted-foreground/60">{time}</span>
+                </div>
+              </div>
+            );
+          }
+
+          // GIF rendering for lively chat feel
+          if (parsedGif) {
+            return (
+              <div className="p-1.5">
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className={`overflow-hidden rounded-2xl border border-border/25 bg-muted/20 w-[180px] ${isMe ? "ml-auto" : ""}`}
+                >
+                  <img
+                    src={parsedGif.url}
+                    alt={parsedGif.label || "GIF"}
+                    className="w-full aspect-square object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </motion.div>
+                <div className="flex items-center gap-1 justify-end px-1 pb-1 mt-1">
+                  <span className={`text-[10px] ${isMe ? "text-muted-foreground/60" : "text-muted-foreground/60"}`}>{time}</span>
+                  {isMe && <ReadReceipt status={receiptStatus} className="h-3 w-3" />}
+                </div>
+              </div>
+            );
+          }
+
+          // For locked_text bubbles we display the payload fetched separately
+          // (via lockedTextPayload above); for everything else the plaintext is
+          // in message itself. Recipients who haven't unlocked never reach this
+          // branch â€” they hit the paywall return below.
+          const effectiveMessage = isLockedTextType ? (lockedTextPayload ?? "") : message;
+          const urlRegex = /(https?:\/\/[^\s]+)/gi;
+          const urls = effectiveMessage.match(urlRegex);
+          const hasLink = urls && urls.length > 0;
+          const linkUrl = hasLink ? urls[0] : null;
+          const textWithoutUrl = hasLink ? effectiveMessage.replace(urlRegex, "").trim() : effectiveMessage;
+
+          return (
+            <div
+              className={`text-[14.5px] leading-[1.5] relative overflow-hidden ${
+                isMe
+                  ? "rounded-[22px] rounded-br-[6px] shadow-sm"
+                  : "rounded-[22px] rounded-bl-[6px] shadow-sm"
+              }`}
+              style={{
+                background: isMe
+                  ? "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.85))"
+                  : "hsl(var(--muted) / 0.7)",
+                backdropFilter: isMe ? "none" : "blur(20px)",
+              }}
+            >
+              {/* Subtle inner glow for sent messages */}
+              {isMe && (
+                <div className="absolute inset-0 rounded-[22px] pointer-events-none"
+                  style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%)" }} />
+              )}
+
+              {/* Locked text â€” recipient sees a paywall until they unlock */}
+              {isLockedTextType && isLocked && !isMe ? (
+                <div className="px-4 py-4 relative z-[1] flex flex-col items-start gap-2">
+                  <div className="flex items-center gap-2 text-rose-500">
+                    <Lock className="h-4 w-4" />
+                    <span className="text-[12px] font-extrabold uppercase tracking-wide">
+                      Locked message
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-muted-foreground italic">
+                    Unlock to read the full message
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleUnlockPayment}
+                    disabled={unlockLoading}
+                    className="mt-1 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[12px] font-extrabold disabled:opacity-60"
+                  >
+                    {unlockLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Lock className="h-3.5 w-3.5" />
+                    )}
+                    {unlockLoading ? "Unlocking\u2026" : `Unlock \u00B7 ${unlockPriceLabel}`}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Sender's own locked text: show preview with a lock chip */}
+                  {isLockedTextType && isMe && (
+                    <div className="px-4 pt-3 -mb-1 relative z-[1]">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-rose-300 bg-rose-500/20 rounded-full px-2 py-0.5">
+                        <Lock className="h-2.5 w-2.5" /> Locked {"\u00B7"} {unlockPriceLabel}
+                      </span>
+                    </div>
+                  )}
+                  {/* Text portion â€” supports Telegram-style ||spoiler|| markers. */}
+                  {textWithoutUrl && (
+                    <p className={`whitespace-pre-wrap break-words px-4 pt-3 pb-1 relative z-[1] ${
+                      isMe ? "text-primary-foreground" : "text-foreground"
+                    }`}>
+                      <RichText text={textWithoutUrl} variant="bold" />
+                    </p>
+                  )}
+                </>
+              )}
+
+              {/* Auto-translated inbound text. Hidden when not enabled, when
+                  the message was sent by us, or when no translation is
+                  needed. Uses a subdued style so the original stays primary. */}
+              {!isMe && autoTranslate && autoTr.status === "loading" && (
+                <p className="px-4 pb-1 text-[10px] italic text-muted-foreground relative z-[1]">
+                  Translating{"\u2026"}
+                </p>
+              )}
+              {!isMe && autoTranslate && autoTr.status === "done" && autoTr.translated && (
+                <div className="px-4 pb-2 pt-1 relative z-[1]">
+                  <p className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground/80 mb-0.5">
+                    Translated {"\u00B7"} {autoTr.targetLang}
+                  </p>
+                  <p className="text-sm text-foreground/90 whitespace-pre-wrap break-words">
+                    {autoTr.translated}
+                  </p>
+                </div>
+              )}
+
+              {!isMe && incomingRisk?.hasBlocked && (
+                <p className="px-4 pb-1 text-[10px] font-semibold text-red-600">
+                  Phishing/impersonation link blocked {"\u2014"} do not click.
+                </p>
+              )}
+              {!isMe && !incomingRisk?.hasBlocked && (incomingRisk?.hasSuspicious || messageRisk.warnings.length > 0) && (
+                <p className="px-4 pb-1 text-[10px] font-medium text-amber-600">
+                  Suspicious link pattern detected. Open carefully.
+                </p>
+              )}
+
+              {/* Rich link preview â€” suppressed when inbound scan flagged the link as blocked */}
+              {linkUrl && !(incomingRisk?.hasBlocked) && (
+                <LinkPreviewCard url={linkUrl} isMe={isMe} hasText={!!textWithoutUrl} messageText={effectiveMessage} />
+              )}
+
+              {/* Inline translation */}
+              {showTranslation && (
+                <div className={`mx-3 mb-2 mt-0.5 px-3 py-2 rounded-xl text-[13px] leading-snug border ${
+                  isMe
+                    ? "bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground/90"
+                    : "bg-background/60 border-border/40 text-foreground"
+                }`}>
+                  {translating ? (
+                    <span className="flex items-center gap-1.5 opacity-70">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Translating{"\u2026"}
+                    </span>
+                  ) : translation ? (
+                    <>
+                      <p className={`text-[10px] uppercase tracking-wide mb-1 ${isMe ? "text-primary-foreground/60" : "text-muted-foreground/70"}`}>
+                        Translated{translation.sourceLang ? ` from ${translation.sourceLang}` : ""}
+                      </p>
+                      <p className="whitespace-pre-wrap break-words">{translation.text}</p>
+                    </>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Timestamp â€” iMessage style */}
+              <div className="flex items-center gap-1 justify-end px-4 pb-2 -mt-0.5 relative z-[1]">
+                {isDisappearing && <Timer className={`h-2.5 w-2.5 ${isMe ? "text-primary-foreground/40" : "text-muted-foreground/40"}`} />}
+                {editedAt && (
+                  <span className={`text-[10px] italic ${isMe ? "text-primary-foreground/45" : "text-muted-foreground/45"}`}>
+                    edited
+                  </span>
+                )}
+                <span className={`text-[10px] font-medium ${isMe ? "text-primary-foreground/50" : "text-muted-foreground/50"}`}>
+                  {time}
+                </span>
+                {isMe && <ReadReceipt status={receiptStatus} tone="onPrimary" />}
+              </div>
+            </div>
+          );
+        })()}
+
+      </motion.div>
+
+      {/* Long-press popup */}
+      <AnimatePresence>
+        {showActions && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/25 backdrop-blur-sm"
+              onClick={() => { setShowActions(false); setShowReactions(false); setShowDeleteSub(false); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 6 }}
+              transition={{ type: "spring", damping: 26, stiffness: 420 }}
+              className={`fixed z-50 flex flex-col gap-2 ${isMe ? "items-end" : "items-start"}`}
+              style={actionMenuStyle}
+            >
+              {/* Emoji reactions row */}
+              {showReactions && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.04 }}
+                  className="bg-background shadow-lg shadow-black/10 border border-border/30 rounded-full px-1.5 py-1 flex items-center gap-0 max-w-[calc(100vw-32px)]"
+                >
+                  {REACTION_EMOJIS.map((emoji, i) => (
+                    <motion.button
+                      key={emoji}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.025 * i, type: "spring", stiffness: 500 }}
+                      onClick={(e) => { e.stopPropagation(); toggleReaction(emoji); }}
+                      className="h-[36px] w-[36px] flex items-center justify-center rounded-full hover:bg-muted/50 transition-all text-[20px] hover:scale-110 active:scale-90 duration-150"
+                    >
+                      {emoji}
+                    </motion.button>
+                  ))}
+                  {/* Open the full "react with any emoji" picker */}
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.025 * REACTION_EMOJIS.length, type: "spring", stiffness: 500 }}
+                    onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(true); }}
+                    aria-label="More reactions"
+                    className="h-[36px] w-[36px] flex items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-all hover:scale-110 active:scale-90 duration-150"
+                  >
+                    <ChevronDown className="h-[18px] w-[18px]" />
+                  </motion.button>
+                </motion.div>
+              )}
+
+              {/* Action buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 }}
+                className="bg-background shadow-lg shadow-black/10 border border-border/30 rounded-xl overflow-hidden min-w-[190px]"
+              >
+                <AnimatePresence mode="wait">
+                  {!showDeleteSub ? (
+                    <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.1 }}>
+                      <MsgMenuItem icon={Reply} label="Reply" onClick={() => { onReply(id, displayMessage, isMe); setShowActions(false); setShowReactions(false); }} />
+                      {canEdit && onEdit && (
+                        <MsgMenuItem icon={Pencil} label="Edit" onClick={handleEdit} />
+                      )}
+                      {message?.trim() && !isMe && (
+                        <MsgMenuItem icon={Languages} label={translation ? (showTranslation ? "Hide translation" : "Show translation") : "Translate"} onClick={handleTranslate} />
+                      )}
+                      {!isMe && isLockedType && (
+                        <MsgMenuItem
+                          icon={Flag}
+                          label="Report paid content"
+                          onClick={() => {
+                            setReportPaidOpen(true);
+                            setShowActions(false);
+                            setShowReactions(false);
+                          }}
+                          destructive
+                        />
+                      )}
+                      {!isMe && !isLockedType && onReport && (
+                        <MsgMenuItem
+                          icon={Flag}
+                          label="Report 18+"
+                          onClick={() => {
+                            void onReport(id, "Nudity or sexual content");
+                            setShowActions(false);
+                            setShowReactions(false);
+                          }}
+                          destructive
+                        />
+                      )}
+                      {!isProtectedMessage && <MsgMenuItem icon={Copy} label="Copy" onClick={handleCopy} />}
+                      {onCopyLink && <MsgMenuItem icon={Link2} label="Copy Link" onClick={handleCopyLink} />}
+                      {!isProtectedMessage && <MsgMenuItem icon={Forward} label="Forward" onClick={handleForward} />}
+                      {!isProtectedMessage && (
+                        <MsgMenuItem icon={Share2} label="Share" onClick={() => void handleShare()} />
+                      )}
+                      {onSave && !hideSave && !isProtectedMessage && (
+                        <MsgMenuItem icon={Bookmark} label="Save" onClick={() => { onSave(id); setShowActions(false); setShowReactions(false); }} />
+                      )}
+                      {onPin && (
+                        <MsgMenuItem icon={Pin} label={isPinned ? "Unpin" : "Pin"} onClick={handlePin} active={isPinned} />
+                      )}
+                      {canDeleteMessage && (
+                        <MsgMenuItem icon={Trash2} label="Delete" onClick={() => setShowDeleteSub(true)} destructive chevron />
+                      )}
+                      {onEnterSelect && (
+                        <MsgMenuItem icon={Check} label="Select" onClick={() => { onEnterSelect(id); setShowActions(false); setShowReactions(false); }} />
+                      )}
+                    </motion.div>
+                  ) : (
+                    <motion.div key="delete" initial={{ opacity: 0, x: 6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 6 }} transition={{ duration: 0.1 }}>
+                      {isMe && (
+                        <MsgMenuItem icon={Trash2} label="Delete for everyone" onClick={() => { onDelete(id); setShowActions(false); setShowReactions(false); setShowDeleteSub(false); }} destructive />
+                      )}
+                      {onDeleteForMe && (
+                        <MsgMenuItem icon={Trash2} label="Delete for me" onClick={() => { onDeleteForMe(id); setShowActions(false); setShowReactions(false); setShowDeleteSub(false); }} destructive />
+                      )}
+                      <div className="border-t border-border/30">
+                        <button type="button"
+                          onClick={(e) => { e.stopPropagation(); setShowDeleteSub(false); }}
+                          className="w-full py-2.5 text-center text-[13px] font-medium text-muted-foreground hover:bg-muted/30 active:bg-muted/50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Fullscreen Reel-style video player (fallback when no shared ReelFeed) */}
+      <AnimatePresence>
+        {!reelFeed && showVideoPlayer && displayVideoUrl && (
+          <ReelViewer
+            videos={[{ id, url: displayVideoUrl, order: createdAt || "", protected: isLockedType || isProtectedMedia }]}
+            startIndex={0}
+            onClose={() => setShowVideoPlayer(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Full "react with any emoji" picker */}
+      <AnimatePresence>
+        {showEmojiPicker && (
+          <Suspense fallback={null}>
+            <EmojiReactionPicker
+              onPick={(emoji) => {
+                toggleReaction(emoji);
+                pushRecentEmoji(emoji);
+                setShowEmojiPicker(false);
+                setShowActions(false);
+                setShowReactions(false);
+              }}
+              onClose={() => setShowEmojiPicker(false)}
+            />
+          </Suspense>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});
+
+function ActionBtn({ icon: Icon, label, onClick, destructive, active }: {
+  icon: IconLike; label: string; onClick: () => void; destructive?: boolean; active?: boolean;
+}) {
+  return (
+    <button type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={`flex items-center gap-3 w-full px-4 py-3 text-left transition-colors active:scale-[0.98] ${
+        destructive
+          ? "hover:bg-red-50 dark:hover:bg-red-500/5 text-red-500"
+          : active
+          ? "bg-primary/5 text-primary"
+          : "hover:bg-muted/40 text-foreground"
+      }`}
+    >
+      <Icon className="h-[18px] w-[18px] shrink-0 opacity-70" />
+      <span className="text-[13px] font-medium">{label}</span>
+    </button>
+  );
+}
+
+function MsgMenuItem({ icon: Icon, label, onClick, destructive, active, chevron }: {
+  icon: IconLike; label: string; onClick: () => void; destructive?: boolean; active?: boolean; chevron?: boolean;
+}) {
+  return (
+    <button type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={`flex items-center gap-3 w-full px-4 py-3 text-left transition-colors active:bg-muted/60 border-b border-border/15 last:border-b-0 ${
+        destructive ? "text-destructive hover:bg-destructive/5" : active ? "text-primary bg-primary/5" : "text-foreground hover:bg-muted/30"
+      }`}
+    >
+      <Icon className="h-[18px] w-[18px] shrink-0 opacity-70" />
+      <span className="text-[14px] font-medium flex-1">{label}</span>
+      {chevron && <ChevronRight className="h-4 w-4 opacity-30" />}
+    </button>
+  );
+}
+
+/* â”€â”€ Link Preview Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+type SocialPlatformId = "facebook" | "onlyfans" | "instagram" | "x" | "tiktok" | "youtube" | "snapchat" | "telegram" | "linkedin";
+
+const SOCIAL_HOST_MAP: { match: RegExp; id: SocialPlatformId; label: string; color: string; textColor: string; brandImage?: string }[] = [
+  { match: /(^|\.)facebook\.com$|(^|\.)fb\.com$/i,    id: "facebook",  label: "Facebook",  color: "bg-[#1877F2]", textColor: "text-white" },
+  { match: /(^|\.)onlyfans\.com$/i,                    id: "onlyfans",  label: "OnlyFans",  color: "bg-white",     textColor: "text-[#00AFF0]" },
+  { match: /(^|\.)instagram\.com$/i,                   id: "instagram", label: "Instagram", color: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]", textColor: "text-white" },
+  { match: /(^|\.)(x\.com|twitter\.com)$/i,            id: "x",         label: "X",         color: "bg-black", textColor: "text-white" },
+  { match: /(^|\.)tiktok\.com$/i,                      id: "tiktok",    label: "TikTok",    color: "bg-black", textColor: "text-white" },
+  { match: /(^|\.)(youtube\.com|youtu\.be)$/i,         id: "youtube",   label: "YouTube",   color: "bg-[#FF0000]", textColor: "text-white" },
+  { match: /(^|\.)snapchat\.com$/i,                    id: "snapchat",  label: "Snapchat",  color: "bg-[#FFFC00]", textColor: "text-black" },
+  { match: /(^|\.)t\.me$|(^|\.)telegram\.me$/i,        id: "telegram",  label: "Telegram",  color: "bg-[#229ED9]", textColor: "text-white" },
+  { match: /(^|\.)linkedin\.com$/i,                    id: "linkedin",  label: "LinkedIn",  color: "bg-[#0A66C2]", textColor: "text-white" },
+];
+
+function detectSocialPlatform(host: string) {
+  return SOCIAL_HOST_MAP.find((p) => p.match.test(host)) || null;
+}
+
+function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isMe: boolean; hasText: boolean; messageText?: string }) {
+  const navigate = useNavigate();
+  const [warnOpen, setWarnOpen] = useState(false);
+  const [preview, setPreview] = useState<{
+    mediaUrl?: string | null;
+    mediaType?: "image" | "video";
+    label: string;
+    description: string;
+    authorName?: string;
+    authorAvatar?: string | null;
+    internalPath?: string;
+    audioUrl?: string;
+    socialPlatform?: { id: SocialPlatformId; label: string; color: string; textColor: string; brandImage?: string };
+  } | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const fetchPreview = async () => {
+      try {
+        const u = new URL(url);
+        const p = u.pathname + u.search;
+
+        // Detect known external social platforms â€” render as a colored chip card.
+        const social = detectSocialPlatform(u.hostname);
+        if (social) {
+          const handle = u.pathname.replace(/^\/+/, "").replace(/^@/, "").split(/[/?#]/)[0];
+          if (alive) {
+            setPreview({
+              label: handle ? `@${handle}` : social.label,
+              description: handle ? social.label : `Open on ${social.label}`,
+              socialPlatform: social,
+            });
+          }
+          return;
+        }
+
+        const legacyMusicShare = parseLegacyMusicShare(messageText);
+        const soundSlugMatch = p.match(/\/sound\/([^/?#]+)/i);
+        // Also treat Apple Music / iTunes URLs as music shares when the
+        // message body matches the music card format.
+        const isMusicHost = /(^|\.)(music\.apple|itunes\.apple|spotify|soundcloud|youtu)\.[a-z.]+$/i.test(u.hostname) || u.hostname.includes("soundhelix");
+
+        if (soundSlugMatch || (isMusicHost && legacyMusicShare)) {
+          const resolvedSlug = soundSlugMatch?.[1] || slugifySoundName(legacyMusicShare?.title || "original-sound");
+          const soundTitle = legacyMusicShare?.title || humanizeSoundSlug(resolvedSlug);
+          const soundDescription = legacyMusicShare
+            ? [legacyMusicShare.artist, legacyMusicShare.genre, legacyMusicShare.duration].filter(Boolean).join(" \u00B7 ")
+            : "Tap to open sound on ZIVO";
+
+          const knownTrack = findZivoTrackBySlug(resolvedSlug);
+          // Prefer the embedded `Preview: <url>` line (iTunes / dynamic
+          // sources); fall back to our static catalog (Zivo Sessions).
+          const audioUrl = legacyMusicShare?.previewUrl || knownTrack?.previewUrl;
+          if (alive) {
+            setPreview({
+              label: soundTitle,
+              description: soundDescription || "Tap to open sound on ZIVO",
+              internalPath: `/sound/${resolvedSlug}`,
+              audioUrl,
+            });
+          }
+          return;
+        }
+
+        // Extract post ID from feed URLs like ?post=uuid
+        const postMatch = p.match(/[?&]post=([a-f0-9-]{36})/i);
+        if (postMatch) {
+          const postId = postMatch[1];
+          // Try store_posts first
+          const { data: storePost } = await supabase
+            .from("store_posts")
+            .select("media_urls, media_type, caption, store_id")
+            .eq("id", postId)
+            .maybeSingle();
+
+          if (storePost && alive) {
+            const mediaUrls = Array.isArray(storePost.media_urls) ? storePost.media_urls : [];
+            // Get store name
+            let storeName = "ZIVO";
+            if (storePost.store_id) {
+              const { data: store } = await supabase
+                .from("store_profiles")
+                .select("name, logo_url")
+                .eq("id", storePost.store_id)
+                .maybeSingle();
+              const storeProfile = store as StoreProfileRow | null;
+              if (storeProfile?.name) storeName = storeProfile.name;
+            }
+            setPreview({
+              mediaUrl: mediaUrls[0] as string || null,
+              mediaType: storePost.media_type === "video" ? "video" : "image",
+              label: storePost.caption ? (storePost.caption as string).slice(0, 60) : "Shared Post",
+              description: storeName,
+            });
+            return;
+          }
+
+          // Try user_posts
+          const { data: userPostData } = await dbFrom("user_posts")
+            .select("media_url, media_type, caption, user_id")
+            .eq("id", postId)
+            .maybeSingle();
+          const userPost = userPostData as UserPostRow | null;
+
+          if (userPost && alive) {
+            let authorName = "Someone";
+            let authorAvatar: string | null = null;
+            if (userPost.user_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, avatar_url")
+                .eq("user_id", userPost.user_id)
+                .maybeSingle();
+                const authorProfile = profile as ProfileLookupRow | null;
+                if (authorProfile) {
+                  authorName = authorProfile.full_name || "Someone";
+                  authorAvatar = authorProfile.avatar_url || null;
+              }
+            }
+            setPreview({
+              mediaUrl: userPost.media_url,
+              mediaType: userPost.media_type === "video" ? "video" : "image",
+              label: userPost.caption ? String(userPost.caption).slice(0, 60) : "Shared Post",
+              description: authorName,
+              authorName,
+              authorAvatar,
+            });
+            return;
+          }
+        }
+
+        // Fallback for other link types
+        if (p.includes("/feed") || postMatch) {
+          if (alive) setPreview({ label: "Shared Post", description: "Tap to view on ZIVO" });
+        } else if (p.includes("/reels")) {
+          if (alive) setPreview({ label: "Shared Reel", description: "Tap to watch on ZIVO" });
+        } else if (p.includes("/profile") || p.includes("/user")) {
+          if (alive) setPreview({ label: "Profile", description: "Tap to view profile" });
+        } else if (p.includes("/store") || p.includes("/shop")) {
+          if (alive) setPreview({ label: "Store", description: "Tap to view store" });
+        } else {
+          if (alive) setPreview({ label: u.hostname.replace("www.", ""), description: "Tap to open link" });
+        }
+      } catch {
+        if (alive) setPreview({ label: "Link", description: "Tap to open" });
+      }
+    };
+    fetchPreview();
+    return () => { alive = false; };
+  }, [url, messageText]);
+
+  if (!preview) {
+    return (
+      <div className={`mx-1.5 mb-1.5 ${!hasText ? "mt-1.5" : "mt-0.5"} h-16 rounded-2xl ${
+        isMe ? "bg-primary-foreground/[0.06]" : "bg-background/50"
+      } animate-pulse`} />
+    );
+  }
+
+  const hasMedia = !!preview.mediaUrl;
+
+  // Check if this is an internal ZIVO link. Exact/suffix host match — a
+  // substring check (e.g. hostname.includes("hizovo")) trusts attacker hosts
+  // like hizovo.evil.com or evil-lovable.com, letting them skip the external
+  // link warning and in-app navigate to an attacker-chosen path.
+  const isInternalLink = (() => {
+    try {
+      const u = new URL(url);
+      if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+      const host = u.hostname.toLowerCase();
+      const internalHosts = ["lovable.app", "hizovo.com"];
+      return (
+        host === window.location.hostname.toLowerCase() ||
+        internalHosts.some((h) => host === h || host.endsWith(`.${h}`))
+      );
+    } catch { return false; }
+  })();
+
+  // Extract the in-app path from the URL
+  const getInAppPath = () => {
+    try {
+      const u = new URL(url);
+      return u.pathname + u.search + u.hash;
+    } catch { return "/"; }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (preview.internalPath) {
+      navigate(preview.internalPath);
+      return;
+    }
+
+    if (isInternalLink) {
+      navigate(getInAppPath());
+    } else {
+      setWarnOpen(true);
+    }
+  };
+
+  return (
+    <>
+    <ExternalLinkWarning
+      url={url}
+      open={warnOpen}
+      onOpenChange={setWarnOpen}
+      onConfirm={(u) => { void openExternalUrl(u); }}
+    />
+    <div
+      onClick={handleClick}
+      className={`block mx-1.5 mb-1.5 ${!hasText ? "mt-1.5" : "mt-0.5"} rounded-2xl overflow-hidden cursor-pointer ${
+        isMe ? "bg-primary-foreground/[0.08]" : "bg-background/70"
+      } active:scale-[0.97] transition-transform`}
+    >
+      {/* Media thumbnail */}
+      {hasMedia && (
+        <div className="relative w-full h-36 bg-black/20 overflow-hidden">
+          {preview.mediaType === "video" ? (
+            <>
+              <video
+                src={`${preview.mediaUrl}#t=0.5`}
+                className="w-full h-full object-cover"
+                muted
+                playsInline
+                preload="metadata"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                  <Play className="w-5 h-5 text-white ml-0.5" fill="white" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <img src={preview.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+          )}
+          {/* ZIVO badge on media */}
+          <div className="absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase bg-black/45 text-white backdrop-blur-sm">
+            <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" loading="lazy" decoding="async" />
+            ZIVO
+          </div>
+        </div>
+      )}
+
+      {/* If no media, show gradient placeholder â€” themed for known social platforms */}
+      {!hasMedia && (
+        <div className={`h-14 flex items-center justify-center relative ${
+          preview.socialPlatform ? preview.socialPlatform.color : (isMe ? "bg-primary-foreground/[0.06]" : "bg-foreground/[0.04]")
+        }`}>
+          {preview.socialPlatform?.brandImage && (
+            <img
+              src={preview.socialPlatform.brandImage}
+              alt={preview.socialPlatform.label}
+              className="h-9 w-auto object-contain"
+              loading="lazy"
+              decoding="async"
+            />
+          )}
+          <div className={`absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${
+            preview.socialPlatform
+              ? `bg-black/25 ${preview.socialPlatform.textColor}`
+              : (isMe ? "bg-primary-foreground/20 text-primary-foreground/60" : "bg-foreground/10 text-foreground/40")
+          }`}>
+            {!preview.socialPlatform && (
+              <img src={zivoLogoPng} alt="" className="h-3 w-3 rounded-[3px] object-contain" loading="lazy" decoding="async" />
+            )}
+            {preview.socialPlatform ? preview.socialPlatform.label : "ZIVO"}
+          </div>
+        </div>
+      )}
+
+      {/* Info section */}
+      <div className="px-3 py-2 flex items-center gap-2.5">
+        {preview.authorAvatar && (
+          <img src={preview.authorAvatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" loading="lazy" decoding="async" />
+        )}
+        <div className="flex-1 min-w-0">
+          <p className={`text-[13px] font-bold truncate ${isMe ? "text-primary-foreground" : "text-foreground"}`}>
+            {preview.label}
+          </p>
+          <p className={`text-[11px] mt-0.5 truncate ${isMe ? "text-primary-foreground/50" : "text-muted-foreground"}`}>
+            {preview.description}
+          </p>
+          {preview.audioUrl && (
+            <audio
+              ref={audioRef}
+              src={preview.audioUrl}
+              preload="none"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
+            />
+          )}
+          {!isInternalLink && (() => {
+            const r = assessLinkSync(url);
+            if (r.level === "blocked") {
+              return <p className="text-[10px] mt-1 font-semibold text-destructive flex items-center gap-1">{"\u26A0\uFE0F"} Blocked {"\u2014"} {r.warnings[0]}</p>;
+            }
+            if (r.level === "suspicious") {
+              return <p className="text-[10px] mt-1 font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">{"\u26A0\uFE0F"} Suspicious {"\u2014"} {r.warnings[0]}</p>;
+            }
+            if (r.level === "trusted") {
+              return <p className="text-[10px] mt-1 font-semibold text-primary flex items-center gap-1">{"\u2713"} Verified partner</p>;
+            }
+            return <p className="text-[10px] mt-1 text-muted-foreground">External link</p>;
+          })()}
+        </div>
+        {preview.audioUrl ? (
+          <button
+            type="button"
+            aria-label={isPlaying ? "Pause preview" : "Play preview"}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const a = audioRef.current;
+              if (!a) return;
+              if (a.paused) { void a.play(); } else { a.pause(); }
+            }}
+            className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition active:scale-90 ${
+              isMe ? "bg-primary-foreground/20 text-primary-foreground" : "bg-ig-gradient text-white"
+            }`}
+          >
+            {isPlaying
+              ? <Pause className="w-4 h-4" fill="currentColor" />
+              : <Play className="w-4 h-4 ml-0.5" fill="currentColor" />}
+          </button>
+        ) : (
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+            isMe ? "bg-primary-foreground/15" : "bg-primary/10"
+          }`}>
+            <ChevronRight className={`w-4 h-4 ${isMe ? "text-primary-foreground/60" : "text-primary"}`} />
+          </div>
+        )}
+      </div>
+    </div>
+    </>
+  );
+}
+
+export default ChatMessageBubble;

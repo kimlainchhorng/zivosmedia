@@ -1,7 +1,8 @@
-/**
+﻿/**
  * RidePreferences — Personalization hub with ride settings, favorite drivers, ride notes
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Thermometer, Music, MessageSquare, Heart, Star, Settings, ChevronRight, Check, Sparkles, StickyNote, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,12 @@ const favoriteDrivers = [
 ];
 
 export default function RidePreferences() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("preferences");
   const [prefs, setPrefs] = useState(defaultPrefs);
   const [rideNote, setRideNote] = useState("");
   const [savedNotes, setSavedNotes] = useState<string[]>(["I have a small dog with me", "Please use the side entrance"]);
+  const [favDrivers, setFavDrivers] = useState(favoriteDrivers);
 
   const tabs = [
     { id: "preferences" as const, label: "Settings", icon: Settings },
@@ -45,7 +48,7 @@ export default function RidePreferences() {
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+            <button type="button" key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               <Icon className="w-3.5 h-3.5" /> {tab.label}
             </button>
           );
@@ -128,7 +131,7 @@ export default function RidePreferences() {
                 </div>
                 <div className="flex gap-2">
                   {[0, 10, 15, 20, 25].map(pct => (
-                    <button key={pct} onClick={() => setPrefs(p => ({ ...p, autoTip: pct }))} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border transition-all", prefs.autoTip === pct ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                    <button type="button" key={pct} onClick={() => setPrefs(p => ({ ...p, autoTip: pct }))} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border transition-all", prefs.autoTip === pct ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                       {pct === 0 ? "Off" : `${pct}%`}
                     </button>
                   ))}
@@ -140,7 +143,7 @@ export default function RidePreferences() {
           {activeTab === "favorites" && (
             <div className="space-y-3">
               <p className="text-[10px] text-muted-foreground px-1">Request your favorite drivers when available</p>
-              {favoriteDrivers.map((driver, i) => (
+              {favDrivers.map((driver, i) => (
                 <motion.div key={driver.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="rounded-2xl bg-card border border-border/40 p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -159,10 +162,10 @@ export default function RidePreferences() {
                     <Heart className="w-5 h-5 text-red-500 fill-red-500 shrink-0" />
                   </div>
                   <div className="flex gap-2 mt-3">
-                    <Button variant="outline" size="sm" className="flex-1 h-8 text-[10px] rounded-lg font-bold" onClick={() => toast.success(`Requesting ${driver.name}...`)}>
+                    <Button variant="outline" size="sm" className="flex-1 h-8 text-[10px] rounded-lg font-bold" onClick={() => navigate("/rides/hub", { state: { preferredDriverId: driver.id, preferredDriverName: driver.name } })}>
                       Request Driver
                     </Button>
-                    <Button variant="outline" size="sm" className="h-8 text-[10px] rounded-lg font-bold text-red-500 border-red-500/20 hover:bg-red-500/5" onClick={() => toast.info(`Removed ${driver.name}`)}>
+                    <Button variant="outline" size="sm" className="h-8 text-[10px] rounded-lg font-bold text-red-500 border-red-500/20 hover:bg-red-500/5" onClick={() => { setFavDrivers(prev => prev.filter(d => d.id !== driver.id)); toast.success(`${driver.name} removed`); }}>
                       Remove
                     </Button>
                   </div>
@@ -195,7 +198,7 @@ export default function RidePreferences() {
                   <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
                     <StickyNote className="w-4 h-4 text-primary shrink-0" />
                     <span className="flex-1 text-xs text-foreground">{note}</span>
-                    <button onClick={() => { setSavedNotes(prev => prev.filter((_, j) => j !== i)); toast.success("Note removed"); }} className="text-[10px] text-red-500 font-bold">Remove</button>
+                    <button type="button" onClick={() => { setSavedNotes(prev => prev.filter((_, j) => j !== i)); toast.success("Note removed"); }} className="text-[10px] text-red-500 font-bold">Remove</button>
                   </div>
                 ))}
               </div>
@@ -204,7 +207,7 @@ export default function RidePreferences() {
                 <p className="text-[10px] text-muted-foreground"><strong>Quick templates:</strong></p>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {["Wheelchair accessible", "I have luggage", "Waiting at door", "I'll be 2 min late"].map(t => (
-                    <button key={t} onClick={() => setRideNote(t)} className="px-2.5 py-1 rounded-lg bg-card border border-border/40 text-[10px] font-medium text-foreground hover:border-primary/20 transition-colors">
+                    <button type="button" key={t} onClick={() => setRideNote(t)} className="px-2.5 py-1 rounded-lg bg-card border border-border/40 text-[10px] font-medium text-foreground hover:border-primary/20 transition-colors">
                       {t}
                     </button>
                   ))}
@@ -220,7 +223,7 @@ export default function RidePreferences() {
 
 function PreferenceToggle({ icon: Icon, label, desc, active, onToggle }: { icon: any; label: string; desc: string; active: boolean; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className={cn("w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left", active ? "bg-primary/5 border-primary/30" : "bg-card border-border/40")}>
+    <button type="button" onClick={onToggle} className={cn("w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left", active ? "bg-primary/5 border-primary/30" : "bg-card border-border/40")}>
       <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", active ? "bg-primary/10" : "bg-muted/50")}>
         <Icon className={cn("w-5 h-5", active ? "text-primary" : "text-muted-foreground")} />
       </div>
@@ -244,7 +247,7 @@ function PreferenceSelector({ icon: Icon, label, options, selected, onSelect }: 
       </div>
       <div className="flex gap-2">
         {options.map(opt => (
-          <button key={opt.id} onClick={() => onSelect(opt.id)} className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold border transition-all", selected === opt.id ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40 hover:border-primary/20")}>
+          <button type="button" key={opt.id} onClick={() => onSelect(opt.id)} className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold border transition-all", selected === opt.id ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40 hover:border-primary/20")}>
             {opt.label}
           </button>
         ))}

@@ -3,8 +3,11 @@
  * Catches React render errors and shows a graceful fallback with retry
  */
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
+import Home from "lucide-react/dist/esm/icons/home";
 import { Button } from "@/components/ui/button";
+import { reportBoundaryError } from "@/lib/security/errorReporting";
 
 interface Props {
   children: ReactNode;
@@ -14,24 +17,62 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  reportId: string | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, reportId: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, reportId: null };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("[ErrorBoundary] Caught error:", error, errorInfo);
+    const reportId = reportBoundaryError({
+      boundary: "global",
+      error,
+      componentStack: errorInfo.componentStack || undefined,
+    });
+    this.setState({ reportId });
+
+    // Auto-reload once on chunk/module loading failures (stale deploy)
+    const isChunkError =
+      error.message?.includes("Importing a module script failed") ||
+      error.message?.includes("Failed to fetch dynamically imported module") ||
+      error.message?.includes("Loading chunk") ||
+      error.message?.includes("Loading CSS chunk");
+
+    if (isChunkError) {
+      const reloadKey = "zivo_chunk_reload";
+      try {
+        if (!sessionStorage.getItem(reloadKey)) {
+          // Store a timestamp (not a "1" sentinel) on this shared key: lazyWithRetry
+          // reads it as a number with a 30s window, so a sentinel would look like a
+          // 1970 reload and fail to suppress its duplicate reload for the same deploy.
+          sessionStorage.setItem(reloadKey, String(Date.now()));
+          window.location.reload();
+          return;
+        }
+      } catch {}
+    }
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null });
+    const msg = this.state.error?.message || "";
+    const isChunkError =
+      msg.includes("Importing a module script failed") ||
+      msg.includes("Failed to fetch dynamically imported module") ||
+      msg.includes("Loading chunk") ||
+      msg.includes("Loading CSS chunk");
+    if (isChunkError) {
+      try { sessionStorage.removeItem("zivo_chunk_reload"); } catch {}
+      window.location.reload();
+      return;
+    }
+    this.setState({ hasError: false, error: null, reportId: null });
   };
 
   handleGoHome = () => {
@@ -45,24 +86,29 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6">
           <div className="text-center max-w-md">
-            <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="w-8 h-8 text-destructive" />
+            <div className="w-14 h-14 rounded-2xl bg-secondary border border-border flex items-center justify-center mx-auto mb-5">
+              <AlertTriangle className="w-7 h-7 text-destructive" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
-            <p className="text-muted-foreground mb-6">
+            <h1 className="text-2xl font-bold tracking-tight mb-2">Something went wrong</h1>
+            <p className="text-base text-muted-foreground mb-6">
               An unexpected error occurred. This has been logged and we're working on a fix.
             </p>
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <pre className="text-left text-xs bg-muted/50 rounded-xl p-4 mb-6 overflow-auto max-h-32 text-destructive">
+            {this.state.reportId && (
+              <p className="text-xs text-muted-foreground mb-5">
+                Support code: <span className="font-mono">{this.state.reportId}</span>
+              </p>
+            )}
+            {import.meta.env.DEV && this.state.error && (
+              <pre className="text-left text-xs bg-secondary border border-border rounded-xl p-4 mb-6 overflow-auto max-h-32 text-destructive font-mono">
                 {this.state.error.message}
               </pre>
             )}
             <div className="flex gap-3 justify-center">
-              <Button onClick={this.handleRetry} className="gap-2">
+              <Button onClick={this.handleRetry} className="gap-2 rounded-full h-11 px-5 font-bold">
                 <RefreshCw className="w-4 h-4" />
                 Try Again
               </Button>
-              <Button variant="outline" onClick={this.handleGoHome} className="gap-2">
+              <Button variant="outline" onClick={this.handleGoHome} className="gap-2 rounded-full h-11 px-5 font-bold">
                 <Home className="w-4 h-4" />
                 Go Home
               </Button>

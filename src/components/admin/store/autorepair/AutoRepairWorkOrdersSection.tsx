@@ -1,0 +1,774 @@
+/**
+ * Auto Repair — Work Orders
+ * List + Kanban, tech assignment, edit, KPI strip, Convert to Invoice.
+ */
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { copyText } from "@/lib/native/clipboard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import {
+  Hammer, Plus, Search, LayoutGrid, List, Trash2, AlertOctagon,
+  User, Pencil, Receipt, Timer, CheckCheck, Link2, BookOpen, FileText,
+} from "lucide-react";
+import { toast } from "sonner";
+import { assignDocNumber, assignWorkOrderNumber } from "@/lib/admin/invoiceActions";
+import LaborGuidePickerDialog from "./LaborGuidePickerDialog";
+import ServiceCatalogPickerDialog from "./ServiceCatalogPickerDialog";
+import type { LaborGuideEntry } from "@/lib/laborGuide";
+import { suggestReminders } from "@/lib/autorepair/serviceIntervals";
+
+interface Props { storeId: string }
+
+const COLS = [
+  { id: "awaiting",    label: "Awaiting"    },
+  { id: "in_progress", label: "In Progress" },
+  { id: "on_hold",     label: "On Hold"     },
+  { id: "qc",         label: "QC"          },
+  { id: "done",       label: "Done"        },
+] as const;
+
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+  awaiting: "outline", in_progress: "secondary", on_hold: "destructive", qc: "secondary", done: "default",
+};
+
+const fmt = (cents: number) =>
+  `$${((cents ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const blankForm = {
+  number: "", customer_name: "", customer_phone: "", customer_email: "",
+  vehicle_label: "", notes: "", labor_hours: "", total_cents_str: "", is_comeback: false,
+};
+
+export default function AutoRepairWorkOrdersSection({ storeId }: Props) {
+  const qc = useQueryClient();
+  const [q, setQ] = useState("");
+  const [view, setView] = useState<"list" | "kanban">("list");
+  const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState(blankForm);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  // When the dashboard's job-board card is clicked, it stashes the WO id here so
+  // we can auto-open that work order's edit/workflow once the list has loaded.
+  const pendingOpenId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const search = sessionStorage.getItem("ar_workorder_search");
+    if (search) {
+      setQ(search);
+      sessionStorage.removeItem("ar_workorder_search");
+    }
+    const openId = sessionStorage.getItem("ar_workorder_open");
+    if (openId) {
+      pendingOpenId.current = openId;
+      sessionStorage.removeItem("ar_workorder_open");
+    }
+  }, []);
+
+  const { data: orders = [], isLoading } = useQuery({
+    queryKey: ["ar-work-orders", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_work_orders" as any)
+        .select("*")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const { data: techs = [] } = useQuery({
+    queryKey: ["ar-technicians", storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ar_technicians" as any).select("id,name").eq("store_id", storeId).eq("active", true);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const kpi = useMemo(() => ({
+    total: orders.length,
+    open: orders.filter((o: any) => !["done", "on_hold"].includes(o.status)).length,
+    done: orders.filter((o: any) => o.status === "done").length,
+    comebacks: orders.filter((o: any) => o.is_comeback).length,
+  }), [orders]);
+
+  const techMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    techs.forEach((t: any) => { m[t.id] = t.name; });
+    return m;
+  }, [techs]);
+
+  // Minimal id↔number maps so a WO row can show + open the estimate/invoice it
+  // produced (estimate via ar_work_orders.estimate_id, invoice via the invoice's
+  // source_workorder_id back-link).
+  const { data: estList = [] } = useQuery({
+    queryKey: ["ar-estimates-min", storeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("ar_estimates" as any).select("id, number").eq("store_id", storeId);
+      return (data ?? []) as any[];
+    },
+  });
+  const { data: invList = [] } = useQuery({
+    queryKey: ["ar-invoices-min", storeId],
+    queryFn: async () => {
+      const { data } = await supabase.from("ar_invoices" as any).select("id, number, source_workorder_id").eq("store_id", storeId);
+      return (data ?? []) as any[];
+    },
+  });
+  const estNumById = useMemo(() => {
+    const m: Record<string, string> = {};
+    estList.forEach((e: any) => { if (e.id) m[e.id] = e.number; });
+    return m;
+  }, [estList]);
+  const invByWoId = useMemo(() => {
+    const m: Record<string, { id: string; number: string }> = {};
+    invList.forEach((i: any) => { if (i.source_workorder_id) m[i.source_workorder_id] = { id: i.id, number: i.number }; });
+    return m;
+  }, [invList]);
+
+  // Stash the target doc id and ask the page to switch tabs; the estimates/
+  // invoices section reads the stashed id and opens that doc.
+  const openDoc = (type: "estimate" | "invoice", id: string) => {
+    try {
+      sessionStorage.setItem(type === "estimate" ? "ar_estimate_open" : "ar_invoice_open", id);
+    } catch { /* ignore */ }
+    window.dispatchEvent(new CustomEvent("lodge-set-tab", { detail: { tab: type === "estimate" ? "ar-estimates" : "ar-invoices" } }));
+  };
+
+  const filtered = useMemo(() => orders.filter((o: any) =>
+    !q || `${o.number} ${o.customer_name ?? ""} ${o.vehicle_label ?? ""} ${o.notes ?? ""}`
+      .toLowerCase().includes(q.toLowerCase())
+  ), [orders, q]);
+
+  const grouped = useMemo(() => {
+    const g: Record<string, any[]> = { awaiting: [], in_progress: [], on_hold: [], qc: [], done: [] };
+    filtered.forEach((o: any) => g[o.status]?.push(o));
+    return g;
+  }, [filtered]);
+
+  const resetForm = () => { setForm(blankForm); setEditId(null); };
+
+  const openNew = () => { resetForm(); setOpen(true); };
+  const openEdit = (o: any) => {
+    setEditId(o.id);
+    setForm({
+      number: o.number ?? "",
+      customer_name: o.customer_name ?? "",
+      customer_phone: o.customer_phone ?? "",
+      customer_email: o.customer_email ?? "",
+      vehicle_label: o.vehicle_label ?? "",
+      notes: o.notes ?? "",
+      labor_hours: o.labor_hours != null ? String(o.labor_hours) : "",
+      total_cents_str: o.total_cents != null ? String(o.total_cents / 100) : "",
+      is_comeback: !!o.is_comeback,
+    });
+    setOpen(true);
+  };
+
+  // Auto-open the work order requested from the dashboard job board, once loaded.
+  useEffect(() => {
+    if (!pendingOpenId.current || orders.length === 0) return;
+    const target = orders.find((o: any) => o.id === pendingOpenId.current);
+    pendingOpenId.current = null;
+    if (target) openEdit(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const woNumber = form.number?.trim() || (editId ? "" : await assignWorkOrderNumber(storeId));
+      const payload: any = {
+        store_id: storeId,
+        number: woNumber || `WO-${Date.now().toString().slice(-6)}`,
+        customer_name: form.customer_name || null,
+        customer_phone: form.customer_phone || null,
+        customer_email: form.customer_email || null,
+        vehicle_label: form.vehicle_label || null,
+        notes: form.notes || null,
+        labor_hours: form.labor_hours ? parseFloat(form.labor_hours) : null,
+        total_cents: form.total_cents_str ? Math.round(parseFloat(form.total_cents_str) * 100) : null,
+        is_comeback: form.is_comeback,
+      };
+      if (editId) {
+        const { error } = await supabase.from("ar_work_orders" as any).update(payload).eq("id", editId);
+        if (error) throw error;
+      } else {
+        payload.status = "awaiting";
+        const { error } = await supabase.from("ar_work_orders" as any).insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editId ? "Work order updated" : "Work order created");
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+      setOpen(false);
+      resetForm();
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed"),
+  });
+
+  const scheduleFollowUps = async (wo: any) => {
+    const text = [wo.notes, wo.customer_name, wo.vehicle_label,
+      Array.isArray(wo.parts_used) ? wo.parts_used.map((p: any) => p?.name).filter(Boolean).join(" ") : "",
+    ].filter(Boolean).join(" ");
+    const mileage = wo.mileage_in != null ? Number(wo.mileage_in) : null;
+    const suggestions = suggestReminders({ text, currentMileage: mileage });
+    if (suggestions.length === 0) return 0;
+    const rows = suggestions.map((s) => ({
+      store_id: storeId,
+      reminder_type: s.reminderType,
+      channel: "email" as const,
+      status: "scheduled" as const,
+      due_at: s.dueAtIso,
+      due_mileage: s.dueMileage,
+      customer_name: wo.customer_name ?? null,
+      customer_phone: wo.customer_phone ?? null,
+      customer_email: wo.customer_email ?? null,
+      vehicle_label: wo.vehicle_label ?? null,
+      vehicle_id: wo.vehicle_id ?? null,
+      source_workorder_id: wo.id,
+      message: `Follow-up for ${s.reminderType} from RO ${wo.number || wo.id}`,
+    }));
+    const { error } = await supabase.from("ar_service_reminders" as any).upsert(rows, {
+      onConflict: "source_workorder_id,reminder_type",
+      ignoreDuplicates: true,
+    });
+    if (error) {
+      console.warn("Could not auto-schedule reminders:", error.message);
+      return 0;
+    }
+    return suggestions.length;
+  };
+
+  const update = useMutation({
+    mutationFn: async ({ id, patch, source }: { id: string; patch: any; source?: any }) => {
+      const { error } = await supabase.from("ar_work_orders" as any).update(patch).eq("id", id);
+      if (error) throw error;
+      if (patch?.status === "done" && source) {
+        const count = await scheduleFollowUps(source);
+        if (count > 0) toast.success(`Scheduled ${count} follow-up reminder${count === 1 ? "" : "s"}`, { duration: 4000 });
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-reminders", storeId] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("ar_work_orders" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Work order deleted");
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const convertToInvoice = useMutation({
+    mutationFn: async (o: any) => {
+      const laborItem = o.labor_hours
+        ? [{ category: "labor", description: "Labor", hours: o.labor_hours, price: o.total_cents ? ((o.total_cents / 100) / o.labor_hours) : 0 }]
+        : [];
+      const partsItems = Array.isArray(o.parts_used)
+        ? o.parts_used.map((p: any) => ({ category: "part", description: p.name || "Part", qty: p.qty ?? 1, price: p.unit_cents ? p.unit_cents / 100 : 0 }))
+        : [];
+      const items = [...laborItem, ...partsItems];
+
+      const { data: inv, error } = await supabase.from("ar_invoices" as any).insert({
+        store_id: storeId,
+        number: await assignDocNumber(storeId, "invoice"),
+        status: "draft",
+        customer_name: o.customer_name,
+        customer_phone: o.customer_phone,
+        customer_email: o.customer_email,
+        vehicle_label: o.vehicle_label,
+        items,
+        total_cents: o.total_cents ?? 0,
+        amount_paid_cents: 0,
+        source_workorder_id: o.id,
+      }).select("id").single();
+      if (error) throw error;
+      await supabase.from("ar_work_orders" as any)
+        .update({ status: "done", converted_invoice: true }).eq("id", o.id);
+      const reminderCount = await scheduleFollowUps(o);
+      return { reminderCount, invoiceId: (inv as any)?.id as string | undefined };
+    },
+    onSuccess: (res: any) => {
+      const remPart = res?.reminderCount ? ` · ${res.reminderCount} follow-up reminder${res.reminderCount === 1 ? "" : "s"} scheduled` : "";
+      toast.success(`Converted to Invoice${remPart}`);
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-invoices", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-invoices-min", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-reminders", storeId] });
+      setOpen(false);
+      if (res?.invoiceId) openDoc("invoice", res.invoiceId);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Conversion failed"),
+  });
+
+  // Build line items + a doc draft from a work order (used for both estimate and
+  // invoice creation). Labor becomes one line; each part becomes a line.
+  const buildLineItems = (o: any) => {
+    const laborItem = o.labor_hours
+      ? [{ category: "labor", description: "Labor", hours: o.labor_hours, price: o.total_cents ? ((o.total_cents / 100) / o.labor_hours) : 0 }]
+      : [];
+    const partsItems = Array.isArray(o.parts_used)
+      ? o.parts_used.map((p: any) => ({ category: "part", description: p.name || "Part", qty: p.qty ?? 1, price: p.unit_cents ? p.unit_cents / 100 : 0 }))
+      : [];
+    return [...laborItem, ...partsItems];
+  };
+
+  // Merge the dialog's current (possibly unsaved) edits over the saved order so
+  // a created estimate/invoice reflects what the user sees.
+  const buildDocSource = () => {
+    const current: any = orders.find((o: any) => o.id === editId) || {};
+    return {
+      ...current,
+      id: editId,
+      customer_name: form.customer_name,
+      customer_phone: form.customer_phone,
+      customer_email: form.customer_email,
+      vehicle_label: form.vehicle_label,
+      notes: form.notes,
+      labor_hours: form.labor_hours ? parseFloat(form.labor_hours) : (current.labor_hours ?? null),
+      total_cents: form.total_cents_str ? Math.round(parseFloat(form.total_cents_str) * 100) : (current.total_cents ?? 0),
+    };
+  };
+
+  const createEstimate = useMutation({
+    mutationFn: async (o: any) => {
+      const items = buildLineItems(o);
+      const total = o.total_cents ?? 0;
+      const { data, error } = await supabase.from("ar_estimates" as any).insert({
+        store_id: storeId,
+        number: await assignDocNumber(storeId, "estimate"),
+        status: "draft",
+        customer_name: o.customer_name,
+        customer_phone: o.customer_phone,
+        customer_email: o.customer_email,
+        vehicle_label: o.vehicle_label,
+        notes: o.notes ?? null,
+        items,
+        line_items: items,
+        subtotal_cents: total,
+        total_cents: total,
+      }).select("id, number").single();
+      if (error) throw error;
+      // Link the estimate to the work order so the WO row can show + open it.
+      const created = data as any;
+      if (o.id && created?.id) {
+        await supabase.from("ar_work_orders" as any).update({ estimate_id: created.id }).eq("id", o.id);
+      }
+      return created;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Estimate ${data?.number ?? ""} created`.trim());
+      qc.invalidateQueries({ queryKey: ["ar-estimates", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-estimates-min", storeId] });
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+      setOpen(false);
+      if (data?.id) openDoc("estimate", data.id);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Could not create estimate"),
+  });
+
+  const shareStatus = async (o: any) => {
+    const token = o.share_token || crypto.randomUUID();
+    if (!o.share_token) {
+      const { error } = await supabase
+        .from("ar_work_orders" as any)
+        .update({ share_token: token })
+        .eq("id", o.id);
+      if (error) { toast.error(error.message); return; }
+      qc.invalidateQueries({ queryKey: ["ar-work-orders", storeId] });
+    }
+    const url = `${window.location.origin}/repair/${token}`;
+    await copyText(url);
+    toast.success("Status link copied — send it to your customer", { duration: 4000 });
+  };
+
+  const WOCard = ({ o }: { o: any }) => (
+    <div className="flex items-center justify-between p-3 rounded-xl border border-border hover:bg-muted/40 transition gap-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+          <span className="font-semibold text-sm">{o.number}</span>
+          <Badge variant={STATUS_VARIANT[o.status] ?? "outline"} className="text-[10px] capitalize">
+            {o.status?.replace("_", " ")}
+          </Badge>
+          {o.is_comeback && (
+            <Badge variant="destructive" className="text-[10px] gap-1">
+              <AlertOctagon className="w-3 h-3" /> Comeback
+            </Badge>
+          )}
+          {o.estimate_id && estNumById[o.estimate_id] && (
+            <button
+              type="button"
+              onClick={() => openDoc("estimate", o.estimate_id)}
+              title={`Open ${estNumById[o.estimate_id]}`}
+              className="inline-flex items-center gap-1 rounded-full border border-amber-300 px-2 py-0.5 text-[10px] font-semibold text-amber-700 transition hover:bg-amber-50"
+            >
+              <FileText className="w-3 h-3" /> {estNumById[o.estimate_id]}
+            </button>
+          )}
+          {o.converted_invoice && (() => {
+            const inv = invByWoId[o.id];
+            return (
+              <button
+                type="button"
+                onClick={() => inv && openDoc("invoice", inv.id)}
+                disabled={!inv}
+                title={inv ? `Open ${inv.number}` : "Invoiced"}
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-300 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:cursor-default disabled:opacity-60"
+              >
+                <Receipt className="w-3 h-3" /> {inv?.number || "Invoiced"}
+              </button>
+            );
+          })()}
+          {o.technician_id && techMap[o.technician_id] && (
+            <Badge variant="outline" className="text-[10px] gap-1">
+              <User className="w-3 h-3" /> {techMap[o.technician_id]}
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground truncate">
+          {o.customer_name || "No customer"}
+          {o.vehicle_label ? ` · ${o.vehicle_label}` : ""}
+          {o.labor_hours ? ` · ${o.labor_hours}h` : ""}
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="font-bold text-sm tabular-nums">{fmt(o.total_cents ?? 0)}</p>
+        <div className="flex gap-1 mt-1 justify-end flex-wrap">
+          <Button size="icon" variant="ghost" className="h-7 w-7" title="Edit" onClick={() => openEdit(o)}>
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-500" title="Copy customer status link" onClick={() => shareStatus(o)}>
+            <Link2 className="w-3.5 h-3.5" />
+          </Button>
+          {!o.converted_invoice && o.status === "done" && (
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600" title="Convert to Invoice"
+              onClick={() => convertToInvoice.mutate(o)}>
+              <Receipt className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {o.status !== "done" && (
+            <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600" title="Mark Done"
+              onClick={() => update.mutate({ id: o.id, patch: { status: "done", completed_at: new Date().toISOString() }, source: o })}>
+              <CheckCheck className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          <Select value={o.status}
+            onValueChange={(v) => update.mutate({ id: o.id, patch: { status: v } })}>
+            <SelectTrigger className="h-7 w-[110px] text-[11px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {COLS.map((c) => <SelectItem key={c.id} value={c.id} className="text-xs">{c.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={o.technician_id ?? "_unassigned"}
+            onValueChange={(v) => update.mutate({ id: o.id, patch: { technician_id: v === "_unassigned" ? null : v } })}>
+            <SelectTrigger className="h-7 w-[110px] text-[11px]"><SelectValue placeholder="Tech" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_unassigned" className="text-xs">Unassigned</SelectItem>
+              {techs.map((t: any) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+            title="Delete" onClick={() => { if (confirm("Delete this work order?")) remove.mutate(o.id); }}>
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* KPI strip */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: "Total ROs", value: kpi.total },
+          { label: "Open", value: kpi.open },
+          { label: "Done", value: kpi.done },
+          { label: "Comebacks", value: kpi.comebacks },
+        ].map(({ label, value }) => (
+          <Card key={label}>
+            <CardContent className="pt-3 pb-2 text-center">
+              <p className="text-2xl font-bold">{value}</p>
+              <p className="text-[10px] uppercase text-muted-foreground tracking-wide">{label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Hammer className="w-4 h-4" /> Work Orders
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="list" className="h-7 px-2 text-xs gap-1"><List className="w-3.5 h-3.5" /> List</TabsTrigger>
+                <TabsTrigger value="kanban" className="h-7 px-2 text-xs gap-1"><LayoutGrid className="w-3.5 h-3.5" /> Kanban</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Button size="sm" className="gap-1.5" onClick={openNew}>
+              <Plus className="w-3.5 h-3.5" /> New RO
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search by RO number, customer, vehicle, or notes" className="pl-9"
+              value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Hammer className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No work orders yet. Create one to get started.</p>
+            </div>
+          ) : view === "list" ? (
+            <div className="space-y-2">
+              {filtered.map((o: any) => <WOCard key={o.id} o={o} />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 overflow-x-auto">
+              {COLS.map((col) => (
+                <div key={col.id} className="space-y-2 min-w-[180px]">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{col.label}</p>
+                    <Badge variant="outline" className="text-[10px]">{grouped[col.id]?.length ?? 0}</Badge>
+                  </div>
+                  <div className="space-y-2 min-h-[120px]">
+                    {(grouped[col.id] ?? []).map((o: any) => (
+                      <Card key={o.id} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-sm">{o.number}</p>
+                            <div className="flex gap-1">
+                              {o.is_comeback && <Badge variant="destructive" className="text-[9px]">CB</Badge>}
+                              {o.converted_invoice && <Badge variant="outline" className="text-[9px]">INV</Badge>}
+                            </div>
+                          </div>
+                          {(o.customer_name || o.vehicle_label) && (
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {o.customer_name}{o.vehicle_label ? ` · ${o.vehicle_label}` : ""}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            {o.labor_hours != null && <span className="flex items-center gap-0.5"><Timer className="w-3 h-3" />{o.labor_hours}h</span>}
+                            <span>{fmt(o.total_cents ?? 0)}</span>
+                          </div>
+                          <Select value={o.status}
+                            onValueChange={(v) => update.mutate({ id: o.id, patch: { status: v } })}>
+                            <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {COLS.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <Select value={o.technician_id ?? "_unassigned"}
+                            onValueChange={(v) => update.mutate({ id: o.id, patch: { technician_id: v === "_unassigned" ? null : v } })}>
+                            <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="Assign tech" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="_unassigned">Unassigned</SelectItem>
+                              {techs.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(o)}>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-blue-500" title="Copy customer status link" onClick={() => shareStatus(o)}>
+                              <Link2 className="w-3.5 h-3.5" />
+                            </Button>
+                            {!o.converted_invoice && o.status === "done" && (
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600"
+                                title="Convert to Invoice" onClick={() => convertToInvoice.mutate(o)}>
+                                <Receipt className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <LaborGuidePickerDialog
+        open={guideOpen}
+        onOpenChange={setGuideOpen}
+        title="Labor Guide — set hours"
+        onSelect={(entry: LaborGuideEntry) => {
+          setForm(f => ({
+            ...f,
+            labor_hours: String(entry.baseHours),
+            notes: f.notes
+              ? `${f.notes}\n${entry.service} (${entry.baseHours}h std)`
+              : `${entry.service} (${entry.baseHours}h std)${entry.notes ? " — " + entry.notes : ""}`,
+          }));
+          toast.info(`Labor hours set to ${entry.baseHours}h for "${entry.service}"`);
+        }}
+      />
+
+      <ServiceCatalogPickerDialog
+        open={catalogOpen}
+        onOpenChange={setCatalogOpen}
+        storeId={storeId}
+        title="Price Book — apply service"
+        onPick={(lines, service) => {
+          const laborLine = lines.find((l) => l.kind === "labor");
+          const hours = laborLine ? laborLine.qty : Number(service.labor_hours ?? 0);
+          const laborCents = Math.round(hours * Number(service.labor_rate_cents ?? 0));
+          const partsCents = (service.parts ?? []).reduce(
+            (s: number, p: any) => s + Math.round(Number(p?.qty ?? 0) * Number(p?.unit_cents ?? 0)),
+            0,
+          );
+          const total = laborCents + partsCents;
+          setForm((f) => ({
+            ...f,
+            labor_hours: hours > 0 ? String(hours) : f.labor_hours,
+            total_cents_str: total > 0 ? (total / 100).toFixed(2) : f.total_cents_str,
+            notes: f.notes ? `${f.notes}\n${service.name}` : service.name,
+          }));
+          toast.success(`Applied "${service.name}" from Price Book`);
+        }}
+      />
+
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Hammer className="w-4 h-4" /> {editId ? "Edit Work Order" : "New Work Order"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">RO number</Label>
+                <Input placeholder="Auto-generated if blank" value={form.number}
+                  onChange={(e) => setForm({ ...form, number: e.target.value })} />
+              </div>
+              <div className="flex items-end gap-3 pb-0.5">
+                <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                  <input type="checkbox" checked={form.is_comeback}
+                    onChange={(e) => setForm({ ...form, is_comeback: e.target.checked })}
+                    className="w-4 h-4 rounded" />
+                  <AlertOctagon className="w-3.5 h-3.5 text-destructive" />
+                  Comeback
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Customer</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Input placeholder="Customer name" value={form.customer_name}
+                  onChange={(e) => setForm({ ...form, customer_name: e.target.value })} />
+                <Input placeholder="Vehicle (e.g. 2020 Toyota Camry)" value={form.vehicle_label}
+                  onChange={(e) => setForm({ ...form, vehicle_label: e.target.value })} />
+                <Input type="tel" placeholder="Phone" value={form.customer_phone}
+                  onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} />
+                <Input type="email" placeholder="Email" value={form.customer_email}
+                  onChange={(e) => setForm({ ...form, customer_email: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Labor hours</Label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCatalogOpen(true)}
+                      className="flex items-center gap-1 text-[11px] text-primary font-medium hover:underline"
+                    >
+                      <BookOpen className="w-3 h-3" /> Price Book
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGuideOpen(true)}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium hover:underline"
+                    >
+                      Labor Guide
+                    </button>
+                  </div>
+                </div>
+                <Input type="number" min="0" step="0.5" placeholder="e.g. 2.5" value={form.labor_hours}
+                  onChange={(e) => setForm({ ...form, labor_hours: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Total ($)</Label>
+                <Input type="number" min="0" step="0.01" placeholder="0.00" value={form.total_cents_str}
+                  onChange={(e) => setForm({ ...form, total_cents_str: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Notes</Label>
+              <Textarea placeholder="Service notes, special instructions…" rows={2} value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            {editId ? (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => createEstimate.mutate(buildDocSource())}
+                  disabled={createEstimate.isPending}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  {createEstimate.isPending ? "Creating…" : "Create Estimate"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => convertToInvoice.mutate(buildDocSource())}
+                  disabled={convertToInvoice.isPending}
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  {convertToInvoice.isPending ? "Creating…" : "Create Invoice"}
+                </Button>
+              </div>
+            ) : <span />}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={() => save.mutate()} disabled={save.isPending}>
+                {save.isPending ? "Saving..." : editId ? "Save changes" : "Create RO"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

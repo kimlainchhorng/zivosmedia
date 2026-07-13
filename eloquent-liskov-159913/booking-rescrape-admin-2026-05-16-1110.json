@@ -1,0 +1,2139 @@
+{
+  "run_at": "2026-05-16T18:12:48.776Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": true,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false
+  },
+  "summary": {
+    "total": 265,
+    "updated": 38,
+    "not_found": 226,
+    "errors": 1
+  },
+  "results": [
+    {
+      "id": "85c40e66-5398-4b3e-a064-f8b192da3846",
+      "name": "1930 Loft Kampot",
+      "status": "updated",
+      "photos": 42,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/1930-loft.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1b3fbc70-0d0b-4b07-a655-1d8ef1ac9d6b",
+      "name": "22 Homestay Near Techo international airport",
+      "status": "updated",
+      "photos": 142,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/22-homestay-near-techo-international-airport.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "521523bc-81a8-499f-b3e6-76876e1e38ae",
+      "name": "AHHA Floatel Kampot",
+      "status": "updated",
+      "photos": 38,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ahha-floatel-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "eb71f530-7c5e-4320-a486-3f8001514cb5",
+      "name": "AHHA River Breeze Kampot",
+      "status": "updated",
+      "photos": 60,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ahha-river-breeze-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b2bcf509-5c56-4fec-958c-d5cb3e55d871",
+      "name": "Almond Hotel Bassac River",
+      "status": "updated",
+      "photos": 186,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/almond-bassac-phnom-penh3.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "53f91766-a2f0-4544-ad71-d8b0e7613ffa",
+      "name": "Angkor Land House",
+      "status": "updated",
+      "photos": 486,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/angkor-land-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1bef8595-6f0d-4107-96b4-14cdd6eae5c4",
+      "name": "Apsara Guest House Kampot City",
+      "status": "updated",
+      "photos": 60,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/apsara-guest-house-kampot-city.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "ea4987fc-c52d-447d-9f48-8ed8a0f3d77f",
+      "name": "Apsor Palace Hotel",
+      "status": "updated",
+      "photos": 136,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/apsor-palace-hotel.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fb7a7206-f8e1-4430-9198-9ae1ec95ae1a",
+      "name": "ARISON Hotel",
+      "status": "updated",
+      "photos": 84,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/arison.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "c30e408b-f441-4fc6-809d-616d6b223bd2",
+      "name": "Arjuna Solitaire Hotel",
+      "status": "updated",
+      "photos": 118,
+      "rooms": 10,
+      "bookingUrl": "https://www.booking.com/hotel/kh/arjuna-resort-amp-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1868371b-0375-4dca-b15e-2db0c0248ba6",
+      "name": "Arthur & Paul (Men Only Hotel)",
+      "status": "updated",
+      "photos": 134,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/rthur-amp-aul.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "409281eb-782d-4412-bbfe-95212e70793d",
+      "name": "Aurea Central Hotel",
+      "status": "updated",
+      "photos": 77,
+      "rooms": 7,
+      "bookingUrl": "https://www.booking.com/hotel/kh/aurea-central.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "cfb203bf-eae2-4c0d-aba5-096c9809d1c3",
+      "name": "B Guesthouse",
+      "status": "updated",
+      "photos": 73,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/b-guesthouse.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "9a862b5f-d5e7-4b74-ab0e-019837d6b6bc",
+      "name": "Ba Min hotel 八闽酒店",
+      "status": "updated",
+      "photos": 22,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/ba-min-ba-min-jiu-dian.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "b7630d0d-9915-45a2-9308-410874be637e",
+      "name": "Bali Villa Kampot Resort",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/bali-villa-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "11176aeb-b7d1-4405-a912-c1bb851b2850",
+      "name": "Bar Oz Riverside Guesthouse",
+      "status": "updated",
+      "photos": 28,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/sundance-riverside.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "85abc224-3f40-4386-8838-eb23a55decaf",
+      "name": "Bellevue Serviced Apartments",
+      "status": "updated",
+      "photos": 168,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/bellevue-serviced-apartments.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2019d36c-7cfc-43c8-bfcd-1007aa14d10b",
+      "name": "Billions Hotel",
+      "status": "updated",
+      "photos": 9,
+      "rooms": 11,
+      "bookingUrl": "https://www.booking.com/hotel/kh/billions.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d2e109da-7079-4fd4-814f-2d68e95eeb5b",
+      "name": "Bird of Paradise Bungalows",
+      "status": "updated",
+      "photos": 64,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/abc-bungalow.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "875f1e92-304e-468c-9231-3b63317a6562",
+      "name": "Blanc Smith Residence",
+      "status": "updated",
+      "photos": 110,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/blanc-smith-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7b627186-1e9e-4064-b64a-453696245e68",
+      "name": "Bliss & Beats Hostel",
+      "status": "updated",
+      "photos": 414,
+      "rooms": 16,
+      "bookingUrl": "https://www.booking.com/hotel/kh/nangkol-village.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d0aae4d5-d4b3-4540-b236-0d6035988500",
+      "name": "Blue Sky Hotel",
+      "status": "updated",
+      "photos": 85,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/blue-sky-guest-house-phnom-penh1.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "7fd78dc2-cf1b-4579-ac79-2fc031ecf962",
+      "name": "Boeung Prolet Guest House",
+      "status": "updated",
+      "photos": 62,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/boeung-prolet-guest-house.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f8f6b177-1642-4bae-aaf6-09e6211625c4",
+      "name": "Bopha Bassac Boutique Hotel",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/teav-bassac-boutique-and-spa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "981371cb-76cb-4dce-8c85-f8d595344afe",
+      "name": "Bou's Kampot Adventures",
+      "status": "updated",
+      "photos": 30,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/bous-kampot-adventures-krungkmbt.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "f9cb235f-5d0d-4b42-b328-80b854f9a721",
+      "name": "Capri by Fraser, Phnom Penh",
+      "status": "updated",
+      "photos": 12,
+      "rooms": 6,
+      "bookingUrl": "https://www.booking.com/hotel/kh/capri-by-fraser-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "fa3718ea-b284-4da5-b945-dd1be188644b",
+      "name": "Central Suite Residence",
+      "status": "updated",
+      "photos": 12,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/central-suite-residence.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "2f6d7d31-ce7c-4013-97eb-25ac788dcb55",
+      "name": "Champa Lodge",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d682b08d-bd1f-4c37-9e55-83b0570525d3",
+      "name": "Champa Village",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/champa-village.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4b075b7f-e36c-46fd-ba00-9c2aa344d19d",
+      "name": "Champs Elysees Hotel & Suites",
+      "status": "updated",
+      "photos": 65,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/champs-elysees-amp-suites.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "26461cb9-a863-4d3c-ac30-06ea85baae07",
+      "name": "Cheathata CTS Hotel Siem Reap",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/cheathata-suites.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "e74540aa-7cd4-44f3-961b-bdea1b9ca38a",
+      "name": "Clover Hotel Phnom Penh",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 4,
+      "bookingUrl": "https://www.booking.com/hotel/kh/clover-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d37427c6-87a5-4ca8-aa9f-16ede43a28c5",
+      "name": "Coconut Lodge",
+      "status": "updated",
+      "photos": 8,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/villa-pich-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "5430dc9e-1cc0-48c8-bd24-3346ca1442a5",
+      "name": "Cominsia Lodge",
+      "status": "updated",
+      "photos": 85,
+      "rooms": 3,
+      "bookingUrl": "https://www.booking.com/hotel/kh/cominsia-lodge.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "72937783-6257-4dc7-863a-9bac6e30b4f8",
+      "name": "Condo tel at star bay",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3efc75d1-07cc-4090-9ff7-f7d99fbb41ab",
+      "name": "Courtyard by Marriott Phnom Penh",
+      "status": "updated",
+      "photos": 105,
+      "rooms": 8,
+      "bookingUrl": "https://www.booking.com/hotel/kh/courtyard-by-marriott-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "1436d3dd-d2f4-483c-bd51-54a7e0d0a3e8",
+      "name": "Crowne Plaza Phnom Penh by IHG 金边皇冠假日酒店 Former VM Hotel",
+      "status": "updated",
+      "photos": 12,
+      "rooms": 9,
+      "bookingUrl": "https://www.booking.com/hotel/kh/crowne-plaza-phnom-penh.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "d39aafb2-9d78-4a3b-a6a4-06caa9701e39",
+      "name": "Da San Hotel",
+      "status": "updated",
+      "photos": 110,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/da-san.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "4b7a484a-a922-4b64-b5b3-0f5e8dbb7f84",
+      "name": "Daun Penh Palace Boutique",
+      "status": "updated",
+      "photos": 79,
+      "rooms": 2,
+      "bookingUrl": "https://www.booking.com/hotel/kh/daun-penh-palace-boutique.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "38eb87a7-8218-45b2-b542-54df66cbbb76",
+      "name": "Daya Villa",
+      "status": "updated",
+      "photos": 180,
+      "rooms": 5,
+      "bookingUrl": "https://www.booking.com/hotel/kh/daya-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    },
+    {
+      "id": "6cc3af7b-ee7a-4b26-a31b-9b7769ebf2d0",
+      "name": "De KT Villa Kampot",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/de-kt-villa-kampot.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.$: Target page, context or browser has been closed"
+    },
+    {
+      "id": "80ceff59-43f9-4948-ab8e-5ea586524506",
+      "name": "Derm Svay Guesthouse - yoga & cafe",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "a41a4b51-3525-49c1-b155-86b50b254065",
+      "name": "Devi Kampot Resort at Phum Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7d11ca15-e196-4995-9a21-44a319cbe36b",
+      "name": "Diamond Pearl Hotel ,Phnom Penh,Royel Palace, Mekong RIver,Swimming Pool",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "87c776e4-4cbe-4dc0-b717-19a9ede62edd",
+      "name": "Downtime Hotel Phnom Penh",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "515be981-12fd-4cfa-b622-264bca31c56c",
+      "name": "Eco Lotus Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "85b82d34-ebf1-4858-9744-a42f5cf57c4b",
+      "name": "Ecran Riverfront Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "0b2dc615-54b6-48fd-a6fc-8ddc738cfb82",
+      "name": "El Ling guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "31d4ba5c-13b3-43ac-bbc9-1666fd9b511b",
+      "name": "Emerald Residence Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "2d1ddb69-71ac-411c-bbed-bc2a8c44c9df",
+      "name": "Empire House, Phnom Penh",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "5c69d562-e065-4105-bbd2-25bd9fe53081",
+      "name": "F L G Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "4c62914d-5b8a-427b-add5-e28ca2c89358",
+      "name": "Fairfield by Marriott Phnom Penh",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "5755a997-21ce-4acb-a5bb-43fe3a2f1791",
+      "name": "Family Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "744fcfee-a3cf-4c07-a896-9f83c126eff0",
+      "name": "FCC Angkor by Avani",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3fdce49f-c94f-4b93-894d-775eb272a888",
+      "name": "Finance Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "854d6765-38bd-491c-ab80-33a053c5de6b",
+      "name": "Funky Moon Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d68622ae-8bae-41b5-a463-3d917d6029c3",
+      "name": "Golden Banana Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6d35d703-d258-49d7-b0ff-009e5bda9041",
+      "name": "Golden Kep Beach Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3fb80dd0-e0ea-413c-a64c-353be1051aec",
+      "name": "Golden Star Inn",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "2d76a723-0f48-405a-ad7f-cf57a4587cd7",
+      "name": "Golden Temple Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c4984135-7f36-4792-99ee-82b9e70f7f92",
+      "name": "Golden Temple Villa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "a3a495da-72f5-4de4-a7f8-16f5070e79af",
+      "name": "Good Day Kampot Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "e4ad0624-cac5-4b59-bb03-cdcf94d41ebd",
+      "name": "Good Time Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "97129278-41f0-4394-981a-9998525f3000",
+      "name": "Green Garden Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "03dbaba0-372d-47ca-a37b-faf5423cc60d",
+      "name": "H&M Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "95eb5c35-e414-4118-96a8-8d6dfcf85eaf",
+      "name": "Happy​​ Family Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "71160765-3454-4d8b-8a5b-f8f1f09ebd69",
+      "name": "Hawaii Beach Bungalows",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6bb89bde-a33f-4a7f-a9fd-203ab2f345de",
+      "name": "Hawaii Lounge",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "77ed3ddb-b7aa-4024-948d-18c2603bac24",
+      "name": "Hello Kampot Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "9e751144-1b8c-40d4-a2a1-8ba7b9483049",
+      "name": "Heritage Village Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6686d0f5-5e77-4ba1-bc35-830f538d856c",
+      "name": "Hillocks Hotel & Spa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "89e53185-2730-4c44-9b6a-a498687729b5",
+      "name": "Holy Villa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d275bd10-e604-4732-95a7-9e64ff0c276f",
+      "name": "Homewood Hotel Siem Reap",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b94e4a03-bf2d-469f-9442-a597dd25509c",
+      "name": "Hotel Serviced Apartments Top One Infinity Pool with View of 360 Degree",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "1e2d224e-ca57-4c64-baa1-09d832c4784f",
+      "name": "House Boutique Eco Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c0f80efc-7eb8-4a7d-b520-206465bfaf28",
+      "name": "ibis Styles Siem Reap",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "f0fd7d2d-2280-4cf8-873e-0b1796293a92",
+      "name": "INFINITE POOL Condominium & Residence - Sihanoukville - 5mn to boat pier",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "60fba608-4994-43aa-82f5-978f90f680dc",
+      "name": "Invito Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "31094ea3-bba4-4cc6-9ab2-e03a38852b6d",
+      "name": "John Bosco Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c6dd8501-7de3-4645-9314-d52488e5f92d",
+      "name": "Joya Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "084d247a-d16c-4938-82f5-aac4d22a7d54",
+      "name": "Julieka’s Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "813158f4-3310-4543-8f88-b8e523676026",
+      "name": "Jungle Addition",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "300f7fe2-e99c-4397-b163-d3d3ff3078a9",
+      "name": "Kampheak Roath Bungalows",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "8bd129ee-20d5-48a6-85fa-b77189305fd4",
+      "name": "KampongBay Makeng II Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "49024c3a-cb2a-4701-9be2-1853601c2dbe",
+      "name": "Kampot - Harmony Villa 35",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7ee1e3ff-56bb-4502-a6a2-b5162c29d86d",
+      "name": "Kampot Cabana",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "33141644-3aa2-4be5-9421-95f7fd0de70c",
+      "name": "Kampot Coco Guest House",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b923dbd3-8d42-4e63-bb98-c9c51c6bbf1e",
+      "name": "Kampot Gate Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "cdb15843-aa50-4436-bcdc-0c53ff5804b3",
+      "name": "Kampot guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "049a6319-889f-4ca5-bdd0-471d6f0a52e1",
+      "name": "Kampot Origin",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "8f77c2fd-e999-4570-9f90-1b5b1ebe0b0e",
+      "name": "Kampot Orkide Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "28c21ad4-4997-4c8d-bb44-7952d2942b16",
+      "name": "Kampot Orkide Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "2215ac6c-7c55-47c8-a581-35848ca01de1",
+      "name": "Kampot River Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ce583629-bbaf-40ff-9d3a-49d43a3a05d3",
+      "name": "Kep Arunrass Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "34bbfb3a-57d9-4ac2-822f-6db5170c58d4",
+      "name": "Kep Bungalows",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3aa30bd3-9700-4032-9837-453cb834892f",
+      "name": "Kep Sea View Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d005b441-f0ee-4744-869e-e59917121aa6",
+      "name": "Kep Villa Hill Guest House 1",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "0bd68933-bb5d-47e2-aca1-a1a8feda976f",
+      "name": "Khemara Angkor Hotel & Spa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7f084fbe-b51c-4a8f-9e82-92419de01227",
+      "name": "Khemra I Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "10f02187-bfa2-4a13-a315-8cf1a6fbfb73",
+      "name": "Khla Lodge",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "00bdeacb-8d3e-42f4-9726-ce02173d1783",
+      "name": "Khmer Hands",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "104814b7-739f-4e5a-8270-98ace81c66e5",
+      "name": "Khmer House Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "cc77b455-542c-4ed5-808e-58ae0b683872",
+      "name": "Khmer House Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "bd24e657-ae07-4035-8e33-111de552596d",
+      "name": "Khmer Surin Boutique Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "fc04e694-da43-4c12-8203-170b22baf90b",
+      "name": "King Grand Boutique Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "153cf43d-fd40-4aa3-9286-03c0e99d0192",
+      "name": "Komsan Kampot Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "77ccc00a-0f45-41e8-9c7c-864ad2f33d08",
+      "name": "Kro Nhep Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "021747f4-9414-4198-b84e-25445f5a9e5e",
+      "name": "La maison de Soriya - Homestay",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "1b183fed-c37e-4ee0-b3c2-5b67cdf4e546",
+      "name": "La Mansion Durian Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d3ce58b8-3cd1-41c1-8444-e1d63664a9ce",
+      "name": "La Plantation Villa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b83e319f-278e-497c-9974-791ffd7039b8",
+      "name": "La Rose Suites",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "787fa4b4-8ce4-4450-b90c-4d399ea29928",
+      "name": "La Vogue Boutique Hotel & Casino",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "37a6f47a-3df1-43ec-a32e-fff75b285329",
+      "name": "Lavanya Boutique Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "09748511-6cea-4b19-89a0-d6f487426b41",
+      "name": "Le Botum Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "69061bdc-c6f8-4e01-a687-dd694d103a22",
+      "name": "Le Chen Miiya Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "5c417e60-7842-4a41-9089-525973bd76e2",
+      "name": "Le Grand Palais Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "01529c3a-0496-4925-92ca-79a9014f7df8",
+      "name": "Le hotel hotel Phnom Penh Cambodia",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "50d3afaa-bf09-40d2-a965-ee304d535eec",
+      "name": "Le Vert Angkor Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "9241c382-409b-4ab8-afb4-5ae00d8188fc",
+      "name": "LML Kampot Relax House",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "0aeb0a7a-ffb9-4e47-a406-2ed90300acbf",
+      "name": "Lub d Siem Reap - Near Pub Street & Angkor Wat",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "2f0625fb-79d4-4cbe-8ff3-08273867f650",
+      "name": "Mabuhay Guesthouse Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c6497925-a255-41df-98f3-86038773b19d",
+      "name": "Mad Monkey Hostel Phnom Penh",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "4a1c1dde-9b92-48db-ae16-10de26351e0f",
+      "name": "Mansion 51 Hotel & Apartment",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ef19f6b6-8423-40d1-90dc-4efbd1d89911",
+      "name": "Marany Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c6af17fd-7f9e-4979-8163-f6ca4311b4ef",
+      "name": "Mettā Guesthouse Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d71aae70-3423-4f82-9dc9-66ddae646266",
+      "name": "Mlis Kampot River",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "936893e8-b3e5-4a0b-a70b-84ce326bdad3",
+      "name": "Moly Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "99c087f5-d0d3-4667-adcc-05128e46a4ae",
+      "name": "Monica Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "36cf74e3-163e-40e2-9507-0eabc5534713",
+      "name": "Monsoon Bassac Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "e4e48e9a-87f9-4f97-b8c5-9912acca5b95",
+      "name": "Montagne Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c2d96fce-0bc4-4fa1-889c-bd4288da8805",
+      "name": "My Parents Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "de7e4698-2930-4c16-ab2f-f625e37cd05e",
+      "name": "Naiya Sea Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ba468a53-d0e7-476a-9e31-e06212e01f09",
+      "name": "Naki Suites @ Silvertown",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "78ad6390-8f26-4a92-9afc-019820053026",
+      "name": "NanaSky Kampot Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6f255dae-99ae-429e-ad60-09e19b69a2dd",
+      "name": "Neakru Guesthouse and Restaurant",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "92d571f7-e375-4d33-86a4-6039d6b590a5",
+      "name": "Neang Aun Kep",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "8e0517cf-aced-4956-87b1-eaa6564cee68",
+      "name": "Nice Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "73470f62-cb17-42d1-a910-943d36c2c62c",
+      "name": "NyNa Villa Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "92bcb119-e4fe-4be0-a169-5a22fe314969",
+      "name": "Ocean Breeze Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "27a80ac0-9ffc-4ecd-ace0-217c1ba7b8f0",
+      "name": "OCEAN HOTEL",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "89357115-a1fc-4592-bc7a-a04a973b19ad",
+      "name": "Okay Palace Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "da348106-279e-4a7c-8fef-a75efbcfc1cf",
+      "name": "Olympia City Hotel by Dara",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b975d92c-4f45-4c2c-9fa7-16065169509e",
+      "name": "One Park Hotel & Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "5785cfa3-367a-4d02-bfed-f0ca7d706b69",
+      "name": "One Residence Hotel & Apartment",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "97b28f67-9bcd-4ce1-b2ef-9586c1d92f9e",
+      "name": "Onederz Sihanoukville - 10 mins walk from the Tourism Pier",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "26ecb9f4-d6e0-4b22-b002-e75a24844be8",
+      "name": "Orchid 101",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "0d78a75f-f78f-4900-a72b-a1a639209fe7",
+      "name": "Orchid bokor family guest house",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "1108f4a1-1cbc-4719-8d61-824d19273f4d",
+      "name": "Ostro Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "15d0b962-5ccf-4774-9b1b-b96980f9406d",
+      "name": "PACI Hotel&SPA",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "e99f0e4a-69c8-44d4-ae1b-fd2520dfbdc1",
+      "name": "Paradise Tropica kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "2598aaeb-db29-4332-8c88-e21ef44fc78d",
+      "name": "Park Inn Boutique and Hostel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "024d9dd7-e326-4b41-8ee3-617e968eae32",
+      "name": "Peaceful Home for Big Groups",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "afbc92fd-36ae-4258-ab88-17da1abc1955",
+      "name": "Peaceful Homestay",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7c13c49c-7bfb-44d9-a110-e769c411c4ad",
+      "name": "Phka Kravan Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b2287448-ad24-4828-8e22-7e6caf558a83",
+      "name": "Phoumrumduol Bungalow",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "0e0df84f-133b-4db7-9fcc-0de84f28cafb",
+      "name": "Pooltop Phnom Penh",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7d0aebbc-d85c-4b39-829b-e25a696da116",
+      "name": "Private home",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "79f7ca8b-fdc7-4a5d-a5b8-46f7c9973edf",
+      "name": "Qube Resort Kep",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "428334b3-7c0e-4e40-be34-fe7447c6879c",
+      "name": "Raksmey Kampuchea",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "119ff2f7-84b7-43e2-9bc7-7e33c5e3d024",
+      "name": "Ramada by Wyndham Sihanoukville Xinhaohui Palace",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "67499ece-b448-42fe-b9ad-400e438aa1d7",
+      "name": "Ranisa Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3b0608f4-b84a-4b59-9da7-e67a91d13fe4",
+      "name": "REACHBUT SESSOR HOTEl",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "fbfa61c3-7b93-4d11-a08e-3183cb22c375",
+      "name": "Reaksmey Meanrith Guesthouse and Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "862fba02-e4e3-4a7e-8bce-af4cdda810c1",
+      "name": "Redhouse Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "2c6172c7-268d-45ef-bd94-0eae71fb38a5",
+      "name": "Residence 110 (Hotel and Apartments)",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "af37cfb9-0178-43f8-9df5-be90e2e8bdbf",
+      "name": "Riversoul Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "0391d751-1ada-48c0-8879-ae4d9cd8201e",
+      "name": "Romano Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "492a5ca0-a413-4601-bd22-3cc7796e1a6f",
+      "name": "Rooftop View Home",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "608e9b5c-bec1-4e0b-9315-b0e80dadb352",
+      "name": "Room 11 - Studio in a villa 5mn walk from the Royal Palace with swimming pool",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c33c7f49-7d2f-49fc-b53b-7451a021f41d",
+      "name": "RoSi Guesthouse & coffee",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b97f7cf9-ec4c-4b6d-938c-03ba276c849f",
+      "name": "S & D Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "fa725fb8-69aa-42b9-a15e-89fa6dfc2bf4",
+      "name": "Sahaa Beach Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "80a68932-4ff5-4986-a899-d1bb82661707",
+      "name": "SAI & SU Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "e5b0af60-21d4-48b1-9c16-94e7559a357f",
+      "name": "Samaya Boutique & Cuisine",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "dcae49da-a445-4985-acc8-259c5744d585",
+      "name": "Sanssouci Kep",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3c0e7af8-8350-4ec6-91f7-6ee388c7fc7a",
+      "name": "Sarai and Wander Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "01ad9d25-235e-4160-b5b1-5330841a74f3",
+      "name": "SB Condo Sihanoukville -700m to U MALL",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "eb95a3d6-056d-43a2-b436-0fc5d0241854",
+      "name": "Sea Breeze Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d3c03f66-ff63-4466-a2b5-cab7ba9d4712",
+      "name": "SEA SAND RESORT",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "68d15e71-e6c5-4f02-b51b-7186e3d63fe2",
+      "name": "Season Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ad7aa6b3-8b4b-430c-9247-b97512102251",
+      "name": "Sela Home - Private Rental",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "27f22abb-d649-46ea-947a-01168eecdd4c",
+      "name": "SENNA SUNSHINE INTERNATIONAL HOTEL",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "f16aea95-f36a-4cc8-a0c8-79acec809dd0",
+      "name": "SIHA Hotel & Casino",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "f19d65c1-66bd-471d-b089-e6d9a7335177",
+      "name": "Sihanouk Star Bay 西港星汇",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "bd8c8173-11cd-43f8-ba49-85cb560808e6",
+      "name": "Silver Mounts Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b3f2ec71-4c06-4a2b-8b2b-c131c015d8b3",
+      "name": "Sky Hotel - Cinema rooms & Apartments - Free laundry",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6ccafd3b-d86b-4182-a2fe-b26c126dac37",
+      "name": "Skyline Boutique Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "5253d6de-8cac-4343-a392-c853f33c741a",
+      "name": "Sobenban",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "8258bf67-1768-47fe-8543-02d3401c6fd5",
+      "name": "SOMA HOTEL Riverside",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "5aa94599-98d9-4b76-875a-d22a4fe9d88c",
+      "name": "Somato Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "4e093bed-8b25-468b-af61-c75447964211",
+      "name": "Somnea Villa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ede81ed5-ecfb-47fb-9c2b-550a6886855a",
+      "name": "SON Hotel & Apartment",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "45a44359-3de4-4b10-a777-d8776400b8c7",
+      "name": "Sonitori Boutique Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b6ea3c9b-b8ca-43e4-9d4d-f0a1c6b94ebc",
+      "name": "Sovanphum Riverside",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "15178aed-02a2-458e-8112-c7f9fddd4858",
+      "name": "Spicy23 - M' Pai Bay",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "076e4220-581c-4d6a-91a8-cc28c99bb59f",
+      "name": "SSB Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "f5cb2692-6a82-4039-8c96-884fd21946cd",
+      "name": "ST Apartment",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "28ad6a21-4fa0-410b-8992-7ba79f1fcbf7",
+      "name": "Star Bay Apartment",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b56be597-9b99-4e8f-b584-3e60eb8c5141",
+      "name": "STAR BAY APARTMENT SIHANOUK Ville",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "aa5e0298-62e9-42de-b9e0-0bd250a5d197",
+      "name": "STAR BAY Hotel Sihanoukville - 400m to beach Sokha",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7d817cf8-dd01-4c62-a810-ed324901b6fb",
+      "name": "STAR BAY SIHANOUKVILLE HOTEL 350 m to U Mall",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7126ba5e-1b86-4d02-8c36-5a628434a6a7",
+      "name": "Starbay condotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "51a14f1b-e24f-4809-b67b-b0bdf10321b6",
+      "name": "Steung Siemreap Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "74fced74-26ec-491b-bdac-8374d8f77565",
+      "name": "STONE AGE Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b8e3158f-b68f-4e3d-b850-bb819990cbb5",
+      "name": "Studebaker Guesthouse & Pool",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ab145f29-b2ff-485a-b093-be4b816925c9",
+      "name": "Suite Home Boutique Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "207e25dc-f6bb-4311-88c2-cea9af8df397",
+      "name": "Sun & Roots Kampot Lodge",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "190b8c26-0a18-4178-9504-ce6b7a1ffaab",
+      "name": "Sun Horizon Hotel - Phnom Penh",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "dba85574-90a1-450a-b8cc-430a66841129",
+      "name": "Sunway Hotel Phnom Penh",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "71ac016b-880f-467c-8cd7-501e39de6c08",
+      "name": "SVR homestay",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ea206d6c-131e-46b5-b643-e6edb627094e",
+      "name": "swj09",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d98b6dda-34cc-4098-8634-350e436dac60",
+      "name": "Ta Eng Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "2b8453da-c398-4f7c-8e76-72e0b750f386",
+      "name": "TAO Riverside Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "6490e722-ac72-40c3-a656-c3895cfc8a50",
+      "name": "TARA LODGE Haven of peace",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "535dac12-4c29-4a69-a54e-8267a1572a35",
+      "name": "The B Relax House",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "94f10a6d-ce5a-4156-91b3-aa420a69c431",
+      "name": "The Bale Phnom Penh by LifestyleRetreats",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7c320a96-a92b-46ac-87a9-703a51209b6e",
+      "name": "The Bear Bungalow",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3e56d5e0-abb4-478d-b343-0718f89079e0",
+      "name": "The Big Boss Indian Restaurant & Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "15cd6857-8a12-4c29-87c0-431f32050366",
+      "name": "The Cliff Haven Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "01e6291f-b96f-4b1a-9d9a-3c919abfbe74",
+      "name": "The Cloud Homestay Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "46214b4f-8b28-4145-92f3-43a41c63c646",
+      "name": "The Columns",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "db5c4334-535b-45a5-8ef5-9358c2730bc2",
+      "name": "The Deck",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "7ca0bc16-9a1f-41b2-8b4e-7cfabadc55be",
+      "name": "The Dubliner Inn",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "5a5ae2c7-7b07-495a-a69a-4ce654cb426a",
+      "name": "The Hidden Oasis Bungalows",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "a628d0a9-7668-4503-9cfa-d8889951f075",
+      "name": "The Hideout",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "ed9fad67-ff4f-4cf3-9ff7-ec4c2201864d",
+      "name": "The Hill Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "726ba7d5-f5c0-4780-acc5-8ca2c2e07631",
+      "name": "The Hub Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "55f8e5f1-c069-478a-8f76-4626e83aea83",
+      "name": "The Last Beach House",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "4adb8497-f49e-424f-b149-abd5e28ee255",
+      "name": "The Panda Backpacker Hostel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d69595fc-6370-4b86-841a-769c69ffebcb",
+      "name": "The PeAk Residence, Multi-Apartment by Emma",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "fb0603cd-4621-4623-b102-e53dd1744285",
+      "name": "THE PLACE Hostel Phnom Penh",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "bf2d1dab-0bf0-4323-8691-08695078093a",
+      "name": "The R&B Boutique",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "9eb2be04-ecbd-46de-908c-67ca668e2755",
+      "name": "The Seagull Guesthouse Kampot CAMBODIA",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "deaadb16-7bb8-40b3-bf7c-1c9dc42223d1",
+      "name": "The Sky Plus Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "74d9d1e2-acfb-441c-b4fa-c47b3b04a88e",
+      "name": "The Twizt - Lifestyle Hostel & Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c175cd33-0415-443e-9fc0-63e2605fb462",
+      "name": "The View Serviced Residence 豪景日式酒店公寓",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "d1b6fe44-d0ca-45ba-b6cf-e2b214c5f46a",
+      "name": "Tiki garden",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "53114457-9b2c-492d-b6cf-924b4686b709",
+      "name": "Ting Bo Hotel Sihanoukville Autonomous Port Branch 廷泊酒店西哈努克高龙岛码头店",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "759faee6-74dd-45d5-9c64-1e9a0f6c498d",
+      "name": "Treuy Koh Bungalow",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "9aa4dcdb-6cd9-4fa9-85a1-0a295830fdf1",
+      "name": "TRIMULIA Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "e8de34ef-47de-4c03-a13e-ce6f9e4e21dd",
+      "name": "TWIN HOME Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "3ab4be88-e8ce-47fc-8cad-6fa8b2148cee",
+      "name": "Twin Palms Resort",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c6b4b193-97da-4f8a-98c1-d43189720a7c",
+      "name": "U Mall Apartments - 400m to Sokha Beach",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "e89e08e2-0366-4221-98bf-57874cea0384",
+      "name": "Umi Resort 菩提有米",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "01ffaccd-cead-4365-a10d-ecd1d4543c98",
+      "name": "Vacation Boutique Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c3ee738f-d2c8-488d-855a-fb42c335ecee",
+      "name": "VIBOLA Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "60aafcb1-fddf-46de-ae64-79226a091430",
+      "name": "Villa 'The Blue House' - Qbungalows",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "e771c6c6-708e-4498-b702-3e51ea911dcd",
+      "name": "Villa Grange",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "b78851d2-e8e8-4563-a8a8-c027ffa51e2a",
+      "name": "Villa Papillon",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "9325b2e6-74da-44ed-b5ab-0934401777bc",
+      "name": "Villa Romduol",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "44d0f758-87e9-4254-a74f-8b663763a307",
+      "name": "Villa Samathi",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "05824ce8-a690-4144-8e56-411ef1c39ae8",
+      "name": "Villa Sultan",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "9a64863e-2abf-43ec-8880-629c14be0c47",
+      "name": "Viroth's Villa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "04fff2b4-3dff-41d1-9ebb-c8678cad302c",
+      "name": "Visal Sak Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "86e50bf5-aa5d-4976-afae-6e755b46df3d",
+      "name": "Vista Guesthouse",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "667e0bab-5ff3-477e-b175-70abbffde970",
+      "name": "Wangbang jiedian",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "16189408-24fd-4c8d-a139-e6b8e0cf4e24",
+      "name": "WAT-KROM Villa",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "852b18bc-26d2-4b06-960e-58dc15281d1b",
+      "name": "Wealth Masion Cozy Studio with River View",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "808b7b55-35ae-4674-9e0e-6b3cba8ba050",
+      "name": "WH Chamkarmon Residence",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "4e2b853f-9efc-49f6-9025-c628b039ff3e",
+      "name": "WH Hotel 310",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "e4be449b-4b80-42b8-8d4a-1b00c5ac0e05",
+      "name": "Wisney Hotel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "c6633aac-7c13-4225-b182-192c225dc31b",
+      "name": "Yellow Star Hostel",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "eb559413-a506-4de4-8393-67d8b026b877",
+      "name": "Yellow Sun Kampot",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "0742a279-546d-47fb-8f1d-b5ff40f9c810",
+      "name": "YK Art House & Bong Bonlai Vegan",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    },
+    {
+      "id": "a72bec6a-8f66-445c-b1ed-9c529383fa1c",
+      "name": "怡程酒店ECHENG HOTEL",
+      "status": "not_found",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": null
+    }
+  ]
+}

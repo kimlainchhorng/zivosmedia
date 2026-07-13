@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { scanContentForLinks } from "@/lib/security/contentLinkValidation";
 
 export interface Review {
   id: string;
@@ -54,22 +55,27 @@ export function useReviews(targetType?: string, targetId?: string) {
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
-        .from("reviews")
-        .insert({
-          reviewer_user_id: user.id,
+      const scan = scanContentForLinks(input.comment);
+      if (!scan.ok) {
+        throw new Error("Your review contains a blocked link. Remove it and try again.");
+      }
+
+      const { data, error } = await supabase.functions.invoke("review-manage", {
+        body: {
+          action: "submit",
+          review: {
           target_type: input.target_type,
           target_id: input.target_id,
           rating: input.rating,
           comment: input.comment ?? null,
           service_type: input.service_type ?? "flight",
           order_id: input.order_id ?? null,
-        } as any)
-        .select()
-        .single();
+          },
+        },
+      });
 
       if (error) throw error;
-      return data as Review;
+      return data.review as Review;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [REVIEWS_KEY] });
@@ -81,11 +87,9 @@ export function useReviews(targetType?: string, targetId?: string) {
   const deleteReview = useMutation({
     mutationFn: async (reviewId: string) => {
       if (!user?.id) throw new Error("Not authenticated");
-      const { error } = await supabase
-        .from("reviews")
-        .delete()
-        .eq("id", reviewId)
-        .eq("reviewer_user_id", user.id);
+      const { error } = await supabase.functions.invoke("review-manage", {
+        body: { action: "delete", review_id: reviewId },
+      });
       if (error) throw error;
     },
     onSuccess: () => {

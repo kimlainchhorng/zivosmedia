@@ -3,7 +3,8 @@ import { Helmet } from "react-helmet-async";
 import { AnimatedCityHero, BreadcrumbSchema, DestinationFAQ, AffiliateDisclaimer, PopularDestinationsGrid } from "@/components/seo";
 import LiveRatesGrid from "@/components/seo/LiveRatesGrid";
 import GlobalTrustBar from "@/components/shared/GlobalTrustBar";
-import { destinationPhotos, DestinationCity } from "@/config/photos";
+import { destinationPhotos } from "@/config/photos";
+import type { DestinationCity } from "@/config/photos";
 import { addDays, format } from "date-fns";
 import { useMultiProviderHotelSearch } from "@/hooks/useMultiProviderHotelSearch";
 import { useEffect, useMemo } from "react";
@@ -60,11 +61,11 @@ export default function HotelCityLandingPage() {
   // SEO metadata
   const title = `Hotels in ${city} ${dynamicYear} | Compare Best Rates | ZIVO`;
   const description = `Find the best hotel deals in ${city}. Compare prices from Hotelbeds, RateHawk and more. No booking fees. Secure payment with ZIVO.`;
-  const canonicalUrl = `https://hizivo.com/hotels/${citySlug}`;
+  const canonicalUrl = `https://zivosmedia.com/hotels/${citySlug}`;
 
   const breadcrumbItems = [
-    { name: "Home", url: "https://hizivo.com" },
-    { name: "Hotels", url: "https://hizivo.com/hotels" },
+    { name: "Home", url: "https://zivosmedia.com" },
+    { name: "Hotels", url: "https://zivosmedia.com/hotels" },
     { name: `Hotels in ${city}`, url: canonicalUrl },
   ];
 

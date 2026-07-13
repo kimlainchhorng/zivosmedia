@@ -1,4 +1,4 @@
-/**
+﻿/**
  * InRideChat — Enhanced with voice notes, photo sharing, arrival countdown, typing indicator
  */
 import { useState, useRef, useEffect } from "react";
@@ -163,11 +163,11 @@ export default function InRideChat({
             <Clock className="w-3 h-3" />
             {mins}:{secs.toString().padStart(2, "0")}
           </Badge>
-          <button onClick={onCall} className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center min-w-[36px] min-h-[36px]">
+          <button type="button" onClick={onCall} className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center min-w-[36px] min-h-[36px]">
             <Phone className="w-3.5 h-3.5 text-emerald-500" />
           </button>
           {onClose && (
-            <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center">
+            <button type="button" onClick={onClose} className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
@@ -178,7 +178,7 @@ export default function InRideChat({
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 scroll-momentum">
         {messages.map((msg) => (
           <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex", msg.sender === "user" ? "justify-end" : "justify-start")}>
-            <div className={cn("max-w-[80%] rounded-2xl px-3 py-2", msg.sender === "user" ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted/40 text-foreground rounded-bl-md")}>
+            <div className={cn("max-w-[80%] rounded-2xl px-3 py-2", msg.sender === "user" ? "bg-ig-gradient text-white rounded-br-md" : "bg-muted/40 text-foreground rounded-bl-md")}>
               {msg.type === "location" && (
                 <div className="flex items-center gap-1.5 mb-1"><MapPin className="w-3.5 h-3.5" /><span className="text-[10px] font-bold">Location shared</span></div>
               )}
@@ -220,7 +220,7 @@ export default function InRideChat({
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="px-4 overflow-hidden shrink-0">
             <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none">
               {quickReplies.map(reply => (
-                <button key={reply} onClick={() => sendMessage(reply)} className="px-3 py-1.5 rounded-full bg-muted/30 text-xs font-medium text-muted-foreground hover:bg-muted/50 whitespace-nowrap shrink-0">{reply}</button>
+                <button type="button" key={reply} onClick={() => sendMessage(reply)} className="px-3 py-1.5 rounded-full bg-muted/30 text-xs font-medium text-muted-foreground hover:bg-muted/50 whitespace-nowrap shrink-0">{reply}</button>
               ))}
             </div>
           </motion.div>
@@ -239,13 +239,13 @@ export default function InRideChat({
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <button onClick={sendLocation} className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center shrink-0 hover:bg-muted/50 min-w-[36px] min-h-[36px]">
+            <button type="button" onClick={sendLocation} className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center shrink-0 hover:bg-muted/50 min-w-[36px] min-h-[36px]">
               <MapPin className="w-4 h-4 text-muted-foreground" />
             </button>
-            <button onClick={sendPhoto} className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center shrink-0 hover:bg-muted/50 min-w-[36px] min-h-[36px]">
+            <button type="button" onClick={sendPhoto} className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center shrink-0 hover:bg-muted/50 min-w-[36px] min-h-[36px]">
               <Camera className="w-4 h-4 text-muted-foreground" />
             </button>
-            <button onClick={toggleRecording} className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center shrink-0 hover:bg-muted/50 min-w-[36px] min-h-[36px]">
+            <button type="button" onClick={toggleRecording} className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center shrink-0 hover:bg-muted/50 min-w-[36px] min-h-[36px]">
               <Mic className="w-4 h-4 text-muted-foreground" />
             </button>
             <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage(input)} placeholder="Message..." className="h-9 text-xs flex-1" />

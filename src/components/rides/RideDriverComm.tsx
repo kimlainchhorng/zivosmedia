@@ -1,7 +1,8 @@
-/**
+﻿/**
  * RideDriverComm — Enhanced driver communication: messaging, voice notes, pre-ride instructions, translation
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MessageSquare, Mic, Globe, Send, Phone, MapPin, Clock, CheckCheck, Languages, Volume2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,11 +19,13 @@ const quickReplies = [
   "Running late, 5 more minutes",
 ];
 
-const messages = [
-  { id: "1", sender: "driver", text: "Hi, I'm on my way. Will be there in 4 minutes.", time: "2:31 PM", read: true },
-  { id: "2", sender: "user", text: "Great, I'll be at the main entrance.", time: "2:32 PM", read: true },
-  { id: "3", sender: "driver", text: "Perfect, I see the building. Blue Toyota Camry.", time: "2:34 PM", read: true },
-];
+type ChatMessage = { id: string; sender: string; text: string; translated?: string; time: string; read: boolean };
+
+const TRANSLATION_MAP: Record<string, Record<string, string>> = {
+  "I'm on my way":       { es: "Estoy en camino", fr: "Je suis en route", zh: "我在路上", ar: "أنا في الطريق" },
+  "Please wait":         { es: "Por favor espera", fr: "Veuillez patienter", zh: "请等一下", ar: "من فضلك انتظر" },
+  "I'm at the pickup":   { es: "Estoy en el punto", fr: "Je suis au point", zh: "我在接送点", ar: "أنا عند نقطة الالتقاء" },
+};
 
 const languages = [
   { code: "en", name: "English" },
@@ -33,12 +36,17 @@ const languages = [
 ];
 
 export default function RideDriverComm() {
-  const [chatMessages, setChatMessages] = useState(messages);
+  const navigate = useNavigate();
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [selectedLang, setSelectedLang] = useState("en");
   const [autoTranslate, setAutoTranslate] = useState(false);
   const [showLangs, setShowLangs] = useState(false);
+  const [instructions, setInstructions] = useState([
+    { icon: MapPin, text: "Meet at main lobby entrance", active: true },
+    { icon: Clock, text: "I have luggage, may need extra time", active: false },
+  ]);
 
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
@@ -68,17 +76,15 @@ export default function RideDriverComm() {
       <Card className="border-primary/20">
         <CardContent className="pt-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm">MR</div>
+            <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm">D</div>
             <div>
-              <p className="text-sm font-bold text-foreground">Marcus R.</p>
+              <p className="text-sm font-bold text-foreground">Your Driver</p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="w-3 h-3" /> ETA 4 min
-                <span>•</span>
-                <MapPin className="w-3 h-3" /> 0.3 mi away
+                <Clock className="w-3 h-3" /> En route
               </div>
             </div>
           </div>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => toast.info("Calling driver...")}>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate("/rides/hub")}>
             <Phone className="w-3.5 h-3.5" /> Call
           </Button>
         </CardContent>
@@ -123,7 +129,7 @@ export default function RideDriverComm() {
                 <div
                   className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
                     msg.sender === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      ? "bg-ig-gradient text-white rounded-br-md"
                       : "bg-muted text-foreground rounded-bl-md"
                   }`}
                 >
@@ -133,9 +139,24 @@ export default function RideDriverComm() {
                     {msg.sender === "user" && msg.read && <CheckCheck className="w-3 h-3" />}
                   </div>
                   {autoTranslate && msg.sender === "driver" && (
-                    <button className="flex items-center gap-1 mt-1 text-[10px] text-primary underline" onClick={() => toast.info("Translation: " + msg.text)}>
-                      <Languages className="w-3 h-3" /> Translate
+                    <button type="button"
+                      className="flex items-center gap-1 mt-1 text-[10px] text-primary underline"
+                      onClick={() => {
+                        const key = Object.keys(TRANSLATION_MAP).find((k) => msg.text.includes(k));
+                        const translated = key && TRANSLATION_MAP[key][selectedLang];
+                        if (translated) {
+                          setChatMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, translated } : m));
+                        } else {
+                          const url = `https://translate.google.com/?sl=auto&tl=${selectedLang}&text=${encodeURIComponent(msg.text)}&op=translate`;
+                          window.open(url, "_blank", "noopener");
+                        }
+                      }}
+                    >
+                      <Languages className="w-3 h-3" /> {msg.translated ? "Translated" : "Translate"}
                     </button>
+                  )}
+                  {(msg as ChatMessage).translated && (
+                    <p className="mt-1 text-[11px] italic opacity-80">{(msg as ChatMessage).translated}</p>
                   )}
                 </div>
               </div>
@@ -181,16 +202,16 @@ export default function RideDriverComm() {
           <CardTitle className="text-sm">Pre-Ride Instructions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {[
-            { icon: MapPin, text: "Meet at main lobby entrance", active: true },
-            { icon: Clock, text: "I have luggage, may need extra time", active: false },
-          ].map((instr, i) => (
-            <button
+          {instructions.map((instr, i) => (
+            <button type="button"
               key={i}
               className={`w-full flex items-center gap-3 p-3 rounded-xl border text-sm text-left transition-colors ${
                 instr.active ? "bg-primary/10 border-primary/30 text-foreground" : "bg-muted/20 border-border/50 text-muted-foreground"
               }`}
-              onClick={() => toast.success("Instruction sent to driver")}
+              onClick={() => {
+                setInstructions((prev) => prev.map((it, idx) => idx === i ? { ...it, active: !it.active } : it));
+                if (!instr.active) toast.success(`Instruction sent: "${instr.text}"`);
+              }}
             >
               <instr.icon className="w-4 h-4 shrink-0" />
               {instr.text}

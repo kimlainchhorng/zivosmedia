@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { 
   MapPin, 
   Plus, 
@@ -97,7 +97,7 @@ const MultiCityPlanner = ({ className }: MultiCityPlannerProps) => {
                 <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
                 
                 {/* City Number */}
-                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-ig-gradient text-white flex items-center justify-center text-xs font-bold">
                   {index + 1}
                 </div>
                 
@@ -113,14 +113,14 @@ const MultiCityPlanner = ({ className }: MultiCityPlannerProps) => {
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-muted-foreground">Stay:</span>
                       <div className="flex items-center gap-1">
-                        <button
+                        <button type="button"
                           onClick={() => updateNights(city.id, city.nights - 1)}
                           className="w-5 h-5 rounded bg-muted hover:bg-muted/80 flex items-center justify-center text-xs"
                         >
                           -
                         </button>
                         <span className="w-8 text-center text-sm font-medium">{city.nights}</span>
-                        <button
+                        <button type="button"
                           onClick={() => updateNights(city.id, city.nights + 1)}
                           className="w-5 h-5 rounded bg-muted hover:bg-muted/80 flex items-center justify-center text-xs"
                         >
@@ -142,7 +142,7 @@ const MultiCityPlanner = ({ className }: MultiCityPlannerProps) => {
 
                 {/* Remove Button */}
                 {cities.length > 2 && index > 0 && index < cities.length - 1 && (
-                  <button
+                  <button type="button"
                     onClick={() => removeCity(city.id)}
                     className="p-1 rounded-xl hover:bg-destructive/10 transition-all duration-200 active:scale-[0.90] touch-manipulation"
                   >

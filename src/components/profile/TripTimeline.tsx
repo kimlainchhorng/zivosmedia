@@ -1,15 +1,14 @@
-/**
+﻿/**
  * TripTimeline Component
  * Premium 2026-era visual journey flow from Flight → Hotel
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useVisibleInterval } from "@/hooks/useVisibleInterval";
 import { Plane, Hotel, CloudRain, Sun, Cloud, ArrowRight, Calendar, type LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMyTrips } from "@/hooks/useMyTrips";
 import { format, differenceInHours, differenceInMinutes, isTomorrow, isToday } from "date-fns";
 
-// TODO: Fetch real weather data from weather API
-// Returns a generic placeholder until API integration
 function getWeatherForCity(_city: string) {
   return { temp: "--", condition: "N/A", Icon: Sun };
 }
@@ -24,18 +23,18 @@ function getDepartureLabel(date: Date): string {
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0 });
 
-  useEffect(() => {
-    const updateCountdown = () => {
-      const now = new Date();
-      const hours = differenceInHours(targetDate, now);
-      const minutes = differenceInMinutes(targetDate, now) % 60;
-      setTimeLeft({ hours: Math.max(0, hours), minutes: Math.max(0, minutes) });
-    };
-
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 60000);
-    return () => clearInterval(interval);
+  const updateCountdown = useCallback(() => {
+    const now = new Date();
+    const hours = differenceInHours(targetDate, now);
+    const minutes = differenceInMinutes(targetDate, now) % 60;
+    setTimeLeft({ hours: Math.max(0, hours), minutes: Math.max(0, minutes) });
   }, [targetDate]);
+
+  useEffect(() => {
+    updateCountdown();
+  }, [updateCountdown]);
+
+  useVisibleInterval(updateCountdown, 60000, { tickOnVisible: true });
 
   return timeLeft;
 }
@@ -128,7 +127,7 @@ function HotelCard({ name, roomType, checkInDate, city }: HotelCardProps) {
           <h3 className="text-xl font-bold text-foreground mb-2">{name}</h3>
           <p className="text-sm text-muted-foreground">{roomType}</p>
           
-          <button className="mt-4 text-xs font-bold text-foreground bg-muted/50 px-4 py-2 rounded-xl hover:bg-muted active:scale-[0.95] transition-all duration-200 flex items-center gap-2 touch-manipulation min-h-[36px]">
+          <button type="button" className="mt-4 text-xs font-bold text-foreground bg-muted/50 px-4 py-2 rounded-xl hover:bg-muted active:scale-[0.95] transition-all duration-200 flex items-center gap-2 touch-manipulation min-h-[36px]">
             Get Directions <ArrowRight className="w-3 h-3" />
           </button>
         </div>
@@ -162,7 +161,6 @@ export function TripTimeline() {
     }
   }
 
-  // TODO: Load flight data from travel_order_items of type "flight"
   const flightData: FlightCardProps | null = null;
 
   if (isLoading) {
@@ -194,7 +192,7 @@ export function TripTimeline() {
           </p>
           <Link 
             to="/hotels"
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-2xl font-bold text-sm hover:scale-105 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] shadow-lg"
+            className="inline-flex items-center gap-2 bg-ig-gradient text-white px-6 py-3 rounded-2xl font-bold text-sm hover:scale-105 active:scale-95 transition-all duration-200 touch-manipulation min-h-[44px] shadow-lg"
           >
             <Plane className="w-4 h-4" />
             Browse Destinations

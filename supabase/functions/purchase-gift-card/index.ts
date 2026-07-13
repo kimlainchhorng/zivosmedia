@@ -1,6 +1,6 @@
 import { serve, createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 const PRESET_AMOUNTS = [1000, 2500, 5000, 10000]; // $10, $25, $50, $100 in cents
 
@@ -11,8 +11,8 @@ function generateCode(): string {
   return `ZIVO-${segment()}-${segment()}`;
 }
 
-serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+serve(withSecurity("purchase-gift-card", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,6 +24,21 @@ serve(async (req) => {
     if (!amount_cents || !PRESET_AMOUNTS.includes(amount_cents)) {
       return new Response(
         JSON.stringify({ error: "Invalid amount. Choose $10, $25, $50, or $100." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Sanitize string fields — strip HTML chars, enforce length limits
+    const sanitize = (s: unknown, max: number) =>
+      typeof s === "string" ? s.replace(/[<>&"']/g, "").trim().slice(0, max) : undefined;
+    const safeRecipientEmail = sanitize(recipient_email, 254);
+    const safeRecipientName = sanitize(recipient_name, 100);
+    const safeMessage = sanitize(message, 500);
+    const safeSenderName = sanitize(sender_name, 100);
+
+    if (!safeRecipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeRecipientEmail)) {
+      return new Response(
+        JSON.stringify({ error: "A valid recipient email is required." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -72,11 +87,11 @@ serve(async (req) => {
         current_balance: amount_cents / 100,
         is_active: false, // activated after payment verification
         purchaser_user_id: userId,
-        purchaser_email: userEmail || sender_name || null,
-        purchaser_name: sender_name || null,
-        recipient_email: recipient_email || null,
-        recipient_name: recipient_name || null,
-        message: message || null,
+        purchaser_email: userEmail || safeSenderName || null,
+        purchaser_name: safeSenderName || null,
+        recipient_email: safeRecipientEmail || null,
+        recipient_name: safeRecipientName || null,
+        message: safeMessage || null,
       })
       .select()
       .single();
@@ -133,4 +148,4 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "payment", trackNetwork: "suspicious", blockNetworkRiskAt: 80, skipBotDetection: true }));

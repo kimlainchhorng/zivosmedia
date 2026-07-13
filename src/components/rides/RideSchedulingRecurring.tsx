@@ -1,7 +1,8 @@
-/**
+﻿/**
  * RideSchedulingRecurring — Scheduled rides, recurring commutes, calendar sync, multi-stop planning
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Clock, Repeat, MapPin, Plus, Trash2, Bell, CheckCircle, CalendarDays, ArrowRight, RotateCcw, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,8 +32,23 @@ interface CalendarEvent {
   rideLinked: boolean;
 }
 
+const SYNCED_CALS_KEY = "zivo_synced_calendars";
+
 export default function RideSchedulingRecurring() {
+  const navigate = useNavigate();
   const [section, setSection] = useState<"schedule" | "recurring" | "calendar" | "multi">("schedule");
+  const [syncedCals, setSyncedCals] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(SYNCED_CALS_KEY) || '["Google"]'); } catch { return ["Google"]; }
+  });
+
+  const toggleCalSync = (cal: string) => {
+    setSyncedCals(prev => {
+      const next = prev.includes(cal) ? prev.filter(c => c !== cal) : [...prev, cal];
+      localStorage.setItem(SYNCED_CALS_KEY, JSON.stringify(next));
+      toast.success(prev.includes(cal) ? `${cal} Calendar disconnected` : `${cal} Calendar synced!`);
+      return next;
+    });
+  };
 
   const [scheduledRides, setScheduledRides] = useState<ScheduledRide[]>([
     { id: "1", label: "Morning Commute", from: "Home", to: "Office — 5th Ave", time: "8:15 AM", days: ["Mon", "Tue", "Wed", "Thu", "Fri"], isRecurring: true, isActive: true, nextRide: "Tomorrow, 8:15 AM" },
@@ -74,7 +90,7 @@ export default function RideSchedulingRecurring() {
         {sections.map(s => {
           const Icon = s.icon;
           return (
-            <button key={s.id} onClick={() => setSection(s.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", section === s.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+            <button type="button" key={s.id} onClick={() => setSection(s.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", section === s.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               <Icon className="w-3.5 h-3.5" /> {s.label}
             </button>
           );
@@ -99,7 +115,7 @@ export default function RideSchedulingRecurring() {
                     { label: "This Weekend", time: "10:00 AM", icon: "📅" },
                     { label: "Custom Time", time: "Pick", icon: "⏰" },
                   ].map(opt => (
-                    <button key={opt.label} onClick={() => toast.success(`Scheduling ride for ${opt.time}`)} className="flex items-center gap-2.5 p-3 rounded-xl border border-border/40 bg-muted/20 hover:bg-muted/40 transition-colors active:scale-[0.98]">
+                    <button type="button" key={opt.label} onClick={() => navigate("/rides/hub", { state: { scheduledTime: opt.time, label: opt.label } })} className="flex items-center gap-2.5 p-3 rounded-xl border border-border/40 bg-muted/20 hover:bg-muted/40 transition-colors active:scale-[0.98]">
                       <span className="text-lg">{opt.icon}</span>
                       <div className="text-left">
                         <p className="text-xs font-bold text-foreground">{opt.label}</p>
@@ -165,7 +181,7 @@ export default function RideSchedulingRecurring() {
                   {/* Day selector */}
                   <div className="flex gap-1">
                     {allDays.map(day => (
-                      <div key={day} className={cn("flex-1 text-center py-1.5 rounded-lg text-[9px] font-bold transition-colors", ride.days.includes(day) ? "bg-primary text-primary-foreground" : "bg-muted/30 text-muted-foreground")}>
+                      <div key={day} className={cn("flex-1 text-center py-1.5 rounded-lg text-[9px] font-bold transition-colors", ride.days.includes(day) ? "bg-ig-gradient text-white" : "bg-muted/30 text-muted-foreground")}>
                         {day.slice(0, 1)}
                       </div>
                     ))}
@@ -178,7 +194,7 @@ export default function RideSchedulingRecurring() {
                 </div>
               ))}
 
-              <Button className="w-full h-11 rounded-xl text-sm font-bold gap-2" variant="outline" onClick={() => toast.success("Create new recurring ride")}>
+              <Button className="w-full h-11 rounded-xl text-sm font-bold gap-2" variant="outline" onClick={() => navigate("/rides/hub", { state: { recurring: true } })}>
                 <Plus className="w-4 h-4" /> Add Recurring Ride
               </Button>
             </div>
@@ -196,8 +212,8 @@ export default function RideSchedulingRecurring() {
 
                 <div className="flex gap-2">
                   {["Google", "Apple", "Outlook"].map(cal => (
-                    <button key={cal} onClick={() => toast.success(`${cal} Calendar synced`)} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border transition-colors", cal === "Google" ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-muted/20 text-muted-foreground hover:bg-muted/40")}>
-                      {cal}
+                    <button type="button" key={cal} onClick={() => toggleCalSync(cal)} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border transition-colors", syncedCals.includes(cal) ? "border-primary bg-primary/5 text-primary" : "border-border/40 bg-muted/20 text-muted-foreground hover:bg-muted/40")}>
+                      {cal}{syncedCals.includes(cal) ? " ✓" : ""}
                     </button>
                   ))}
                 </div>
@@ -216,7 +232,7 @@ export default function RideSchedulingRecurring() {
                       {evt.rideLinked ? (
                         <Badge className="text-[8px] font-bold gap-0.5"><CheckCircle className="w-2.5 h-2.5" /> Ride Set</Badge>
                       ) : (
-                        <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold rounded-lg gap-1" onClick={() => toast.success("Ride created for event!")}>
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold rounded-lg gap-1" onClick={() => navigate("/rides/hub", { state: { scheduledTime: evt.time, label: evt.title } })}>
                           <Plus className="w-3 h-3" /> Add Ride
                         </Button>
                       )}
@@ -250,7 +266,7 @@ export default function RideSchedulingRecurring() {
                           <p className="text-[9px] text-muted-foreground capitalize">{stop.type}</p>
                         </div>
                         {stop.type === "stop" && (
-                          <button onClick={() => { setMultiStops(prev => prev.filter(s => s.id !== stop.id)); toast.info("Stop removed"); }} className="p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                          <button type="button" onClick={() => { setMultiStops(prev => prev.filter(s => s.id !== stop.id)); toast.info("Stop removed"); }} className="p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -282,7 +298,7 @@ export default function RideSchedulingRecurring() {
                 </div>
               </div>
 
-              <Button className="w-full h-12 rounded-xl text-sm font-bold gap-2" onClick={() => toast.success("Multi-stop ride booked!")}>
+              <Button className="w-full h-12 rounded-xl text-sm font-bold gap-2" onClick={() => navigate("/rides/hub", { state: { multiStop: multiStops } })}>
                 <CheckCircle className="w-4 h-4" /> Book Multi-Stop Ride — $18.50
               </Button>
             </div>

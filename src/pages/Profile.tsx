@@ -1,554 +1,2021 @@
-import { useState, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+﻿import { useState, useRef, useCallback, useEffect, useMemo, Fragment } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createPortal } from "react-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useI18n } from "@/hooks/useI18n";
+import SafeCaption from "@/components/social/SafeCaption";
+import { confirmContentSafe } from "@/lib/security/contentLinkValidation";
+import { stripImageMetadata } from "@/utils/stripImageMetadata";
+import { pickImageFromLibrary } from "@/lib/imagePicker";
+
 import SEOHead from "@/components/SEOHead";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { 
-  User, 
-  Camera, 
-  ArrowLeft, 
-  Mail, 
-  Phone, 
-  Loader2,
-  Save,
-  Sparkles,
-  Shield,
-  Star,
-  Clock,
-  ChevronRight,
-  Settings,
-  CreditCard,
-  Bell,
-  Lock,
-  Plane,
-  Gift,
-  Wallet,
-  Store,
-  ExternalLink,
-  Users,
-  TrendingUp,
-  Trophy,
-  Globe
+import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
+import LoadFailureCard from "@/components/reliability/LoadFailureCard";
+import {
+  User, ArrowLeft, Loader2, Sparkles, Camera, ImagePlus, Check, X, MoveVertical,
+  Shield, Star, ChevronRight, UserPlus, BadgeCheck,
+  Wallet, Store, ExternalLink, Users, Globe, ChevronDown, Crown, MapPin, ShoppingBag,
+  Handshake, Car, Wrench, UtensilsCrossed, Building2, Truck, Phone, AlertCircle, Bell, MoreHorizontal,
+  Pencil, RotateCcw, Share2, BarChart3,
+  Repeat, DollarSign, Briefcase, User as UserIcon,
+  Heart, Lock, Gift, MessageCircle, Video, TrendingUp, Eye,
+  Settings as SettingsIcon,
 } from "lucide-react";
-import { StatusTiersDashboard } from "@/components/flight/StatusTiersDashboard";
-import ReferralCenter from "@/components/flight/ReferralCenter";
-import GiftCardsCredits from "@/components/flight/GiftCardsCredits";
-import FlightLoyaltyIntegration from "@/components/flight/FlightLoyaltyIntegration";
-import PayLater from "@/components/flight/PayLater";
-import FlightBookings from "@/components/flight/FlightBookings";
-import ZivoMilesProgram from "@/components/flight/ZivoMilesProgram";
-import TravelAlerts from "@/components/flight/TravelAlerts";
-import MyTripsDashboard from "@/components/flight/MyTripsDashboard";
-import PriceAlertsDashboard from "@/components/flight/PriceAlertsDashboard";
-import ItineraryBuilder from "@/components/flight/ItineraryBuilder";
-import TravelDocuments from "@/components/flight/TravelDocuments";
-import AirlinePartnersHub from "@/components/flight/AirlinePartnersHub";
-import TripSharing from "@/components/flight/TripSharing";
-import TravelCompanionFinder from "@/components/flight/TravelCompanionFinder";
-import FlightTracker from "@/components/flight/FlightTracker";
-import FlightPriceAlert from "@/components/flight/FlightPriceAlert";
-import GroundTransportBooking from "@/components/flight/GroundTransportBooking";
+import { useHaptics } from "@/hooks/useHaptics";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import UsernameShareSheet from "@/components/profile/UsernameShareSheet";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserProfile, useUpdateUserProfile, useUploadAvatar } from "@/hooks/useUserProfile";
-import { useMerchantRole } from "@/hooks/useMerchantRole";
-import { useAffiliateAttribution } from "@/hooks/useAffiliateAttribution";
-import { MERCHANT_APP_URL } from "@/lib/eatsTables";
+import { useUserProfile, useUpdateUserProfile, useUploadAvatar, useUploadCover } from "@/hooks/useUserProfile";
+import { useUsername } from "@/hooks/useUsername";
+import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
+import { useZivoPlus } from "@/contexts/ZivoPlusContext";
+import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import NavBar from "@/components/home/NavBar";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { invalidateAllStoryCaches } from "@/lib/storiesCache";
+import { openExternalUrl } from "@/lib/openExternalUrl";
+import { assessLinkSync } from "@/hooks/useLinkRisk";
+import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
+import { stripTrackingParams } from "@/lib/linkSafetyExtras";
+import ProfileContentTabs from "@/components/profile/ProfileContentTabs";
+import ProfileStories from "@/components/profile/ProfileStories";
+import SocialListModal from "@/components/profile/SocialListModal";
+// Wallet, Completeness, Referral & QuickLinks cards moved to /more page
+import ProfileTripsCard from "@/components/profile/ProfileTripsCard";
+import FeedSidebar from "@/components/social/FeedSidebar";
+import { useBookingHistory } from "@/hooks/useBookingHistory";
+import PullToRefresh from "@/components/shared/PullToRefresh";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useZivoOFMode } from "@/hooks/useZivoOFMode";
+import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
+import { formatDistanceToNowStrict } from "date-fns";
 
-const profileSchema = z.object({
-  full_name: z.string().min(2, "Name must be at least 2 characters").optional().or(z.literal("")),
-  phone: z.string().optional().or(z.literal("")),
-});
+const LANGS = [
+  { code: "en", label: "English", cc: "us" },
+  { code: "km", label: "ខ្មែរ", cc: "kh" },
+  { code: "zh", label: "中文", cc: "cn" },
+  { code: "ko", label: "한국어", cc: "kr" },
+  { code: "ja", label: "日本語", cc: "jp" },
+  { code: "vi", label: "Tiếng Việt", cc: "vn" },
+  { code: "th", label: "ไทย", cc: "th" },
+  { code: "es", label: "Español", cc: "es" },
+  { code: "fr", label: "Français", cc: "fr" },
+  { code: "de", label: "Deutsch", cc: "de" },
+  { code: "it", label: "Italiano", cc: "it" },
+  { code: "pt", label: "Português", cc: "pt" },
+  { code: "nl", label: "Nederlands", cc: "nl" },
+  { code: "pl", label: "Polski", cc: "pl" },
+  { code: "sv", label: "Svenska", cc: "se" },
+  { code: "da", label: "Dansk", cc: "dk" },
+  { code: "fi", label: "Suomi", cc: "fi" },
+  { code: "el", label: "Ελληνικά", cc: "gr" },
+  { code: "cs", label: "Čeština", cc: "cz" },
+  { code: "ro", label: "Română", cc: "ro" },
+  { code: "hu", label: "Magyar", cc: "hu" },
+  { code: "hr", label: "Hrvatski", cc: "hr" },
+  { code: "bg", label: "Български", cc: "bg" },
+  { code: "sk", label: "Slovenčina", cc: "sk" },
+  { code: "lt", label: "Lietuvių", cc: "lt" },
+  { code: "no", label: "Norsk", cc: "no" },
+  { code: "ru", label: "Русский", cc: "ru" },
+  { code: "uk", label: "Українська", cc: "ua" },
+  { code: "tr", label: "Türkçe", cc: "tr" },
+  { code: "ar", label: "العربية", cc: "sa" },
+  { code: "id", label: "Bahasa Indonesia", cc: "id" },
+];
 
-type ProfileFormData = z.infer<typeof profileSchema>;
+const getFlagUrl = (cc: string) => `/flags/${cc}.svg`;
+
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { formatCount } from "@/lib/social/formatCount";
+
+const BlueVerifiedBadge = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <VerifiedBadge className={className} />
+);
+
+type ProfileNotificationLike = {
+  action_url: string | null;
+  category?: string | null;
+  template?: string | null;
+  metadata?: Record<string, any> | null;
+};
+
+const isChatNotification = (notification: ProfileNotificationLike) => {
+  const template = (notification.template || "").toLowerCase();
+  const category = (notification.category || "").toLowerCase();
+  const actionUrl = (notification.action_url || "").toLowerCase();
+  const metadata = notification.metadata || {};
+
+  return (
+    category === "chat" ||
+    template === "chat_message" ||
+    template === "bot_reply" ||
+    template.includes("chat") ||
+    actionUrl.startsWith("/chat") ||
+    actionUrl.includes("?with=") ||
+    actionUrl.includes("&with=") ||
+    Boolean(metadata.thread_id || metadata.chat_id || metadata.conversation_id || metadata.message_id)
+  );
+};
+
+type ProfileCompletionMissingKind = "username" | "avatar" | "cover" | "bio";
+
+/* ── Parallax section wrapper ── */
+const ParallaxSection = ({ children, index }: { children: React.ReactNode; index: number }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: "-30px" }}
+    transition={{ duration: 0.4, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+  >
+    {children}
+  </motion.div>
+);
 
 const Profile = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const { t, currentLanguage, changeLanguage } = useI18n();
+  
   const { user } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useUserProfile();
-  const { data: merchantData } = useMerchantRole();
-  const affiliateAttribution = useAffiliateAttribution();
+  const { data: profile, isLoading: profileLoading, isError: hasProfileError } = useUserProfile();
+  const { username: claimedUsername } = useUsername();
+  // Brand-name override (e.g. "ZIVO" for staff/founder accounts) — falls back to legal name.
+  const brandName = (profile as { display_brand_name?: string | null } | undefined)?.display_brand_name || null;
+  const titleCase = (s: string) => s.replace(/\b([a-z])/g, (m) => m.toUpperCase());
+  const rawHeaderName = brandName || profile?.full_name || "";
+  const headerName = brandName ? rawHeaderName : (rawHeaderName ? titleCase(rawHeaderName) : "");
+  const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
+  const { notifications, isLoading: notifLoading, markAsRead } = useNotifications(20);
+  const { data: latestVerificationRequest, isError: hasVerificationRequestError } = useQuery({
+    queryKey: ["verification-request", user?.id, "latest"],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await (supabase as any)
+        .from("verification_requests")
+        .select("id, status, rejection_reason, created_at, reviewed_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; status: string | null; rejection_reason: string | null; created_at: string; reviewed_at?: string | null } | null;
+    },
+    enabled: !!user?.id,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const refreshBlueVerified = () => {
+      queryClient.invalidateQueries({ queryKey: ["verification-request", user.id, "latest"] });
+      queryClient.invalidateQueries({ queryKey: ["verification-request", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] });
+    };
+
+    const channel = supabase
+      .channel(`blue-verified-status-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "verification_requests", filter: `user_id=eq.${user.id}` }, refreshBlueVerified)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` }, refreshBlueVerified)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles", filter: `id=eq.${user.id}` }, refreshBlueVerified)
+      .subscribe();
+
+    // Fallback: re-check when tab regains focus or network reconnects
+    window.addEventListener("focus", refreshBlueVerified);
+    window.addEventListener("online", refreshBlueVerified);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener("focus", refreshBlueVerified);
+      window.removeEventListener("online", refreshBlueVerified);
+    };
+  }, [queryClient, user?.id]);
+  
+  // Count pending friend requests + new followers
+  const [socialCount, setSocialCount] = useState(0);
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchSocialCount = async () => {
+      const { count: friendReqCount } = await (supabase as any)
+        .from('friendships')
+        .select('id', { count: 'exact', head: true })
+        .eq('friend_id', user.id)
+        .eq('status', 'pending');
+      const nextCount = friendReqCount || 0;
+      setSocialCount((current) => (current === nextCount ? current : nextCount));
+    };
+    fetchSocialCount();
+    
+    // Listen for realtime changes
+    const channel = supabase
+      .channel('profile-social-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${user.id}` }, () => {
+        fetchSocialCount();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+  
+  const profileNotifications = useMemo(
+    () => notifications.filter((notification) => !isChatNotification(notification)),
+    [notifications]
+  );
+  const profileUnreadCount = useMemo(
+    () => profileNotifications.filter((notification) => !notification.is_read).length,
+    [profileNotifications]
+  );
+  const totalNotifCount = profileUnreadCount + socialCount;
+  const { isPlus, plan } = useZivoPlus();
+  const { bookings, isLoading: bookingsLoading } = useBookingHistory();
   const updateProfile = useUpdateUserProfile();
   const uploadAvatar = useUploadAvatar();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const uploadCover = useUploadCover();
+  const langTriggerRef = useRef<HTMLButtonElement>(null);
+  const { impact, selectionChanged } = useHaptics();
+  const [showNotifPanel, setShowNotifPanel] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try { return sessionStorage.getItem("zivo:profile:notif-panel") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("zivo:profile:notif-panel", showNotifPanel ? "1" : "0"); } catch {}
+  }, [showNotifPanel]);
+  useEffect(() => {
+    const restore = () => {
+      try {
+        const v = sessionStorage.getItem("zivo:profile:notif-panel") === "1";
+        setShowNotifPanel((current) => (current === v ? current : v));
+      } catch {}
+    };
+    window.addEventListener("orientationchange", restore);
+    document.addEventListener("visibilitychange", restore);
+    return () => {
+      window.removeEventListener("orientationchange", restore);
+      document.removeEventListener("visibilitychange", restore);
+    };
+  }, []);
+  const handleBack = useCallback(() => {
+    impact("light");
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/feed");
+  }, [impact, navigate]);
 
-  const form = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      full_name: "",
-      phone: "",
+  // The notch safe-area floor on the sticky header is only needed inside the
+  // installed native app. On the website there's no notch, so it just leaves an
+  // empty bar at the top — collapse it to a normal compact header on web.
+  const isNativeApp = typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform?.() === true;
+  const handleToggleNotif = useCallback(() => {
+    selectionChanged();
+    setShowLangPicker(false);
+    setShowNotifPanel(p => !p);
+  }, [selectionChanged]);
+  const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
+  const notifPanelRef = useRef<HTMLDivElement>(null);
+  const notifBellRef = useRef<HTMLButtonElement>(null);
+  // Outside-click + Escape close
+  useEffect(() => {
+    if (!showNotifPanel) return;
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const t = e.target as Node;
+      if (notifPanelRef.current?.contains(t)) return;
+      if (notifBellRef.current?.contains(t)) return;
+      setShowNotifPanel(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShowNotifPanel(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown, { passive: true });
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showNotifPanel]);
+  const resolveNotifLink = useCallback((n: { action_url: string | null; metadata: Record<string, any>; template: string }) => {
+    if (n.action_url) return n.action_url;
+    const md = n.metadata || {};
+    const dl = md.deepLink || md.deep_link || md.url;
+    if (typeof dl === "string" && dl) return dl;
+    const tpl = (n.template || "").toLowerCase();
+    if (tpl.includes("friend") || tpl.includes("follow")) return "/notifications?tab=requests";
+    if (tpl.includes("message") || tpl.includes("chat")) return md.thread_id ? `/chat/${md.thread_id}` : "/chat";
+    if (tpl.includes("comment") || tpl.includes("like") || tpl.includes("reaction") || tpl.includes("mention") || tpl.includes("post")) {
+      return md.post_id ? `/post/${md.post_id}` : "/feed";
+    }
+    if (tpl.includes("ride") || tpl.includes("trip") || tpl.includes("driver")) return md.job_id ? `/rides/track/${md.job_id}` : "/rides/hub";
+    if (tpl.includes("order") || tpl.includes("delivery")) return md.order_id ? `/orders/${md.order_id}` : "/account/orders";
+    if (tpl.includes("wallet") || tpl.includes("payout") || tpl.includes("payment")) return "/wallet";
+    if (tpl.includes("verification") || tpl.includes("verify")) return "/account/verification";
+    if (tpl.includes("security") || tpl.includes("login")) return "/account/security";
+    if (tpl.includes("promo") || tpl.includes("coupon")) return "/wallet/promos";
+    return "/notifications";
+  }, []);
+  const handleNotifClick = useCallback((n: { id: string; action_url: string | null; metadata: Record<string, any>; template: string; is_read: boolean }) => {
+    selectionChanged();
+    if (!n.is_read) {
+      void markAsRead([n.id]).catch(() => undefined);
+    }
+    setShowNotifPanel(false);
+    navigate(resolveNotifLink(n));
+  }, [markAsRead, navigate, resolveNotifLink, selectionChanged]);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
+  const handleMarkAllRead = useCallback(async () => {
+    const unreadIds = profileNotifications
+      .filter((notification) => !notification.is_read)
+      .map((notification) => notification.id);
+    if (unreadIds.length === 0 || isMarkingAllRead) return;
+    selectionChanged();
+    setIsMarkingAllRead(true);
+    try {
+      await markAsRead(unreadIds);
+      toast.success("All notifications marked as read");
+    } catch {
+      toast.error("Couldn't mark all as read");
+    } finally {
+      setIsMarkingAllRead(false);
+    }
+  }, [isMarkingAllRead, markAsRead, profileNotifications, selectionChanged]);
+  const handleResetCover = useCallback(() => { impact("light"); setCoverPosition(50); }, [impact]);
+  
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const profileCardRef = useRef<HTMLDivElement>(null);
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
+
+  // Cover photo state
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverRepositioning, setCoverRepositioning] = useState(false);
+  const [coverPosition, setCoverPosition] = useState<number>(profile?.cover_position ?? 50);
+  const coverPositionClass = useMemo(() => {
+    const snapped = Math.round(Math.min(100, Math.max(0, coverPosition)) / 10) * 10;
+    const map: Record<number, string> = {
+      0: "object-[center_0%]",
+      10: "object-[center_10%]",
+      20: "object-[center_20%]",
+      30: "object-[center_30%]",
+      40: "object-[center_40%]",
+      50: "object-[center_50%]",
+      60: "object-[center_60%]",
+      70: "object-[center_70%]",
+      80: "object-[center_80%]",
+      90: "object-[center_90%]",
+      100: "object-[center_100%]",
+    };
+    return map[snapped] ?? "object-[center_50%]";
+  }, [coverPosition]);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [bioDraft, setBioDraft] = useState("");
+  const [bioEditing, setBioEditing] = useState(false);
+  const [safeLinkPrompt, setSafeLinkPrompt] = useState<string | null>(null);
+  const coverDragRef = useRef<{ startY: number; startPos: number } | null>(null);
+
+
+  // Social-graph counts unified into a single React Query instead of 4 ad-hoc
+  // useState + manual visibility-change listeners. React Query handles focus
+  // refetch + caching (staleTime 30s) so we don't burn 4 round-trips on every
+  // re-render of the profile header.
+  const { data: socialCounts, refetch: refetchSocialCounts, isError: hasSocialCountsError } = useQuery({
+    queryKey: ["profile-social-counts", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { friends: 0, followers: 0, following: 0, posts: 0 };
+      const [
+        { count: fc, error: friendsError },
+        { count: flc, error: followersError },
+        { count: fgc, error: followingError },
+        { count: pc, error: postsError },
+      ] = await Promise.all([
+        (supabase as any).from("friendships").select("id", { count: "exact", head: true })
+          .eq("status", "accepted")
+          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`),
+        (supabase as any).from("user_followers").select("id", { count: "exact", head: true })
+          .eq("following_id", user.id),
+        (supabase as any).from("user_followers").select("id", { count: "exact", head: true })
+          .eq("follower_id", user.id),
+        (supabase as any).from("user_posts").select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_published", true),
+      ]);
+      const firstError = friendsError || followersError || followingError || postsError;
+      if (firstError) throw firstError;
+      return { friends: fc || 0, followers: flc || 0, following: fgc || 0, posts: pc || 0 };
     },
-    values: {
-      full_name: profile?.full_name || "",
-      phone: profile?.phone || "",
+    enabled: !!user?.id,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+  });
+  const friendCount = socialCounts?.friends ?? 0;
+  const followerCount = socialCounts?.followers ?? 0;
+  const followingCount = socialCounts?.following ?? 0;
+  const postsCount = socialCounts?.posts ?? 0;
+  // Modal callbacks just invalidate — React Query refetches the canonical counts.
+  const setFriendCount = (_n: number) => { void refetchSocialCounts(); };
+  const setFollowerCount = (_n: number) => { void refetchSocialCounts(); };
+  const setFollowingCount = (_n: number) => { void refetchSocialCounts(); };
+  const [socialModal, setSocialModal] = useState<{ open: boolean; tab: "friends" | "followers" | "following" }>({ open: false, tab: "friends" });
+  const [shareOpen, setShareOpen] = useState(false);
+  const [modeOpen, setModeOpen] = useState(false);
+  const [activeMode, setActiveMode] = useState<string>(() => {
+    if (typeof window === "undefined") return "personal";
+    return localStorage.getItem("zivo:active_mode") || "personal";
+  });
+  const { isOFMode: zivoOFMode, setOFMode: setZivoOFMode } = useZivoOFMode();
+
+  const { data: ofSubscribersCount = 0 } = useQuery({
+    queryKey: ["of-active-subs-count", user?.id],
+    enabled: !!user?.id && zivoOFMode,
+    queryFn: async () => {
+      const { count } = await (supabase as any)
+        .from("creator_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("creator_id", user!.id)
+        .eq("status", "active");
+      return (count as number) || 0;
     },
   });
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
+  useEffect(() => {
+    if (!zivoOFMode) return;
+    setActiveMode((current) => (current === "creator" ? current : "creator"));
+    try { localStorage.setItem("zivo:active_mode", "creator"); } catch {}
+  }, [zivoOFMode]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const workflowMode = zivoOFMode ? "creator" : activeMode;
+  const profileCompletion = useMemo(() => {
+    const hasName = Boolean((profile?.full_name || "").trim());
+    const hasUsername = Boolean(claimedUsername || profile?.has_username || profile?.username);
+    const hasAvatar = Boolean(profile?.has_avatar ?? profile?.avatar_url);
+    const hasCover = Boolean(profile?.has_cover ?? profile?.cover_url);
+    const hasBio = Boolean(profile?.has_bio ?? profile?.bio);
+    const fallbackScore =
+      (hasName ? 15 : 0) +
+      (hasUsername ? 20 : 0) +
+      (hasAvatar ? 25 : 0) +
+      (hasCover ? 20 : 0) +
+      (hasBio ? 20 : 0);
+    const score = Math.max(0, Math.min(100, Number(profile?.profile_completion_score ?? fallbackScore)));
+    const missing = [
+      !hasUsername && { label: "Username", kind: "username" as const },
+      !hasAvatar && { label: "Photo", kind: "avatar" as const },
+      !hasCover && { label: "Cover", kind: "cover" as const },
+      !hasBio && { label: "Bio", kind: "bio" as const },
+    ].filter(Boolean) as Array<{ label: string; kind: ProfileCompletionMissingKind }>;
 
-    // Show preview immediately
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setAvatarPreview(e.target?.result as string);
+    return { score, missing };
+  }, [
+    claimedUsername,
+    profile?.avatar_url,
+    profile?.bio,
+    profile?.cover_url,
+    profile?.full_name,
+    profile?.has_avatar,
+    profile?.has_bio,
+    profile?.has_cover,
+    profile?.has_username,
+    profile?.profile_completion_score,
+    profile?.username,
+  ]);
+  const getShopDashboardPath = useCallback(() => {
+    if (!ownerStore?.id) return "/shop-dashboard";
+    return resolveBusinessDashboardRoute(ownerStore.category, ownerStore.id).path;
+  }, [ownerStore]);
+
+  const openShopDashboard = useCallback(() => {
+    selectionChanged();
+    if (!user) {
+      toast.info("Sign in to open Shop Dashboard");
+      navigate("/login?redirect=/shop-dashboard");
+      return;
+    }
+    if (ownerStoreLoading) {
+      toast.info("Loading your shop dashboard");
+      return;
+    }
+    navigate(getShopDashboardPath());
+  }, [getShopDashboardPath, navigate, ownerStoreLoading, selectionChanged, user]);
+
+  // Social counts now flow through useQuery above — refetched on focus and
+  // staleTime'd so 4 round-trips don't fire on every re-render.
+
+  useEffect(() => {
+    if (bioEditing) return;
+    const nextBio = profile?.bio ?? "";
+    setBioDraft((current) => (current === nextBio ? current : nextBio));
+  }, [bioEditing, profile?.bio]);
+
+  // Scroll to top on mount/navigation
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  const { scrollYProgress, scrollY } = useScroll();
+  const bgParallax = useTransform(scrollYProgress, [0, 1], [0, -80]);
+  // Mobile cover parallax + rubber-band
+  const coverY = useTransform(scrollY, [0, 240], [0, -60]);
+  const coverScale = useTransform(scrollY, [-100, 0], [1.15, 1]);
+  // Header is always pinned & visible. Toggle "over cover" styling vs solid bar
+  // once the user scrolls past the cover area for legibility. A direct scroll
+  // listener (not framer's rAF-batched useScroll, which can stall in throttled
+  // tabs/webviews and leave the header stuck transparent). Capture phase + a
+  // defensive position read so it fires whether the document or a nested
+  // overflow container (e.g. PullToRefresh) is the actual scroller.
+  const [overCover, setOverCover] = useState(true);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || document.scrollingElement?.scrollTop || 0;
+      const next = y < 80;
+      setOverCover((current) => (current === next ? current : next));
     };
-    reader.readAsDataURL(file);
-
-    // Upload file
-    await uploadAvatar.mutateAsync(file);
-    setAvatarPreview(null);
-  };
-
-  const onSubmit = async (data: ProfileFormData) => {
-    await updateProfile.mutateAsync({
-      full_name: data.full_name || null,
-      phone: data.phone || null,
-    });
-  };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
+    return () => window.removeEventListener("scroll", onScroll, { capture: true } as any);
+  }, []);
 
   const getInitials = () => {
-    if (profile?.full_name) {
-      return profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-    }
-    if (user?.email) {
-      return user.email[0].toUpperCase();
-    }
+    if (brandName) return brandName.slice(0, 2).toUpperCase();
+    if (profile?.full_name) return profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+    if (claimedUsername) return claimedUsername.slice(0, 2).toUpperCase();
     return "U";
   };
 
-  const quickLinks = [
-    { icon: TrendingUp, label: "Spending", href: "/account/spending", description: "View spending history" },
-    { icon: Sparkles, label: "Loyalty", href: "/account/loyalty", description: "Points & tier perks" },
-    { icon: Trophy, label: "Achievements", href: "/account/achievements", description: "Badges & rewards" },
-    { icon: Sparkles, label: "Activity", href: "/account/activity", description: "Your personal stats" },
-    { icon: Globe, label: "Language & Currency", href: "/account/preferences", description: "Display preferences" },
-    { icon: Gift, label: "Gift Cards", href: "/account/gift-cards", description: "Buy, send, or redeem" },
-    { icon: User, label: "Saved Travelers", href: "#travelers", description: "Manage traveler profiles" },
-    { icon: CreditCard, label: "Payment Methods", href: "/dashboard", description: "Manage cards & wallets" },
-    { icon: Bell, label: "Notifications", href: "/dashboard", description: "Preferences & alerts" },
-    { icon: Lock, label: "Security", href: "/dashboard", description: "Password & 2FA" },
-    { icon: Settings, label: "Settings", href: "/dashboard", description: "App preferences" },
-  ];
+  // Cover photo upload
+  const uploadCoverFile = async (file: File) => {
+    if (!user?.id) return;
+    setCoverUploading(true);
+    try {
+      await uploadCover.mutateAsync(file);
+      // Edge function already persisted cover_url. Reset position locally and
+      // write cover_position as a best-effort follow-up. Profiles are keyed
+      // by user_id, NOT the row PK `id`, so match on user_id (a previous bug
+      // hit the same column-confusion in ShareProfileRedirect / QRProfilePage).
+      setCoverPosition(50);
+      try {
+        await supabase.from("profiles").update({ cover_position: 50 }).eq("user_id", user.id);
+      } catch (e) {
+        console.warn("[uploadCoverFile] cover_position update skipped", e);
+      }
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] });
+    } catch (err: any) {
+      console.error("[uploadCoverFile]", err);
+      toast.error(`Cover upload failed: ${err?.message || "unknown"}`);
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
+  const handleCoverPick = async () => {
+    const file = await pickImageFromLibrary();
+    if (file) await uploadCoverFile(file);
+  };
+
+
+  const uploadAvatarFile = async (file: File) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+      await uploadAvatar.mutateAsync(file);
+      setAvatarPreview(null);
+    } catch (err: any) {
+      console.error("[uploadAvatarFile]", err);
+      setAvatarPreview(null);
+      toast.error(`Avatar upload failed: ${err?.message || "unknown"}`);
+    }
+  };
+
+  const handleAvatarPick = async () => {
+    const file = await pickImageFromLibrary();
+    if (file) await uploadAvatarFile(file);
+  };
+
+
+  // Cover repositioning handlers
+  const handleCoverDragStart = (clientY: number) => {
+    coverDragRef.current = { startY: clientY, startPos: coverPosition };
+  };
+  const handleCoverDragMove = (clientY: number) => {
+    if (!coverDragRef.current) return;
+    const delta = clientY - coverDragRef.current.startY;
+    const newPos = Math.max(0, Math.min(100, coverDragRef.current.startPos + delta * 0.3));
+    setCoverPosition(newPos);
+  };
+  const handleCoverDragEnd = () => { coverDragRef.current = null; };
+  const saveCoverPosition = async () => {
+    if (updateProfile.isPending) return;
+    try {
+      await updateProfile.mutateAsync({ cover_position: Math.round(coverPosition) });
+      setCoverRepositioning(false);
+      toast.success("Cover position saved!");
+    } catch {
+      toast.error("Couldn't save cover position");
+    }
+  };
+
+
+
+
+  const currentLang = LANGS.find(l => l.code === currentLanguage) || LANGS[0];
+
+  const { data: recentApps, isError: hasRecentAppsError } = useQuery({
+    queryKey: ["profile-recent-apps", user?.id],
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from("career_applications")
+        .select("id, status, created_at, career_jobs!inner(title)")
+        .eq("applicant_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; status: string; created_at: string; career_jobs: { title: string } | null }>;
+    },
+  });
+
+  const recentActivity = useMemo(() => {
+    const items: Array<{ label: string; date: string; iconType: "car" | "briefcase"; href: string }> = [];
+    for (const b of (bookings || []).slice(0, 3)) {
+      if (!(b as any).created_at) continue;
+      items.push({ label: "Trip", date: (b as any).created_at, iconType: "car", href: "/trips" });
+    }
+    for (const a of (recentApps || []).slice(0, 3)) {
+      if (!a.created_at) continue;
+      items.push({ label: `Applied: ${a.career_jobs?.title || "Job"}`, date: a.created_at, iconType: "briefcase", href: "/personal/my-applications" });
+    }
+    return items
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  }, [bookings, recentApps]);
+
+  const hasAnyProfileData = Boolean(profile);
+  const hasProfileRefreshError =
+    hasAnyProfileData &&
+    (hasProfileError || hasVerificationRequestError || hasSocialCountsError || hasRecentAppsError);
+
+  const retryProfileQueries = useCallback(() => {
+    if (!user?.id) return;
+    invalidateAllStoryCaches(queryClient, user.id);
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["verification-request", user.id, "latest"] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-social-counts", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-recent-apps", user.id] }),
+    ]);
+  }, [queryClient, user?.id]);
+
+  const handlePullRefresh = useCallback(async () => {
+    if (!user?.id) return;
+    invalidateAllStoryCaches(queryClient, user.id);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["userProfile", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["verification-request", user.id, "latest"] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-social-counts", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["profile-recent-apps", user.id] }),
+    ]);
+  }, [queryClient, user?.id]);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden pb-20 safe-area-top safe-area-bottom">
+    <PullToRefresh
+      onRefresh={handlePullRefresh}
+      mouseDragScroll
+      className="min-h-screen bg-background relative overflow-x-hidden safe-area-bottom"
+    >
       <SEOHead title="Profile Settings – ZIVO" description="Manage your ZIVO account, profile, and travel preferences." noIndex={true} />
-      {/* Background effects - simplified for mobile */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-radial from-primary/10 via-transparent to-transparent opacity-50" />
-      <div className="pointer-events-none absolute top-1/4 right-0 w-[200px] sm:w-[300px] h-[200px] sm:h-[300px] bg-gradient-to-bl from-primary/15 to-teal-500/10 rounded-full blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-0 w-[150px] sm:w-[200px] h-[150px] sm:h-[200px] bg-gradient-to-tr from-violet-500/10 to-purple-500/5 rounded-full blur-3xl" />
 
-      <div className="relative z-10 container max-w-lg mx-auto px-4 pt-4 pb-8">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="rounded-xl hover:bg-muted/50 -ml-2 touch-manipulation active:scale-95"
+      {/* Desktop NavBar */}
+      <div className="hidden lg:block">
+        <NavBar />
+      </div>
+
+      {/* ── Background: clean Facebook-style on mobile, parallax on desktop ── */}
+      <div className="pointer-events-none fixed inset-0 z-0 hidden lg:block bg-muted/20" />
+
+      {/* ── Mobile sticky compact header (Facebook-style) ──
+          Portaled to <body> so the position:fixed element escapes the
+          PullToRefresh transformed ancestor (which would otherwise re-anchor
+          fixed positioning and hide the header). */}
+      {typeof document !== "undefined" && createPortal(
+        <motion.header
+          role="banner"
+          aria-label="Profile quick navigation"
+          data-testid="profile-sticky-header"
+          style={{
+            // Opted out of the global .fixed.top-0 safe-area guard (index.css)
+            // via zivo-safe-top-guard-off, so this header owns its top inset:
+            // real notch inset when present (native app or iOS PWA), otherwise a
+            // tight 0.5rem so the buttons sit at the very top in the browser.
+            height: isNativeApp
+              ? "calc(var(--zivo-safe-top-sticky) + 2.75rem)"
+              : "calc(2.75rem + max(env(safe-area-inset-top, 0px), 0.5rem))",
+            paddingTop: isNativeApp
+              ? "var(--zivo-safe-top-sticky)"
+              : "max(env(safe-area-inset-top, 0px), 0.5rem)",
+          }}
+          className="lg:hidden zivo-safe-top-guard-off fixed top-0 inset-x-0 z-40 px-2.5 flex items-start gap-2"
+        >
+          {/* Adaptive background: fully transparent over the cover photo (page just
+              opened), solid blurred bar once the user scrolls past the cover. */}
+          <div
+            aria-hidden
+            className={cn(
+              "absolute inset-0 -z-10 transition-all duration-300",
+              overCover
+                ? "bg-transparent"
+                : "bg-background/92 backdrop-blur-2xl border-b border-border/50 shadow-sm shadow-background/20"
+            )}
+          />
+          <motion.button
+            onClick={handleBack}
             aria-label="Go back"
+            whileTap={{ scale: 0.86 }}
+            whileHover={{ scale: 1.04 }}
+            transition={{ type: "spring", stiffness: 400, damping: 22 }}
+            className={cn(
+              "h-9 w-9 -ml-0.5 flex items-center justify-center rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "hover:bg-muted/60 active:bg-muted/70"
+            )}
           >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold">Profile Settings</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm">Manage your account information</p>
+            <ArrowLeft className="h-5 w-5 text-foreground" />
+          </motion.button>
+          {/* Mini identity fades in with the solid bar; over the cover it would
+              collide with the large profile avatar right below the header. */}
+          <span
+            aria-hidden="true"
+            className={cn("transition-opacity duration-300", overCover && "opacity-0")}
+          >
+            <Avatar className="h-8 w-8 ring-2 ring-background shadow-sm">
+              <AvatarImage src={profile?.avatar_url || undefined} alt="" />
+              <AvatarFallback className="text-xs">{getInitials()}</AvatarFallback>
+            </Avatar>
+          </span>
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-1 transition-opacity duration-300",
+              overCover && "opacity-0"
+            )}
+            aria-live="polite"
+          >
+            <span translate="no" className="font-semibold text-sm truncate text-foreground">
+              {headerName || "Profile"}
+            </span>
+            {profile?.is_verified && <VerifiedBadge size={14} />}
+          </div>
+          <div className="relative flex shrink-0 items-center gap-1">
+            <motion.button
+              ref={langTriggerRef}
+              type="button"
+              onClick={() => {
+                selectionChanged();
+                setShowNotifPanel(false);
+                setShowLangPicker((open) => !open);
+              }}
+              aria-label="Change language"
+              aria-expanded={showLangPicker}
+              aria-controls="profile-language-menu"
+              whileTap={{ scale: 0.86 }}
+              transition={{ type: "spring", stiffness: 400, damping: 22 }}
+              className={cn(
+                "relative h-9 w-9 flex items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                showLangPicker ? "border-primary/30 text-primary" : "hover:bg-muted/60 text-foreground"
+              )}
+              title="Change language"
+            >
+              <Globe className="h-[19px] w-[19px]" />
+              <img
+                src={getFlagUrl(currentLang.cc)}
+                alt=""
+                className="absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full border border-background bg-background object-cover shadow-sm"
+                loading="lazy"
+                decoding="async"
+              />
+            </motion.button>
+            <AnimatePresence>
+              {showLangPicker && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.14 }}
+                    onClick={() => setShowLangPicker(false)}
+                    className="fixed inset-0 z-40 bg-transparent"
+                    aria-hidden
+                  />
+                  <motion.div
+                    id="profile-language-menu"
+                    role="dialog"
+                    aria-label="Change language"
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    className="fixed z-50 overflow-hidden rounded-2xl border border-border/60 bg-card/95 text-card-foreground shadow-2xl shadow-black/25 backdrop-blur-xl right-2 left-2 mx-auto max-w-[320px] lg:left-auto lg:right-20 lg:mx-0 lg:w-[260px]"
+                    style={{
+                      top: "calc(3rem + 6px)",
+                      maxHeight: "calc(100vh - 3rem - 24px)",
+                    }}
+                  >
+                    <div className="border-b border-border/40 bg-muted/30 px-3 py-2.5">
+                      <p className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                        <Globe className="h-3.5 w-3.5" />
+                        {t("lang.select")}
+                      </p>
+                    </div>
+                    <div className="max-h-[320px] overflow-y-auto py-1">
+                      {LANGS.map((lang) => {
+                        const selected = currentLanguage === lang.code;
+                        return (
+                          <button
+                            type="button"
+                            key={lang.code}
+                            onClick={() => {
+                              changeLanguage(lang.code);
+                              setShowLangPicker(false);
+                            }}
+                            className={cn(
+                              "relative flex w-full items-center gap-3 overflow-hidden px-3 py-2.5 text-left text-sm transition-colors",
+                              selected ? "bg-primary/10 text-primary font-semibold" : "hover:bg-muted/60 text-foreground"
+                            )}
+                          >
+                            <img
+                              src={getFlagUrl(lang.cc)}
+                              alt=""
+                              className="absolute right-0 top-1/2 h-[120%] w-auto -translate-y-1/2 opacity-[0.07] pointer-events-none"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                            <img
+                              src={getFlagUrl(lang.cc)}
+                              alt=""
+                              className="relative z-10 h-5 w-5 rounded-full object-cover ring-1 ring-border/50"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                            <span className="relative z-10 min-w-0 flex-1 truncate">{lang.label}</span>
+                            {selected && <Check className="relative z-10 h-4 w-4 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          <div className="relative">
+          <motion.button
+            ref={notifBellRef}
+            onClick={handleToggleNotif}
+            aria-label={showNotifPanel ? "Close notifications" : "Open notifications"}
+            aria-pressed={showNotifPanel}
+            aria-expanded={showNotifPanel}
+            aria-controls="profile-notif-panel"
+            whileTap={{ scale: 0.86 }}
+            transition={{ type: "spring", stiffness: 400, damping: 22 }}
+            className={cn(
+              "relative h-9 w-9 flex items-center justify-center rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              showNotifPanel
+                ? "bg-ig-gradient text-white"
+                : overCover
+                  ? "hover:bg-muted/60 text-foreground"
+                  : "hover:bg-muted/60 text-foreground"
+            )}
+          >
+            <Bell className="h-5 w-5" />
+            {totalNotifCount > 0 && !showNotifPanel && (
+              <span className="absolute right-0 top-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground ring-2 ring-background">
+                {totalNotifCount > 99 ? "99+" : totalNotifCount}
+              </span>
+            )}
+          </motion.button>
+          <AnimatePresence>
+            {showNotifPanel && (
+              <>
+                {/* Soft backdrop on mobile so the popover clearly stands above the page */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  onClick={() => setShowNotifPanel(false)}
+                  className="lg:hidden fixed inset-0 z-40 bg-background/40 backdrop-blur-[2px]"
+                  style={{ top: "3rem" }}
+                  aria-hidden
+                />
+                <motion.div
+                  ref={notifPanelRef}
+                  id="profile-notif-panel"
+                  role="dialog"
+                  aria-label="Notifications"
+                  initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="fixed z-50 origin-top-right overflow-hidden rounded-2xl border border-border/60 bg-card text-card-foreground shadow-2xl shadow-black/30 backdrop-blur-xl right-2 left-2 mx-auto max-w-[420px] lg:left-auto lg:right-4 lg:mx-0 lg:w-[400px]"
+                  style={{
+                    top: "calc(3rem + 6px)",
+                    maxHeight: "calc(100vh - 3rem - 24px)",
+                  }}
+                >
+                {/* Caret pointing at the bell */}
+                <div className="pointer-events-none absolute -top-1.5 right-12 h-3 w-3 rotate-45 rounded-sm border-l border-t border-border/60 bg-card lg:right-6" />
+                {/* Header (sticky) */}
+                <div className="sticky top-0 zivo-safe-top-none z-10 flex items-center justify-between gap-2 border-b border-border/40 bg-card/95 px-4 py-3 backdrop-blur">
+                  <div className="flex items-center gap-2" aria-live="polite">
+                    <h3 className="text-[15px] font-bold leading-none tracking-tight">Notifications</h3>
+                    {totalNotifCount > 0 && (
+                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{totalNotifCount}</Badge>
+                    )}
+                  </div>
+                  {profileUnreadCount > 0 && (
+                    <button type="button"
+                      onClick={handleMarkAllRead}
+                      disabled={isMarkingAllRead}
+                      className="rounded-full px-2 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                    >
+                      {isMarkingAllRead ? "Marking..." : "Mark all read"}
+                    </button>
+                  )}
+                </div>
+                {/* Filter chips */}
+                <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-1">
+                  {(["all", "unread"] as const).map((f) => (
+                    <button type="button"
+                      key={f}
+                      onClick={() => setNotifFilter(f)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                        notifFilter === f
+                          ? "bg-ig-gradient text-white"
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      {f === "all" ? "All" : `Unread${profileUnreadCount > 0 ? ` (${profileUnreadCount})` : ""}`}
+                    </button>
+                  ))}
+                </div>
+                {/* List */}
+                <div className="max-h-[60vh] overflow-y-auto overscroll-contain px-1.5 py-1.5">
+                  {/* Friend requests pinned */}
+                  {socialCount > 0 && (
+                    <button type="button"
+                      onClick={() => { selectionChanged(); setShowNotifPanel(false); navigate("/notifications?tab=requests"); }}
+                      className="flex w-full items-center gap-3 rounded-xl border border-primary/15 bg-primary/5 p-2.5 text-left transition-colors hover:bg-primary/10"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                        <UserPlus className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">Friend requests</p>
+                        <p className="truncate text-xs text-muted-foreground">{socialCount} pending · tap to review</p>
+                      </div>
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+                    </button>
+                  )}
+
+                  {notifLoading && profileNotifications.length === 0 ? (
+                    <div className="space-y-2 p-2">
+                      {[0, 1, 2].map((i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-muted" />
+                          <div className="flex-1 space-y-1.5">
+                            <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+                            <div className="h-2.5 w-1/2 animate-pulse rounded bg-muted/70" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (() => {
+                    const filtered = (notifFilter === "unread"
+                      ? profileNotifications.filter((n) => !n.is_read)
+                      : profileNotifications);
+                    if (filtered.length === 0 && socialCount === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-7 text-center">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/40">
+                            <Bell className="h-5 w-5 text-muted-foreground/60" />
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">You're all caught up</p>
+                          <p className="text-xs text-muted-foreground">New notifications will appear here.</p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <AnimatePresence initial={false}>
+                        {filtered.slice(0, 12).map((n) => {
+                          let timeLabel = "";
+                          try { timeLabel = formatDistanceToNowStrict(new Date(n.created_at), { addSuffix: false }); } catch {}
+                          const md: Record<string, any> = n.metadata || {};
+                          const actorAvatar: string | undefined = md.actor_avatar_url || md.avatar_url || md.image_url;
+                          const actorName: string = md.actor_name || md.actor || n.title || "?";
+                          const initials = actorName
+                            .split(/\s+/)
+                            .map((s: string) => s[0])
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase() || "Z";
+                          return (
+                            <motion.button
+                              key={n.id}
+                              layout
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              transition={{ type: "spring", stiffness: 380, damping: 30, mass: 0.6 }}
+                              onClick={() => handleNotifClick(n)}
+                              className="group flex w-full items-start gap-3 rounded-xl p-2.5 text-left"
+                              style={{
+                                backgroundColor: n.is_read ? "transparent" : "hsl(var(--primary) / 0.06)",
+                                transition: "background-color 200ms ease",
+                              }}
+                            >
+                              {actorAvatar ? (
+                                <Avatar className="h-10 w-10 shrink-0">
+                                  <AvatarImage src={actorAvatar} alt="" />
+                                  <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                                </Avatar>
+                              ) : (
+                                <div className={cn(
+                                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                                  n.category === "transactional" ? "bg-emerald-500/15 text-emerald-500"
+                                    : n.category === "operational" ? "bg-amber-500/15 text-amber-500"
+                                    : n.category === "marketing" ? "bg-fuchsia-500/15 text-fuchsia-500"
+                                    : "bg-primary/15 text-primary"
+                                )}>
+                                  <Bell className="h-5 w-5" />
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className={cn("truncate text-sm transition-all", n.is_read ? "font-medium text-foreground/90" : "font-semibold text-foreground")}>
+                                  {n.title || "Notification"}
+                                </p>
+                                {n.body && (
+                                  <p className="line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
+                                )}
+                                {timeLabel && (
+                                  <p className={cn("mt-0.5 text-[10px] font-medium", n.is_read ? "text-muted-foreground" : "text-primary")}>
+                                    {timeLabel} ago
+                                  </p>
+                                )}
+                              </div>
+                              <motion.span
+                                initial={false}
+                                animate={{ opacity: n.is_read ? 0 : 1, scale: n.is_read ? 0.4 : 1 }}
+                                transition={{ duration: 0.18 }}
+                                className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
+                                aria-label={n.is_read ? "Read" : "Unread"}
+                              />
+                            </motion.button>
+                          );
+                        })}
+                      </AnimatePresence>
+                    );
+                  })()}
+                </div>
+                {/* Footer */}
+                <div className="border-t border-border/40 px-2 py-1.5">
+                  <button type="button"
+                    onClick={() => { setShowNotifPanel(false); navigate("/notifications"); }}
+                    className="w-full rounded-xl py-2 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+                  >
+                    See all notifications
+                  </button>
+                </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+          </div>
+          <motion.button
+            onClick={() => navigate("/more?from=profile")}
+            aria-label="More account options"
+            whileTap={{ scale: 0.86 }}
+            transition={{ type: "spring", stiffness: 400, damping: 22 }}
+            className={cn(
+              "h-9 w-9 flex items-center justify-center rounded-2xl border border-border/60 bg-card/85 shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "hover:bg-muted/60 text-foreground"
+            )}
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </motion.button>
+          </div>
+        </motion.header>,
+        document.body
+      )}
+
+
+      {/* ── Scrollable content ── */}
+      <div
+        className="relative z-10 min-h-screen pb-24 scroll-smooth bg-background no-scrollbar"
+        onTouchStart={(e) => {
+          swipeStartX.current = e.touches[0].clientX;
+          swipeStartY.current = e.touches[0].clientY;
+        }}
+        onTouchEnd={(e) => {
+          if (swipeStartX.current === null || swipeStartY.current === null) return;
+          const dx = e.changedTouches[0].clientX - swipeStartX.current;
+          const dy = Math.abs(e.changedTouches[0].clientY - swipeStartY.current);
+          if (dx > 70 && dy < 60 && (swipeStartX.current ?? 0) < 36 && !coverRepositioning) {
+            navigate(-1);
+          }
+          swipeStartX.current = null;
+          swipeStartY.current = null;
+        }}
+      >
+        <div className="lg:flex lg:pt-[60px] transition-all duration-300">
+          <FeedSidebar />
+          <div className={cn(
+            // No mobile top padding: the cover photo slides under the transparent
+            // fixed header (Facebook-style). The cover's own top scrim keeps the
+            // status bar / notch area legible in the native app.
+            "w-full px-2.5 lg:px-4 max-w-none lg:max-w-3xl mx-auto"
+          )}>
+
+          {profileLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}>
+                <Loader2 className="h-8 w-8 text-primary" />
+              </motion.div>
+            </div>
+          ) : hasProfileError && !profile ? (
+            <LoadFailureCard
+              className="px-4 lg:px-0 py-10"
+              title="Profile refresh failed"
+              description="We couldn&apos;t load your profile right now. Retry to reconnect and restore your account data."
+              onRetry={retryProfileQueries}
+              onSecondary={() => navigate("/feed")}
+              secondaryLabel="Go Home"
+              trackingContext="profile"
+            />
+          ) : (
+            <div className="space-y-2.5 pt-0 lg:pt-1">
+              {hasProfileRefreshError && (
+                <DegradedDataBanner
+                  className="px-4 lg:px-0 pt-2"
+                  message="Showing cached profile data. Refresh failed."
+                  onRetry={retryProfileQueries}
+                  trackingContext="profile"
+                />
+              )}
+
+              {/* ── Profile Card with Cover Photo ──
+                  No ParallaxSection here: the hero card must paint immediately
+                  to avoid a giant blank area at the top of the viewport. */}
+              <div>
+                <div ref={profileCardRef} className="group">
+                  <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-background/92 shadow-sm">
+                    <div className="relative z-10">
+                    {/* Cover photo sits below the fixed mobile header so content never collides with the notch. */}
+                    <div
+                      data-disable-pull-to-refresh="true"
+                      className={cn("zivo-profile-cover-height relative w-full overflow-hidden select-none", coverRepositioning ? "cursor-ns-resize" : "cursor-default")}
+                      onMouseDown={coverRepositioning ? (e) => { e.preventDefault(); handleCoverDragStart(e.clientY); } : undefined}
+                      onMouseMove={coverRepositioning ? (e) => handleCoverDragMove(e.clientY) : undefined}
+                      onMouseUp={coverRepositioning ? handleCoverDragEnd : undefined}
+                      onMouseLeave={coverRepositioning ? handleCoverDragEnd : undefined}
+                      onTouchStart={coverRepositioning ? (e) => handleCoverDragStart(e.touches[0].clientY) : undefined}
+                      onTouchMove={coverRepositioning ? (e) => handleCoverDragMove(e.touches[0].clientY) : undefined}
+                      onTouchEnd={coverRepositioning ? handleCoverDragEnd : undefined}
+                      onDoubleClick={coverRepositioning ? () => { impact("medium"); setCoverPosition(50); } : undefined}
+                    >
+                      {/* Status-bar legibility scrim (mobile only). pointer-events disabled. */}
+                      <div
+                        aria-hidden="true"
+                        className="zivo-profile-cover-scrim lg:hidden pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-black/45 via-black/15 to-transparent"
+                      />
+                      <motion.div
+                        className="pointer-events-none absolute inset-0 lg:!translate-y-0 lg:!scale-100"
+                        style={coverRepositioning ? undefined : { y: coverY, scale: coverScale }}
+                      >
+                      {profile?.cover_url ? (
+                        <img
+                          src={profile.cover_url}
+                          alt="Cover"
+                          className={cn("absolute inset-0 w-full h-full object-cover transition-[object-position] duration-100", coverPositionClass)}
+                          draggable={false}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : zivoOFMode ? (
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#00AEEF] via-[#0099D9] to-[#0077B6]">
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.18),transparent_70%)]" />
+                          <div className="absolute bottom-3 right-4 text-white/70 text-[11px] font-medium flex items-center gap-1">
+                            <ImagePlus className="w-3.5 h-3.5" /> Add cover photo
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/15 to-accent/20">
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,hsl(var(--primary)/0.25),transparent_70%)]" />
+                          <div className="absolute bottom-3 right-4 text-primary/40 text-[11px] font-medium flex items-center gap-1">
+                            <ImagePlus className="w-3.5 h-3.5" /> Add cover photo
+                          </div>
+                        </div>
+                      )}
+                      {/* Gradient overlay (subtle on mobile so cover stays vivid like Facebook) */}
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-card/40 via-transparent to-transparent lg:from-card/90 lg:via-card/20" />
+                      </motion.div>
+
+                      {/* Cover action buttons — Facebook-style bottom-right of cover.
+                          Pinned to the bottom of the cover photo so they sit far
+                          below the iOS status bar / Dynamic Island safe zone and
+                          never overlap the sticky header (back/bell/more).
+                          Uses a native <label htmlFor> so the file picker
+                          reliably opens on iOS / Android Capacitor. */}
+                      {user && !coverRepositioning && (
+                        <div className="absolute bottom-3 right-3 z-40 flex items-center gap-2 pointer-events-auto">
+                          {profile?.cover_url && (
+                            <motion.button
+                              type="button"
+                              whileTap={{ scale: 0.88 }}
+                              onClick={() => { setCoverPosition(profile?.cover_position ?? 50); setCoverRepositioning(true); }}
+                              aria-label="Reposition cover photo"
+                              className="h-9 w-9 flex items-center justify-center rounded-full bg-background/90 backdrop-blur-md text-foreground hover:bg-background shadow-lg border border-border/40 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            >
+                              <MoveVertical className="h-[16px] w-[16px]" />
+                            </motion.button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleCoverPick}
+                            disabled={coverUploading}
+                            aria-label={profile?.cover_url ? "Change cover photo" : "Add cover photo"}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 h-9 rounded-full bg-background/90 backdrop-blur-md text-foreground hover:bg-background shadow-lg border border-border/40 cursor-pointer active:scale-95 transition focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+                              profile?.cover_url ? "w-9 justify-center" : "px-3.5 text-xs font-semibold",
+                              coverUploading && "opacity-60 pointer-events-none"
+                            )}
+                          >
+                            {coverUploading ? (
+                              <Loader2 className="h-[16px] w-[16px] animate-spin" />
+                            ) : (
+                              <>
+                                <ImagePlus className="h-[16px] w-[16px]" />
+                                {!profile?.cover_url && <span>Add cover</span>}
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Repositioning controls */}
+                      {coverRepositioning && (
+                        <div className="absolute inset-0 z-30 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-background/30 backdrop-blur-[2px]" />
+                          <div className="relative flex items-center gap-3 bg-background/90 backdrop-blur-xl rounded-full px-4 py-2 shadow-xl border border-border/50">
+                            <MoveVertical className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground">Drag to reposition</span>
+                            <button type="button" onClick={saveCoverPosition} disabled={updateProfile.isPending} aria-label="Save cover position" className="p-1.5 rounded-full bg-ig-gradient text-white transition active:scale-90 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
+                              {updateProfile.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            </button>
+                            <button type="button" onClick={handleResetCover} aria-label="Reset cover position to center" className="p-1.5 rounded-full bg-muted/70 text-foreground hover:bg-muted transition active:scale-90 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </button>
+                            <button type="button" onClick={() => { setCoverPosition(profile?.cover_position ?? 50); setCoverRepositioning(false); }} aria-label="Cancel cover repositioning" className="p-1.5 rounded-full bg-muted text-muted-foreground transition active:scale-90 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none">
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+
+
+                    {/* Avatar overlapping cover */}
+                    <div className="relative z-10 -mt-7 px-4 sm:-mt-8 sm:px-5">
+                      <div className="flex justify-start">
+                        <motion.div
+                          className="relative group/avatar"
+                          whileHover={{ scale: 1.05 }}
+                          transition={{ type: "spring", stiffness: 300 }}
+                        >
+                          {/* Story-ring around the profile avatar.
+                              OF mode swaps to OnlyFans cyan/blue. */}
+                          <div className={cn(
+                            "absolute -inset-1 rounded-full pointer-events-none",
+                            zivoOFMode
+                              ? "bg-gradient-to-tr from-[#0077B6] via-[#00AEEF] to-[#7CD6FF]"
+                              : "bg-ig-gradient"
+                          )} />
+                          <Avatar className="relative h-[56px] w-[56px] sm:h-[68px] sm:w-[68px] ring-[3px] ring-card shadow-lg">
+                            <AvatarImage src={avatarPreview || profile?.avatar_url || undefined} alt="Profile" />
+                            <AvatarFallback className="bg-muted text-foreground text-2xl font-bold">
+                              {getInitials()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <button
+                            type="button"
+                            onClick={handleAvatarPick}
+                            disabled={uploadAvatar.isPending}
+                            aria-label="Change profile photo"
+                            className={cn(
+                              "absolute bottom-0 right-0 p-1 sm:p-1.5 bg-ig-gradient text-white rounded-full shadow-lg shadow-primary/40 ring-[1.5px] ring-card cursor-pointer active:scale-90 transition focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none",
+                              uploadAvatar.isPending && "opacity-50 pointer-events-none"
+                            )}
+                          >
+                            {uploadAvatar.isPending ? <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" /> : <Camera className="h-2.5 w-2.5 sm:h-3 sm:w-3" />}
+                          </button>
+                        </motion.div>
+                      </div>
+                    </div>
+
+                    {/* Name & status */}
+                    <div className="px-3 sm:px-4 pb-2 pt-1 text-left">
+                      <CardTitle translate="no" className="flex items-center justify-start gap-1.5 text-[16px] sm:text-[18px] font-bold leading-tight tracking-tight">
+                        <span>{headerName || t("profile.set_name")}</span>
+                        {profile?.is_verified && <VerifiedBadge size={22} />}
+                      </CardTitle>
+                      {/* @username line — link or "set" CTA. Email never shown publicly. */}
+                      <div className="mt-0.5 text-[11px] text-muted-foreground">
+                        {claimedUsername ? (
+                          <span>@{claimedUsername}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => navigate("/account/username?from=profile")}
+                            className="text-primary hover:underline"
+                          >
+                            Set a username
+                          </button>
+                        )}
+                      </div>
+                      {/* Email hidden — only visible to account owner in settings */}
+                      <div className="mt-1.5 flex flex-wrap items-center justify-start gap-1.5">
+                        {isPlus && (
+                          <Badge translate="no" className="h-6 bg-ig-gradient text-white border-0 font-bold rounded-full px-2 text-[10px] shadow-sm">
+                            <Crown className="w-3 h-3 mr-1" /> ZIVO+ {plan === "annual" ? "Annual" : "Monthly"}
+                          </Badge>
+                        )}
+                        {!profile?.is_verified && (
+                          <button
+                            type="button"
+                            onClick={() => navigate("/account/verification")}
+                            className={cn(
+                              "group inline-flex h-6 items-center gap-1 rounded-full border px-2.5 text-[10px] font-bold shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md hover:-translate-y-0.5",
+                              latestVerificationRequest?.status === "pending"
+                                ? "border-border bg-muted text-foreground"
+                                : latestVerificationRequest?.status === "rejected"
+                                  ? "border-destructive/25 bg-destructive/5 text-destructive"
+                                  : "border-foreground bg-foreground text-background"
+                            )}
+                          >
+                            {latestVerificationRequest?.status === "pending" ? (
+                              <>
+                                <Loader2 className="h-3 w-3 animate-spin" /> Verification pending
+                              </>
+                            ) : latestVerificationRequest?.status === "rejected" ? (
+                              <>
+                                <AlertCircle className="h-3 w-3" /> Reapply
+                              </>
+                            ) : (
+                              <>
+                                <BlueVerifiedBadge className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12" /> Blue verified
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Bio */}
+                      <div className="mt-1 max-w-sm">
+                        {profile?.bio && !bioEditing ? (
+                          <div className="flex items-start gap-2">
+                            <p className="flex-1 text-[11px] text-foreground/85 whitespace-pre-wrap break-words">
+                              <SafeCaption text={profile.bio} />
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => { setBioDraft(profile.bio ?? ""); setBioEditing(true); }}
+                              aria-label="Edit bio"
+                              className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : !profile?.bio && !bioEditing ? (
+                          <button
+                            type="button"
+                            onClick={() => { setBioDraft(""); setBioEditing(true); }}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border/60 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none transition-colors"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Add bio
+                          </button>
+                        ) : (
+                          <>
+                            <textarea
+                              value={bioDraft}
+                              onChange={(e) => setBioDraft(e.target.value.slice(0, 160))}
+                              placeholder="Add a short bio so people know who you are."
+                              maxLength={160}
+                              rows={2}
+                              autoFocus
+                              aria-label="Bio"
+                              className="w-full resize-none rounded-2xl border border-border/50 bg-background/80 px-3 py-2 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-2 focus:ring-primary/10"
+                            />
+                            <div className="mt-1 flex justify-end">
+                              <span className={cn("text-[10px] tabular-nums", bioDraft.length >= 150 ? "text-amber-500" : "text-muted-foreground/70")}>
+                                {bioDraft.length}/160
+                              </span>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  if (!confirmContentSafe(bioDraft, "bio")) return;
+                                  updateProfile.mutate(
+                                    { bio: bioDraft.trim() || null },
+                                    { onSuccess: () => setBioEditing(false) }
+                                  );
+                                }}
+                                disabled={updateProfile.isPending}
+                                className="rounded-full px-4"
+                              >
+                                {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save bio"}
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => { setBioDraft(profile?.bio ?? ""); setBioEditing(false); }}
+                                className="rounded-full px-3 text-muted-foreground"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </>
+                        )}
+
+                      </div>
+
+                      {/* ── Edit Profile / Share / Analytics row ── */}
+                      <div className="mt-2 grid grid-cols-[1fr_32px_32px_32px] items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => { selectionChanged(); navigate("/account/profile-edit"); }}
+                          className="flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border/30 bg-background/80 text-[12px] font-semibold text-foreground transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-foreground" />
+                          <span>Edit profile</span>
+                        </button>
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.93 }}
+                          onClick={() => { selectionChanged(); setShareOpen(true); }}
+                          aria-label="Share profile"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                        >
+                          <Share2 className="h-4 w-4 text-foreground" />
+                        </motion.button>
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.93 }}
+                          onClick={() => { if (user?.id) { selectionChanged(); navigate(`/user/${user.id}?from=profile&as=visitor`); } }}
+                          aria-label="Preview public profile"
+                          disabled={!user?.id}
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Eye className="h-4 w-4 text-foreground" />
+                        </motion.button>
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.93 }}
+                          onClick={() => { selectionChanged(); navigate("/account/analytics"); }}
+                          aria-label="Profile analytics"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/80 hover:bg-muted/50 transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                        >
+                          <BarChart3 className="h-4 w-4 text-foreground" />
+                        </motion.button>
+                      </div>
+
+                      {/* Stats row — OF mode shows subscribers + posts only,
+                          default mode shows the full social signals. */}
+                      {zivoOFMode ? (
+                        <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
+                          <button
+                            type="button"
+                            aria-label={`View ${ofSubscribersCount} subscribers`}
+                            onClick={() => { selectionChanged(); navigate("/creator/subscribers"); }}
+                            className="border-r border-border/15 px-3 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
+                          >
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Subscribers</span>
+                          </button>
+                          <span className="px-3 py-2 text-center">
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Posts</span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 grid grid-cols-4 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
+                          <button
+                            type="button"
+                            aria-label={`View ${followerCount} followers`}
+                            onClick={() => setSocialModal({ open: true, tab: "followers" })}
+                            className="border-r border-border/15 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          >
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(followerCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{followerCount === 1 ? "Follower" : "Followers"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`View ${followingCount} following`}
+                            onClick={() => setSocialModal({ open: true, tab: "following" })}
+                            className="border-r border-border/15 px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          >
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(followingCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Following</span>
+                          </button>
+                          <span className="border-r border-border/15 bg-muted/25 px-2 py-2 text-center">
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{postsCount === 1 ? "Post" : "Posts"}</span>
+                          </span>
+                          <button
+                            type="button"
+                            aria-label={`View ${friendCount} friends`}
+                            onClick={() => setSocialModal({ open: true, tab: "friends" })}
+                            className="px-2 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                          >
+                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
+                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Quick Actions row (mobile-only).
+                          OF mode: single OnlyFans-style monetization CTA.
+                          Default: business shortcuts (Shop, Employees, Mode, Monetization). */}
+                      {zivoOFMode ? (
+                        <div className="lg:hidden mt-2 space-y-1.5">
+                          <button
+                            type="button"
+                            onClick={() => { selectionChanged(); navigate("/monetization"); }}
+                            className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white bg-[#00AEEF] hover:bg-[#00A3E5] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
+                          >
+                            <Lock className="h-4 w-4" />
+                            <span>{zivoOFMode ? "ZIVO OF · Subscribe & Monetize" : "Subscribe & Monetize"}</span>
+                          </button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { selectionChanged(); navigate("/monetization"); }}
+                              className="flex items-center justify-center gap-1.5 rounded-full border border-[#00AEEF]/30 bg-[#00AEEF]/5 px-4 py-2 text-[12px] font-semibold text-[#00AEEF] hover:bg-[#00AEEF]/10 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
+                            >
+                              <SettingsIcon className="h-3.5 w-3.5" />
+                              <span>ZIVO OF Settings</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { selectionChanged(); setModeOpen(true); }}
+                              className="flex items-center justify-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-4 py-2 text-[12px] font-semibold text-foreground hover:bg-muted/50 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none transition-all"
+                            >
+                              <Repeat className="h-3.5 w-3.5" />
+                              <span>Switch Mode</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="lg:hidden mt-2 grid grid-cols-4 gap-1.5">
+                          {[
+                            { label: "Shop", icon: Store, chipTint: "bg-emerald-500/12", iconColor: "text-emerald-600 dark:text-emerald-400", onClick: openShopDashboard },
+                            { label: "Employees", icon: Users, chipTint: "bg-sky-500/12", iconColor: "text-sky-600 dark:text-sky-400", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
+                            { label: "Mode", icon: Repeat, chipTint: "bg-violet-500/12", iconColor: "text-violet-600 dark:text-violet-400", onClick: () => { selectionChanged(); setModeOpen(true); } },
+                            { label: "Earn", icon: DollarSign, chipTint: "bg-amber-500/12", iconColor: "text-amber-700 dark:text-amber-400", onClick: () => { selectionChanged(); navigate("/monetization"); } },
+                          ].map((a) => (
+                            <button type="button"
+                              key={a.label}
+                              onClick={a.onClick}
+                              className="flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-border/30 bg-muted/20 px-1.5 py-2 text-[10px] font-semibold leading-tight text-foreground transition-colors hover:border-border/50 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
+                            >
+                              <span className={cn("grid h-9 w-9 place-items-center rounded-full", a.chipTint)}>
+                                <a.icon className={cn("h-5 w-5", a.iconColor)} />
+                              </span>
+                              <span className="truncate">{a.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Social Links Row */}
+                      {profile?.social_links_visible !== false && (() => {
+                        const socials = [
+                          { key: "social_facebook", name: "Facebook", color: "bg-[#1877F2]", icon: (
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                          )},
+                          { key: "social_instagram", name: "Instagram", color: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]", icon: (
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                          )},
+                          { key: "social_tiktok", name: "TikTok", color: "bg-[#010101]", icon: (
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+                          )},
+                          { key: "social_snapchat", name: "Snapchat", color: "bg-[#FFFC00]", icon: (
+                            <svg viewBox="0 0 512 512" className="w-5 h-5 fill-white" stroke="black" strokeWidth="18"><path d="M256 32c-60 0-104 26-131 76-18 34-14 88-11 128l1 12c-8-4-18-7-27-7-14 0-25 6-31 16-5 9-5 20-1 30 10 24 36 35 56 43l5 2c-4 14-10 27-20 40-20 26-46 45-72 55-10 4-16 13-15 23 1 9 7 16 12 20 17 11 37 17 55 21 5 1 10 3 13 5 5 4 7 11 11 18 3 7 8 15 16 22 9 8 22 12 37 12 10 0 20-2 30-4 18-5 34-9 56-9s38 4 56 9c10 3 20 4 30 4 15 0 28-4 37-12 8-7 13-15 16-22 4-7 6-14 11-18 3-2 8-4 13-5 18-4 38-10 55-21 5-4 11-11 12-20 1-10-5-19-15-23-26-10-52-29-72-55-10-13-16-26-20-40l5-2c20-8 46-19 56-43 4-10 4-21-1-30-6-10-17-16-31-16-9 0-19 3-27 7l1-12c3-40 7-94-11-128C360 58 316 32 256 32z"/></svg>
+                          )},
+                          { key: "social_x", name: "X", color: "bg-foreground", icon: (
+                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-background"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                          )},
+                          { key: "social_linkedin", name: "LinkedIn", color: "bg-[#0A66C2]", icon: (
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                          )},
+                          { key: "social_telegram", name: "Telegram", color: "bg-[#26A5E4]", icon: (
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                          )},
+                        ].filter(s => (profile as any)?.[s.key]);
+
+                        return socials.length > 0 ? (
+                          <div className="flex items-center justify-center gap-2 mt-2.5">
+                            {socials.map((social) => (
+                              <motion.button
+                                key={social.name}
+                                whileTap={{ scale: 0.85 }}
+                                whileHover={{ scale: 1.1, y: -2 }}
+                                onClick={() => {
+                                  const raw = (profile as any)[social.key];
+                                  if (!raw) return;
+                                  const cleaned = stripTrackingParams(raw);
+                                  const r = assessLinkSync(cleaned);
+                                  if (r.level === "blocked") {
+                                    toast.error("This link looks unsafe and was blocked.");
+                                    return;
+                                  }
+                                  if (r.level === "trusted") { void openExternalUrl(cleaned); return; }
+                                  setSafeLinkPrompt(cleaned);
+                                }}
+                                title={social.name}
+                                className={`w-8 h-8 rounded-full ${social.color} flex items-center justify-center shadow-sm hover:shadow-md transition-shadow`}
+                              >
+                                {social.icon}
+                              </motion.button>
+                            ))}
+                          </div>
+                        ) : null;
+                      })()}
+
+                      {/* Add Friend & Follow buttons — only shown when viewing other users' profiles */}
+                    </div>
+
+                    <CardContent className="px-4 pb-2 pt-0">
+                    </CardContent>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* ZIVO+ upgrade moved to /more page */}
+
+              {/* Wallet, Completeness & Referral cards moved to /more page to avoid duplication */}
+
+              {/* ── Recent Trips ── */}
+              {user && (bookingsLoading || bookings.length > 0) && (
+                <ParallaxSection index={1.15}>
+                  <ProfileTripsCard
+                    bookings={bookings}
+                    loading={bookingsLoading}
+                    onViewAll={() => { selectionChanged(); navigate("/trips"); }}
+                    onOpen={(b) => { selectionChanged(); navigate(`/trips?booking=${b.id}`); }}
+                  />
+                </ParallaxSection>
+              )}
+
+              {/* ── Recent Activity ── */}
+              {user && recentActivity.length > 0 && (
+                <ParallaxSection index={1.3}>
+                  <div className="mx-0 lg:mx-0">
+                    <div className="flex items-center justify-between mb-1.5 px-1">
+                      <h3 className="text-[13px] font-bold text-foreground">Recent Activity</h3>
+                      <button type="button" className="text-xs font-medium text-primary"
+                        onClick={() => { selectionChanged(); navigate("/trips"); }}>
+                        See all
+                      </button>
+                    </div>
+                    <div className="rounded-2xl border border-border/30 bg-background/92 shadow-sm overflow-hidden">
+                      {recentActivity.map((item, i) => (
+                        <button
+                          type="button"
+                          key={i}
+                          onClick={() => { selectionChanged(); navigate(item.href); }}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left border-b border-border/20 last:border-0 hover:bg-muted/30 active:bg-muted/40 transition-colors"
+                        >
+                          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+                            {item.iconType === "car"
+                              ? <Car className="w-4 h-4 text-muted-foreground" />
+                              : <Briefcase className="w-4 h-4 text-muted-foreground" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-medium text-foreground truncate">{item.label}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {(() => { try { return formatDistanceToNowStrict(new Date(item.date), { addSuffix: true }); } catch { return ""; } })()}
+                            </p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </ParallaxSection>
+              )}
+
+              {/* Profile Completeness & Referral cards moved to /more page */}
+
+              {/* ── Phone Required Card ── */}
+              {!profile?.phone?.trim() && (
+                <ParallaxSection index={1.5}>
+                  <div
+                    className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 flex items-center gap-2.5 cursor-pointer active:scale-[0.98] transition-transform"
+                    onClick={() => navigate("/account/profile-edit?focus=phone")}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                      <Phone className="w-4 h-4 text-destructive" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[12px] text-foreground">Phone number required</p>
+                      <p className="text-[11px] text-muted-foreground">Add your phone number to access rides, flights & more</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-destructive/50 shrink-0" />
+                  </div>
+                </ParallaxSection>
+              )}
+
+              {/* ── Stories Row ── */}
+              <ParallaxSection index={2}>
+                <div className="rounded-2xl border border-border/30 bg-background/92 px-2.5 py-1.5 shadow-sm">
+                  <ProfileStories />
+                </div>
+              </ParallaxSection>
+
+          {/* Notifications panel moved into the sticky header (Facebook-style popover) */}
+
+              {/* Account Quick Links moved to /more page to avoid duplication */}
+
+              {/* ── Social Content Tabs (Posts, Videos, Live, Status) ── */}
+              <ParallaxSection index={2.5}>
+                <ProfileContentTabs
+                  userId={user?.id}
+                  profileDisplayName={headerName || profile?.full_name}
+                  profileAvatarUrl={profile?.avatar_url}
+                  onPostsChanged={() => { void refetchSocialCounts(); }}
+                />
+              </ParallaxSection>
+
+
+
+
+            </div>
+          )}
           </div>
         </div>
+      </div>
 
-        {profileLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Profile Card */}
-            <Card className="relative border-0 bg-gradient-to-br from-card/90 to-card shadow-2xl overflow-hidden">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-teal-500/5" />
-              <CardHeader className="text-center pb-2 relative">
-                <div className="flex justify-center mb-4">
-                  <div className="relative group">
-                    <div className="absolute -inset-2 bg-gradient-to-r from-primary to-teal-400 rounded-full blur-lg opacity-30 group-hover:opacity-50 transition-opacity" />
-                    <Avatar className="relative h-24 w-24 sm:h-28 sm:w-28 ring-4 ring-background shadow-2xl">
-                      <AvatarImage 
-                        src={avatarPreview || profile?.avatar_url || undefined} 
-                        alt="Profile"
-                      />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-teal-400 text-primary-foreground text-2xl sm:text-3xl font-bold">
-                        {getInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <button
-                      onClick={handleAvatarClick}
-                      disabled={uploadAvatar.isPending}
-                      className="absolute bottom-0 right-0 p-2 sm:p-2.5 bg-gradient-to-br from-primary to-teal-400 text-primary-foreground rounded-full shadow-lg hover:opacity-90 transition-opacity disabled:opacity-50 touch-manipulation active:scale-95"
-                    >
-                      {uploadAvatar.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Camera className="h-4 w-4" />
-                      )}
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </div>
+      <ZivoMobileNav />
+
+      <ExternalLinkWarning
+        url={safeLinkPrompt}
+        open={!!safeLinkPrompt}
+        onOpenChange={(o) => { if (!o) setSafeLinkPrompt(null); }}
+        onConfirm={(u) => { void openExternalUrl(u); setSafeLinkPrompt(null); }}
+      />
+
+      {/* Language picker moved to /more page (TranslateButton component) */}
+
+
+
+      <SocialListModal
+        open={socialModal.open}
+        onClose={() => setSocialModal({ ...socialModal, open: false })}
+        initialTab={socialModal.tab}
+        onCountsChange={(f, fl, fg) => {
+          if (socialModal.tab === "friends") setFriendCount(f);
+          if (socialModal.tab === "followers") setFollowerCount(fl);
+          if (socialModal.tab === "following") setFollowingCount(fg);
+        }}
+      />
+
+      {/* Mode Switch bottom sheet — placeholder for future per-mode routing */}
+      <Sheet open={modeOpen} onOpenChange={setModeOpen}>
+        <SheetContent side="bottom" className="z-[1500] max-h-[88vh] overflow-y-auto rounded-t-[28px] border-border/70 bg-background px-4 pb-10 pt-3">
+          <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-border" />
+          <SheetHeader className="pb-3 text-left">
+            <SheetTitle className="text-xl font-bold tracking-tight">Switch mode</SheetTitle>
+            <p className="text-sm text-muted-foreground">Choose the workspace you want to use right now.</p>
+          </SheetHeader>
+          <div className="grid gap-2">
+            {zivoOFMode && (
+              <div className="mb-1 flex items-center justify-between gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/5 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[12px] font-semibold text-foreground">ZIVO OF Mode is active</p>
+                  <p className="text-[11px] text-muted-foreground">Creator workflow is locked while OF mode is on.</p>
                 </div>
-                <CardTitle className="flex items-center justify-center gap-2 text-xl sm:text-2xl">
-                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  {profile?.full_name || "Set your name"}
-                </CardTitle>
-                <CardDescription className="text-sm sm:text-base">{user?.email}</CardDescription>
-                <Badge className="mt-3 bg-gradient-to-r from-primary/20 to-teal-400/20 text-primary border-primary/30 font-semibold">
-                  <Star className="w-3 h-3 mr-1 fill-primary" />
-                  {profile?.status || "Active"} Member
-                </Badge>
-              </CardHeader>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setZivoOFMode(false);
+                    toast.success("ZIVO OF Mode turned off");
+                  }}
+                  className="shrink-0 rounded-xl border border-border/40 px-3 py-2 text-[11px] font-bold hover:bg-muted/50"
+                >
+                  Turn off
+                </button>
+              </div>
+            )}
+            {(zivoOFMode
+              ? [
+                  { id: "creator", label: "Creator", desc: "Subscriptions, PPV & tips", icon: Sparkles, route: "/creator-dashboard" },
+                ]
+              : [
+                  { id: "personal", label: "Personal", desc: "Your everyday account", icon: UserIcon, route: "/profile" },
+                  { id: "fan", label: "Fan", desc: "Subscribe to creators & unlock content", icon: Heart, route: "/account/subscriptions" },
+                  { id: "creator", label: "Creator", desc: "Subscriptions, PPV & tips", icon: Sparkles, route: "/creator-dashboard" },
+                  { id: "business", label: "Business", desc: "Manage company travel & teams", icon: Briefcase, route: "/business" },
+                  { id: "driver", label: "Driver", desc: "Go online and accept rides", icon: Car, route: "/driver/home" },
+                  { id: "shop", label: "Shop Partner", desc: "Open your store dashboard", icon: Store, route: getShopDashboardPath() },
+                ]).map((m) => {
+              const active = workflowMode === m.id;
+              const Icon = m.icon;
+              return (
+                <button type="button"
+                  key={m.id}
+                  onClick={() => {
+                    if (zivoOFMode && m.id !== "creator") {
+                      toast.info("Disable ZIVO OF Mode in Monetization to switch modes");
+                      return;
+                    }
+                    setActiveMode(m.id);
+                    try { localStorage.setItem("zivo:active_mode", m.id); } catch {}
+                    toast.success(`Switched to ${m.label} mode`);
+                    setModeOpen(false);
+                    if (m.id === "shop") openShopDashboard();
+                    else if (m.route && m.id !== "personal") navigate(m.route);
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border px-3 py-3 text-left shadow-sm transition-all active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    active ? "border-border bg-muted/55" : "border-border/60 bg-card hover:bg-muted/35"
+                  )}
+                >
+                  <span className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border",
+                    active ? "border-primary/30 bg-primary/12" : "border-border/50 bg-muted/35"
+                  )}>
+                    <Icon className={cn("h-5 w-5", active ? "text-primary" : "text-foreground")} />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-semibold text-foreground">{m.label}</span>
+                    <span className="block truncate text-[12px] font-medium text-muted-foreground">{m.desc}</span>
+                  </span>
+                  {active && <BadgeCheck className="h-5 w-5 shrink-0 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
 
-              <CardContent className="pt-6 relative">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="full_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2 font-semibold">
-                            <User className="h-4 w-4 text-primary" />
-                            Full Name
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter your full name"
-                              className="h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-sm font-semibold">
-                        <Mail className="h-4 w-4 text-primary" />
-                        Email
-                      </label>
-                      <Input
-                        value={user?.email || ""}
-                        disabled
-                        className="h-12 rounded-xl bg-muted/50 border-border/50 text-muted-foreground"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Email cannot be changed here
-                      </p>
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2 font-semibold">
-                            <Phone className="h-4 w-4 text-primary" />
-                            Phone Number
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter your phone number"
-                              type="tel"
-                              className="h-12 rounded-xl bg-muted/30 border-border/50 focus:border-primary/50"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      type="submit"
-                      className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-xl bg-gradient-to-r from-primary to-teal-400 text-primary-foreground shadow-lg shadow-primary/30 hover:opacity-90 touch-manipulation active:scale-[0.98]"
-                      disabled={updateProfile.isPending || !form.formState.isDirty}
+          {workflowMode === "personal" && (
+            <div className="mt-5 border-t border-border/40 pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-muted-foreground">Personal controls</span>
+                <button
+                  type="button"
+                  onClick={() => { setModeOpen(false); navigate("/settings"); }}
+                  className="text-[11px] font-bold text-primary"
+                >
+                  See all
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "Edit profile", icon: Pencil, route: "/account/profile-edit" },
+                  { label: "Privacy", icon: Shield, route: "/account/privacy" },
+                  { label: "18+ Blur", icon: Eye, route: "/account/privacy#sensitive" },
+                  { label: "Notifications", icon: Bell, route: "/account/notifications" },
+                  { label: "Wallet", icon: Wallet, route: "/wallet" },
+                  { label: "Saved places", icon: MapPin, route: "/account/saved-places" },
+                  { label: "Security", icon: Lock, route: "/account/security" },
+                  { label: "Language", icon: Globe, route: "/more" },
+                  { label: "Activity", icon: BarChart3, route: "/account/activity-log" },
+                  { label: "Share profile", icon: Share2, route: "" },
+                ].map((a) => {
+                  const Icon = a.icon;
+                  return (
+                    <button type="button"
+                      key={a.label}
+                      onClick={() => {
+                        setModeOpen(false);
+                        if (a.label === "Share profile") setShareOpen(true);
+                        else if (a.route) navigate(a.route);
+                      }}
+                      className="flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-card p-3 text-center shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
-                      {updateProfile.isPending ? (
-                        <>
-                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-5 w-5 mr-2" />
-                          Save Changes
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-
-            {/* Quick Links */}
-            <div>
-              <h3 className="font-display font-bold text-base sm:text-lg mb-3 sm:mb-4">Quick Access</h3>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                {quickLinks.map((link) => (
-                  <Link key={link.label} to={link.href}>
-                    <Card className="border-0 bg-gradient-to-br from-card/90 to-card shadow-xl hover:shadow-2xl transition-all cursor-pointer group overflow-hidden touch-manipulation active:scale-[0.98]">
-                      <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-teal-400/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <link.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm sm:text-base truncate">{link.label}</p>
-                          <p className="text-xs text-muted-foreground truncate">{link.description}</p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/40">
+                        <Icon className="h-5 w-5 text-foreground" />
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight">{a.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
+          )}
 
-            {/* Merchant Dashboard Link - only shown if user has merchant role */}
-            {merchantData?.isMerchant && (
-              <a 
-                href={MERCHANT_APP_URL} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Card className="relative border-0 bg-gradient-to-br from-orange-500/10 to-amber-500/10 shadow-xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group touch-manipulation active:scale-[0.98]">
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-orange-500/5 to-amber-500/5" />
-                  <CardContent className="p-4 sm:p-5 relative">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                          <Store className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm sm:text-base">Merchant Dashboard</p>
-                          <p className="text-xs sm:text-sm text-muted-foreground">
-                            Manage your restaurant & orders
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-500 border-orange-500/30 font-semibold px-2 sm:px-3 py-1 text-xs">
-                          Partner
-                        </Badge>
-                        <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground group-hover:text-orange-500 transition-colors" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </a>
-            )}
-
-            {/* Account Status */}
-            <Card className="relative border-0 bg-gradient-to-br from-card/90 to-card shadow-xl overflow-hidden">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5" />
-              <CardContent className="p-4 sm:p-5 relative">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                      <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm sm:text-base">Account Status</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
-                        <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "recently"}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-500 border-emerald-500/30 font-semibold px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm">
-                    Active
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Partner Attribution Card - shown if user was referred by affiliate */}
-            {affiliateAttribution.hasAffiliateAttribution && (
-              <Card className="relative border-0 bg-gradient-to-br from-card/90 to-card shadow-xl overflow-hidden">
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/5 to-purple-500/5" />
-                <CardContent className="p-4 sm:p-5 relative">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
-                      <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm sm:text-base">Referred by Partner</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        You joined through {affiliateAttribution.partnerName}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            <div>
-              <h3 className="font-display font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                <Plane className="w-4 h-4 text-primary" />
-                ZIVO Miles Status
-              </h3>
-              <StatusTiersDashboard />
+          {workflowMode === "creator" && (
+            <div className="mt-5 border-t border-border/40 pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-muted-foreground">
+                  {zivoOFMode ? "ZIVO OF tools" : "Creator tools"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setModeOpen(false); navigate("/monetization"); }}
+                  className="text-[11px] font-bold text-primary"
+                >
+                  See all
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {(zivoOFMode
+                  ? [
+                      { label: "Subscribers", icon: Users, route: "/creator/subscribers" },
+                      { label: "Subscription", icon: Crown, route: "/monetization/program/subscription" },
+                      { label: "Locked media", icon: Lock, route: "/monetization/program/locked-media" },
+                      { label: "Paid DMs", icon: MessageCircle, route: "/monetization/program/paid-dms" },
+                      { label: "Tips", icon: Gift, route: "/monetization/program/tips-donations" },
+                      { label: "Payouts", icon: DollarSign, route: "/wallet" },
+                    ]
+                  : [
+                      { label: "Subscribers", icon: Users, route: "/creator/subscribers" },
+                      { label: "PPV posts", icon: Lock, route: "/monetization" },
+                      { label: "Tips", icon: Gift, route: "/creator/tips" },
+                      { label: "Mass DM", icon: MessageCircle, route: "/chat" },
+                      { label: "Earnings", icon: TrendingUp, route: "/creator-analytics" },
+                      { label: "Go live", icon: Video, route: "/live" },
+                    ]).map((a) => {
+                  const Icon = a.icon;
+                  return (
+                    <button type="button"
+                      key={a.label}
+                      onClick={() => { setModeOpen(false); navigate(a.route); }}
+                      className="flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-card p-3 text-center shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/40">
+                        <Icon className="h-5 w-5 text-foreground" />
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight">{a.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+          )}
 
-            {/* Gift Cards & Credits */}
-            <div>
-              <h3 className="font-display font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-primary" />
-                Gift Cards & Credits
-              </h3>
-              <GiftCardsCredits />
+          {workflowMode === "fan" && (
+            <div className="mt-5 border-t border-border/40 pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-muted-foreground">My fan activity</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "Subscriptions", icon: Heart, route: "/account/subscriptions" },
+                  { label: "Unlocked", icon: Lock, route: "/account/subscriptions" },
+                  { label: "Tips sent", icon: Gift, route: "/account/tips" },
+                  { label: "DMs", icon: MessageCircle, route: "/chat" },
+                  { label: "Wallet", icon: DollarSign, route: "/wallet" },
+                  { label: "Discover", icon: Sparkles, route: "/feed?tab=foryou" },
+                ].map((a) => {
+                  const Icon = a.icon;
+                  return (
+                    <button type="button"
+                      key={a.label}
+                      onClick={() => { setModeOpen(false); navigate(a.route); }}
+                      className="flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-card p-3 text-center shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/40">
+                        <Icon className="h-5 w-5 text-foreground" />
+                      </span>
+                      <span className="text-[11px] font-bold leading-tight">{a.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
-            {/* Referral Center */}
-            <div>
-              <h3 className="font-display font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                <Gift className="w-4 h-4 text-primary" />
-                Refer & Earn
-              </h3>
-              <ReferralCenter />
-            </div>
-
-            {/* Frequent Flyer Programs */}
-            <div>
-              <h3 className="font-display font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                <Star className="w-4 h-4 text-primary" />
-                Frequent Flyer Programs
-              </h3>
-              <FlightLoyaltyIntegration />
-            </div>
-
-            {/* Pay Later */}
-            <div>
-              <h3 className="font-display font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-primary" />
-                Pay Later Options
-              </h3>
-              <PayLater totalAmount={599} />
-            </div>
-
-            {/* My Bookings */}
-            <div>
-              <FlightBookings />
-            </div>
-
-            {/* ZIVO Miles Program */}
-            <div>
-              <ZivoMilesProgram />
-            </div>
-
-            {/* Travel Alerts */}
-            <div>
-              <TravelAlerts />
-            </div>
-
-            {/* My Trips */}
-            <div>
-              <MyTripsDashboard />
-            </div>
-
-            {/* Price Alerts */}
-            <div>
-              <PriceAlertsDashboard />
-            </div>
-
-            {/* Itinerary Builder */}
-            <div>
-              <ItineraryBuilder tripName="My Trip" />
-            </div>
-
-            {/* Travel Documents */}
-            <div>
-              <TravelDocuments />
-            </div>
-
-            {/* Airline Partners */}
-            <div>
-              <AirlinePartnersHub />
-            </div>
-
-            {/* Trip Sharing */}
-            <div>
-              <TripSharing tripId="my-trips" tripName="My Trip" />
-            </div>
-
-            {/* Travel Companion Finder */}
-            <div>
-              <TravelCompanionFinder
-                flightNumber="ZV-1234"
-                currentSeat="15A"
-                departureDate={new Date()}
-                route={{ from: "LAX", to: "JFK" }}
-              />
-            </div>
-
-            {/* Flight Tracker */}
-            <div>
-              <FlightTracker
-                flightNumber="ZV-1234"
-                airline="ZIVO Airways"
-                departure={{
-                  code: "LAX",
-                  city: "Los Angeles",
-                  time: "08:00",
-                  date: new Date(),
-                  terminal: "T4",
-                  gate: "B12",
-                }}
-                arrival={{
-                  code: "JFK",
-                  city: "New York",
-                  time: "16:30",
-                  date: new Date(),
-                }}
-                duration="5h 30m"
-                aircraft="Boeing 787-9 Dreamliner"
-              />
-            </div>
-
-            {/* Flight Price Alerts */}
-            <div>
-              <FlightPriceAlert
-                route={{ from: "Los Angeles", fromCode: "LAX", to: "New York", toCode: "JFK" }}
-                currentPrice={299}
-                historicalLow={249}
-              />
-            </div>
-
-            {/* Ground Transport */}
-            <div>
-              <GroundTransportBooking
-                arrivalAirport="JFK"
-                arrivalTime={new Date()}
-                destination="New York"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      {/* Share Profile bottom sheet */}
+      <UsernameShareSheet
+        open={shareOpen}
+        username={claimedUsername || null}
+        profileId={user?.id || null}
+        displayName={headerName || undefined}
+        onClose={() => setShareOpen(false)}
+      />
+    </PullToRefresh>
   );
 };
 

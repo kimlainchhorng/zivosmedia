@@ -20,6 +20,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const inScopeItems = [
   "Authentication and session management",
@@ -71,10 +72,25 @@ export default function SecurityReport() {
     }
 
     setIsSubmitting(true);
-    // TODO: Submit to secure reporting endpoint
-    setSubmitted(true);
-    toast.success("Report submitted successfully");
-    setIsSubmitting(false);
+    try {
+      const { error } = await supabase.functions.invoke("security-report-submit", { body: {
+        name: form.name,
+        email: form.email,
+        severity: form.severity,
+        title: form.title,
+        description: form.description,
+        steps: form.steps,
+        impact: form.impact,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
+      setSubmitted(true);
+      toast.success("Report submitted successfully");
+    } catch {
+      toast.error("Failed to submit. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -357,8 +373,8 @@ export default function SecurityReport() {
               <div className="mt-6 text-center text-sm text-muted-foreground">
                 <p>
                   Prefer email? Send reports directly to{" "}
-                  <a href="mailto:security@hizivo.com" className="text-primary hover:underline">
-                    security@hizivo.com
+                  <a href="mailto:security@zivosmedia.com" className="text-primary hover:underline">
+                    security@zivosmedia.com
                   </a>
                 </p>
               </div>

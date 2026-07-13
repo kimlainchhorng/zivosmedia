@@ -1,35 +1,34 @@
-/**
- * RideNotificationCenter — Notification preferences, ride reminders,
- * price drop alerts, and promo notifications
+﻿/**
+ * RideNotificationCenter — Real notifications from DB + preferences + smart alerts
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, BellOff, BellRing, Clock, DollarSign, Tag, Car, MapPin, Shield, Zap, CheckCircle, ChevronRight, Sparkles, TrendingDown, Calendar, Volume2 } from "lucide-react";
+import {
+  Bell, BellOff, BellRing, Clock, DollarSign, Tag, Car, MapPin,
+  Shield, Zap, CheckCircle, ChevronRight, Sparkles, TrendingDown,
+  Calendar, Volume2, Loader2, RefreshCw, Smartphone,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWebPush } from "@/hooks/useWebPush";
+import { markNotificationRead, markNotificationsRead } from "@/lib/notifications/notificationManage";
 
 type NotifTab = "feed" | "prefs" | "alerts";
 
-interface Notification {
+interface DBNotif {
   id: string;
-  type: "promo" | "price_drop" | "reminder" | "safety" | "ride_update";
   title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  actionLabel?: string;
+  body: string;
+  category: string | null;
+  channel: string | null;
+  is_read: boolean | null;
+  created_at: string;
 }
-
-const notifications: Notification[] = [
-  { id: "1", type: "price_drop", title: "Price Drop Alert 📉", message: "Your commute route is 23% cheaper right now. Book within 10 min!", time: "2 min ago", read: false, actionLabel: "Book Now" },
-  { id: "2", type: "promo", title: "Weekend Special 🎉", message: "Use code WEEKEND30 for 30% off your next 3 rides", time: "1 hr ago", read: false, actionLabel: "Apply Code" },
-  { id: "3", type: "reminder", title: "Scheduled Ride ⏰", message: "Your ride to Airport Terminal B departs in 45 minutes", time: "3 hrs ago", read: true },
-  { id: "4", type: "ride_update", title: "Trip Complete ✅", message: "Your ride to Midtown has been completed. Rate your driver!", time: "Yesterday", read: true, actionLabel: "Rate" },
-  { id: "5", type: "safety", title: "Safety Update 🛡️", message: "Your trusted contacts have been notified about your recent trip", time: "Yesterday", read: true },
-];
 
 interface NotifPref {
   id: string;
@@ -40,43 +39,117 @@ interface NotifPref {
 }
 
 const defaultPrefs: NotifPref[] = [
-  { id: "ride_updates", label: "Ride Updates", description: "Driver assigned, arrival, trip status", icon: Car, enabled: true },
-  { id: "price_drops", label: "Price Drop Alerts", description: "Get notified when fares decrease on saved routes", icon: TrendingDown, enabled: true },
-  { id: "promos", label: "Promotions & Offers", description: "Promo codes, deals, and seasonal offers", icon: Tag, enabled: true },
-  { id: "reminders", label: "Ride Reminders", description: "Reminders for scheduled and recurring rides", icon: Calendar, enabled: true },
-  { id: "safety", label: "Safety Alerts", description: "Route deviations, emergency notifications", icon: Shield, enabled: true },
-  { id: "surge", label: "Surge Notifications", description: "Alert when surge pricing starts or ends", icon: Zap, enabled: false },
-  { id: "sounds", label: "Notification Sounds", description: "Play sounds for incoming notifications", icon: Volume2, enabled: true },
+  { id: "ride_updates",  label: "Ride Updates",          description: "Driver assigned, arrival, trip status",           icon: Car,          enabled: true },
+  { id: "price_drops",   label: "Price Drop Alerts",      description: "Get notified when fares decrease on saved routes", icon: TrendingDown, enabled: true },
+  { id: "promos",        label: "Promotions & Offers",    description: "Promo codes, deals, and seasonal offers",          icon: Tag,          enabled: true },
+  { id: "reminders",     label: "Ride Reminders",         description: "Reminders for scheduled and recurring rides",      icon: Calendar,     enabled: true },
+  { id: "safety",        label: "Safety Alerts",          description: "Route deviations, emergency notifications",        icon: Shield,       enabled: true },
+  { id: "surge",         label: "Surge Notifications",    description: "Alert when surge pricing starts or ends",          icon: Zap,          enabled: false },
+  { id: "sounds",        label: "Notification Sounds",    description: "Play sounds for incoming notifications",           icon: Volume2,      enabled: true },
 ];
 
-const typeIcons: Record<string, { icon: React.ElementType; color: string }> = {
-  price_drop: { icon: TrendingDown, color: "text-emerald-500 bg-emerald-500/10" },
-  promo: { icon: Tag, color: "text-primary bg-primary/10" },
-  reminder: { icon: Clock, color: "text-amber-500 bg-amber-500/10" },
-  ride_update: { icon: Car, color: "text-primary bg-primary/10" },
-  safety: { icon: Shield, color: "text-violet-500 bg-violet-500/10" },
+const categoryIcon: Record<string, { icon: React.ElementType; color: string }> = {
+  ride:     { icon: Car,          color: "text-primary bg-primary/10" },
+  promo:    { icon: Tag,          color: "text-primary bg-primary/10" },
+  price:    { icon: TrendingDown, color: "text-emerald-500 bg-emerald-500/10" },
+  safety:   { icon: Shield,       color: "text-violet-500 bg-violet-500/10" },
+  reminder: { icon: Clock,        color: "text-amber-500 bg-amber-500/10" },
+  account:  { icon: Bell,         color: "text-muted-foreground bg-muted/40" },
 };
 
+function getIconForNotif(n: DBNotif) {
+  const cat = (n.category || "").toLowerCase();
+  for (const key of Object.keys(categoryIcon)) {
+    if (cat.includes(key)) return categoryIcon[key];
+  }
+  return categoryIcon.account;
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} hr ago`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "Yesterday" : `${d} days ago`;
+}
+
 export default function RideNotificationCenter() {
+  const { user } = useAuth();
+  const { subscription, subscribe, unsubscribe, permission } = useWebPush();
+  const isSubscribed = !!subscription;
   const [activeTab, setActiveTab] = useState<NotifTab>("feed");
-  const [notifs, setNotifs] = useState(notifications);
+  const [notifs, setNotifs] = useState<DBNotif[]>([]);
+  const [loading, setLoading] = useState(true);
   const [prefs, setPrefs] = useState(defaultPrefs);
+  const [enablingPush, setEnablingPush] = useState(false);
+  const [showAlertForm, setShowAlertForm] = useState(false);
+  const [alertRoute, setAlertRoute] = useState("");
+  const [alertThreshold, setAlertThreshold] = useState("");
 
-  const unreadCount = notifs.filter(n => !n.read).length;
-
-  const markAllRead = () => {
-    setNotifs(ns => ns.map(n => ({ ...n, read: true })));
-    toast.success("All notifications marked as read");
+  // Load real notifications from Supabase
+  const fetchNotifs = async () => {
+    if (!user?.id) { setLoading(false); return; }
+    setLoading(true);
+    const { data } = await (supabase as any)
+      .from("notifications")
+      .select("id, title, body, category, channel, is_read, created_at")
+      .eq("to_value", user.id)
+      .order("created_at", { ascending: false })
+      .limit(40);
+    setNotifs(data || []);
+    setLoading(false);
   };
 
-  const togglePref = (id: string) => {
+  useEffect(() => { fetchNotifs(); }, [user?.id]);
+
+  const unreadCount = notifs.filter(n => !n.is_read).length;
+
+  const markAllRead = async () => {
+    if (!user?.id || unreadCount === 0) return;
+    const unreadIds = notifs.filter(n => !n.is_read).map(n => n.id);
+    try {
+      await markNotificationsRead(unreadIds);
+      setNotifs(ns => ns.map(n => ({ ...n, is_read: true })));
+      toast.success("All notifications marked as read");
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
+  };
+
+  const markRead = async (id: string) => {
+    try {
+      await markNotificationRead(id);
+      setNotifs(ns => ns.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch {
+      toast.error("Notification updates are temporarily unavailable");
+    }
+  };
+
+  const handleEnablePush = async () => {
+    setEnablingPush(true);
+    const ok = await subscribe();
+    setEnablingPush(false);
+    if (ok) toast.success("Push notifications enabled!");
+    else toast.error("Could not enable notifications — check browser settings");
+  };
+
+  const handleDisablePush = async () => {
+    setEnablingPush(true);
+    await unsubscribe();
+    setEnablingPush(false);
+    toast.success("Push notifications disabled");
+  };
+
+  const togglePref = (id: string) =>
     setPrefs(ps => ps.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p));
-  };
 
   const tabs = [
-    { id: "feed" as const, label: "Feed", icon: BellRing, badge: unreadCount },
-    { id: "prefs" as const, label: "Preferences", icon: Bell },
-    { id: "alerts" as const, label: "Smart Alerts", icon: Zap },
+    { id: "feed" as const,   label: "Feed",         icon: BellRing, badge: unreadCount },
+    { id: "prefs" as const,  label: "Preferences",  icon: Bell },
+    { id: "alerts" as const, label: "Smart Alerts",  icon: Zap },
   ];
 
   return (
@@ -92,11 +165,16 @@ export default function RideNotificationCenter() {
             <p className="text-[10px] text-muted-foreground">{unreadCount} unread</p>
           </div>
         </div>
-        {unreadCount > 0 && (
-          <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={markAllRead}>
-            Mark all read
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <button type="button" onClick={fetchNotifs} className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Refresh">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+          {unreadCount > 0 && (
+            <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={markAllRead}>
+              Mark all read
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -104,10 +182,20 @@ export default function RideNotificationCenter() {
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all relative", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-              <Icon className="w-3.5 h-3.5" /> {tab.label}
+            <button type="button"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all relative",
+                activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
               {tab.badge ? (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">{tab.badge}</span>
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center">
+                  {tab.badge > 9 ? "9+" : tab.badge}
+                </span>
               ) : null}
             </button>
           );
@@ -115,41 +203,99 @@ export default function RideNotificationCenter() {
       </div>
 
       <AnimatePresence mode="wait">
-        <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.15 }}
+        >
+          {/* ── Feed ── */}
           {activeTab === "feed" && (
             <div className="space-y-2">
-              {notifs.map((n, i) => {
-                const { icon: TypeIcon, color } = typeIcons[n.type] || typeIcons.ride_update;
-                return (
-                  <motion.div key={n.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className={cn("rounded-2xl border p-3.5 transition-all", n.read ? "bg-card border-border/30" : "bg-primary/[0.02] border-primary/20")}>
-                    <div className="flex items-start gap-3">
-                      <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", color)}>
-                        <TypeIcon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-foreground">{n.title}</span>
-                          {!n.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+              {loading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : notifs.length === 0 ? (
+                <div className="text-center py-10">
+                  <Bell className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-muted-foreground">No notifications yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">You'll see ride updates, promos, and alerts here</p>
+                </div>
+              ) : (
+                notifs.map((n, i) => {
+                  const { icon: TypeIcon, color } = getIconForNotif(n);
+                  return (
+                    <motion.div
+                      key={n.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                      className={cn(
+                        "rounded-2xl border p-3.5 transition-all cursor-pointer",
+                        n.is_read ? "bg-card border-border/30" : "bg-primary/[0.02] border-primary/20"
+                      )}
+                      onClick={() => { if (!n.is_read) markRead(n.id); }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", color)}>
+                          <TypeIcon className="w-4 h-4" />
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{n.message}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-[10px] text-muted-foreground">{n.time}</span>
-                          {n.actionLabel && (
-                            <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold text-primary px-2" onClick={() => toast.success(`${n.actionLabel} action triggered`)}>
-                              {n.actionLabel} <ChevronRight className="w-3 h-3 ml-0.5" />
-                            </Button>
-                          )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-foreground truncate">{n.title}</span>
+                            {!n.is_read && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
+                          <span className="text-[10px] text-muted-foreground mt-1.5 block">{timeAgo(n.created_at)}</span>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
           )}
 
+          {/* ── Preferences ── */}
           {activeTab === "prefs" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              {/* Push permission status */}
+              <div className={cn(
+                "rounded-2xl border p-4 flex items-center gap-3",
+                isSubscribed ? "bg-emerald-500/5 border-emerald-500/20" : "bg-muted/20 border-border/40"
+              )}>
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", isSubscribed ? "bg-emerald-500/10" : "bg-muted/40")}>
+                  <Smartphone className={cn("w-5 h-5", isSubscribed ? "text-emerald-500" : "text-muted-foreground")} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-foreground">Push Notifications</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {permission === "denied"
+                      ? "Blocked in browser — open browser settings to enable"
+                      : isSubscribed
+                        ? "Active — you'll receive real-time alerts"
+                        : "Off — tap to enable real-time alerts"}
+                  </p>
+                </div>
+                {permission !== "denied" && (
+                  <Button
+                    size="sm"
+                    variant={isSubscribed ? "outline" : "default"}
+                    className="h-9 text-xs font-bold rounded-xl shrink-0"
+                    disabled={enablingPush}
+                    onClick={isSubscribed ? handleDisablePush : handleEnablePush}
+                  >
+                    {enablingPush
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : isSubscribed ? <BellOff className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
+                    {!enablingPush && (isSubscribed ? " Disable" : " Enable")}
+                  </Button>
+                )}
+              </div>
+
+              {/* Per-type toggles */}
               {prefs.map(pref => {
                 const Icon = pref.icon;
                 return (
@@ -168,36 +314,66 @@ export default function RideNotificationCenter() {
             </div>
           )}
 
+          {/* ── Smart Alerts ── */}
           {activeTab === "alerts" && (
             <div className="space-y-4">
-              {/* Smart price alerts */}
+              {/* Price Watch */}
               <div className="rounded-2xl bg-card border border-border/40 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <TrendingDown className="w-4 h-4 text-emerald-500" />
                   <h3 className="text-sm font-bold text-foreground">Price Watch</h3>
                 </div>
-                <p className="text-xs text-muted-foreground">Set alerts for routes you ride frequently. We'll notify you when prices drop.</p>
+                <p className="text-xs text-muted-foreground">
+                  Set alerts for routes you ride frequently. We'll notify you when prices drop.
+                </p>
                 <div className="space-y-2">
                   {[
-                    { route: "Home → Office", currentPrice: "$12-15", threshold: "$10", active: true },
-                    { route: "Home → Airport", currentPrice: "$28-35", threshold: "$25", active: true },
+                    { route: "Home → Office",  currentPrice: "$12–15", threshold: "$10", active: true },
+                    { route: "Home → Airport", currentPrice: "$28–35", threshold: "$25", active: true },
                   ].map(alert => (
                     <div key={alert.route} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/20">
                       <MapPin className="w-4 h-4 text-primary shrink-0" />
                       <div className="flex-1">
                         <span className="text-xs font-bold text-foreground">{alert.route}</span>
-                        <p className="text-[10px] text-muted-foreground">Alert below {alert.threshold} · Now {alert.currentPrice}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Alert below {alert.threshold} · Now {alert.currentPrice}
+                        </p>
                       </div>
                       <Switch defaultChecked={alert.active} />
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" className="w-full h-10 rounded-xl text-xs font-bold" onClick={() => toast.info("Add route for price alerts")}>
-                  <DollarSign className="w-3.5 h-3.5 mr-1.5" /> Add Price Alert
+                <Button
+                  variant="outline"
+                  className="w-full h-10 rounded-xl text-xs font-bold"
+                  onClick={() => setShowAlertForm(v => !v)}
+                >
+                  <DollarSign className="w-3.5 h-3.5 mr-1.5" /> {showAlertForm ? "Cancel" : "Add Price Alert"}
                 </Button>
+                <AnimatePresence>
+                  {showAlertForm && (
+                    <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                      className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2">
+                      <input value={alertRoute} onChange={e => setAlertRoute(e.target.value)} placeholder="Route (e.g. Home → Airport)"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                      <div className="flex gap-2">
+                        <input value={alertThreshold} onChange={e => setAlertThreshold(e.target.value)} placeholder="Alert below (e.g. $20)"
+                          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                        <button type="button" disabled={!alertRoute.trim() || !alertThreshold.trim()}
+                          onClick={() => {
+                            toast.success(`Alert set for ${alertRoute} below ${alertThreshold}`);
+                            setAlertRoute(""); setAlertThreshold(""); setShowAlertForm(false);
+                          }}
+                          className="px-3 rounded-lg bg-ig-gradient text-white text-xs font-semibold disabled:opacity-40">
+                          Set
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              {/* Smart reminders */}
+              {/* Smart Reminders */}
               <div className="rounded-2xl bg-card border border-border/40 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-500" />
@@ -205,9 +381,9 @@ export default function RideNotificationCenter() {
                 </div>
                 <div className="space-y-2">
                   {[
-                    { label: "Pre-ride reminder", desc: "30 min before scheduled rides", enabled: true },
-                    { label: "Weekly ride summary", desc: "Sunday evening spending recap", enabled: true },
-                    { label: "Surge end alerts", desc: "Notify when surge pricing drops", enabled: false },
+                    { label: "Pre-ride reminder",    desc: "30 min before scheduled rides",    enabled: true },
+                    { label: "Weekly ride summary",  desc: "Sunday evening spending recap",     enabled: true },
+                    { label: "Surge end alerts",     desc: "Notify when surge pricing drops",  enabled: false },
                   ].map(r => (
                     <div key={r.label} className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/20">
                       <div>

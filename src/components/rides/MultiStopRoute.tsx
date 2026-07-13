@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MultiStopRoute - Multi-stop trip planner with reorderable waypoints
  */
 import { useState } from "react";
@@ -57,8 +57,8 @@ export default function MultiStopRoute({ pickup = "Current location", onConfirm,
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-            <Route className="w-4 h-4 text-violet-500" />
+          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+            <Route className="w-4 h-4 text-foreground" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-foreground">Multi-Stop</h3>
@@ -116,7 +116,7 @@ export default function MultiStopRoute({ pickup = "Current location", onConfirm,
                       className="h-8 text-xs flex-1 bg-transparent border-0 p-0 focus-visible:ring-0"
                     />
                     {stops.length > 1 && (
-                      <button onClick={() => removeStop(stop.id)} className="p-1 rounded-full hover:bg-muted shrink-0">
+                      <button type="button" onClick={() => removeStop(stop.id)} className="p-1 rounded-full hover:bg-muted shrink-0">
                         <X className="w-3 h-3 text-muted-foreground" />
                       </button>
                     )}
@@ -128,13 +128,13 @@ export default function MultiStopRoute({ pickup = "Current location", onConfirm,
                     <span className="text-[10px] text-muted-foreground">Wait:</span>
                     <div className="flex gap-1">
                       {[0, 2, 5, 10].map(mins => (
-                        <button
+                        <button type="button"
                           key={mins}
                           onClick={() => updateWaitTime(stop.id, mins)}
                           className={cn(
                             "px-2 py-0.5 rounded text-[9px] font-bold transition-all",
                             stop.waitTime === mins
-                              ? "bg-primary text-primary-foreground"
+                              ? "bg-ig-gradient text-white"
                               : "bg-muted/40 text-muted-foreground"
                           )}
                         >
@@ -153,7 +153,7 @@ export default function MultiStopRoute({ pickup = "Current location", onConfirm,
       {/* Add stop */}
       {stops.length < maxStops && (
         <div className="px-4 pt-2">
-          <button
+          <button type="button"
             onClick={addStop}
             className="w-full flex items-center gap-2 p-3 rounded-xl border border-dashed border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all text-xs font-medium text-muted-foreground"
           >

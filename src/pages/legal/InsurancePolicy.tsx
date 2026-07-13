@@ -16,7 +16,7 @@ const InsurancePolicy = () => {
       {/* Background effects */}
       <div className="absolute inset-0 bg-gradient-radial from-primary/10 via-transparent to-transparent opacity-40" />
       <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-primary/15 to-teal-500/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/3 left-0 w-[300px] h-[300px] bg-gradient-to-tr from-violet-500/10 to-purple-500/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/3 left-0 w-[300px] h-[300px] rounded-full blur-3xl bg-secondary" />
 
       {/* Floating decorative icons */}
       <motion.div
@@ -39,7 +39,7 @@ const InsurancePolicy = () => {
       </motion.div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+      <header className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Link to="/">
             <Button variant="ghost" size="icon" className="rounded-xl" aria-label="Go back">
@@ -367,9 +367,9 @@ const InsurancePolicy = () => {
                 <div className="pt-4 border-t border-border">
                   <p className="text-sm text-muted-foreground">
                     For more information, see our{" "}
-                    <a href="/terms/renter" className="text-primary hover:underline">Renter Terms</a>,{" "}
-                    <a href="/terms/owner" className="text-primary hover:underline">Owner Terms</a>, and{" "}
-                    <a href="/damage-policy" className="text-primary hover:underline">Damage Policy</a>.
+                    <Link to="/terms/renter" className="text-primary hover:underline">Renter Terms</Link>,{" "}
+                    <Link to="/terms/owner" className="text-primary hover:underline">Owner Terms</Link>, and{" "}
+                    <Link to="/damage-policy" className="text-primary hover:underline">Damage Policy</Link>.
                   </p>
                 </div>
               </CardContent>
@@ -381,7 +381,7 @@ const InsurancePolicy = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Plane className="h-5 w-5 text-sky-500" />
+                  <Plane className="h-5 w-5 text-foreground" />
                   Travel Insurance for Flights
                 </CardTitle>
                 <CardDescription>Optional protection for air travel</CardDescription>
@@ -573,7 +573,7 @@ const InsurancePolicy = () => {
 
         {/* Footer Links */}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link to="/terms-of-service">
+          <Link to="/legal/terms">
             <Button variant="outline">Terms of Service</Button>
           </Link>
           <Link to="/help">

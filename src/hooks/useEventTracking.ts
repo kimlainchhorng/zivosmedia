@@ -5,6 +5,7 @@
 
 import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { trackRawAnalyticsEvent } from '@/lib/analytics';
 
 // Analytics event types
 export type TrackingEventName =
@@ -124,6 +125,25 @@ const isNewUser = (): boolean => {
   }
 };
 
+const reportTrackingFailure = (error: unknown): void => {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const fnError = error as {
+      message?: unknown;
+      code?: unknown;
+      details?: unknown;
+    };
+    console.error(
+      '[Tracking] Failed to track event:',
+      fnError.message,
+      fnError.code,
+      fnError.details,
+    );
+    return;
+  }
+
+  console.error('[Tracking] Failed to track event:', error);
+};
+
 /**
  * Hook for tracking analytics events
  */
@@ -172,18 +192,10 @@ export function useEventTracking() {
         is_new_user: isNewUser(),
       };
 
-      // Fire and forget - don't block UI
-      supabase
-        .from('analytics_events')
-        .insert(eventPayload as any)
-        .then(({ error }) => {
-          if (error) {
-            console.error('[Tracking] Failed to track event:', error);
-          }
-        });
+      void trackRawAnalyticsEvent(eventPayload).catch(reportTrackingFailure);
 
     } catch (error) {
-      console.error('[Tracking] Error tracking event:', error);
+      reportTrackingFailure(error);
     }
   }, [getUserId]);
 

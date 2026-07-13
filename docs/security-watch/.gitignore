@@ -1,0 +1,9 @@
+# Runtime artifacts from the security watchdog — generated, not source.
+# Keep README.md tracked; ignore the churn.
+history.jsonl
+.last-hash
+.lock
+cron.log
+reports/
+LATEST.md
+ALERT-*.md

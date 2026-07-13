@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Premium Search Overlay
  * 
  * Immersive full-screen search overlay with glassmorphism effects,
@@ -256,7 +256,7 @@ export default function PremiumSearchOverlay({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-start pt-16 sm:justify-center sm:pt-0 p-4 sm:p-6"
+          className="fixed inset-0 z-[1450] flex flex-col items-center justify-start pt-16 sm:justify-center sm:pt-0 p-4 sm:p-6"
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -418,7 +418,7 @@ export default function PremiumSearchOverlay({
                 <p className="text-sm font-medium text-muted-foreground mb-3">Popular destinations</p>
                 <div className="flex flex-wrap gap-2">
                   {["New York", "Miami", "Los Angeles", "London", "Paris", "Tokyo"].map((city) => (
-                    <button
+                    <button type="button"
                       key={city}
                       onClick={() => setDestination(city)}
                       className="px-4 py-2 rounded-full bg-muted/40 hover:bg-muted/60 text-sm font-medium transition-all duration-200 touch-manipulation active:scale-[0.95] min-h-[36px]"

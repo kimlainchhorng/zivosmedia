@@ -22,61 +22,61 @@ interface StatusTrackerProps {
 }
 
 const colorClasses = {
-  rides: { 
-    active: "bg-rides", 
-    text: "text-rides", 
+  rides: {
+    active: "bg-rides",
+    text: "text-rides",
     glow: "shadow-[0_0_20px_hsl(var(--rides)/0.5)]",
-    gradient: "from-rides to-green-400",
+    gradient: "from-rides to-rides",
     ring: "ring-rides/30",
     bgGlow: "from-rides/20 to-rides/5"
   },
-  eats: { 
-    active: "bg-eats", 
-    text: "text-eats", 
+  eats: {
+    active: "bg-eats",
+    text: "text-eats",
     glow: "shadow-[0_0_20px_hsl(var(--eats)/0.5)]",
-    gradient: "from-eats to-orange-400",
+    gradient: "from-eats to-eats",
     ring: "ring-eats/30",
     bgGlow: "from-eats/20 to-eats/5"
   },
-  sky: { 
-    active: "bg-sky-500", 
-    text: "text-sky-400", 
-    glow: "shadow-[0_0_20px_rgb(56,189,248,0.5)]",
-    gradient: "from-sky-500 to-blue-400",
-    ring: "ring-sky-500/30",
-    bgGlow: "from-sky-500/20 to-sky-500/5"
-  },
-  amber: { 
-    active: "bg-amber-500", 
-    text: "text-amber-400", 
-    glow: "shadow-[0_0_20px_rgb(251,191,36,0.5)]",
-    gradient: "from-amber-500 to-orange-400",
-    ring: "ring-amber-500/30",
-    bgGlow: "from-amber-500/20 to-amber-500/5"
-  },
-  primary: { 
-    active: "bg-primary", 
-    text: "text-primary", 
+  sky: {
+    active: "bg-primary",
+    text: "text-primary",
     glow: "shadow-[0_0_20px_hsl(var(--primary)/0.5)]",
-    gradient: "from-primary to-teal-400",
+    gradient: "from-muted to-muted",
+    ring: "ring-primary/30",
+    bgGlow: "from-primary/20 to-primary/5"
+  },
+  amber: {
+    active: "bg-warning",
+    text: "text-warning",
+    glow: "shadow-[0_0_20px_hsl(var(--warning)/0.5)]",
+    gradient: "from-warning to-warning",
+    ring: "ring-warning/30",
+    bgGlow: "from-warning/20 to-warning/5"
+  },
+  primary: {
+    active: "bg-primary",
+    text: "text-primary",
+    glow: "shadow-[0_0_20px_hsl(var(--primary)/0.5)]",
+    gradient: "from-primary to-primary",
     ring: "ring-primary/30",
     bgGlow: "from-primary/20 to-primary/5"
   },
   emerald: {
-    active: "bg-emerald-500",
-    text: "text-emerald-400",
-    glow: "shadow-[0_0_20px_rgb(16,185,129,0.5)]",
-    gradient: "from-emerald-500 to-green-400",
-    ring: "ring-emerald-500/30",
-    bgGlow: "from-emerald-500/20 to-emerald-500/5"
+    active: "bg-success",
+    text: "text-success",
+    glow: "shadow-[0_0_20px_hsl(var(--success)/0.5)]",
+    gradient: "from-success to-success",
+    ring: "ring-success/30",
+    bgGlow: "from-success/20 to-success/5"
   },
   violet: {
-    active: "bg-violet-500",
-    text: "text-violet-400",
-    glow: "shadow-[0_0_20px_rgb(139,92,246,0.5)]",
-    gradient: "from-violet-500 to-purple-400",
-    ring: "ring-violet-500/30",
-    bgGlow: "from-violet-500/20 to-violet-500/5"
+    active: "bg-ig-gradient",
+    text: "text-ig-gradient",
+    glow: "shadow-[0_0_20px_hsl(var(--primary)/0.5)]",
+    gradient: "bg-ig-gradient",
+    ring: "ring-primary/30",
+    bgGlow: "from-muted to-muted"
   },
 };
 
@@ -298,19 +298,19 @@ export const LivePulse: React.FC<LivePulseProps> = ({
   const bgColors = {
     rides: "bg-rides",
     eats: "bg-eats",
-    sky: "bg-sky-500",
-    amber: "bg-amber-500",
+    sky: "bg-primary",
+    amber: "bg-warning",
     primary: "bg-primary",
-    emerald: "bg-emerald-500",
+    emerald: "bg-success",
   };
 
   const textColors = {
     rides: "text-rides",
     eats: "text-eats",
-    sky: "text-sky-400",
-    amber: "text-amber-400",
+    sky: "text-primary",
+    amber: "text-warning",
     primary: "text-primary",
-    emerald: "text-emerald-400",
+    emerald: "text-success",
   };
 
   const sizeClasses = {
@@ -511,41 +511,41 @@ interface StatusBadgeProps {
 }
 
 const statusConfig = {
-  pending: { 
-    label: "Pending", 
-    color: "bg-amber-500/10 text-amber-400 border-amber-500/20", 
+  pending: {
+    label: "Pending",
+    color: "bg-warning/10 text-warning border-warning/20",
     icon: Clock,
-    gradient: "from-amber-500 to-orange-500"
+    gradient: "from-warning to-warning"
   },
-  confirmed: { 
-    label: "Confirmed", 
-    color: "bg-blue-500/10 text-blue-400 border-blue-500/20", 
+  confirmed: {
+    label: "Confirmed",
+    color: "bg-primary/10 text-primary border-primary/20",
     icon: Check,
-    gradient: "from-blue-500 to-sky-500"
+    gradient: "from-muted to-muted"
   },
-  in_progress: { 
-    label: "In Progress", 
-    color: "bg-primary/10 text-primary border-primary/20", 
+  in_progress: {
+    label: "In Progress",
+    color: "bg-primary/10 text-primary border-primary/20",
     icon: Loader2,
-    gradient: "from-primary to-teal-400"
+    gradient: "from-primary to-primary"
   },
-  completed: { 
-    label: "Completed", 
-    color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", 
+  completed: {
+    label: "Completed",
+    color: "bg-success/10 text-success border-success/20",
     icon: Check,
-    gradient: "from-emerald-500 to-green-500"
+    gradient: "from-success to-success"
   },
-  cancelled: { 
-    label: "Cancelled", 
-    color: "bg-red-500/10 text-red-400 border-red-500/20", 
+  cancelled: {
+    label: "Cancelled",
+    color: "bg-destructive/10 text-destructive border-destructive/20",
     icon: AlertCircle,
-    gradient: "from-red-500 to-rose-500"
+    gradient: "from-muted to-muted"
   },
   delayed: {
     label: "Delayed",
-    color: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    color: "bg-warning/10 text-warning border-warning/20",
     icon: Clock,
-    gradient: "from-orange-500 to-amber-500"
+    gradient: "from-warning to-warning"
   }
 };
 
@@ -608,10 +608,10 @@ export const QuickStatus: React.FC<QuickStatusProps> = ({
   showLabel = false,
 }) => {
   const config = {
-    active: { color: "bg-emerald-500", label: "Active", animate: true },
-    idle: { color: "bg-amber-500", label: "Idle", animate: false },
+    active: { color: "bg-success", label: "Active", animate: true },
+    idle: { color: "bg-warning", label: "Idle", animate: false },
     offline: { color: "bg-muted", label: "Offline", animate: false },
-    busy: { color: "bg-red-500", label: "Busy", animate: true },
+    busy: { color: "bg-destructive", label: "Busy", animate: true },
   };
 
   const { color, label, animate } = config[type];

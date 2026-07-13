@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RideGifting — Ride gifting, vouchers, corporate gift cards, event packages
  */
 import { useState } from "react";
@@ -15,8 +15,8 @@ type Tab = "send" | "vouchers" | "events";
 const giftAmounts = [10, 25, 50, 100];
 
 const voucherDesigns = [
-  { id: "birthday", label: "Birthday", emoji: "🎂", gradient: "from-pink-500/10 to-violet-500/10", border: "border-pink-500/20" },
-  { id: "thankyou", label: "Thank You", emoji: "🙏", gradient: "from-sky-500/10 to-emerald-500/10", border: "border-sky-500/20" },
+  { id: "birthday", label: "Birthday", emoji: "🎂", gradient: "from-muted to-muted", border: "border-pink-500/20" },
+  { id: "thankyou", label: "Thank You", emoji: "🙏", gradient: "from-muted to-muted", border: "border-sky-500/20" },
   { id: "congrats", label: "Congrats", emoji: "🎉", gradient: "from-amber-500/10 to-orange-500/10", border: "border-amber-500/20" },
   { id: "holiday", label: "Holiday", emoji: "🎄", gradient: "from-emerald-500/10 to-red-500/10", border: "border-emerald-500/20" },
 ];
@@ -68,7 +68,7 @@ export default function RideGifting() {
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+            <button type="button" key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               <Icon className="w-3.5 h-3.5" /> {tab.label}
             </button>
           );
@@ -92,7 +92,7 @@ export default function RideGifting() {
               {/* Design selector */}
               <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
                 {voucherDesigns.map(d => (
-                  <button key={d.id} onClick={() => setSelectedDesign(d.id)} className={cn("flex items-center gap-1.5 px-3 py-2 rounded-xl border shrink-0 transition-all", selectedDesign === d.id ? "border-primary/40 bg-primary/5" : "border-border/40 bg-card")}>
+                  <button type="button" key={d.id} onClick={() => setSelectedDesign(d.id)} className={cn("flex items-center gap-1.5 px-3 py-2 rounded-xl border shrink-0 transition-all", selectedDesign === d.id ? "border-primary/40 bg-primary/5" : "border-border/40 bg-card")}>
                     <span>{d.emoji}</span>
                     <span className="text-[10px] font-bold text-foreground">{d.label}</span>
                   </button>
@@ -104,7 +104,7 @@ export default function RideGifting() {
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Amount</h3>
                 <div className="grid grid-cols-4 gap-2">
                   {giftAmounts.map(amt => (
-                    <button key={amt} onClick={() => { setGiftAmount(amt); setCustomAmount(""); }} className={cn("py-2.5 rounded-xl text-sm font-bold border transition-all", giftAmount === amt && !customAmount ? "bg-primary text-primary-foreground border-primary" : "bg-muted/20 text-foreground border-border/40")}>
+                    <button type="button" key={amt} onClick={() => { setGiftAmount(amt); setCustomAmount(""); }} className={cn("py-2.5 rounded-xl text-sm font-bold border transition-all", giftAmount === amt && !customAmount ? "bg-ig-gradient text-white border-primary" : "bg-muted/20 text-foreground border-border/40")}>
                       ${amt}
                     </button>
                   ))}

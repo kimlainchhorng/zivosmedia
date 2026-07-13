@@ -4,6 +4,15 @@
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
 
+## ZIVO Master Build Plan
+
+Before implementing cross-app features, review the ZIVO ecosystem source of truth:
+
+- [docs/ZIVO_MASTER_BUILD_PLAN.md](./docs/ZIVO_MASTER_BUILD_PLAN.md)
+- [docs/DOMAINS_AND_REPOS.md](./docs/DOMAINS_AND_REPOS.md)
+
+PR 1 for the ZIVO ecosystem should stay documentation-only: no runtime code, migrations, production config, secrets, or deployment changes.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
@@ -59,6 +68,20 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+
+## WebRTC Call Reliability
+
+Voice and video calls currently support default STUN discovery plus optional TURN relay.
+
+For production mobile reliability, configure TURN relay environment variables:
+
+```sh
+VITE_WEBRTC_TURN_URLS=turn:your-turn-host:3478,turns:your-turn-host:5349
+VITE_WEBRTC_TURN_USERNAME=your-username
+VITE_WEBRTC_TURN_CREDENTIAL=your-password
+```
+
+Without TURN, calls may still fail on restrictive mobile carriers, NATs, or enterprise Wi-Fi even when signaling succeeds.
 
 ## How can I deploy this project?
 

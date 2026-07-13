@@ -1,0 +1,38 @@
+{
+  "run_at": "2026-05-16T23:18:49.559Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort",
+      "guesthouse",
+      "hostel",
+      "villa",
+      "lodge",
+      "motel",
+      "inn",
+      "boutique"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 0,
+    "not_found": 0,
+    "errors": 1
+  },
+  "results": [
+    {
+      "id": "39aa897c-00fc-450b-8236-b9758e433e00",
+      "name": "Naraya Guesthouse",
+      "status": "error",
+      "photos": 0,
+      "rooms": 0,
+      "bookingUrl": "https://www.booking.com/hotel/kh/naraya-guesthouse-phnom-penh4.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1",
+      "error": "page.evaluate: Target page, context or browser has been closed"
+    }
+  ]
+}

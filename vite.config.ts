@@ -1,41 +1,184 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import { defineConfig, loadEnv, type Plugin } from "vite";
+import react from "@vitejs/plugin-react";
 import path from "path";
+import { rmSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+import { createRequire } from "module";
+const _require = createRequire(import.meta.url);
+const pkg = _require("./package.json") as { version: string };
+
+const manualChunkGroups = {
+  "vendor-react": ["react", "react-dom", "react-router-dom"],
+  "vendor-supabase": ["@supabase/supabase-js"],
+  "vendor-query": ["@tanstack/react-query"],
+  // Keep all Radix in ONE chunk because splitting can evaluate shared internals
+  // out of order across chunks.
+  "vendor-radix": [
+    "@radix-ui/react-dialog",
+    "@radix-ui/react-popover",
+    "@radix-ui/react-dropdown-menu",
+    "@radix-ui/react-toast",
+    "@radix-ui/react-tabs",
+    "@radix-ui/react-select",
+    "@radix-ui/react-accordion",
+    "@radix-ui/react-tooltip",
+  ],
+  // Heavy lazy-loaded libs — keep each in its own chunk so the main bundle
+  // stays lean and these only download when the relevant route opens.
+  "vendor-livekit": ["livekit-client"],
+  "vendor-stripe": ["@stripe/stripe-js", "@stripe/react-stripe-js", "@stripe/connect-js", "@stripe/react-connect-js"],
+  "vendor-maps": ["@react-google-maps/api", "@googlemaps/markerclusterer"],
+  "vendor-framer": ["framer-motion"],
+  "vendor-charts": ["recharts"],
+  "vendor-mediapipe": ["@mediapipe/tasks-vision"],
+  "vendor-pdf": ["jspdf", "jspdf-autotable", "html2canvas", "html-to-image"],
+  "vendor-docx": ["docx", "file-saver"],
+} as const;
+
+const packageSegment = (packageName: string) =>
+  `/node_modules/${packageName}/`;
+
+const manualChunks = (id: string) => {
+  const normalizedId = id.replaceAll(path.sep, "/");
+
+  for (const [chunkName, packageNames] of Object.entries(manualChunkGroups)) {
+    if (
+      packageNames.some((packageName) =>
+        normalizedId.includes(packageSegment(packageName)),
+      )
+    ) {
+      return chunkName;
+    }
+  }
+};
+
+const pwaPrecacheGlobPatterns = [
+  "index.html",
+  "manifest.webmanifest",
+  "favicon.ico",
+  "assets/index-*.js",
+  "assets/vendor-react-*.js",
+  "assets/vendor-radix-*.js",
+  "assets/vendor-supabase-*.js",
+  "assets/vendor-query-*.js",
+  "assets/vendor-framer-*.js",
+  "assets/*.css",
+  "pwa-icons/*.png",
+];
+
+const pwaPrecacheGlobIgnores = [
+  "**/mediapipe/**",
+  "**/stickers/**",
+  "**/gifts/**",
+  "**/vehicles/**",
+  "**/flags/**",
+  "**/videos/**",
+  "**/payments/**",
+  "**/brand-logos/**",
+  "**/destinations/**",
+];
+
+// Build-time guard: warn (don't fail) when a production build is missing the
+// Supabase env vars and would silently fall back to the bundled public project.
+// The hard requirement is enforced in scripts/deploy/env-preflight.mjs.
+const supabaseEnvWarnPlugin: Plugin = {
+  name: "warn-missing-supabase-env",
+  config(_config, env) {
+    if (env.command === "build" && env.mode === "production") {
+      const supaEnv = loadEnv(env.mode, process.cwd(), "VITE_");
+      const missing = ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"].filter(
+        (key) => !supaEnv[key],
+      );
+      if (missing.length > 0) {
+        console.warn(
+          `\n⚠️  [zivosmedia] Production build is missing ${missing.join(", ")} — ` +
+            `the app will use the bundled public Supabase fallback at runtime. ` +
+            `Set these in the deploy pipeline (see scripts/deploy/env-preflight.mjs).\n`,
+        );
+      }
+    }
+  },
+};
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
+  },
   server: {
     host: "::",
-    port: 8080,
+    port: Number(process.env.PORT) || 8081,
+    allowedHosts: ["zivosoftware.com", "www.zivosoftware.com", "zivodriver.com", "www.zivodriver.com"],
+    headers: {
+      "Cache-Control": "no-store, max-age=0",
+      "Pragma": "no-cache",
+      "Expires": "0",
+    },
+    watch: {
+      ignored: [
+        "**/android/**",
+        "**/ios/App/App/public/**",
+        "**/ios/DerivedData/**",
+        "**/ios/build/**",
+      ],
+    },
     hmr: {
       overlay: false,
     },
   },
+  optimizeDeps: {
+    exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util", "@ffmpeg/core"],
+  },
   build: {
+    target: "es2022",
+    modulePreload: { polyfill: false },
+    minify: "esbuild",
+    cssMinify: "esbuild",
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          "vendor-charts": ["recharts"],
-        },
+        manualChunks,
       },
     },
     cssCodeSplit: true,
-    sourcemap: false,
+    sourcemap: mode === 'production' ? false : 'hidden',
   },
   plugins: [
+    supabaseEnvWarnPlugin,
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
+      // Dev mode: skip SW entirely so HMR-fresh JS always runs. With this off,
+      // refreshes during development show the latest code immediately instead
+      // of serving last-build's cached bundle (which masked the recent
+      // chat-layout fixes).
+      disable: mode === "development",
+      devOptions: { enabled: false },
       registerType: "autoUpdate",
       strategies: "injectManifest",
-      srcDir: "public",
+      // Keep the custom service worker outside public/. Vite copies public
+      // files into dist before PWA injection, so public/sw.js can collide with
+      // the generated dist/sw.js on repeat builds.
+      srcDir: "src",
       filename: "sw.js",
       injectManifest: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        rollupFormat: "iife",
+        // Keep the offline app shell cached, but do not precache every lazy
+        // route chunk. The old manifest pulled 1,200+ files (~18 MB) on
+        // install/update, competing with normal app navigation on slow phones.
+        globPatterns: pwaPrecacheGlobPatterns,
+        globIgnores: pwaPrecacheGlobIgnores,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      },
+      integration: {
+        beforeBuildServiceWorker({ swDest }) {
+          // Repeat local/CI builds can leave an already-injected dist/sw.js.
+          // Remove only the generated output so Workbox always injects into a
+          // freshly built service worker containing self.__WB_MANIFEST.
+          rmSync(swDest, { force: true });
+        },
       },
       includeAssets: ["favicon.ico", "robots.txt", "pwa-icons/*.png"],
       manifest: {
@@ -98,8 +241,10 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globPatterns: pwaPrecacheGlobPatterns,
+        globIgnores: pwaPrecacheGlobIgnores,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -135,12 +280,33 @@ export default defineConfig(({ mode }) => ({
           },
           {
             urlPattern: /\.(jpg|jpeg|png|webp|avif)$/i,
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "local-images",
               expiration: {
                 maxEntries: 60,
-                maxAgeSeconds: 60 * 60 * 24 * 365
+                maxAgeSeconds: 60 * 60 * 24 * 30
+              },
+              // Only cache successful responses — without this an early
+              // network blip / 0-byte fetch gets locked into CacheFirst and
+              // the broken image renders forever.
+              cacheableResponse: {
+                statuses: [200]
+              }
+            }
+          },
+          {
+            urlPattern: /\.(mp4|webm|mov|m4v)$/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "local-video-metadata",
+              expiration: {
+                maxEntries: 25,
+                maxAgeSeconds: 60 * 60 * 24 * 7
+              },
+              rangeRequests: true,
+              cacheableResponse: {
+                statuses: [200, 206]
               }
             }
           }
@@ -149,10 +315,58 @@ export default defineConfig(({ mode }) => ({
     })
   ].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      {
+        find: "lucide-react/dist/esm/icons/facebook",
+        replacement: path.resolve(__dirname, "./src/lib/icons/facebook.tsx"),
+      },
+      {
+        find: "lucide-react/dist/esm/icons/instagram",
+        replacement: path.resolve(__dirname, "./src/lib/icons/instagram.tsx"),
+      },
+      {
+        find: "lucide-react/dist/esm/icons/linkedin",
+        replacement: path.resolve(__dirname, "./src/lib/icons/linkedin.tsx"),
+      },
+      {
+        find: "lucide-react/dist/esm/icons/twitter",
+        replacement: path.resolve(__dirname, "./src/lib/icons/twitter.tsx"),
+      },
+      {
+        find: "lucide-react/dist/esm/icons/youtube",
+        replacement: path.resolve(__dirname, "./src/lib/icons/youtube.tsx"),
+      },
+      {
+        find: /^lucide-react$/,
+        replacement: path.resolve(__dirname, "./src/lib/lucide-react.ts"),
+      },
+      {
+        find: "@",
+        replacement: path.resolve(__dirname, "./src"),
+      },
+      {
+        find: "@radix-ui/react-slot",
+        replacement: path.resolve(__dirname, "./node_modules/@radix-ui/react-slot"),
+      },
+      // React 19.2 re-invokes identity-changing callback refs on every commit,
+      // so Radix PopperAnchor's setState-in-ref (onAnchorChange) loops forever
+      // ("Maximum update depth exceeded") across Select/Popover/Dropdown/Tooltip
+      // — white-screening pages like /more and the embedded Build R.O. sections.
+      // This shim makes useComposedRefs return a stable-identity ref, breaking
+      // the loop app-wide. Keep in sync with @radix-ui/react-compose-refs' API.
+      {
+        find: /^@radix-ui\/react-compose-refs$/,
+        replacement: path.resolve(__dirname, "./src/lib/radix-compose-refs-shim.ts"),
+      },
+      // React 19 hoists <title>/<meta>/<link> natively. react-helmet-async
+      // collides with that hoisting, causing NotFoundError on commit/unmount
+      // (App failed to start crash on iOS WKWebView in particular).
+      {
+        find: "react-helmet-async",
+        replacement: path.resolve(__dirname, "./src/lib/react-helmet-shim.tsx"),
+      },
+    ],
     // Prevent duplicate React copies (fixes "Cannot read properties of null (reading 'useEffect')")
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "@radix-ui/react-slot"],
   },
 }));

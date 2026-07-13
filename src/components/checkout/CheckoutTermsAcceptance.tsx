@@ -1,14 +1,15 @@
 /**
  * Checkout Terms Acceptance Component
- * Mandatory checkboxes for fare rules and ToS
+ * Mandatory checkboxes for fare rules and ToS — links open inline
  */
 
 import { useState, useEffect } from "react";
-import { AlertCircle, ExternalLink, FileText, Shield } from "lucide-react";
+import { AlertCircle, FileText, Shield } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { CHECKOUT_TERMS } from "@/config/pricing";
+import InlineLegalSheet, { useLegalSheet } from "@/components/checkout/InlineLegalSheet";
 
 export interface TermsState {
   fareRules: boolean;
@@ -39,6 +40,7 @@ export function CheckoutTermsAcceptance({
     marketing: false,
   });
   const [showError, setShowError] = useState(false);
+  const { sheet, openSheet, setOpen } = useLegalSheet();
 
   const isValid = state.fareRules && state.termsOfService;
 
@@ -91,15 +93,13 @@ export function CheckoutTermsAcceptance({
             <span className="text-destructive">*</span>
           </Label>
           {showFareRulesLink && fareRulesUrl && (
-            <a
-              href={fareRulesUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); openSheet("Fare Rules", fareRulesUrl); }}
+              className="text-xs text-primary hover:underline"
             >
               View full policy
-              <ExternalLink className="w-3 h-3" />
-            </a>
+            </button>
           )}
         </div>
       </div>
@@ -122,25 +122,21 @@ export function CheckoutTermsAcceptance({
             )}
           >
             I accept ZIVO's{" "}
-            <a
-              href="/terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-              onClick={(e) => e.stopPropagation()}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSheet("Terms of Service", "/legal/terms"); }}
+              className="text-primary hover:underline inline"
             >
               Terms of Service
-            </a>{" "}
+            </button>{" "}
             and{" "}
-            <a
-              href="/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-              onClick={(e) => e.stopPropagation()}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSheet("Privacy Policy", "/legal/privacy"); }}
+              className="text-primary hover:underline inline"
             >
               Privacy Policy
-            </a>
+            </button>
             <span className="text-destructive">*</span>
           </Label>
         </div>
@@ -175,6 +171,14 @@ export function CheckoutTermsAcceptance({
       <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
         {CHECKOUT_TERMS.confirmationCopy}
       </p>
+
+      {/* Inline legal sheet */}
+      <InlineLegalSheet
+        open={sheet.open}
+        onOpenChange={setOpen}
+        title={sheet.title}
+        url={sheet.url}
+      />
     </div>
   );
 }

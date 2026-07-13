@@ -12,7 +12,10 @@ import { differenceInDays, format, parseISO } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
-import HotelFiltersComponent, { HotelFilters } from "@/components/hotels/HotelFilters";
+import AdSenseUnit from "@/components/ads/AdSenseUnit";
+import { AD_SLOTS } from "@/config/adSlots";
+import HotelFiltersComponent from "@/components/hotels/HotelFilters";
+import type { HotelFilters } from "@/components/hotels/HotelFilters";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -106,7 +109,7 @@ const defaultFilters: HotelFilters = {
 };
 
 export default function HotelResultsPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState<HotelFilters>(defaultFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("price");
@@ -236,7 +239,7 @@ export default function HotelResultsPage() {
 
   const handleViewAllOnPartner = () => {
     const bookingUrl = buildBookingUrl({ citySlug, cityName, checkIn, checkOut, adults, rooms });
-    window.open(bookingUrl, "_blank", "noopener,noreferrer");
+    import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(bookingUrl));
   };
 
   const formatDisplayDate = (dateStr: string) => {
@@ -295,8 +298,8 @@ export default function HotelResultsPage() {
           ]}
           searchForm={
             <HotelEditSearchForm
-              onSearch={() => {}}
-              onCancel={() => {}}
+              onSearch={(params) => setSearchParams(params)}
+              onCancel={() => { /* form is always visible — nothing to cancel */ }}
             />
           }
         />
@@ -378,6 +381,8 @@ export default function HotelResultsPage() {
                     {hotelCards.map((hotel, index) => (
                       <React.Fragment key={hotel.id}>
                         <HotelResultCard hotel={hotel} onViewDeal={handleViewDeal} />
+                        {/* In-feed ad after the 3rd result — renders nothing until AD_SLOTS.searchResults + publisher id are set */}
+                        {index === 2 && <AdSenseUnit slot={AD_SLOTS.searchResults} />}
                       </React.Fragment>
                     ))}
                   </div>
@@ -412,7 +417,7 @@ export default function HotelResultsPage() {
               For changes, cancellations, or refunds, contact the booking partner listed in your confirmation email.
             </p>
             <p className="text-sm text-muted-foreground">
-              For website issues, contact <a href="mailto:support@hizivo.com" className="text-amber-500 hover:underline">support@hizivo.com</a>.
+              For website issues, contact <a href="mailto:support@zivosmedia.com" className="text-amber-500 hover:underline">support@zivosmedia.com</a>.
             </p>
           </div>
         </section>

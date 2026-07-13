@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { 
-  Plane, 
-  Car, 
-  ArrowRight, 
-  MapPin, 
+import {
+  Plane,
+  Car,
+  ArrowRight,
+  MapPin,
   Clock,
   Users,
   Luggage,
@@ -13,6 +13,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface AirportTransferBridgeProps {
   airport?: string;
@@ -49,18 +52,36 @@ const transferOptions = [
   },
 ];
 
-const AirportTransferBridge = ({ 
+const AirportTransferBridge = ({
   airport = "CDG Airport",
   destination = "Paris City Center",
   arrivalTime = "2:30 PM",
   passengers = 2,
-  className 
+  className
 }: AirportTransferBridgeProps) => {
   const [selectedTransfer, setSelectedTransfer] = useState<string | null>(null);
+  const [booking, setBooking] = useState(false);
+  const navigate = useNavigate();
 
-  const handleBook = () => {
-    if (selectedTransfer) {
-      // TODO: integrate with partner transfer API
+  const handleBook = async () => {
+    if (!selectedTransfer) return;
+    const option = transferOptions.find(o => o.id === selectedTransfer);
+    if (!option) return;
+    setBooking(true);
+    try {
+      const { error } = await supabase.functions.invoke("ride-support-submit", { body: {
+        category: "transfer_request",
+        subject: `Airport transfer: ${option.name}`,
+        metadata: { airport, destination, arrivalTime, passengers, transferType: option.name, priceUsd: option.price },
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
+      toast.success(`${option.name} booked! We'll confirm your transfer shortly.`);
+      navigate("/request-ride");
+    } catch {
+      toast.error("Failed to book transfer. Please try again.");
+    } finally {
+      setBooking(false);
     }
   };
 
@@ -73,8 +94,8 @@ const AirportTransferBridge = ({
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-sky-500/20">
-              <Plane className="w-5 h-5 text-sky-500" />
+            <div className="p-2 rounded-xl bg-secondary">
+              <Plane className="w-5 h-5 text-foreground" />
             </div>
             <ArrowRight className="w-4 h-4 text-muted-foreground" />
             <div className="p-2 rounded-xl bg-blue-500/20">
@@ -87,7 +108,7 @@ const AirportTransferBridge = ({
               Pre-book your ride to {destination}
             </p>
           </div>
-          <Badge className="bg-gradient-to-r from-sky-500 to-blue-500 text-primary-foreground">
+          <Badge className="text-primary-foreground bg-foreground">
             <Shield className="w-3 h-3 mr-1" />
             Meet & Greet
           </Badge>
@@ -114,7 +135,7 @@ const AirportTransferBridge = ({
           <p className="text-sm font-medium text-muted-foreground">Select transfer type:</p>
           <div className="space-y-2">
             {transferOptions.map((option) => (
-              <button
+              <button type="button"
                 key={option.id}
                 onClick={() => setSelectedTransfer(option.id)}
                 className={cn(
@@ -124,7 +145,7 @@ const AirportTransferBridge = ({
                     : "border-border hover:border-sky-500/30"
                 )}
               >
-                <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center"><Car className="w-5 h-5 text-sky-500" /></div>
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center"><Car className="w-5 h-5 text-foreground" /></div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm">{option.name}</p>
@@ -155,15 +176,15 @@ const AirportTransferBridge = ({
         {/* Benefits */}
         <div className="flex flex-wrap gap-3 mb-4">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Shield className="w-3.5 h-3.5 text-sky-500" />
+            <Shield className="w-3.5 h-3.5 text-foreground" />
             Free cancellation
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Luggage className="w-3.5 h-3.5 text-sky-500" />
+            <Luggage className="w-3.5 h-3.5 text-foreground" />
             Luggage included
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="w-3.5 h-3.5 text-sky-500" />
+            <Clock className="w-3.5 h-3.5 text-foreground" />
             Flight monitoring
           </div>
         </div>
@@ -174,9 +195,9 @@ const AirportTransferBridge = ({
             Skip for now
           </Button>
           <Button
-            className="flex-1 bg-gradient-to-r from-sky-500 to-blue-500"
+            className="flex-1 bg-secondary"
             onClick={handleBook}
-            disabled={!selectedTransfer}
+            disabled={!selectedTransfer || booking}
           >
             Add Transfer
             <ArrowRight className="w-4 h-4 ml-2" />

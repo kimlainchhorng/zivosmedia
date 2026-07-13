@@ -78,14 +78,14 @@ export default function DataInsights() {
       <SEOHead
         title="Travel Intelligence for Business – ZIVO"
         description="Anonymized travel data and insights for airlines, hotels, and tourism businesses."
-        canonical="https://hizivo.com/business/insights"
+        canonical="https://zivosmedia.com/business/insights"
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         {/* Hero */}
         <section className="relative overflow-hidden pb-16">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-sky-500/5 to-violet-500/10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10" />
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-primary/15 to-transparent rounded-full blur-3xl" />
 
           <div className="container mx-auto px-4 py-16 relative z-10">
@@ -146,8 +146,8 @@ export default function DataInsights() {
                     key={useCase.title}
                     className="flex items-start gap-4 p-6 rounded-2xl bg-card border border-border/50 hover:border-primary/20 hover:shadow-sm transition-all duration-200"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-sky-500" />
+                    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-foreground" />
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">{useCase.title}</h3>
@@ -163,7 +163,7 @@ export default function DataInsights() {
         {/* Privacy & Trust */}
         <section className="container mx-auto px-4 mb-16">
           <div className="max-w-3xl mx-auto">
-            <Card className="bg-gradient-to-r from-emerald-500/10 to-sky-500/10 border-emerald-500/20">
+            <Card className="bg-gradient-to-r from-emerald-500/10 border-emerald-500/20">
               <CardContent className="p-8">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">

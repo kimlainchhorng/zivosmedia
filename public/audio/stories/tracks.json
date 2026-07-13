@@ -1,0 +1,10 @@
+[
+  { "id": "uplift", "title": "Uplifting Pop", "artist": "ZIVO Sounds", "url": "/audio/stories/uplift.mp3" },
+  { "id": "chill", "title": "Chill Vibes", "artist": "ZIVO Sounds", "url": "/audio/stories/chill.mp3" },
+  { "id": "lofi", "title": "Lo-Fi Study", "artist": "ZIVO Sounds", "url": "/audio/stories/lofi.mp3" },
+  { "id": "epic", "title": "Epic Cinematic", "artist": "ZIVO Sounds", "url": "/audio/stories/epic.mp3" },
+  { "id": "sunny", "title": "Sunny Day", "artist": "ZIVO Sounds", "url": "/audio/stories/sunny.mp3" },
+  { "id": "night", "title": "Night Drive", "artist": "ZIVO Sounds", "url": "/audio/stories/night.mp3" },
+  { "id": "dance", "title": "Dance Floor", "artist": "ZIVO Sounds", "url": "/audio/stories/dance.mp3" },
+  { "id": "acoustic", "title": "Acoustic Heart", "artist": "ZIVO Sounds", "url": "/audio/stories/acoustic.mp3" }
+]

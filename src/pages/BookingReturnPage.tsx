@@ -162,11 +162,11 @@ export default function BookingReturnPage() {
           <div className="container mx-auto max-w-2xl">
             
             {/* Explanation Info Box - Always visible at top */}
-            <Card className="mb-6 border-sky-500/30 bg-sky-500/5">
+            <Card className="mb-6 border-border bg-secondary">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center shrink-0">
-                    <Info className="w-5 h-5 text-sky-500" />
+                  <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                    <Info className="w-5 h-5 text-foreground" />
                   </div>
                   <div>
                     <p className="font-semibold text-sm mb-1">Partner Checkout</p>
@@ -183,7 +183,7 @@ export default function BookingReturnPage() {
             {pageStatus === "converted" && (
               <Card className="overflow-hidden">
                 {/* Neutral Header - Not claiming ticket issuance */}
-                <div className="bg-gradient-to-r from-sky-500 to-blue-600 p-6 sm:p-8 text-center text-primary-foreground">
+                <div className="p-6 sm:p-8 text-center text-primary-foreground bg-foreground">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full bg-white/20 flex items-center justify-center mb-4">
                     <ExternalLink className="w-10 h-10 sm:w-12 sm:h-12" />
                   </div>
@@ -211,7 +211,7 @@ export default function BookingReturnPage() {
                         {tripSummary.origin && tripSummary.destination && (
                           <div className="flex items-center justify-center gap-2 font-semibold text-base">
                             <span>{tripSummary.origin}</span>
-                            <Plane className="w-4 h-4 text-sky-500 rotate-90" />
+                            <Plane className="w-4 h-4 text-foreground rotate-90" />
                             <span>{tripSummary.destination}</span>
                           </div>
                         )}
@@ -254,11 +254,9 @@ export default function BookingReturnPage() {
 
                   {/* Safe Actions */}
                   <div className="flex flex-col gap-3">
-                    <Button asChild className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
-                      <a href="mailto:support@hizivo.com" target="_blank" rel="noopener noreferrer">
+                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@zivosmedia.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
                         <Mail className="w-4 h-4" />
                         Check my email
-                      </a>
                     </Button>
                     <Button variant="outline" asChild className="w-full h-12 touch-manipulation gap-2">
                       <Link to="/flights">
@@ -281,12 +279,12 @@ export default function BookingReturnPage() {
             {pageStatus === "failed" && (
               <Card className="overflow-hidden">
                 {/* Error Header */}
-                <div className="bg-gradient-to-r from-red-500 to-rose-500 p-8 text-center text-primary-foreground">
+                <div className="bg-gradient-to-r from-red-500 to-red-600 p-8 text-center text-white">
                   <div className="w-20 h-20 mx-auto rounded-full bg-white/20 flex items-center justify-center mb-4">
                     <XCircle className="w-12 h-12" />
                   </div>
                   <h1 className="text-2xl font-bold mb-2">Booking Failed</h1>
-                  <p className="text-primary-foreground/90">
+                  <p className="text-white/90">
                     There was an issue processing your booking
                   </p>
                 </div>
@@ -339,11 +337,9 @@ export default function BookingReturnPage() {
 
                   {/* Safe Actions */}
                   <div className="flex flex-col gap-3">
-                    <Button asChild className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
-                      <a href="mailto:support@hizivo.com" target="_blank" rel="noopener noreferrer">
+                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@zivosmedia.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
                         <Mail className="w-4 h-4" />
                         Check my email
-                      </a>
                     </Button>
                     <Button variant="outline" asChild className="w-full h-12 touch-manipulation gap-2">
                       <Link to="/flights">
@@ -386,11 +382,9 @@ export default function BookingReturnPage() {
 
                   {/* Safe Actions */}
                   <div className="flex flex-col gap-3">
-                    <Button asChild className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
-                      <a href="mailto:support@hizivo.com" target="_blank" rel="noopener noreferrer">
+                    <Button onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@zivosmedia.com"))} className="w-full h-12 touch-manipulation active:scale-[0.98] gap-2">
                         <Mail className="w-4 h-4" />
                         Check my email
-                      </a>
                     </Button>
                     <Button variant="outline" asChild className="w-full h-12 touch-manipulation gap-2">
                       <Link to="/flights">
@@ -428,7 +422,7 @@ export default function BookingReturnPage() {
                       <strong>For changes, cancellations, or refunds:</strong> Contact the airline partner listed in your confirmation email.
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      <strong>For website issues:</strong> <a href="mailto:support@hizivo.com" className="text-sky-500 hover:underline">support@hizivo.com</a>
+                      <strong>For website issues:</strong> <a href="mailto:support@zivosmedia.com" className="text-foreground hover:underline">support@zivosmedia.com</a>
                     </p>
                   </div>
                 </div>
@@ -451,13 +445,13 @@ export default function BookingReturnPage() {
               <CardContent className="p-4 text-center space-y-2">
                 <p className="font-semibold text-sm">Need a ride or food delivery?</p>
                 <div className="flex justify-center gap-3">
-                  <a href="/rides" className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm font-medium">
+                  <Link to="/rides/hub" className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm font-medium">
                     Book a Ride
-                  </a>
+                  </Link>
                   <span className="text-muted-foreground">·</span>
-                  <a href="/eats" className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm font-medium">
+                  <Link to="/eats" className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm font-medium">
                     Order Food
-                  </a>
+                  </Link>
                 </div>
               </CardContent>
             </Card>

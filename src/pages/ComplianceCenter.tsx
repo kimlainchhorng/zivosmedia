@@ -35,11 +35,11 @@ const complianceCategories = [
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
     links: [
-      { name: "Terms of Service", href: "/terms", updated: "2024-01" },
-      { name: "Privacy Policy", href: "/privacy", updated: "2024-01" },
-      { name: "Cookie Policy", href: "/cookies", updated: "2024-01" },
-      { name: "Refund Policy", href: "/refunds", updated: "2024-01" },
-      { name: "Cancellation Policy", href: "/legal/cancellation-policy", updated: "2024-01" },
+      { name: "Terms of Service", href: "/legal/terms", updated: "2024-01" },
+      { name: "Privacy Policy", href: "/legal/privacy", updated: "2024-01" },
+      { name: "Cookie Policy", href: "/legal/cookies", updated: "2024-01" },
+      { name: "Refund Policy", href: "/legal/refunds", updated: "2024-01" },
+      { name: "Cancellation Policy", href: "/legal/cancellation", updated: "2024-01" },
       { name: "Acceptable Use Policy", href: "/legal/acceptable-use", updated: "2024-01" },
     ],
   },
@@ -66,7 +66,7 @@ const complianceCategories = [
     color: "text-purple-500",
     bgColor: "bg-purple-500/10",
     links: [
-      { name: "Privacy Controls", href: "/account/privacy", updated: "2024-01" },
+      { name: "Privacy Controls", href: "/account/data-rights", updated: "2024-01" },
       { name: "Data Protection", href: "/security/data-protection", updated: "2024-01" },
       { name: "Data Residency", href: "/legal/data-residency", updated: "2024-01" },
       { name: "Children's Privacy", href: "/legal/children-privacy", updated: "2024-01" },
@@ -82,7 +82,7 @@ const complianceCategories = [
     bgColor: "bg-teal-500/10",
     links: [
       { name: "Affiliate Disclosure", href: "/affiliate-disclosure", updated: "2024-01" },
-      { name: "Partner Disclosure", href: "/partner-disclosure", updated: "2024-01" },
+      { name: "Partner Disclosure", href: "/legal/partner-disclosure", updated: "2024-01" },
       { name: "Partner Agreement", href: "/partner-agreement", updated: "2024-01" },
       { name: "Third Party Services", href: "/legal/third-party-services", updated: "2024-01" },
       { name: "How ZIVO Makes Money", href: "/how-zivo-makes-money", updated: "2024-01" },
@@ -176,7 +176,7 @@ export default function ComplianceCenter() {
             <CheckCircle2 className="w-4 h-4" />
             <span className="text-sm font-medium">CCPA Compliant</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary text-foreground dark:text-foreground">
             <CheckCircle2 className="w-4 h-4" />
             <span className="text-sm font-medium">PCI-DSS Level 1</span>
           </div>
@@ -223,7 +223,7 @@ export default function ComplianceCenter() {
           <Card className="bg-muted/30">
             <CardContent className="p-6">
               <div className="grid sm:grid-cols-3 gap-4">
-                <Link to="/account/privacy" className="block">
+                <Link to="/account/data-rights" className="block">
                   <div className="p-4 rounded-xl bg-background border hover:shadow-md transition-shadow text-center">
                     <Eye className="w-8 h-8 text-primary mx-auto mb-2" />
                     <p className="font-medium text-sm">Manage Privacy</p>
@@ -237,11 +237,46 @@ export default function ComplianceCenter() {
                     <p className="text-xs text-muted-foreground">Ask questions</p>
                   </div>
                 </Link>
-                <div className="p-4 rounded-xl bg-background border text-center opacity-60">
-                  <Download className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Build a single JSON manifest of every policy + link so a
+                    // user (or auditor) can archive the full policy set in one
+                    // click. No server roundtrip — the structure is already in
+                    // memory on this page. The site origin is included so the
+                    // links resolve from outside the app too.
+                    const origin = typeof window !== "undefined" ? window.location.origin : "";
+                    const payload = {
+                      generated_at: new Date().toISOString(),
+                      origin,
+                      categories: complianceCategories.map((c) => ({
+                        id: c.id,
+                        title: c.title,
+                        description: c.description,
+                        policies: c.links.map((l) => ({
+                          name: l.name,
+                          url: `${origin}${l.href}`,
+                          last_updated: l.updated,
+                        })),
+                      })),
+                    };
+                    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    const stamp = new Date().toISOString().slice(0, 10);
+                    a.download = `zivo-policies-${stamp}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="p-4 rounded-xl bg-background border hover:shadow-md transition-shadow text-center w-full"
+                >
+                  <Download className="w-8 h-8 text-primary mx-auto mb-2" />
                   <p className="font-medium text-sm">Download All Policies</p>
-                  <p className="text-xs text-muted-foreground">Coming soon</p>
-                </div>
+                  <p className="text-xs text-muted-foreground">JSON manifest</p>
+                </button>
               </div>
             </CardContent>
           </Card>
@@ -251,8 +286,8 @@ export default function ComplianceCenter() {
         <div className="text-center mt-12 text-sm text-muted-foreground max-w-2xl mx-auto">
           <p>
             Questions about our policies? Contact us at{" "}
-            <a href="mailto:legal@hizivo.com" className="text-primary hover:underline">
-              legal@hizivo.com
+            <a href="mailto:legal@zivosmedia.com" className="text-primary hover:underline">
+              legal@zivosmedia.com
             </a>
           </p>
           <p className="mt-2">

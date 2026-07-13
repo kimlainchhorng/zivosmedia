@@ -212,19 +212,13 @@ END:VCALENDAR`;
   };
 
   // Export to ICS file (for Apple Calendar, Outlook, etc.)
-  const exportToICS = (flight: FlightData) => {
+  const exportToICS = async (flight: FlightData) => {
     try {
+      const { exportBlob } = await import("@/lib/native/exportFile");
       const icsContent = generateICS(flight);
       const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `flight-${flight.confirmationNumber}.ics`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('Calendar file downloaded!');
+      const shared = await exportBlob(blob, `flight-${flight.confirmationNumber}.ics`, 'Add to calendar');
+      if (!shared) toast.success('Calendar file downloaded!');
     } catch (error) {
       toast.error('Failed to export calendar');
     }
@@ -234,27 +228,21 @@ END:VCALENDAR`;
   const exportToGoogleCalendar = (flight: FlightData) => {
     try {
       const url = generateGoogleCalendarURL(flight);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl(url));
       toast.success('Opening Google Calendar...');
     } catch (error) {
       toast.error('Failed to open Google Calendar');
     }
   };
 
-  // Export to PDF (using print dialog)
-  const exportToPDF = (flight: FlightData) => {
+  // Export itinerary as a downloadable/shareable HTML document
+  const exportToPDF = async (flight: FlightData) => {
     try {
+      const { exportBlob } = await import("@/lib/native/exportFile");
       const htmlContent = generatePDFContent(flight);
-      const printWindow = window.open('', '_blank', 'noopener,noreferrer');
-      if (printWindow) {
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-        }, 250);
-        toast.success('Opening print dialog...');
-      }
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const shared = await exportBlob(blob, `ZIVO-Itinerary-${flight.departure.code}-${flight.arrival.code}.html`, 'Itinerary');
+      if (!shared) toast.success('Itinerary downloaded!');
     } catch (error) {
       toast.error('Failed to generate PDF');
     }

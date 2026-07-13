@@ -1,2 +1,2 @@
 /** Eats tables stub */
-export const MERCHANT_APP_URL = "https://merchant.hizivo.com";
+export const MERCHANT_APP_URL = "https://merchant.zivosmedia.com";

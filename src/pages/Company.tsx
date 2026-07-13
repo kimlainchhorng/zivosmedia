@@ -25,11 +25,11 @@ const Company = () => {
       <SEOHead 
         title="Company | ZIVO LLC"
         description="Learn about ZIVO LLC, a travel search and comparison platform based in the United States."
-        canonical="https://hizivo.com/company"
+        canonical="https://zivosmedia.com/company"
       />
       <Header />
       
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Header */}
           <div className="text-center mb-12">
@@ -73,7 +73,7 @@ const Company = () => {
                   <Globe className="w-5 h-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Website</p>
-                    <p className="text-sm text-muted-foreground">hizivo.com</p>
+                    <p className="text-sm text-muted-foreground">zivosmedia.com</p>
                   </div>
                 </div>
               </div>
@@ -157,10 +157,10 @@ const Company = () => {
             <div className="grid sm:grid-cols-3 gap-4">
               <Card className="border-border/50">
                 <CardContent className="p-4 text-center">
-                  <Mail className="w-5 h-5 text-sky-500 mx-auto mb-2" />
+                  <Mail className="w-5 h-5 text-foreground mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground mb-1">General</p>
-                  <a href="mailto:info@hizivo.com" className="text-sm font-medium text-sky-500 hover:underline">
-                    info@hizivo.com
+                  <a href="mailto:info@zivosmedia.com" className="text-sm font-medium text-foreground hover:underline">
+                    info@zivosmedia.com
                   </a>
                 </CardContent>
               </Card>
@@ -169,18 +169,18 @@ const Company = () => {
                 <CardContent className="p-4 text-center">
                   <Mail className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground mb-1">Payments</p>
-                  <a href="mailto:payment@hizivo.com" className="text-sm font-medium text-emerald-500 hover:underline">
-                    payment@hizivo.com
+                  <a href="mailto:payment@zivosmedia.com" className="text-sm font-medium text-emerald-500 hover:underline">
+                    payment@zivosmedia.com
                   </a>
                 </CardContent>
               </Card>
               
               <Card className="border-border/50">
                 <CardContent className="p-4 text-center">
-                  <Mail className="w-5 h-5 text-violet-500 mx-auto mb-2" />
+                  <Mail className="w-5 h-5 text-foreground mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground mb-1">Business</p>
-                  <a href="mailto:kimlain@hizivo.com" className="text-sm font-medium text-violet-500 hover:underline">
-                    kimlain@hizivo.com
+                  <a href="mailto:kimlain@zivosmedia.com" className="text-sm font-medium text-foreground hover:underline">
+                    kimlain@zivosmedia.com
                   </a>
                 </CardContent>
               </Card>

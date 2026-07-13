@@ -1,0 +1,542 @@
+import * as React from 'npm:react@18.3.1'
+import { renderAsync } from 'npm:@react-email/components@0.0.22'
+import { createClient } from "../_shared/deps.ts";
+import { withSecurity } from "../_shared/withSecurity.ts";
+import { TEMPLATES_WITH_FALLBACK as TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+
+const SITE_NAME = "ZIVO"
+const SENDER_DOMAIN = "send.zivosmedia.com"
+// FROM_DOMAIN is the domain shown in the From: header (e.g., "example.com").
+// When display_from_root is enabled, this can be the root domain for cleaner branding,
+// even though actual sending uses the subdomain above.
+const FROM_DOMAIN = "zivosmedia.com"
+const DEFAULT_CTA_URL = "https://zivosmedia.com"
+
+const RESEND_DASHBOARD_TEMPLATES: Record<string, { label: string; defaultCta: string }> = {
+  "zivo-business-core": { label: "ZIVO Business", defaultCta: "https://zivobusiness.com" },
+  "zivo-driver-core": { label: "ZIVO Driver", defaultCta: "https://zivodriver.com" },
+  "zivo-employee-core": { label: "ZIVO Employee", defaultCta: "https://zivoemployee.com" },
+  "zivo-chat-core": { label: "ZIVO Chat", defaultCta: "https://zivoschat.com" },
+  "zivo-media-core": { label: "ZIVO Media", defaultCta: "https://zivosmedia.com" },
+  "zivo-software-core": { label: "ZIVO Software", defaultCta: "https://zivosoftware.com" },
+  "zivo-travel-core": { label: "ZIVO Travel", defaultCta: "https://zivostravel.com" },
+}
+
+// Generate a cryptographically random 32-byte hex token
+function generateToken(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+// Auth note: this function is deployed with verify_jwt = false so backend
+// functions and selected admin workflows can call it. It relies on strict CORS,
+// rate limiting, suppression checks, and template allowlisting here.
+
+Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing required environment variables')
+    return new Response(
+      JSON.stringify({ error: 'Server configuration error' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // Parse request body
+  let templateName: string
+  let recipientEmail: string
+  let idempotencyKey: string
+  let messageId: string
+  let templateData: Record<string, any> = {}
+  let resendTemplateAlias: string | undefined
+  try {
+    const body = await req.json()
+    templateName = body.templateName || body.template_name
+    recipientEmail = body.recipientEmail || body.recipient_email
+    messageId = crypto.randomUUID()
+    idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
+    if (body.templateData && typeof body.templateData === 'object') {
+      templateData = body.templateData
+    }
+    resendTemplateAlias = resolveResendTemplateAlias(
+      body.resendTemplateAlias || body.resend_template_alias || templateData.resendTemplateAlias || templateData.resend_template_alias
+    )
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'Invalid JSON in request body' }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (!templateName) {
+    return new Response(
+      JSON.stringify({ error: 'templateName is required' }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (
+    (resendTemplateAlias &&
+      !Object.prototype.hasOwnProperty.call(RESEND_DASHBOARD_TEMPLATES, resendTemplateAlias))
+  ) {
+    return new Response(
+      JSON.stringify({
+        error: `Resend template alias is not allowlisted. Available: ${Object.keys(RESEND_DASHBOARD_TEMPLATES).join(', ')}`,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // 1. Look up template from registry (early — needed to resolve recipient)
+  const template = TEMPLATES[templateName]
+
+  if (!template) {
+    console.error('Template not found in registry', { templateName })
+    return new Response(
+      JSON.stringify({
+        error: `Template '${templateName}' not found. Available: ${Object.keys(TEMPLATES).join(', ')}`,
+      }),
+      {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // Resolve effective recipient: template-level `to` takes precedence over
+  // the caller-provided recipientEmail. This allows notification templates
+  // to always send to a fixed address (e.g., site owner from env var).
+  const effectiveRecipient = template.to || recipientEmail
+
+  if (!effectiveRecipient) {
+    return new Response(
+      JSON.stringify({
+        error: 'recipientEmail is required (unless the template defines a fixed recipient)',
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // Create Supabase client with service role (bypasses RLS)
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  // 2. Check suppression list (fail-closed: if we can't verify, don't send)
+  const { data: suppressed, error: suppressionError } = await supabase
+    .from('suppressed_emails')
+    .select('id')
+    .eq('email', effectiveRecipient.toLowerCase())
+    .maybeSingle()
+
+  if (suppressionError) {
+    console.error('Suppression check failed — refusing to send', {
+      error: suppressionError,
+      effectiveRecipient,
+    })
+    return new Response(
+      JSON.stringify({ error: 'Failed to verify suppression status' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (suppressed) {
+    // Log the suppressed attempt
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'suppressed',
+    })
+
+    console.log('Email suppressed', { templateName })
+    return new Response(
+      JSON.stringify({ success: false, reason: 'email_suppressed' }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // 3. Get or create unsubscribe token (one token per email address)
+  const normalizedEmail = effectiveRecipient.toLowerCase()
+  let unsubscribeToken: string
+
+  // Check for existing token for this email
+  const { data: existingToken, error: tokenLookupError } = await supabase
+    .from('email_unsubscribe_tokens')
+    .select('token, used_at')
+    .eq('email', normalizedEmail)
+    .maybeSingle()
+
+  if (tokenLookupError) {
+    console.error('Token lookup failed', {
+      error: tokenLookupError,
+      email: normalizedEmail,
+    })
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'failed',
+      error_message: 'Failed to look up unsubscribe token',
+    })
+    return new Response(
+      JSON.stringify({ error: 'Failed to prepare email' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (existingToken && !existingToken.used_at) {
+    // Reuse existing unused token
+    unsubscribeToken = existingToken.token
+  } else if (!existingToken) {
+    // Create new token — upsert handles concurrent inserts gracefully
+    unsubscribeToken = generateToken()
+    const { error: tokenError } = await supabase
+      .from('email_unsubscribe_tokens')
+      .upsert(
+        { token: unsubscribeToken, email: normalizedEmail },
+        { onConflict: 'email', ignoreDuplicates: true }
+      )
+
+    if (tokenError) {
+      console.error('Failed to create unsubscribe token', {
+        error: tokenError,
+      })
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'failed',
+        error_message: 'Failed to create unsubscribe token',
+      })
+      return new Response(
+        JSON.stringify({ error: 'Failed to prepare email' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    // If another request raced us, our upsert was silently ignored.
+    // Re-read to get the actual stored token.
+    const { data: storedToken, error: reReadError } = await supabase
+      .from('email_unsubscribe_tokens')
+      .select('token')
+      .eq('email', normalizedEmail)
+      .maybeSingle()
+
+    if (reReadError || !storedToken) {
+      console.error('Failed to read back unsubscribe token after upsert', {
+        error: reReadError,
+        email: normalizedEmail,
+      })
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'failed',
+        error_message: 'Failed to confirm unsubscribe token storage',
+      })
+      return new Response(
+        JSON.stringify({ error: 'Failed to prepare email' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+    unsubscribeToken = storedToken.token
+  } else {
+    // Token exists but is already used — email should have been caught by suppression check above.
+    // This is a safety fallback; log and skip sending.
+    console.warn('Unsubscribe token already used but email not suppressed', {
+      email: normalizedEmail,
+    })
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'suppressed',
+      error_message:
+        'Unsubscribe token used but email missing from suppressed list',
+    })
+    return new Response(
+      JSON.stringify({ success: false, reason: 'email_suppressed' }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // 4. Render React Email template to HTML and plain text
+  let html = await renderAsync(
+    React.createElement(template.component, templateData)
+  )
+  let plainText = await renderAsync(
+    React.createElement(template.component, templateData),
+    { plainText: true }
+  )
+
+  // Resolve subject — supports static string or dynamic function
+  let resolvedSubject =
+    typeof template.subject === 'function'
+      ? template.subject(templateData)
+      : template.subject
+
+  // 4b. Per-store template override — used by the salon Reminders system to
+  //     let each owner tune subject + body without touching the platform copy.
+  //     The override row's null fields fall through to the rendered template.
+  //     The override's body_html is rendered as-is with `{{merge_tag}}` →
+  //     templateData lookup (small subset of Handlebars-style replacement).
+  const overrideStoreId = (templateData as any)?.store_id as string | undefined
+  if (overrideStoreId && typeof overrideStoreId === 'string') {
+    try {
+      const { data: override } = await supabase
+        .from('salon_notification_template_overrides')
+        .select('subject, body_html, body_text')
+        .eq('store_id', overrideStoreId)
+        .eq('template_key', templateName)
+        .maybeSingle()
+      if (override) {
+        const interpolate = (s: string) => s.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m: string, key: string) => {
+          const v = (templateData as Record<string, unknown>)?.[key]
+          return v == null ? '' : String(v)
+        })
+        if ((override as any).subject) resolvedSubject = interpolate((override as any).subject)
+        if ((override as any).body_html) html = interpolate((override as any).body_html)
+        if ((override as any).body_text) plainText = interpolate((override as any).body_text)
+      }
+    } catch (e) {
+      // Best-effort: a failed lookup falls back to the platform template.
+      console.warn('[send-transactional-email] override lookup failed', e)
+    }
+  }
+
+  // 5. Send email directly via Resend API
+  const resendApiKey = Deno.env.get('RESEND_API_KEY')
+  if (!resendApiKey) {
+    console.error('RESEND_API_KEY is not configured')
+    return new Response(
+      JSON.stringify({ error: 'Email service not configured' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Log pending
+  await supabase.from('email_send_log').insert({
+    message_id: messageId,
+    template_name: templateName,
+    recipient_email: effectiveRecipient,
+    status: 'pending',
+  })
+
+  try {
+    const resendTemplate = resendTemplateAlias
+      ? buildResendTemplatePayload({
+          alias: resendTemplateAlias,
+          resolvedSubject,
+          plainText,
+          templateData,
+          displayName: template.displayName,
+        })
+      : null
+
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({
+        from: resendTemplate ? undefined : `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+        to: [effectiveRecipient],
+        subject: resendTemplate ? undefined : resolvedSubject,
+        html: resendTemplate ? undefined : html,
+        text: resendTemplate ? undefined : plainText,
+        template: resendTemplate
+          ? {
+              id: resendTemplate.alias,
+              variables: resendTemplate.variables,
+            }
+          : undefined,
+        // RFC 8058 one-click unsubscribe — required by Gmail/Yahoo bulk-sender
+        // rules. handle-email-unsubscribe accepts ?token= via GET and the
+        // POST "List-Unsubscribe=One-Click" form. We already mint a per-email
+        // token above, so reuse it here.
+        headers: {
+          'List-Unsubscribe': `<${supabaseUrl}/functions/v1/handle-email-unsubscribe?token=${unsubscribeToken}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      }),
+    })
+
+    const result = await emailResponse.json()
+
+    if (!emailResponse.ok) {
+      console.error('Resend API error', { status: emailResponse.status, result })
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'failed',
+        error_message: JSON.stringify(result),
+      })
+      return new Response(
+        JSON.stringify({ error: 'Failed to send email' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Log success
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'sent',
+    })
+
+    console.log('Transactional email sent', { templateName, resendTemplateAlias, resendId: result.id })
+
+    return new Response(
+      JSON.stringify({ success: true, sent: true }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (sendError) {
+    console.error('Email send failed', { error: sendError })
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'failed',
+      error_message: String(sendError),
+    })
+    return new Response(
+      JSON.stringify({ error: 'Failed to send email' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }))
+
+function resolveResendTemplateAlias(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const alias = value.trim()
+  return alias || undefined
+}
+
+function buildResendTemplatePayload(input: {
+  alias: string
+  resolvedSubject: string
+  plainText: string
+  templateData: Record<string, any>
+  displayName?: string
+}) {
+  const meta = RESEND_DASHBOARD_TEMPLATES[input.alias]
+  const title = firstString(
+    input.templateData.title,
+    input.templateData.emailTitle,
+    input.templateData.email_title,
+    input.displayName,
+    input.resolvedSubject,
+  )
+  const body = firstString(
+    input.templateData.body,
+    input.templateData.message,
+    input.templateData.description,
+    input.plainText,
+    "We have a new update for your account.",
+  )
+  const ctaUrl = firstString(
+    input.templateData.ctaUrl,
+    input.templateData.cta_url,
+    input.templateData.url,
+    input.templateData.actionUrl,
+    input.templateData.action_url,
+    meta.defaultCta,
+    DEFAULT_CTA_URL,
+  )
+  const ctaLabel = firstString(
+    input.templateData.ctaLabel,
+    input.templateData.cta_label,
+    input.templateData.actionLabel,
+    input.templateData.action_label,
+    "Open ZIVO",
+  )
+
+  return {
+    alias: input.alias,
+    variables: {
+      PREHEADER: truncateText(firstString(input.templateData.preheader, input.resolvedSubject), 140),
+      TITLE: truncateText(title, 120),
+      BODY: truncateText(stripHtml(body), 900),
+      CTA_LABEL: truncateText(ctaLabel, 60),
+      CTA_URL: ctaUrl,
+      FOOTER_NOTE: truncateText(
+        firstString(
+          input.templateData.footerNote,
+          input.templateData.footer_note,
+          `You are receiving this because you use ${meta.label}.`,
+        ),
+        180,
+      ),
+    },
+  }
+}
+
+function firstString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  }
+  return ''
+}
+
+function stripHtml(value: string): string {
+  return value
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`
+}

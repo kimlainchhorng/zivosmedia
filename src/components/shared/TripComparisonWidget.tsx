@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { 
   Scale, 
   Plane, 
@@ -126,13 +126,13 @@ const TripComparisonWidget = ({
       {/* Selection Pills */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         {flightOptions.map((flight) => (
-          <button
+          <button type="button"
             key={flight.id}
             onClick={() => toggleOption(flight.id)}
             className={cn(
               "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
               selectedOptions.includes(flight.id)
-                ? "bg-primary text-primary-foreground border-primary"
+                ? "bg-ig-gradient text-white border-primary"
                 : "bg-muted/30 border-border/50 hover:border-border"
             )}
           >

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -262,16 +262,16 @@ export const AITripSuggestions = ({
       <CardHeader className="pb-4 border-b border-border/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 border border-violet-500/40 flex items-center justify-center relative">
-              <Sparkles className="w-5 h-5 text-violet-500" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet-500 animate-pulse" />
+            <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center relative bg-secondary">
+              <Sparkles className="w-5 h-5 text-foreground" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-foreground animate-pulse" />
             </div>
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 AI Trip Suggestions
-                <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/40">
+                <Badge className="bg-secondary text-foreground border-border">
                   <Zap className="w-3 h-3 mr-1" />
-                  Gemini
+                  DeepSeek
                 </Badge>
               </CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -297,12 +297,12 @@ export const AITripSuggestions = ({
         {/* Activity Preferences */}
         <div className="space-y-3">
           <label className="text-sm font-medium flex items-center gap-2">
-            <Compass className="w-4 h-4 text-violet-400" />
+            <Compass className="w-4 h-4 text-foreground" />
             What experiences are you looking for?
           </label>
           <div className="flex flex-wrap gap-2">
             {PREFERENCE_TAGS.map(tag => (
-              <button
+              <button type="button"
                 key={tag.id}
                 onClick={() => toggleTag(tag.id)}
                 className={cn(
@@ -324,7 +324,7 @@ export const AITripSuggestions = ({
           <label className="text-sm font-medium">Preferred Climate</label>
           <div className="grid grid-cols-3 gap-2">
             {CLIMATE_OPTIONS.map(opt => (
-              <button
+              <button type="button"
                 key={opt.id}
                 onClick={() => setSelectedClimate(opt.id)}
                 className={cn(
@@ -352,13 +352,13 @@ export const AITripSuggestions = ({
                 { value: 'mid', label: '$$' },
                 { value: 'luxury', label: '$$$' },
               ].map(option => (
-                <button
+                <button type="button"
                   key={option.value}
                   onClick={() => setBudget(option.value as any)}
                   className={cn(
                     "flex-1 py-2 rounded-md text-sm font-medium transition-all",
                     budget === option.value
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-ig-gradient text-white"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -393,9 +393,9 @@ export const AITripSuggestions = ({
         </div>
 
         {/* Advanced Filters Toggle */}
-        <button
+        <button type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 transition-colors"
+          className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
         >
           <History className="w-4 h-4" />
           {showAdvanced ? 'Hide' : 'Show'} advanced filters
@@ -447,7 +447,7 @@ export const AITripSuggestions = ({
                 <label className="text-sm text-muted-foreground">Travel Style</label>
                 <div className="flex flex-wrap gap-2">
                   {TRAVEL_STYLE.map(style => (
-                    <button
+                    <button type="button"
                       key={style.id}
                       onClick={() => toggleStyle(style.id)}
                       className={cn(
@@ -474,7 +474,7 @@ export const AITripSuggestions = ({
               <Flame className="w-4 h-4 text-orange-400" />
               Top picks for you
               {hasLoadedAI && (
-                <Badge className="bg-violet-500/20 text-violet-400 text-[10px]">
+                <Badge className="bg-secondary text-foreground text-[10px]">
                   <Zap className="w-2.5 h-2.5 mr-0.5" />
                   AI Generated
                 </Badge>
@@ -530,7 +530,7 @@ export const AITripSuggestions = ({
                     >
                       {/* Match Score Badge */}
                       <div className="absolute top-3 right-3 z-10">
-                        <Badge className="bg-violet-500 text-primary-foreground font-bold shadow-lg">
+                        <Badge className="bg-foreground text-primary-foreground font-bold shadow-lg">
                           {dest.matchScore}% match
                         </Badge>
                       </div>
@@ -547,7 +547,7 @@ export const AITripSuggestions = ({
                               transition={{ duration: 0.3 }}
                             />
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-violet-500/30 to-purple-500/20 flex items-center justify-center">
+                            <div className="w-full h-full flex items-center justify-center bg-secondary">
                               <span className="text-5xl font-bold text-muted-foreground/30">{getCountryCode(dest.country)}</span>
                             </div>
                           )}
@@ -666,11 +666,11 @@ export const AITripSuggestions = ({
         </div>
 
         {/* AI Learning Note */}
-        <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30">
+        <div className="p-3 rounded-xl bg-secondary border border-border">
           <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-violet-400" />
+            <Sparkles className="w-5 h-5 text-foreground" />
             <div className="text-sm">
-              <span className="text-violet-300">AI learns from your preferences.</span>
+              <span className="text-foreground">AI learns from your preferences.</span>
               <span className="text-muted-foreground ml-1">Like or dislike destinations to improve suggestions.</span>
             </div>
           </div>

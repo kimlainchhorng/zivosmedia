@@ -1,37 +1,39 @@
 /**
  * Partner Disclosure Page
- * Updated for Hizivo hybrid model:
- * - Hotels & Cars: Merchant of Record (direct sale)
- * - Flights: Partner ticketing (referral)
+ * ZIVO is a travel search and referral platform.
+ * - Flights: Users search on ZIVO, then are redirected to a licensed travel partner for checkout/ticketing.
+ * - Rides, Eats, Car Rentals: Facilitated by independent third-party providers via the ZIVO platform.
+ * - ZIVO does NOT issue airline tickets or act as merchant of record for flights.
  */
 import NavBar from "@/components/home/NavBar";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { 
+import {
   ExternalLink,
   Share2,
   HeadphonesIcon,
   Mail,
-  CreditCard,
   Plane,
-  Building2,
   Car,
   Shield,
   CheckCircle,
+  AlertTriangle,
+  UtensilsCrossed,
+  Truck,
 } from "lucide-react";
 
 const PartnerDisclosure = () => {
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead 
-        title="Partner Disclosure – Hizivo Travel"
-        description="Understand how Hizivo handles bookings: Hotels & Car Rentals are sold directly by Hizivo. Flights are booked through licensed airline partners."
-        canonical="https://hizivo.com/partner-disclosure"
+      <SEOHead
+        title="Partner Disclosure – ZIVO Travel"
+        description="Understand how ZIVO handles bookings: Flights are searched on ZIVO and booked through licensed travel partners. ZIVO does not issue airline tickets."
+        canonical="https://zivosmedia.com/partner-disclosure"
       />
       <NavBar />
-      
+
       <main className="pt-24 pb-20">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Header */}
@@ -40,112 +42,108 @@ const PartnerDisclosure = () => {
               Partner Disclosure
             </h1>
             <p className="text-muted-foreground">
-              Understanding how Hizivo handles your bookings
+              How ZIVO works with licensed partners to serve you
             </p>
+            <p className="text-sm text-muted-foreground mt-2">Last updated: March 13, 2026</p>
           </div>
 
-          {/* Main Content */}
           <div className="space-y-8">
             {/* Introduction */}
             <section className="prose prose-neutral dark:prose-invert max-w-none">
               <p className="text-muted-foreground leading-relaxed text-lg">
-                ZIVO works exclusively with licensed travel providers, payment processors, and technology partners.
-                All bookings are fulfilled by authorized suppliers under their own terms and conditions.
-              </p>
-              <p className="text-muted-foreground leading-relaxed mt-4">
-                Hizivo is an online travel platform that allows users to search, compare, and book 
-                flights, hotels, and car rentals. We operate a <strong>hybrid business model</strong> with 
-                different handling for each service type.
+                ZIVO is a travel search and referral platform operated by ZIVO LLC in the United States.
+                We help users search, compare, and discover travel services. All bookings are completed
+                through licensed third-party providers who act as the merchant of record.
               </p>
             </section>
 
-            {/* Hotels & Car Rentals - MoR */}
-            <Card className="border-emerald-500/20 bg-emerald-500/5">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                    <CreditCard className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <h2 className="text-xl font-bold">Hotels & Car Rentals (Direct Sale)</h2>
-                </div>
-                <p className="text-foreground leading-relaxed">
-                  For <strong>hotel</strong> and <strong>car rental</strong> bookings, Hizivo is the <strong>merchant of record</strong>. 
-                  This means:
-                </p>
-                <ul className="space-y-2">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-                    <span>You pay Hizivo directly via secure checkout (Stripe/Adyen)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-                    <span>Hizivo issues your booking confirmation</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-                    <span>Hizivo handles refunds and cancellations per our policies</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-                    <span>Contact Hizivo support for booking assistance</span>
-                  </li>
-                </ul>
-                <p className="text-sm text-muted-foreground">
-                  Inventory is sourced from licensed B2B wholesaler partners. Final service is delivered by 
-                  the hotel property or rental company.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Flights - Partner Ticketing */}
+            {/* Flights - Partner Referral */}
             <Card className="border-amber-500/20 bg-amber-500/5">
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
                     <Plane className="w-5 h-5 text-amber-500" />
                   </div>
-                  <h2 className="text-xl font-bold">Flights (Partner Ticketing)</h2>
+                  <h2 className="text-xl font-bold">Flights (Partner Referral)</h2>
                 </div>
                 <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                  <p className="text-foreground font-medium">
-                    Hizivo does NOT issue airline tickets.
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                    <p className="text-foreground font-medium">
+                      ZIVO does NOT issue airline tickets and does NOT collect payment for flights.
+                    </p>
+                  </div>
                 </div>
                 <p className="text-foreground leading-relaxed">
-                  Flight bookings are completed with <strong>licensed airline partners</strong>. When you 
-                  select a flight and proceed to book:
+                  When you search for flights on ZIVO, we display estimated prices and options from licensed
+                  travel partners. When you select a flight and proceed to book:
                 </p>
                 <ul className="space-y-2">
                   <li className="flex items-start gap-2">
                     <ExternalLink className="w-4 h-4 text-amber-500 mt-1 shrink-0" />
-                    <span>You are redirected to the airline partner's secure checkout</span>
+                    <span>You are redirected to the travel partner's secure checkout page</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ExternalLink className="w-4 h-4 text-amber-500 mt-1 shrink-0" />
-                    <span>The airline partner processes your payment</span>
+                    <span>The travel partner processes your payment and issues your ticket</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ExternalLink className="w-4 h-4 text-amber-500 mt-1 shrink-0" />
-                    <span>The airline partner issues your ticket and confirmation</span>
+                    <span>Final price and terms are confirmed on the partner's checkout page</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ExternalLink className="w-4 h-4 text-amber-500 mt-1 shrink-0" />
-                    <span>Changes, cancellations, and refunds are handled by the partner</span>
+                    <span>Changes, cancellations, and refunds are handled by the travel partner</span>
                   </li>
                 </ul>
                 <p className="text-sm text-muted-foreground">
-                  For flight booking support, please contact the airline partner listed in your 
-                  confirmation email.
+                  Cancellation and baggage rules are displayed when provided by partners. For booking
+                  support, contact the travel partner listed in your confirmation email.
                 </p>
+              </CardContent>
+            </Card>
+
+            {/* Local Services - Platform Facilitated */}
+            <Card className="border-emerald-500/20 bg-emerald-500/5">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <Car className="w-5 h-5 text-emerald-500" />
+                  </div>
+                  <h2 className="text-xl font-bold">Rides, Eats & Delivery</h2>
+                </div>
+                <p className="text-foreground leading-relaxed">
+                  ZIVO connects users with <strong>independent third-party service providers</strong> for
+                  local transportation, food delivery, and package delivery. ZIVO is a technology platform:
+                </p>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
+                    <span>Drivers are independent contractors, not ZIVO employees</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
+                    <span>Restaurants are independent partners responsible for food quality</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
+                    <span>Car rental vehicles are owned by independent providers</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
+                    <span>ZIVO facilitates bookings, payments, and logistics only</span>
+                  </li>
+                </ul>
               </CardContent>
             </Card>
 
             {/* Pricing Notice */}
             <section>
               <p className="text-muted-foreground leading-relaxed">
-                Prices and availability shown on Hizivo may change before you complete checkout. 
-                For hotels and car rentals, the final price is confirmed at Hizivo checkout. 
-                For flights, the final price is confirmed on the airline partner's checkout page.
+                Prices and availability shown on ZIVO are estimates and may change before you complete
+                checkout. For flights, the final price is confirmed on the travel partner's checkout page.
+                For local services, fares are calculated based on distance, time, and demand at the
+                time of booking.
               </p>
             </section>
 
@@ -159,13 +157,18 @@ const PartnerDisclosure = () => {
                   <h2 className="text-xl font-bold">Information Sharing</h2>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>Hotels & Car Rentals:</strong> Your booking details are shared with the 
-                  property/rental company to fulfill your reservation.
+                  <strong>Flights:</strong> If you proceed to a partner checkout, ZIVO may pass
+                  necessary traveler information (name, contact details) to the travel partner
+                  with your consent to facilitate your booking.
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>Flights:</strong> If you proceed to partner checkout, Hizivo may share 
-                  necessary information (traveler details, contact information) with the airline 
-                  partner to complete your booking. This information is shared only with your consent.
+                  <strong>Local Services:</strong> Your booking details are shared with drivers,
+                  restaurants, or vehicle owners as needed to fulfill your request.
+                </p>
+                <p className="text-muted-foreground leading-relaxed">
+                  We do not sell your personal information. See our{" "}
+                  <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>{" "}
+                  for details.
                 </p>
               </CardContent>
             </Card>
@@ -181,32 +184,33 @@ const PartnerDisclosure = () => {
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <Building2 className="w-5 h-5 text-amber-500 mt-0.5" />
+                    <Plane className="w-5 h-5 text-amber-500 mt-0.5" />
                     <div>
-                      <p className="font-medium">Hotels & Car Rentals</p>
+                      <p className="font-medium">Flights</p>
                       <p className="text-sm text-muted-foreground">
-                        Contact Hizivo for booking changes, cancellations, refunds, or issues.
+                        For booking changes, cancellations, or refunds, contact the travel partner
+                        listed in your confirmation email. ZIVO can only assist with website
+                        navigation issues.
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Plane className="w-5 h-5 text-sky-500 mt-0.5" />
+                    <Car className="w-5 h-5 text-emerald-500 mt-0.5" />
                     <div>
-                      <p className="font-medium">Flights</p>
+                      <p className="font-medium">Rides, Eats & Local Services</p>
                       <p className="text-sm text-muted-foreground">
-                        Contact the airline partner listed in your confirmation email. Hizivo can 
-                        only assist with website-related issues.
+                        Contact ZIVO support for booking issues, disputes, or service problems.
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className="pt-2">
-                  <a 
-                    href="mailto:support@hizivo.com" 
+                  <a
+                    href="mailto:support@zivosmedia.com"
                     className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
                   >
                     <Mail className="w-4 h-4" />
-                    support@hizivo.com
+                    support@zivosmedia.com
                   </a>
                 </div>
               </CardContent>
@@ -214,29 +218,29 @@ const PartnerDisclosure = () => {
 
             {/* Related Links */}
             <div className="flex flex-wrap gap-4 justify-center pt-4 border-t border-border">
-              <Link 
-                to="/terms" 
+              <Link
+                to="/legal/terms"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Terms of Service
               </Link>
               <span className="text-muted-foreground">•</span>
-              <Link 
-                to="/privacy" 
+              <Link
+                to="/legal/privacy"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Privacy Policy
               </Link>
               <span className="text-muted-foreground">•</span>
-              <Link 
-                to="/refund-policy" 
+              <Link
+                to="/legal/refunds"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Refund Policy
               </Link>
               <span className="text-muted-foreground">•</span>
-              <Link 
-                to="/cookies" 
+              <Link
+                to="/legal/cookies"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 Cookie Policy
@@ -245,7 +249,7 @@ const PartnerDisclosure = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

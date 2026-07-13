@@ -1,0 +1,5 @@
+# ads.txt — authorizes Google AdSense to sell ads on zivosmedia.com.
+# REQUIRED by Google. Without a correct line below, AdSense shows
+# "Earnings at risk" and may stop serving ads.
+#
+google.com, pub-6044002450999169, DIRECT, f08c47fec0942fa0

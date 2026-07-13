@@ -1,49 +1,77 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
-
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
+function Calendar({ className, classNames, showOutsideDays = false, ...props }: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-4 pointer-events-auto select-none", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
-        nav: "space-x-1 flex items-center",
-        nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+        months: "flex flex-col sm:flex-row gap-6 relative",
+        month: "flex flex-col gap-3 w-full",
+        month_caption: "flex justify-center items-center h-10 relative",
+        caption_label: "text-[15px] font-extrabold tracking-tight text-foreground",
+        nav: "flex items-center absolute inset-x-0 top-0 justify-between pointer-events-none",
+        button_previous: cn(
+          "pointer-events-auto h-8 w-8 rounded-xl border border-border/60 bg-card/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted active:scale-90 transition-all touch-manipulation",
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100"),
-        day_range_end: "day-range-end",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
+        button_next: cn(
+          "pointer-events-auto h-8 w-8 rounded-xl border border-border/60 bg-card/80 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted active:scale-90 transition-all touch-manipulation",
+        ),
+        month_grid: "w-full border-collapse",
+        weekdays: "flex mb-1",
+        weekday:
+          "flex-1 text-center text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground/60 py-1",
+        weeks: "flex flex-col gap-0.5",
+        week: "flex",
+        day: cn(
+          "flex-1 relative text-center p-0",
+          "[&:has([aria-selected])]:bg-orange-500/12",
+          "[&:has([aria-selected].day-range-start)]:rounded-l-full [&:has([aria-selected].day-range-start)]:bg-transparent",
+          "[&:has([aria-selected].day-range-end)]:rounded-r-full [&:has([aria-selected].day-range-end)]:bg-transparent",
+          "first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full",
+        ),
+        day_button: cn(
+          "relative mx-auto flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all duration-150 touch-manipulation",
+          "hover:bg-muted active:scale-90",
+          "aria-selected:font-black",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50",
+          "disabled:opacity-30 disabled:pointer-events-none",
+        ),
+        range_start: "day-range-start",
+        range_end: "day-range-end",
+        selected: cn(
+          "[&>button]:bg-gradient-to-br [&>button]:from-orange-500 [&>button]:to-rose-500",
+          "[&>button]:text-white [&>button]:shadow-[0_4px_16px_rgba(249,115,22,0.4)]",
+          "[&>button]:hover:from-orange-400 [&>button]:hover:to-rose-400",
+          "[&>button]:scale-105",
+        ),
+        today: cn(
+          "[&>button]:after:absolute [&>button]:after:bottom-[3px] [&>button]:after:left-1/2",
+          "[&>button]:after:-translate-x-1/2 [&>button]:after:w-1 [&>button]:after:h-1",
+          "[&>button]:after:rounded-full [&>button]:after:bg-orange-500",
+          "[&>button]:after:content-['']",
+        ),
+        outside: "opacity-0 pointer-events-none",
+        disabled: "opacity-30",
+        range_middle: cn(
+          "aria-selected:bg-orange-500/12 aria-selected:text-foreground",
+          "[&>button]:hover:bg-orange-500/20",
+        ),
+        hidden: "invisible",
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
+        Chevron: ({ orientation }: { orientation?: "left" | "right" | "up" | "down" }) =>
+          orientation === "right" ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          ),
       }}
       {...props}
     />

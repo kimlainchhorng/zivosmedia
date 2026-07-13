@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="zivoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FEDA75"/>
+      <stop offset="25%" stop-color="#FA7E1E"/>
+      <stop offset="50%" stop-color="#D62976"/>
+      <stop offset="75%" stop-color="#962FBF"/>
+      <stop offset="100%" stop-color="#4F5BD5"/>
+    </linearGradient>
+  </defs>
+  <!-- White rounded square card -->
+  <rect width="1024" height="1024" rx="224" fill="white" stroke="#EEEEEE" stroke-width="4"/>
+  <!-- Gradient Z -->
+  <text x="512" y="720" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="720" font-weight="800" fill="url(#zivoGrad)" letter-spacing="-20">Z</text>
+  <!-- Person badge in top-right corner -->
+  <circle cx="820" cy="200" r="100" fill="url(#zivoGrad)"/>
+  <circle cx="820" cy="170" r="32" fill="white"/>
+  <path d="M 760 240 Q 760 200 820 200 Q 880 200 880 240 L 880 260 L 760 260 Z" fill="white"/>
+</svg>

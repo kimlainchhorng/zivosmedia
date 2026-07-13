@@ -7,19 +7,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import {
-  LegalPolicy,
-  UserConsentLog,
-  RoleTerms,
-  RoleTermsAcceptance,
-  SellerOfTravelStatus,
-  LegalDispute,
-  LegalAuditLog,
-  PolicyType,
-  RoleType,
-  ConsentRequest,
-  LegalSummary,
-} from "@/types/legal";
+import type { LegalPolicy, UserConsentLog, RoleTerms, RoleTermsAcceptance, SellerOfTravelStatus, LegalDispute, LegalAuditLog, PolicyType, RoleType, ConsentRequest } from "@/types/legal";
+import type { LegalSummary } from "@/types/legal";
 
 // ============================================
 // LEGAL POLICIES
@@ -134,16 +123,15 @@ export function useRecordConsent() {
     mutationFn: async (request: ConsentRequest) => {
       if (!user?.id) throw new Error("User not authenticated");
 
-      const { error } = await supabase.from("user_consent_logs").insert({
-        user_id: user.id,
+      const { error } = await supabase.functions.invoke("legal-acceptance-record", { body: {
+        type: "policy_consent",
         policy_type: request.policyType,
         policy_version: request.policyVersion,
-        consent_given: true,
         consent_method: "checkbox",
         page_url: request.pageUrl || window.location.href,
         user_agent: navigator.userAgent,
         device_type: /mobile/i.test(navigator.userAgent) ? "mobile" : "desktop",
-      });
+      } });
 
       if (error) throw error;
     },
@@ -207,13 +195,13 @@ export function useAcceptRoleTerms() {
     }) => {
       if (!user?.id) throw new Error("User not authenticated");
 
-      const { error } = await supabase.from("role_terms_acceptance").insert({
-        user_id: user.id,
+      const { error } = await supabase.functions.invoke("legal-acceptance-record", { body: {
+        type: "role_terms",
         role_type: roleType,
         terms_version: termsVersion,
         role_terms_id: roleTermsId || null,
         user_agent: navigator.userAgent,
-      });
+      } });
 
       if (error) throw error;
     },
@@ -301,11 +289,19 @@ export function useFileDispute() {
     mutationFn: async (
       dispute: Omit<LegalDispute, "id" | "created_at" | "updated_at" | "status">
     ) => {
-      const { error } = await supabase.from("legal_disputes").insert({
-        ...dispute,
-        complainant_id: user?.id,
-        status: "open",
-      });
+      if (!user?.id) throw new Error("User not authenticated");
+
+      const { error } = await supabase.functions.invoke("legal-dispute-file", { body: {
+        dispute_type: dispute.dispute_type,
+        service_type: dispute.service_type,
+        complainant_type: dispute.complainant_type,
+        respondent_id: dispute.respondent_id,
+        respondent_type: dispute.respondent_type,
+        booking_id: dispute.booking_id,
+        amount_disputed: dispute.amount_disputed,
+        currency: dispute.currency,
+        description: dispute.description,
+      } });
 
       if (error) throw error;
     },

@@ -1,0 +1,6 @@
+Contact: mailto:security@hizivo.com
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://hizivo.com/.well-known/security.txt
+Policy: https://hizivo.com/legal/security
+Acknowledgments: https://hizivo.com/legal/vdp

@@ -1,14 +1,18 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronDown, ArrowRight, X, Car, Globe } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { withRedirectParam } from "@/lib/authRedirect";
+import { ChevronDown, ArrowRight, X, Car, Globe, LayoutGrid, ArrowUpRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { megaMenuData, moreServicesData, MegaMenuData } from "./megaMenuData";
+import { megaMenuData, moreServicesData } from "./megaMenuData";
+import type { MegaMenuData } from "./megaMenuData";
 import ZivoLogo from "@/components/ZivoLogo";
 import CurrencySelector from "@/components/shared/CurrencySelector";
+import { ZIVO_APPS, getCurrentZivoApp } from "@/config/zivoApps";
+import ZivoChatSupportButton from "@/components/cross-app/ZivoChatSupportButton";
 
 interface MobileNavMenuProps {
   isOpen: boolean;
@@ -75,7 +79,7 @@ const MobileNavSection = ({
               </h4>
               <div className="space-y-1">
                 {section.items.map((item) => (
-                  <button
+                  <button type="button"
                     key={item.label}
                     onClick={() => onNavigate(item.href)}
                     className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
@@ -100,7 +104,7 @@ const MobileNavSection = ({
             </h4>
             <div className="flex flex-wrap gap-2">
               {data.policies.map((policy) => (
-                <button
+                <button type="button"
                   key={policy.label}
                   onClick={() => onNavigate(policy.href)}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
@@ -119,6 +123,8 @@ const MobileNavSection = ({
 
 const MobileNavMenu = ({ isOpen, onClose, user, signOut }: MobileNavMenuProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentZivoApp = getCurrentZivoApp();
 
   const handleNavigate = (href: string) => {
     navigate(href);
@@ -133,27 +139,69 @@ const MobileNavMenu = ({ isOpen, onClose, user, signOut }: MobileNavMenuProps) =
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" role="button" tabIndex={0} aria-label="Close menu" onClick={onClose} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClose(); }} />
       
       {/* Menu Panel */}
-      <div className="absolute right-0 top-0 h-full w-full sm:max-w-md bg-card border-l border-border shadow-2xl animate-slide-in-right safe-area-inset">
+      <div className="absolute right-0 top-0 h-full w-full sm:max-w-md bg-card border-l border-border shadow-2xl animate-slide-in-right safe-area-inset flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-2">
             <ZivoLogo size="sm" />
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
+          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scrollable Content */}
-        <ScrollArea className="h-[calc(100vh-140px)]">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-4">
             {/* Main Services */}
             {megaMenuData.map((data) => (
               <MobileNavSection key={data.id} data={data} onNavigate={handleNavigate} />
             ))}
-            
+
             {/* More Services */}
             <MobileNavSection data={moreServicesData} onNavigate={handleNavigate} />
+
+            {/* ZIVO apps — switch across the network (one shared identity) */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4" /> ZIVO apps
+              </h4>
+              <div className="space-y-1">
+                {ZIVO_APPS.map((app) =>
+                  currentZivoApp?.key === app.key ? (
+                    <div
+                      key={app.key}
+                      aria-current="page"
+                      className="w-full flex items-center gap-3 p-2 rounded-lg bg-primary/10 ring-1 ring-primary/20"
+                    >
+                      <span className="flex-1 text-sm font-medium text-foreground">{app.name}</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                        <Check className="w-3.5 h-3.5" /> Current
+                      </span>
+                    </div>
+                  ) : (
+                    <a
+                      key={app.key}
+                      href={app.origin}
+                      onClick={onClose}
+                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="flex-1 text-sm text-foreground">{app.name}</span>
+                      <ArrowUpRight className="w-4 h-4 text-muted-foreground/70" />
+                    </a>
+                  ),
+                )}
+              </div>
+              <div className="mt-2">
+                <ZivoChatSupportButton
+                  variant="outline"
+                  className="w-full justify-center gap-2"
+                  onClick={onClose}
+                >
+                  Support on ZivoChat
+                </ZivoChatSupportButton>
+              </div>
+            </div>
 
             {/* User Section */}
             {user && (
@@ -162,19 +210,19 @@ const MobileNavMenu = ({ isOpen, onClose, user, signOut }: MobileNavMenuProps) =
                   Your Account
                 </h4>
                 <div className="space-y-1">
-                  <button
+                  <button type="button"
                     onClick={() => handleNavigate("/profile")}
                     className="w-full text-left py-2 text-foreground font-medium"
                   >
                     Profile Settings
                   </button>
-                  <button
-                    onClick={() => handleNavigate("/dashboard")}
+                  <button type="button"
+                    onClick={() => handleNavigate("/app")}
                     className="w-full text-left py-2 text-foreground font-medium"
                   >
                     My Dashboard
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => handleNavigate("/trips")}
                     className="w-full text-left py-2 text-foreground font-medium"
                   >
@@ -186,8 +234,11 @@ const MobileNavMenu = ({ isOpen, onClose, user, signOut }: MobileNavMenuProps) =
 
             {/* Become a Driver Section */}
             <div className="mt-4 pt-4 border-t border-border">
-              <button
-                onClick={() => { navigate("/drive"); onClose(); }}
+              <button type="button"
+                onClick={() => {
+                  navigate("/drive");
+                  onClose();
+                }}
                 className="w-full flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-rides/10 to-teal-500/10 border border-rides/20 hover:bg-rides/20 transition-colors"
               >
                 <div className="w-10 h-10 rounded-xl gradient-rides flex items-center justify-center">
@@ -214,15 +265,22 @@ const MobileNavMenu = ({ isOpen, onClose, user, signOut }: MobileNavMenuProps) =
           </div>
         </ScrollArea>
 
-        {/* Footer Actions */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t border-border">
+        {/* Footer Actions (always visible) */}
+        <div className="p-4 pb-safe bg-card border-t border-border">
           {user ? (
-            <Button variant="outline" className="w-full" onClick={() => { signOut(); onClose(); }}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                signOut();
+                onClose();
+              }}
+            >
               Sign out
             </Button>
           ) : (
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => handleNavigate("/login")}>
+              <Button variant="outline" className="flex-1" onClick={() => handleNavigate(withRedirectParam("/login", location.pathname === "/" ? null : `${location.pathname}${location.search ?? ""}`))}>
                 Log in
               </Button>
               <Button variant="hero" className="flex-1" onClick={() => handleNavigate("/signup")}>

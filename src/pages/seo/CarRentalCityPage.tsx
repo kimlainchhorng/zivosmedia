@@ -129,14 +129,14 @@ export default function CarRentalCityPage() {
       <SEOHead 
         title={pageTitle}
         description={pageDescription}
-        canonical={`https://hizivo.com/rent-car/${citySlug}`}
+        canonical={`https://zivosmedia.com/rent-car/${citySlug}`}
       />
       <BreadcrumbSchema items={breadcrumbs} />
       <Header />
       
       <main className="pt-16">
         {/* Hero Section */}
-        <section className="relative py-16 sm:py-24 overflow-hidden bg-gradient-to-br from-violet-500/10 via-background to-purple-500/5">
+        <section className="relative py-16 sm:py-24 overflow-hidden via-background bg-secondary">
           <div className="container mx-auto px-4 relative z-10">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
@@ -148,15 +148,15 @@ export default function CarRentalCityPage() {
             </nav>
             
             <div className="max-w-3xl mb-10">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-sm font-medium mb-6">
-                <CarFront className="w-4 h-4 text-violet-500" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border text-sm font-medium mb-6">
+                <CarFront className="w-4 h-4 text-foreground" />
                 <span className="text-muted-foreground">
                   {cityInfo?.rentalCompanies || "20+"}+ rental companies
                 </span>
               </div>
               
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-                Car Rental in <span className="text-violet-500">{displayName}</span>
+                Car Rental in <span className="text-foreground">{displayName}</span>
                 {(stateName || countryName) && (
                   <span className="text-muted-foreground text-2xl sm:text-3xl block mt-2">
                     {stateName || countryName}
@@ -169,7 +169,7 @@ export default function CarRentalCityPage() {
               </p>
 
               <Link to={searchUrl}>
-                <Button size="lg" className="h-14 px-8 bg-gradient-to-r from-violet-500 to-purple-600 text-primary-foreground shadow-lg">
+                <Button size="lg" className="h-14 px-8 text-primary-foreground shadow-lg bg-foreground">
                   <CarFront className="h-5 w-5 mr-2" />
                   Search Cars in {displayName}
                   <ArrowRight className="h-5 w-5 ml-2" />
@@ -181,7 +181,7 @@ export default function CarRentalCityPage() {
             <div className="flex flex-wrap items-center gap-6">
               {TRUST_BADGES.map((badge) => (
                 <div key={badge.text} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <badge.icon className="w-4 h-4 text-violet-500" />
+                  <badge.icon className="w-4 h-4 text-foreground" />
                   <span>{badge.text}</span>
                 </div>
               ))}
@@ -213,7 +213,7 @@ export default function CarRentalCityPage() {
           <section className="py-12">
             <div className="container mx-auto px-4">
               <div className="flex items-center gap-2 mb-8">
-                <MapPin className="w-5 h-5 text-violet-500" />
+                <MapPin className="w-5 h-5 text-foreground" />
                 <h2 className="font-display text-2xl font-bold">Pickup Locations in {displayName}</h2>
               </div>
               
@@ -221,14 +221,14 @@ export default function CarRentalCityPage() {
                 {cityInfo.highlights.map((location) => (
                   <Card 
                     key={location}
-                    className="group cursor-pointer hover:border-violet-500/50 transition-all"
+                    className="group cursor-pointer hover:border-border transition-all"
                   >
                     <CardContent className="p-4 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
-                        <MapPin className="w-5 h-5 text-violet-500" />
+                      <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-foreground" />
                       </div>
                       <div>
-                        <p className="font-semibold group-hover:text-violet-500 transition-colors">{location}</p>
+                        <p className="font-semibold group-hover:text-foreground transition-colors">{location}</p>
                         <p className="text-sm text-muted-foreground">Cars available</p>
                       </div>
                     </CardContent>
@@ -262,8 +262,8 @@ export default function CarRentalCityPage() {
               ].map((item) => (
                 <Card key={item.title} className="text-center">
                   <CardContent className="p-6">
-                    <div className="w-12 h-12 rounded-full bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
-                      <item.icon className="w-6 h-6 text-violet-500" />
+                    <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mx-auto mb-4">
+                      <item.icon className="w-6 h-6 text-foreground" />
                     </div>
                     <h3 className="font-bold mb-2">{item.title}</h3>
                     <p className="text-sm text-muted-foreground">{item.desc}</p>
@@ -305,10 +305,10 @@ export default function CarRentalCityPage() {
         <TravelFAQ serviceType="cars" className="bg-muted/20" />
 
         {/* Compliance Disclaimer */}
-        <section className="py-6 bg-violet-500/5 border-y border-violet-500/20">
+        <section className="py-6 bg-secondary border-y border-border">
           <div className="container mx-auto px-4 text-center">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Info className="w-4 h-4 text-violet-500" />
+              <Info className="w-4 h-4 text-foreground" />
               <span>{CAR_DISCLAIMERS.partnerBooking}</span>
             </div>
           </div>

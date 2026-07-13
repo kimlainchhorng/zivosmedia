@@ -8,12 +8,13 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import GlobalTrustBar from "@/components/shared/GlobalTrustBar";
+import BundleProgressBanner from "@/components/shared/BundleProgressBanner";
 import TravelFAQ from "@/components/shared/TravelFAQ";
-import { InternalLinkGrid } from "@/components/seo";
+import { InternalLinkGrid, BreadcrumbSchema } from "@/components/seo";
 import HotelExperienceGallery from "@/components/hotel/HotelExperienceGallery";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { motion } from "framer-motion";
+
 import { HOTEL_DISCLAIMERS, HOTEL_TRUST_BADGES } from "@/config/hotelCompliance";
 import { heroPhotos, serviceOverlays, destinationPhotos } from "@/config/photos";
 
@@ -62,15 +63,54 @@ export default function HotelLanding() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead title={pageTitle} description={pageDescription} />
+      <BundleProgressBanner step="hotel" />
+      <SEOHead
+        title={pageTitle}
+        description={pageDescription}
+        canonical={formattedCity ? `/hotels/in-${city}` : "/hotels"}
+        ogImage="/og-hotels.jpg"
+        appLink="zivo://hotels"
+        structuredData={
+          formattedCity
+            ? undefined
+            : {
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+                "name": "Popular hotel destinations on ZIVO",
+                "itemListOrder": "https://schema.org/ItemListOrderAscending",
+                "itemListElement": [
+                  { "@type": "ListItem", "position": 1,  "name": "New York",    "url": "https://zivosmedia.com/hotels/in-new-york" },
+                  { "@type": "ListItem", "position": 2,  "name": "Paris",       "url": "https://zivosmedia.com/hotels/in-paris" },
+                  { "@type": "ListItem", "position": 3,  "name": "London",      "url": "https://zivosmedia.com/hotels/in-london" },
+                  { "@type": "ListItem", "position": 4,  "name": "Tokyo",       "url": "https://zivosmedia.com/hotels/in-tokyo" },
+                  { "@type": "ListItem", "position": 5,  "name": "Dubai",       "url": "https://zivosmedia.com/hotels/in-dubai" },
+                  { "@type": "ListItem", "position": 6,  "name": "Miami",       "url": "https://zivosmedia.com/hotels/in-miami" },
+                  { "@type": "ListItem", "position": 7,  "name": "Las Vegas",   "url": "https://zivosmedia.com/hotels/in-las-vegas" },
+                  { "@type": "ListItem", "position": 8,  "name": "Bangkok",     "url": "https://zivosmedia.com/hotels/in-bangkok" },
+                  { "@type": "ListItem", "position": 9,  "name": "Bali",        "url": "https://zivosmedia.com/hotels/in-bali" },
+                  { "@type": "ListItem", "position": 10, "name": "Cancun",      "url": "https://zivosmedia.com/hotels/in-cancun" }
+                ]
+              }
+        }
+      />
+      <BreadcrumbSchema
+        items={
+          formattedCity
+            ? [
+                { name: "Home", url: "/" },
+                { name: "Hotels", url: "/hotels" },
+                { name: formattedCity, url: `/hotels/in-${city}` },
+              ]
+            : [
+                { name: "Home", url: "/" },
+                { name: "Hotels", url: "/hotels" },
+              ]
+        }
+      />
       <Header />
       
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="pt-16"
-      >
+      <main className="pt-16 animate-in fade-in duration-500">
+
         {/* Hero Section with Photo Background */}
         <section className="relative py-16 sm:py-24 overflow-hidden">
           {/* Background Image - REAL hotel imagery */}
@@ -80,6 +120,7 @@ export default function HotelLanding() {
               alt={heroImage.alt}
               className="absolute inset-0 w-full h-full object-cover"
               loading="eager"
+              decoding="async"
               fetchPriority="high"
             />
             {/* Gradient Overlay */}
@@ -100,9 +141,9 @@ export default function HotelLanding() {
               {/* UPDATED HEADLINE */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary-foreground mb-4">
                 {formattedCity ? (
-                  <>Hotels in <span className="text-amber-400">{formattedCity}</span></>
+                  <>Hotels in <span className="text-ig-gradient">{formattedCity}</span></>
                 ) : (
-                  <>Compare Hotels Worldwide — <span className="text-amber-400">Book Securely with Partners</span></>
+                  <>Compare Hotels Worldwide — <span className="text-ig-gradient">Book Securely with Partners</span></>
                 )}
               </h1>
               
@@ -153,7 +194,7 @@ export default function HotelLanding() {
             {/* Visible disclaimer near search */}
             <div className="mt-6 max-w-2xl mx-auto">
               <p className="text-center text-xs text-primary-foreground/50">
-                Hizivo is not the merchant of record. Hotel bookings are completed with licensed third-party providers.
+                ZIVO is not the merchant of record. Hotel bookings are completed with licensed third-party providers.
               </p>
             </div>
           </div>
@@ -187,6 +228,7 @@ export default function HotelLanding() {
                         alt={photo?.alt || `Hotels in ${dest.city}`}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         loading="lazy"
+                        decoding="async"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -263,7 +305,7 @@ export default function HotelLanding() {
             </p>
           </div>
         </section>
-      </motion.main>
+      </main>
       
       <Footer />
     </div>

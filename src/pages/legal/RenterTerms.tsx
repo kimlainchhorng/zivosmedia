@@ -20,9 +20,9 @@ const RenterTerms = () => {
         description="Terms and conditions for renting vehicles through the ZIVO peer-to-peer car rental marketplace. Understand your rights and responsibilities as a renter."
         canonical="/terms/renter"
       />
-      
+
       <Header />
-      
+
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         {/* Back Button */}
         <Link to="/">
@@ -54,7 +54,7 @@ const RenterTerms = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground leading-relaxed">
-                ZIVO operates a peer-to-peer car rental marketplace that connects vehicle owners with renters. 
+                ZIVO operates a peer-to-peer car rental marketplace that connects vehicle owners with renters.
                 ZIVO facilitates the booking, payment processing, and insurance arrangement for rentals.
               </p>
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
@@ -63,7 +63,7 @@ const RenterTerms = () => {
                   Important Notice
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  ZIVO is not the vehicle owner. Vehicles are owned by independent hosts who list them on our platform. 
+                  ZIVO is not the vehicle owner. Vehicles are owned by independent hosts who list them on our platform.
                   ZIVO acts as the marketplace facilitator and payment processor.
                 </p>
               </div>
@@ -267,11 +267,11 @@ const RenterTerms = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground leading-relaxed">
-                These terms are governed by the laws of the State of Delaware, USA. Any disputes shall be resolved 
+                These terms are governed by the laws of the State of Delaware, USA. Any disputes shall be resolved
                 through binding arbitration in accordance with the rules of the American Arbitration Association.
               </p>
               <p className="text-sm text-muted-foreground">
-                Before initiating arbitration, you agree to first attempt to resolve disputes through ZIVO's customer 
+                Before initiating arbitration, you agree to first attempt to resolve disputes through ZIVO's customer
                 support process.
               </p>
             </CardContent>
@@ -296,7 +296,7 @@ const RenterTerms = () => {
                   Damage Policy
                 </Badge>
               </Link>
-              <Link to="/privacy">
+              <Link to="/legal/privacy">
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted">
                   Privacy Policy
                 </Badge>
@@ -316,12 +316,12 @@ const RenterTerms = () => {
                   <p className="text-sm text-muted-foreground">We're here to help</p>
                 </div>
               </div>
-              <a 
-                href="mailto:support@hizivo.com" 
+              <a
+                href="mailto:support@zivosmedia.com"
                 className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
               >
                 <Mail className="w-4 h-4" />
-                support@hizivo.com
+                support@zivosmedia.com
               </a>
             </CardContent>
           </Card>

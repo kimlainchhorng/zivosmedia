@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Travel Checkout Page
  * Unified checkout for hotels, activities, and transfers
  */
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Hotel, MapPin, Car, Loader2, CreditCard, AlertCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { MaintenanceScreen } from "@/components/shared/MaintenanceScreen";
 import { format } from "date-fns";
 import { usePromotionValidation } from "@/hooks/usePromotionValidation";
 import { Tag, X, CheckCircle2, Loader2 as PromoLoader } from "lucide-react";
+import SEOHead from "@/components/SEOHead";
 
 const TravelCheckoutPage = () => {
   const navigate = useNavigate();
@@ -152,8 +153,12 @@ const TravelCheckoutPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Travel Checkout – Secure Booking – ZIVO"
+        description="Complete your travel booking securely. Review hotel accommodations, activities, and transfers with flexible payment options and instant confirmation."
+      />
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b">
+      <header className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur border-b">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
             <ArrowLeft className="h-5 w-5" />
@@ -179,14 +184,14 @@ const TravelCheckoutPage = () => {
             {/* Step Indicator */}
             <div className="flex items-center gap-4">
               <div className={`flex items-center gap-2 ${step >= 1 ? "text-primary" : "text-muted-foreground"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? "bg-ig-gradient text-white" : "bg-muted"}`}>
                   {step > 1 ? <Check className="h-4 w-4" /> : "1"}
                 </div>
                 <span className="text-sm font-medium">Details</span>
               </div>
               <div className="flex-1 h-0.5 bg-muted" />
               <div className={`flex items-center gap-2 ${step >= 2 ? "text-primary" : "text-muted-foreground"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? "bg-ig-gradient text-white" : "bg-muted"}`}>
                   2
                 </div>
                 <span className="text-sm font-medium">Payment</span>
@@ -292,13 +297,13 @@ const TravelCheckoutPage = () => {
                     />
                     <Label htmlFor="terms" className="text-sm leading-normal">
                       I agree to the{" "}
-                      <a href="/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                      <Link to="/legal/terms" className="text-primary hover:underline">
                         Terms of Service
-                      </a>{" "}
+                      </Link>{" "}
                       and{" "}
-                      <a href="/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                      <Link to="/legal/privacy" className="text-primary hover:underline">
                         Privacy Policy
-                      </a>
+                      </Link>
                       , and understand that cancellation policies apply.
                     </Label>
                   </div>
@@ -378,7 +383,7 @@ const TravelCheckoutPage = () => {
                       </div>
                       {appliedPromo.description && <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 truncate">{appliedPromo.description}</p>}
                     </div>
-                    <button onClick={handleRemovePromo} className="p-1 rounded-xl hover:bg-emerald-500/10" aria-label="Remove promo">
+                    <button type="button" onClick={handleRemovePromo} className="p-1 rounded-xl hover:bg-emerald-500/10" aria-label="Remove promo">
                       <X className="w-3.5 h-3.5 text-emerald-500" />
                     </button>
                   </div>

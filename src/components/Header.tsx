@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, User, Search, Sparkles, ChevronDown, Car, ShieldCheck } from "lucide-react";
+import { Menu, User, Search, Sparkles, ChevronDown, Car, ShieldCheck, Plane, Hotel, Globe, Check } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -10,76 +10,169 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import MegaMenuDropdown from "./navigation/MegaMenuDropdown";
 import MobileNavMenu from "./navigation/MobileNavMenu";
-import { megaMenuData, moreServicesData } from "./navigation/megaMenuData";
 import { cn } from "@/lib/utils";
 import ZivoLogo from "./ZivoLogo";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import CurrencySelector from "./shared/CurrencySelector";
 import BetaBadge from "./shared/BetaBadge";
+
 import { NotificationBell } from "./notifications/NotificationBell";
 import { PremiumSearchOverlay } from "@/components/search";
+import { Capacitor } from "@capacitor/core";
+import { useI18n } from "@/hooks/useI18n";
+import { useSupportedLanguages } from "@/hooks/useGlobalExpansion";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+/* ─── Flat IG-style nav link ─── */
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+function NavLinkItem({ item }: { item: NavItem }) {
+  const Icon = item.icon;
+  const { pathname } = useLocation();
+  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+  return (
+    <Link
+      to={item.href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-semibold transition-colors",
+        active
+          ? "bg-secondary text-foreground"
+          : "text-foreground/70 hover:text-foreground hover:bg-secondary/70",
+      )}
+    >
+      <Icon className={cn("w-3.5 h-3.5", active ? "text-primary" : "text-foreground/60")} />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
 
 const Header = () => {
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const { currentLanguage, changeLanguage, t } = useI18n();
+  const { data: supportedLanguages } = useSupportedLanguages(true);
+  const activeLanguages = (supportedLanguages || []).filter(l => l.is_active);
+  const currentLangData = activeLanguages.find(l => l.code === currentLanguage);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border safe-area-top">
+        {/* IG gradient accent — hairline beneath the header */}
+        <div aria-hidden className="bg-ig-gradient absolute left-0 right-0 bottom-0 h-px opacity-80" />
         <div className="container mx-auto px-3 sm:px-4">
-          <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
+          <div className="flex items-center gap-3 h-11 sm:h-12">
             {/* Logo */}
             <div className="flex items-center gap-2">
               <div 
                 className="cursor-pointer transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]" 
                 onClick={() => navigate("/")}
               >
-                <ZivoLogo size="md" />
+                {isTravel ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-base font-black text-white">Z</span>
+                    <span className="text-base font-black tracking-tight">
+                      <span className="text-foreground">ZIVO</span>{" "}
+                      <span className="bg-gradient-to-r from-emerald-400 to-sky-500 bg-clip-text text-transparent">TRAVEL</span>
+                    </span>
+                  </span>
+                ) : (
+                  <ZivoLogo size="sm" />
+                )}
               </div>
               <BetaBadge variant="compact" className="hidden sm:flex" />
-              {/* Trust Indicators */}
-              <div className="hidden lg:flex items-center gap-4 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  Secure checkout
-                </span>
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  Instant confirmation
-                </span>
-                <span className="flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                  24/7 support
-                </span>
-              </div>
             </div>
 
-            {/* Desktop Navigation - Mega Menus */}
-            <nav className="hidden lg:flex items-center gap-0.5">
-              {megaMenuData.map((menu) => (
-                <MegaMenuDropdown key={menu.id} data={menu} />
+            {/* Desktop Navigation - Simple Links */}
+            <nav className="hidden lg:flex items-center gap-1">
+              {([
+                { label: "Flights", href: "/flights", icon: Plane },
+                { label: "Hotels", href: "/hotels", icon: Hotel },
+                { label: "Car Rental", href: "/car-rental", icon: Car },
+              ] as const).map((item) => (
+                <NavLinkItem key={item.href} item={item} />
               ))}
-              <MegaMenuDropdown data={moreServicesData} />
             </nav>
 
-            {/* Desktop Actions - Enhanced */}
-            <div className="hidden md:flex items-center gap-1.5">
+            {/* Desktop Actions - Enhanced (lg+ only; below lg uses the hamburger) */}
+            <div className="hidden lg:flex items-center gap-1 ml-auto">
+              {/* Language Selector */}
+              <Popover open={isLangOpen} onOpenChange={setIsLangOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 px-2.5 h-8 font-semibold rounded-xl text-foreground hover:bg-secondary"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    {currentLangData?.flag_svg ? (
+	                      <img
+	                        src={currentLangData.flag_svg}
+	                        alt=""
+	                        className="w-5 h-3.5 rounded-[2px] object-cover border border-border"
+	                        loading="eager"
+	                        decoding="async"
+	                      />
+                    ) : (
+                      <span className="text-xs">{currentLangData?.flag_emoji || "🌐"}</span>
+                    )}
+                    <span className="text-xs font-bold">{currentLanguage.toUpperCase()}</span>
+                    <ChevronDown className={cn("w-3 h-3 transition-transform duration-200", isLangOpen && "rotate-180")} />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0 bg-card border border-border rounded-2xl overflow-hidden" align="end" sideOffset={8}>
+                  <div className="p-3 border-b border-border bg-secondary">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-muted-foreground" />
+                      <p className="text-sm font-medium">{t("lang.select")}</p>
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto max-h-[360px] p-1">
+                    {activeLanguages.map((lang) => (
+                      <button type="button"
+                        key={lang.code}
+                        onClick={() => { changeLanguage(lang.code); setIsLangOpen(false); }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                          currentLanguage === lang.code ? "bg-secondary text-foreground" : "hover:bg-secondary"
+                        )}
+                      >
+                        {lang.flag_svg ? (
+	                          <img
+	                            src={lang.flag_svg}
+	                            alt={lang.name}
+	                            className="w-6 h-[17px] rounded-[3px] object-cover border border-border shrink-0"
+	                            loading="lazy"
+	                            decoding="async"
+	                          />
+                        ) : (
+                          <span className="text-lg">{lang.flag_emoji}</span>
+                        )}
+                        <div className="flex-1 text-left">
+                          <p className="font-medium text-sm">{lang.name}</p>
+                          <p className="text-xs text-muted-foreground">{lang.native_name}</p>
+                        </div>
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase">{lang.code}</span>
+                        {currentLanguage === lang.code && <Check className="w-4 h-4 text-foreground" />}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               {/* Currency Selector */}
               <CurrencySelector variant="compact" />
-              
-              {/* Search Button */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                aria-label="Search"
-                className="text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted/50 transition-all duration-150 hover:scale-110 active:scale-95"
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-              >
-                <Search className="h-5 w-5" />
-              </Button>
+
 
               {user ? (
                 <>
@@ -89,22 +182,19 @@ const Header = () => {
                   {/* User Menu - Enhanced */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="gap-2 ml-1.5 rounded-xl hover:bg-muted/50 pr-3 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-teal-400/10 flex items-center justify-center ring-2 ring-primary/20">
-                          <User className="h-4 w-4 text-primary" />
+                      <Button variant="ghost" size="sm" className="gap-1.5 ml-1 rounded-xl hover:bg-secondary px-2 h-8">
+                        <div className="w-6 h-6 rounded-full bg-secondary border border-border flex items-center justify-center">
+                          <User className="h-3 w-3 text-foreground" />
                         </div>
-                        <div className="hidden lg:flex flex-col items-start">
-                          <span className="text-sm font-semibold">Account</span>
-                          <span className="text-[10px] text-muted-foreground">Menu</span>
-                        </div>
-                        <ChevronDown className="w-4 h-4 text-muted-foreground hidden lg:block" />
+                        <span className="hidden lg:inline text-[13px] font-semibold">Account</span>
+                        <ChevronDown className="w-3.5 h-3.5 text-muted-foreground hidden lg:block" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-64 bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl rounded-2xl p-2">
-                      <div className="px-3 py-3 mb-2 rounded-xl bg-gradient-to-br from-primary/10 to-teal-400/5 border border-primary/20">
+                    <DropdownMenuContent align="end" className="w-64 bg-card border border-border rounded-2xl p-2">
+                      <div className="px-3 py-3 mb-2 rounded-xl bg-secondary border border-border">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center shadow-lg">
-                            <User className="h-5 w-5 text-primary-foreground" />
+                          <div className="w-10 h-10 rounded-full bg-foreground flex items-center justify-center">
+                            <User className="h-5 w-5 text-background" />
                           </div>
                           <div>
                             <p className="font-bold text-foreground">Welcome back!</p>
@@ -115,7 +205,7 @@ const Header = () => {
                       <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer rounded-xl py-2.5 font-medium">
                         Profile Settings
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer rounded-xl py-2.5 font-medium">
+                      <DropdownMenuItem onClick={() => navigate("/app")} className="cursor-pointer rounded-xl py-2.5 font-medium">
                         My Dashboard
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate("/trips")} className="cursor-pointer rounded-xl py-2.5 font-medium">
@@ -133,8 +223,8 @@ const Header = () => {
                         <Car className="w-4 h-4 mr-2 text-rides" />
                         Become a Driver
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate("/restaurant")} className="cursor-pointer rounded-xl py-2.5 font-medium">
-                        Restaurant Dashboard
+                      <DropdownMenuItem onClick={() => navigate("/eats")} className="cursor-pointer rounded-xl py-2.5 font-medium">
+                        Restaurant Partner
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="my-2" />
                       <DropdownMenuItem onClick={() => navigate("/help")} className="cursor-pointer rounded-xl py-2.5 font-medium">
@@ -148,11 +238,11 @@ const Header = () => {
                 </>
               ) : (
                 <div className="flex items-center gap-2 ml-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => navigate("/drive")}
-                    className="rounded-xl font-semibold text-rides hover:text-rides/80 gap-1.5"
+                    className="rounded-xl font-semibold gap-1.5"
                   >
                     <Car className="w-4 h-4" />
                     Drive with us
@@ -160,10 +250,10 @@ const Header = () => {
                   <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="rounded-xl font-semibold">
                     Log in
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     onClick={() => navigate("/signup")}
-                    className="rounded-xl font-bold bg-gradient-to-r from-primary to-teal-400 text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all duration-150 hover:scale-[1.03] active:scale-[0.97]"
+                    className="bg-ig-gradient hover:opacity-90 text-white rounded-xl font-bold border-0 shadow-sm"
                   >
                     Sign up free
                   </Button>
@@ -171,9 +261,9 @@ const Header = () => {
               )}
             </div>
 
-            {/* Mobile Menu Button - Enhanced */}
-            <button
-              className="lg:hidden p-2.5 -mr-2 text-foreground hover:bg-muted/50 rounded-xl transition-all duration-150 hover:scale-110 active:scale-95"
+            {/* Mobile Menu Button */}
+            <button type="button"
+              className="lg:hidden p-2.5 -mr-2 ml-auto text-foreground hover:bg-secondary rounded-xl transition-colors"
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Open menu"
             >
@@ -200,4 +290,14 @@ const Header = () => {
   );
 };
 
-export default Header;
+// Desktop chrome — hamburger, dropdown menus, currency/language selectors,
+// search overlay. On native iOS/Android the bottom tab bar already handles
+// primary navigation, so render nothing instead of stealing screen real
+// estate. Wrapped at the export boundary so the inner component's hooks
+// always run consistently (rules-of-hooks).
+const HeaderWrapper = () => {
+  if (Capacitor.isNativePlatform()) return null;
+  return <Header />;
+};
+
+export default HeaderWrapper;

@@ -3,7 +3,9 @@
  * View and download invoices for business account members
  */
 import { useState, useMemo } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, useLocation } from "react-router-dom";
+import { withRedirectParam } from "@/lib/authRedirect";
+import SEOHead from "@/components/SEOHead";
 import {
   ArrowLeft,
   FileText,
@@ -38,6 +40,7 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 
 export default function BusinessInvoicesPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isLoading: authLoading } = useAuth();
   const { data: membership, isLoading: membershipLoading } = useBusinessMembership();
   const { invoices, isLoading: invoicesLoading, totalPaid, totalPending, totalOverdue } = useBusinessInvoices();
@@ -98,7 +101,8 @@ export default function BusinessInvoicesPage() {
 
   // Redirect to login if not authenticated
   if (!authLoading && !user) {
-    return <Navigate to="/login" replace />;
+    const redirectTarget = `${location.pathname}${location.search ?? ""}`;
+    return <Navigate to={withRedirectParam("/login", redirectTarget)} replace />;
   }
 
   // Not a business member - show message
@@ -108,7 +112,7 @@ export default function BusinessInvoicesPage() {
         {/* Header */}
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b safe-area-top">
           <div className="flex items-center gap-3 px-4 py-3">
-            <button
+            <button type="button"
               onClick={() => navigate(-1)}
               className="p-2.5 -ml-2 rounded-full hover:bg-muted touch-manipulation active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
@@ -126,7 +130,7 @@ export default function BusinessInvoicesPage() {
           <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
             Join a company account to view invoices billed to your organization.
           </p>
-          <Button onClick={() => navigate("/account/business")}>
+          <Button onClick={() => navigate("/business/account")}>
             Join Business Account
           </Button>
         </div>
@@ -138,10 +142,11 @@ export default function BusinessInvoicesPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <SEOHead title="Business Invoices – ZIVO" description="View, search, and download invoices for your business account. Filter by status and export for accounting and record-keeping." />
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button
+          <button type="button"
             onClick={() => navigate(-1)}
             className="p-2.5 -ml-2 rounded-full hover:bg-muted touch-manipulation active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
@@ -299,8 +304,8 @@ export default function BusinessInvoicesPage() {
             <p className="text-xs text-muted-foreground">
               Invoices are generated for orders billed to your company account. 
               For billing questions, contact your company administrator or{" "}
-              <a href="mailto:support@hizivo.com" className="text-primary">
-                support@hizivo.com
+              <a href="mailto:support@zivosmedia.com" className="text-primary">
+                support@zivosmedia.com
               </a>.
             </p>
           </div>

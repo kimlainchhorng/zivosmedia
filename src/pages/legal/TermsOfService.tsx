@@ -1,18 +1,150 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, FileText, Shield, AlertTriangle, Scale, Users, Car, UtensilsCrossed, Plane, Hotel, Key, Gavel, Lock, Globe, FileWarning } from "lucide-react";
+import { ArrowLeft, FileText, Shield, AlertTriangle, Scale, Users, Car, UtensilsCrossed, Plane, Hotel, Key, Gavel, Lock, Globe, FileWarning, DollarSign, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ADVANCED_LEGAL_CLAUSES, COMPANY_INFO } from "@/config/legalContent";
+import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+
+function ZivoSoftwareLegalMark() {
+  return (
+    <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] bg-[#101412] shadow-[0_16px_34px_rgba(17,20,18,0.2)]">
+      <span className="absolute -right-1 -top-1 h-4 w-4 rounded-md bg-[#48e7af]" />
+      <span className="absolute bottom-2 left-2 h-2 w-2 rounded-sm bg-[#35a8ff]/80" />
+      <svg viewBox="0 0 44 44" aria-hidden="true" className="relative h-8 w-8">
+        <defs>
+          <linearGradient id="zivoSoftwareLegalTermsMark" x1="8" y1="8" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="0.5" stopColor="#48e7af" />
+            <stop offset="1" stopColor="#35a8ff" />
+          </linearGradient>
+        </defs>
+        <path d="M10 8h26v7.2H22.4L36 15.3 16.1 36H8l20-20.8H10V8Z" fill="url(#zivoSoftwareLegalTermsMark)" />
+        <path d="M13.2 28.8h20.9V36H6.8l6.4-7.2Z" fill="#f8fffc" />
+      </svg>
+    </span>
+  );
+}
+
+function ZivoSoftwareTerms() {
+  const lastUpdated = "June 4, 2026";
+  const terms = [
+    {
+      icon: Users,
+      title: "Accounts and Workspace Access",
+      copy: "ZIVO Software accounts are for business owners, operators, managers, employees, and authorized team members. You are responsible for keeping account credentials secure, assigning access only to authorized staff, and removing users who no longer work with your business.",
+    },
+    {
+      icon: Scale,
+      title: "Business Responsibilities",
+      copy: "You are responsible for the information, services, pricing, bookings, invoices, work orders, customer records, employee activity, and business content entered into your workspace. You must use the software in compliance with applicable laws, licensing rules, tax obligations, and customer privacy requirements.",
+    },
+    {
+      icon: Lock,
+      title: "Security and Acceptable Use",
+      copy: "Do not use ZIVO Software to upload malicious code, scrape the platform, bypass permissions, misuse customer information, or interfere with other users. We may restrict or suspend access to protect customers, businesses, ZIVO LLC, or the integrity of the service.",
+    },
+    {
+      icon: DollarSign,
+      title: "Payments and Billing",
+      copy: "If paid software, payments, subscriptions, invoices, or processing tools are enabled, fees may apply. Payment providers may have their own terms. You are responsible for reviewing charges, taxes, refunds, and settlement records connected to your business workspace.",
+    },
+    {
+      icon: Shield,
+      title: "Data and Customer Records",
+      copy: "Your workspace may contain customer, employee, vehicle, booking, invoice, inventory, and service records. You must only collect and use that information for legitimate business purposes and must protect it according to applicable law and your own customer commitments.",
+    },
+    {
+      icon: Gavel,
+      title: "Changes, Suspension, and Termination",
+      copy: "We may update these terms, improve or change features, or limit access when needed for security, compliance, non-payment, abuse prevention, or operational integrity. Continued use after an update means you accept the updated terms.",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#f7f8f6] text-[#101412]">
+      <header className="sticky top-0 z-50 border-b border-black/10 bg-[#f7f8f6]/92 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+          <Link to="/business" className="flex items-center gap-3">
+            <ZivoSoftwareLegalMark />
+            <span>
+              <span className="block text-base font-black uppercase tracking-[0.2em]">ZIVO</span>
+              <span className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#138f68]">Software</span>
+            </span>
+          </Link>
+          <Button asChild variant="outline" className="rounded-lg border-black/15 bg-white text-[#101412]">
+            <Link to="/business">Back to software</Link>
+          </Button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-5 py-10">
+        <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#138f68]">Legal</p>
+            <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-normal sm:text-5xl">ZIVO Software Terms</h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5f6b65]">
+              These terms apply to using ZIVO Software business workspaces on zivosmedia.com, including setup, dashboards, team access, customer records, work orders, bookings, invoices, payments, inventory, and reports.
+            </p>
+            <p className="mt-4 text-sm font-semibold text-[#5f6b65]">Last updated: {lastUpdated}</p>
+          </div>
+          <div className="rounded-[1.2rem] border border-black/10 bg-[#101412] p-6 text-white shadow-[0_24px_70px_rgba(17,20,18,0.18)]">
+            <FileText className="h-8 w-8 text-[#48e7af]" />
+            <h2 className="mt-6 text-2xl font-black">Business software only</h2>
+            <p className="mt-3 text-sm leading-6 text-white/65">
+              This page is scoped for operators using the ZIVO Software domain. General ZIVO marketplace, travel, rides, food, and consumer services may have additional or separate terms.
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-10 grid gap-4 md:grid-cols-2">
+          {terms.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title} className="rounded-xl border border-black/10 bg-white p-5 shadow-sm">
+                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#101412] text-white">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h2 className="mt-5 text-xl font-black">{item.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-[#5f6b65]">{item.copy}</p>
+              </article>
+            );
+          })}
+        </section>
+
+        <section className="mt-10 rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+          <h2 className="text-2xl font-black">Important Notice</h2>
+          <p className="mt-3 text-sm leading-7 text-[#5f6b65]">
+            ZIVO Software is a business operations platform. It does not replace professional legal, tax, insurance, accounting, HR, safety, or compliance advice. Each business is responsible for how it configures and uses its workspace.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button asChild className="rounded-lg bg-[#101412] text-white hover:bg-black">
+              <Link to="/signup?redirect=%2Fbusiness%2Fnew">Create workspace</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-lg border-black/15 bg-white">
+              <Link to="/legal/privacy">Privacy Policy</Link>
+            </Button>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
 
 const TermsOfService = () => {
-  const lastUpdated = "January 26, 2026";
-  const companyName = "ZIVO Technologies Inc.";
+  const lastUpdated = "March 13, 2026";
+  const companyName = "ZIVO LLC";
+  const isZivoSoftwareDomain =
+    typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+
+  if (isZivoSoftwareDomain) {
+    return <ZivoSoftwareTerms />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 safe-area-top z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Link to="/">
             <Button variant="ghost" size="icon" aria-label="Go back">
@@ -52,6 +184,7 @@ const TermsOfService = () => {
             { icon: Key, label: "Car Rental", href: "#rental" },
             { icon: Plane, label: "Flights", href: "#flights" },
             { icon: Hotel, label: "Hotels", href: "#hotels" },
+            { icon: DollarSign, label: "Monetization", href: "#monetization" },
           ].map((item) => (
             <a
               key={item.label}
@@ -81,7 +214,9 @@ const TermsOfService = () => {
                 By creating an account or using any ZIVO service, you confirm that you:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Are at least 18 years of age or the age of legal majority in your jurisdiction</li>
+                <li>Are at least 13 years old to create a limited personal account, and at least 16 where local law requires a higher digital consent age</li>
+                <li>Are at least 18 years old, or the age of legal majority in your jurisdiction, to book travel, request rides, order delivery, rent vehicles, make payments, send or receive gifts, go live, subscribe, unlock paid content, receive payouts, or use business/partner tools</li>
+                <li>If you are 13-17, use ZIVO only with parent or guardian permission and do not access age-restricted, paid, travel, payout, or live-streaming features</li>
                 <li>Have the legal capacity to enter into a binding agreement</li>
                 <li>Are not prohibited from using our services under applicable laws</li>
                 <li>Will provide accurate, current, and complete information during registration</li>
@@ -110,6 +245,7 @@ const TermsOfService = () => {
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Provide truthful and accurate information</li>
+                <li>Provide accurate age or date-of-birth information when requested</li>
                 <li>Maintain the security of your account credentials</li>
                 <li>Notify us immediately of any unauthorized access</li>
                 <li>Accept responsibility for all activities under your account</li>
@@ -277,8 +413,8 @@ const TermsOfService = () => {
           <AccordionItem value="flights" id="flights" className="border border-border rounded-lg px-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200">
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center">
-                  <Plane className="h-4 w-4 text-sky-500" />
+                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                  <Plane className="h-4 w-4 text-foreground" />
                 </div>
                 <span className="font-semibold">ZIVO Flights - Booking Terms</span>
               </div>
@@ -397,6 +533,51 @@ const TermsOfService = () => {
               <p>
                 Billing disputes must be submitted within 60 days of the charge. Contact our support team with 
                 transaction details for review.
+              </p>
+
+              <h4 id="monetization" className="font-semibold text-foreground mt-6">8.5 Creator Monetization & Payouts</h4>
+              <p>
+                Eligible creators may earn from tips, gifts, locked media, subscriptions, ad revenue, affiliate
+                programs, live monetization, and other creator tools made available by ZIVO. Earnings are subject
+                to platform fees, identity and tax verification, minimum payout thresholds, refund clawbacks,
+                chargebacks, payment reversals, and fraud review.
+              </p>
+              <p>
+                Creator earnings are not guaranteed. Fraudulent, artificial, self-funded, or policy-violating
+                engagement may result in withheld earnings, payout delays, account restrictions, and forfeiture.
+                Creators are responsible for taxes, required disclosures, sponsored-content compliance, and
+                accurate payout information.
+              </p>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="ai-automated-decisions" className="border border-border rounded-lg px-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Brain className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-semibold">AI, Ranking & Automated Decisions</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="text-muted-foreground space-y-4 pb-6">
+              <p>
+                ZIVO may use AI, machine learning, rules engines, and automated signals for search ranking,
+                recommendations, fraud detection, pricing estimates, moderation, safety review, ad relevance,
+                and chat assistance.
+              </p>
+              <p>
+                AI output may be inaccurate or incomplete. Always verify important information before relying on
+                AI-generated content, travel details, pricing estimates, recommendations, or business advice.
+              </p>
+              <p>
+                Significant decisions such as account suspension, payout holds, content removal, booking risk review,
+                payment risk review, or live-stream restrictions may use automated signals and are subject to
+                human review or appeal where available.
+              </p>
+              <p>
+                You may not scrape, reverse-engineer, manipulate, test, bypass, or interfere with our
+                ranking, recommendation, fraud, safety, moderation, advertising, or pricing systems.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -569,8 +750,8 @@ const TermsOfService = () => {
           <AccordionItem value="no-agency" className="border border-border rounded-lg px-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200">
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                  <span className="text-sm font-bold text-violet-500">13</span>
+                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                  <span className="text-sm font-bold text-foreground">13</span>
                 </div>
                 <span className="font-semibold">{ADVANCED_LEGAL_CLAUSES.noAgencyClause.title}</span>
               </div>
@@ -842,10 +1023,10 @@ const TermsOfService = () => {
             By using ZIVO services, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
           </p>
           <div className="flex justify-center gap-4 mt-4">
-            <Link to="/privacy-policy">
+            <Link to="/legal/privacy">
               <Button variant="outline" size="sm">Privacy Policy</Button>
             </Link>
-            <Link to="/refund-policy">
+            <Link to="/legal/refunds">
               <Button variant="outline" size="sm">Refund Policy</Button>
             </Link>
             <Link to="/help">

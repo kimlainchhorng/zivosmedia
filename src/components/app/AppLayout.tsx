@@ -2,11 +2,13 @@
  * App Layout
  * Mobile-first shell with header and bottom navigation
  */
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import ZivoMobileNav from "./ZivoMobileNav";
 import AppHeader from "./AppHeader";
 import SystemStatusBanner from "@/components/shared/SystemStatusBanner";
 import OfflineBanner from "@/components/shared/OfflineBanner";
+import SafeAreaDebugOverlay from "@/components/dev/SafeAreaDebugOverlay";
+import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { cn } from "@/lib/utils";
 
@@ -38,12 +40,16 @@ const AppLayout = ({
   const { isOnline } = useNetworkStatus();
 
   return (
-    <div className={cn(
-      "bg-background flex flex-col overscroll-none tap-highlight-none",
-      fixedHeight ? "h-[100dvh] overflow-hidden" : "min-h-screen"
-    )}>
+    <SwipeBackContainer
+      disabled={!showBack}
+      onBack={onBack}
+      className={cn(
+        "bg-background flex flex-col overscroll-none tap-highlight-none",
+        fixedHeight ? "h-[100dvh] overflow-hidden" : "min-h-screen"
+      )}
+    >
       {!hideHeader && (
-        <AppHeader 
+        <AppHeader
           title={title}
           showBack={showBack}
           onBack={onBack}
@@ -58,18 +64,26 @@ const AppLayout = ({
       {/* Offline Banner */}
       <OfflineBanner isOffline={!isOnline} />
 
-      <main className={cn(
-        "flex-1",
-        fixedHeight ? "min-h-0 overflow-hidden flex flex-col" : "scroll-momentum",
-        !hideHeader && "pt-14",
-        !hideNav && "pb-nav",
-        className
-      )}>
+      <main
+        className={cn(
+          "flex-1",
+          fixedHeight ? "min-h-0 overflow-hidden flex flex-col" : "scroll-momentum overscroll-contain",
+          !hideNav && "pb-nav",
+          className
+        )}
+        style={
+          !hideHeader
+            ? { paddingTop: "calc(56px + var(--zivo-safe-top-sticky))" }
+            : { paddingTop: "var(--zivo-safe-top,0px)" }
+        }
+      >
         {children}
       </main>
 
       {!hideNav && <ZivoMobileNav />}
-    </div>
+
+      <SafeAreaDebugOverlay />
+    </SwipeBackContainer>
   );
 };
 

@@ -45,7 +45,7 @@ const troubleshootingSteps = [
     id: "cookies",
     icon: Shield,
     title: "Check cookies are enabled",
-    description: "Ensure your browser allows cookies for hizivo.com.",
+    description: "Ensure your browser allows cookies for zivosmedia.com.",
     tip: "We use cookies for essential site functionality.",
   },
   {
@@ -109,7 +109,7 @@ const commonIssues = [
   {
     issue: "Redirect not working",
     solutions: [
-      "Disable popup blockers for hizivo.com",
+      "Disable popup blockers for zivosmedia.com",
       "Check if popups are blocked",
       "Try clicking the link again",
       "Clear browser data",
@@ -137,11 +137,11 @@ export default function SiteIssuesSupport() {
       <SEOHead 
         title="Site Issues & Troubleshooting – ZIVO"
         description="Having trouble with the Hizovo website? Follow our troubleshooting guide to resolve common issues."
-        canonical="https://hizivo.com/support/site-issues"
+        canonical="https://zivosmedia.com/support/site-issues"
       />
       <Header />
 
-      <main className="pt-24 pb-20">
+      <main className="pt-safe-header pb-20">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Hero */}
           <div className="text-center mb-12">
@@ -260,7 +260,7 @@ export default function SiteIssuesSupport() {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-sky-500" />
+                <Globe className="w-5 h-5 text-foreground" />
                 Browser Requirements
               </CardTitle>
             </CardHeader>

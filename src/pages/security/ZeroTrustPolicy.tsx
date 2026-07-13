@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Zero-Trust Security Policy Page
  * Advanced security documentation for enterprise transparency
  */
@@ -260,7 +260,7 @@ export default function ZeroTrustPolicy() {
                   <div className="space-y-4">
                     {breachContainment.map((item, index) => (
                       <div key={item.phase} className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-ig-gradient text-white flex items-center justify-center font-bold shrink-0">
                           {index + 1}
                         </div>
                         <div className="flex-1 p-3 rounded-lg bg-muted/50">

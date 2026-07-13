@@ -76,7 +76,7 @@
      <motion.div
        style={{ x: cursorX, y: cursorY }}
        className={`
-          fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-40
+          zivo-safe-top-none fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-40
          flex items-center justify-center text-[10px] font-bold uppercase
          transition-all duration-200 ease-out
          ${isVisible ? "opacity-100" : "opacity-0"}

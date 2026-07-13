@@ -1,0 +1,145 @@
+import { HelmetProvider } from "react-helmet-async";
+import { MemoryRouter } from "react-router-dom";
+import { render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+let authState: {
+  user: { id: string; email?: string; user_metadata?: Record<string, unknown> } | null;
+  isLoading: boolean;
+};
+
+let ownerStoreState: {
+  data: {
+    id: string;
+    name: string;
+    category: string;
+    setup_complete?: boolean;
+  } | null;
+  isLoading: boolean;
+};
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({
+    user: authState.user,
+    isLoading: authState.isLoading,
+  }),
+}));
+
+vi.mock("@/hooks/useOwnerStoreProfile", () => ({
+  normalizeStoreCategory: (category?: string | null) =>
+    (category || "")
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/b\s*and\s*b/g, "bed and breakfast")
+      .replace(/[\/_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  isLodgingStoreCategory: () => false,
+  useOwnerStoreProfile: () => ownerStoreState,
+}));
+
+import BusinessSoftwarePortalPage from "./BusinessSoftwarePortalPage";
+import { resolveSoftwarePortalAccountDashboardPath } from "@/lib/business/softwarePortal";
+
+const renderPage = () =>
+  render(
+    <HelmetProvider>
+      <MemoryRouter initialEntries={["/business"]}>
+        <BusinessSoftwarePortalPage />
+      </MemoryRouter>
+    </HelmetProvider>
+  );
+
+beforeEach(() => {
+  authState = { user: null, isLoading: false };
+  ownerStoreState = { data: null, isLoading: false };
+});
+
+describe("BusinessSoftwarePortalPage account header", () => {
+  it("shows the software-focused hero and workflow labels", () => {
+    renderPage();
+
+    expect(
+      screen.getByRole("heading", { name: "ZIVO Software for local businesses" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View Software Page" })).toHaveAttribute(
+      "href",
+      "#industries",
+    );
+    expect(screen.getByText("software page")).toBeInTheDocument();
+    expect(screen.getByText("Service desk")).toBeInTheDocument();
+    expect(screen.getByText(/customer intake, approvals/i)).toBeInTheDocument();
+    expect(screen.getByText("A launch board for your software workspace")).toBeInTheDocument();
+    expect(screen.getByText("ZIVO Software workspace ready to launch")).toBeInTheDocument();
+    expect(screen.getByText(/software-only workspace category/i)).toBeInTheDocument();
+    expect(screen.getByText("Configure software")).toBeInTheDocument();
+    expect(screen.getByText("Activate workspace")).toBeInTheDocument();
+    expect(screen.getAllByText("Customer intake").length).toBeGreaterThan(1);
+    expect(screen.getByText("Invoice workflow")).toBeInTheDocument();
+    expect(screen.getByText("Team access")).toBeInTheDocument();
+    expect(screen.getByText("Workspace dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Invoice command")).toBeInTheDocument();
+    expect(screen.getByText("Service workflow")).toBeInTheDocument();
+    expect(screen.getByText(/ZIVO Software keeps teams focused/i)).toBeInTheDocument();
+  });
+
+  it("keeps guest login and signup actions in the header", () => {
+    renderPage();
+
+    const header = within(screen.getByRole("banner"));
+    expect(header.getByRole("link", { name: "Log in" })).toHaveAttribute(
+      "href",
+      "/login?redirect=%2Fbusiness",
+    );
+    expect(header.getByRole("link", { name: "Sign up" })).toHaveAttribute(
+      "href",
+      "/signup?redirect=%2Fbusiness%2Fnew",
+    );
+    expect(header.queryByRole("link", { name: /dashboard/i })).not.toBeInTheDocument();
+  });
+
+  it("routes a signed-in auto repair owner to the repair dashboard", () => {
+    authState = { user: { id: "owner-1", email: "owner@example.com" }, isLoading: false };
+    ownerStoreState = {
+      data: {
+        id: "a914b90d-c249-4794-ba5e-3fdac0deed44",
+        name: "AB Complete Car Care",
+        category: "auto-repair",
+        setup_complete: true,
+      },
+      isLoading: false,
+    };
+
+    renderPage();
+
+    const header = within(screen.getByRole("banner"));
+    expect(header.getByText("AB Complete Car Care")).toBeInTheDocument();
+    expect(header.queryByRole("link", { name: "Log in" })).not.toBeInTheDocument();
+    expect(header.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
+    expect(header.getByRole("link", { name: /dashboard/i })).toHaveAttribute(
+      "href",
+      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+    );
+  });
+
+  it("keeps Software dashboard links on zivosoftware.com", () => {
+    const mediaDashboardUrl =
+      "https://zivosmedia.com/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair";
+    const softwareDashboardPath =
+      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair";
+
+    expect(
+      resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com", mediaDashboardUrl),
+    ).toBe(softwareDashboardPath);
+    expect(
+      resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com", "https://example.com/admin/stores/bad"),
+    ).toBe(softwareDashboardPath);
+    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com")).toBe(
+      softwareDashboardPath,
+    );
+    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com", mediaDashboardUrl)).toBe(
+      mediaDashboardUrl,
+    );
+    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com")).toBe("/business/new");
+  });
+});

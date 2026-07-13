@@ -14,16 +14,16 @@ const serviceBadgeVariants = cva(
   {
     variants: {
       variant: {
-        hot: "bg-red-500/90 text-primary-foreground",
-        new: "bg-emerald-500/90 text-primary-foreground",
-        save: "bg-amber-500/90 text-primary-foreground",
-        popular: "bg-sky-500/90 text-primary-foreground",
-        featured: "bg-violet-500/90 text-primary-foreground",
-        trending: "bg-gradient-to-r from-orange-500 to-red-500 text-primary-foreground",
+        hot: "bg-destructive/90 text-destructive-foreground",
+        new: "bg-success/90 text-primary-foreground",
+        save: "bg-warning/90 text-primary-foreground",
+        popular: "bg-primary/90 text-primary-foreground",
+        featured: "bg-ig-gradient text-primary-foreground",
+        trending: "bg-ig-gradient text-primary-foreground",
         // Product-specific
-        flights: "bg-sky-500/20 text-sky-400 border border-sky-500/30",
-        hotels: "bg-amber-500/20 text-amber-400 border border-amber-500/30",
-        cars: "bg-violet-500/20 text-violet-400 border border-violet-500/30",
+        flights: "bg-flights/20 text-flights border border-flights/30",
+        hotels: "bg-hotels/20 text-hotels border border-hotels/30",
+        cars: "bg-cars/20 text-cars border border-cars/30",
         // Utility
         outline: "bg-transparent border border-border text-muted-foreground",
         muted: "bg-muted text-muted-foreground",

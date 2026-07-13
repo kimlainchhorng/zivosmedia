@@ -4,11 +4,7 @@
  */
 
 import { serve, createClient } from "../_shared/deps.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { withSecurity } from "../_shared/withSecurity.ts";
 
 interface WebPushSubscription {
   endpoint: string;
@@ -18,7 +14,9 @@ interface WebPushSubscription {
   };
 }
 
-serve(async (req) => {
+serve(withSecurity("register-web-push", async (req, ctx) => {
+  const corsHeaders = ctx.corsHeaders;
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -106,4 +104,4 @@ serve(async (req) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}, { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 80 }));

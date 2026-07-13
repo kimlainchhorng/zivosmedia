@@ -1,10 +1,11 @@
-/**
+﻿/**
  * RideSafetyCenter — Enhanced SOS, live trip sharing, ride PIN verification,
  * incident reporting, and emergency contacts
  */
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ShieldAlert, ShieldCheck, Phone, AlertTriangle, Share2, Lock, Eye, MapPin, Users, FileWarning, CheckCircle, Copy, Megaphone, Radio, Siren, X } from "lucide-react";
+import { Shield, ShieldAlert, ShieldCheck, Phone, AlertTriangle, Share2, Lock, Eye, MapPin, Users, FileWarning, CheckCircle, Copy, Megaphone, Radio, Siren, X, UserPlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getPublicOrigin } from "@/lib/getPublicOrigin";
 
 type SafetyTab = "sos" | "share" | "pin" | "report";
 
@@ -24,16 +26,50 @@ const incidentTypes = [
 ];
 
 export default function RideSafetyCenter() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SafetyTab>("sos");
   const [sosCountdown, setSosCountdown] = useState<number | null>(null);
   const [ridePin] = useState(Math.floor(1000 + Math.random() * 9000).toString());
   const [pinVerified, setPinVerified] = useState(false);
-  const [shareLink] = useState("hizovo.com/track/zv-" + Math.random().toString(36).slice(2, 8));
+  const [shareLink] = useState(`${getPublicOrigin()}/track/zv-` + Math.random().toString(36).slice(2, 8));
   const [shareSent, setShareSent] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [incidentNotes, setIncidentNotes] = useState("");
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [audioRecording, setAudioRecording] = useState(false);
+
+  type EmergencyContact = { id: string; name: string; phone: string };
+  const [contacts, setContacts] = useState<EmergencyContact[]>(() => {
+    try {
+      const saved = localStorage.getItem("zivo_emergency_contacts");
+      if (saved) return JSON.parse(saved) as EmergencyContact[];
+    } catch {}
+    return [
+      { id: "1", name: "Mom", phone: "+1 555-0101" },
+      { id: "2", name: "Best Friend", phone: "+1 555-0202" },
+    ];
+  });
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactPhone, setNewContactPhone] = useState("");
+  const [showAddContact, setShowAddContact] = useState(false);
+
+  const saveContacts = (updated: EmergencyContact[]) => {
+    setContacts(updated);
+    try { localStorage.setItem("zivo_emergency_contacts", JSON.stringify(updated)); } catch {}
+  };
+  const addContact = () => {
+    if (!newContactName.trim() || !newContactPhone.trim()) return;
+    const updated = [...contacts, { id: Date.now().toString(), name: newContactName.trim(), phone: newContactPhone.trim() }];
+    saveContacts(updated);
+    setNewContactName("");
+    setNewContactPhone("");
+    setShowAddContact(false);
+    toast.success("Contact added");
+  };
+  const removeContact = (id: string) => {
+    saveContacts(contacts.filter(c => c.id !== id));
+    toast.success("Contact removed");
+  };
 
   const tabs = [
     { id: "sos" as const, label: "SOS", icon: Siren },
@@ -69,7 +105,7 @@ export default function RideSafetyCenter() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="rounded-2xl bg-gradient-to-br from-red-500/10 to-violet-500/10 border border-red-500/20 p-4">
+      <div className="rounded-2xl bg-gradient-to-br from-red-500/10 border border-red-500/20 p-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
             <Shield className="w-6 h-6 text-red-500" />
@@ -89,7 +125,7 @@ export default function RideSafetyCenter() {
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+            <button type="button" key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all", activeTab === tab.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
               <Icon className="w-3.5 h-3.5" /> {tab.label}
             </button>
           );
@@ -114,7 +150,7 @@ export default function RideSafetyCenter() {
                   </motion.div>
                 ) : (
                   <>
-                    <button onClick={triggerSOS} className="w-28 h-28 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-2xl shadow-red-500/20 active:scale-95 transition-transform">
+                    <button type="button" onClick={triggerSOS} className="w-28 h-28 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-2xl shadow-red-500/20 active:scale-95 transition-transform">
                       <div className="text-center">
                         <Siren className="w-8 h-8 text-white mx-auto mb-1" />
                         <span className="text-sm font-black text-white">SOS</span>
@@ -128,12 +164,25 @@ export default function RideSafetyCenter() {
               {/* Quick safety tools */}
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { icon: Phone, label: "Call 911", action: () => toast.info("Calling 911..."), color: "text-red-500 bg-red-500/10" },
+                  { icon: Phone, label: "Call 911", action: () => { window.location.href = "tel:911"; }, color: "text-red-500 bg-red-500/10" },
                   { icon: Radio, label: "Record Audio", action: () => { setAudioRecording(!audioRecording); toast.success(audioRecording ? "Recording stopped" : "Recording started 🔴"); }, color: audioRecording ? "text-red-500 bg-red-500/10" : "text-primary bg-primary/10" },
-                  { icon: Share2, label: "Share Location", action: () => toast.success("Location shared"), color: "text-emerald-500 bg-emerald-500/10" },
-                  { icon: Users, label: "Alert Contacts", action: () => toast.success("Trusted contacts notified"), color: "text-violet-500 bg-violet-500/10" },
+                  { icon: Share2, label: "Share Location", action: () => {
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        const url = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                        if (navigator.share) { navigator.share({ title: "My Location", url }); }
+                        else { navigator.clipboard.writeText(url).then(() => toast.success("Location link copied!")); }
+                      },
+                      () => { navigator.clipboard.writeText(shareLink).then(() => toast.success("Trip link copied!")); }
+                    );
+                  }, color: "text-emerald-500 bg-emerald-500/10" },
+                  { icon: Users, label: "Alert Contacts", action: () => {
+                    const msg = `🚨 I need help. Track my ride: ${shareLink}`;
+                    navigator.clipboard.writeText(msg).then(() => toast.success(`Alert copied — send to ${contacts.length} contact${contacts.length !== 1 ? "s" : ""}`));
+                    if (contacts[0]?.phone) window.open(`sms:${contacts[0].phone}?body=${encodeURIComponent(msg)}`);
+                  }, color: "text-violet-500 bg-violet-500/10" },
                 ].map(tool => (
-                  <button key={tool.label} onClick={tool.action} className="flex items-center gap-2.5 p-3 rounded-xl bg-card border border-border/40 active:scale-95 transition-transform">
+                  <button type="button" key={tool.label} onClick={tool.action} className="flex items-center gap-2.5 p-3 rounded-xl bg-card border border-border/40 active:scale-95 transition-transform">
                     <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", tool.color)}>
                       <tool.icon className="w-4 h-4" />
                     </div>
@@ -152,7 +201,7 @@ export default function RideSafetyCenter() {
                 <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/30 border border-border/20">
                   <MapPin className="w-4 h-4 text-primary shrink-0" />
                   <span className="text-xs font-mono text-foreground flex-1 truncate">{shareLink}</span>
-                  <button onClick={() => { navigator.clipboard.writeText(shareLink); toast.success("Link copied!"); }} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <button type="button" onClick={() => { navigator.clipboard.writeText(shareLink); toast.success("Link copied!"); }} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <Copy className="w-3.5 h-3.5 text-primary" />
                   </button>
                 </div>
@@ -163,20 +212,59 @@ export default function RideSafetyCenter() {
 
               {/* Trusted contacts */}
               <div className="rounded-2xl bg-card border border-border/40 p-4 space-y-2">
-                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Auto-notify contacts</h3>
-                {[
-                  { name: "Mom", phone: "+1 555-0101", initials: "M", enabled: true },
-                  { name: "Best Friend", phone: "+1 555-0202", initials: "BF", enabled: true },
-                ].map(c => (
-                  <div key={c.name} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/20">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Emergency contacts</h3>
+                  <button type="button" onClick={() => setShowAddContact(v => !v)}
+                    className="flex items-center gap-1 text-[10px] font-bold text-primary">
+                    <UserPlus className="w-3 h-3" /> Add
+                  </button>
+                </div>
+
+                {showAddContact && (
+                  <div className="space-y-2 pb-2 border-b border-border/20">
+                    <input
+                      type="text"
+                      placeholder="Name"
+                      value={newContactName}
+                      onChange={e => setNewContactName(e.target.value)}
+                      className="w-full h-9 px-3 rounded-xl bg-muted/30 border border-border/40 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      aria-label="Contact name"
+                    />
+                    <input
+                      type="tel"
+                      placeholder="Phone number"
+                      value={newContactPhone}
+                      onChange={e => setNewContactPhone(e.target.value)}
+                      className="w-full h-9 px-3 rounded-xl bg-muted/30 border border-border/40 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      aria-label="Contact phone number"
+                    />
+                    <button type="button" onClick={addContact}
+                      disabled={!newContactName.trim() || !newContactPhone.trim()}
+                      className="w-full h-9 rounded-xl bg-ig-gradient text-white text-xs font-bold disabled:opacity-50">
+                      Save Contact
+                    </button>
+                  </div>
+                )}
+
+                {contacts.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-2">No contacts yet. Add one above.</p>
+                )}
+                {contacts.map(c => (
+                  <div key={c.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/20">
                     <Avatar className="w-8 h-8">
-                      <AvatarFallback className="text-[10px] font-bold bg-violet-500/10 text-violet-500">{c.initials}</AvatarFallback>
+                      <AvatarFallback className="text-[10px] font-bold bg-secondary text-foreground">
+                        {c.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <span className="text-xs font-bold text-foreground">{c.name}</span>
                       <p className="text-[10px] text-muted-foreground">{c.phone}</p>
                     </div>
-                    <Switch defaultChecked={c.enabled} />
+                    <button type="button" onClick={() => removeContact(c.id)}
+                      className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center active:scale-90 transition-transform"
+                      aria-label={`Remove ${c.name}`}>
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -240,7 +328,7 @@ export default function RideSafetyCenter() {
                         const Icon = type.icon;
                         const selected = selectedIncident === type.id;
                         return (
-                          <button key={type.id} onClick={() => setSelectedIncident(type.id)} className={cn("w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left", selected ? "bg-red-500/5 border-red-500/30" : "bg-muted/10 border-border/20 hover:border-border/40")}>
+                          <button type="button" key={type.id} onClick={() => setSelectedIncident(type.id)} className={cn("w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left", selected ? "bg-red-500/5 border-red-500/30" : "bg-muted/10 border-border/20 hover:border-border/40")}>
                             <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", selected ? "bg-red-500/10" : "bg-muted/30")}>
                               <Icon className={cn("w-4 h-4", selected ? "text-red-500" : "text-muted-foreground")} />
                             </div>

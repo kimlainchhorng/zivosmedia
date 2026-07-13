@@ -1,0 +1,1133 @@
+{
+  "generated": "2026-06-08T16:40:08.881Z",
+  "currentGate": {
+    "mode": "soft",
+    "readyForProductionGate": false,
+    "remoteMigrationHistoryStatus": "access_token_missing",
+    "productionBlockers": [
+      "Missing SUPABASE_URL for production backend cron/runtime settings.",
+      "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+      "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+      "API readiness has 19 warning(s).",
+      "Database readiness has 1 blocker(s).",
+      "Database readiness has 1 warning(s).",
+      "Supabase remote migration history is unavailable (access_token_missing).",
+      "Supabase migrations have 6 unresolved duplicate version(s)."
+    ]
+  },
+  "productionBlockers": [
+    "Missing SUPABASE_URL for production backend cron/runtime settings.",
+    "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+    "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+    "API readiness has 19 warning(s).",
+    "Database readiness has 1 blocker(s).",
+    "Database readiness has 1 warning(s).",
+    "Supabase remote migration history is unavailable (access_token_missing).",
+    "Supabase migrations have 6 unresolved duplicate version(s)."
+  ],
+  "totals": {
+    "frontendFiles": 2465,
+    "backendFiles": 767,
+    "databaseFiles": 1110,
+    "testFiles": 153,
+    "docsFiles": 105
+  },
+  "priority": [],
+  "workflows": [
+    {
+      "id": "sso-auth-sessions",
+      "label": "SSO, Auth, Sessions, Devices",
+      "frontend": {
+        "count": 1047,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 546,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
+        ]
+      },
+      "database": {
+        "count": 823,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql"
+        ]
+      },
+      "tests": {
+        "count": 105,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/accountWalletFunctionAnonGrants.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSecurityDefinerRpcGrants.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 86,
+        "samples": [
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/API_CONTRACT.md",
+          "docs/ARCHITECTURE.md",
+          "docs/AUTH_AND_IDENTITY_FLOW.md",
+          "docs/AUTH_FLOW.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:sso-auth-contracts` green for OAuth, passwordless OTP, MFA, trusted devices, active sessions, and role-aware route gates.",
+      "implementationCount": 2416,
+      "testCoverageRatio": 0.0435,
+      "status": "covered"
+    },
+    {
+      "id": "customer-booking-order",
+      "label": "Customer Booking, Order, Trip",
+      "frontend": {
+        "count": 2162,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 428,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/admin-create-user-post/index.ts",
+          "supabase/functions/admin-moderate-message/index.ts",
+          "supabase/functions/admin-update-profile/index.ts",
+          "supabase/functions/ads-studio-export/index.ts",
+          "supabase/functions/ads-studio-track-conversion/index.ts"
+        ]
+      },
+      "database": {
+        "count": 564,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql"
+        ]
+      },
+      "tests": {
+        "count": 84,
+        "samples": [
+          "src/test/accountExportManifest.test.ts",
+          "src/test/accountWalletFunctionAnonGrants.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts",
+          "src/test/autoRepairLaborGuideVehicle.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 90,
+        "samples": [
+          "docs/ADMIN_DASHBOARD_PLAN.md",
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/API_WEBHOOK_CONTRACT.md",
+          "docs/ARCHITECTURE.md",
+          "docs/BUSINESS_PAYOUT_FLOW.md",
+          "docs/BUSINESS_SOFTWARE_BILLING_FLOW.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:customer-booking-contracts` green for grocery checkout, order scoping, lodging add-ons, and shopping-order RLS.",
+      "implementationCount": 3154,
+      "testCoverageRatio": 0.0266,
+      "status": "covered"
+    },
+    {
+      "id": "shop-owner-admin",
+      "label": "Shop Owner Setup and Operations",
+      "frontend": {
+        "count": 1335,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AddressesPage.tsx",
+          "src/pages/account/FavoritesPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 516,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts",
+          "supabase/functions/admin-create-user-post/index.ts"
+        ]
+      },
+      "database": {
+        "count": 715,
+        "samples": [
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql",
+          "supabase/migrations/20260129222403_8821654d-63c2-4fb4-b5bf-216b04f4a603.sql",
+          "supabase/migrations/20260131202033_2a6cde74-5ca5-4f55-9675-9580420c3829.sql",
+          "supabase/migrations/20260131204001_8fc6e8e9-7bc7-46de-bd85-4266f95306aa.sql",
+          "supabase/migrations/20260201013822_2bc1f474-0e88-44be-a68d-befe581a0753.sql"
+        ]
+      },
+      "tests": {
+        "count": 106,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountWalletFunctionAnonGrants.test.ts",
+          "src/test/adminSecurityDefinerRpcGrants.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 97,
+        "samples": [
+          "docs/ADMIN_DASHBOARD_PLAN.md",
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ADMIN_UI_AUDIT.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/API_CONTRACT.md",
+          "docs/API_WEBHOOK_CONTRACT.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:shop-owner-contracts` green for owner setup, dashboard routes, scoped store operations, and RLS/grants.",
+      "implementationCount": 2566,
+      "testCoverageRatio": 0.0413,
+      "status": "covered"
+    },
+    {
+      "id": "client-staff-workflows",
+      "label": "Client, Staff, Employee Workflows",
+      "frontend": {
+        "count": 1329,
+        "samples": [
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 510,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
+        ]
+      },
+      "database": {
+        "count": 267,
+        "samples": [
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql",
+          "supabase/migrations/20260131202033_2a6cde74-5ca5-4f55-9675-9580420c3829.sql",
+          "supabase/migrations/20260201143419_282f5007-80e4-4b53-881f-6268400c8d51.sql",
+          "supabase/migrations/20260202220847_bedb61f0-7016-4d3e-927c-061886814f3d.sql",
+          "supabase/migrations/20260202221827_244880bc-6bd0-4820-a0b7-d58f49e96c92.sql",
+          "supabase/migrations/20260202223817_e5ee102f-2b49-44be-bdf7-ae4a2eb44ae8.sql",
+          "supabase/migrations/20260202231736_6b8dc9d3-3a5f-4793-877b-8cbee0fb9382.sql"
+        ]
+      },
+      "tests": {
+        "count": 54,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/autoRepairInternalFunctionGrants.test.ts",
+          "src/test/botInviteCreationFunctionAnonGrants.test.ts",
+          "src/test/channelSocialFunctionAnonGrants.test.ts",
+          "src/test/cloudflarePagesEdgeGuard.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 62,
+        "samples": [
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/ARCHITECTURE.md",
+          "docs/AUTH_AND_IDENTITY_FLOW.md",
+          "docs/AUTH_FLOW.md",
+          "docs/BUSINESS_SOFTWARE_FLOW.md",
+          "docs/CROSS_APP_NAVIGATION_AUDIT.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:client-staff-contracts` green for invite acceptance, owner-only staff invites, schedule reads, payroll/rules, training, and client scoping.",
+      "implementationCount": 2106,
+      "testCoverageRatio": 0.0256,
+      "status": "covered"
+    },
+    {
+      "id": "payments-refunds",
+      "label": "Payments, Refunds, Webhooks",
+      "frontend": {
+        "count": 1594,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 626,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
+        ]
+      },
+      "database": {
+        "count": 1110,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql"
+        ]
+      },
+      "tests": {
+        "count": 117,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/accountWalletFunctionAnonGrants.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSecurityDefinerRpcGrants.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 99,
+        "samples": [
+          "docs/ADMIN_DASHBOARD_PLAN.md",
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ADMIN_UI_AUDIT.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/API_CONTRACT.md",
+          "docs/API_WEBHOOK_CONTRACT.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:payments-refunds-contracts` green for provider webhooks, idempotent refunds, subscription portals, refund-state UI, and audit ledgers.",
+      "implementationCount": 3330,
+      "testCoverageRatio": 0.0351,
+      "status": "covered"
+    },
+    {
+      "id": "payouts-earnings",
+      "label": "Payouts, Earnings, Balances",
+      "frontend": {
+        "count": 653,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/GiftCardsPage.tsx",
+          "src/pages/account/GiftCardSuccessPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx",
+          "src/pages/account/LoyaltyPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 206,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/admin-driver-payouts/index.ts",
+          "supabase/functions/admin-moderate-message/index.ts",
+          "supabase/functions/admin-payout-hold/index.ts",
+          "supabase/functions/admin-payout-release/index.ts",
+          "supabase/functions/admin-post-comment/index.ts"
+        ]
+      },
+      "database": {
+        "count": 197,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql",
+          "supabase/migrations/20260131202033_2a6cde74-5ca5-4f55-9675-9580420c3829.sql",
+          "supabase/migrations/20260131204001_8fc6e8e9-7bc7-46de-bd85-4266f95306aa.sql",
+          "supabase/migrations/20260201143419_282f5007-80e4-4b53-881f-6268400c8d51.sql",
+          "supabase/migrations/20260201143843_74a114aa-2010-4487-91e4-5b4f3e2e5f04.sql",
+          "supabase/migrations/20260202035408_41812af0-2f9d-4a2d-9e9c-65de3934ea7c.sql"
+        ]
+      },
+      "tests": {
+        "count": 53,
+        "samples": [
+          "src/test/accountExportManifest.test.ts",
+          "src/test/accountWalletFunctionAnonGrants.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts",
+          "src/test/cloudflarePagesEdgeGuard.test.ts",
+          "src/test/createPostComposerVisualContracts.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 72,
+        "samples": [
+          "docs/ADMIN_DASHBOARD_PLAN.md",
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ADMIN_UI_AUDIT.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/BUSINESS_PAYOUT_FLOW.md",
+          "docs/BUSINESS_SOFTWARE_FLOW.md",
+          "docs/CROSS_APP_NAVIGATION_AUDIT.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:payouts-earnings-contracts` green for payout auth, server-gated payout methods, idempotent retries, and auditable ledgers.",
+      "implementationCount": 1056,
+      "testCoverageRatio": 0.0502,
+      "status": "covered"
+    },
+    {
+      "id": "email-marketing-consent",
+      "label": "Email Marketing, Consent, Suppression",
+      "frontend": {
+        "count": 595,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/BusinessInvoicesPage.tsx",
+          "src/pages/account/GiftCardsPage.tsx",
+          "src/pages/account/GiftCardSuccessPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 249,
+        "samples": [
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-create-user/index.ts",
+          "supabase/functions/admin-list-created-users/index.ts",
+          "supabase/functions/ads-studio-export/index.ts",
+          "supabase/functions/ads-studio-generate/index.ts"
+        ]
+      },
+      "database": {
+        "count": 230,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql",
+          "supabase/migrations/20260126210105_93ebc1b8-2f34-4353-8ebe-0cd1ec2b2902.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260201015944_d2dcded2-8f84-47d7-b226-bb29a6944d8f.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260201045033_b7016c20-b1d2-43dc-ad6f-1b0c0d3746b2.sql"
+        ]
+      },
+      "tests": {
+        "count": 68,
+        "samples": [
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/authSessionSecurity.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts",
+          "src/test/botAccountFunctionAnonGrants.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 35,
+        "samples": [
+          "docs/API_CONTRACT.md",
+          "docs/AUTH_FLOW.md",
+          "docs/BUSINESS_SOFTWARE_BILLING_FLOW.md",
+          "docs/BUSINESS_SOFTWARE_FLOW.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/DESIGN_SYSTEM_RECOMMENDATIONS.md",
+          "docs/DESKTOP_UI_AUDIT.md",
+          "docs/DRIVER_WEBSITE_AUDIT.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:email-marketing-contracts` green for transactional-vs-marketing separation, suppression, consent, and campaign event logging.",
+      "implementationCount": 1074,
+      "testCoverageRatio": 0.0633,
+      "status": "covered"
+    },
+    {
+      "id": "ads-monetization-tracking",
+      "label": "Ads, Monetization, Conversion Tracking",
+      "frontend": {
+        "count": 2323,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 705,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
+        ]
+      },
+      "database": {
+        "count": 976,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql",
+          "supabase/migrations/20260126204406_4b930ffe-7701-4cca-8669-5b8015c31411.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql"
+        ]
+      },
+      "tests": {
+        "count": 149,
+        "samples": [
+          "src/test/accountDeletionDataRightsLinks.test.ts",
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/accountWalletFunctionAnonGrants.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSecurityDefinerRpcGrants.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 103,
+        "samples": [
+          "docs/ADMIN_DASHBOARD_PLAN.md",
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ADMIN_UI_AUDIT.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/API_CONTRACT.md",
+          "docs/API_WEBHOOK_CONTRACT.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:ads-monetization-contracts` green for attribution, conversion uploads, Ads Studio ROAS, creator monetization, and provider roadmap coverage.",
+      "implementationCount": 4004,
+      "testCoverageRatio": 0.0372,
+      "status": "covered"
+    },
+    {
+      "id": "push-notifications",
+      "label": "Push Notifications and Notification Center",
+      "frontend": {
+        "count": 514,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx",
+          "src/pages/account/LinkedDevicesPage.tsx",
+          "src/pages/account/NotificationSettings.tsx"
+        ]
+      },
+      "backend": {
+        "count": 202,
+        "samples": [
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-create-user-post/index.ts",
+          "supabase/functions/admin-list-created-users/index.ts",
+          "supabase/functions/ads-studio-auto-winner/index.ts",
+          "supabase/functions/ads-studio-budget-guard/index.ts",
+          "supabase/functions/ads-studio-generate/index.ts",
+          "supabase/functions/ads-studio-publish/index.ts"
+        ]
+      },
+      "database": {
+        "count": 106,
+        "samples": [
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260129225210_7429b719-03e7-49dc-98a2-a101f956b59d.sql",
+          "supabase/migrations/20260129225228_f8acf683-0020-463d-baac-e9c8dda02913.sql",
+          "supabase/migrations/20260201011854_0dd90e3e-d414-443c-ab60-74ab8b147261.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260202192002_5a1b188b-1b4c-40d3-9293-a5fbb9590879.sql",
+          "supabase/migrations/20260203024509_48237148-549e-4acd-83ff-c267f196c088.sql",
+          "supabase/migrations/20260203145120_c5fecd17-cad2-40b3-ac3c-22600caed6e2.sql"
+        ]
+      },
+      "tests": {
+        "count": 31,
+        "samples": [
+          "src/test/deployWorkflowGates.test.ts",
+          "src/test/errorBoundaryObservability.test.tsx",
+          "src/test/feedMobileVisualContracts.test.ts",
+          "src/test/marketingConsentSuppression.test.ts",
+          "src/test/nativePermissionsDeepLinks.test.ts",
+          "src/test/otaDeployBypass.test.ts",
+          "src/test/paymentWebhookIdempotency.test.ts",
+          "src/test/payoutAuthorization.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 35,
+        "samples": [
+          "docs/api-readiness-report.md",
+          "docs/database-upgrade-readiness-report.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/DOMAINS_AND_REPOS.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/INFRA_FIX_RUNBOOKS.md",
+          "docs/LIVE_WEBSITE_FIX_ROADMAP.md",
+          "docs/platform-readiness-matrix.json"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:push-notification-contracts` green for token registration, opt-outs, digest dispatch, and service worker routing.",
+      "implementationCount": 822,
+      "testCoverageRatio": 0.0377,
+      "status": "covered"
+    },
+    {
+      "id": "storage-media-cdn",
+      "label": "Storage, Media, CDN, Downloads",
+      "frontend": {
+        "count": 973,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 250,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/admin-create-user-post/index.ts",
+          "supabase/functions/admin-delete-user-post/index.ts",
+          "supabase/functions/admin-list-created-users/index.ts",
+          "supabase/functions/admin-update-profile/index.ts",
+          "supabase/functions/ads-studio-export/index.ts"
+        ]
+      },
+      "database": {
+        "count": 217,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126222347_17c79ffb-aefb-49fe-9f4c-311d704354ee.sql",
+          "supabase/migrations/20260129225210_7429b719-03e7-49dc-98a2-a101f956b59d.sql",
+          "supabase/migrations/20260129225228_f8acf683-0020-463d-baac-e9c8dda02913.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260201162950_5af8902a-3602-41e8-851a-3e26875239af.sql",
+          "supabase/migrations/20260202033232_5ff94892-d738-4994-ad98-4b857a97b277.sql"
+        ]
+      },
+      "tests": {
+        "count": 78,
+        "samples": [
+          "src/test/accountDeletionDataRightsLinks.test.ts",
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 88,
+        "samples": [
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/API_CONTRACT.md",
+          "docs/API_WEBHOOK_CONTRACT.md",
+          "docs/ARCHITECTURE.md",
+          "docs/AUTH_AND_IDENTITY_FLOW.md",
+          "docs/AUTH_FLOW.md",
+          "docs/BUSINESS_PAYOUT_FLOW.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:storage-media-contracts`, `npm run qa:database-storage-contracts`, and `npm run platform:test:storage-media` green for upload validation, public, protected, owner, and client/staff media paths plus Data API/RLS gates.",
+      "implementationCount": 1440,
+      "testCoverageRatio": 0.0542,
+      "status": "covered"
+    },
+    {
+      "id": "policy-legal-trust",
+      "label": "Law, Policy, Compliance, Trust",
+      "frontend": {
+        "count": 512,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx",
+          "src/pages/account/AddressesPage.tsx",
+          "src/pages/account/LegalPoliciesPage.tsx",
+          "src/pages/account/NotificationSettings.tsx"
+        ]
+      },
+      "backend": {
+        "count": 125,
+        "samples": [
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/admin-refund-approve/index.ts",
+          "supabase/functions/admin-refund-request/index.ts",
+          "supabase/functions/admin-refunds/index.ts",
+          "supabase/functions/affiliate-click-log/index.ts",
+          "supabase/functions/ai-support-chat/index.ts",
+          "supabase/functions/aviasales-search/index.ts"
+        ]
+      },
+      "database": {
+        "count": 696,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql",
+          "supabase/migrations/20260126184928_0755b267-5e93-4458-b091-dce75d554b08.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126222347_17c79ffb-aefb-49fe-9f4c-311d704354ee.sql",
+          "supabase/migrations/20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql"
+        ]
+      },
+      "tests": {
+        "count": 66,
+        "samples": [
+          "src/test/accountDeletionDataRightsLinks.test.ts",
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/adsMarketingPrivacyDisclosure.test.ts",
+          "src/test/ageEligibilitySafetyDisclosure.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/automatedLegalPolicyHub.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 59,
+        "samples": [
+          "docs/ADMIN_DASHBOARD_PLAN.md",
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/BUSINESS_PAYOUT_FLOW.md",
+          "docs/BUSINESS_SOFTWARE_BILLING_FLOW.md",
+          "docs/CROSS_APP_NAVIGATION_AUDIT.md",
+          "docs/CROSS_APP_NAVIGATION_FIXES.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:legal-policy-contracts` green across legal pages, consent logs, export/delete, grants, and policy-backed booking flows.",
+      "implementationCount": 1333,
+      "testCoverageRatio": 0.0495,
+      "status": "covered"
+    },
+    {
+      "id": "api-speed-ops",
+      "label": "API, Server Speed, Observability",
+      "frontend": {
+        "count": 2250,
+        "samples": [
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 721,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
+        ]
+      },
+      "database": {
+        "count": 594,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql"
+        ]
+      },
+      "tests": {
+        "count": 113,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/accountWalletFunctionAnonGrants.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSecurityDefinerRpcGrants.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/adsMarketingConsentRuntime.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 77,
+        "samples": [
+          "docs/ADMIN_DASHBOARD_PLAN.md",
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ADMIN_UI_AUDIT.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/API_CONTRACT.md",
+          "docs/API_WEBHOOK_CONTRACT.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:api-operations-contracts` green for 5xx, slow query, webhook failure, auth/payment spike, cron, runtime settings, and preflight observability.",
+      "implementationCount": 3565,
+      "testCoverageRatio": 0.0317,
+      "status": "covered"
+    },
+    {
+      "id": "security-anti-hack",
+      "label": "Security, Anti-Abuse, Hacker Protection",
+      "frontend": {
+        "count": 793,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx",
+          "src/pages/account/AddressesPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 532,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
+        ]
+      },
+      "database": {
+        "count": 724,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql",
+          "supabase/migrations/20260126191000_58715aeb-e9bb-454c-bb6a-e617cbbce913.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126204105_c67b7de4-2860-447e-9fbd-92891b2247a5.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260127224426_9322795d-86a8-4ca0-86af-654caacb5286.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql"
+        ]
+      },
+      "tests": {
+        "count": 94,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/accountExportManifest.test.ts",
+          "src/test/adminModerationRoleAccess.test.ts",
+          "src/test/adminSecurityDefinerRpcGrants.test.ts",
+          "src/test/adminSupportAccountRoleAccess.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 61,
+        "samples": [
+          "docs/ADMIN_UI_AUDIT.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/API_CONTRACT.md",
+          "docs/API_WEBHOOK_CONTRACT.md",
+          "docs/AUTH_AND_IDENTITY_FLOW.md",
+          "docs/CROSS_DOMAIN_NAVIGATION_STATUS.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:security-anti-abuse-contracts` green for account takeover, card testing, spam, scraping, fake booking, key leakage, WAF, rate limits, and network-risk controls.",
+      "implementationCount": 2049,
+      "testCoverageRatio": 0.0459,
+      "status": "covered"
+    },
+    {
+      "id": "graphics-design-speed",
+      "label": "Graphics, Design, Frontend Speed",
+      "frontend": {
+        "count": 1738,
+        "samples": [
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountSubscriptionsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 561,
+        "samples": [
+          "supabase/functions/aba-payway-checkout/index.ts",
+          "supabase/functions/account-delete-self/index.ts",
+          "supabase/functions/account-export/index.ts",
+          "supabase/functions/account-security-settings/index.ts",
+          "supabase/functions/account-summary/index.ts",
+          "supabase/functions/admin-broadcast-notification/index.ts",
+          "supabase/functions/admin-content-report-status/index.ts",
+          "supabase/functions/admin-create-user/index.ts"
+        ]
+      },
+      "database": {
+        "count": 185,
+        "samples": [
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126204406_4b930ffe-7701-4cca-8669-5b8015c31411.sql",
+          "supabase/migrations/20260127224927_9e2a2506-a399-42ca-89b3-e8cf7b5a3733.sql",
+          "supabase/migrations/20260201015944_d2dcded2-8f84-47d7-b226-bb29a6944d8f.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260202051526_be8b4e54-ffc7-4534-aaa6-abec65adfef1.sql",
+          "supabase/migrations/20260202174006_90659f78-5306-4f6a-bd58-1d418ec8608f.sql",
+          "supabase/migrations/20260202182912_634f3df2-e9b3-4ba9-8f66-987d421ff0c4.sql"
+        ]
+      },
+      "tests": {
+        "count": 59,
+        "samples": [
+          "src/test/accountDeletionLifecycle.test.ts",
+          "src/test/aiAutomatedDecisionDisclosure.test.ts",
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/apiOperationsReportSurfaces.test.ts",
+          "src/test/botDetection.test.ts",
+          "src/test/channelSocialFunctionAnonGrants.test.ts",
+          "src/test/cloudflarePagesEdgeGuard.test.ts",
+          "src/test/createPostComposerVisualContracts.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 52,
+        "samples": [
+          "docs/ADMIN_PAYMENT_DASHBOARD.md",
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/api-operations-runbook.md",
+          "docs/api-readiness-report.md",
+          "docs/API_CONTRACT.md",
+          "docs/AUTH_AND_IDENTITY_FLOW.md",
+          "docs/CROSS_APP_NAVIGATION_AUDIT.md",
+          "docs/CROSS_APP_NAVIGATION_FIXES.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:frontend-visual-contracts` green for visual route coverage, mobile safe areas, lazy media, loading/error states, and no clipped controls.",
+      "implementationCount": 2484,
+      "testCoverageRatio": 0.0238,
+      "status": "covered"
+    },
+    {
+      "id": "native-mobile-release",
+      "label": "Native iOS, Android, OTA, Store Release",
+      "frontend": {
+        "count": 1183,
+        "samples": [
+          "src/pages/About.tsx",
+          "src/pages/account/AccountAnalyticsPage.tsx",
+          "src/pages/account/AccountExportPage.tsx",
+          "src/pages/account/AccountSecurity.tsx",
+          "src/pages/account/AccountSessionsPage.tsx",
+          "src/pages/account/AccountSettingsPage.tsx",
+          "src/pages/account/AccountTipsPage.tsx",
+          "src/pages/account/ActivityLogPage.tsx"
+        ]
+      },
+      "backend": {
+        "count": 198,
+        "samples": [
+          "supabase/functions/ads-studio-generate/index.ts",
+          "supabase/functions/ads-studio-track-conversion/index.ts",
+          "supabase/functions/ai-smart-deals/index.ts",
+          "supabase/functions/approve-lodging-change/index.ts",
+          "supabase/functions/ar-estimate-send/index.ts",
+          "supabase/functions/ar-receipts-helper/index.ts",
+          "supabase/functions/aviasales-search/index.ts",
+          "supabase/functions/bakong-verify/index.ts"
+        ]
+      },
+      "database": {
+        "count": 162,
+        "samples": [
+          "supabase/migrations/20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql",
+          "supabase/migrations/20260126194309_e195e9d5-5e21-4d2c-b212-f7264928e546.sql",
+          "supabase/migrations/20260126210051_db732eec-5136-48f3-9aed-f84e414f4307.sql",
+          "supabase/migrations/20260126210105_93ebc1b8-2f34-4353-8ebe-0cd1ec2b2902.sql",
+          "supabase/migrations/20260201011854_0dd90e3e-d414-443c-ab60-74ab8b147261.sql",
+          "supabase/migrations/20260201015944_d2dcded2-8f84-47d7-b226-bb29a6944d8f.sql",
+          "supabase/migrations/20260201040315_45c14265-db1d-49f1-94b5-0b6ab7a1e92c.sql",
+          "supabase/migrations/20260201143843_74a114aa-2010-4487-91e4-5b4f3e2e5f04.sql"
+        ]
+      },
+      "tests": {
+        "count": 44,
+        "samples": [
+          "src/test/apiObservabilityContracts.test.ts",
+          "src/test/botAccountFunctionAnonGrants.test.ts",
+          "src/test/createPostComposerVisualContracts.test.ts",
+          "src/test/critical-flows.test.tsx",
+          "src/test/deployWorkflowGates.test.ts",
+          "src/test/feedMobileVisualContracts.test.ts",
+          "src/test/feedResponsiveShellContracts.test.ts",
+          "src/test/mobileBottomNavVisualContracts.test.ts"
+        ]
+      },
+      "docs": {
+        "count": 41,
+        "samples": [
+          "docs/ALL_ZIVO_LIVE_WEBSITE_AUDIT.md",
+          "docs/AUTH_AND_IDENTITY_FLOW.md",
+          "docs/BUSINESS_SOFTWARE_BILLING_FLOW.md",
+          "docs/CROSS_APP_NAVIGATION_FIXES.md",
+          "docs/dev/capacitor-safe-area.md",
+          "docs/end-to-end-platform-readiness.md",
+          "docs/LIVE_WEBSITE_P0_ISSUES.md",
+          "docs/LIVE_WEBSITE_UI_AUDIT.md"
+        ]
+      },
+      "nextAction": "Keep `npm run qa:native-app-contracts` green for Capacitor config, iOS/Android metadata, OTA safety, store listing alignment, and native release checks.",
+      "implementationCount": 1543,
+      "testCoverageRatio": 0.0285,
+      "status": "covered"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+﻿import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, MapPin, Navigation, Loader2, Car, Receipt, ChevronRight, DollarSign, CreditCard, Lock, Shield, CheckCircle, Zap, Plus, Users, Clock, Sparkles, Leaf, Crown, Volume2, VolumeX, Thermometer, Music, Tag, Gift, Heart, Star, Share2, UserPlus, Phone, AlertTriangle, Copy, ExternalLink, MessageSquare, History, RotateCcw, Headphones, Baby, Briefcase, Home, Building2, Bookmark, Route, Info, X, Bell, ThumbsUp, ThumbsDown, Award, Plane, BarChart3, TrendingUp } from "lucide-react";
@@ -6,16 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePhoneVerificationGate } from "@/hooks/usePhoneVerificationGate";
-import { PhoneVerificationDialog } from "@/components/account/PhoneVerificationDialog";
 import { useCurrentLocation } from "@/hooks/useCurrentLocation";
-import { useGoogleMapsGeocode, Suggestion } from "@/hooks/useGoogleMapsGeocode";
+import { useGoogleMapsGeocode } from "@/hooks/useGoogleMapsGeocode";
+import type { Suggestion } from "@/hooks/useGoogleMapsGeocode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRideNotifications } from "@/hooks/useRideNotifications";
+import { useSavedLocations } from "@/hooks/useSavedLocations";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
+import { getPublicOrigin } from "@/lib/getPublicOrigin";
+import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import RideMap from "@/components/maps/RideMap";
 
 const stripePromise = getStripe();
@@ -110,13 +115,6 @@ const safetyFeatures = [
   { id: "audio-record", icon: Headphones, label: "Audio Recording", description: "Record ride audio for safety" },
 ];
 
-const recentRides = [
-  { id: "r1", from: "123 Main St", to: "Airport Terminal B", time: "Yesterday", price: "$28.50", vehicle: "Black" },
-  { id: "r2", from: "Home", to: "Downtown Office", time: "2 days ago", price: "$14.20", vehicle: "Standard" },
-  { id: "r3", from: "Whole Foods", to: "Home", time: "Last week", price: "$9.80", vehicle: "Green" },
-  { id: "r4", from: "Hotel Grand", to: "Convention Center", time: "Last week", price: "$11.50", vehicle: "Comfort" },
-  { id: "r5", from: "Home", to: "Airport Terminal A", time: "2 weeks ago", price: "$32.00", vehicle: "Black SUV" },
-];
 
 // Carbon offset data
 const carbonOffsetInfo = {
@@ -240,7 +238,7 @@ function FareSplitSection({ totalCents, formatUSD }: { totalCents: number; forma
 
   if (!showSplit) {
     return (
-      <button onClick={() => setShowSplit(true)}
+      <button type="button" onClick={() => setShowSplit(true)}
         className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-border/40 bg-card hover:border-primary/20 transition-all touch-manipulation active:scale-[0.98]">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <UserPlus className="w-5 h-5 text-primary" />
@@ -258,17 +256,17 @@ function FareSplitSection({ totalCents, formatUSD }: { totalCents: number; forma
     <div className="rounded-2xl bg-card border border-border/40 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold flex items-center gap-2"><UserPlus className="w-4 h-4 text-primary" /> Split Fare</h3>
-        <button onClick={() => { setShowSplit(false); setSplitCount(1); }} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+        <button type="button" onClick={() => { setShowSplit(false); setSplitCount(1); }} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
       </div>
       <div className="flex items-center justify-center gap-4">
-        <button onClick={() => setSplitCount(Math.max(1, splitCount - 1))}
+        <button type="button" onClick={() => setSplitCount(Math.max(1, splitCount - 1))}
           className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-foreground font-bold text-lg touch-manipulation active:scale-90">−</button>
         <div className="text-center">
           <p className="text-3xl font-bold text-foreground">{splitCount}</p>
           <p className="text-[10px] text-muted-foreground">{splitCount === 1 ? "person" : "people"}</p>
         </div>
-        <button onClick={() => setSplitCount(Math.min(6, splitCount + 1))}
-          className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg touch-manipulation active:scale-90">+</button>
+        <button type="button" onClick={() => setSplitCount(Math.min(6, splitCount + 1))}
+          className="w-10 h-10 rounded-full bg-ig-gradient text-white flex items-center justify-center font-bold text-lg touch-manipulation active:scale-90">+</button>
       </div>
       {splitCount > 1 && (
         <div className="text-center p-3 rounded-xl bg-primary/5 border border-primary/20">
@@ -342,12 +340,12 @@ function RideEstimateCard({ pickup, dropoff }: { pickup: string; dropoff: string
 }
 
 // Recent rides section
-function RecentRidesSection({ onSelect }: { onSelect: (from: string, to: string) => void }) {
+function RecentRidesSection({ onSelect, rides }: { onSelect: (from: string, to: string) => void; rides: Array<{ id: string; from: string; to: string; date: string; price: string }> }) {
   const [showRecent, setShowRecent] = useState(false);
 
   return (
     <div className="space-y-2">
-      <button onClick={() => setShowRecent(!showRecent)}
+      <button type="button" onClick={() => setShowRecent(!showRecent)}
         className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
         <History className="w-3.5 h-3.5" /> Recent Rides
         <ChevronRight className={cn("w-3 h-3 transition-transform", showRecent && "rotate-90")} />
@@ -356,14 +354,19 @@ function RecentRidesSection({ onSelect }: { onSelect: (from: string, to: string)
         {showRecent && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
             className="space-y-1.5 overflow-hidden">
-            {recentRides.map((ride, i) => (
+            {rides.length === 0 && (
+              <div className="rounded-xl bg-muted/30 border border-border/30 p-3 text-center">
+                <p className="text-[11px] text-muted-foreground">No recent rides yet.</p>
+              </div>
+            )}
+            {rides.map((ride, i) => (
               <motion.button key={ride.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                 onClick={() => onSelect(ride.from, ride.to)}
                 className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/30 hover:border-primary/20 transition-all touch-manipulation active:scale-[0.98] text-left">
                 <RotateCcw className="w-4 h-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-foreground truncate">{ride.from} → {ride.to}</p>
-                  <p className="text-[10px] text-muted-foreground">{ride.time} · {ride.vehicle}</p>
+                  <p className="text-[10px] text-muted-foreground">{ride.date}</p>
                 </div>
                 <span className="text-xs font-bold text-foreground shrink-0">{ride.price}</span>
               </motion.button>
@@ -385,7 +388,7 @@ function MultiStopManager({ stops, onAddStop, onRemoveStop }: { stops: string[];
           className="flex items-center gap-3 pl-6">
           <div className="w-2.5 h-2.5 rounded-full border-2 border-amber-500 bg-amber-500/20 shrink-0" />
           <span className="text-xs text-foreground flex-1 truncate">Stop {i + 1}: {stop || "Enter stop"}</span>
-          <button onClick={() => onRemoveStop(i)} className="text-destructive hover:text-destructive/80 touch-manipulation active:scale-90">
+          <button type="button" onClick={() => onRemoveStop(i)} className="text-destructive hover:text-destructive/80 touch-manipulation active:scale-90">
             <X className="w-3.5 h-3.5" />
           </button>
         </motion.div>
@@ -397,10 +400,9 @@ function MultiStopManager({ stops, onAddStop, onRemoveStop }: { stops: string[];
 export default function RequestRidePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isChecking: phoneChecking, isVerified: phoneVerified } = usePhoneVerificationGate();
-  const [showPhoneVerify, setShowPhoneVerify] = useState(false);
-  const pendingActionRef = useRef<(() => void) | null>(null);
+  const { notify: notifyRide } = useRideNotifications();
   const { getCurrentLocation, reverseGeocode, isGettingLocation } = useCurrentLocation();
+  const { data: userSavedLocations } = useSavedLocations(user?.id);
 
   const [pickupAddress, setPickupAddress] = useState("");
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -416,6 +418,28 @@ export default function RequestRidePage() {
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [promoCode, setPromoCode] = useState("");
   const [promoApplied, setPromoApplied] = useState(false);
+
+  // Pre-fill promo code if forwarded from Stores list (?promo=… or sessionStorage)
+  useEffect(() => {
+    if (promoCode) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      let code = params.get("promo")?.trim().toUpperCase() || "";
+      if (!code) {
+        const raw = sessionStorage.getItem("zivo:pending-promo");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.code && Date.now() - (parsed.ts || 0) < 15 * 60 * 1000) {
+            code = String(parsed.code).toUpperCase();
+          }
+        }
+      }
+      if (code) setPromoCode(code);
+    } catch {
+      /* noop */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [selectedTip, setSelectedTip] = useState("none");
   const [customTip, setCustomTip] = useState("");
   const [rideNote, setRideNote] = useState("");
@@ -425,7 +449,33 @@ export default function RequestRidePage() {
   const [carbonOffset, setCarbonOffset] = useState(false);
   const [showRidePass, setShowRidePass] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "cash" | "wallet">("card");
-  const [surgeActive] = useState(Math.random() > 0.6);
+
+  // Live surge detection from surge_zones table
+  const { data: surgeZones = [] } = useQuery({
+    queryKey: ["surge-zones-active"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("surge_zones")
+        .select("base_multiplier, manual_multiplier")
+        .eq("is_active", true)
+        .eq("surge_enabled", true);
+      return data || [];
+    },
+    refetchInterval: 60000,
+  });
+  const surgeActive = surgeZones.some((z: any) => (z.manual_multiplier ?? z.base_multiplier ?? 1) > 1.0);
+
+  // Prepare saved places from user's saved locations
+  const savedPlacesList = userSavedLocations?.map((loc: any) => ({
+    id: loc.id,
+    label: loc.label,
+    address: loc.address,
+    icon: loc.icon_type === "home" ? Home : loc.icon_type === "work" ? Building2 : MapPin,
+  })) || [
+    { id: "home", label: "Home", icon: Home, address: "" },
+    { id: "work", label: "Work", icon: Building2, address: "" },
+  ];
+
   const [favoriteDrivers] = useState(["Marcus T.", "Sarah L.", "David K."]);
   const [requestFavoriteDriver, setRequestFavoriteDriver] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState("fastest");
@@ -441,7 +491,7 @@ export default function RequestRidePage() {
   const [musicPreference, setMusicPreference] = useState<"none" | "chill" | "pop" | "jazz" | "classical">("none");
   const [splitFare, setSplitFare] = useState(false);
   const [splitWith, setSplitWith] = useState(1);
-  const [weatherAlert] = useState(Math.random() > 0.7);
+  const [weatherAlert] = useState(false);
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [safetyRecording, setSafetyRecording] = useState(false);
   const [waitTimeGuarantee, setWaitTimeGuarantee] = useState(false);
@@ -456,7 +506,28 @@ export default function RequestRidePage() {
   const [chatInput, setChatInput] = useState("");
   const [fareLocked, setFareLocked] = useState(false);
   const [showRoutePreview, setShowRoutePreview] = useState(false);
-  const [rideStats] = useState({ totalRides: 142, totalMiles: 1847, avgRating: 4.9, savedCO2: "34 lbs" });
+
+  // Real ride stats from trips table
+  const { data: userTrips = [] } = useQuery({
+    queryKey: ["user-trips-stats", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("trips")
+        .select("rating, distance_km")
+        .eq("rider_id", user!.id)
+        .eq("status", "completed");
+      return data || [];
+    },
+  });
+  const rideStats = useMemo(() => {
+    const totalRides = userTrips.length;
+    const totalMiles = Math.round(userTrips.reduce((s: number, t: any) => s + ((t.distance_km ?? 0) * 0.621371), 0));
+    const rated = userTrips.filter((t: any) => t.rating != null);
+    const avgRating = rated.length ? (rated.reduce((s: number, t: any) => s + t.rating, 0) / rated.length).toFixed(1) : "—";
+    const savedCO2 = `${Math.round(userTrips.reduce((s: number, t: any) => s + ((t.distance_km ?? 0) * 0.248), 0))} lbs`;
+    return { totalRides, totalMiles, avgRating, savedCO2 };
+  }, [userTrips]);
   const [tempPreference, setTempPreference] = useState<"cool" | "warm" | "no-pref">("no-pref");
   const [showRideStats, setShowRideStats] = useState(false);
   const [returnTrip, setReturnTrip] = useState(false);
@@ -472,11 +543,29 @@ export default function RequestRidePage() {
   const [etaRecipient, setEtaRecipient] = useState("");
   const [rideNotes, setRideNotes] = useState("");
   const [showRideHistory, setShowRideHistory] = useState(false);
-  const [recentRides] = useState([
-    { id: "1", from: "Home", to: "Downtown Office", price: "$14.50", date: "Yesterday" },
-    { id: "2", from: "Airport", to: "Hotel Grand", price: "$32.00", date: "2 days ago" },
-    { id: "3", from: "Mall", to: "Home", price: "$11.25", date: "Last week" },
-  ]);
+
+  // Load user's recent completed rides
+  const { data: recentTripRows = [] } = useQuery({
+    queryKey: ["user-recent-trips", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("trips")
+        .select("id, pickup_address, dropoff_address, fare_amount, created_at")
+        .eq("rider_id", user!.id)
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data || [];
+    },
+  });
+  const recentRides = useMemo(() => recentTripRows.map((t: any) => ({
+    id: t.id,
+    from: t.pickup_address,
+    to: t.dropoff_address,
+    price: t.fare_amount ? `$${Number(t.fare_amount).toFixed(2)}` : "—",
+    date: new Date(t.created_at).toLocaleDateString(),
+  })), [recentTripRows]);
   const [showQuickRebook, setShowQuickRebook] = useState(false);
   const [selectedVehicleAge, setSelectedVehicleAge] = useState<"any" | "new" | "2yr" | "5yr">("any");
   const [airFreshener, setAirFreshener] = useState(false);
@@ -496,7 +585,7 @@ export default function RequestRidePage() {
   const [executiveChauffeur, setExecutiveChauffeur] = useState(false);
   const [flightTracking, setFlightTracking] = useState(false);
   const [flightNumber, setFlightNumber] = useState("");
-  const [poolCountdown] = useState(Math.floor(Math.random() * 4) + 1);
+  const [poolCountdown] = useState(0);
   const [upfrontPrice, setUpfrontPrice] = useState(true);
   const [rewardPoints] = useState(1247);
   const [showRewards, setShowRewards] = useState(false);
@@ -620,11 +709,6 @@ export default function RequestRidePage() {
 
   const handleGetPrice = async () => {
     if (!user) { toast.error("Please sign in first"); return; }
-    if (!phoneChecking && !phoneVerified) {
-      pendingActionRef.current = () => handleGetPrice();
-      setShowPhoneVerify(true);
-      return;
-    }
     if (!pickupAddress.trim()) { toast.error("Please enter a pickup address"); return; }
     if (!dropoffAddress.trim()) { toast.error("Please enter a dropoff address for pricing"); return; }
     setIsLoadingPrice(true);
@@ -687,12 +771,19 @@ export default function RequestRidePage() {
   };
 
   const handleShareTrip = () => {
-    if (navigator.share) {
-      navigator.share({ title: "My ZIVO Trip", text: `I'm on my way! Track my ride from ${pickupAddress} to ${dropoffAddress}.`, url: window.location.href });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Trip link copied to clipboard!");
-    }
+    const vehicle = currentVehicles.find((v) => v.id === selectedVehicle);
+    openShareToChat({
+      kind: "ride",
+      title: pickupAddress && dropoffAddress
+        ? `${pickupAddress} → ${dropoffAddress}`
+        : "Ride on ZIVO",
+      subtitle: vehicle
+        ? `${vehicle.name} · ${vehicle.eta}`
+        : `${activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} ride`,
+      meta: vehicle ? vehicle.price : undefined,
+      deepLink: "/rides/hub",
+      image: null,
+    });
   };
 
   const formatUSD = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -722,6 +813,7 @@ export default function RequestRidePage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEOHead title="Request a Ride – ZIVO" description="Book a ZIVO ride in seconds. Economy, comfort, and premium options available." />
       {/* Map area */}
       <div className="relative h-[35vh] min-h-[220px]">
         <RideMap pickupCoords={pickupCoords} dropoffCoords={dropoffCoords} className="w-full h-full" />
@@ -757,12 +849,12 @@ export default function RequestRidePage() {
             className="absolute top-[35vh] left-4 right-4 z-30 rounded-2xl bg-card border border-border/40 shadow-2xl p-4 space-y-2">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Shield className="w-4 h-4 text-primary" /> Safety Center</h3>
-              <button onClick={() => setShowSafety(false)} className="text-xs text-muted-foreground">Close</button>
+              <button type="button" onClick={() => setShowSafety(false)} className="text-xs text-muted-foreground">Close</button>
             </div>
             {safetyFeatures.map(f => {
               const Icon = f.icon;
               return (
-                <button key={f.id} onClick={() => {
+                <button type="button" key={f.id} onClick={() => {
                   if (f.id === "share-trip") handleShareTrip();
                   else if (f.id === "emergency") { window.location.href = "tel:911"; }
                   else if (f.id === "audio-record") toast.info("Audio recording started for this ride");
@@ -802,7 +894,7 @@ export default function RequestRidePage() {
                       {corporateProfiles.map(cp => {
                         const CPIcon = cp.icon;
                         return (
-                          <button key={cp.id} onClick={() => { setBillingProfile(cp.id); toast.info(`${cp.label} billing selected`); }}
+                          <button type="button" key={cp.id} onClick={() => { setBillingProfile(cp.id); toast.info(`${cp.label} billing selected`); }}
                             className={cn("px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all",
                               billingProfile === cp.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>
                             <CPIcon className="w-3 h-3" /> {cp.label.split(" ")[0]}
@@ -817,9 +909,31 @@ export default function RequestRidePage() {
                   </div>
                 </div>
 
+                {/* Quick Book — last 2 rides */}
+                {recentRides.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Quick Book</p>
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+                      {recentRides.slice(0, 2).map(ride => (
+                        <button type="button" key={ride.id}
+                          onClick={() => { setPickupAddress(ride.from); setDropoffAddress(ride.to); setStep("pricing"); }}
+                          className="shrink-0 flex-1 min-w-[140px] rounded-2xl border border-primary/30 bg-primary/5 p-3 text-left touch-manipulation active:scale-[0.97] transition-all">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <RotateCcw className="w-3 h-3 text-primary" />
+                            <span className="text-[10px] font-bold text-primary">Rebook</span>
+                            <span className="ml-auto text-[10px] font-semibold text-muted-foreground">{ride.price}</span>
+                          </div>
+                          <p className="text-[11px] font-bold text-foreground truncate">{ride.to || "—"}</p>
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">from {ride.from || "—"}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Ride Reminder */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setRideReminder(!rideReminder)}
+                  <button type="button" onClick={() => setRideReminder(!rideReminder)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", rideReminder ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", rideReminder ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -831,7 +945,7 @@ export default function RequestRidePage() {
 
                 {/* Auto pickup pin */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setAutoPickupPin(!autoPickupPin)}
+                  <button type="button" onClick={() => setAutoPickupPin(!autoPickupPin)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", autoPickupPin ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", autoPickupPin ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -855,7 +969,7 @@ export default function RequestRidePage() {
 
                 {/* Pet Friendly */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setPetFriendly(!petFriendly); if (!petFriendly) toast.info("🐾 Pet-friendly ride selected"); }}
+                  <button type="button" onClick={() => { setPetFriendly(!petFriendly); if (!petFriendly) toast.info("🐾 Pet-friendly ride selected"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", petFriendly ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", petFriendly ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -867,7 +981,7 @@ export default function RequestRidePage() {
 
                 {/* Accessibility */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setAccessibilityMode(!accessibilityMode); if (!accessibilityMode) toast.info("♿ Wheelchair-accessible vehicle requested"); }}
+                  <button type="button" onClick={() => { setAccessibilityMode(!accessibilityMode); if (!accessibilityMode) toast.info("♿ Wheelchair-accessible vehicle requested"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", accessibilityMode ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", accessibilityMode ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -879,7 +993,7 @@ export default function RequestRidePage() {
 
                 {/* Music Preference */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
-                  <button onClick={() => setShowMusicPicker(!showMusicPicker)}
+                  <button type="button" onClick={() => setShowMusicPicker(!showMusicPicker)}
                     className="w-full flex items-center justify-between">
                     <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Music className="w-3.5 h-3.5 text-primary" /> Ride Music</p>
                     <div className="flex items-center gap-1.5">
@@ -893,9 +1007,9 @@ export default function RequestRidePage() {
                         className="overflow-hidden">
                         <div className="flex gap-2 flex-wrap mt-3">
                           {(["none", "chill", "pop", "jazz", "classical"] as const).map(genre => (
-                            <button key={genre} onClick={() => setMusicPreference(genre)}
+                            <button type="button" key={genre} onClick={() => setMusicPreference(genre)}
                               className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                                musicPreference === genre ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                                musicPreference === genre ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                               {genre === "none" ? "🔇 Silent" : genre === "chill" ? "🎵 Chill" : genre === "pop" ? "🎤 Pop" : genre === "jazz" ? "🎷 Jazz" : "🎻 Classical"}
                             </button>
                           ))}
@@ -908,7 +1022,7 @@ export default function RequestRidePage() {
                 {/* Split Fare */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <button onClick={() => setSplitFare(!splitFare)}
+                    <button type="button" onClick={() => setSplitFare(!splitFare)}
                       className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", splitFare ? "bg-primary" : "bg-muted/60")}>
                       <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", splitFare ? "left-[18px]" : "left-0.5")} />
                     </button>
@@ -921,9 +1035,9 @@ export default function RequestRidePage() {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 mt-2">
                       <span className="text-[10px] text-muted-foreground">Split with:</span>
                       {[1, 2, 3, 4].map(n => (
-                        <button key={n} onClick={() => setSplitWith(n)}
+                        <button type="button" key={n} onClick={() => setSplitWith(n)}
                           className={cn("w-8 h-8 rounded-full text-xs font-bold transition-all touch-manipulation",
-                            splitWith === n ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground")}>
+                            splitWith === n ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground")}>
                           {n + 1}
                         </button>
                       ))}
@@ -934,7 +1048,7 @@ export default function RequestRidePage() {
 
                 {/* Safety Recording */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setSafetyRecording(!safetyRecording); if (!safetyRecording) toast.success("🛡️ Trip recording enabled for safety"); }}
+                  <button type="button" onClick={() => { setSafetyRecording(!safetyRecording); if (!safetyRecording) toast.success("🛡️ Trip recording enabled for safety"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", safetyRecording ? "bg-emerald-500" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", safetyRecording ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -946,19 +1060,19 @@ export default function RequestRidePage() {
 
                 {/* Ride Insurance */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setRideInsurance(!rideInsurance)}
+                  <button type="button" onClick={() => setRideInsurance(!rideInsurance)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", rideInsurance ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", rideInsurance ? "left-[18px]" : "left-0.5")} />
                   </button>
                   <div className="flex-1">
-                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-sky-500" /> Trip protection</p>
+                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-foreground" /> Trip protection</p>
                     <p className="text-[10px] text-muted-foreground">Personal accident cover · +$1.99</p>
                   </div>
                 </div>
 
                 {/* Wait Time Guarantee */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setWaitTimeGuarantee(!waitTimeGuarantee); if (!waitTimeGuarantee) toast.info("⏱️ Driver will wait up to 5 min free"); }}
+                  <button type="button" onClick={() => { setWaitTimeGuarantee(!waitTimeGuarantee); if (!waitTimeGuarantee) toast.info("⏱️ Driver will wait up to 5 min free"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", waitTimeGuarantee ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", waitTimeGuarantee ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -973,9 +1087,9 @@ export default function RequestRidePage() {
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-2"><Briefcase className="w-3.5 h-3.5 text-primary" /> Luggage</p>
                   <div className="flex gap-2">
                     {(["none", "small", "medium", "large"] as const).map(size => (
-                      <button key={size} onClick={() => setLuggageSize(size)}
+                      <button type="button" key={size} onClick={() => setLuggageSize(size)}
                         className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                          luggageSize === size ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                          luggageSize === size ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                         {size === "none" ? "None" : size === "small" ? "🧳 Small" : size === "medium" ? "🧳🧳 Med" : "🧳🧳🧳 Large"}
                       </button>
                     ))}
@@ -991,9 +1105,9 @@ export default function RequestRidePage() {
                       { id: "warm" as const, label: "🔥 Warm" },
                       { id: "no-pref" as const, label: "🤷 No pref" },
                     ]).map(t => (
-                      <button key={t.id} onClick={() => setTempPreference(t.id)}
+                      <button type="button" key={t.id} onClick={() => setTempPreference(t.id)}
                         className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                          tempPreference === t.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                          tempPreference === t.id ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                         {t.label}
                       </button>
                     ))}
@@ -1002,7 +1116,7 @@ export default function RequestRidePage() {
 
                 {/* Fare Lock */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setFareLocked(!fareLocked); if (!fareLocked) toast.success("🔒 Fare locked for 5 minutes!"); }}
+                  <button type="button" onClick={() => { setFareLocked(!fareLocked); if (!fareLocked) toast.success("🔒 Fare locked for 5 minutes!"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", fareLocked ? "bg-emerald-500" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", fareLocked ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1016,7 +1130,7 @@ export default function RequestRidePage() {
                 {/* Return Trip */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <button onClick={() => setReturnTrip(!returnTrip)}
+                    <button type="button" onClick={() => setReturnTrip(!returnTrip)}
                       className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", returnTrip ? "bg-primary" : "bg-muted/60")}>
                       <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", returnTrip ? "left-[18px]" : "left-0.5")} />
                     </button>
@@ -1028,9 +1142,9 @@ export default function RequestRidePage() {
                   {returnTrip && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2 mt-2">
                       {["30min", "1hr", "2hr", "3hr", "custom"].map(d => (
-                        <button key={d} onClick={() => setReturnDelay(d)}
+                        <button type="button" key={d} onClick={() => setReturnDelay(d)}
                           className={cn("flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all touch-manipulation",
-                            returnDelay === d ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground")}>
+                            returnDelay === d ? "bg-ig-gradient text-white" : "bg-muted/50 text-muted-foreground")}>
                           {d}
                         </button>
                       ))}
@@ -1040,7 +1154,7 @@ export default function RequestRidePage() {
 
                 {/* Emergency SOS */}
                 <div className="rounded-2xl bg-red-500/5 border border-red-500/20 p-3 flex items-center gap-3">
-                  <button onClick={() => { setEmergencySOS(true); toast.error("🚨 Emergency SOS activated — sharing location with emergency contacts"); }}
+                  <button type="button" onClick={() => { setEmergencySOS(true); toast.error("🚨 Emergency SOS activated — sharing location with emergency contacts"); }}
                     className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0 touch-manipulation active:scale-90">
                     <Phone className="w-5 h-5 text-red-500" />
                   </button>
@@ -1052,7 +1166,7 @@ export default function RequestRidePage() {
 
                 {/* Ride Stats */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
-                  <button onClick={() => setShowRideStats(!showRideStats)}
+                  <button type="button" onClick={() => setShowRideStats(!showRideStats)}
                     className="w-full flex items-center justify-between">
                     <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-amber-500" /> Your ride stats</p>
                     <ChevronRight className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", showRideStats && "rotate-90")} />
@@ -1088,19 +1202,19 @@ export default function RequestRidePage() {
 
                 {/* Airport Meet & Greet */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setAirportMeetGreet(!airportMeetGreet); if (!airportMeetGreet) toast.success("✈️ Chauffeur will meet you at arrivals with name sign"); }}
+                  <button type="button" onClick={() => { setAirportMeetGreet(!airportMeetGreet); if (!airportMeetGreet) toast.success("✈️ Chauffeur will meet you at arrivals with name sign"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", airportMeetGreet ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", airportMeetGreet ? "left-[18px]" : "left-0.5")} />
                   </button>
                   <div className="flex-1">
-                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Plane className="w-3.5 h-3.5 text-sky-500" /> Airport Meet & Greet</p>
+                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Plane className="w-3.5 h-3.5 text-foreground" /> Airport Meet & Greet</p>
                     <p className="text-[10px] text-muted-foreground">Driver waits at arrivals with name sign · +$9.99</p>
                   </div>
                 </div>
 
                 {/* Driver Language Preference */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
-                  <button onClick={() => setShowLanguagePicker(!showLanguagePicker)} className="w-full flex items-center justify-between">
+                  <button type="button" onClick={() => setShowLanguagePicker(!showLanguagePicker)} className="w-full flex items-center justify-between">
                     <p className="text-xs font-bold text-foreground">🌐 Driver Language</p>
                     <span className="text-[10px] text-muted-foreground capitalize">{driverLanguage === "any" ? "Any" : driverLanguage}</span>
                   </button>
@@ -1109,9 +1223,9 @@ export default function RequestRidePage() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                         <div className="flex gap-2 flex-wrap mt-3">
                           {(["any", "english", "spanish", "french", "mandarin", "arabic"] as const).map(lang => (
-                            <button key={lang} onClick={() => setDriverLanguage(lang)}
+                            <button type="button" key={lang} onClick={() => setDriverLanguage(lang)}
                               className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                                driverLanguage === lang ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                                driverLanguage === lang ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                               {lang === "any" ? "🌐 Any" : lang === "english" ? "🇺🇸 EN" : lang === "spanish" ? "🇪🇸 ES" : lang === "french" ? "🇫🇷 FR" : lang === "mandarin" ? "🇨🇳 ZH" : "🇸🇦 AR"}
                             </button>
                           ))}
@@ -1123,7 +1237,7 @@ export default function RequestRidePage() {
 
                 {/* Women Safety Mode */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setWomenSafetyMode(!womenSafetyMode); if (!womenSafetyMode) toast.success("🛡️ Women's safety mode — prefer female driver, auto-share trip"); }}
+                  <button type="button" onClick={() => { setWomenSafetyMode(!womenSafetyMode); if (!womenSafetyMode) toast.success("🛡️ Women's safety mode — prefer female driver, auto-share trip"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", womenSafetyMode ? "bg-pink-500" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", womenSafetyMode ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1135,7 +1249,7 @@ export default function RequestRidePage() {
 
                 {/* Recurring Ride */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
-                  <button onClick={() => setShowRecurringOptions(!showRecurringOptions)} className="w-full flex items-center justify-between">
+                  <button type="button" onClick={() => setShowRecurringOptions(!showRecurringOptions)} className="w-full flex items-center justify-between">
                     <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-primary" /> Recurring Ride</p>
                     <span className="text-[10px] text-muted-foreground capitalize">{recurringRide === "none" ? "One-time" : recurringRide}</span>
                   </button>
@@ -1144,9 +1258,9 @@ export default function RequestRidePage() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                         <div className="flex gap-2 flex-wrap mt-3">
                           {(["none", "daily", "weekdays", "weekly"] as const).map(opt => (
-                            <button key={opt} onClick={() => setRecurringRide(opt)}
+                            <button type="button" key={opt} onClick={() => setRecurringRide(opt)}
                               className={cn("px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all capitalize",
-                                recurringRide === opt ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                                recurringRide === opt ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                               {opt === "none" ? "One-time" : opt}
                             </button>
                           ))}
@@ -1158,7 +1272,7 @@ export default function RequestRidePage() {
 
                 {/* Executive Chauffeur */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setExecutiveChauffeur(!executiveChauffeur); if (!executiveChauffeur) toast.success("👔 Executive chauffeur booked"); }}
+                  <button type="button" onClick={() => { setExecutiveChauffeur(!executiveChauffeur); if (!executiveChauffeur) toast.success("👔 Executive chauffeur booked"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", executiveChauffeur ? "bg-amber-500" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", executiveChauffeur ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1170,7 +1284,7 @@ export default function RequestRidePage() {
 
                 {/* Upfront Pricing */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setUpfrontPrice(!upfrontPrice)}
+                  <button type="button" onClick={() => setUpfrontPrice(!upfrontPrice)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", upfrontPrice ? "bg-emerald-500" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", upfrontPrice ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1183,7 +1297,7 @@ export default function RequestRidePage() {
 
                 {/* ZIVO Rewards */}
                 <div className="rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 p-4">
-                  <button onClick={() => setShowRewards(!showRewards)} className="w-full flex items-center justify-between">
+                  <button type="button" onClick={() => setShowRewards(!showRewards)} className="w-full flex items-center justify-between">
                     <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-amber-500" /> ZIVO Rewards</p>
                     <span className="text-xs font-bold text-amber-500">{rewardPoints} pts</span>
                   </button>
@@ -1201,7 +1315,7 @@ export default function RequestRidePage() {
 
                 {/* Ride Pass Subscription */}
                 <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-emerald-500/10 border border-primary/20 p-4">
-                  <button onClick={() => setShowSubscriptionWidget(!showSubscriptionWidget)} className="w-full flex items-center justify-between">
+                  <button type="button" onClick={() => setShowSubscriptionWidget(!showSubscriptionWidget)} className="w-full flex items-center justify-between">
                     <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-primary" /> ZIVO Ride Pass</p>
                     <span className="text-[10px] font-bold text-primary">{rideSubscription === "none" ? "Join" : rideSubscription}</span>
                   </button>
@@ -1209,7 +1323,7 @@ export default function RequestRidePage() {
                     {showSubscriptionWidget && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mt-3 space-y-2">
                         {ridePassTiers.map(tier => (
-                          <button key={tier.id} onClick={() => { setRideSubscription(tier.id as any); toast.success(`🎉 ${tier.name} activated!`); }}
+                          <button type="button" key={tier.id} onClick={() => { setRideSubscription(tier.id as any); toast.success(`🎉 ${tier.name} activated!`); }}
                             className={cn("w-full p-3 rounded-xl text-left transition-all",
                               rideSubscription === tier.id ? "bg-primary/10 border border-primary/30" : "bg-card border border-border/40")}>
                             <div className="flex items-center justify-between mb-1">
@@ -1227,7 +1341,7 @@ export default function RequestRidePage() {
                 {/* Multi-Stop */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <button onClick={() => setMultiStop(!multiStop)}
+                    <button type="button" onClick={() => setMultiStop(!multiStop)}
                       className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", multiStop ? "bg-primary" : "bg-muted/60")}>
                       <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", multiStop ? "left-[18px]" : "left-0.5")} />
                     </button>
@@ -1244,13 +1358,13 @@ export default function RequestRidePage() {
                           <Input value={stop} onChange={(e) => { const ns = [...extraStops]; ns[i] = e.target.value; setExtraStops(ns); }}
                             placeholder={`Stop ${i + 1}`} className="h-9 text-xs flex-1" />
                           {extraStops.length > 1 && (
-                            <button onClick={() => setExtraStops(extraStops.filter((_, j) => j !== i))}
+                            <button type="button" onClick={() => setExtraStops(extraStops.filter((_, j) => j !== i))}
                               className="w-6 h-6 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground"><X className="w-3 h-3" /></button>
                           )}
                         </div>
                       ))}
                       {extraStops.length < 3 && (
-                        <button onClick={() => setExtraStops([...extraStops, ""])}
+                        <button type="button" onClick={() => setExtraStops([...extraStops, ""])}
                           className="text-[10px] text-primary font-bold flex items-center gap-1 touch-manipulation"><Plus className="w-3 h-3" /> Add stop</button>
                       )}
                     </motion.div>
@@ -1260,7 +1374,7 @@ export default function RequestRidePage() {
                 {/* Child Seat */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <button onClick={() => setChildSeat(!childSeat)}
+                    <button type="button" onClick={() => setChildSeat(!childSeat)}
                       className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", childSeat ? "bg-primary" : "bg-muted/60")}>
                       <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", childSeat ? "left-[18px]" : "left-0.5")} />
                     </button>
@@ -1272,9 +1386,9 @@ export default function RequestRidePage() {
                   {childSeat && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2 mt-2">
                       {(["infant", "toddler", "booster"] as const).map(t => (
-                        <button key={t} onClick={() => setChildSeatType(t)}
+                        <button type="button" key={t} onClick={() => setChildSeatType(t)}
                           className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                            childSeatType === t ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                            childSeatType === t ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                           {t === "infant" ? "👶 Infant" : t === "toddler" ? "🧒 Toddler" : "💺 Booster"}
                         </button>
                       ))}
@@ -1287,9 +1401,9 @@ export default function RequestRidePage() {
                   <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-2"><Car className="w-3.5 h-3.5 text-primary" /> Vehicle color preference</p>
                   <div className="flex gap-2">
                     {(["any", "black", "white", "silver"] as const).map(c => (
-                      <button key={c} onClick={() => setVehicleColorPref(c)}
+                      <button type="button" key={c} onClick={() => setVehicleColorPref(c)}
                         className={cn("flex-1 py-2 rounded-xl text-[10px] font-bold transition-all touch-manipulation active:scale-95",
-                          vehicleColorPref === c ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
+                          vehicleColorPref === c ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40")}>
                         {c === "any" ? "Any" : c === "black" ? "⬛ Black" : c === "white" ? "⬜ White" : "🩶 Silver"}
                       </button>
                     ))}
@@ -1299,7 +1413,7 @@ export default function RequestRidePage() {
                 {/* Share ETA */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <button onClick={() => setShareETA(!shareETA)}
+                    <button type="button" onClick={() => setShareETA(!shareETA)}
                       className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", shareETA ? "bg-primary" : "bg-muted/60")}>
                       <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", shareETA ? "left-[18px]" : "left-0.5")} />
                     </button>
@@ -1318,7 +1432,7 @@ export default function RequestRidePage() {
 
                 {/* Favorite Driver */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setFavoriteDriver(!favoriteDriver); if (!favoriteDriver) toast.info("⭐ We'll try to match you with your preferred drivers!"); }}
+                  <button type="button" onClick={() => { setFavoriteDriver(!favoriteDriver); if (!favoriteDriver) toast.info("⭐ We'll try to match you with your preferred drivers!"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", favoriteDriver ? "bg-amber-500" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", favoriteDriver ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1330,7 +1444,7 @@ export default function RequestRidePage() {
 
                 {/* Dashcam & Air Freshener */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setDashcamRequired(!dashcamRequired)}
+                  <button type="button" onClick={() => setDashcamRequired(!dashcamRequired)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", dashcamRequired ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", dashcamRequired ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1341,7 +1455,7 @@ export default function RequestRidePage() {
                 </div>
 
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => { setAirFreshener(!airFreshener); if (!airFreshener) toast.success("🌸 Air freshener requested!"); }}
+                  <button type="button" onClick={() => { setAirFreshener(!airFreshener); if (!airFreshener) toast.success("🌸 Air freshener requested!"); }}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", airFreshener ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", airFreshener ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1360,7 +1474,7 @@ export default function RequestRidePage() {
 
                 {/* Recent Rides */}
                 <div className="rounded-2xl bg-card border border-border/40 p-4">
-                  <button onClick={() => setShowRideHistory(!showRideHistory)}
+                  <button type="button" onClick={() => setShowRideHistory(!showRideHistory)}
                     className="w-full flex items-center justify-between">
                     <p className="text-xs font-bold text-foreground flex items-center gap-1.5"><History className="w-3.5 h-3.5 text-primary" /> Recent rides</p>
                     <ChevronRight className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform", showRideHistory && "rotate-90")} />
@@ -1370,8 +1484,14 @@ export default function RequestRidePage() {
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden">
                         <div className="space-y-2 mt-3">
+                          {recentRides.length === 0 && (
+                            <div className="rounded-xl bg-muted/30 p-3 text-center">
+                              <p className="text-xs text-muted-foreground">No recent rides yet.</p>
+                              <p className="text-[10px] text-muted-foreground/70 mt-0.5">Your past trips will appear here.</p>
+                            </div>
+                          )}
                           {recentRides.map(ride => (
-                            <button key={ride.id} onClick={() => { toast.info(`Rebooking: ${ride.from} → ${ride.to}`); }}
+                            <button type="button" key={ride.id} onClick={() => { toast.info(`Rebooking: ${ride.from} → ${ride.to}`); }}
                               className="w-full rounded-xl bg-muted/30 p-3 text-left hover:bg-muted/50 transition-colors touch-manipulation">
                               <div className="flex justify-between items-center">
                                 <div>
@@ -1414,11 +1534,38 @@ export default function RequestRidePage() {
                   </div>
                 </div>
 
+                {/* Saved places */}
+                {(activeInput === "pickup" || activeInput === "dropoff") && (
+                  <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border/40 rounded-2xl shadow-lg overflow-hidden">
+                    {savedPlaces.map((place) => {
+                      const PlaceIcon = place.icon;
+                      return (
+                        <button type="button"
+                          key={place.id}
+                          onClick={() => {
+                            if (activeInput === "pickup") {
+                              setPickupAddress(place.label);
+                              setActiveInput(null);
+                            } else {
+                              setDropoffAddress(place.label);
+                              setActiveInput(null);
+                            }
+                          }}
+                          className="w-full text-left px-4 py-3.5 hover:bg-muted/50 transition border-b border-border/20 last:border-b-0 text-sm text-foreground touch-manipulation active:bg-muted/80 flex items-center gap-3"
+                        >
+                          <PlaceIcon className="w-4 h-4 text-primary shrink-0" />
+                          <span className="font-medium">{place.label}</span>
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+
                 {/* Suggestions */}
                 {activeInput === "pickup" && pickupGeocode.suggestions.length > 0 && (
                   <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border/40 rounded-2xl shadow-lg overflow-hidden">
                     {pickupGeocode.suggestions.map((s) => (
-                      <button key={s.id} onClick={() => handleSelectSuggestion(s, "pickup")} className="w-full text-left px-4 py-3.5 hover:bg-muted/50 transition border-b border-border/20 last:border-b-0 text-sm text-foreground touch-manipulation active:bg-muted/80 flex items-center gap-3">
+                      <button type="button" key={s.id} onClick={() => handleSelectSuggestion(s, "pickup")} className="w-full text-left px-4 py-3.5 hover:bg-muted/50 transition border-b border-border/20 last:border-b-0 text-sm text-foreground touch-manipulation active:bg-muted/80 flex items-center gap-3">
                         <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" /><span className="truncate">{s.placeName}</span>
                       </button>
                     ))}
@@ -1427,7 +1574,7 @@ export default function RequestRidePage() {
                 {activeInput === "dropoff" && dropoffGeocode.suggestions.length > 0 && (
                   <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border/40 rounded-2xl shadow-lg overflow-hidden">
                     {dropoffGeocode.suggestions.map((s) => (
-                      <button key={s.id} onClick={() => handleSelectSuggestion(s, "dropoff")} className="w-full text-left px-4 py-3.5 hover:bg-muted/50 transition border-b border-border/20 last:border-b-0 text-sm text-foreground touch-manipulation active:bg-muted/80 flex items-center gap-3">
+                      <button type="button" key={s.id} onClick={() => handleSelectSuggestion(s, "dropoff")} className="w-full text-left px-4 py-3.5 hover:bg-muted/50 transition border-b border-border/20 last:border-b-0 text-sm text-foreground touch-manipulation active:bg-muted/80 flex items-center gap-3">
                         <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" /><span className="truncate">{s.placeName}</span>
                       </button>
                     ))}
@@ -1444,13 +1591,13 @@ export default function RequestRidePage() {
                   {savedPlaces.map(place => {
                     const PlaceIcon = place.icon;
                     return (
-                      <button key={place.id} onClick={() => { if (place.address) { setPickupAddress(place.address); } else { toast.info(`Set your ${place.label} address in Settings`); } }}
+                      <button type="button" key={place.id} onClick={() => { if (place.address) { setPickupAddress(place.address); } else { toast.info(`Set your ${place.label} address in Settings`); } }}
                         className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition px-2 py-1.5 rounded-lg bg-muted/30 border border-border/30 touch-manipulation active:scale-95">
                         <PlaceIcon className="w-3 h-3" /> {place.label}
                       </button>
                     );
                   })}
-                  <button onClick={() => setAdditionalStops(prev => [...prev, ""])}
+                  <button type="button" onClick={() => setAdditionalStops(prev => [...prev, ""])}
                     className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition px-2 py-1.5 rounded-lg bg-muted/30 border border-border/30 touch-manipulation active:scale-95">
                     <Plus className="w-3.5 h-3.5" /> Add stop
                   </button>
@@ -1460,7 +1607,7 @@ export default function RequestRidePage() {
                 <RideEstimateCard pickup={pickupAddress} dropoff={dropoffAddress} />
 
                 {/* Recent rides */}
-                <RecentRidesSection onSelect={handleSelectRecentRide} />
+                <RecentRidesSection onSelect={handleSelectRecentRide} rides={recentRides} />
 
                 {/* Note to driver */}
                 <div className="flex items-center gap-2">
@@ -1470,7 +1617,7 @@ export default function RequestRidePage() {
 
                 {/* Round trip toggle */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setRoundTrip(!roundTrip)}
+                  <button type="button" onClick={() => setRoundTrip(!roundTrip)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", roundTrip ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", roundTrip ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1482,7 +1629,7 @@ export default function RequestRidePage() {
 
                 {/* Schedule ride toggle */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setIsScheduled(!isScheduled)}
+                  <button type="button" onClick={() => setIsScheduled(!isScheduled)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", isScheduled ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", isScheduled ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1494,7 +1641,7 @@ export default function RequestRidePage() {
                 {isScheduled && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="grid grid-cols-2 gap-2">
                     {["Today 2:00 PM", "Today 5:00 PM", "Tomorrow 9:00 AM", "Tomorrow 12:00 PM"].map(time => (
-                      <button key={time} onClick={() => setScheduleTime(time)}
+                      <button type="button" key={time} onClick={() => setScheduleTime(time)}
                         className={cn(
                           "p-3 rounded-xl border text-left transition-all touch-manipulation active:scale-95",
                           scheduleTime === time ? "border-primary bg-primary/5" : "border-border/40 bg-card hover:border-primary/20"
@@ -1508,7 +1655,7 @@ export default function RequestRidePage() {
 
                 {/* Notify on arrival */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setNotifyOnArrival(!notifyOnArrival)}
+                  <button type="button" onClick={() => setNotifyOnArrival(!notifyOnArrival)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", notifyOnArrival ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", notifyOnArrival ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1520,7 +1667,7 @@ export default function RequestRidePage() {
 
                 {/* Carbon Offset */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setCarbonOffset(!carbonOffset)}
+                  <button type="button" onClick={() => setCarbonOffset(!carbonOffset)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", carbonOffset ? "bg-emerald-500" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", carbonOffset ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1532,7 +1679,7 @@ export default function RequestRidePage() {
 
                 {/* Favorite Driver */}
                 <div className="rounded-2xl bg-card border border-border/40 p-3 flex items-center gap-3">
-                  <button onClick={() => setRequestFavoriteDriver(!requestFavoriteDriver)}
+                  <button type="button" onClick={() => setRequestFavoriteDriver(!requestFavoriteDriver)}
                     className={cn("w-10 h-6 rounded-full transition-all relative shrink-0", requestFavoriteDriver ? "bg-primary" : "bg-muted/60")}>
                     <span className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all", requestFavoriteDriver ? "left-[18px]" : "left-0.5")} />
                   </button>
@@ -1569,10 +1716,10 @@ export default function RequestRidePage() {
                     ]).map(pm => {
                       const PMIcon = pm.icon;
                       return (
-                        <button key={pm.id} onClick={() => setSelectedPaymentMethod(pm.id)}
+                        <button type="button" key={pm.id} onClick={() => setSelectedPaymentMethod(pm.id)}
                           className={cn(
                             "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                            selectedPaymentMethod === pm.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
+                            selectedPaymentMethod === pm.id ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
                           )}>
                           <PMIcon className="w-3.5 h-3.5" />
                           {pm.label}
@@ -1583,7 +1730,7 @@ export default function RequestRidePage() {
                 </div>
 
                 {/* ZIVO Ride Pass Banner */}
-                <button onClick={() => setShowRidePass(!showRidePass)}
+                <button type="button" onClick={() => setShowRidePass(!showRidePass)}
                   className="w-full rounded-2xl bg-gradient-to-r from-primary/10 to-emerald-500/10 border border-primary/20 p-3 flex items-center gap-3 touch-manipulation active:scale-[0.98] transition-all">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center shrink-0">
                     <Crown className="w-5 h-5 text-primary-foreground" />
@@ -1612,7 +1759,7 @@ export default function RequestRidePage() {
                           </div>
                         </div>
                       ))}
-                      <Button variant="outline" size="sm" onClick={() => toast.info("Ride Pass subscription coming soon!")} className="w-full rounded-xl text-xs font-bold">
+                      <Button variant="outline" size="sm" onClick={() => navigate("/membership")} className="w-full rounded-xl text-xs font-bold">
                         Learn More
                       </Button>
                     </motion.div>
@@ -1622,10 +1769,10 @@ export default function RequestRidePage() {
                 {/* Category Tabs */}
                 <div className="flex gap-2 pt-2">
                   {rideCategories.map((cat) => (
-                    <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setSelectedVehicle(null); }}
+                    <button type="button" key={cat.id} onClick={() => { setActiveCategory(cat.id); setSelectedVehicle(null); }}
                       className={cn(
                         "px-4 py-2 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-1.5 touch-manipulation active:scale-95",
-                        activeCategory === cat.id ? "bg-primary text-primary-foreground shadow-md shadow-primary/25" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
+                        activeCategory === cat.id ? "bg-ig-gradient text-white shadow-md shadow-primary/25" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
                       )}>
                       {cat.id === "premium" && <Sparkles className="w-3 h-3" />}
                       {cat.id === "elite" && <Crown className="w-3 h-3" />}
@@ -1672,7 +1819,7 @@ export default function RequestRidePage() {
                       const Icon = pref.icon;
                       const isSelected = selectedPreferences.includes(pref.id);
                       return (
-                        <button key={pref.id} onClick={() => togglePreference(pref.id)}
+                        <button type="button" key={pref.id} onClick={() => togglePreference(pref.id)}
                           className={cn(
                             "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all touch-manipulation active:scale-95",
                             isSelected ? "bg-primary/10 border border-primary/30 text-primary" : "bg-muted/50 border border-border/40 text-muted-foreground hover:bg-muted"
@@ -1828,10 +1975,10 @@ export default function RequestRidePage() {
                   </h3>
                   <div className="flex gap-2 mb-2">
                     {tipOptions.map(opt => (
-                      <button key={opt.id} onClick={() => setSelectedTip(opt.id)}
+                      <button type="button" key={opt.id} onClick={() => setSelectedTip(opt.id)}
                         className={cn(
                           "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all touch-manipulation active:scale-95",
-                          selectedTip === opt.id ? "bg-primary text-primary-foreground shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
+                          selectedTip === opt.id ? "bg-ig-gradient text-white shadow-md" : "bg-muted/50 text-muted-foreground border border-border/40 hover:bg-muted"
                         )}>
                         {opt.label}
                       </button>
@@ -1897,7 +2044,7 @@ export default function RequestRidePage() {
 
                 {/* Share ETA with contacts */}
                 <div className="w-full max-w-xs space-y-2">
-                  <button onClick={() => { setShareETA(true); toast.success("Live ETA shared with your contacts!"); }}
+                  <button type="button" onClick={() => { setShareETA(true); toast.success("Live ETA shared with your contacts!"); }}
                     className={cn("w-full flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-bold touch-manipulation active:scale-95 transition-all",
                       shareETA ? "border-primary/40 bg-primary/10 text-primary" : "border-border/40 bg-card text-foreground hover:bg-muted/50")}>
                     <Navigation className="w-4 h-4" /> {shareETA ? "ETA Shared ✓" : "Share Live ETA"}
@@ -1911,7 +2058,7 @@ export default function RequestRidePage() {
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Rate your last ride</p>
                     <div className="flex justify-center gap-1.5">
                       {[1,2,3,4,5].map(s => (
-                        <button key={s} onClick={() => { setRideRating(s); toast.success(`Rated ${s} stars!`); }}
+                        <button type="button" key={s} onClick={() => { setRideRating(s); toast.success(`Rated ${s} stars!`); }}
                           className="touch-manipulation active:scale-90 transition-transform">
                           <Star className={cn("w-7 h-7", rideRating && s <= rideRating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
                         </button>
@@ -1928,11 +2075,11 @@ export default function RequestRidePage() {
 
                 {/* Safety actions during finding */}
                 <div className="flex gap-3 w-full max-w-xs">
-                  <button onClick={handleShareTrip}
+                  <button type="button" onClick={handleShareTrip}
                     className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border border-border/40 bg-card text-xs font-bold text-foreground hover:bg-muted/50 touch-manipulation active:scale-95">
                     <Share2 className="w-4 h-4 text-primary" /> Share Trip
                   </button>
-                  <button onClick={() => { toast.info("Ride cancelled. Refund will be processed."); navigate("/"); }}
+                  <button type="button" onClick={() => { notifyRide("trip_cancelled", { jobId: draftJobId ?? undefined }); toast.info("Ride cancelled. Refund will be processed."); navigate("/"); }}
                     className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border border-destructive/30 bg-destructive/5 text-xs font-bold text-destructive hover:bg-destructive/10 touch-manipulation active:scale-95">
                     Cancel
                   </button>
@@ -1953,14 +2100,14 @@ export default function RequestRidePage() {
       {step === "address" && (
         <div className="px-4 pb-4 space-y-3">
           {/* Commute Insights */}
-          <button onClick={() => setShowCommuteInsights(!showCommuteInsights)}
+          <button type="button" onClick={() => setShowCommuteInsights(!showCommuteInsights)}
             className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
-            <BarChart3 className="w-3.5 h-3.5 text-violet-500" /> Commute Insights
-            <Badge className="bg-violet-500/10 text-violet-500 border-0 text-[8px] ml-auto">AI</Badge>
+            <BarChart3 className="w-3.5 h-3.5 text-foreground" /> Commute Insights
+            <Badge className="bg-secondary text-foreground border-0 text-[8px] ml-auto">AI</Badge>
             <ChevronRight className={cn("w-3 h-3 transition-transform", showCommuteInsights && "rotate-90")} />
           </button>
           {showCommuteInsights && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="rounded-2xl bg-card border border-violet-500/20 p-4 space-y-3">
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="rounded-2xl bg-card border border-border p-4 space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center p-2 rounded-xl bg-muted/30"><p className="text-sm font-bold text-foreground">{commuteInsights.weeklyRides}</p><p className="text-[9px] text-muted-foreground">Rides/week</p></div>
                 <div className="text-center p-2 rounded-xl bg-muted/30"><p className="text-sm font-bold text-foreground">{commuteInsights.avgCost}</p><p className="text-[9px] text-muted-foreground">Avg cost</p></div>
@@ -1969,7 +2116,7 @@ export default function RequestRidePage() {
               <div className="flex items-end gap-1.5 h-16">
                 {commuteInsights.monthlySpend.map(m => (
                   <div key={m.month} className="flex-1 flex flex-col items-center gap-0.5">
-                    <motion.div initial={{ height: 0 }} animate={{ height: `${(m.amount / 350) * 100}%` }} className="w-full rounded-t bg-violet-500/30" />
+                    <motion.div initial={{ height: 0 }} animate={{ height: `${(m.amount / 350) * 100}%` }} className="w-full rounded-t bg-secondary" />
                     <span className="text-[8px] text-muted-foreground">{m.month}</span>
                   </div>
                 ))}
@@ -1979,7 +2126,7 @@ export default function RequestRidePage() {
           )}
 
           {/* Surge Predictor */}
-          <button onClick={() => setShowSurgePredictor(!showSurgePredictor)}
+          <button type="button" onClick={() => setShowSurgePredictor(!showSurgePredictor)}
             className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
             <TrendingUp className="w-3.5 h-3.5 text-amber-500" /> Surge Forecast
             <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showSurgePredictor && "rotate-90")} />
@@ -1997,7 +2144,7 @@ export default function RequestRidePage() {
           )}
 
           {/* Fare History */}
-          <button onClick={() => setShowFareHistory(!showFareHistory)}
+          <button type="button" onClick={() => setShowFareHistory(!showFareHistory)}
             className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
             <DollarSign className="w-3.5 h-3.5 text-emerald-500" /> Fare History by Route
             <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showFareHistory && "rotate-90")} />
@@ -2019,10 +2166,10 @@ export default function RequestRidePage() {
           )}
 
           {/* Driver Memory */}
-          <button onClick={() => setShowDriverMemory(!showDriverMemory)}
+          <button type="button" onClick={() => setShowDriverMemory(!showDriverMemory)}
             className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
-            <Heart className="w-3.5 h-3.5 text-rose-500" /> Favorite Drivers
-            <Badge className="bg-rose-500/10 text-rose-500 border-0 text-[8px] ml-auto">{driverMemory.length}</Badge>
+            <Heart className="w-3.5 h-3.5 text-foreground" /> Favorite Drivers
+            <Badge className="bg-secondary text-foreground border-0 text-[8px] ml-auto">{driverMemory.length}</Badge>
             <ChevronRight className={cn("w-3 h-3 transition-transform", showDriverMemory && "rotate-90")} />
           </button>
           {showDriverMemory && (
@@ -2035,7 +2182,7 @@ export default function RequestRidePage() {
                       <p className="text-xs font-bold text-foreground">{d.name}</p>
                       <p className="text-[10px] text-muted-foreground">{d.vehicle} · ★ {d.rating} · {d.rides} rides</p>
                     </div>
-                    <button onClick={() => toast.success(`Requesting ${d.name}...`)} className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">Request</button>
+                    <button type="button" onClick={() => navigate("/rides/hub", { state: { preferredDriverId: d.name, preferredDriverName: d.name } })} className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">Request</button>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {d.preferences.map(p => <span key={p} className="px-2 py-0.5 rounded-full bg-muted/50 text-[8px] text-muted-foreground">{p}</span>)}
@@ -2046,7 +2193,7 @@ export default function RequestRidePage() {
           )}
 
           {/* Carbon Dashboard */}
-          <button onClick={() => setShowCarbonDashboard(!showCarbonDashboard)}
+          <button type="button" onClick={() => setShowCarbonDashboard(!showCarbonDashboard)}
             className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation">
             <Leaf className="w-3.5 h-3.5 text-emerald-500" /> Carbon Impact
             <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showCarbonDashboard && "rotate-90")} />
@@ -2063,7 +2210,7 @@ export default function RequestRidePage() {
           )}
 
           {/* Ride Hub Quick Access */}
-          <button
+          <button type="button"
             onClick={() => navigate("/rides/hub")}
             className="w-full flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 hover:border-primary/30 transition-all touch-manipulation active:scale-[0.98]"
           >
@@ -2071,7 +2218,7 @@ export default function RequestRidePage() {
               <BarChart3 className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 text-left">
-              <p className="text-sm font-bold text-foreground">Ride Hub</p>
+              <p className="text-sm font-bold text-foreground">ZIVO Ride</p>
               <p className="text-[10px] text-muted-foreground">Insights, Ride Pass, receipts & more</p>
             </div>
             <ChevronRight className="w-4 h-4 text-primary" />
@@ -2081,18 +2228,6 @@ export default function RequestRidePage() {
 
       <ZivoMobileNav />
 
-      <PhoneVerificationDialog
-        open={showPhoneVerify}
-        onOpenChange={setShowPhoneVerify}
-        phoneNumber=""
-        onVerified={() => {
-          setShowPhoneVerify(false);
-          if (pendingActionRef.current) {
-            pendingActionRef.current();
-            pendingActionRef.current = null;
-          }
-        }}
-      />
     </div>
   );
 }

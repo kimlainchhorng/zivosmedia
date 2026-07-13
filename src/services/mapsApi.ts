@@ -22,6 +22,12 @@ export interface PlaceDetails {
   lng: number;
 }
 
+export interface TrafficSegment {
+  startPolylinePointIndex: number;
+  endPolylinePointIndex: number;
+  speed: "NORMAL" | "SLOW" | "TRAFFIC_JAM";
+}
+
 export interface RouteResult {
   distance_miles: number;
   duration_minutes: number;
@@ -29,6 +35,7 @@ export interface RouteResult {
   traffic_level: "light" | "moderate" | "heavy" | null;
   traffic_ratio: number | null;
   polyline: string | null;
+  traffic_segments?: TrafficSegment[] | null;
   start_address?: string;
   end_address?: string;
   eta_iso?: string;
@@ -47,14 +54,17 @@ export interface RouteLeg {
 
 export async function getAutocompleteSuggestions(
   input: string,
-  proximity?: { lat: number; lng: number }
+  proximity?: { lat: number; lng: number },
+  country?: string
 ): Promise<PlaceSuggestion[]> {
   if (!input || input.trim().length < 2) return [];
 
   try {
-    const { data, error } = await supabase.functions.invoke("maps-autocomplete", {
-      body: { input: input.trim(), proximity },
-    });
+    const body: Record<string, unknown> = { input: input.trim() };
+    if (proximity) body.proximity = proximity;
+    if (country) body.country = country;
+
+    const { data, error } = await supabase.functions.invoke("maps-autocomplete", { body });
     if (error || !data?.ok) return [];
     return data.suggestions ?? [];
   } catch {
@@ -104,6 +114,7 @@ export async function getRoute(
       traffic_level: data.traffic_level ?? null,
       traffic_ratio: data.traffic_ratio ?? null,
       polyline: data.polyline,
+      traffic_segments: data.traffic_segments ?? null,
       start_address: data.start_address,
       end_address: data.end_address,
       eta_iso: data.eta_iso,
@@ -117,7 +128,15 @@ export async function getRoute(
 // ── Reverse Geocode ────────────────────────────────────
 
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
-  const fallback = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  const fallback = `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`;
+  
+  // Validate coordinates before calling edge function
+  if (typeof lat !== "number" || typeof lng !== "number" || !isFinite(lat) || !isFinite(lng)
+      || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    console.warn("[reverseGeocode] Invalid coordinates:", { lat, lng });
+    return fallback;
+  }
+  
   try {
     const { data, error } = await supabase.functions.invoke("maps-reverse-geocode", {
       body: { lat, lng },
@@ -137,10 +156,26 @@ export async function forwardGeocode(address: string): Promise<{ lat: number; ln
   try {
     // Use autocomplete + place details as a two-step forward geocode
     const suggestions = await getAutocompleteSuggestions(address);
-    if (suggestions.length === 0) return null;
+    if (suggestions.length === 0) {
+      const { data, error } = await supabase.functions.invoke("maps-geocode", {
+        body: { address: address.trim() },
+      });
+      if (!error && data?.ok && data.lat != null && data.lng != null) {
+        return { lat: data.lat, lng: data.lng };
+      }
+      return null;
+    }
     
     const details = await getPlaceDetails(suggestions[0].place_id);
-    if (!details) return null;
+    if (!details) {
+      const { data, error } = await supabase.functions.invoke("maps-geocode", {
+        body: { address: suggestions[0].description || address.trim() },
+      });
+      if (!error && data?.ok && data.lat != null && data.lng != null) {
+        return { lat: data.lat, lng: data.lng };
+      }
+      return null;
+    }
     
     return { lat: details.lat, lng: details.lng };
   } catch {
