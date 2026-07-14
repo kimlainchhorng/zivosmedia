@@ -1,15 +1,11 @@
 {
   "schemaVersion": 1,
-<<<<<<< HEAD
-  "generated": "2026-06-08T21:50:05.718Z",
-=======
   "generated": "2026-06-12T21:36:06.711Z",
->>>>>>> origin/main
   "mode": "soft",
   "options": {
     "strict": false,
     "skipBuild": false,
-    "skipTypeCheck": false
+    "skipTypeCheck": true
   },
   "readyForCurrentGate": false,
   "readyForProductionGate": false,
@@ -22,13 +18,8 @@
     "databaseWarnings": 1,
     "edgeFunctionDeployFailures": 0,
     "edgeFunctionMissingLiveCritical": 6,
-<<<<<<< HEAD
-    "edgeFunctionBrowserGateFailures": 0,
-    "failedCommands": 3,
-=======
     "edgeFunctionBrowserGateFailures": 2,
     "failedCommands": 4,
->>>>>>> origin/main
     "productionBlockers": 8,
     "currentGateBlockers": 1
   },
@@ -39,11 +30,7 @@
     "linkedHistoryDisconnected": false,
     "remoteMigrationHistoryRead": true,
     "remoteMigrationHistoryStatus": "read",
-<<<<<<< HEAD
-    "remoteMigrations": 1561,
-=======
     "remoteMigrations": 1570,
->>>>>>> origin/main
     "matchedVersions": 1,
     "duplicateVersions": 6,
     "newDuplicateVersions": 6
@@ -52,15 +39,9 @@
     "candidates": 616,
     "highConfidenceCandidates": 584,
     "mediumConfidenceCandidates": 32,
-<<<<<<< HEAD
-    "unmatchedLocalAfterCandidates": 495,
-    "unmatchedRemoteAfterCandidates": 944,
-    "unmatchedLocalAfterRemoteRange": 14,
-=======
     "unmatchedLocalAfterCandidates": 505,
     "unmatchedRemoteAfterCandidates": 953,
     "unmatchedLocalAfterRemoteRange": 19,
->>>>>>> origin/main
     "reviewOrder": [
       "high-confidence candidate mappings",
       "medium-confidence candidate mappings",
@@ -82,29 +63,17 @@
       {
         "order": 3,
         "label": "unmatched local migrations after candidates",
-<<<<<<< HEAD
-        "count": 495
-=======
         "count": 505
->>>>>>> origin/main
       },
       {
         "order": 4,
         "label": "unmatched remote versions after candidates",
-<<<<<<< HEAD
-        "count": 944
-=======
         "count": 953
->>>>>>> origin/main
       },
       {
         "order": 5,
         "label": "likely pending local migrations after remote range",
-<<<<<<< HEAD
-        "count": 14
-=======
         "count": 19
->>>>>>> origin/main
       }
     ]
   },
@@ -148,16 +117,10 @@
       "Environment readiness has 2 critical finding(s)."
     ],
     "failedCommands": [
-<<<<<<< HEAD
-      "Supabase deploy environment",
-      "Supabase runtime settings SQL",
-      "Production build"
-=======
       "Security scan",
       "Supabase deploy environment",
       "Supabase runtime settings SQL",
       "Edge Function browser gates"
->>>>>>> origin/main
     ]
   },
   "steps": [
@@ -212,14 +175,9 @@
       "status": "passed"
     },
     {
-      "id": "type-check",
-      "title": "TypeScript type-check",
-      "status": "passed"
-    },
-    {
       "id": "build",
       "title": "Production build",
-      "status": "failed"
+      "status": "passed"
     }
   ],
   "artifacts": {
@@ -239,20 +197,12 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-<<<<<<< HEAD
-      "bytes": 19624
-=======
       "bytes": 20983
->>>>>>> origin/main
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-<<<<<<< HEAD
-      "bytes": 7385
-=======
       "bytes": 7315
->>>>>>> origin/main
     },
     "migrationDrift": {
       "path": "docs\\supabase-migration-drift-report.md",
@@ -267,20 +217,12 @@
     "apiReadiness": {
       "path": "docs/api-readiness-report.md",
       "exists": true,
-<<<<<<< HEAD
-      "bytes": 5700
-=======
       "bytes": 5701
->>>>>>> origin/main
     },
     "reconciliationPlan": {
       "path": "docs\\supabase-migration-reconciliation-plan.md",
       "exists": true,
-<<<<<<< HEAD
-      "bytes": 4704
-=======
       "bytes": 5169
->>>>>>> origin/main
     },
     "reconciliationCandidates": {
       "path": "docs\\supabase-migration-reconciliation-candidates.csv",
@@ -295,39 +237,23 @@
     "pendingLocalReview": {
       "path": "docs\\supabase-migration-pending-local-review.csv",
       "exists": true,
-<<<<<<< HEAD
-      "bytes": 2847
-=======
       "bytes": 3759
->>>>>>> origin/main
     },
     "unmatchedLocal": {
       "path": "docs\\supabase-migration-unmatched-local.csv",
       "exists": true,
-<<<<<<< HEAD
-      "bytes": 60080
-=======
       "bytes": 61345
->>>>>>> origin/main
     },
     "unmatchedRemote": {
       "path": "docs\\supabase-migration-unmatched-remote.csv",
       "exists": true,
-<<<<<<< HEAD
-      "bytes": 99854
-=======
       "bytes": 100819
->>>>>>> origin/main
     }
   },
   "artifactSummary": {
     "total": 11,
     "existing": 11,
     "missing": 0,
-<<<<<<< HEAD
-    "bytes": 500736
-=======
     "bytes": 505633
->>>>>>> origin/main
   }
 }

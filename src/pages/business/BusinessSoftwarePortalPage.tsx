@@ -15,6 +15,7 @@ import {
   Gauge,
   Layers3,
   LayoutDashboard,
+  Loader2,
   LockKeyhole,
   PackageCheck,
   Plus,
@@ -26,8 +27,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStores";
 import { useAuth } from "@/contexts/AuthContext";
+import AppSwitcher from "@/components/cross-app/AppSwitcher";
+import CrossAppReturnBar from "@/components/cross-app/CrossAppReturnBar";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
-import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 import { resolveSoftwarePortalAccountDashboardPath } from "@/lib/business/softwarePortal";
 import bgOffice from "@/assets/bg-office.jpg";
 import hotelBusiness from "@/assets/hotel-business.jpg";
@@ -182,10 +184,10 @@ function ZivoSoftwareWordmark() {
 }
 
 export default function BusinessSoftwarePortalPage() {
-  const { user } = useAuth();
-  const { data: ownerStore } = useOwnerStoreProfile();
+  const { user, isLoading: authLoading } = useAuth();
+  const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
+  const accountLoading = authLoading || (!!user && ownerStoreLoading);
   const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
-  const isSoftwareRuntimeHost = isAutoRepairSoftwareHost(currentHostname);
   const mediaDashboardUrl =
     typeof user?.user_metadata?.zivo_media_dashboard_url === "string"
       ? user.user_metadata.zivo_media_dashboard_url
@@ -208,23 +210,10 @@ export default function BusinessSoftwarePortalPage() {
         />
       </Helmet>
 
-<<<<<<< HEAD
-      <main className="min-h-screen overflow-hidden bg-[#f7f8f6] text-[#111412]">
-        <header className="sticky top-0 z-40 border-b border-black/10 bg-[#f7f8f6]/90 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
-            <Link to="/business" className="flex items-center gap-3" aria-label="ZIVO Software">
-              <ZivoSoftwareMark />
-              <span className="leading-none">
-                <span className="block text-base font-black uppercase tracking-[0.2em] text-[#101412]">ZIVO</span>
-                <span className="mt-1 block text-[0.7rem] font-black uppercase tracking-[0.16em] text-[#138f68]">Software</span>
-              </span>
-            </Link>
-=======
       <main className="min-h-screen overflow-hidden bg-[#f2f9f4] text-[#0b0f0d]">
         <header className="sticky top-0 z-50 border-b border-black/10 bg-white">
           <div className="mx-auto flex min-h-[116px] w-full max-w-[1680px] items-center gap-8 px-8 sm:px-12 lg:px-16">
             <ZivoSoftwareWordmark />
->>>>>>> origin/main
 
             <nav className="ml-auto hidden items-center gap-10 text-[22px] font-medium text-[#353b37] lg:flex" aria-label="ZIVO Software sections">
               <Link to="/business">Home</Link>
@@ -235,7 +224,6 @@ export default function BusinessSoftwarePortalPage() {
               <a href="mailto:support@zivosoftware.com">Contact</a>
             </nav>
 
-<<<<<<< HEAD
             <div className="flex items-center gap-2">
               <CrossAppReturnBar adminHref="#software-businesses" returnPath="/business" />
               <AppSwitcher className="h-11 w-11" />
@@ -277,14 +265,6 @@ export default function BusinessSoftwarePortalPage() {
                 </>
               )}
             </div>
-=======
-            <Button asChild className="ml-auto h-[68px] rounded-[24px] bg-[#0b0f0d] px-9 text-[22px] font-bold text-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] hover:bg-black lg:ml-8">
-              <a href={authPath("/login")} onClick={forceNavigate(authPath("/login"))}>
-                <LockKeyhole className="mr-4 h-7 w-7" />
-                Sign in
-              </a>
-            </Button>
->>>>>>> origin/main
           </div>
         </header>
 

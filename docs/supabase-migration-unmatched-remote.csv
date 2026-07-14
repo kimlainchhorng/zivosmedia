@@ -943,8 +943,6 @@ remote_version,position_vs_local_range,nearest_local_version,nearest_local_filen
 20260608210548,inside_local_range,20260609000000,20260609000000_ar_reminders_secure_cron.sql,10452
 20260608210952,inside_local_range,20260609000000,20260609000000_ar_reminders_secure_cron.sql,10208
 20260608211118,inside_local_range,20260609000000,20260609000000_ar_reminders_secure_cron.sql,10122
-<<<<<<< HEAD
-=======
 20260610161949,inside_local_range,20260611000000,20260611000000_add_channel_subscriber_permissions.sql,27611
 20260610163800,inside_local_range,20260611000000,20260611000000_add_channel_subscriber_permissions.sql,26520
 20260610185126,inside_local_range,20260611000000,20260611000000_add_channel_subscriber_permissions.sql,18514
@@ -954,4 +952,3 @@ remote_version,position_vs_local_range,nearest_local_version,nearest_local_filen
 20260610204751,inside_local_range,20260611000000,20260611000000_add_channel_subscriber_permissions.sql,11529
 20260611163958,inside_local_range,20260612000000,20260612000000_add_store_default_language.sql,26402
 20260611183433,inside_local_range,20260612000000,20260612000000_add_store_default_language.sql,19527
->>>>>>> origin/main
