@@ -320,7 +320,7 @@ export default function ManageChannelPage() {
     let alive = true;
     (async () => {
       try {
-        const { data } = await (supabase as any).rpc("is_admin", { _user_id: userId });
+        const { data } = await (supabase as any).rpc("is_admin", { user_uuid: userId });
         if (alive) setIsAdmin(Boolean(data));
       } catch {
         // Fallback to user_roles lookup if is_admin signature differs
