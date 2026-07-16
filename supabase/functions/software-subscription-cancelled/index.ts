@@ -1,14 +1,9 @@
-// @ts-nocheck
 import { serve } from "../_shared/deps.ts";
+import { softwareSubscriptionGone } from "../_shared/softwareSubscriptionGone.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
-import { applySoftwareSubscriptionStatus } from "../_shared/zivopaySoftware.ts";
 
-serve(withSecurity("software-subscription-cancelled", async (req, ctx) => {
-  return applySoftwareSubscriptionStatus(req, ctx, "cancelled");
-}, {
+serve(withSecurity("software-subscription-cancelled", async (_req, ctx) => softwareSubscriptionGone(ctx), {
+  strictCors: true,
   allowedMethods: ["POST"],
-  strictCors: true,
-  skipBotDetection: true,
-  strictCors: true,
-  skipWaf: true,
+  rateLimit: "payment",
 }));

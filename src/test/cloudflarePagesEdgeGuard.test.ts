@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
-import cloudflareWorker from "../../cloudflare/worker";
+import cloudflareWorker, { softwarePageMeta } from "../../cloudflare/worker";
 import worker from "../../public/_worker.js";
 
 const env = {
@@ -204,7 +206,7 @@ describe("Cloudflare Pages edge guard", () => {
 
   it("keeps Software admin store URLs on the Software dashboard host", async () => {
     const storePath =
-      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair";
+      "/admin/stores/123e4567-e89b-42d3-a456-426614174000?tab=ar-dashboard&category=auto-repair";
     const pagesResponse = await worker.fetch(
       request(storePath, { headers: { host: "zivosoftware.com" } }),
       env,
@@ -223,7 +225,7 @@ describe("Cloudflare Pages edge guard", () => {
     );
   });
 
-  it("redirects the legacy Software business dashboard route to the auto repair dashboard", async () => {
+  it("redirects the legacy Software business dashboard route through tenant resolution", async () => {
     const pagesResponse = await worker.fetch(
       request("/business/dashboard", { headers: { host: "zivosoftware.com" } }),
       env,
@@ -235,15 +237,26 @@ describe("Cloudflare Pages edge guard", () => {
 
     expect(pagesResponse.status).toBe(302);
     expect(pagesResponse.headers.get("location")).toBe(
-      "https://zivosoftware.com/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+      "https://zivosoftware.com/business/new",
     );
     expect(cloudflareResponse.status).toBe(302);
     expect(cloudflareResponse.headers.get("location")).toBe(
-      "https://zivosoftware.com/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+      "https://zivosoftware.com/business/new",
     );
   });
 
-  it("normalizes Software auth redirects to the auto repair dashboard before app login", async () => {
+  it("contains no fixed Software tenant in either Worker redirect implementation", () => {
+    const root = process.cwd();
+    const cloudflareSource = readFileSync(path.join(root, "cloudflare/worker.ts"), "utf8");
+    const pagesSource = readFileSync(path.join(root, "public/_worker.js"), "utf8");
+
+    expect(cloudflareSource).not.toContain("a914b90d-c249-4794-ba5e-3fdac0deed44");
+    expect(pagesSource).not.toContain("a914b90d-c249-4794-ba5e-3fdac0deed44");
+    expect(cloudflareSource).toContain('const SOFTWARE_TENANT_RESOLVER_PATH = "/business/new"');
+    expect(pagesSource).toContain('const SOFTWARE_TENANT_RESOLVER_PATH = "/business/new"');
+  });
+
+  it("normalizes Software auth redirects to tenant resolution before app login", async () => {
     const login = await worker.fetch(
       request("/login?redirect=%2Fbusiness", { headers: { host: "zivosoftware.com" } }),
       env,
@@ -257,13 +270,143 @@ describe("Cloudflare Pages edge guard", () => {
       env,
     );
 
-    const expected =
-      "https://zivosoftware.com/login?redirect=%2Fadmin%2Fstores%2Fa914b90d-c249-4794-ba5e-3fdac0deed44%3Ftab%3Dar-dashboard%26category%3Dauto-repair";
+    const expected = "https://zivosoftware.com/login?redirect=%2Fbusiness%2Fnew";
     expect(login.status).toBe(302);
     expect(login.headers.get("location")).toBe(expected);
     expect(loginDashboard.status).toBe(302);
     expect(loginDashboard.headers.get("location")).toBe(expected);
     expect(accountLogin.status).toBe(200);
+  });
+
+  it("rewrites direct ZIVO Software business HTML before React runs", async () => {
+    const response = await cloudflareWorker.fetch(
+      request("/business?utm_source=release", { headers: { host: "zivosoftware.com" } }),
+      cloudflareHtmlEnv as any,
+    );
+    const html = await response.text();
+    const description =
+      "Business management software for customers, vehicles, appointments, inspections, estimates, repair orders, invoices, inventory, staff and reporting.";
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-length")).toBeNull();
+    expect(response.headers.get("content-security-policy")).toContain(
+      "report-uri https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report",
+    );
+    expect(html).toContain('<title data-rh="true">ZIVO Software | Business Management Software</title>');
+    expect(html).toContain(`<meta name="description" content="${description}" data-rh="true" />`);
+    expect(html).toContain('<link rel="canonical" href="https://zivosoftware.com/business" data-rh="true" />');
+    expect(html).toContain('<meta name="application-name" content="ZIVO Software" />');
+    expect(html).toContain('<meta name="apple-mobile-web-app-title" content="ZIVO Software" />');
+    expect(html).toContain('<meta name="theme-color" content="#10b981" />');
+    expect(html).toContain('<meta name="robots" content="index,follow,max-image-preview:large" />');
+    expect(html).toContain('<meta property="og:title" content="ZIVO Software | Business Management Software" />');
+    expect(html).toContain('<meta property="og:url" content="https://zivosoftware.com/business" />');
+    expect(html).toContain('<meta property="og:image" content="https://zivosoftware.com/pwa-icons/icon-512x512.png" />');
+    expect(html).toContain('<meta property="og:image:alt" content="ZIVO Software" />');
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    expect(html).toContain('"@type":"Organization"');
+    expect(html).toContain('"@type":"SoftwareApplication"');
+    expect(html).not.toContain("https://zivosmedia.com/og-image.png");
+    expect(html).not.toContain("https://zivosoftware.com/og-image.png");
+    expect(html).not.toContain("app-argument=https://zivosmedia.com");
+  });
+
+  it("indexes only public ZIVO Software routes and noindexes private workspace routes", async () => {
+    const publicMeta = softwarePageMeta(new URL("https://www.zivosoftware.com/business?plan=base"));
+    const privatePaths = [
+      "/login",
+      "/signup",
+      "/billing",
+      "/account",
+      "/admin/stores/example",
+      "/dashboard",
+      "/business/new",
+      "/business/dashboard",
+      "/business/software/example",
+    ];
+
+    expect(publicMeta).toEqual({
+      title: "ZIVO Software | Business Management Software",
+      description:
+        "Business management software for customers, vehicles, appointments, inspections, estimates, repair orders, invoices, inventory, staff and reporting.",
+      canonical: "https://zivosoftware.com/business",
+      robots: "index,follow,max-image-preview:large",
+    });
+
+    for (const path of privatePaths) {
+      expect(softwarePageMeta(new URL(`https://zivosoftware.com${path}`)).robots).toBe("noindex,nofollow");
+    }
+
+    const privateResponse = await cloudflareWorker.fetch(
+      request("/login", { headers: { host: "zivosoftware.com" } }),
+      cloudflareHtmlEnv as any,
+    );
+    expect(await privateResponse.text()).toContain('<meta name="robots" content="noindex,nofollow" />');
+  });
+
+  it("serves a Software-only web manifest for GET and HEAD", async () => {
+    const response = await cloudflareWorker.fetch(
+      request("/manifest.webmanifest", { headers: { host: "zivosoftware.com" } }),
+      cloudflareEnv as any,
+    );
+    const manifest = await response.json() as {
+      name: string;
+      short_name: string;
+      description: string;
+      start_url: string;
+      theme_color: string;
+      categories: string[];
+      shortcuts: { name: string; short_name: string; url: string }[];
+    };
+    const shortcutText = manifest.shortcuts
+      .flatMap(({ name, short_name, url }) => [name, short_name, url])
+      .join(" ")
+      .toLowerCase();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/manifest+json");
+    expect(manifest.name).toBe("ZIVO Software");
+    expect(manifest.short_name).toBe("ZIVO Software");
+    expect(manifest.start_url).toBe("/business?utm_source=pwa");
+    expect(manifest.theme_color).toBe("#10b981");
+    expect(manifest.categories).toEqual(["business", "productivity"]);
+    for (const forbidden of ["flights", "hotels", "cars", "reels", "social", "travel"]) {
+      expect(shortcutText).not.toContain(forbidden);
+    }
+
+    const headResponse = await cloudflareWorker.fetch(
+      request("/manifest.webmanifest", { method: "HEAD", headers: { host: "www.zivosoftware.com" } }),
+      cloudflareEnv as any,
+    );
+    expect(headResponse.status).toBe(200);
+    expect(headResponse.headers.get("content-type")).toContain("application/manifest+json");
+    expect(await headResponse.text()).toBe("");
+  });
+
+  it("serves Software-only robots and sitemap documents", async () => {
+    const robotsResponse = await cloudflareWorker.fetch(
+      request("/robots.txt", { headers: { host: "zivosoftware.com" } }),
+      cloudflareEnv as any,
+    );
+    const sitemapResponse = await cloudflareWorker.fetch(
+      request("/sitemap.xml", { headers: { host: "zivosoftware.com" } }),
+      cloudflareEnv as any,
+    );
+    const robots = await robotsResponse.text();
+    const sitemap = await sitemapResponse.text();
+
+    expect(robotsResponse.headers.get("content-type")).toContain("text/plain");
+    expect(robots).toContain("Sitemap: https://zivosoftware.com/sitemap.xml");
+    expect(robots).toContain("Disallow: /business/dashboard");
+    expect(robots).toContain("Disallow: /admin/");
+    expect(sitemapResponse.headers.get("content-type")).toContain("application/xml");
+    expect(sitemap).toContain("<loc>https://zivosoftware.com/business</loc>");
+    expect(sitemap).toContain("<loc>https://zivosoftware.com/terms-of-service</loc>");
+    expect(sitemap).toContain("<loc>https://zivosoftware.com/privacy-policy</loc>");
+    expect(sitemap).not.toContain("/login");
+    expect(sitemap).not.toContain("/admin");
+    expect(sitemap).not.toContain("/flights");
+    expect(sitemap).not.toContain("/reels");
   });
 
   it("rewrites static HTML SEO for public Zivo Travel routes before React runs", async () => {

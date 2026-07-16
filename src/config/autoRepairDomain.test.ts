@@ -11,11 +11,14 @@ import {
   ZIVO_SOFTWARE_SUPABASE_URL,
   ZIVO_SOFTWARE_HOME_PATH,
   getZivoSoftwareUrl,
+  getZivoSoftwareSubscriptionPath,
   isAutoRepairSoftwareHost,
   isZivoMediaHost,
   isZivoSoftwareDashboardPath,
   isZivoSoftwareHost,
   isZivoSoftwareRedirectTarget,
+  isZivoSoftwareStoreDashboardPath,
+  isZivoSoftwareWorkspacePath,
 } from "./autoRepairDomain";
 
 describe("auto repair software domain config", () => {
@@ -78,15 +81,31 @@ describe("auto repair software domain config", () => {
     expect(ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY).toMatch(/^sb_publishable_/);
   });
 
-  it("allows only the Software dashboard route on the software domain", () => {
-    expect(isZivoSoftwareDashboardPath("/business/dashboard")).toBe(true);
+  it("allows exact per-business UUID workspace routes on the software domain", () => {
+    expect(isZivoSoftwareDashboardPath("/business/dashboard")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44")).toBe(true);
     expect(isZivoSoftwareDashboardPath("/admin/stores/another-store-id")).toBe(false);
+    expect(isZivoSoftwareStoreDashboardPath("/admin/stores/123e4567-e89b-42d3-a456-426614174000")).toBe(true);
+    expect(isZivoSoftwareStoreDashboardPath("/admin/stores/123e4567-e89b-42d3-a456-426614174000/extra")).toBe(false);
+    expect(isZivoSoftwareWorkspacePath("/desktop/auto-repair/123e4567-e89b-42d3-a456-426614174000")).toBe(true);
+    expect(isZivoSoftwareWorkspacePath("/desktop/auto-repair/123e4567-e89b-42d3-a456-426614174000/extra")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/eats/restaurant-dashboard")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/bus/operator")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/hotel-admin")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/reels")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/chat")).toBe(false);
     expect(isZivoSoftwareDashboardPath("/profile")).toBe(false);
+  });
+
+  it("routes unentitled workspaces to billing without dropping the selected plan", () => {
+    expect(
+      getZivoSoftwareSubscriptionPath(
+        "123e4567-e89b-42d3-a456-426614174000",
+        "?category=auto-repair&plan_id=plan-1&cycle=annual",
+        "#billing",
+      ),
+    ).toBe(
+      "/admin/stores/123e4567-e89b-42d3-a456-426614174000?category=auto-repair&plan_id=plan-1&cycle=annual&tab=subscriptions#billing",
+    );
   });
 });

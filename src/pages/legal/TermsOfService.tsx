@@ -84,7 +84,7 @@ function ZivoSoftwareTerms() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#138f68]">Legal</p>
             <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-normal sm:text-5xl">ZIVO Software Terms</h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-[#5f6b65]">
-              These terms apply to using ZIVO Software business workspaces on zivosmedia.com, including setup, dashboards, team access, customer records, work orders, bookings, invoices, payments, inventory, and reports.
+              These terms apply to using ZIVO Software business workspaces on zivosoftware.com, including setup, dashboards, team access, customer records, work orders, bookings, invoices, payments, inventory, and reports.
             </p>
             <p className="mt-4 text-sm font-semibold text-[#5f6b65]">Last updated: {lastUpdated}</p>
           </div>

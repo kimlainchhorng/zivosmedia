@@ -13,6 +13,7 @@ describe("ZIVO Software and Media business handoff", () => {
     const connectSoftware = read("src/pages/ConnectSoftware.tsx");
     const connectMedia = read("src/pages/ConnectMedia.tsx");
     const wizard = read("src/pages/business/BusinessPageWizard.tsx");
+    const planSelection = read("src/lib/software/softwarePlanSelection.ts");
 
     expect(handoff).toContain('.from("store_profiles")');
     expect(handoff).toContain('.eq("owner_id", mediaUser.id)');
@@ -29,7 +30,13 @@ describe("ZIVO Software and Media business handoff", () => {
     expect(connectMedia).toContain("window.location.assign(destination)");
 
     expect(wizard).toContain("zivo_media_dashboard_url");
+    expect(wizard.match(/window\.location\.assign\(\s*appendSoftwarePlanSelection/g)).toHaveLength(2);
+    expect(planSelection).toContain('url.searchParams.set("tab", "subscriptions")');
+    expect(planSelection).toContain('url.searchParams.set("plan_id", validPlanId)');
+    expect(planSelection).toContain('url.searchParams.set("cycle", cycle)');
     expect(wizard).toContain('normalizeStoreCategory(store.category) === "auto repair"');
+    expect(wizard).toContain('!isSoftwareDomain || normalizeStoreCategory(store.category) === "auto repair"');
+    expect(wizard).toContain('option.value === "auto-repair"');
     expect(wizard).toContain('.order("created_at", { ascending: false })');
     expect(wizard).not.toContain('.eq("owner_id", user.id)\n        .maybeSingle()');
   });

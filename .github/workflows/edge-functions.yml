@@ -61,14 +61,13 @@ jobs:
             ${{ runner.os }}-deno-
 
       - name: Deno type-check (shared deps)
-        run: deno check supabase/functions/_shared/deps.ts
+        run: deno check --config supabase/functions/deno.json --frozen supabase/functions/_shared/deps.ts
 
       - name: Deno type-check (all functions)
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
         run: |
-          find supabase/functions -name "index.ts" -not -path "*/_shared/*" | sort | \
-          xargs -I {} sh -c 'echo "Checking: {}" && deno check "{}" || echo "FAIL: {}"'
+          set -o pipefail
+          find supabase/functions -name "index.ts" -not -path "*/_shared/*" -print0 | sort -z | \
+          xargs -0 -n 1 sh -c 'echo "Checking: $1" && deno check --config supabase/functions/deno.json --frozen "$1"' _
 
       - name: Lint edge functions
         run: deno lint supabase/functions/ --ignore=supabase/functions/_shared/test-utils.ts
-        continue-on-error: ${{ github.event_name == 'pull_request' }}

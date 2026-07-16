@@ -32,13 +32,13 @@ test("zivosoftware.com opens the business software login flow", async () => {
 
     await page.goto(`http://${host}:${port}/`, { waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(new RegExp(`^http://${host}:${port}/business`));
-    await expect(page.getByRole("heading", { name: "ZIVO Software for local businesses" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Run the work. Keep the whole business in view." })).toBeVisible();
     await expect(page.locator("header").getByRole("link", { name: "Log in" })).toBeVisible();
-    await expect(page.locator("header").getByRole("link", { name: "Sign up" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Service desk" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Sales counter" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Service bay" })).toBeVisible();
-    await expect(page.getByText("Home", { exact: true })).toHaveCount(0);
+    await expect(page.locator("header").getByRole("link", { name: "Start free trial" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The core work, connected." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Built for the auto-repair workday." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Give people the access they need—without losing the record." })).toBeVisible();
+    await expect(page.locator("header").getByRole("link", { name: "Home", exact: true })).toBeVisible();
     await expect(page.getByText("Reels", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Chat", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Profile", { exact: true })).toHaveCount(0);
@@ -52,6 +52,9 @@ test("zivosoftware.com opens the business software login flow", async () => {
     await expect(page).toHaveURL(
       new RegExp(`^http://${host}:${port}/login\\?redirect=.*admin%2Fstores%2F${STORE_ID}.*tab%3Dar-dashboard`),
     );
+    const emailPicker = page.getByRole("button", { name: /Sign in with email|Log into another account/ });
+    await expect(emailPicker).toBeVisible();
+    await emailPicker.click();
     await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
     expect(consoleErrors).toEqual([]);
   } finally {

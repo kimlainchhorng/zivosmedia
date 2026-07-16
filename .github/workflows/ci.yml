@@ -33,7 +33,7 @@ jobs:
   ci:
     name: Type-check · Lint · Test · Build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -47,8 +47,11 @@ jobs:
           node-version-file: ".nvmrc"
           cache: npm
 
+      - name: Reject committed merge markers
+        run: npm run qa:conflict-markers
+
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund && npm install react-dom@19.2.7 --save-exact --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       # ── TypeScript ──────────────────────────────────────────────────────────
       - name: TypeScript type-check
@@ -56,9 +59,12 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=8192"
         run: npm run type-check
 
+      - name: Cloudflare Worker type-check
+        run: npm run type-check:worker
+
       # ── Lint ────────────────────────────────────────────────────────────────
       - name: ESLint
-        run: npx eslint src/pages/business/BusinessSoftwarePortalPage.tsx --max-warnings=0
+        run: npm run lint
 
       # ── Database migration safety ───────────────────────────────────────────
       - name: Supabase migration drift check (PR advisory)
@@ -73,8 +79,7 @@ jobs:
 
       # ── Unit tests ──────────────────────────────────────────────────────────
       - name: Vitest unit tests
-        run: npm test -- src/pages/business/BusinessSoftwarePortalPage.test.tsx
-        continue-on-error: true
+        run: npm run test
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
 

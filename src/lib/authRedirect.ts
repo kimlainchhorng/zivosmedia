@@ -1,8 +1,8 @@
 import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
 import { ZIVO_DRIVER_HOME_PATH, isZivoDriverHost } from "@/config/zivoDriverDomain";
 import {
-  AUTO_REPAIR_DASHBOARD_PATH,
   AUTO_REPAIR_STORE_ID,
+  ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
   isAutoRepairSoftwareHost,
   isZivoMediaHost,
 } from "@/config/autoRepairDomain";
@@ -46,7 +46,7 @@ const normalizeRedirectTarget = (value: string, currentHost?: string | null) => 
     isAutoRepairSoftwareHost(currentHost) &&
     (value === "/business" || value === "/business/dashboard")
   ) {
-    return AUTO_REPAIR_DASHBOARD_PATH;
+    return ZIVO_SOFTWARE_AUTH_REDIRECT_PATH;
   }
 
   return WORKSPACE_REDIRECTS[value] ?? value;
