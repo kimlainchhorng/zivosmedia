@@ -100,6 +100,7 @@ export async function getOrCreatePaymentCustomer(
     name?: string | null;
     phone?: string | null;
     currency: string;
+    idempotency_key?: string | null;
   },
 ): Promise<string> {
   const businessId = input.business_id ?? null;
@@ -115,15 +116,18 @@ export async function getOrCreatePaymentCustomer(
   if (existingError) throw new Error(existingError.message);
   if (existing?.provider_customer_id) return existing.provider_customer_id;
 
-  const customer = await stripe.customers.create({
-    email: input.email || user.email || undefined,
-    name: input.name || undefined,
-    phone: input.phone || undefined,
-    metadata: {
-      zivosmedia_user_id: user.id,
-      ...(businessId ? { business_id: businessId } : {}),
+  const customer = await stripe.customers.create(
+    {
+      email: input.email || user.email || undefined,
+      name: input.name || undefined,
+      phone: input.phone || undefined,
+      metadata: {
+        zivosmedia_user_id: user.id,
+        ...(businessId ? { business_id: businessId } : {}),
+      },
     },
-  });
+    input.idempotency_key ? { idempotencyKey: `${input.idempotency_key}:customer` } : undefined,
+  );
 
   const { error: insertError } = await admin.from("payment_customers").insert({
     zivosmedia_user_id: user.id,
@@ -141,7 +145,7 @@ export async function getOrCreatePaymentCustomer(
 }
 
 export async function auditPaymentEvent(admin: any, data: Record<string, unknown>) {
-  await admin.from("payment_audit_logs").insert({
+  const { error } = await admin.from("payment_audit_logs").insert({
     event_type: data.event_type,
     actor_user_id: data.actor_user_id ?? null,
     zivosmedia_user_id: data.zivosmedia_user_id ?? null,
@@ -158,4 +162,5 @@ export async function auditPaymentEvent(admin: any, data: Record<string, unknown
     user_agent: data.user_agent ?? null,
     metadata: data.metadata ?? {},
   });
+  if (error) throw new Error(`Unable to record payment audit event: ${error.message}`);
 }

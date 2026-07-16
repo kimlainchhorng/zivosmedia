@@ -7,15 +7,19 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import { withRedirectParam } from "@/lib/authRedirect";
 import AccessDenied from "@/components/auth/AccessDenied";
 import { supabase } from "@/integrations/supabase/client";
+import { useSoftwareSubscription } from "@/hooks/useSoftwareSubscription";
 import { buildAdminQueueHref } from "@/config/zivoAdminDomain";
 import {
   AUTO_REPAIR_STORE_ID,
   ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
   ZIVO_SOFTWARE_HOME_PATH,
+  getZivoSoftwareSubscriptionPath,
   getZivoSoftwareUrl,
   isAutoRepairSoftwareHost,
   isZivoMediaHost,
   isZivoSoftwareDashboardPath,
+  isZivoSoftwareStoreDashboardPath,
+  isZivoSoftwareWorkspacePath,
 } from "@/config/autoRepairDomain";
 
 const isLodgingCategory = (category?: string | null) => {
@@ -27,6 +31,13 @@ const isLodgingCategory = (category?: string | null) => {
     .trim();
   return ["hotel", "hotels", "resort", "resorts", "guesthouse", "guest house", "guesthouse b and b", "guesthouse bed and breakfast", "bed and breakfast", "b and b"].includes(normalized);
 };
+
+const isAutoRepairCategory = (category?: string | null) =>
+  (category || "")
+    .toLowerCase()
+    .replace(/[/_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() === "auto repair";
 
 const getPublicStorePath = (store?: { id: string; slug: string | null; category: string | null; is_active: boolean | null } | null) => {
   if (!store?.is_active) return null;
@@ -59,11 +70,16 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   const { storeId } = useParams<{ storeId?: string }>();
   const isAutoRepairSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const isZivoSoftwareWorkspaceRoute =
+    isAutoRepairSoftwareDomain && !!storeId && isZivoSoftwareWorkspacePath(location.pathname);
+  const isSoftwareSubscriptionRoute =
+    isZivoSoftwareWorkspaceRoute &&
+    isZivoSoftwareStoreDashboardPath(location.pathname) &&
+    new URLSearchParams(location.search).get("tab") === "subscriptions";
   const isAutoRepairSoftwareRoute =
     !!storeId &&
-    storeId === AUTO_REPAIR_STORE_ID &&
-    (location.pathname.startsWith("/desktop/auto-repair/") ||
-      (isAutoRepairSoftwareDomain && location.pathname === `/admin/stores/${AUTO_REPAIR_STORE_ID}`));
+    (isZivoSoftwareWorkspaceRoute ||
+      (storeId === AUTO_REPAIR_STORE_ID && location.pathname === `/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}`));
   const isZivoBusinessSetupRoute =
     location.pathname === "/business/new" || location.pathname.startsWith("/business/software/");
   const isZivoSoftwareDashboardRoute = isZivoSoftwareDashboardPath(location.pathname);
@@ -117,6 +133,35 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   });
   const ownerAccessResolved = ownerQuery.isSuccess || ownerQuery.isError;
   const ownerAccessAllowed = ownerQuery.data === true;
+  const softwareStoreScopeQuery = useQuery({
+    queryKey: ["protected-route-software-store-scope", user?.id, storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("store_profiles")
+        .select("id, category")
+        .eq("id", storeId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: isZivoSoftwareWorkspaceRoute && Boolean(user?.id),
+    staleTime: 30_000,
+  });
+  const softwareStoreScopeResolved =
+    softwareStoreScopeQuery.isSuccess || softwareStoreScopeQuery.isError;
+  const softwareStoreScopeAllowed =
+    isAutoRepairCategory(softwareStoreScopeQuery.data?.category);
+  const softwareAccessQuery = useSoftwareSubscription(
+    isZivoSoftwareWorkspaceRoute &&
+      !isSoftwareSubscriptionRoute &&
+      !isAdmin &&
+      ownerAccessAllowed &&
+      softwareStoreScopeAllowed
+      ? storeId
+      : undefined,
+  );
+  const softwareAccessResolved = softwareAccessQuery.isSuccess || softwareAccessQuery.isError;
+  const softwareAccessAllowed = softwareAccessQuery.data?.access_granted === true;
   const publicStoreResolved = publicStoreQuery.isSuccess || publicStoreQuery.isError;
   const publicStorePath = getPublicStorePath(publicStoreQuery.data);
   const shouldRedirectStaffAdminToZivoAdmin =
@@ -194,6 +239,24 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     return <Navigate to={loginUrl} state={{ from: location }} replace />;
   }
 
+  if (isZivoSoftwareWorkspaceRoute) {
+    if (!softwareStoreScopeResolved) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Checking Software workspace...</p>
+          </div>
+        </div>
+      );
+    }
+    if (!softwareStoreScopeAllowed) {
+      return (
+        <AccessDenied message="This ZIVO Software address is not an Auto Repair workspace." />
+      );
+    }
+  }
+
   if (shouldRedirectStaffAdminToZivoAdmin) {
     return (
       <div className="min-h-screen bg-background px-6 py-12 text-center">
@@ -232,7 +295,34 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
         );
       }
 
-      if (ownerAccessAllowed) return <>{children}</>;
+      if (ownerAccessAllowed) {
+        if (isZivoSoftwareWorkspaceRoute && !isSoftwareSubscriptionRoute) {
+          if (!softwareAccessResolved) {
+            return (
+              <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Checking Software access...</p>
+                </div>
+              </div>
+            );
+          }
+          if (softwareAccessQuery.isError) {
+            return (
+              <AccessDenied message="ZIVO Software access could not be verified. Open Subscriptions to review billing or try again." />
+            );
+          }
+          if (!softwareAccessAllowed) {
+            return (
+              <Navigate
+                to={getZivoSoftwareSubscriptionPath(storeId, location.search, location.hash)}
+                replace
+              />
+            );
+          }
+        }
+        return <>{children}</>;
+      }
       if (isAutoRepairSoftwareRoute) {
         return (
           <AccessDenied

@@ -1,87 +1,136 @@
-// Returns the signed-in owner's current ZIVO Software subscription for a store,
-// read live from Stripe (the account this app bills on). Used by the
-// Subscriptions tab to show the active plan, status, and renewal date. No DB
-// table needed — we look it up by the owner's Stripe customer + store metadata.
-import { createClient } from "../_shared/deps.ts";
-import Stripe from "../_shared/stripe.ts";
+// @ts-nocheck
+import { serve } from "../_shared/deps.ts";
+import {
+  manualSoftwareAccessGranted,
+  stripeSoftwareAccessGranted,
+} from "../_shared/softwareAccess.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { assertBusinessOwner } from "../_shared/zivopaySoftware.ts";
+import { json, requireUser, requireUuid, serviceClient } from "../_shared/zivopay.ts";
 
-// Stripe statuses we treat as "this is their plan" (most recent wins).
-const LIVE_STATUSES = new Set(["trialing", "active", "past_due", "unpaid"]);
-
-Deno.serve(withSecurity("software-subscription-status", async (req, ctx) => {
-  const corsHeaders = ctx.corsHeaders;
-  const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+// Read webhook-reconciled local state. The browser never receives a service key
+// and this endpoint never trusts an email/store pair to search Stripe directly.
+serve(withSecurity("software-subscription-status", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
+  const { user, error: authError } = await requireUser(req);
+  if (authError || !user) return json(cors, { error: "Unauthorized" }, 401);
 
   try {
-    const auth = req.headers.get("Authorization");
-    if (!auth?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: jsonHeaders });
-    }
-    const sb = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: auth } } },
-    );
-    const { data: u } = await sb.auth.getUser();
-    const user = u?.user;
-    if (!user?.email) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: jsonHeaders });
-    }
+    const body = await req.json();
+    const businessId = requireUuid(body.business_id ?? body.store_id, "business_id");
+    const admin = serviceClient();
+    await assertBusinessOwner(admin, user.id, businessId);
+    const { data: autoRepairProduct, error: productError } = await admin
+      .from("software_products")
+      .select("id")
+      .eq("slug", "zivo-auto-repair")
+      .eq("status", "active")
+      .maybeSingle();
+    if (productError) throw new Error(productError.message);
+    if (!autoRepairProduct?.id) throw new Error("ZIVO Auto Repair product is not active");
 
-    const body = await req.json().catch(() => ({}));
-    const storeId = String(body?.store_id || "");
-    if (!storeId) {
-      return new Response(JSON.stringify({ error: "store_id is required" }), { status: 400, headers: jsonHeaders });
-    }
+    const [subscriptionResult, entitlementResult] = await Promise.all([
+      admin
+        .from("payment_subscriptions")
+        .select("id, provider_subscription_id, provider_price_id, plan_name, billing_interval, status, trial_end, current_period_end, cancel_at, metadata, created_at")
+        .eq("provider", "stripe")
+        .eq("business_id", businessId)
+        .eq("software_product_id", autoRepairProduct.id)
+        .in("status", ["trialing", "active", "past_due", "unpaid", "incomplete", "paused"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      admin
+        .from("business_software_entitlements")
+        .select("id, status, current_period_end, trial_end, cancelled_at, metadata, created_at, payment_subscription_id, provider_subscription_id, software_products(name)")
+        .eq("business_id", businessId)
+        .eq("software_product_id", autoRepairProduct.id)
+        .in("status", ["trialing", "active", "past_due", "unpaid", "incomplete", "paused"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (subscriptionResult.error) throw new Error(subscriptionResult.error.message);
+    if (entitlementResult.error) throw new Error(entitlementResult.error.message);
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) {
-      // No billing connected yet — report "no subscription" rather than erroring.
-      return new Response(JSON.stringify({ subscription: null }), { headers: jsonHeaders });
-    }
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" as any });
+    const subscription = subscriptionResult.data;
+    const entitlement = entitlementResult.data;
+    const subscriptionAccess = stripeSoftwareAccessGranted(subscription?.status);
+    const manualAccess = manualSoftwareAccessGranted(entitlement);
 
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    const customer = customers.data[0];
-    if (!customer) {
-      return new Response(JSON.stringify({ subscription: null }), { headers: jsonHeaders });
-    }
+    if (!subscription || (!subscriptionAccess && manualAccess)) {
+      if (!entitlement) return json(cors, { subscription: null });
 
-    const subs = await stripe.subscriptions.list({ customer: customer.id, status: "all", limit: 20 });
-    // Pick this store's software subscription, preferring a live one, newest first.
-    const candidates = subs.data
-      .filter((s: any) => (s.metadata?.store_id === storeId) && (s.metadata?.source === "zivo_software_admin"))
-      .sort((a: any, b: any) => (b.created ?? 0) - (a.created ?? 0));
-    const sub = candidates.find((s: any) => LIVE_STATUSES.has(s.status)) ?? candidates[0] ?? null;
-
-    if (!sub) {
-      return new Response(JSON.stringify({ subscription: null }), { headers: jsonHeaders });
-    }
-
-    const item = (sub as any).items?.data?.[0];
-    const iso = (unix: number | null | undefined) => (unix ? new Date(unix * 1000).toISOString() : null);
-
-    return new Response(
-      JSON.stringify({
+      const entitlementMetadata = entitlement.metadata && typeof entitlement.metadata === "object"
+        ? entitlement.metadata
+        : {};
+      return json(cors, {
         subscription: {
-          plan: (sub as any).metadata?.plan_id ?? null,
-          cycle: (sub as any).metadata?.billing_cycle ?? (item?.price?.recurring?.interval === "year" ? "annual" : "monthly"),
-          status: (sub as any).status,
-          current_period_end: iso((sub as any).current_period_end),
-          trial_end: iso((sub as any).trial_end),
-          cancel_at_period_end: !!(sub as any).cancel_at_period_end,
-          amount_cents: item?.price?.unit_amount ?? null,
-          interval: item?.price?.recurring?.interval ?? null,
+          id: entitlement.id,
+          plan_id: entitlementMetadata.plan_id ?? null,
+          plan: entitlementMetadata.tier_key
+            ?? entitlementMetadata.plan_name
+            ?? entitlement.software_products?.name
+            ?? "Software access",
+          cycle: entitlementMetadata.billing_interval === "year"
+            ? "annual"
+            : entitlementMetadata.billing_interval === "month"
+              ? "monthly"
+              : null,
+          status: entitlement.status,
+          current_period_end: entitlement.current_period_end,
+          trial_end: entitlement.trial_end,
+          cancel_at_period_end: Boolean(entitlement.cancelled_at),
+          amount_cents: null,
+          currency: null,
+          interval: entitlementMetadata.billing_interval ?? null,
+          billing_portal_available: false,
+          reconciliation_required: true,
+          access_granted: manualAccess,
         },
-      }),
-      { headers: jsonHeaders },
-    );
-  } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message, subscription: null }), {
-      status: 200,
-      headers: jsonHeaders,
+      });
+    }
+
+    const { data: plan, error: planError } = subscription.provider_price_id
+      ? await admin
+        .from("software_pricing_plans")
+        .select("id, amount, currency, billing_interval")
+        .eq("provider", "stripe")
+        .eq("provider_price_id", subscription.provider_price_id)
+        .eq("software_product_id", autoRepairProduct.id)
+        .maybeSingle()
+      : { data: null, error: null };
+    if (planError) throw new Error(planError.message);
+
+    const metadata = subscription.metadata && typeof subscription.metadata === "object"
+      ? subscription.metadata
+      : {};
+    const interval = plan?.billing_interval || subscription.billing_interval || null;
+    return json(cors, {
+      subscription: {
+        id: subscription.id,
+        plan_id: plan?.id ?? metadata.plan_id ?? null,
+        plan: metadata.tier_key ?? subscription.plan_name ?? null,
+        cycle: interval === "year" ? "annual" : interval === "month" ? "monthly" : interval,
+        status: subscription.status,
+        current_period_end: subscription.current_period_end,
+        trial_end: subscription.trial_end,
+        cancel_at_period_end: Boolean(metadata._stripe_cancel_at_period_end ?? subscription.cancel_at),
+        amount_cents: plan?.amount ?? null,
+        currency: plan?.currency ?? null,
+        interval,
+        billing_portal_available: true,
+        reconciliation_required: false,
+        access_granted: subscriptionAccess,
+      },
     });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = message.includes("owner access") ? 403 : 400;
+    return json(cors, { error: message }, status);
   }
-}, { rateLimit: "api_general", strictCors: true, allowedMethods: ["POST"] }));
+}, {
+  rateLimit: "api_general",
+  strictCors: true,
+  allowedMethods: ["POST"],
+}));

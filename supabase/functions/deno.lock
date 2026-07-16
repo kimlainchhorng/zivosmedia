@@ -1,0 +1,327 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:@supabase/supabase-js@2.106.0": "2.106.0",
+    "npm:stripe@18.5.0": "18.5.0"
+  },
+  "npm": {
+    "@supabase/auth-js@2.106.0": {
+      "integrity": "sha512-JY7602OvjK2l3BjsQkpePpxR+6P0iG37gCrZNWAMhAuNh1iFnhGRwj/y5EshUG0INMPGFrj0UA9MErQ/kOEKFg==",
+      "dependencies": [
+        "tslib"
+      ]
+    },
+    "@supabase/functions-js@2.106.0": {
+      "integrity": "sha512-ADIkJYH5w7HbnGVAAlCbyKoLF5QdfyezBLfYXpUqhxZOacK6YepOvnP/8p4p+50bhTPWp6VhDxu19KO7e/qU2g==",
+      "dependencies": [
+        "tslib"
+      ]
+    },
+    "@supabase/phoenix@0.4.4": {
+      "integrity": "sha512-Gt0pqoXuIqX/8dvG0OKp/wMCobXNH3klNbUPBNyOfN0YA1IswrM3HyWFMOPk1Jy+BRaIyDPcFx4jLBwHNmlyfQ=="
+    },
+    "@supabase/postgrest-js@2.106.0": {
+      "integrity": "sha512-vNKFAXQrtmUn7J3LbN+uMlt0jciAwRIBpdy6Do4DKrpf1xj0kJhbqXTX4y8ziewWUEEx8G5GPnDmprXXaO9f3w==",
+      "dependencies": [
+        "tslib"
+      ]
+    },
+    "@supabase/realtime-js@2.106.0": {
+      "integrity": "sha512-mYZoaYpkyjlecixbvxCu0h3jw12uHfEcUqNdaRATNI8zQVI5arels+VJzAGcHwNiD+/Juv0OXIuk+M7SHsdI4A==",
+      "dependencies": [
+        "@supabase/phoenix",
+        "tslib"
+      ]
+    },
+    "@supabase/storage-js@2.106.0": {
+      "integrity": "sha512-BHc3nIjD3zfdDxBenphXrLJSoQ+qwo24VD96cVzmjBFbQVk5krvwRNUXrA5ozPplA3Vhlst2d/hy9R9ViqH2lg==",
+      "dependencies": [
+        "iceberg-js",
+        "tslib"
+      ]
+    },
+    "@supabase/supabase-js@2.106.0": {
+      "integrity": "sha512-OOoo3sLj9iVXNp6b+fkyOfFeQrvvNy7nQbaONNf72dOaictUeS39hFDS9argIRTag6M3ZxIypNWcrDAwLgUihQ==",
+      "dependencies": [
+        "@supabase/auth-js",
+        "@supabase/functions-js",
+        "@supabase/postgrest-js",
+        "@supabase/realtime-js",
+        "@supabase/storage-js"
+      ]
+    },
+    "call-bind-apply-helpers@1.0.2": {
+      "integrity": "sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==",
+      "dependencies": [
+        "es-errors",
+        "function-bind"
+      ]
+    },
+    "call-bound@1.0.4": {
+      "integrity": "sha512-+ys997U96po4Kx/ABpBCqhA9EuxJaQWDQg7295H4hBphv3IZg0boBKuwYpt4YXp6MZ5AmZQnU/tyMTlRpaSejg==",
+      "dependencies": [
+        "call-bind-apply-helpers",
+        "get-intrinsic"
+      ]
+    },
+    "dunder-proto@1.0.1": {
+      "integrity": "sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==",
+      "dependencies": [
+        "call-bind-apply-helpers",
+        "es-errors",
+        "gopd"
+      ]
+    },
+    "es-define-property@1.0.1": {
+      "integrity": "sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g=="
+    },
+    "es-errors@1.3.0": {
+      "integrity": "sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw=="
+    },
+    "es-object-atoms@1.1.2": {
+      "integrity": "sha512-HWcBoN6NileqtSydK2FqHbS/LoDd2pqrnQHLyJzBj4kOp/ky2MWMN694xOfkK8/SnUsW2DH7EfyVlydKCsm1Zw==",
+      "dependencies": [
+        "es-errors"
+      ]
+    },
+    "function-bind@1.1.2": {
+      "integrity": "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="
+    },
+    "get-intrinsic@1.3.0": {
+      "integrity": "sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==",
+      "dependencies": [
+        "call-bind-apply-helpers",
+        "es-define-property",
+        "es-errors",
+        "es-object-atoms",
+        "function-bind",
+        "get-proto",
+        "gopd",
+        "has-symbols",
+        "hasown",
+        "math-intrinsics"
+      ]
+    },
+    "get-proto@1.0.1": {
+      "integrity": "sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==",
+      "dependencies": [
+        "dunder-proto",
+        "es-object-atoms"
+      ]
+    },
+    "gopd@1.2.0": {
+      "integrity": "sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg=="
+    },
+    "has-symbols@1.1.0": {
+      "integrity": "sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ=="
+    },
+    "hasown@2.0.4": {
+      "integrity": "sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==",
+      "dependencies": [
+        "function-bind"
+      ]
+    },
+    "iceberg-js@0.8.1": {
+      "integrity": "sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA=="
+    },
+    "math-intrinsics@1.1.0": {
+      "integrity": "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g=="
+    },
+    "object-inspect@1.13.4": {
+      "integrity": "sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew=="
+    },
+    "qs@6.15.3": {
+      "integrity": "sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==",
+      "dependencies": [
+        "es-define-property",
+        "side-channel"
+      ]
+    },
+    "side-channel-list@1.0.1": {
+      "integrity": "sha512-mjn/0bi/oUURjc5Xl7IaWi/OJJJumuoJFQJfDDyO46+hBWsfaVM65TBHq2eoZBhzl9EchxOijpkbRC8SVBQU0w==",
+      "dependencies": [
+        "es-errors",
+        "object-inspect"
+      ]
+    },
+    "side-channel-map@1.0.1": {
+      "integrity": "sha512-VCjCNfgMsby3tTdo02nbjtM/ewra6jPHmpThenkTYh8pG9ucZ/1P8So4u4FGBek/BjpOVsDCMoLA/iuBKIFXRA==",
+      "dependencies": [
+        "call-bound",
+        "es-errors",
+        "get-intrinsic",
+        "object-inspect"
+      ]
+    },
+    "side-channel-weakmap@1.0.2": {
+      "integrity": "sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A==",
+      "dependencies": [
+        "call-bound",
+        "es-errors",
+        "get-intrinsic",
+        "object-inspect",
+        "side-channel-map"
+      ]
+    },
+    "side-channel@1.1.1": {
+      "integrity": "sha512-6x6dK6zJdpTzF4sQeNYxwtvBzf6Eg4GtlesS94HOvTudUeyK2WXAaIfmDgsyslYrRBeFIlsi54AYsFGUuhmvrQ==",
+      "dependencies": [
+        "es-errors",
+        "object-inspect",
+        "side-channel-list",
+        "side-channel-map",
+        "side-channel-weakmap"
+      ]
+    },
+    "stripe@18.5.0": {
+      "integrity": "sha512-Hp+wFiEQtCB0LlNgcFh5uVyKznpDjzyUZ+CNVEf+I3fhlYvh7rZruIg+jOwzJRCpy0ZTPMjlzm7J2/M2N6d+DA==",
+      "dependencies": [
+        "qs"
+      ]
+    },
+    "tslib@2.8.1": {
+      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
+    }
+  },
+  "remote": {
+    "https://deno.land/std@0.224.0/async/delay.ts": "f90dd685b97c2f142b8069082993e437b1602b8e2561134827eeb7c12b95c499",
+    "https://deno.land/std@0.224.0/http/server.ts": "f9313804bf6467a1704f45f76cb6cd0a3396a3b31c316035e6a4c2035d1ea514"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@capacitor/action-sheet@^8.1.1",
+        "npm:@capacitor/android@^8.4.1",
+        "npm:@capacitor/app-launcher@^8.0.1",
+        "npm:@capacitor/app@^8.1.0",
+        "npm:@capacitor/browser@^8.0.3",
+        "npm:@capacitor/camera@^8.2.1",
+        "npm:@capacitor/cli@^8.4.1",
+        "npm:@capacitor/clipboard@^8.0.1",
+        "npm:@capacitor/core@^8.3.4",
+        "npm:@capacitor/device@^8.0.2",
+        "npm:@capacitor/dialog@^8.0.1",
+        "npm:@capacitor/filesystem@^8.1.2",
+        "npm:@capacitor/haptics@^8.0.2",
+        "npm:@capacitor/ios@^8.4.1",
+        "npm:@capacitor/keyboard@^8.0.5",
+        "npm:@capacitor/local-notifications@^8.2.0",
+        "npm:@capacitor/network@^8.0.1",
+        "npm:@capacitor/preferences@^8.0.1",
+        "npm:@capacitor/push-notifications@^8.1.1",
+        "npm:@capacitor/share@^8.0.1",
+        "npm:@capacitor/splash-screen@^8.0.1",
+        "npm:@capacitor/status-bar@^8.0.2",
+        "npm:@capacitor/toast@^8.0.1",
+        "npm:@capawesome/capacitor-apple-sign-in@0.1",
+        "npm:@capgo/capacitor-updater@^8.47.8",
+        "npm:@eslint/js@^10.0.1",
+        "npm:@ffmpeg/core@0.12.10",
+        "npm:@ffmpeg/ffmpeg@~0.12.15",
+        "npm:@ffmpeg/util@~0.12.2",
+        "npm:@googlemaps/markerclusterer@^2.6.2",
+        "npm:@hookform/resolvers@^5.2.2",
+        "npm:@mediapipe/tasks-vision@~0.10.35",
+        "npm:@playwright/test@^1.61.1",
+        "npm:@radix-ui/react-accordion@^1.2.16",
+        "npm:@radix-ui/react-alert-dialog@^1.1.19",
+        "npm:@radix-ui/react-avatar@^1.2.2",
+        "npm:@radix-ui/react-checkbox@^1.3.7",
+        "npm:@radix-ui/react-collapsible@^1.1.12",
+        "npm:@radix-ui/react-dialog@^1.1.15",
+        "npm:@radix-ui/react-dropdown-menu@^2.1.20",
+        "npm:@radix-ui/react-label@^2.1.11",
+        "npm:@radix-ui/react-popover@^1.1.19",
+        "npm:@radix-ui/react-progress@^1.1.12",
+        "npm:@radix-ui/react-radio-group@^1.4.3",
+        "npm:@radix-ui/react-scroll-area@^1.2.14",
+        "npm:@radix-ui/react-select@^2.3.3",
+        "npm:@radix-ui/react-separator@^1.1.11",
+        "npm:@radix-ui/react-slider@^1.4.3",
+        "npm:@radix-ui/react-slot@^1.2.4",
+        "npm:@radix-ui/react-switch@^1.3.3",
+        "npm:@radix-ui/react-tabs@^1.1.17",
+        "npm:@radix-ui/react-toast@^1.2.19",
+        "npm:@radix-ui/react-tooltip@^1.2.12",
+        "npm:@react-google-maps/api@^2.20.8",
+        "npm:@stripe/connect-js@^3.4.6",
+        "npm:@stripe/react-connect-js@^3.4.4",
+        "npm:@stripe/react-stripe-js@^6.7.0",
+        "npm:@stripe/stripe-js@^9.9.0",
+        "npm:@supabase/ssr@~0.12.1",
+        "npm:@supabase/supabase-js@^2.108.2",
+        "npm:@tailwindcss/postcss@^4.3.0",
+        "npm:@tailwindcss/typography@~0.5.19",
+        "npm:@tanstack/react-query@^5.101.2",
+        "npm:@testing-library/jest-dom@^6.9.1",
+        "npm:@testing-library/react@^16.3.2",
+        "npm:@types/file-saver@^2.0.7",
+        "npm:@types/google.maps@^3.65.1",
+        "npm:@types/node@^25.9.1",
+        "npm:@types/react-dom@^19.2.3",
+        "npm:@types/react@^19.2.16",
+        "npm:@vitejs/plugin-react@^6.0.2",
+        "npm:@zxing/browser@0.2",
+        "npm:autoprefixer@^10.5.0",
+        "npm:capacitor-plugin-app-tracking-transparency@3",
+        "npm:class-variance-authority@~0.7.1",
+        "npm:client-zip@^2.5.0",
+        "npm:clsx@^2.1.1",
+        "npm:cmdk@^1.1.1",
+        "npm:date-fns@^4.3.0",
+        "npm:docx@^9.7.0",
+        "npm:dotenv@^17.4.2",
+        "npm:electron-builder@^26.8.1",
+        "npm:electron@^42.3.3",
+        "npm:embla-carousel-autoplay@^8.6.0",
+        "npm:embla-carousel-react@^8.6.0",
+        "npm:esbuild@0.28",
+        "npm:eslint-plugin-react-hooks@^7.1.1",
+        "npm:eslint-plugin-react-refresh@~0.5.2",
+        "npm:eslint@^10.4.0",
+        "npm:file-saver@^2.0.5",
+        "npm:framer-motion@^12.40.0",
+        "npm:globals@^17.6.0",
+        "npm:html-to-image@^1.11.13",
+        "npm:html2canvas@^1.4.1",
+        "npm:input-otp@^1.4.2",
+        "npm:jsbarcode@^3.12.3",
+        "npm:jsdom@^29.1.1",
+        "npm:jspdf-autotable@^5.0.8",
+        "npm:jspdf@^4.2.1",
+        "npm:jsqr@^1.4.0",
+        "npm:livekit-client@^2.19.0",
+        "npm:lovable-tagger@^1.3.0",
+        "npm:lucide-react@^1.16.0",
+        "npm:next-themes@~0.4.6",
+        "npm:postcss@^8.5.15",
+        "npm:qrcode.react@^4.2.0",
+        "npm:react-day-picker@^10.0.1",
+        "npm:react-dom@19.2.7",
+        "npm:react-helmet-async@3",
+        "npm:react-hook-form@^7.77.0",
+        "npm:react-router-dom@^7.15.1",
+        "npm:react@^19.2.7",
+        "npm:recharts@^3.8.1",
+        "npm:sharp@~0.34.5",
+        "npm:sonner@^2.0.7",
+        "npm:supabase@^2.109.1",
+        "npm:tailwind-merge@^3.6.0",
+        "npm:tailwindcss-animate@^1.0.7",
+        "npm:tailwindcss@^4.3.0",
+        "npm:typescript-eslint@^8.60.1",
+        "npm:typescript@^6.0.3",
+        "npm:vaul@^1.1.2",
+        "npm:vite-plugin-pwa@^1.3.0",
+        "npm:vite@^8.1.4",
+        "npm:vitest@^4.1.10",
+        "npm:web-vitals@^5.3.0",
+        "npm:workbox-window@^7.4.1",
+        "npm:zod@^4.4.3"
+      ],
+      "overrides": {
+        "serialize-javascript": "^7.0.5"
+      }
+    }
+  }
+}

@@ -22,7 +22,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
 };
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_FALLBACK: AuthContextType = {
   user: null,

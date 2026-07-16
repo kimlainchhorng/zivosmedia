@@ -24,8 +24,6 @@ import {
   createSoftwareMediaConnectState,
   rememberSoftwareMediaConnect,
 } from "@/lib/softwareMediaConnect";
-import serviceCars from "@/assets/service-cars.jpg";
-import serviceShopping from "@/assets/service-shopping.png";
 
 function ZivoSoftwareAuthLogo() {
   return (
@@ -55,25 +53,23 @@ function ZivoSoftwareMiniScene({ mode }: { mode: "login" | "signup" }) {
   return (
     <div className="relative mx-auto my-3 h-[5.8rem] w-full max-w-[18rem] [perspective:900px]" aria-hidden="true">
       <div className="absolute inset-x-8 bottom-0 h-8 rounded-full bg-[#101412]/15 blur-2xl" />
-      <img src={serviceCars} alt="" className="absolute right-5 top-5 h-12 w-20 rounded-xl object-cover shadow-[0_16px_30px_rgba(17,20,18,0.22)] [transform:rotateX(42deg)_rotateZ(10deg)]" />
-      <img src={serviceShopping} alt="" className="absolute left-5 bottom-1 h-10 w-16 rounded-xl object-cover shadow-[0_16px_28px_rgba(17,20,18,0.16)] [transform:rotateX(42deg)_rotateZ(-12deg)]" />
       <div className="absolute left-12 top-2 h-16 w-28 rounded-2xl bg-[#101412] p-3 text-white shadow-[0_22px_48px_rgba(17,20,18,0.3)] [transform:rotateX(58deg)_rotateZ(-16deg)]">
         <div className="flex items-center justify-between">
           <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/50">Board</span>
           <BadgeCheck className="h-3.5 w-3.5 text-[#48e7af]" />
         </div>
-        <div className="mt-3 text-xl font-black">{mode === "login" ? "$18.4k" : "1"}</div>
-        <div className="text-[9px] font-semibold text-white/55">{mode === "login" ? "weekly revenue" : "business page"}</div>
+        <div className="mt-3 text-sm font-black">{mode === "login" ? "Private" : "Ready"}</div>
+        <div className="text-[9px] font-semibold text-white/55">account workspace</div>
       </div>
       <div className="absolute right-10 top-0 h-14 w-20 rounded-2xl bg-[#48e7af] p-2 text-[#102018] shadow-[0_18px_34px_rgba(25,183,127,0.32)] [transform:rotateX(54deg)_rotateZ(13deg)]">
         <CalendarCheck className="h-3.5 w-3.5" />
-        <div className="mt-2 text-lg font-black">{mode === "login" ? "42" : "1"}</div>
-        <div className="text-[8px] font-bold">{mode === "login" ? "bookings" : "setup"}</div>
+        <div className="mt-2 text-xs font-black">Scoped</div>
+        <div className="text-[8px] font-bold">team access</div>
       </div>
       <div className="absolute bottom-1 left-[45%] h-14 w-24 rounded-2xl border border-black/5 bg-white p-2 text-[#101412] shadow-[0_20px_42px_rgba(17,20,18,0.18)] [transform:rotateX(55deg)_rotateZ(4deg)]">
         <Wrench className="h-3.5 w-3.5" />
-        <div className="mt-2 text-[10px] font-black">{mode === "login" ? "Work orders" : "Setup"}</div>
-        <div className="text-[8px] font-bold text-[#64706a]">ready</div>
+        <div className="mt-2 text-[10px] font-black">Work orders</div>
+        <div className="text-[8px] font-bold text-[#64706a]">after sign-in</div>
       </div>
     </div>
   );
@@ -104,24 +100,32 @@ function ZivoSoftwareAuthGraphic({ mode }: { mode: "login" | "signup" }) {
                 <span className="text-xs font-black uppercase tracking-[0.16em] text-[#64706a]">Dashboard</span>
                 <BadgeCheck className="h-5 w-5 text-[#19b77f]" />
               </div>
-              <div className="mt-7 text-4xl font-black">$18.4k</div>
-              <div className="mt-1 text-sm font-semibold text-[#64706a]">weekly revenue</div>
+              <div className="mt-7 text-2xl font-black">Account-specific</div>
+              <div className="mt-1 text-sm font-semibold text-[#64706a]">Workspace records load after sign-in</div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-[#48e7af] p-4 text-[#102018]">
                 <CalendarCheck className="h-5 w-5" />
-                <div className="mt-7 text-2xl font-black">42</div>
-                <div className="text-xs font-bold">bookings</div>
+                <div className="mt-7 text-base font-black">Private</div>
+                <div className="text-xs font-bold">customer records</div>
               </div>
               <div className="rounded-xl bg-white/90 p-4 text-[#101412]">
                 <Wrench className="h-5 w-5" />
-                <div className="mt-7 text-2xl font-black">16</div>
-                <div className="text-xs font-bold text-[#64706a]">open jobs</div>
+                <div className="mt-7 text-base font-black">Scoped</div>
+                <div className="text-xs font-bold text-[#64706a]">work orders</div>
               </div>
             </div>
           </div>
-          <img src={serviceCars} alt="Auto repair dashboard preview" className="absolute bottom-5 right-0 h-32 w-48 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.3)] [transform:rotate(7deg)]" />
-          <img src={serviceShopping} alt="Business software checkout preview" className="absolute bottom-0 left-0 h-24 w-36 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.24)] [transform:rotate(-8deg)]" />
+          <div className="absolute bottom-5 right-0 w-48 rounded-xl border border-white/12 bg-[#17201c] p-4 shadow-[0_24px_58px_rgba(0,0,0,0.3)] [transform:rotate(7deg)]">
+            <ShieldCheck className="h-5 w-5 text-[#48e7af]" />
+            <div className="mt-5 text-sm font-black">Vehicle history</div>
+            <div className="mt-1 text-xs font-semibold text-white/55">Visible to authorized accounts</div>
+          </div>
+          <div className="absolute bottom-0 left-0 w-36 rounded-xl border border-[#101412]/8 bg-white p-4 text-[#101412] shadow-[0_24px_58px_rgba(0,0,0,0.24)] [transform:rotate(-8deg)]">
+            <BadgeCheck className="h-5 w-5 text-[#138f68]" />
+            <div className="mt-4 text-sm font-black">Invoices</div>
+            <div className="mt-1 text-xs font-semibold text-[#64706a]">Source records</div>
+          </div>
         </div>
       </div>
     </section>
@@ -813,8 +817,11 @@ const Login = () => {
               <button
                 type="button"
                 onClick={handleAddAccount}
-                className={`w-full text-center text-sm font-semibold pt-2 ${
-                  isZivoSoftwareDomain ? "text-[#138f68] hover:text-[#0f7154]" : "text-rose-500 hover:text-rose-600"
+                disabled={submitting}
+                className={`inline-flex min-h-11 w-full items-center justify-center rounded-lg px-3 text-center text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-zinc-900 ${
+                  isZivoSoftwareDomain
+                    ? "text-[#138f68] hover:text-[#0f7154] focus-visible:ring-[#138f68]"
+                    : "text-rose-500 hover:text-rose-600 focus-visible:ring-rose-500"
                 }`}
               >
                 {accounts.length > 0 ? "Log into another account" : "Sign in with email"}

@@ -85,7 +85,7 @@ function ZivoSoftwarePrivacy() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#138f68]">Privacy</p>
             <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-normal sm:text-5xl">ZIVO Software Privacy Policy</h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-[#5f6b65]">
-              This policy explains how ZIVO LLC handles information for ZIVO Software business workspaces on zivosmedia.com.
+              This policy explains how ZIVO LLC handles information for ZIVO Software business workspaces on zivosoftware.com.
             </p>
             <p className="mt-4 text-sm font-semibold text-[#5f6b65]">Last updated: {lastUpdated}</p>
           </div>

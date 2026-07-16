@@ -90,9 +90,134 @@ const SOFTWARE_HOSTS = new Set([
   "www.zivosoftware.com",
 ]);
 
-const AUTO_REPAIR_STORE_ID = "a914b90d-c249-4794-ba5e-3fdac0deed44";
-const AUTO_REPAIR_DASHBOARD_PATH =
-  `/admin/stores/${AUTO_REPAIR_STORE_ID}?tab=ar-dashboard&category=auto-repair`;
+const SOFTWARE_ORIGIN = "https://zivosoftware.com";
+const SOFTWARE_THEME_COLOR = "#10b981";
+const SOFTWARE_BACKGROUND_COLOR = "#f2f9f4";
+// The generic brand icon is intentionally used until an actual anonymized
+// Software QA capture is approved. `/og-image.png` is a Travel creative and
+// must never leak into Software social previews.
+const SOFTWARE_IMAGE_URL = `${SOFTWARE_ORIGIN}/pwa-icons/icon-512x512.png`;
+const SOFTWARE_IMAGE_ALT = "ZIVO Software";
+const SOFTWARE_DEFAULT_TITLE = "ZIVO Software | Business Management Software";
+const SOFTWARE_DEFAULT_DESCRIPTION =
+  "Business management software for customers, vehicles, appointments, inspections, estimates, repair orders, invoices, inventory, staff and reporting.";
+
+const SOFTWARE_ROUTE_META = [
+  {
+    prefix: "/terms-of-service",
+    title: "Terms of Service | ZIVO Software",
+    description: "Review the terms that govern use of ZIVO Software.",
+  },
+  {
+    prefix: "/privacy-policy",
+    title: "Privacy Policy | ZIVO Software",
+    description: "Learn how ZIVO Software handles account, business and service data.",
+  },
+  {
+    prefix: "/login",
+    title: "Sign In | ZIVO Software",
+    description: "Sign in to your ZIVO Software workspace.",
+    private: true,
+  },
+  {
+    prefix: "/signup",
+    title: "Create Account | ZIVO Software",
+    description: "Create a ZIVO Software account.",
+    private: true,
+  },
+] satisfies {
+  prefix: string;
+  title: string;
+  description: string;
+  private?: boolean;
+}[];
+
+const SOFTWARE_PUBLIC_PATH_PATTERN =
+  /^\/(?:business\/?|terms-of-service\/?|privacy-policy\/?|legal\/(?:terms|privacy)\/?)?$/i;
+const SOFTWARE_PRIVATE_PATH_PATTERN =
+  /^\/(?:(?:login|signup|billing|account|admin|dashboard|checkout|subscription|auth|auth-callback|forgot-password|reset-password|verify-email|verify-otp|verify-new-device|connect|desktop)(?:\/|$)|business\/(?:new|dashboard|account|billing|insights|software)(?:\/|$))/i;
+
+const SOFTWARE_ROBOTS = `# ZIVO Software (zivosoftware.com)
+User-agent: *
+Allow: /business
+Allow: /terms-of-service
+Allow: /privacy-policy
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /verify-otp
+Disallow: /verify-new-device
+Disallow: /auth
+Disallow: /account
+Disallow: /billing
+Disallow: /checkout
+Disallow: /subscription
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /business/new
+Disallow: /business/dashboard
+Disallow: /business/account
+Disallow: /business/billing
+Disallow: /business/insights
+Disallow: /business/software/
+Disallow: /connect/
+Disallow: /desktop/
+
+Sitemap: ${SOFTWARE_ORIGIN}/sitemap.xml
+`;
+
+const SOFTWARE_SITEMAP_ENTRIES = [
+  { path: "/business", priority: "1.0", freq: "weekly" },
+  { path: "/terms-of-service", priority: "0.3", freq: "monthly" },
+  { path: "/privacy-policy", priority: "0.3", freq: "monthly" },
+] as const;
+
+const SOFTWARE_MANIFEST = {
+  name: "ZIVO Software",
+  short_name: "ZIVO Software",
+  description: SOFTWARE_DEFAULT_DESCRIPTION,
+  categories: ["business", "productivity"],
+  lang: "en",
+  dir: "ltr",
+  id: "/business",
+  start_url: "/business?utm_source=pwa",
+  scope: "/",
+  display: "standalone",
+  background_color: SOFTWARE_BACKGROUND_COLOR,
+  theme_color: SOFTWARE_THEME_COLOR,
+  icons: [
+    {
+      src: "/pwa-icons/icon-192x192.png",
+      sizes: "192x192",
+      type: "image/png",
+      purpose: "any maskable",
+    },
+    {
+      src: "/pwa-icons/icon-512x512.png",
+      sizes: "512x512",
+      type: "image/png",
+      purpose: "any maskable",
+    },
+  ],
+  shortcuts: [
+    {
+      name: "Open ZIVO Software",
+      short_name: "Home",
+      url: "/business",
+      icons: [{ src: "/pwa-icons/icon-192x192.png", sizes: "192x192", type: "image/png" }],
+    },
+    {
+      name: "Open Dashboard",
+      short_name: "Dashboard",
+      url: "/business/new",
+      icons: [{ src: "/pwa-icons/icon-192x192.png", sizes: "192x192", type: "image/png" }],
+    },
+  ],
+};
+
+const SOFTWARE_TENANT_RESOLVER_PATH = "/business/new";
 
 const TRAVEL_HOSTS = new Set([
   "zivostravel.com",
@@ -166,7 +291,7 @@ const TRAVEL_ROUTE_META = [
 
 const TRAVEL_PRIVATE_PATH_PATTERN =
   /^\/(?:(?:account|wallet|payment-methods|checkout|booking|confirmation|auth|login|signup|admin|my-trips)(?:\/|$)|(?:flights|rent-car)\/results(?:\/|$)|travel\/checkout(?:\/|$)|zivo-travel\/(?:account|my-trips|payment-methods|wallet)(?:\/|$))/i;
-const TRAVEL_SEO_REMOVE_SELECTORS = [
+const SEO_REMOVE_SELECTORS = [
   "title",
   'link[rel="canonical"]',
   'link[rel="alternate"][hreflang]',
@@ -352,6 +477,132 @@ function escapeJsonForHtml(value: unknown) {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
+function softwareCanonical(url: URL) {
+  let pathname = url.pathname.replace(/\/+$/, "") || "/";
+  if (pathname === "/") pathname = "/business";
+  if (pathname === "/legal/terms") pathname = "/terms-of-service";
+  if (pathname === "/legal/privacy") pathname = "/privacy-policy";
+  return new URL(pathname, SOFTWARE_ORIGIN).toString();
+}
+
+export function softwareSeoResponse(request: Request, url: URL): Response | null {
+  if (!SOFTWARE_HOSTS.has(url.hostname)) return null;
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const head = request.method === "HEAD";
+
+  if (url.pathname === "/robots.txt") {
+    return new Response(head ? null : SOFTWARE_ROBOTS, {
+      status: 200,
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" },
+    });
+  }
+
+  if (url.pathname === "/sitemap.xml") {
+    const lastmod = new Date().toISOString().slice(0, 10);
+    const urls = SOFTWARE_SITEMAP_ENTRIES.map(
+      ({ path, priority, freq }) =>
+        `  <url>\n    <loc>${escapeHtml(`${SOFTWARE_ORIGIN}${path}`)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`,
+    ).join("\n");
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+    return new Response(head ? null : xml, {
+      status: 200,
+      headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" },
+    });
+  }
+
+  if (url.pathname === "/manifest.webmanifest") {
+    const manifest = `${JSON.stringify(SOFTWARE_MANIFEST, null, 2)}\n`;
+    return new Response(head ? null : manifest, {
+      status: 200,
+      headers: {
+        "content-type": "application/manifest+json; charset=utf-8",
+        "cache-control": "public, max-age=3600",
+      },
+    });
+  }
+
+  return null;
+}
+
+export function softwarePageMeta(url: URL) {
+  const pathname = url.pathname.replace(/\/+$/, "") || "/";
+  const canonical = softwareCanonical(url);
+  const canonicalPathname = new URL(canonical).pathname;
+  const routeMeta = SOFTWARE_ROUTE_META.find(
+    ({ prefix }) => canonicalPathname === prefix || canonicalPathname.startsWith(`${prefix}/`),
+  );
+  const isPrivate = Boolean(
+    routeMeta?.private ||
+    SOFTWARE_PRIVATE_PATH_PATTERN.test(pathname) ||
+    !SOFTWARE_PUBLIC_PATH_PATTERN.test(pathname),
+  );
+
+  return {
+    title: routeMeta?.title || SOFTWARE_DEFAULT_TITLE,
+    description: routeMeta?.description || SOFTWARE_DEFAULT_DESCRIPTION,
+    canonical,
+    robots: isPrivate ? "noindex,nofollow" : "index,follow,max-image-preview:large",
+  };
+}
+
+export function softwareHeadTags(url: URL) {
+  const meta = softwarePageMeta(url);
+  const organizationJson = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "ZIVO Software",
+    legalName: "ZIVO LLC",
+    url: `${SOFTWARE_ORIGIN}/business`,
+    logo: `${SOFTWARE_ORIGIN}/pwa-icons/icon-512x512.png`,
+  };
+  const softwareApplicationJson = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "ZIVO Software",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: `${SOFTWARE_ORIGIN}/business`,
+    description: SOFTWARE_DEFAULT_DESCRIPTION,
+    publisher: {
+      "@type": "Organization",
+      name: "ZIVO Software",
+      url: `${SOFTWARE_ORIGIN}/business`,
+    },
+    featureList: [
+      "Customer and vehicle management",
+      "Appointments and inspections",
+      "Estimates and repair orders",
+      "Invoices and inventory",
+      "Staff management and reporting",
+    ],
+  };
+
+  return `
+    <title data-rh="true">${escapeHtml(meta.title)}</title>
+    <meta name="description" content="${escapeHtml(meta.description)}" data-rh="true" />
+    <meta name="application-name" content="ZIVO Software" />
+    <meta name="apple-mobile-web-app-title" content="ZIVO Software" />
+    <meta name="theme-color" content="${SOFTWARE_THEME_COLOR}" />
+    <meta name="robots" content="${meta.robots}" />
+    <link rel="canonical" href="${escapeHtml(meta.canonical)}" data-rh="true" />
+    <meta property="og:title" content="${escapeHtml(meta.title)}" />
+    <meta property="og:description" content="${escapeHtml(meta.description)}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${escapeHtml(meta.canonical)}" />
+    <meta property="og:image" content="${SOFTWARE_IMAGE_URL}" />
+    <meta property="og:image:alt" content="${SOFTWARE_IMAGE_ALT}" />
+    <meta property="og:site_name" content="ZIVO Software" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(meta.title)}" />
+    <meta name="twitter:description" content="${escapeHtml(meta.description)}" />
+    <meta name="twitter:image" content="${SOFTWARE_IMAGE_URL}" />
+    <meta name="twitter:image:alt" content="${SOFTWARE_IMAGE_ALT}" />
+    <script type="application/ld+json">${escapeJsonForHtml(organizationJson)}</script>
+    <script type="application/ld+json">${escapeJsonForHtml(softwareApplicationJson)}</script>
+  `;
+}
+
 function travelCanonical(url: URL) {
   const canonical = new URL(url.pathname || "/", TRAVEL_ORIGIN);
   return canonical.toString();
@@ -440,7 +691,7 @@ function tagAttribute(tag: string, name: string) {
   return (match?.[2] || match?.[3] || match?.[4] || "").toLowerCase();
 }
 
-function stripTravelSeoTags(html: string) {
+function stripSeoTags(html: string) {
   const removableMetaNames = new Set([
     "description",
     "keywords",
@@ -489,8 +740,50 @@ function stripTravelSeoTags(html: string) {
     );
 }
 
+function rewriteSoftwareHtmlString(html: string, url: URL) {
+  const cleaned = stripSeoTags(html);
+  const softwareHead = `${softwareHeadTags(url)}\n</head>`;
+  return /<\/head>/i.test(cleaned)
+    ? cleaned.replace(/<\/head>/i, softwareHead)
+    : `${cleaned}\n${softwareHeadTags(url)}`;
+}
+
+export async function rewriteSoftwareHtml(
+  request: Request,
+  url: URL,
+  response: Response,
+): Promise<Response> {
+  if (request.method !== "GET" || !SOFTWARE_HOSTS.has(url.hostname)) return response;
+  if (response.status < 200 || response.status >= 300) return response;
+  if (!(response.headers.get("content-type") || "").toLowerCase().includes("text/html")) return response;
+
+  const htmlResponse = new Response(response.body, htmlResponseInit(response));
+  const Rewriter = typeof HTMLRewriter === "undefined" ? undefined : HTMLRewriter;
+
+  if (!Rewriter) {
+    return new Response(rewriteSoftwareHtmlString(await htmlResponse.text(), url), htmlResponseInit(htmlResponse));
+  }
+
+  const removeElement = {
+    element(element: ZivoHtmlRewriterElement) {
+      element.remove();
+    },
+  };
+  const appendSoftwareHead = {
+    element(element: ZivoHtmlRewriterElement) {
+      element.append(softwareHeadTags(url), { html: true });
+    },
+  };
+
+  let rewriter = new Rewriter();
+  for (const selector of SEO_REMOVE_SELECTORS) {
+    rewriter = rewriter.on(selector, removeElement);
+  }
+  return rewriter.on("head", appendSoftwareHead).transform(htmlResponse);
+}
+
 function rewriteTravelHtmlString(html: string, url: URL) {
-  const cleaned = stripTravelSeoTags(html);
+  const cleaned = stripSeoTags(html);
   const travelHead = `${travelHeadTags(url)}\n</head>`;
   return /<\/head>/i.test(cleaned)
     ? cleaned.replace(/<\/head>/i, travelHead)
@@ -521,7 +814,7 @@ async function rewriteTravelHtml(request: Request, url: URL, response: Response)
   };
 
   let rewriter = new Rewriter();
-  for (const selector of TRAVEL_SEO_REMOVE_SELECTORS) {
+  for (const selector of SEO_REMOVE_SELECTORS) {
     rewriter = rewriter.on(selector, removeElement);
   }
   return rewriter.on("head", appendTravelHead).transform(htmlResponse);
@@ -696,7 +989,7 @@ function softwareDashboardRedirect(request: Request, url: URL) {
     }
 
     const target = new URL(url.toString());
-    target.searchParams.set("redirect", AUTO_REPAIR_DASHBOARD_PATH);
+    target.searchParams.set("redirect", SOFTWARE_TENANT_RESOLVER_PATH);
     return new Response(null, {
       status: 302,
       headers: {
@@ -711,9 +1004,7 @@ function softwareDashboardRedirect(request: Request, url: URL) {
   }
 
   const target = new URL(url.toString());
-  const dashboard = new URL(AUTO_REPAIR_DASHBOARD_PATH, url.origin);
-  target.pathname = dashboard.pathname;
-  target.search = dashboard.search;
+  target.pathname = SOFTWARE_TENANT_RESOLVER_PATH;
   return new Response(null, {
     status: 302,
     headers: {
@@ -1276,6 +1567,11 @@ export default {
       return withSecurityHeaders(await handleAiChat(request, env, url), request, env);
     }
 
+    const softwareSeo = softwareSeoResponse(request, url);
+    if (softwareSeo) {
+      return withSecurityHeaders(softwareSeo, request, env);
+    }
+
     const travelSeo = travelSeoResponse(request, url);
     if (travelSeo) {
       return withSecurityHeaders(travelSeo, request, env);
@@ -1283,7 +1579,8 @@ export default {
 
     if (env.ASSETS) {
       const assetResponse = await env.ASSETS.fetch(request);
-      return withSecurityHeaders(await rewriteTravelHtml(request, url, assetResponse), request, env);
+      const softwareHtml = await rewriteSoftwareHtml(request, url, assetResponse);
+      return withSecurityHeaders(await rewriteTravelHtml(request, url, softwareHtml), request, env);
     }
 
     return json({ error: "Not found" }, { status: 404 });

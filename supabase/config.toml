@@ -169,6 +169,31 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = true
   [functions.software-media-handoff]
     verify_jwt = false
+  # ZIVO Software billing: legacy routes remain reachable only as HTTP 410
+  # tombstones; all browser mutations require a user JWT. Stripe authenticates
+  # the webhook with its signature inside the handler, not with a Supabase JWT.
+  [functions.create-subscription]
+    verify_jwt = false
+  [functions.software-subscription-intent]
+    verify_jwt = false
+  [functions.software-subscription-active]
+    verify_jwt = false
+  [functions.software-subscription-past-due]
+    verify_jwt = false
+  [functions.software-subscription-cancelled]
+    verify_jwt = false
+  [functions.software-create-subscription]
+    verify_jwt = true
+  [functions.software-change-plan]
+    verify_jwt = true
+  [functions.software-cancel-subscription]
+    verify_jwt = true
+  [functions.software-subscription-status]
+    verify_jwt = true
+  [functions.zivopay-create-billing-portal]
+    verify_jwt = true
+  [functions.zivopay-stripe-webhook]
+    verify_jwt = false
   [functions.zivo-domain-summary]
     verify_jwt = false
   [functions.zivosmedia-health]

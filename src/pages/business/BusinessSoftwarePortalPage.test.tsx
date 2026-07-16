@@ -1,6 +1,6 @@
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
-import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let authState: {
@@ -18,6 +18,30 @@ let ownerStoreState: {
   isLoading: boolean;
 };
 
+let pricingState: {
+  data:
+    | Array<{
+        id: string;
+        displayName: string;
+        currency: "USD";
+        monthlyPlanId: string;
+        annualPlanId: string;
+        monthlyAmountCents: number;
+        annualAmountCents: number;
+        trialDays: number;
+        tagline: string;
+        features: string[];
+        limits: Record<string, string>;
+        support: string;
+        cancellationTerms: string;
+        featured: boolean;
+        sortOrder: number;
+      }>
+    | undefined;
+  isPending: boolean;
+  isError: boolean;
+};
+
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
     user: authState.user,
@@ -31,15 +55,38 @@ vi.mock("@/hooks/useOwnerStoreProfile", () => ({
       .toLowerCase()
       .replace(/&/g, "and")
       .replace(/b\s*and\s*b/g, "bed and breakfast")
-      .replace(/[\/_-]+/g, " ")
+      .replaceAll("/", " ")
+      .replace(/[_-]+/g, " ")
       .replace(/\s+/g, " ")
       .trim(),
   isLodgingStoreCategory: () => false,
   useOwnerStoreProfile: () => ownerStoreState,
 }));
 
-import BusinessSoftwarePortalPage from "./BusinessSoftwarePortalPage";
+vi.mock("@/hooks/useSoftwarePricingCatalog", () => ({
+  useSoftwarePricingCatalog: () => pricingState,
+}));
+
 import { resolveSoftwarePortalAccountDashboardPath } from "@/lib/business/softwarePortal";
+import BusinessSoftwarePortalPage from "./BusinessSoftwarePortalPage";
+
+const activePlan = {
+  id: "gold",
+  displayName: "Gold",
+  currency: "USD" as const,
+  monthlyPlanId: "7f7816a2-020f-4cca-91f8-2ca52decb3eb",
+  annualPlanId: "dfadbf9b-e70c-4054-a4ec-b3e546a2c890",
+  monthlyAmountCents: 2_999,
+  annualAmountCents: 29_990,
+  trialDays: 14,
+  tagline: "For a growing repair operation.",
+  features: ["Customer and vehicle records", "Repair orders and invoices"],
+  limits: { workspace: "One auto-repair workspace" },
+  support: "Email support",
+  cancellationTerms: "Cancel at period end; access continues through the current billing period.",
+  featured: true,
+  sortOrder: 10,
+};
 
 const renderPage = () =>
   render(
@@ -47,43 +94,43 @@ const renderPage = () =>
       <MemoryRouter initialEntries={["/business"]}>
         <BusinessSoftwarePortalPage />
       </MemoryRouter>
-    </HelmetProvider>
+    </HelmetProvider>,
   );
 
 beforeEach(() => {
   authState = { user: null, isLoading: false };
   ownerStoreState = { data: null, isLoading: false };
+  pricingState = { data: [activePlan], isPending: false, isError: false };
 });
 
-describe("BusinessSoftwarePortalPage account header", () => {
-  it("shows the software-focused hero and workflow labels", () => {
+describe("BusinessSoftwarePortalPage", () => {
+  it("renders the release landing content, honest preview, and exact SEO metadata", () => {
     renderPage();
 
     expect(
-      screen.getByRole("heading", { name: "ZIVO Software for local businesses" }),
+      screen.getByRole("heading", { name: "Run the work. Keep the whole business in view." }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View Software Page" })).toHaveAttribute(
-      "href",
-      "#industries",
+    expect(screen.getByText("Interface preview — live account data appears only in a signed-in workspace.")).toBeInTheDocument();
+    expect(screen.getByText("No customer, booking, work-order, invoice, or payment records are shown here.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customers" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Inspections" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Built for the auto-repair workday." })).toBeInTheDocument();
+    expect(screen.getByText("Other verticals planned")).toBeInTheDocument();
+
+    expect(document.title).toBe("ZIVO Software | Business Management Software");
+    expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
+      "content",
+      "Business management software for customers, vehicles, appointments, inspections, estimates, repair orders, invoices, inventory, staff and reporting.",
     );
-    expect(screen.getByText("software page")).toBeInTheDocument();
-    expect(screen.getByText("Service desk")).toBeInTheDocument();
-    expect(screen.getByText(/customer intake, approvals/i)).toBeInTheDocument();
-    expect(screen.getByText("A launch board for your software workspace")).toBeInTheDocument();
-    expect(screen.getByText("ZIVO Software workspace ready to launch")).toBeInTheDocument();
-    expect(screen.getByText(/software-only workspace category/i)).toBeInTheDocument();
-    expect(screen.getByText("Configure software")).toBeInTheDocument();
-    expect(screen.getByText("Activate workspace")).toBeInTheDocument();
-    expect(screen.getAllByText("Customer intake").length).toBeGreaterThan(1);
-    expect(screen.getByText("Invoice workflow")).toBeInTheDocument();
-    expect(screen.getByText("Team access")).toBeInTheDocument();
-    expect(screen.getByText("Workspace dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Invoice command")).toBeInTheDocument();
-    expect(screen.getByText("Service workflow")).toBeInTheDocument();
-    expect(screen.getByText(/ZIVO Software keeps teams focused/i)).toBeInTheDocument();
+    expect(document.querySelectorAll('meta[name="description"]')).toHaveLength(1);
+    expect(document.querySelectorAll('link[rel="canonical"]')).toHaveLength(1);
+    expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(
+      "href",
+      "https://zivosoftware.com/business",
+    );
   });
 
-  it("keeps guest login and signup actions in the header", () => {
+  it("uses router links for guest authentication and preserves a selected server plan", () => {
     renderPage();
 
     const header = within(screen.getByRole("banner"));
@@ -91,14 +138,17 @@ describe("BusinessSoftwarePortalPage account header", () => {
       "href",
       "/login?redirect=%2Fbusiness",
     );
-    expect(header.getByRole("link", { name: "Sign up" })).toHaveAttribute(
+    expect(header.getByRole("link", { name: "Start free trial" })).toHaveAttribute(
       "href",
       "/signup?redirect=%2Fbusiness%2Fnew",
     );
-    expect(header.queryByRole("link", { name: /dashboard/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Start 14-day trial" })).toHaveAttribute(
+      "href",
+      "/signup?redirect=%2Fbusiness%2Fnew%3Fplan_id%3D7f7816a2-020f-4cca-91f8-2ca52decb3eb%26cycle%3Dmonthly",
+    );
   });
 
-  it("routes a signed-in auto repair owner to the repair dashboard", () => {
+  it("routes a signed-in owner to the existing workspace and its billing plan", () => {
     authState = { user: { id: "owner-1", email: "owner@example.com" }, isLoading: false };
     ownerStoreState = {
       data: {
@@ -114,32 +164,80 @@ describe("BusinessSoftwarePortalPage account header", () => {
 
     const header = within(screen.getByRole("banner"));
     expect(header.getByText("AB Complete Car Care")).toBeInTheDocument();
-    expect(header.queryByRole("link", { name: "Log in" })).not.toBeInTheDocument();
-    expect(header.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
-    expect(header.getByRole("link", { name: /dashboard/i })).toHaveAttribute(
+    expect(header.getByRole("link", { name: "Open dashboard" })).toHaveAttribute(
       "href",
       "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
     );
+    expect(screen.getByRole("link", { name: "Start 14-day trial" })).toHaveAttribute(
+      "href",
+      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=subscriptions&category=auto-repair&plan_id=7f7816a2-020f-4cca-91f8-2ca52decb3eb&cycle=monthly",
+    );
   });
 
-  it("keeps Software dashboard links on zivosoftware.com", () => {
+  it("keeps checkout disabled when the canonical pricing catalog is unavailable", () => {
+    pricingState = { data: undefined, isPending: false, isError: true };
+
+    renderPage();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Current pricing is temporarily unavailable");
+    expect(screen.getByRole("button", { name: "Checkout unavailable" })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: "Start 14-day trial" })).not.toBeInTheDocument();
+  });
+
+  it("moves focus into the mobile drawer, traps Tab, and returns focus on Escape", () => {
+    renderPage();
+
+    const menuButton = screen.getByRole("button", { name: "Open navigation menu" });
+    fireEvent.click(menuButton);
+
+    const mobileNavigation = screen.getByRole("navigation", { name: "Mobile navigation" });
+    const drawerLinks = within(mobileNavigation.parentElement as HTMLElement).getAllByRole("link");
+    expect(drawerLinks[0]).toHaveFocus();
+    expect(menuButton).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.keyDown(drawerLinks[0], { key: "Tab", shiftKey: true });
+    expect(drawerLinks[drawerLinks.length - 1]).toHaveFocus();
+
+    fireEvent.keyDown(drawerLinks[drawerLinks.length - 1], { key: "Escape" });
+    expect(screen.queryByRole("navigation", { name: "Mobile navigation" })).not.toBeInTheDocument();
+    expect(menuButton).toHaveFocus();
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
+describe("resolveSoftwarePortalAccountDashboardPath", () => {
+  it("uses an owner's dynamic dashboard and sends unresolved Software accounts through setup", () => {
     const mediaDashboardUrl =
       "https://zivosmedia.com/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair";
     const softwareDashboardPath =
-      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair";
+      "/admin/stores/123e4567-e89b-42d3-a456-426614174000?tab=ar-dashboard&category=auto-repair";
+
+    expect(
+      resolveSoftwarePortalAccountDashboardPath(
+        { id: "123e4567-e89b-42d3-a456-426614174000", category: "auto-repair" },
+        "zivosoftware.com",
+        mediaDashboardUrl,
+      ),
+    ).toBe(softwareDashboardPath);
 
     expect(
       resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com", mediaDashboardUrl),
-    ).toBe(softwareDashboardPath);
+    ).toBe("/business/new");
     expect(
-      resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com", "https://example.com/admin/stores/bad"),
-    ).toBe(softwareDashboardPath);
+      resolveSoftwarePortalAccountDashboardPath(
+        null,
+        "zivosoftware.com",
+        "https://example.com/admin/stores/bad",
+      ),
+    ).toBe("/business/new");
     expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosoftware.com")).toBe(
-      softwareDashboardPath,
+      "/business/new",
     );
-    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com", mediaDashboardUrl)).toBe(
-      mediaDashboardUrl,
+    expect(
+      resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com", mediaDashboardUrl),
+    ).toBe(mediaDashboardUrl);
+    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com")).toBe(
+      "/business/new",
     );
-    expect(resolveSoftwarePortalAccountDashboardPath(null, "zivosmedia.com")).toBe("/business/new");
   });
 });

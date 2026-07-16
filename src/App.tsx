@@ -126,10 +126,11 @@ import { recordRequestIssue } from "@/lib/requestHealth";
 import RequestHealthBadge from "@/components/dev/RequestHealthBadge";
 import {
   AUTO_REPAIR_SOFTWARE_PATH,
-  AUTO_REPAIR_STORE_ID,
   isAutoRepairSoftwareHost,
   isZivoMediaHost,
   isZivoSoftwareDashboardPath,
+  isZivoSoftwareWorkspacePath,
+  ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
   ZIVO_SOFTWARE_HOME_PATH,
 } from "@/config/autoRepairDomain";
 import {
@@ -161,7 +162,6 @@ import { ZivoTravel3DProvider } from "@/components/zivo-travel/ZivoTravel3DProvi
 
 // Auth pages — lazy loaded (not always the entry point)
 const Login = lazy(() => import("./pages/Login"));
-const DevBuildRO = lazy(() => import("./pages/__DevBuildRO"));
 const Signup = lazy(() => import("./pages/Signup"));
 const EcosystemPrototype = lazy(() => import("./pages/prototype/EcosystemPrototype"));
 const ConnectCallback = lazy(() => import("./pages/ConnectCallback"));
@@ -1515,8 +1515,7 @@ function ZivoSoftwareHostGate() {
     pathname === "/business/new" ||
     pathname.startsWith("/business/software/");
   const isAutoRepairPath =
-    pathname === AUTO_REPAIR_SOFTWARE_PATH ||
-    pathname.startsWith(`/desktop/auto-repair/${AUTO_REPAIR_STORE_ID}/`);
+    pathname === AUTO_REPAIR_SOFTWARE_PATH || isZivoSoftwareWorkspacePath(pathname);
   const isSoftwareDashboardPath = isZivoSoftwareDashboardPath(pathname);
   const isOperationalAsset =
     pathname.startsWith("/downloads/auto-repair/") ||
@@ -1528,6 +1527,10 @@ function ZivoSoftwareHostGate() {
 
   if (pathname === "/") {
     return <Navigate to={ZIVO_SOFTWARE_HOME_PATH} replace />;
+  }
+
+  if (pathname === "/business/dashboard") {
+    return <Navigate to={`${ZIVO_SOFTWARE_AUTH_REDIRECT_PATH}${location.search}${location.hash}`} replace />;
   }
 
   if (isAuthPath || isLegalPath || isSoftwareBusinessPath || isAutoRepairPath || isSoftwareDashboardPath || isOperationalAsset) {
@@ -1714,7 +1717,6 @@ const App = () => (
                             <Route path="/zivo-travel/payment-methods" element={<ZivoTravelPaymentMethods />} />
                             <Route path="/zivo-travel/account" element={<ZivoTravelAccount />} />
                             
-                            <Route path="/__dev_buildro/:storeId" element={<DevBuildRO />} />
                             <Route path="/login" element={<Login />} />
                             <Route path="/signup" element={<Signup />} />
                             <Route path="/prototype/ecosystem" element={<EcosystemPrototype />} />

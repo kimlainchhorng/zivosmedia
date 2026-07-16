@@ -51,6 +51,7 @@
     "test:rls": "vitest run src/test/rls",
     "test:e2e": "playwright test --project=chromium",
     "test:visual": "playwright test --project=visual",
+    "qa:conflict-markers": "node scripts/qa/conflict-markers.mjs",
     "qa:safe-area": "node scripts/qa/safe-area-check.mjs",
     "qa:safe-area:e2e": "playwright test tests/e2e/safe-area.spec.ts",
     "qa:safe-area:all": "node scripts/qa/safe-area-check.mjs && playwright test tests/e2e/safe-area.spec.ts",

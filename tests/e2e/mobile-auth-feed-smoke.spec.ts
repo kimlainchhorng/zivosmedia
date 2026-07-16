@@ -1,7 +1,30 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { login } from "./fixtures/login";
 
 const mobileViewport = { width: 430, height: 932 };
+const loginViewports = [
+  { label: "375x814", viewport: { width: 375, height: 814 } },
+  { label: "393x852", viewport: { width: 393, height: 852 } },
+] as const;
+
+async function openFullLoginForm(page: Page) {
+  await page.goto("/login");
+
+  const pickerButton = page.getByRole("button", {
+    name: /^(Sign in with email|Log into another account)$/,
+  });
+  const emailInput = page.locator("#login-email");
+
+  await expect(pickerButton.or(emailInput).first()).toBeVisible();
+  if (await pickerButton.isVisible()) {
+    const pickerBox = await pickerButton.boundingBox();
+    expect(pickerBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await pickerButton.click();
+  }
+
+  await expect(emailInput).toBeVisible();
+  await expect(page.locator("#login-password-full")).toBeVisible();
+}
 
 test.describe("mobile auth/feed smoke", () => {
   test.use({ viewport: mobileViewport });
@@ -26,17 +49,21 @@ test.describe("mobile auth/feed smoke", () => {
     });
   });
 
-  test("login form is mobile-friendly", async ({ page }) => {
-    await page.goto("/login");
-    await expect(page.locator("#login-email")).toBeVisible();
-    await expect(page.locator("#login-password, #login-password-full").first()).toBeVisible();
+  for (const { label, viewport } of loginViewports) {
+    test.describe(label, () => {
+      test.use({ viewport });
 
-    const submit = page.locator('button[type="submit"]').first();
-    await expect(submit).toBeVisible();
+      test("login form is mobile-friendly", async ({ page }) => {
+        await openFullLoginForm(page);
 
-    const box = await submit.boundingBox();
-    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-  });
+        const submit = page.locator('button[type="submit"]').first();
+        await expect(submit).toBeVisible();
+
+        const box = await submit.boundingBox();
+        expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+      });
+    });
+  }
 
   test("signup and forgot password routes render", async ({ page }) => {
     await page.goto("/signup");

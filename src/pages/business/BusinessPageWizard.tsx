@@ -28,6 +28,10 @@ import { STORE_CATEGORY_OPTIONS, type StoreCategory } from "@/config/groceryStor
 import { isZivoSoftwareHost } from "@/config/autoRepairDomain";
 import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
 import {
+  appendSoftwarePlanSelection,
+  validSoftwarePlanId,
+} from "@/lib/software/softwarePlanSelection";
+import {
   resolveBusinessDashboardRoute,
   RESTAURANT_CATEGORIES,
 } from "@/lib/business/dashboardRoute";
@@ -80,12 +84,14 @@ const formatPhone = (value: string): string => {
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 const SENTINEL_KEY = "biz-wizard-guard";
-
 export default function BusinessPageWizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const forceNew = searchParams.get("new") === "1";
   const requestedCategory = searchParams.get("category") as StoreCategory | null;
+  const rawPlanId = searchParams.get("plan_id");
+  const requestedPlanId = validSoftwarePlanId(rawPlanId);
+  const requestedBillingCycle = searchParams.get("cycle") === "annual" ? "annual" : "monthly";
   const isSoftwareDomain =
     typeof window !== "undefined" && isZivoSoftwareHost(window.location.hostname);
   const { user } = useAuth();
@@ -180,8 +186,10 @@ export default function BusinessPageWizard() {
     completedRef.current = true;
     setCompleted(true);
     setRedirectingExistingBusiness(true);
-    window.location.assign(safeTarget);
-  }, [forceNew, isSoftwareDomain, mediaDashboardUrl, user]);
+    window.location.assign(
+      appendSoftwarePlanSelection(safeTarget, requestedPlanId, requestedBillingCycle),
+    );
+  }, [forceNew, isSoftwareDomain, mediaDashboardUrl, requestedBillingCycle, requestedPlanId, user]);
 
   useEffect(() => {
     if (!user || forceNew || !isSoftwareDomain || mediaDashboardUrl) return;
@@ -200,13 +208,15 @@ export default function BusinessPageWizard() {
       completedRef.current = true;
       setCompleted(true);
       setRedirectingExistingBusiness(true);
-      window.location.assign(safeTarget);
+      window.location.assign(
+        appendSoftwarePlanSelection(safeTarget, requestedPlanId, requestedBillingCycle),
+      );
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [forceNew, isSoftwareDomain, mediaDashboardUrl, user]);
+  }, [forceNew, isSoftwareDomain, mediaDashboardUrl, requestedBillingCycle, requestedPlanId, user]);
 
   // Auth gate + redirect already-completed owners; resume partial setups.
   useEffect(() => {
@@ -229,7 +239,9 @@ export default function BusinessPageWizard() {
         return;
       }
 
-      const stores = (data || []) as any[];
+      const stores = ((data || []) as any[]).filter(
+        (store) => !isSoftwareDomain || normalizeStoreCategory(store.category) === "auto repair",
+      );
       const activeStores = stores.filter((store) => store.is_active !== false);
       const preferredStore =
         activeStores.find((store) => normalizeStoreCategory(store.category) === "auto repair") ||
@@ -246,7 +258,7 @@ export default function BusinessPageWizard() {
         completedRef.current = true;
         setCompleted(true);
         const { path } = resolveBusinessDashboardRoute(preferredStore.category, preferredStore.id);
-        navigate(path, { replace: true });
+        navigate(appendSoftwarePlanSelection(path, requestedPlanId, requestedBillingCycle), { replace: true });
         return;
       }
 
@@ -269,12 +281,12 @@ export default function BusinessPageWizard() {
       }
       setChecking(false);
     })();
-  }, [user, navigate, forceNew]);
+  }, [user, navigate, forceNew, isSoftwareDomain, requestedPlanId, requestedBillingCycle]);
 
   useEffect(() => {
     if (!requestedCategory) return;
     const allowedOptions = STORE_CATEGORY_OPTIONS.filter(
-      (option) => (!isSoftwareDomain || option.group !== "Other") && option.value === requestedCategory,
+      (option) => (!isSoftwareDomain || option.value === "auto-repair") && option.value === requestedCategory,
     );
     if (allowedOptions.length > 0 && !category) {
       setCategory(requestedCategory);
@@ -344,7 +356,7 @@ export default function BusinessPageWizard() {
   const groupedCategories = useMemo(() => {
     const groups: Record<string, typeof STORE_CATEGORY_OPTIONS> = {};
     const options = isSoftwareDomain
-      ? STORE_CATEGORY_OPTIONS.filter((option) => option.group !== "Other")
+      ? STORE_CATEGORY_OPTIONS.filter((option) => option.value === "auto-repair")
       : STORE_CATEGORY_OPTIONS;
     for (const opt of options) {
       const g = opt.group || "Other";
@@ -579,7 +591,7 @@ export default function BusinessPageWizard() {
       } else {
         toast.success("Business page created");
       }
-      navigate(path, { replace: true });
+      navigate(appendSoftwarePlanSelection(path, requestedPlanId, requestedBillingCycle), { replace: true });
     } catch (e: any) {
       completedRef.current = false;
       setCompleted(false);

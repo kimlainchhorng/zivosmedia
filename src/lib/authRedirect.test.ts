@@ -20,12 +20,12 @@ describe("auth redirect safety", () => {
     ).toBe("https://zivosmedia.com/login?redirect=https%3A%2F%2Fzivosoftware.com%2Flogin");
   });
 
-  it("keeps zivosoftware.com business redirects on the auto repair software dashboard", () => {
+  it("resolves zivosoftware.com business redirects through the tenant-aware setup route", () => {
     expect(getSafeRedirectTargetForHost("/business", "zivosoftware.com")).toBe(
-      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+      "/business/new",
     );
     expect(getSafeRedirectTargetForHost("/business/dashboard", "zivosoftware.com")).toBe(
-      "/admin/stores/a914b90d-c249-4794-ba5e-3fdac0deed44?tab=ar-dashboard&category=auto-repair",
+      "/business/new",
     );
   });
 

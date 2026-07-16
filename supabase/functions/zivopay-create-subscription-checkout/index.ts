@@ -21,9 +21,20 @@ serve(withSecurity("zivopay-create-subscription-checkout", async (req, ctx) => {
   if (authError || !user) return json(cors, { error: "Unauthorized" }, 401);
 
   try {
-    return await withIdempotency(req, "zivopay-create-subscription-checkout", user.id, async () => {
-      const body = await req.json();
-      const platform = sourcePlatform(body.source_platform || "zivo_software");
+    const idempotencyRequest = req.clone();
+    const body = await req.json();
+    const requestedPlatform = String(body.source_platform || "").trim();
+    if (!requestedPlatform) {
+      return json(cors, { error: "source_platform is required" }, 400);
+    }
+    const platform = sourcePlatform(requestedPlatform);
+    if (platform === "zivo_software") {
+      return json(cors, {
+        error: "This Software checkout route is retired. Use software-create-subscription.",
+      }, 410);
+    }
+
+    return await withIdempotency(idempotencyRequest, "zivopay-create-subscription-checkout", user.id, async () => {
       const currency = normalizeCurrency(body.currency);
       const businessId = body.business_id ? requireUuid(body.business_id, "business_id") : null;
       const softwareProductId = body.software_product_id ? requireUuid(body.software_product_id, "software_product_id") : null;

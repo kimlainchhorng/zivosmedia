@@ -1,8 +1,4 @@
-import {
-  AUTO_REPAIR_DASHBOARD_PATH,
-  isAutoRepairSoftwareHost,
-  isZivoMediaHost,
-} from "@/config/autoRepairDomain";
+import { isAutoRepairSoftwareHost, isZivoMediaHost } from "@/config/autoRepairDomain";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 
 export function resolveSoftwarePortalAccountDashboardPath(
@@ -15,7 +11,7 @@ export function resolveSoftwarePortalAccountDashboardPath(
   }
 
   if (isAutoRepairSoftwareHost(hostname)) {
-    return AUTO_REPAIR_DASHBOARD_PATH;
+    return "/business/new";
   }
 
   const linkedMediaDashboardUrl = normalizeMediaDashboardUrl(mediaDashboardUrl);
