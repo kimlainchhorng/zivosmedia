@@ -429,8 +429,10 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
   /* ───── Mutations ───── */
   const savePromo = useMutation({
     mutationFn: async (isEdit: boolean) => {
-      const payload = {
-        merchant_id: storeId,
+      // Promotion writes are server-gated (20260601151500_promotions_server_gate
+      // revokes direct authenticated INSERT/UPDATE/DELETE); route through the
+      // promotion-manage edge function so owners/admins are verified server-side.
+      const promotion = {
         name: promoForm.name,
         code: promoForm.code.toUpperCase(),
         description: promoForm.description || null,
@@ -444,13 +446,15 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         ends_at: promoForm.ends_at || null,
         is_active: promoForm.is_active,
       };
-      if (isEdit && editingPromo) {
-        const { error } = await supabase.from("promotions").update(payload as any).eq("id", editingPromo.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("promotions").insert(payload as any);
-        if (error) throw error;
-      }
+      const { data, error } = isEdit && editingPromo
+        ? await supabase.functions.invoke("promotion-manage", {
+            body: { action: "update", promotion_id: editingPromo.id, promotion },
+          })
+        : await supabase.functions.invoke("promotion-manage", {
+            body: { action: "create", merchant_id: storeId, promotion },
+          });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["store-promotions", storeId] });
@@ -463,8 +467,11 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
   const deletePromo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("promotions").delete().eq("id", id);
+      const { data, error } = await supabase.functions.invoke("promotion-manage", {
+        body: { action: "delete", promotion_id: id },
+      });
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["store-promotions", storeId] });
@@ -476,8 +483,11 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
   const togglePromoActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from("promotions").update({ is_active: active } as any).eq("id", id);
+      const { data, error } = await supabase.functions.invoke("promotion-manage", {
+        body: { action: "set_active", promotion_id: id, is_active: active },
+      });
       if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["store-promotions", storeId] });

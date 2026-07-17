@@ -2,7 +2,7 @@
  * VoiceNotePlayer — Bubble player with waveform + transcript toggle
  *
  * If `transcript` isn't provided up-front, the player exposes a "Transcribe"
- * action that calls the `voice-transcribe` edge function. Results are cached
+ * action that calls the `transcribe-voice` edge function. Results are cached
  * on the server (`voice_transcriptions` table) so subsequent taps from any
  * device hit the cache for free.
  */
@@ -50,7 +50,7 @@ export default function VoiceNotePlayer({ audioUrl, durationMs = 0, waveform = [
         if (!data?.signedUrl) throw new Error("Could not sign voice URL");
         voiceUrl = data.signedUrl;
       }
-      const { data, error } = await supabase.functions.invoke("voice-transcribe", {
+      const { data, error } = await supabase.functions.invoke("transcribe-voice", {
         body: { messageId, voiceUrl },
       });
       if (error) throw error;
