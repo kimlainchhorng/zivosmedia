@@ -45,8 +45,15 @@ const ALLOWED_PARTNER_DOMAINS: string[] = [
   'skyscanner.net',
   // Insurance / extras
   'rentalcover.com',
-  // ZIVO's own domains
+  // ZIVO's own domains (all first-party apex domains — kept in sync with ZIVO_OWNED_HOSTS)
   'zivosmedia.com',
+  'zivostravel.com',
+  'zivopay.com',
+  'zivoschat.com',
+  'zivodriver.com',
+  'zivobusiness.com',
+  'zivosoftware.com',
+  'hizivo.com',
   'myzivo.lovable.app',
 ];
 
@@ -102,10 +109,40 @@ const URL_SHORTENERS = new Set([
 ]);
 
 /**
- * ZIVO-owned hostnames — anything that's *similar but not identical* to one
- * of these is treated as a typosquat attempt and blocked.
+ * ZIVO-owned hostnames — legitimate first-party domains. A host that is NOT one
+ * of these (nor a subdomain of one) but still carries the ZIVO brand token, or is
+ * a near-miss of a brand label, is treated as a typosquat attempt and blocked.
  */
-const ZIVO_OWNED_HOSTS = ['zivosmedia.com', 'myzivo.lovable.app'];
+const ZIVO_OWNED_HOSTS = [
+  'zivosmedia.com',
+  'zivostravel.com',
+  'zivopay.com',
+  'zivoschat.com',
+  'zivodriver.com',
+  'zivobusiness.com',
+  'zivosoftware.com',
+  'hizivo.com',
+  'myzivo.lovable.app',
+];
+
+/**
+ * ZIVO brand labels used to catch homoglyph/near-miss typosquats that break the
+ * literal "zivo" token (e.g. z1vosmedia.com, hizovo.com). Deliberately excludes the
+ * bare 4-char "zivo" token: an edit-distance-2 match on it produces false positives
+ * on short unrelated labels (".zip", the real brand "vivo"). Token-preserving
+ * typosquats are caught by the host.includes('zivo') check instead.
+ */
+const ZIVO_BRAND_LABELS = [
+  'hizivo',
+  'zivosmedia',
+  'zivostravel',
+  'zivopay',
+  'zivoschat',
+  'zivodriver',
+  'zivobusiness',
+  'zivosoftware',
+  'myzivo',
+];
 
 /**
  * Check if a URL uses a safe protocol (http/https only).
@@ -200,12 +237,22 @@ function levenshtein(a: string, b: string): number {
 export function isZivoTyposquat(url: string): boolean {
   try {
     const host = new URL(url).hostname.toLowerCase();
-    if (ZIVO_OWNED_HOSTS.includes(host)) return false;
-    if (ZIVO_OWNED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return false;
-    return ZIVO_OWNED_HOSTS.some((own) => {
-      const dist = levenshtein(host, own);
-      return dist > 0 && dist <= 2;
-    });
+    // Our own hosts (and their subdomains) are never typosquats.
+    if (ZIVO_OWNED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) {
+      return false;
+    }
+    // Any non-ZIVO host that still carries the "zivo" brand token is an
+    // impersonation attempt (e.g. h1zivo.com, zivo-login.com, secure-zivopay.co).
+    if (host.includes('zivo')) return true;
+    // Homoglyph / near-miss typosquats that break the literal token
+    // (e.g. z1vosmedia.com, hizovo.com): edit-distance match on any host label.
+    const labels = host.split('.');
+    return labels.some((label) =>
+      ZIVO_BRAND_LABELS.some((brand) => {
+        const dist = levenshtein(label, brand);
+        return dist > 0 && dist <= 2;
+      }),
+    );
   } catch {
     return false;
   }
