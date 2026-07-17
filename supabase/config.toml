@@ -167,6 +167,11 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = true
   [functions.capture-bus-payment]
     verify_jwt = true
+  # Stripe authenticates the bus webhook with its signature inside the handler
+  # (STRIPE_WEBHOOK_SECRET), not with a Supabase JWT. Staged; deploy with the bus
+  # payment functions once an edge-function slot is free.
+  [functions.stripe-bus-webhook]
+    verify_jwt = false
   [functions.software-media-handoff]
     verify_jwt = false
   # ZIVO Software billing: legacy routes remain reachable only as HTTP 410
