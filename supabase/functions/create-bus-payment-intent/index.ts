@@ -88,7 +88,13 @@ Deno.serve(withSecurity("create-bus-payment-intent", async (req, ctx) => {
       piParams.payment_method_types = ["card"];
     }
 
-    const paymentIntent = await stripe.paymentIntents.create(piParams as Stripe.PaymentIntentCreateParams);
+    // Stripe-native idempotency: keyed on the booking so a double-click or a concurrent
+    // retry that both pass the status guard above still yield ONE PaymentIntent, never a
+    // duplicate authorization/charge for the same bus booking.
+    const paymentIntent = await stripe.paymentIntents.create(
+      piParams as Stripe.PaymentIntentCreateParams,
+      { idempotencyKey: `bus_pi_${booking.id}` },
+    );
 
     const paymentStatus = paymentIntent.status === "requires_capture" ? "authorized" : "pending";
     await admin.from("bus_bookings")
