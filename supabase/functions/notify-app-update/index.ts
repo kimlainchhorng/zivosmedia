@@ -46,7 +46,7 @@ serve(withSecurity("notify-app-update", async (req, ctx) => {
     }
 
     // Check admin
-    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
+    const { data: isAdmin } = await supabase.rpc("is_admin", { user_uuid: user.id });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Admin only" }), {
         status: 403,
