@@ -259,7 +259,7 @@
     "sharp": "^0.34.5",
     "supabase": "^2.109.1",
     "tailwindcss": "^4.3.0",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.60.1",
     "vite": "^8.1.4",
     "vitest": "^4.1.10"
