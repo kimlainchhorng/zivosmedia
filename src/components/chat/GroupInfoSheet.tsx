@@ -1,0 +1,1060 @@
+﻿import { type ChangeEvent, type ComponentType, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import Bell from "lucide-react/dist/esm/icons/bell";
+import BellOff from "lucide-react/dist/esm/icons/bell-off";
+import Camera from "lucide-react/dist/esm/icons/camera";
+import Check from "lucide-react/dist/esm/icons/check";
+import Copy from "lucide-react/dist/esm/icons/copy";
+import FileText from "lucide-react/dist/esm/icons/file-text";
+import Folder from "lucide-react/dist/esm/icons/folder";
+import HardDrive from "lucide-react/dist/esm/icons/hard-drive";
+import ImageIcon from "lucide-react/dist/esm/icons/image";
+import Languages from "lucide-react/dist/esm/icons/languages";
+import Link2 from "lucide-react/dist/esm/icons/link-2";
+import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import LogOut from "lucide-react/dist/esm/icons/log-out";
+import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
+import Mic from "lucide-react/dist/esm/icons/mic";
+import MonitorSmartphone from "lucide-react/dist/esm/icons/monitor-smartphone";
+import Music2 from "lucide-react/dist/esm/icons/music-2";
+import Pencil from "lucide-react/dist/esm/icons/pencil";
+import Phone from "lucide-react/dist/esm/icons/phone";
+import Pin from "lucide-react/dist/esm/icons/pin";
+import Search from "lucide-react/dist/esm/icons/search";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
+import Smile from "lucide-react/dist/esm/icons/smile";
+import UserPlus from "lucide-react/dist/esm/icons/user-plus";
+import Users from "lucide-react/dist/esm/icons/users";
+import Video from "lucide-react/dist/esm/icons/video";
+import Volume2 from "lucide-react/dist/esm/icons/volume-2";
+import VolumeX from "lucide-react/dist/esm/icons/volume-x";
+import X from "lucide-react/dist/esm/icons/x";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useGroupAdmin, type GroupMemberRow, type GroupRole } from "@/hooks/useGroupAdmin";
+import { useSignedMedia } from "@/hooks/useSignedMedia";
+import { formatStarsPrice, getGroupMediaGalleryPath, getLockedMediaItems, isLockedMediaMessage } from "@/lib/chat/lockedMedia";
+
+interface ProfileLite {
+  user_id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+}
+
+interface FriendLite {
+  id: string;
+  name: string;
+  avatar: string | null;
+}
+
+interface FriendshipRow {
+  user_id: string;
+  friend_id: string;
+}
+
+interface GroupInfoMessage {
+  id: string;
+  message: string;
+  message_type: string;
+  image_url: string | null;
+  video_url?: string | null;
+  voice_url?: string | null;
+  is_pinned?: boolean | null;
+  locked_price_coins?: number | null;
+  created_at: string;
+  sender_id?: string | null;
+  file_payload?: {
+    url?: string | null;
+    filename?: string | null;
+    name?: string | null;
+    fileName?: string | null;
+    title?: string | null;
+    mime_type?: string | null;
+    duration_ms?: number | null;
+    locked_preview_url?: string | null;
+    locked_preview_image_url?: string | null;
+    locked_price_coins?: number | null;
+    locked_items?: unknown;
+    [key: string]: unknown;
+  } | null;
+}
+
+type GroupInfoTab = "members" | "photos" | "videos" | "files" | "links" | "music" | "gif" | "voice";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  groupId: string;
+  groupName: string;
+  groupAvatar?: string | null;
+  membersCount: number;
+  messages: GroupInfoMessage[];
+  muted: boolean;
+  onToggleMute: () => void;
+  onSearch: () => void;
+  onOpenInvites: () => void;
+  onOpenPinned?: () => void;
+  onOpenMediaTab?: (tab: Exclude<GroupInfoTab, "members">) => void;
+  isMessageUnlocked?: (messageId: string) => boolean;
+  onStartCall: (kind: "audio" | "video") => void;
+  onGroupUpdated: (patch: { name?: string; avatar?: string | null }) => void;
+  onMembersChanged: () => void;
+  onLeft: () => void;
+}
+
+const CHAT_MEDIA_BUCKET = "chat-media-files";
+const MAX_GROUP_NAME = 80;
+const LINK_RE = /https?:\/\/[^\s<>"')]+/gi;
+
+function initialsFor(name: string) {
+  return (name || "G")
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function roleLabel(role: GroupRole) {
+  if (role === "owner") return "Owner";
+  if (role === "admin") return "Admin";
+  return "Member";
+}
+
+function getFileLabel(message: GroupInfoMessage) {
+  const payload = message.file_payload as { filename?: string; name?: string; fileName?: string; title?: string } | null;
+  return payload?.filename || payload?.name || payload?.fileName || payload?.title || message.message || "Attachment";
+}
+
+function payloadUrl(message: GroupInfoMessage) {
+  return typeof message.file_payload?.url === "string" ? message.file_payload.url : "";
+}
+
+function payloadMime(message: GroupInfoMessage) {
+  return (message.file_payload?.mime_type || "").toLowerCase();
+}
+
+function messageHasGif(message: GroupInfoMessage) {
+  const url = [message.image_url, message.video_url, payloadUrl(message), message.message].filter(Boolean).join(" ");
+  return message.message_type === "gif" || payloadMime(message) === "image/gif" || /\.gif(?:[?#]|$)/i.test(url);
+}
+
+function messageHasVoice(message: GroupInfoMessage) {
+  return Boolean(message.voice_url) || message.message_type === "voice" || message.message_type === "voice_note";
+}
+
+function messageHasMusic(message: GroupInfoMessage) {
+  const mime = payloadMime(message);
+  const text = `${message.message || ""} ${payloadUrl(message)}`.toLowerCase();
+  if (messageHasVoice(message)) return false;
+  return (
+    message.message_type === "music" ||
+    message.message_type === "audio" ||
+    mime.startsWith("audio/") ||
+    text.includes("/sound/") ||
+    text.includes("spotify.com") ||
+    text.includes("music.apple.com") ||
+    text.includes("soundcloud.com")
+  );
+}
+
+function lockedItemsFor(message: GroupInfoMessage) {
+  return getLockedMediaItems(message.file_payload || null);
+}
+
+function messageHasPhoto(message: GroupInfoMessage) {
+  if (messageHasGif(message) || messageHasVoice(message) || messageHasMusic(message)) return false;
+  if (message.image_url || message.message_type === "image") return true;
+  if (message.message_type === "locked_image") return true;
+  if (message.message_type === "locked_album") {
+    const items = lockedItemsFor(message);
+    return items.length === 0 || items.some((item) => item.kind !== "video");
+  }
+  return false;
+}
+
+function messageHasVideo(message: GroupInfoMessage) {
+  if (messageHasGif(message) || messageHasVoice(message) || messageHasMusic(message)) return false;
+  if (message.video_url || message.message_type === "video") return true;
+  if (message.message_type === "locked_video") return true;
+  if (message.message_type === "locked_album") {
+    return lockedItemsFor(message).some((item) => item.kind === "video");
+  }
+  return false;
+}
+
+function lockedPriceFor(message: GroupInfoMessage) {
+  const value = message.locked_price_coins ?? message.file_payload?.locked_price_coins;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function formatDuration(ms?: number | null) {
+  if (!ms || !Number.isFinite(ms) || ms <= 0) return "";
+  const totalSeconds = Math.max(1, Math.round(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+export default function GroupInfoSheet({
+  open,
+  onOpenChange,
+  groupId,
+  groupName,
+  groupAvatar,
+  membersCount,
+  messages,
+  muted,
+  onToggleMute,
+  onSearch,
+  onOpenInvites,
+  onOpenPinned,
+  onOpenMediaTab,
+  isMessageUnlocked,
+  onStartCall,
+  onGroupUpdated,
+  onMembersChanged,
+  onLeft,
+}: Props) {
+  const { user } = useAuth();
+  const { members, isAdmin, loading, refresh, updateGroupMeta, leave } = useGroupAdmin(groupId);
+  const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
+  const [tab, setTab] = useState<GroupInfoTab>("members");
+  const [editingName, setEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(groupName);
+  const [savingName, setSavingName] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [friends, setFriends] = useState<FriendLite[]>([]);
+  const [friendSearch, setFriendSearch] = useState("");
+  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set());
+  const [addingMembers, setAddingMembers] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const groupAvatarSrc = useSignedMedia(groupAvatar, CHAT_MEDIA_BUCKET, "thumbnail");
+
+  useEffect(() => {
+    if (open) {
+      setDraftName(groupName);
+      return;
+    }
+    setEditingName(false);
+    setShowAddMembers(false);
+    setFriendSearch("");
+    setSelectedFriends(new Set());
+    setFriends([]);
+  }, [groupName, open]);
+
+  useEffect(() => {
+    if (!open || members.length === 0) return;
+    (async () => {
+      const ids = members.map((member) => member.user_id);
+      const { data } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name, username, avatar_url")
+        .in("user_id", ids);
+      const next: Record<string, ProfileLite> = {};
+      for (const profile of (data || []) as ProfileLite[]) {
+        next[profile.user_id] = profile;
+      }
+      setProfiles(next);
+    })();
+  }, [members, open]);
+
+  useEffect(() => {
+    if (!showAddMembers || !user?.id) return;
+    (async () => {
+      const { data: friendships } = await supabase
+        .from("friendships")
+        .select("user_id, friend_id")
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+        .eq("status", "accepted");
+      const currentMemberIds = new Set(members.map((member) => member.user_id));
+      const friendIds = Array.from(
+        new Set(
+          ((friendships || []) as FriendshipRow[])
+            .map((friendship) => (friendship.user_id === user.id ? friendship.friend_id : friendship.user_id))
+            .filter((id) => id && !currentMemberIds.has(id)),
+        ),
+      );
+      if (friendIds.length === 0) {
+        setFriends([]);
+        return;
+      }
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", friendIds);
+      setFriends(
+        ((profileRows || []) as Array<{ user_id: string; full_name: string | null; avatar_url: string | null }>)
+          .map((profile) => ({
+            id: profile.user_id,
+            name: profile.full_name || "User",
+            avatar: profile.avatar_url || null,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      );
+    })();
+  }, [members, showAddMembers, user?.id]);
+
+  const sortedMembers: GroupMemberRow[] = useMemo(() => {
+    const order: Record<GroupRole, number> = { owner: 0, admin: 1, member: 2 };
+    return [...members].sort((a, b) => order[a.role] - order[b.role]);
+  }, [members]);
+
+  const gifMessages = useMemo(
+    () => messages.filter(messageHasGif),
+    [messages],
+  );
+
+  const voiceMessages = useMemo(
+    () => messages.filter(messageHasVoice),
+    [messages],
+  );
+
+  const musicMessages = useMemo(
+    () => messages.filter(messageHasMusic),
+    [messages],
+  );
+
+  const photoMessages = useMemo(
+    () => messages.filter(messageHasPhoto),
+    [messages],
+  );
+
+  const videoMessages = useMemo(
+    () => messages.filter(messageHasVideo),
+    [messages],
+  );
+
+  const linkMessages = useMemo(() => {
+    return messages.flatMap((message) => {
+      const links = message.message?.match(LINK_RE) || [];
+      return links.map((url) => ({ id: `${message.id}-${url}`, url, created_at: message.created_at }));
+    });
+  }, [messages]);
+
+  const fileMessages = useMemo(
+    () => messages.filter((message) =>
+      (message.message_type === "file" || message.message_type === "document" || Boolean(payloadUrl(message))) &&
+      !messageHasVoice(message) &&
+      !messageHasMusic(message) &&
+      !messageHasGif(message) &&
+      !messageHasPhoto(message) &&
+      !messageHasVideo(message)
+    ),
+    [messages],
+  );
+
+  const pinnedMessages = useMemo(
+    () => messages.filter((message) => message.is_pinned),
+    [messages],
+  );
+
+  const filteredFriends = useMemo(() => {
+    const q = friendSearch.trim().toLowerCase();
+    if (!q) return friends;
+    return friends.filter((friend) => friend.name.toLowerCase().includes(q));
+  }, [friendSearch, friends]);
+
+  const activeMemberCount = members.length || membersCount;
+  const initials = initialsFor(groupName);
+  const sharedMediaCount = photoMessages.length + videoMessages.length + gifMessages.length;
+  const sharedFilesCount = fileMessages.length + voiceMessages.length + musicMessages.length;
+
+  const openMediaTab = (nextTab: Exclude<GroupInfoTab, "members">) => {
+    if (onOpenMediaTab) {
+      onOpenMediaTab(nextTab);
+      return;
+    }
+    setTab(nextTab);
+  };
+
+  const handleSaveName = async () => {
+    const nextName = draftName.trim();
+    if (!nextName) {
+      toast.error("Group name is required");
+      return;
+    }
+    if (nextName === groupName) {
+      setEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    const ok = await updateGroupMeta({ name: nextName });
+    setSavingName(false);
+    if (ok) {
+      onGroupUpdated({ name: nextName });
+      setEditingName(false);
+    }
+  };
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose an image for the group photo");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Group photo must be under 8MB");
+      return;
+    }
+    if (!user?.id) return;
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop()?.replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
+      const path = `${user.id}/group-avatars/${groupId}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from(CHAT_MEDIA_BUCKET)
+        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
+      if (uploadError) throw uploadError;
+      const ok = await updateGroupMeta({ avatar_url: path });
+      if (ok) onGroupUpdated({ avatar: path });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update group photo");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const toggleSelectedFriend = (id: string) => {
+    setSelectedFriends((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAddMembers = async () => {
+    if (selectedFriends.size === 0) return;
+    setAddingMembers(true);
+    const rows = Array.from(selectedFriends).map((memberId) => ({
+      group_id: groupId,
+      user_id: memberId,
+      role: "member",
+    }));
+    const { error } = await (supabase as any).from("chat_group_members").insert(rows);
+    setAddingMembers(false);
+    if (error) {
+      toast.error(error.message || "Could not add members");
+      return;
+    }
+    toast.success(selectedFriends.size === 1 ? "Member added" : "Members added");
+    setSelectedFriends(new Set());
+    setShowAddMembers(false);
+    await refresh();
+    onMembersChanged();
+  };
+
+  const handleLeave = async () => {
+    const ok = await leave();
+    if (ok) {
+      onOpenChange(false);
+      onLeft();
+    }
+  };
+
+  const copyGroupLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/chat?group=${groupId}`);
+      toast.success("Group link copied");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
+  const tabs: Array<{ id: GroupInfoTab; label: string; count: number }> = [
+    { id: "members", label: "Members", count: activeMemberCount },
+    { id: "photos", label: "Photos", count: photoMessages.length },
+    { id: "videos", label: "Videos", count: videoMessages.length },
+    { id: "files", label: "Files", count: fileMessages.length },
+    { id: "links", label: "Links", count: linkMessages.length },
+    { id: "voice", label: "Voice", count: voiceMessages.length },
+    { id: "gif", label: "GIFs", count: gifMessages.length },
+    { id: "music", label: "Music", count: musicMessages.length },
+  ];
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="zivo-chat-surface z-[1600] flex w-full flex-col overflow-hidden border-l border-white/10 px-0 pb-0 sm:max-w-md">
+        <SheetHeader className="sr-only">
+          <SheetTitle>Group info</SheetTitle>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="zivo-chat-header-glass sticky top-0 z-20 flex items-center justify-between px-4 py-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Group room</p>
+              <p className="text-lg font-black text-foreground">Group Info</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="zivo-chat-icon-button flex h-10 w-10 items-center justify-center"
+              aria-label="Close group info"
+              title="Close"
+            >
+              <X className="h-5 w-5 text-muted-foreground" />
+            </button>
+          </div>
+          <div className="px-4 pb-5 pt-4">
+            <div className="rounded-[1.75rem] border border-white/10 bg-background/45 px-4 py-6 text-center shadow-xl backdrop-blur-2xl">
+              <div className="flex flex-col items-center">
+              <div className="relative">
+                <div className="zivo-chat-avatar-ring rounded-full p-[4px]">
+                <Avatar className="h-24 w-24 ring-[3px] ring-background/80">
+                  <AvatarImage src={groupAvatarSrc || undefined} />
+                  <AvatarFallback className="bg-gradient-to-br from-violet-500 via-fuchsia-500 to-rose-500 text-xl font-black text-white">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                </div>
+                {isAdmin && (
+                  <>
+                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-ig-gradient text-white shadow-lg shadow-primary/25 active:scale-95 disabled:opacity-50"
+                      aria-label="Change group photo"
+                      title="Change group photo"
+                    >
+                      {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-4 w-full">
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      autoFocus
+                      value={draftName}
+                      onChange={(event) => setDraftName(event.target.value.slice(0, MAX_GROUP_NAME))}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") void handleSaveName();
+                        if (event.key === "Escape") setEditingName(false);
+                      }}
+                      className="zivo-chat-search h-11 min-w-0 flex-1 px-3 text-center text-base font-black outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveName}
+                      disabled={savingName}
+                      className="zivo-chat-chip-active flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-50"
+                      aria-label="Save group name"
+                      title="Save group name"
+                    >
+                      {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftName(groupName);
+                        setEditingName(false);
+                      }}
+                      className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center"
+                      aria-label="Cancel edit"
+                      title="Cancel edit"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <h2 className="truncate text-xl font-black text-foreground">{groupName}</h2>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingName(true)}
+                        className="zivo-chat-icon-button flex h-8 w-8 items-center justify-center"
+                        aria-label="Edit group name"
+                        title="Edit group name"
+                      >
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="mt-1 text-sm font-semibold text-muted-foreground">
+                  {activeMemberCount} member{activeMemberCount === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-4 gap-2">
+              <button type="button" onClick={() => onStartCall("audio")} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-background/45 px-2 py-3 shadow-sm active:scale-95">
+                <Phone className="h-5 w-5 text-primary" />
+                <span className="text-[11px] font-black">Audio</span>
+              </button>
+              <button type="button" onClick={() => onStartCall("video")} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-background/45 px-2 py-3 shadow-sm active:scale-95">
+                <Video className="h-5 w-5 text-primary" />
+                <span className="text-[11px] font-black">Video</span>
+              </button>
+              <button type="button" onClick={onSearch} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-background/45 px-2 py-3 shadow-sm active:scale-95">
+                <Search className="h-5 w-5 text-primary" />
+                <span className="text-[11px] font-black">Search</span>
+              </button>
+              <button type="button" onClick={onToggleMute} className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-background/45 px-2 py-3 shadow-sm active:scale-95">
+                {muted ? <VolumeX className="h-5 w-5 text-primary" /> : <Volume2 className="h-5 w-5 text-primary" />}
+                <span className="text-[11px] font-black">{muted ? "Muted" : "Mute"}</span>
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-3xl border border-white/10 bg-background/40 p-1 shadow-sm backdrop-blur-xl">
+              <InfoSettingRow
+                icon={muted ? BellOff : Bell}
+                label="Notifications"
+                value={muted ? "Muted" : "On"}
+                onClick={onToggleMute}
+              />
+              <InfoSettingRow
+                icon={Pin}
+                label="Pinned messages"
+                value={pinnedMessages.length > 0 ? `${pinnedMessages.length} pinned` : "None"}
+                onClick={pinnedMessages.length > 0 ? onOpenPinned : undefined}
+              />
+              <InfoSettingRow
+                icon={HardDrive}
+                label="Storage and media"
+                value={`${sharedMediaCount} media, ${sharedFilesCount} files`}
+                onClick={() => openMediaTab(photoMessages.length > 0 ? "photos" : videoMessages.length > 0 ? "videos" : sharedFilesCount > 0 ? "files" : "photos")}
+              />
+              <InfoSettingRow
+                icon={ShieldCheck}
+                label="Privacy and permissions"
+                value={isAdmin ? "Admin controls" : "Member access"}
+              />
+              <InfoSettingRow
+                icon={Folder}
+                label="Chat folders"
+                value="Managed from chat list"
+                onClick={() => toast("Chat folders are in Chat tools")}
+              />
+              <InfoSettingRow
+                icon={MonitorSmartphone}
+                label="Active sessions"
+                value="This device"
+                onClick={() => toast("Active sessions are in Chat tools")}
+              />
+              <InfoSettingRow
+                icon={Languages}
+                label="Language"
+                value="App default"
+              />
+              <InfoSettingRow
+                icon={Smile}
+                label="Stickers and emoji"
+                value="Available in composer"
+              />
+            </div>
+
+            <div className="mt-5 grid gap-2">
+              <button type="button" onClick={onOpenInvites} className="zivo-chat-row flex items-center gap-3 px-3 py-3 text-left active:scale-[0.99]">
+                <span className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                  <Link2 className="h-5 w-5 text-primary" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-foreground">Invite links</p>
+                  <p className="truncate text-xs font-semibold text-muted-foreground">Create, copy, or revoke group links</p>
+                </div>
+              </button>
+              <button type="button" onClick={copyGroupLink} className="zivo-chat-row flex items-center gap-3 px-3 py-3 text-left active:scale-[0.99]">
+                <span className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                  <Copy className="h-5 w-5 text-primary" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-foreground">Copy group shortcut</p>
+                  <p className="truncate text-xs font-semibold text-muted-foreground">Open this group from ZIVO chat</p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div className="zivo-chat-header-glass sticky top-[69px] z-10 px-4 py-2">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+              {tabs.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => item.id === "members" ? setTab(item.id) : openMediaTab(item.id)}
+                  className={cn(
+                    "shrink-0 rounded-full px-3 py-1.5 text-xs font-black transition-colors",
+                    tab === item.id ? "zivo-chat-chip-active" : "zivo-chat-chip text-muted-foreground",
+                  )}
+                >
+                  {item.label}
+                  {item.count > 0 && <span className="ml-1 opacity-80">{item.count}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="px-4 py-3">
+            {tab === "members" && (
+              <div className="space-y-2">
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddMembers((next) => !next)}
+                    className="zivo-chat-row-unread flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-primary active:scale-[0.99]"
+                  >
+                    <UserPlus className="h-5 w-5" />
+                    <span className="text-sm font-black">Add members</span>
+                  </button>
+                )}
+
+                {showAddMembers && (
+                  <div className="rounded-3xl border border-white/10 bg-background/40 p-3 shadow-sm backdrop-blur-xl">
+                    <div className="relative mb-2">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        value={friendSearch}
+                        onChange={(event) => setFriendSearch(event.target.value)}
+                        placeholder="Search friends"
+                        className="zivo-chat-search h-10 w-full pl-9 pr-3 text-sm outline-none"
+                      />
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {filteredFriends.length === 0 ? (
+                        <p className="py-6 text-center text-sm text-muted-foreground">No friends to add</p>
+                      ) : (
+                        filteredFriends.map((friend) => {
+                          const selected = selectedFriends.has(friend.id);
+                          return (
+                            <button
+                              type="button"
+                              key={friend.id}
+                              onClick={() => toggleSelectedFriend(friend.id)}
+                              className="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left hover:bg-muted/30"
+                            >
+                              <Avatar className="h-9 w-9">
+                                <AvatarImage src={friend.avatar || undefined} />
+                                <AvatarFallback>{friend.name[0]}</AvatarFallback>
+                              </Avatar>
+                              <span className="min-w-0 flex-1 truncate text-sm font-bold">{friend.name}</span>
+                              <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border", selected ? "border-primary bg-ig-gradient text-white" : "border-border")}>
+                                {selected && <Check className="h-3 w-3" />}
+                              </span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                    <Button className="zivo-chat-chip-active mt-3 w-full border-0 font-black" disabled={selectedFriends.size === 0 || addingMembers} onClick={handleAddMembers}>
+                      {addingMembers ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                      Add {selectedFriends.size || ""} member{selectedFriends.size === 1 ? "" : "s"}
+                    </Button>
+                  </div>
+                )}
+
+                {loading && sortedMembers.length === 0 ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  sortedMembers.map((member) => {
+                    const profile = profiles[member.user_id];
+                    const name = profile?.full_name || profile?.username || "Member";
+                    return (
+                      <div key={member.user_id} className="zivo-chat-row flex items-center gap-3 px-3 py-2.5">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={profile?.avatar_url || undefined} />
+                          <AvatarFallback>{name[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-black text-foreground">
+                            {name}{member.user_id === user?.id ? " (you)" : ""}
+                          </p>
+                          <p className="truncate text-xs font-semibold text-muted-foreground">
+                            {profile?.username ? `@${profile.username} - ` : ""}{roleLabel(member.role)}
+                          </p>
+                        </div>
+                        <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {tab === "photos" && (
+              photoMessages.length === 0 ? (
+                <EmptyState icon={ImageIcon} label="No photos shared yet" />
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {photoMessages.map((message) => (
+                    <GroupMediaTile
+                      key={message.id}
+                      message={message}
+                      kind="photo"
+                      canViewLockedOriginal={message.sender_id === user?.id || Boolean(isMessageUnlocked?.(message.id))}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "videos" && (
+              videoMessages.length === 0 ? (
+                <EmptyState icon={Video} label="No videos shared yet" />
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {videoMessages.map((message) => (
+                    <GroupMediaTile
+                      key={message.id}
+                      message={message}
+                      kind="video"
+                      canViewLockedOriginal={message.sender_id === user?.id || Boolean(isMessageUnlocked?.(message.id))}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "links" && (
+              linkMessages.length === 0 ? (
+                <EmptyState icon={Link2} label="No links shared yet" />
+              ) : (
+                <div className="space-y-2">
+                  {linkMessages.map((item) => (
+                    <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="zivo-chat-row flex items-center gap-3 px-3 py-3">
+                      <span className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                        <Link2 className="h-5 w-5 text-primary" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-foreground">{item.url.replace(/^https?:\/\//i, "")}</p>
+                        <p className="text-xs font-semibold text-muted-foreground">{format(new Date(item.created_at), "MMM d, h:mm a")}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "files" && (
+              fileMessages.length === 0 ? (
+                <EmptyState icon={FileText} label="No files shared yet" />
+              ) : (
+                <div className="space-y-2">
+                  {fileMessages.map((message) => (
+                    <div key={message.id} className="zivo-chat-row flex items-center gap-3 px-3 py-3">
+                      <span className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-foreground">{getFileLabel(message)}</p>
+                        <p className="text-xs font-semibold text-muted-foreground">{format(new Date(message.created_at), "MMM d, h:mm a")}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "music" && (
+              musicMessages.length === 0 ? (
+                <EmptyState icon={Music2} label="No music shared yet" />
+              ) : (
+                <div className="space-y-2">
+                  {musicMessages.map((message) => (
+                    <GroupPlayableRow key={message.id} message={message} icon={Music2} label={getFileLabel(message) || "Music"} />
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "gif" && (
+              gifMessages.length === 0 ? (
+                <EmptyState icon={ImageIcon} label="No GIFs shared yet" />
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {gifMessages.map((message) => (
+                    <GroupMediaTile
+                      key={message.id}
+                      message={message}
+                      badge="GIF"
+                      kind="gif"
+                      canViewLockedOriginal={message.sender_id === user?.id || Boolean(isMessageUnlocked?.(message.id))}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+
+            {tab === "voice" && (
+              voiceMessages.length === 0 ? (
+                <EmptyState icon={Mic} label="No voice messages yet" />
+              ) : (
+                <div className="space-y-2">
+                  {voiceMessages.map((message) => (
+                    <GroupPlayableRow key={message.id} message={message} icon={Mic} label="Voice message" />
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+        <div className="zivo-chat-header-glass p-4 pb-[max(1rem,var(--zivo-safe-bottom,0px))]">
+          <Button variant="outline" className="w-full rounded-2xl border-destructive/20 bg-destructive/5 font-black text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleLeave}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Leave group
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function EmptyState({ icon: Icon, label }: { icon: ComponentType<{ className?: string }>; label: string }) {
+  return (
+    <div className="zivo-chat-card mx-auto flex min-h-44 max-w-sm flex-col items-center justify-center p-6 text-center text-muted-foreground">
+      <div className="zivo-chat-avatar-ring mb-3 flex h-14 w-14 items-center justify-center rounded-2xl">
+        <Icon className="h-7 w-7 text-primary" />
+      </div>
+      <p className="text-sm font-black text-foreground">{label}</p>
+    </div>
+  );
+}
+
+function InfoSettingRow({
+  icon: Icon,
+  label,
+  value,
+  onClick,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  onClick?: () => void;
+}) {
+  const content = (
+    <>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-background/80 text-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-sm font-black text-foreground">{label}</span>
+      <span className="max-w-[42%] shrink-0 truncate text-right text-xs font-bold text-muted-foreground">{value}</span>
+    </>
+  );
+
+  if (!onClick) {
+    return <div className="flex items-center gap-3 rounded-2xl px-2.5 py-2.5">{content}</div>;
+  }
+
+  return (
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl px-2.5 py-2.5 text-left hover:bg-muted/20 active:scale-[0.99]">
+      {content}
+    </button>
+  );
+}
+
+function extractFirstUrl(value?: string | null) {
+  return value?.match(/https?:\/\/[^\s<>"')]+/i)?.[0] || "";
+}
+
+function GroupPlayableRow({
+  message,
+  icon: Icon,
+  label,
+}: {
+  message: GroupInfoMessage;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  const rawSrc = message.voice_url || payloadUrl(message) || extractFirstUrl(message.message);
+  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, "display");
+  const duration = formatDuration(message.file_payload?.duration_ms);
+
+  return (
+    <div className="zivo-chat-row flex items-center gap-3 px-3 py-3">
+      <div className="zivo-chat-avatar-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-black text-foreground">{label}</p>
+        <p className="text-xs font-semibold text-muted-foreground">
+          {duration ? `${duration} - ` : ""}{format(new Date(message.created_at), "MMM d, h:mm a")}
+        </p>
+      </div>
+      {resolvedSrc && (
+        <audio src={resolvedSrc} controls className="h-8 w-28 shrink-0" preload="metadata" />
+      )}
+    </div>
+  );
+}
+
+function GroupMediaTile({
+  message,
+  badge,
+  kind,
+  canViewLockedOriginal = false,
+}: {
+  message: GroupInfoMessage;
+  badge?: string;
+  kind?: "photo" | "video" | "gif";
+  canViewLockedOriginal?: boolean;
+}) {
+  const locked = isLockedMediaMessage(message.message_type);
+  const lockedForViewer = locked && !canViewLockedOriginal;
+  const canViewOriginal = !locked || canViewLockedOriginal;
+  const rawSrc = getGroupMediaGalleryPath(message, canViewOriginal) || payloadUrl(message) || extractFirstUrl(message.message) || "";
+  const isVideoTile = kind === "video" || Boolean(message.video_url && canViewOriginal);
+  const resolvedSrc = useSignedMedia(rawSrc, CHAT_MEDIA_BUCKET, isVideoTile && canViewOriginal ? "display" : "thumbnail");
+  const duration = formatDuration(message.file_payload?.duration_ms);
+  const lockedItems = lockedItemsFor(message);
+  const lockedCount = lockedItems.length;
+  const lockedPrice = lockedPriceFor(message);
+  const tileBadge = badge || (lockedForViewer ? (lockedCount > 1 ? `${lockedCount} items` : "Locked") : duration || (isVideoTile ? "Video" : ""));
+  const unlockLabel = lockedPrice ? `Unlock for ${formatStarsPrice(lockedPrice)}` : "Locked";
+
+  return (
+    <a
+      href={resolvedSrc || undefined}
+      target="_blank"
+      rel="noreferrer"
+      className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-muted/50 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      aria-label={lockedForViewer ? `${unlockLabel} preview` : isVideoTile ? "Open shared video" : "Open shared photo"}
+    >
+      {isVideoTile && !lockedForViewer && resolvedSrc ? (
+        <video src={resolvedSrc} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+      ) : resolvedSrc ? (
+        <img
+          src={resolvedSrc}
+          alt=""
+          className={cn("h-full w-full object-cover transition-transform duration-300", locked && "scale-105 blur-[1.5px]")}
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          {isVideoTile ? <Video className="h-6 w-6 text-muted-foreground" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+        </div>
+      )}
+      {lockedForViewer && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/25 px-2 backdrop-blur-[1px]">
+          <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-black leading-none text-white shadow-lg backdrop-blur-md">
+            {unlockLabel}
+          </span>
+        </div>
+      )}
+      {tileBadge && (
+        <span className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] font-black leading-none text-white shadow-lg backdrop-blur-md">
+          {tileBadge}
+        </span>
+      )}
+    </a>
+  );
+}
