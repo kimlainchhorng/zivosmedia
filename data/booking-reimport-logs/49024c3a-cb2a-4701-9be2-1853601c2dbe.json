@@ -1,0 +1,37 @@
+{
+  "run_at": "2026-05-16T23:16:31.818Z",
+  "flags": {
+    "START": 0,
+    "LIMIT": null,
+    "FORCE": false,
+    "DRY_RUN": false,
+    "ROOMS_ONLY": false,
+    "TARGET_CATEGORIES": [
+      "hotel",
+      "resort",
+      "guesthouse",
+      "hostel",
+      "villa",
+      "lodge",
+      "motel",
+      "inn",
+      "boutique"
+    ]
+  },
+  "summary": {
+    "total": 1,
+    "updated": 1,
+    "not_found": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "49024c3a-cb2a-4701-9be2-1853601c2dbe",
+      "name": "Kampot - Harmony Villa 35",
+      "status": "updated",
+      "photos": 23,
+      "rooms": 1,
+      "bookingUrl": "https://www.booking.com/hotel/kh/kampot-harmony-villa.html?selected_currency=USD&lang=en-us&checkin=2026-05-22&checkout=2026-05-23&group_adults=2&no_rooms=1"
+    }
+  ]
+}
