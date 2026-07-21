@@ -16,6 +16,7 @@ export const PREFETCH_ROUTE_MODULES = {
   "/eats": "@/pages/EatsLanding",
   [SOCIAL_ROUTE_PATHS.feed]: "@/pages/ReelsFeedPage",
   [SOCIAL_ROUTE_PATHS.reels]: "@/pages/FeedPage",
+  [SOCIAL_ROUTE_PATHS.chat]: "@/pages/ChatHubPage",
   [SOCIAL_ROUTE_PATHS.profile]: "@/pages/Profile",
   "/rent-car": "@/pages/CarRentalBooking",
   "/grocery": "@/pages/GroceryMarketplace",
@@ -40,6 +41,7 @@ const PREFETCH_ROUTES: Record<string, () => Promise<unknown>> = {
   // Bottom-nav targets — prefetched on touch-down so the chunk is in-memory
   // by the time the user's finger lifts and the click fires.
   [SOCIAL_ROUTE_PATHS.reels]: () => import("@/pages/FeedPage"),
+  [SOCIAL_ROUTE_PATHS.chat]: () => import("@/pages/ChatHubPage"),
   [SOCIAL_ROUTE_PATHS.profile]: () => import("@/pages/Profile"),
   // Home "More Services" tiles — same touch-down prefetch pattern.
   "/rent-car": () => import("@/pages/CarRentalBooking"),

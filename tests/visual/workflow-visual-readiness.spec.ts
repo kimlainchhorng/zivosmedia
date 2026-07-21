@@ -19,6 +19,7 @@ const ROUTES = [
   { area: "business", path: "/business" },
   { area: "support", path: "/support/new" },
   { area: "security", path: "/security/report" },
+  { area: "chat", path: "/chat", needsAuth: true },
   { area: "shop-dashboard", path: "/shop-dashboard", needsAuth: true },
   { area: "shop-orders", path: "/shop-dashboard/orders", needsAuth: true },
   { area: "shop-staff", path: "/shop-dashboard/employees", needsAuth: true },
@@ -39,6 +40,7 @@ const CRITICAL_WORKFLOW_AREAS = [
   "business",
   "support",
   "security",
+  "chat",
   "shop-dashboard",
   "shop-orders",
   "shop-staff",
@@ -54,6 +56,7 @@ const CRITICAL_WORKFLOW_AREAS = [
 
 const ROUTE_WIRING_TOKENS: Partial<Record<(typeof ROUTES)[number]["path"], string>> = {
   "/feed": "SOCIAL_ROUTE_PATHS.feed",
+  "/chat": "SOCIAL_ROUTE_PATHS.chat",
 };
 
 async function assertNoStartupErrors(page: import("@playwright/test").Page) {

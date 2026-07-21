@@ -16,25 +16,23 @@ describe("mobile bottom nav visual contracts", () => {
     expect(nav).toContain("data-zivo-mobile-nav");
     expect(nav).toContain("fixed inset-x-0 bottom-0");
     expect(nav).toContain("lg:hidden pb-safe");
-    expect(nav).toContain("group relative flex flex-1 min-h-[52px] min-w-[44px]");
+    expect(nav).toContain("flex h-[60px]");
+    expect(nav).toContain("min-h-[48px] min-w-[44px]");
     expect(nav).toContain('aria-current={isActive ? "page" : undefined}');
-    // Accessible labels include unread badge counts.
-    expect(nav).toContain('`${label}, ${tab.badge > 99 ? "99+" : tab.badge} unread`');
-    // Active pill is a plain CSS transition — shared-layout layoutId loops when
-    // the nav mounts twice on one page, so its absence is part of the contract.
-    expect(nav).toContain("Plain CSS transition (no framer-motion layoutId)");
-    expect(nav).not.toContain("layoutId=");
+    expect(nav).toContain('aria-label={t(tab.labelKey)}');
+    expect(nav).toContain('layoutId="zivo-bottom-nav-pill"');
+    expect(nav).toContain('layoutId="zivo-bottom-nav-glow"');
 
     for (const routeToken of [
       "SOCIAL_ROUTE_PATHS.feed",
       "SOCIAL_ROUTE_PATHS.reels",
-      '"/rides/hub"',
+      "SOCIAL_ROUTE_PATHS.chat",
       "SOCIAL_ROUTE_PATHS.profile",
     ]) {
       expect(nav).toContain(routeToken);
     }
 
-    expect(css).toContain("--zivo-mobile-nav-h: 68px");
+    expect(css).toContain("--zivo-mobile-nav-h: 60px");
     expect(css).toContain(".pb-safe");
     expect(css).toContain("padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px) !important;");
     expect(css).toContain(".pb-nav");

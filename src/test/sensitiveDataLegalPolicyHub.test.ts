@@ -31,7 +31,7 @@ describe("sensitive data legal policy hub", () => {
     expect(genericLegal).toContain("pickup and drop-off locations with drivers");
     expect(genericLegal).toContain("delivery addresses with merchants and couriers");
     expect(genericLegal).toContain("Data Retention Policy");
-    expect(genericLegal).toContain("privacy@zivosmedia.com");
+    expect(genericLegal).toContain("privacy@hizivo.com");
     expect(privacy).toContain("Precise GPS location during trips/deliveries");
     expect(retention).toContain("location data");
   });
@@ -64,7 +64,7 @@ describe("sensitive data legal policy hub", () => {
     expect(genericLegal).toContain("does not use facial recognition to identify people in public posts");
     expect(genericLegal).toContain("sell face geometry");
     expect(genericLegal).toContain("disable camera permissions in device settings");
-    expect(genericLegal).toContain("privacy@zivosmedia.com");
+    expect(genericLegal).toContain("privacy@hizivo.com");
     expect(goLive).toContain("Allow camera access and try again.");
   });
 });

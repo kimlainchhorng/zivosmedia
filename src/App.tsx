@@ -7,6 +7,7 @@ import { useGeoDetect } from "@/hooks/useGeoDetect";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+const P2PTransferSheet = lazy(() => import("@/components/chat/P2PTransferSheet"));
 const PartnerSignupSheet = lazy(() => import("@/components/partner/PartnerSignupSheet"));
 const AffiliateRedirectPage = lazy(() => import("@/pages/AffiliateRedirectPage"));
 const EventsHubPage = lazy(() => import("@/pages/hubs/EventsHubPage"));
@@ -74,6 +75,8 @@ const PWAUpdatePrompt = lazyWithRetry(() => import("./components/shared/PWAUpdat
 const PWAInstallBanner = lazyWithRetry(() => import("./components/shared/PWAInstallBanner").then(m => ({ default: m.PWAInstallBanner })));
 const InAppBrowserInterstitial = lazyWithRetry(() => import("./components/shared/InAppBrowserInterstitial"));
 const PaymentReturnHandler = lazyWithRetry(() => import("@/components/lodging/PaymentReturnHandler").then(m => ({ default: m.PaymentReturnHandler })));
+const IncomingCallListener = lazyWithRetry(() => import("@/components/chat/IncomingCallListener"));
+const ChatNotificationListener = lazyWithRetry(() => import("@/components/chat/ChatNotificationListener"));
 const RuntimeSecurityGuard = lazyWithRetry(() => import("@/components/security/RuntimeSecurityGuard"));
 const GlobalAutoTranslator = lazyWithRetry(() => import("@/components/common/GlobalAutoTranslator"));
 const StoryDebugPanel = lazyWithRetry(() => import("@/components/stories/StoryDebugPanel"));
@@ -82,6 +85,8 @@ const ShareToChatSheet = lazyWithRetry(() => import("@/components/chat/ShareToCh
 // Chrome / passive overlays — deferred so they don't block first paint.
 const OfflineBanner = lazyWithRetry(() => import("@/components/chat/OfflineBanner"));
 const OutboxFlusher = lazyWithRetry(() => import("@/components/chat/OutboxFlusher"));
+const FloatingReactionsOverlay = lazyWithRetry(() => import("@/components/chat/FloatingReactionsOverlay"));
+const ReactedByHost = lazyWithRetry(() => import("@/components/chat/ReactedByHost"));
 const GlobalDesktopNav = lazyWithRetry(() => import("@/components/app/GlobalDesktopNav"));
 const AdminShellRoute = lazyWithRetry(() => import("@/components/admin/shell/AdminShellRoute").then(m => ({ default: m.AdminShellRoute })));
 const PushNotificationsBootstrap = lazyWithRetry(() => import("@/hooks/usePushNotifications").then((m) => {
@@ -96,11 +101,13 @@ const SHOW_REQUEST_HEALTH_BADGE =
   import.meta.env.DEV && import.meta.env.VITE_SHOW_REQUEST_HEALTH === "true";
 let PostMenuRegressionPage: ReturnType<typeof lazy> | null = null;
 let SafeAreaQAPage: ReturnType<typeof lazy> | null = null;
+let ChatCallPreviewPage: ReturnType<typeof lazy> | null = null;
 let SecurityTestPage: ReturnType<typeof lazy> | null = null;
 
 if (ENABLE_DEV_ROUTES) {
   PostMenuRegressionPage = lazy(() => import("./pages/dev/PostMenuRegressionPage"));
   SafeAreaQAPage = lazy(() => import("./pages/dev/SafeAreaQAPage"));
+  ChatCallPreviewPage = lazy(() => import("./pages/dev/ChatCallPreviewPage"));
   SecurityTestPage = lazy(() => import("./pages/SecurityTestPage"));
 }
 
@@ -114,6 +121,7 @@ import { lazyRetry } from "@/lib/lazyRetry";
 import { perfLog } from "@/lib/perfTrace";
 import { pathFromNativeOpenUrl } from "@/lib/nativeDeepLinks";
 import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
+import { P2P_TRANSFER_EVENT, hasPendingP2PTransfer, subscribeP2PTransferMount } from "@/lib/p2pTransfer";
 import { recordRequestIssue } from "@/lib/requestHealth";
 import RequestHealthBadge from "@/components/dev/RequestHealthBadge";
 import {
@@ -284,7 +292,45 @@ const FeedPage = lazyWithRetry(() => import("./pages/FeedPage"));
 const ReelsFeedPage = lazyWithRetry(() => import("./pages/ReelsFeedPage"));
 const SocialFeedPage = lazyWithRetry(() => import("./pages/SocialFeedPage"));
 const SoundPage = lazy(() => import("./pages/SoundPage"));
+const ChatHubPage = lazyWithRetry(() => import("./pages/ChatHubPage"));
+const DirectInboxPage = lazyWithRetry(() => import("./pages/DirectInboxPage"));
+
+const ContactsPage = lazyWithRetry(() => import("./pages/chat/ContactsPage"));
+const ContactRequestsPage = lazyWithRetry(() => import("./pages/chat/ContactRequestsPage"));
+const MessageRequestsPage = lazyWithRetry(() => import("./pages/chat/MessageRequestsPage"));
+const NearbyChatPage = lazyWithRetry(() => import("./pages/chat/NearbyChatPage"));
+const FindContactsPage = lazyWithRetry(() => import("./pages/chat/FindContactsPage"));
+const FindByUsernamePage = lazyWithRetry(() => import("./pages/chat/FindByUsernamePage"));
+const BlockedUsersPage = lazyWithRetry(() => import("./pages/chat/BlockedUsersPage"));
+const JoinGroupPage = lazyWithRetry(() => import("./pages/chat/JoinGroupPage"));
+const PrivacySecurityPage = lazyWithRetry(() => import("./pages/chat/settings/PrivacySecurityPage"));
+const ActiveSessionsPage = lazyWithRetry(() => import("./pages/chat/settings/ActiveSessionsPage"));
+const TwoStepSetupPage = lazyWithRetry(() => import("./pages/chat/settings/TwoStepSetupPage"));
+const PasscodeSetupPage = lazyWithRetry(() => import("./pages/chat/settings/PasscodeSetupPage"));
+const LoginAlertsPage = lazyWithRetry(() => import("./pages/chat/settings/LoginAlertsPage"));
+const ChatPrivacyHubPage = lazyWithRetry(() => import("./pages/chat/settings/ChatPrivacyHubPage"));
+const ChatSearchAllPage = lazyWithRetry(() => import("./pages/chat/ChatSearchAllPage"));
+const CustomFoldersPage = lazyWithRetry(() => import("./pages/chat/CustomFoldersPage"));
+const BroadcastListsPage = lazyWithRetry(() => import("./pages/chat/BroadcastListsPage"));
+const NewBroadcastPage = lazyWithRetry(() => import("./pages/chat/NewBroadcastPage"));
+const BotFatherPage = lazyWithRetry(() => import("./pages/chat/BotFatherPage"));
+const BotDetailPage = lazyWithRetry(() => import("./pages/chat/BotDetailPage"));
+const BotDiscoverPage = lazyWithRetry(() => import("./pages/chat/BotDiscoverPage"));
+const BotAdminPage = lazyWithRetry(() => import("./pages/chat/BotAdminPage"));
+const BotPublicProfilePage = lazyWithRetry(() => import("./pages/BotPublicProfilePage"));
+const BotCollectionPage = lazyWithRetry(() => import("./pages/chat/BotCollectionPage"));
+const BotInboxPage = lazyWithRetry(() => import("./pages/chat/BotInboxPage"));
+const StorageManagerPage = lazyWithRetry(() => import("./pages/chat/settings/StorageManagerPage"));
+const AppLockGate = lazyWithRetry(() => import("./components/chat/settings/AppLockGate"));
 const MfaChallengeDialog = lazy(() => import("./components/auth/MfaChallengeDialog"));
+const GroupCallEntryPage = lazyWithRetry(() => import("./pages/chat/GroupCallEntryPage"));
+const RecordingsPage = lazyWithRetry(() => import("./pages/chat/RecordingsPage"));
+const ChatSearchPage = lazyWithRetry(() => import("./pages/chat/ChatSearchPage"));
+const ChannelsDirectoryPage = lazy(() => import("./pages/channels/ChannelsDirectoryPage"));
+const NewChannelPage = lazy(() => import("./pages/channels/NewChannelPage"));
+const ChannelPage = lazy(() => import("./pages/channels/ChannelPage"));
+const ManageChannelPage = lazy(() => import("./pages/channels/ManageChannelPage"));
+const ChannelAdminLogPage = lazy(() => import("./pages/channels/ChannelAdminLogPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const BookmarksPage = lazy(() => import("./pages/BookmarksPage"));
 const PrivacySettingsPage = lazy(() => import("./pages/account/PrivacySettingsPage"));
@@ -659,6 +705,7 @@ const CollabsPage = lazy(() => import("./pages/CollabsPage"));
 const StickerStorePage = lazy(() => import("./pages/StickerStorePage"));
 const CouponsPage = lazy(() => import("./pages/CouponsPage"));
 const ReferralsPage = lazy(() => import("./pages/ReferralsPage"));
+const ChatThemesPage = lazy(() => import("./pages/ChatThemesPage"));
 const RewardsCenterPage = lazy(() => import("./pages/RewardsCenterPage"));
 const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 const CreatorEarningsPage = lazy(() => import("./pages/CreatorEarningsPage"));
@@ -693,11 +740,13 @@ const MarketplaceCartPage = lazy(() => import("./pages/MarketplaceCartPage"));
 const PointsHistoryPage = lazy(() => import("./pages/PointsHistoryPage"));
 const ModerationAppealsPage = lazy(() => import("./pages/ModerationAppealsPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
+const ChatMediaGalleryPage = lazy(() => import("./pages/ChatMediaGalleryPage"));
 const LoginActivityPage = lazy(() => import("./pages/LoginActivityPage"));
 const AMAPage = lazy(() => import("./pages/AMAPage"));
 const VoicemailsPage = lazy(() => import("./pages/VoicemailsPage"));
 const TrustScorePage = lazy(() => import("./pages/TrustScorePage"));
 const WarningsPage = lazy(() => import("./pages/WarningsPage"));
+const ChatWallpapersPage = lazy(() => import("./pages/ChatWallpapersPage"));
 const PromoUsagePage = lazy(() => import("./pages/PromoUsagePage"));
 const BugReportsPage = lazy(() => import("./pages/BugReportsPage"));
 const StreaksPage = lazy(() => import("./pages/StreaksPage"));
@@ -726,6 +775,8 @@ const ProfileViewsPage = lazy(() => import("./pages/ProfileViewsPage"));
 const StorePromoCodesPage = lazy(() => import("./pages/StorePromoCodesPage"));
 const EmojiPacksPage = lazy(() => import("./pages/EmojiPacksPage"));
 const LiveChatSessionsPage = lazy(() => import("./pages/LiveChatSessionsPage"));
+const MutedBlockedUsersPage = lazy(() => import("./pages/MutedBlockedUsersPage"));
+const MutedChatsPage = lazy(() => import("./pages/MutedChatsPage"));
 const PushDevicesPage = lazy(() => import("./pages/PushDevicesPage"));
 const CreatorPayoutsPage = lazy(() => import("./pages/CreatorPayoutsPage"));
 const P2PMoneyPage = lazy(() => import("./pages/P2PMoneyPage"));
@@ -768,6 +819,7 @@ const AccountSessionsPage = lazy(() => import("./pages/account/AccountSessionsPa
 const LinkedDevicesPage = lazy(() => import("./pages/account/LinkedDevicesPage"));
 const LinkDevicePage = lazy(() => import("./pages/account/LinkDevicePage"));
 const ScanDevicePage = lazy(() => import("./pages/account/ScanDevicePage"));
+const SecretChatPage = lazyWithRetry(() => import("./pages/chat/SecretChatPage"));
 const PreferencesPage = lazy(() => import("./pages/account/PreferencesPage"));
 const PrivacyControls = lazy(() => import("./pages/account/PrivacyControls"));
 const NotificationSettings = lazy(() => import("./pages/account/NotificationSettings"));
@@ -1269,6 +1321,9 @@ function RouteAwareGlobalUI() {
       <InAppBrowserInterstitial />
       <RuntimeSecurityGuard />
       {user && <MfaChallengeDialog />}
+      {user && <IncomingCallListener />}
+      {user && <ChatNotificationListener />}
+      {user && <AppLockGate />}
     </Suspense>
   );
 }
@@ -1284,6 +1339,8 @@ function DeferredPassiveChatOverlays() {
     <Suspense fallback={null}>
       <OfflineBanner />
       <OutboxFlusher />
+      <FloatingReactionsOverlay />
+      <ReactedByHost />
     </Suspense>
   );
 }
@@ -1299,6 +1356,24 @@ function PaymentReturnBootstrap() {
   const { search } = useLocation();
   if (!PAYMENT_RETURN_MARKER_RE.test(search)) return null;
   return <Suspense fallback={null}><PaymentReturnHandler /></Suspense>;
+}
+
+function LazyP2PTransferSheetHost() {
+  const [mounted, setMounted] = useState(() => hasPendingP2PTransfer());
+
+  useEffect(() => {
+    const mount = () => setMounted(true);
+    const unsubscribe = subscribeP2PTransferMount(mount);
+    window.addEventListener(P2P_TRANSFER_EVENT, mount);
+    if (hasPendingP2PTransfer()) mount();
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener(P2P_TRANSFER_EVENT, mount);
+    };
+  }, []);
+
+  return mounted ? <Suspense fallback={null}><P2PTransferSheet /></Suspense> : null;
 }
 
 function DeferredGlobalSheets() {
@@ -1624,6 +1699,7 @@ const App = () => (
                   <DesktopNavBootstrap />
                   <AuthBackgroundServices />
                   <Suspense fallback={null}><ShareToChatSheet /></Suspense>
+                  <LazyP2PTransferSheetHost />
                   <DeferredGlobalSheets />
                    <RemoteConfigProvider>
                   <ZivoPlusProvider>
@@ -1755,9 +1831,48 @@ const App = () => (
                 <Route path="/shop/:storeId" element={<StoreProfilePage />} />
                 
                 <Route path="/refer" element={<ProtectedRoute><ReferAFriendPage /></ProtectedRoute>} />
+                <Route path={SOCIAL_ROUTE_PATHS.chat} element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
+                <Route path="/direct" element={<ProtectedRoute><DirectInboxPage /></ProtectedRoute>} />
                 <Route path="/direct/t/:partnerId" element={<ProtectedRoute><DirectThreadRedirect /></ProtectedRoute>} />
                 <Route path="/for-you" element={<ProtectedRoute><ReelsFeedPage /></ProtectedRoute>} />
+                <Route path="/chat/saved" element={<ProtectedRoute><ChatHubPage /></ProtectedRoute>} />
+                <Route path="/chat/contacts" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />
+                <Route path="/chat/contacts/requests" element={<ProtectedRoute><ContactRequestsPage /></ProtectedRoute>} />
+                <Route path="/chat/message-requests" element={<ProtectedRoute><MessageRequestsPage /></ProtectedRoute>} />
+                <Route path="/chat/nearby" element={<ProtectedRoute><NearbyChatPage /></ProtectedRoute>} />
+                <Route path="/chat/find-contacts" element={<ProtectedRoute><FindContactsPage /></ProtectedRoute>} />
+                <Route path="/chat/find-username" element={<ProtectedRoute><FindByUsernamePage /></ProtectedRoute>} />
+                <Route path="/chat/blocked" element={<ProtectedRoute><BlockedUsersPage /></ProtectedRoute>} />
+                <Route path="/chat/bots" element={<ProtectedRoute><BotFatherPage /></ProtectedRoute>} />
+                <Route path="/chat/bots/discover" element={<ProtectedRoute><BotDiscoverPage /></ProtectedRoute>} />
+                <Route path="/chat/bots/admin" element={<ProtectedRoute><BotAdminPage /></ProtectedRoute>} />
+                <Route path="/chat/bots/collections/:slug" element={<ProtectedRoute><BotCollectionPage /></ProtectedRoute>} />
+                <Route path="/chat/bots/inbox" element={<ProtectedRoute><BotInboxPage /></ProtectedRoute>} />
+                <Route path="/chat/bots/:id" element={<ProtectedRoute><BotDetailPage /></ProtectedRoute>} />
+                <Route path="/b/:username" element={<BotPublicProfilePage />} />
+                <Route path="/chat/join/:code" element={<JoinGroupPage />} />
+                <Route path="/chat/secret/:partnerId" element={<ProtectedRoute><SecretChatPage /></ProtectedRoute>} />
+                <Route path="/chat/call/group/:roomName" element={<ProtectedRoute><GroupCallEntryPage /></ProtectedRoute>} />
+                <Route path="/chat/group-call/:roomName" element={<ProtectedRoute><GroupCallEntryPage /></ProtectedRoute>} />
+                <Route path="/chat/recordings" element={<ProtectedRoute><RecordingsPage /></ProtectedRoute>} />
+                <Route path="/chat/search" element={<ProtectedRoute><ChatSearchPage /></ProtectedRoute>} />
+                <Route path="/channels" element={<ChannelsDirectoryPage />} />
+                <Route path="/channels/new" element={<ProtectedRoute><NewChannelPage /></ProtectedRoute>} />
                 <Route path="/share/c/:handle" element={<ChannelShareRedirect />} />
+                <Route path="/c/:handle" element={<ChannelPage />} />
+                <Route path="/c/:handle/manage" element={<ProtectedRoute><ManageChannelPage /></ProtectedRoute>} />
+                <Route path="/c/:handle/log" element={<ProtectedRoute><ChannelAdminLogPage /></ProtectedRoute>} />
+                <Route path="/chat/settings/privacy" element={<ProtectedRoute><PrivacySecurityPage /></ProtectedRoute>} />
+                <Route path="/chat/settings/sessions" element={<ProtectedRoute><ActiveSessionsPage /></ProtectedRoute>} />
+                <Route path="/chat/settings/two-step" element={<ProtectedRoute><TwoStepSetupPage /></ProtectedRoute>} />
+                <Route path="/chat/settings/passcode" element={<ProtectedRoute><PasscodeSetupPage /></ProtectedRoute>} />
+                <Route path="/chat/settings/login-alerts" element={<ProtectedRoute><LoginAlertsPage /></ProtectedRoute>} />
+                <Route path="/chat/settings/privacy-hub" element={<ProtectedRoute><ChatPrivacyHubPage /></ProtectedRoute>} />
+                <Route path="/chat/search" element={<ProtectedRoute><ChatSearchAllPage /></ProtectedRoute>} />
+                <Route path="/chat/folders" element={<ProtectedRoute><CustomFoldersPage /></ProtectedRoute>} />
+                <Route path="/chat/broadcasts" element={<ProtectedRoute><BroadcastListsPage /></ProtectedRoute>} />
+                <Route path="/chat/broadcasts/new" element={<ProtectedRoute><NewBroadcastPage /></ProtectedRoute>} />
+                <Route path="/chat/settings/storage" element={<ProtectedRoute><StorageManagerPage /></ProtectedRoute>} />
                 <Route path="/explore" element={<ExplorePage />} />
                 <Route path="/saved" element={<ProtectedRoute><BookmarksPage /></ProtectedRoute>} />
                 <Route path="/creators" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>} />
@@ -2111,6 +2226,7 @@ const App = () => (
                 <Route path="/stickers" element={<StickerStorePage />} />
                 <Route path="/coupons" element={<CouponsPage />} />
                 <Route path="/referrals" element={<ProtectedRoute><ReferralsPage /></ProtectedRoute>} />
+                <Route path="/chat-themes" element={<ProtectedRoute><ChatThemesPage /></ProtectedRoute>} />
                 <Route path="/rewards-center" element={<ProtectedRoute><RewardsCenterPage /></ProtectedRoute>} />
                 <Route path="/achievements" element={<AchievementsPage />} />
                 <Route path="/creator/earnings" element={<ProtectedRoute><CreatorEarningsPage /></ProtectedRoute>} />
@@ -2145,11 +2261,13 @@ const App = () => (
                 <Route path="/points-history" element={<ProtectedRoute><PointsHistoryPage /></ProtectedRoute>} />
                 <Route path="/moderation-appeals" element={<ProtectedRoute><ModerationAppealsPage /></ProtectedRoute>} />
                 <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
+                <Route path="/chat-media" element={<ProtectedRoute><ChatMediaGalleryPage /></ProtectedRoute>} />
                 <Route path="/login-activity" element={<ProtectedRoute><LoginActivityPage /></ProtectedRoute>} />
                 <Route path="/ama" element={<AMAPage />} />
                 <Route path="/voicemails" element={<ProtectedRoute><VoicemailsPage /></ProtectedRoute>} />
                 <Route path="/trust-score" element={<ProtectedRoute><TrustScorePage /></ProtectedRoute>} />
                 <Route path="/warnings" element={<ProtectedRoute><WarningsPage /></ProtectedRoute>} />
+                <Route path="/chat-wallpapers" element={<ProtectedRoute><ChatWallpapersPage /></ProtectedRoute>} />
                 <Route path="/promo-usage" element={<ProtectedRoute><PromoUsagePage /></ProtectedRoute>} />
                 <Route path="/bug-reports" element={<ProtectedRoute><BugReportsPage /></ProtectedRoute>} />
                 <Route path="/streaks" element={<ProtectedRoute><StreaksPage /></ProtectedRoute>} />
@@ -2178,6 +2296,8 @@ const App = () => (
                 <Route path="/store-promos" element={<StorePromoCodesPage />} />
                 <Route path="/emoji-packs" element={<EmojiPacksPage />} />
                 <Route path="/live-chat-sessions" element={<ProtectedRoute><LiveChatSessionsPage /></ProtectedRoute>} />
+                <Route path="/muted-blocked" element={<ProtectedRoute><MutedBlockedUsersPage /></ProtectedRoute>} />
+                <Route path="/muted-chats" element={<ProtectedRoute><MutedChatsPage /></ProtectedRoute>} />
                 <Route path="/push-devices" element={<ProtectedRoute><PushDevicesPage /></ProtectedRoute>} />
                 <Route path="/creator-payouts" element={<ProtectedRoute><CreatorPayoutsPage /></ProtectedRoute>} />
                 <Route path="/p2p-money" element={<ProtectedRoute><P2PMoneyPage /></ProtectedRoute>} />
@@ -2404,10 +2524,11 @@ const App = () => (
                 <Route path="/:countrySlug/flights/:routeSlug" element={<LocalizedFlightRoutePage />} />
 
                 {/* Dev-only QA. Do not expose demo/test routes in production. */}
-                {ENABLE_DEV_ROUTES && PostMenuRegressionPage && SafeAreaQAPage && (
+                {ENABLE_DEV_ROUTES && PostMenuRegressionPage && SafeAreaQAPage && ChatCallPreviewPage && (
                   <>
                     <Route path="/dev/post-menu-check" element={<PostMenuRegressionPage />} />
                     <Route path="/dev/qa/safe-area" element={<SafeAreaQAPage />} />
+                    <Route path="/dev/chat-call-preview" element={<ChatCallPreviewPage />} />
                   </>
                 )}
 

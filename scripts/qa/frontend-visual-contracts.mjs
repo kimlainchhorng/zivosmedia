@@ -43,6 +43,7 @@ const contracts = [
         '{ area: "business", path: "/business" }',
         '{ area: "support", path: "/support/new" }',
         '{ area: "security", path: "/security/report" }',
+        '{ area: "chat", path: "/chat", needsAuth: true }',
         '{ area: "shop-dashboard", path: "/shop-dashboard", needsAuth: true }',
         '{ area: "shop-orders", path: "/shop-dashboard/orders", needsAuth: true }',
         '{ area: "shop-staff", path: "/shop-dashboard/employees", needsAuth: true }',
@@ -206,10 +207,12 @@ const contracts = [
       const globalBoundaryPath = "src/components/shared/ErrorBoundary.tsx";
       const routeBoundaryPath = "src/components/shared/RouteErrorBoundary.tsx";
       const groceryPath = "src/pages/GroceryStorePage.tsx";
+      const channelPath = "src/pages/channels/ChannelsDirectoryPage.tsx";
       const loadingTest = source(loadingTestPath);
       const globalBoundary = source(globalBoundaryPath);
       const routeBoundary = source(routeBoundaryPath);
       const grocery = source(groceryPath);
+      const channel = source(channelPath);
 
       for (const needle of [
         "Something went wrong",
@@ -225,6 +228,9 @@ const contracts = [
       }
       for (const needle of ["Loading skeletons", "!isLoading && error", "!isLoading && !error && products.length === 0"]) {
         requireContains(this.id, grocery, needle, groceryPath);
+      }
+      for (const needle of ["loading ? (", "Couldn't update", "channels.length === 0"]) {
+        requireContains(this.id, channel, needle, channelPath);
       }
       for (const needle of ["global crash fallback", "route crash fallback", "loading, error, and empty states"]) {
         requireContains(this.id, loadingTest, needle, loadingTestPath);

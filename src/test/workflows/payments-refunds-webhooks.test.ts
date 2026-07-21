@@ -343,6 +343,7 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(source("src/components/admin/PaymentVerificationDialog.tsx")).toContain('supabase.functions.invoke("payment-verification"');
     expect(source("src/components/live/CoinRechargeSheet.tsx")).toContain('supabase.functions.invoke("verify-coin-purchase"');
     expect(source("src/components/admin/AdsStudioWalletGuard.tsx")).toContain('supabase.functions.invoke("verify-ads-wallet-topup"');
+    expect(source("src/components/chat/ChatMessageBubble.tsx")).toContain('supabase.functions.invoke("verify-media-unlock"');
   });
 
   it("keeps chat coin, gift, premium gift, and group media unlock mutations POST-gated", () => {
@@ -361,6 +362,11 @@ describe("payments, refunds, and webhook workflow", () => {
       expect(fn).toContain("blockNetworkRiskAt: 80");
       expect(fn).not.toContain('"Access-Control-Allow-Origin": "*"');
     }
+
+    expect(source("src/hooks/useCoinTransfer.ts")).toContain('supabase.functions.invoke("chat-transfer-coins"');
+    expect(source("src/hooks/useChatGifts.ts")).toContain('supabase.functions.invoke("chat-send-gift"');
+    expect(source("src/components/chat/ChatGiftPanel.tsx")).toContain('supabase.functions.invoke("chat-send-premium-gift"');
+    expect(source("src/components/chat/GroupChat.tsx")).toContain('supabase.functions.invoke("chat-unlock-group-media"');
   });
 
   it("keeps salon payment settings writes behind server-side ownership checks", () => {

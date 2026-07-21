@@ -2,12 +2,7 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
-
-// Every test boots a full node child process via spawnSync; on Windows
-// (AV scanning + synced folders) cold spawns can exceed the 5s default.
-// The scripts themselves finish in well under a second once started.
-vi.setConfig({ testTimeout: 30_000 });
+import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 

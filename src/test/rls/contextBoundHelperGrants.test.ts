@@ -11,6 +11,11 @@ const migration = readFileSync(
   "utf8",
 );
 
+const manageChannelPage = readFileSync(
+  resolve(process.cwd(), "src/pages/channels/ManageChannelPage.tsx"),
+  "utf8",
+);
+
 const notifyAppUpdate = readFileSync(
   resolve(process.cwd(), "supabase/functions/notify-app-update/index.ts"),
   "utf8",
@@ -67,6 +72,7 @@ describe("context-bound RLS helper grants", () => {
   });
 
   it("keeps direct is_admin RPC callers on the existing user_uuid argument contract", () => {
+    expect(manageChannelPage).toContain('rpc("is_admin", { user_uuid: userId })');
     expect(notifyAppUpdate).toContain('rpc("is_admin", { user_uuid: user.id })');
   });
 });

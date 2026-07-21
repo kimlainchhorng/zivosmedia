@@ -20,7 +20,6 @@ export default {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'Kantumruy Pro',
   				'Inter',
   				'ui-sans-serif',
   				'system-ui',
@@ -34,7 +33,6 @@ export default {
   				'sans-serif'
   			],
   			serif: [
-  				'Kantumruy Pro',
   				'Inter',
   				'ui-sans-serif',
   				'system-ui',

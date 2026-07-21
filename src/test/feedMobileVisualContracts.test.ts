@@ -18,7 +18,7 @@ describe("feed mobile visual contracts", () => {
     expect(feed).toContain("zivo-sticky-mobile-header");
     expect(feed).toContain("zivo-pt-safe-sticky");
     expect(feed).toContain("zivo-feed-mobile-header-panel");
-    expect(feed).toContain("flex gap-1.5 overflow-x-auto scrollbar-none mx-2 mb-2 px-0.5");
+    expect(feed).toContain("zivo-feed-tabbar");
     expect(feed).toContain('aria-pressed={feedTab === label}');
     expect(feed).toContain('["For You", "Friends", "Following", "Travel", "Eat"] as const');
     expect(feed).toContain('(["all", "photos", "videos", "text"] as const)');

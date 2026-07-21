@@ -92,9 +92,12 @@ describe("refund and support trust intake", () => {
   });
 
   it("routes support ticket chat deletion through the protected manage Edge Function", () => {
+    const chatHub = read("src/pages/ChatHubPage.tsx");
     const manage = read("supabase/functions/support-ticket-manage/index.ts");
     const gate = read("supabase/migrations/20260601233000_support_tickets_customer_manage_gate.sql");
 
+    expect(chatHub).toContain('functions.invoke("support-ticket-manage"');
+    expect(chatHub).not.toMatch(/from\("support_tickets"\)[\s\S]{0,260}\.delete/);
     expect(manage).toContain('withSecurity(\n    "support-ticket-manage"');
     expect(manage).toContain('allowedMethods: ["POST"]');
     expect(manage).toContain("requireUser(req)");

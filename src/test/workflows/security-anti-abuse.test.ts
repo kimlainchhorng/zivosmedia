@@ -13,6 +13,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
       "src/pages/SocialFeedPage.tsx",
       "src/pages/user/PublicUserProfilePage.tsx",
       "src/pages/store/ServiceBookingPage.tsx",
+      "src/pages/chat/JoinGroupPage.tsx",
       "src/pages/cars/CarDetailPage.tsx",
     ];
 
@@ -452,6 +453,8 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const postActions = read("src/hooks/usePostActions.ts");
     const reportContent = read("src/hooks/useReportContent.ts");
     const postComments = read("src/hooks/usePostComments.ts");
+    const groupChat = read("src/components/chat/GroupChat.tsx");
+    const personalChat = read("src/components/chat/PersonalChat.tsx");
     const storyViewer = read("src/components/stories/StoryViewer.tsx");
     const feed = read("src/pages/FeedPage.tsx");
     const reels = read("src/pages/ReelsFeedPage.tsx");
@@ -490,7 +493,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(storyChatGate).toContain("trusted server-side ingestion");
 
     expect(helper).toContain('functions.invoke("social-safety-report"');
-    for (const surface of [postActions, reportContent, postComments, storyViewer, feed, reels, socialFeed, profileTabs]) {
+    for (const surface of [postActions, reportContent, postComments, groupChat, personalChat, storyViewer, feed, reels, socialFeed, profileTabs]) {
       expect(surface).toContain("submitSafetyReport");
       expect(surface).not.toMatch(/from\("(post_reports|comment_reports|content_reports|group_message_reports|chat_message_reports|story_reports|story_comment_reports)"\)[\s\S]{0,140}\.insert/);
     }
@@ -682,6 +685,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
   it("keeps Secret Chat device key writes server-scoped while preserving key reads", () => {
     const deviceKeyFn = read("supabase/functions/device-key-manage/index.ts");
     const deviceKeyGate = read("supabase/migrations/20260601073000_device_keys_server_gate.sql");
+    const secretChat = read("src/hooks/useSecretChat.ts");
 
     expect(deviceKeyFn).toContain('withSecurity("device-key-manage"');
     expect(deviceKeyFn).toContain("strictCors: true");
@@ -702,6 +706,10 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     }
     expect(deviceKeyGate).toContain("authenticated reads are allowed");
     expect(deviceKeyGate).toContain("trusted server-side ingestion");
+
+    expect(secretChat).toContain('functions.invoke("device-key-manage"');
+    expect(secretChat).toContain('from("device_keys")');
+    expect(secretChat).not.toMatch(/from\("device_keys"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
   });
 
   it("keeps privacy preference writes behind an allowlisted server update", () => {
@@ -765,6 +773,12 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const surfaces = [
       read("src/hooks/useBlockUser.ts"),
       read("src/pages/account/PrivacySettingsPage.tsx"),
+      read("src/pages/chat/BlockedUsersPage.tsx"),
+      read("src/components/chat/ChatSecurity.tsx"),
+      read("src/components/chat/ChatHeaderProfileSheet.tsx"),
+      read("src/components/chat/ChatContactInfo.tsx"),
+      read("src/pages/chat/settings/ChatPrivacyHubPage.tsx"),
+      read("src/pages/chat/MessageRequestsPage.tsx"),
       read("src/pages/PublicProfilePage.tsx"),
       read("src/components/profile/ProfilePreviewSheet.tsx"),
     ];
@@ -802,6 +816,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
   it("keeps chat thread preference mutations behind an allowlisted server update", () => {
     const settingsFn = read("supabase/functions/chat-thread-settings-update/index.ts");
     const settingsGate = read("supabase/migrations/20260601083000_chat_thread_settings_server_gate.sql");
+    const threadSettings = read("src/hooks/useThreadSettings.ts");
 
     expect(settingsFn).toContain('withSecurity("chat-thread-settings-update"');
     expect(settingsFn).toContain("strictCors: true");
@@ -825,11 +840,16 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     }
     expect(settingsGate).toContain("AS RESTRICTIVE");
     expect(settingsGate).toContain("trusted server-side ingestion");
+
+    expect(threadSettings).toContain('functions.invoke("chat-thread-settings-update"');
+    expect(threadSettings).toContain('from("chat_thread_settings")');
+    expect(threadSettings).not.toMatch(/from\("chat_thread_settings"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
   });
 
   it("keeps muted conversation mutations behind verified server-side ownership checks", () => {
     const muteFn = read("supabase/functions/muted-conversation-manage/index.ts");
     const muteGate = read("supabase/migrations/20260601084500_muted_conversations_server_gate.sql");
+    const mutedChatsPage = read("src/pages/MutedChatsPage.tsx");
 
     expect(muteFn).toContain('withSecurity("muted-conversation-manage"');
     expect(muteFn).toContain("strictCors: true");
@@ -851,12 +871,17 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     }
     expect(muteGate).toContain("AS RESTRICTIVE");
     expect(muteGate).toContain("trusted server-side ingestion");
+
+    expect(mutedChatsPage).toContain('functions.invoke("muted-conversation-manage"');
+    expect(mutedChatsPage).toContain('from("muted_conversations")');
+    expect(mutedChatsPage).not.toMatch(/from\("muted_conversations"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
   });
 
   it("keeps contact-list mutations behind verified server-side ownership checks", () => {
     const contactFn = read("supabase/functions/contact-manage/index.ts");
     const contactGate = read("supabase/migrations/20260601090000_user_contacts_server_gate.sql");
     const contactsHook = read("src/hooks/useContacts.ts");
+    const contactRequestsHook = read("src/hooks/useContactRequests.ts");
 
     expect(contactFn).toContain('withSecurity("contact-manage"');
     expect(contactFn).toContain("strictCors: true");
@@ -882,13 +907,16 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(contactGate).toContain("trusted server-side ingestion");
 
     expect(contactsHook).toContain('from("user_contacts")');
-    expect(contactsHook).toContain('functions.invoke("contact-manage"');
-    expect(contactsHook).not.toMatch(/from\("user_contacts"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
+    for (const surface of [contactsHook, contactRequestsHook]) {
+      expect(surface).toContain('functions.invoke("contact-manage"');
+      expect(surface).not.toMatch(/from\("user_contacts"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
+    }
   });
 
   it("keeps contact request lifecycle mutations behind verified server-side ownership checks", () => {
     const requestFn = read("supabase/functions/contact-request-manage/index.ts");
     const requestGate = read("supabase/migrations/20260601091500_contact_requests_server_gate.sql");
+    const contactRequestsHook = read("src/hooks/useContactRequests.ts");
     const contactFn = read("supabase/functions/contact-manage/index.ts");
 
     expect(requestFn).toContain('withSecurity("contact-request-manage"');
@@ -913,12 +941,17 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(requestGate).toContain("AS RESTRICTIVE");
     expect(requestGate).toContain("trusted server-side ingestion");
 
+    expect(contactRequestsHook).toContain('functions.invoke("contact-request-manage"');
+    expect(contactRequestsHook).toContain('functions.invoke("contact-manage"');
+    expect(contactRequestsHook).toContain('from("contact_requests")');
+    expect(contactRequestsHook).not.toMatch(/from\("contact_requests"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
     expect(contactFn).toContain('from("contact_requests")');
   });
 
   it("keeps legacy user safety actions behind verified server-side ownership checks", () => {
     const safetyActionFn = read("supabase/functions/user-safety-action-manage/index.ts");
     const safetyActionGate = read("supabase/migrations/20260601093000_user_safety_actions_server_gate.sql");
+    const mutedBlockedPage = read("src/pages/MutedBlockedUsersPage.tsx");
     const socialSafetyFn = read("supabase/functions/social-safety-report/index.ts");
 
     expect(safetyActionFn).toContain('withSecurity("user-safety-action-manage"');
@@ -942,6 +975,9 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(safetyActionGate).toContain("AS RESTRICTIVE");
     expect(safetyActionGate).toContain("trusted server-side ingestion");
 
+    expect(mutedBlockedPage).toContain('functions.invoke("user-safety-action-manage"');
+    expect(mutedBlockedPage).toContain('from("user_safety_actions")');
+    expect(mutedBlockedPage).not.toMatch(/from\("user_safety_actions"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
     expect(socialSafetyFn).toContain('from("user_safety_actions")');
   });
 

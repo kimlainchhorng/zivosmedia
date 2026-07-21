@@ -123,6 +123,7 @@ export default function CommentsSheet({
       open={open}
       onClose={onClose}
       ariaLabel="Comments"
+      hideCloseButton
       maxHeightVh={compactSheet ? 62 : 72}
       zIndex={1600}
       safeAreaTop={false}
