@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-16T23:00:51.014Z",
+  "store_id": "05790d87-5eab-4d9a-8af1-b443dd2ca8b8",
+  "store_account_id": "CBD05790D87",
+  "property_name": "The Star Polaris 23 Condominium",
+  "source_note": "Generated for ZIVO missing-media remediation. Booking.com/bstatic media must not be used unless the property/rightsholder or Booking.com has granted written reuse permission for ZIVO. Put property-owned/authorized files in the referenced local media folder, set media_authorized=true, and keep proof of permission.",
+  "permission_required": true,
+  "permission_status": "pending-written-authorization",
+  "permission_evidence": null,
+  "media_authorized": false,
+  "expected_media_folder": "data/hotel-imports/missing-media-2026-05-16/the-star-polaris-23-condominium-phnom-penh-media/",
+  "media": {
+    "logo_file": "the-star-polaris-23-condominium-phnom-penh-media/profile.jpg",
+    "banner_file": "the-star-polaris-23-condominium-phnom-penh-media/cover.jpg",
+    "gallery_images": [
+      {
+        "file": "the-star-polaris-23-condominium-phnom-penh-media/gallery/01.jpg",
+        "caption": "The Star Polaris 23 Condominium property photo",
+        "order": 0
+      },
+      {
+        "file": "the-star-polaris-23-condominium-phnom-penh-media/gallery/02.jpg",
+        "caption": "The Star Polaris 23 Condominium property photo",
+        "order": 1
+      },
+      {
+        "file": "the-star-polaris-23-condominium-phnom-penh-media/gallery/03.jpg",
+        "caption": "The Star Polaris 23 Condominium property photo",
+        "order": 2
+      }
+    ]
+  },
+  "store_profile": {
+    "name": "The Star Polaris 23 Condominium",
+    "category": "hotel",
+    "market": "KH",
+    "address": "116 St P-14 Phnom Penh",
+    "phone": "+85512345617",
+    "description": "Star Polaris 23 Condominium in Phnom Penh offers high-rise living with modern comforts. Stylish condo rooms and city panoramas deliver a premium urban experience.",
+    "rating": 7.7,
+    "latitude": 11.529415,
+    "longitude": 104.959719,
+    "is_active": true
+  },
+  "remediation_needs": [
+    "profile/logo image",
+    "cover/banner image",
+    "property gallery images",
+    "original price or discount fields"
+  ],
+  "rooms": [
+    {
+      "name": "One-Bedroom Condo",
+      "room_type": "Standard",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Queen"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 1800,
+      "original_rate_cents": 2300,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Modern one-bedroom condo unit with full kitchen and city views.",
+      "amenities": [
+        "Queen bed",
+        "Free WiFi",
+        "Air conditioning",
+        "Private bathroom",
+        "TV",
+        "Kitchen",
+        "Living area"
+      ],
+      "is_active": true,
+      "existing_photo_count": 1,
+      "photos": []
+    },
+    {
+      "name": "Premium Suite",
+      "room_type": "Suite",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "King"
+        },
+        {
+          "qty": 1,
+          "type": "Sofa"
+        }
+      ],
+      "max_guests": 3,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 2500,
+      "original_rate_cents": 3100,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Premium suite with balcony and star-gazing access from Star Polaris 23.",
+      "amenities": [
+        "King bed",
+        "Sofa bed",
+        "Free WiFi",
+        "Air conditioning",
+        "Private bathroom",
+        "TV",
+        "Full kitchen",
+        "Balcony",
+        "Safe"
+      ],
+      "is_active": true,
+      "existing_photo_count": 1,
+      "photos": []
+    },
+    {
+      "name": "Studio Room",
+      "room_type": "Studio",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "Double"
+        }
+      ],
+      "max_guests": 2,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 1200,
+      "original_rate_cents": 1500,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "High-rise studio with kitchenette and Phnom Penh city panorama.",
+      "amenities": [
+        "Double bed",
+        "Free WiFi",
+        "Air conditioning",
+        "Private bathroom",
+        "TV",
+        "Kitchenette"
+      ],
+      "is_active": true,
+      "existing_photo_count": 1,
+      "photos": []
+    },
+    {
+      "name": "Two-Bedroom Condo",
+      "room_type": "Deluxe",
+      "beds": null,
+      "bed_config": [
+        {
+          "qty": 1,
+          "type": "King"
+        },
+        {
+          "qty": 1,
+          "type": "Single"
+        }
+      ],
+      "max_guests": 4,
+      "size_sqm": null,
+      "units_total": 1,
+      "base_rate_cents": 2300,
+      "original_rate_cents": 2900,
+      "weekend_rate_cents": 0,
+      "breakfast_rate_cents": null,
+      "weekly_discount_pct": 0,
+      "monthly_discount_pct": 0,
+      "description": "Two-bedroom condo with balcony and full Phnom Penh skyline views.",
+      "amenities": [
+        "King bed",
+        "Single bed",
+        "Free WiFi",
+        "Air conditioning",
+        "Two bathrooms",
+        "TV",
+        "Kitchen",
+        "Balcony"
+      ],
+      "is_active": true,
+      "existing_photo_count": 1,
+      "photos": []
+    }
+  ]
+}
