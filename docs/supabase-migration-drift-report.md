@@ -1,48 +1,48 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-07-21T17:42:16.824Z
+Generated: 2026-06-12T21:34:26.712Z
 
 ## Summary
 
-- Local migrations: 1132
+- Local migrations: 1122
 - Invalid filenames: 0
 - Duplicate versions: 6
 - Allowed duplicate versions: 0
 - New duplicate versions: 6
 - Duplicate SQL hashes: 0
 - SUPABASE_ACCESS_TOKEN configured: yes
-- Local version range: 20260126182101 to 20260717120000
-- Remote version range: none to none
-- Remote migrations: 0
-- Matched versions: 0
-- Local-only pending: 1132
-- Remote-only missing locally: 0
-- Near timestamp pairs within 5 seconds: 0
-- Near timestamp pairs within 1 minute: 0
-- One-to-one reconciliation candidates within 5 seconds: 0
-- One-to-one reconciliation candidates within 1 minute: 0
-- Unmatched local migrations after one-to-one candidates: 1132
-- Unmatched remote versions after one-to-one candidates: 0
-- Unmatched local migrations after remote range: 0
+- Local version range: 20260126182101 to 20260616090000
+- Remote version range: 20260126182059 to 20260611183433
+- Remote migrations: 1570
+- Matched versions: 1
+- Local-only pending: 1121
+- Remote-only missing locally: 1569
+- Near timestamp pairs within 5 seconds: 585
+- Near timestamp pairs within 1 minute: 618
+- One-to-one reconciliation candidates within 5 seconds: 584
+- One-to-one reconciliation candidates within 1 minute: 616
+- Unmatched local migrations after one-to-one candidates: 505
+- Unmatched remote versions after one-to-one candidates: 953
+- Unmatched local migrations after remote range: 19
 - Unmatched remote versions before local range: 0
-- Pending local creates tables: 0
+- Pending local creates tables: 1
 - Pending local creates tables without RLS: 0
 - Pending local creates tables without explicit grants: 0
 - Pending local sequence-backed ids without sequence grants: 0
 - Pending local SECURITY DEFINER without search_path: 0
 - Pending local hardcoded Supabase URLs: 0
 - Pending local legacy anon JWTs: 0
-- Shared migration calendar days: 0
+- Shared migration calendar days: 92
 - Reconciliation candidates CSV: docs/supabase-migration-reconciliation-candidates.csv
 - Unmatched local CSV: docs/supabase-migration-unmatched-local.csv
 - Unmatched remote CSV: docs/supabase-migration-unmatched-remote.csv
 - Reconciliation plan: docs/supabase-migration-reconciliation-plan.md
 - Pending local review CSV: docs/supabase-migration-pending-local-review.csv
-- Pending risk: high=1053, medium=56, low=23
+- Pending risk: high=1044, medium=54, low=23
 
 ## Domains
 
-- security/auth: 966
+- security/auth: 955
 - commerce/store: 58
 - chat/social: 50
 - general: 24
@@ -61,19 +61,41 @@ Generated: 2026-07-21T17:42:16.824Z
 ## Remote Query
 
 - Auth token: SUPABASE_ACCESS_TOKEN was present for this run.
-- Error: Initialising login role...
-[31munexpected login role status 401: {"message":"Unauthorized"}[39m
-Try rerunning the command with --debug to troubleshoot the error.
+- Linked remote migration history was read successfully.
 
 
 ## Reconciliation Diagnostics
 
-- Exact version overlap was not evaluated because linked remote migration history could not be read.
-- Near-timestamp diagnostics require authenticated remote migration history.
+- Exact version overlap is present.
+- Many migrations appear to have near-identical timestamps rather than exact matching version ids; this usually means the repo and remote history were generated/imported differently.
 
 ### Closest Local/Remote Version Pairs
 
-- None
+- local 20260126184430 (20260126184430_15d3dc46-97b5-4f21-b420-db59cd05443a.sql) -> remote 20260126184429 (1s apart)
+- local 20260126185227 (20260126185227_cda82eb4-ac9e-49b5-9acf-17a1a8079c3d.sql) -> remote 20260126185226 (1s apart)
+- local 20260126195812 (20260126195812_4c0fbc98-ad0f-455f-abee-31eb6a1c0840.sql) -> remote 20260126195811 (1s apart)
+- local 20260126204406 (20260126204406_4b930ffe-7701-4cca-8669-5b8015c31411.sql) -> remote 20260126204405 (1s apart)
+- local 20260126210105 (20260126210105_93ebc1b8-2f34-4353-8ebe-0cd1ec2b2902.sql) -> remote 20260126210104 (1s apart)
+- local 20260127233015 (20260127233015_5ca2a59c-f6eb-4fca-9560-ba33232020d3.sql) -> remote 20260127233014 (1s apart)
+- local 20260129225228 (20260129225228_f8acf683-0020-463d-baac-e9c8dda02913.sql) -> remote 20260129225227 (1s apart)
+- local 20260131204001 (20260131204001_8fc6e8e9-7bc7-46de-bd85-4266f95306aa.sql) -> remote 20260131204000 (1s apart)
+- local 20260201011854 (20260201011854_0dd90e3e-d414-443c-ab60-74ab8b147261.sql) -> remote 20260201011853 (1s apart)
+- local 20260201143419 (20260201143419_282f5007-80e4-4b53-881f-6268400c8d51.sql) -> remote 20260201143418 (1s apart)
+- local 20260201143843 (20260201143843_74a114aa-2010-4487-91e4-5b4f3e2e5f04.sql) -> remote 20260201143842 (1s apart)
+- local 20260201162950 (20260201162950_5af8902a-3602-41e8-851a-3e26875239af.sql) -> remote 20260201162949 (1s apart)
+- local 20260201163106 (20260201163106_64748b6e-1d0e-4437-9b4f-96e05f3ca218.sql) -> remote 20260201163105 (1s apart)
+- local 20260202033232 (20260202033232_5ff94892-d738-4994-ad98-4b857a97b277.sql) -> remote 20260202033231 (1s apart)
+- local 20260202035426 (20260202035426_d125ec90-64bf-4265-99a7-bdf9c1456fcb.sql) -> remote 20260202035425 (1s apart)
+- local 20260202041223 (20260202041223_4f96bc3c-1d6a-423e-99e7-fbbfbeb3da0d.sql) -> remote 20260202041222 (1s apart)
+- local 20260202182912 (20260202182912_634f3df2-e9b3-4ba9-8f66-987d421ff0c4.sql) -> remote 20260202182911 (1s apart)
+- local 20260202192002 (20260202192002_5a1b188b-1b4c-40d3-9293-a5fbb9590879.sql) -> remote 20260202192001 (1s apart)
+- local 20260202214213 (20260202214213_744d4882-3728-4e5f-b1dc-5443d2606cb4.sql) -> remote 20260202214212 (1s apart)
+- local 20260202220847 (20260202220847_bedb61f0-7016-4d3e-927c-061886814f3d.sql) -> remote 20260202220846 (1s apart)
+- local 20260202221827 (20260202221827_244880bc-6bd0-4820-a0b7-d58f49e96c92.sql) -> remote 20260202221826 (1s apart)
+- local 20260202221910 (20260202221910_846f264d-c52d-46b4-8995-94369ebedcb1.sql) -> remote 20260202221909 (1s apart)
+- local 20260202223817 (20260202223817_e5ee102f-2b49-44be-bdf7-ae4a2eb44ae8.sql) -> remote 20260202223816 (1s apart)
+- local 20260203002459 (20260203002459_884b16e7-6421-4c2d-bcb9-9a7514f5ba33.sql) -> remote 20260203002458 (1s apart)
+- local 20260203024553 (20260203024553_67ed27d8-e665-4e0e-90ec-7801e977e5f3.sql) -> remote 20260203024552 (1s apart)
 
 ## High Risk Pending Migrations
 
@@ -177,9 +199,108 @@ Try rerunning the command with --debug to troubleshoot the error.
 - 20260205192129: 20260205192129_06ed20b1-b359-463b-9e96-40051d4caf5a.sql (security/auth)
 - 20260205192940: 20260205192940_8fcdf92c-0c92-4e90-af83-01275c9e0717.sql (security/auth)
 - 20260205213337: 20260205213337_9bbf6075-0954-473f-bac0-bc7a11d5443c.sql (security/auth)
-- ...and 953 more
+- ...and 944 more
 
 ## Remote-Only Versions
 
-- None
-
+- 20260126182059
+- 20260126183930
+- 20260126184148
+- 20260126184302
+- 20260126184429
+- 20260126184455
+- 20260126184528
+- 20260126184745
+- 20260126184804
+- 20260126184926
+- 20260126185025
+- 20260126185226
+- 20260126190958
+- 20260126191009
+- 20260126191230
+- 20260126191456
+- 20260126191725
+- 20260126192403
+- 20260126192431
+- 20260126194307
+- 20260126195811
+- 20260126204103
+- 20260126204142
+- 20260126204329
+- 20260126204335
+- 20260126204405
+- 20260126204846
+- 20260126205325
+- 20260126210049
+- 20260126210104
+- 20260126211226
+- 20260126222108
+- 20260126222345
+- 20260126224544
+- 20260126230109
+- 20260126234441
+- 20260126235437
+- 20260127003523
+- 20260127182943
+- 20260127194845
+- 20260127205740
+- 20260127210510
+- 20260127211135
+- 20260127213207
+- 20260127215035
+- 20260127220222
+- 20260127220734
+- 20260127221317
+- 20260127223805
+- 20260127224424
+- 20260127224925
+- 20260127233014
+- 20260127233542
+- 20260127234807
+- 20260127235132
+- 20260128002136
+- 20260128002349
+- 20260129023607
+- 20260129030542
+- 20260129040838
+- 20260129042235
+- 20260129042252
+- 20260129043309
+- 20260129043341
+- 20260129043720
+- 20260129184052
+- 20260129184207
+- 20260129184607
+- 20260129184951
+- 20260129185022
+- 20260129185402
+- 20260129185953
+- 20260129190059
+- 20260129191432
+- 20260129191629
+- 20260129192300
+- 20260129192519
+- 20260129194844
+- 20260129222401
+- 20260129225208
+- 20260129225227
+- 20260130203701
+- 20260130203802
+- 20260130204934
+- 20260130205018
+- 20260130214846
+- 20260130214905
+- 20260130214957
+- 20260130215035
+- 20260131161120
+- 20260131161641
+- 20260131161718
+- 20260131162012
+- 20260131162056
+- 20260131162153
+- 20260131164944
+- 20260131202031
+- 20260131202048
+- 20260131203610
+- 20260131204000
+- ...and 1469 more
