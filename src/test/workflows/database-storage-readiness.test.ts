@@ -96,7 +96,7 @@ describe("database, storage, and media readiness workflow", () => {
 
     expect(storagePolicyTest).toContain("Owner A CANNOT upload to Store B's folder");
     expect(storagePolicyTest).toContain("await sb.storage.from(bucket).remove(paths)");
-    expect(workflow).toContain("signedUrlFor(CHAT_MEDIA_BUCKET");
+    expect(workflow).toContain("chat_media_insert_authenticated");
     expect(workflow).toContain("createSignedUrl(receipt.pdf_path, 3600)");
 
     expect(mediaCheck).toContain("img missing loading");

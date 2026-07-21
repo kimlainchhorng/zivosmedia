@@ -1,1 +1,0 @@
-ALTER TABLE city_pricing ADD COLUMN IF NOT EXISTS card_fee_pct numeric DEFAULT 0;

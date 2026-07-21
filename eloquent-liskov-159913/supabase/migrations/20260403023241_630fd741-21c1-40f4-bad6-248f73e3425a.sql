@@ -1,1 +1,0 @@
-ALTER TABLE public.user_posts ALTER COLUMN media_url DROP NOT NULL;

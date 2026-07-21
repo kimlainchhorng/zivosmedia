@@ -1,1 +1,0 @@
-ALTER TABLE public.store_products ADD COLUMN IF NOT EXISTS price_khr integer DEFAULT 0;

@@ -19,12 +19,9 @@ const gatedFunctions = [
     wrapper: "src/lib/analytics.ts",
     errorName: null,
   },
-  {
-    slug: "notification-manage",
-    flag: "VITE_NOTIFICATION_MANAGE_ENABLED",
-    wrapper: "src/lib/notifications/notificationManage.ts",
-    errorName: "NotificationManageUnavailableError",
-  },
+  // notification-manage was retired by "Enable direct per-user notification
+  // mutations" (ebb1a9cd7): per-user rows are mutated directly under
+  // owner-scoped RLS, so there is no browser gate to enforce.
   {
     slug: "social-notification-manage",
     flag: "VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED",

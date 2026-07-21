@@ -1,1 +1,0 @@
-ALTER TABLE public.creator_tips ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';

@@ -252,4 +252,7 @@ Deno.serve(withSecurity("vin-decode", async (req, ctx) => {
 }, {
   allowedMethods: ["POST"],
   strictCors: true,
+  rateLimit: "api_general",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 80,
 }));

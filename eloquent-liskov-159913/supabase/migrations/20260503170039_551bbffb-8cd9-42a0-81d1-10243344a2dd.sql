@@ -1,1 +1,0 @@
-GRANT EXECUTE ON FUNCTION public.get_profile_protected_fields(uuid) TO authenticated, anon;

@@ -1,2 +1,0 @@
-ALTER TABLE store_products DROP CONSTRAINT store_products_discount_type_check;
-ALTER TABLE store_products ADD CONSTRAINT store_products_discount_type_check CHECK (discount_type = ANY (ARRAY['percentage', 'fixed', 'bogo']));

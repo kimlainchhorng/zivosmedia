@@ -409,7 +409,9 @@ describe("API, speed, and operations readiness workflow", () => {
       expect(fn).not.toContain("'Access-Control-Allow-Origin': '*'");
     }
 
-    expect(authEmail).toContain("verifyWebhookRequest");
+    // Hook requests authenticate via the shared secret with a timing-safe compare.
+    expect(authEmail).toContain("SUPABASE_AUTH_HOOK_SECRET");
+    expect(authEmail).toContain("timingSafeEqual(token, hookSecret)");
     expect(authEmail).toContain('allowedMethods: ["POST"]');
     expect(authEmail).toContain("handlePreview(req, corsHeaders)");
     expect(authEmail).toContain("handleWebhook(req, corsHeaders)");
@@ -1056,7 +1058,6 @@ describe("API, speed, and operations readiness workflow", () => {
     const personalHelp = source("src/pages/app/personal/PersonalHelpPage.tsx");
     const liveChat = source("src/components/shared/LiveChatWidget.tsx");
     const newTicket = source("src/pages/support/CreateSupportTicketPage.tsx");
-    const chatHub = source("src/pages/ChatHubPage.tsx");
 
     expect(fn).toContain('withSecurity(\n    "support-ticket-submit"');
     expect(fn).toContain('allowedMethods: ["POST"]');
@@ -1094,8 +1095,6 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(newTicket).toContain('functions.invoke("support-ticket-submit"');
     expect(newTicket).toContain('source: `support_new:${category}:${priority}`');
     expect(newTicket).not.toMatch(/from\("support_tickets"\)[\s\S]{0,260}\.insert/);
-    expect(chatHub).toContain('functions.invoke("support-ticket-manage"');
-    expect(chatHub).not.toMatch(/from\("support_tickets"\)[\s\S]{0,260}\.delete/);
   });
 
   it("routes AI concierge handoff messages through trusted server-side ingestion", () => {

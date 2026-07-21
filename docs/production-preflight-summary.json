@@ -207,7 +207,7 @@
     "migrationDrift": {
       "path": "docs\\supabase-migration-drift-report.md",
       "exists": true,
-      "bytes": 16874
+      "bytes": 16873
     },
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
@@ -254,6 +254,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 505633
+    "bytes": 505632
   }
 }

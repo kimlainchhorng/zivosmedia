@@ -165,7 +165,7 @@ describe("release safety preflight contracts", () => {
     expect(preflight).toContain("edgeFunctionMissingLiveCritical");
     expect(preflight).toContain("edgeFunctions");
     expect(source("docs/production-preflight-report.md")).toContain("- Command: `npm run security:scan`");
-    expect(source("docs/production-preflight-report.md")).toContain("- Edge Function browser gates: gatedFunctions=6, failures=0");
+    expect(source("docs/production-preflight-report.md")).toContain("- Edge Function browser gates: gatedFunctions=5, failures=0");
     expect(packageJson).toContain('"security:check-secrets:local"');
     expect(packageJson).toContain('"security:check-supabase-token-fragments"');
     expect(packageJson).toContain('"platform:audit": "npm run security:scan && npm run qa:platform-readiness');

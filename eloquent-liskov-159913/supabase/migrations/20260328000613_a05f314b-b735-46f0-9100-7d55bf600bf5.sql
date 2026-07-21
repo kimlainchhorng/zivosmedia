@@ -1,1 +1,0 @@
-ALTER TABLE store_profiles ADD COLUMN IF NOT EXISTS payment_types text[] DEFAULT '{cash,card}' NOT NULL;

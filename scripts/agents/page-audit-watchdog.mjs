@@ -32,7 +32,6 @@ const HISTORY = join(OUT, "history.jsonl");
 const PAGES = [
   "src/pages/FeedPage.tsx",
   "src/pages/ReelsFeedPage.tsx",
-  "src/pages/ChatHubPage.tsx",
   "src/pages/StoreMapPage.tsx",
   "src/pages/MarketplacePage.tsx",
   "src/pages/LiveStreamPage.tsx",

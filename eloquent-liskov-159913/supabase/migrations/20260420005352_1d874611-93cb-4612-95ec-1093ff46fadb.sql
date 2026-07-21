@@ -1,1 +1,0 @@
-UPDATE public.store_profiles SET is_active = true WHERE id = 'a914b90d-c249-4794-ba5e-3fdac0deed44';

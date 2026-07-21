@@ -1,1 +1,0 @@
-ALTER TABLE public.creator_profiles ADD COLUMN IF NOT EXISTS tips_enabled boolean NOT NULL DEFAULT false;

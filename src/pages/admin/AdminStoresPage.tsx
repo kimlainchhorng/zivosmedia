@@ -62,8 +62,8 @@ const emptyStore = {
 
 const PROTECTED_THIRD_PARTY_MEDIA_RE = /(^https?:\/\/)?([^/]+\.)?(booking\.com|bstatic\.com)\//i;
 const BOOKING_PROFILE_THUMB_RE = /\/xdata\/images\/hotel\/square240\//i;
-const PARTNER_LOGIN_BASE_URL = "https://hizivo.com/partner-login";
-const PARTNER_SUPPORT_URL = "https://hizivo.com/help";
+const PARTNER_LOGIN_BASE_URL = "https://zivosmedia.com/partner-login";
+const PARTNER_SUPPORT_URL = "https://zivosmedia.com/help";
 
 function getPartnerLoginUrl(storeAccountId: string) {
   const params = new URLSearchParams({ store_id: storeAccountId });

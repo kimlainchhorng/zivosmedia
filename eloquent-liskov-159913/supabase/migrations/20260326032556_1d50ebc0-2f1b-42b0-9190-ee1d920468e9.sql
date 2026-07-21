@@ -1,1 +1,0 @@
-ALTER TABLE store_products ADD COLUMN IF NOT EXISTS unit text DEFAULT NULL;

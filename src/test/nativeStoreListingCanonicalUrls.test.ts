@@ -14,11 +14,11 @@ describe("native store listing canonical URLs", () => {
     const combined = `${appStore}\n${playStore}`;
 
     for (const canonicalUrl of [
-      "https://hizivo.com",
-      "https://hizivo.com/support",
-      "https://hizivo.com/legal/privacy",
-      "https://hizivo.com/legal/terms",
-      "https://hizivo.com/delete-account",
+      "https://zivosmedia.com",
+      "https://zivosmedia.com/support",
+      "https://zivosmedia.com/legal/privacy",
+      "https://zivosmedia.com/legal/terms",
+      "https://zivosmedia.com/delete-account",
     ]) {
       expect(combined).toContain(canonicalUrl);
     }

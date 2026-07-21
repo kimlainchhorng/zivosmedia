@@ -1,1 +1,0 @@
-ALTER TABLE public.store_profiles ADD COLUMN khr_rate numeric DEFAULT 4062.5;

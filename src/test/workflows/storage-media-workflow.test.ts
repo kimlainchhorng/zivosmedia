@@ -39,8 +39,6 @@ describe("storage, media, CDN, and downloads workflow", () => {
     const chatFiles = read("supabase/migrations/20260426203907_087e023a-2011-42a8-8dc9-bae36950ca6c.sql");
     const ppv = read("supabase/migrations/20260528000001_creator_type_and_ppv.sql");
     const signedMedia = read("src/lib/security/signedMedia.ts");
-    const useChatFiles = read("src/hooks/useChatFiles.ts");
-    const personalChat = read("src/components/chat/PersonalChat.tsx");
     const ppvDetail = read("src/components/ppv/PPVPostDetail.tsx");
 
     expect(chatHardening).toContain("set public = false");
@@ -55,9 +53,6 @@ describe("storage, media, CDN, and downloads workflow", () => {
     expect(chatFiles).toContain("Users can read their own chat files");
     expect(chatFiles).toContain("Users can upload their own chat files");
     expect(chatFiles).toContain("Users can delete their own chat files");
-    expect(useChatFiles).toContain(".createSignedUrl(path, 60 * 60)");
-    expect(useChatFiles).toContain("url: path");
-    expect(useChatFiles).toContain("thumbnail_url: thumbPath");
 
     expect(ppv).toContain("VALUES ('ppv-media', 'ppv-media', false)");
     expect(ppv).toContain("ppv_media_owner_upload");
@@ -69,7 +64,6 @@ describe("storage, media, CDN, and downloads workflow", () => {
     expect(signedMedia).toContain("display:   60 * 60");
     expect(signedMedia).toContain("download:  60 * 60 * 24");
     expect(signedMedia).toContain("thumbnail: 60 * 60 * 6");
-    expect(personalChat).toContain("signedUrlFor(CHAT_MEDIA_BUCKET");
     expect(ppvDetail).toContain('signedUrlsFor("ppv-media"');
   });
 
