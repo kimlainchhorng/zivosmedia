@@ -2,16 +2,13 @@ name: Chat + Gesture QA
 
 on:
   pull_request:
+    # GitHub rejects paths + paths-ignore on one event; use negated paths instead.
     paths:
       - "src/**"
       - "tests/e2e/**"
       - ".github/workflows/chat-gesture-qa.yml"
-    paths-ignore:
-      - "docs/**"
-      - "website/**"
-      - "**/*.md"
-      - "**/*.log"
-      - "booking-*.json"
+      - "!**/*.md"
+      - "!**/*.log"
   push:
     branches: [main]
     paths-ignore:

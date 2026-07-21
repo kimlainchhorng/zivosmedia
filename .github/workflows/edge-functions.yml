@@ -6,26 +6,20 @@ name: Edge Functions
 on:
   push:
     branches: [main]
+    # GitHub rejects paths + paths-ignore on one event; use negated paths instead.
     paths:
       - "supabase/functions/**"
       - ".github/workflows/edge-functions.yml"
-    paths-ignore:
-      - "docs/**"
-      - "website/**"
-      - "**/*.md"
-      - "**/*.log"
-      - "booking-*.json"
+      - "!**/*.md"
+      - "!**/*.log"
   pull_request:
     branches: [main]
+    # GitHub rejects paths + paths-ignore on one event; use negated paths instead.
     paths:
       - "supabase/functions/**"
       - ".github/workflows/edge-functions.yml"
-    paths-ignore:
-      - "docs/**"
-      - "website/**"
-      - "**/*.md"
-      - "**/*.log"
-      - "booking-*.json"
+      - "!**/*.md"
+      - "!**/*.log"
   workflow_dispatch:
 
 permissions:
