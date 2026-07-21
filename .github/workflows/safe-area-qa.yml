@@ -2,17 +2,14 @@ name: Mobile UX QA
 
 on:
   pull_request:
+    # GitHub rejects paths + paths-ignore on one event; use negated paths instead.
     paths:
       - "src/**"
       - "scripts/qa/**"
       - "tests/e2e/**"
       - ".github/workflows/safe-area-qa.yml"
-    paths-ignore:
-      - "docs/**"
-      - "website/**"
-      - "**/*.md"
-      - "**/*.log"
-      - "booking-*.json"
+      - "!**/*.md"
+      - "!**/*.log"
   push:
     branches: [main]
     paths-ignore:
