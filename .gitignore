@@ -67,3 +67,12 @@ Usersabiga*/
 
 # Local Netlify folder
 .netlify
+
+# One-off agent/debug scratch files — keep out of the repo root
+booking-*.json
+probe-*.mjs
+fix-*.mjs
+check-*.ts
+.codex-*.png
+.codex-artifacts/
+eloquent-liskov-*/
