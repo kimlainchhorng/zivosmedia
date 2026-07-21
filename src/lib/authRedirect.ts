@@ -27,8 +27,8 @@ const TRUSTED_ZIVO_AUTH_HOSTS = new Set([
   "www.zivostravel.com",
   "zivochat.com",
   "www.zivochat.com",
-  "zivopay.com",
-  "www.zivopay.com",
+  "zivowallet.com",
+  "www.zivowallet.com",
   "zivomarket.com",
   "www.zivomarket.com",
 ]);
