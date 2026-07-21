@@ -1,23 +1,23 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-12T21:34:29.446Z
+Generated: 2026-07-21T17:42:18.522Z
 
 ## Summary
 
-- Supabase CLI: 2.105.0
-- Local migrations: 1122
+- Supabase CLI: 2.109.1
+- Local migrations: 1132
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
 - Allowed legacy duplicate migration versions: 0
 - New duplicate migration versions: 6
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1122, remote=1570, matched=1, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=505, unmatchedRemote=953, localAfterRemoteRange=19, sharedDays=92, remoteError=no, generated=2026-06-12T21:34:26.712Z
-- Pending local migration gates: createsTables=1, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Last linked drift report: local=1132, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1132, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-07-21T17:42:16.824Z
+- Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 933
+- Public tables created in migrations: 936
 - Public tables needing RLS review: 0
-- Recent public tables needing Data API grant review: 12
+- Recent public tables needing Data API grant review: 11
 - Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
 - Hardcoded Supabase URLs in migrations: 36
@@ -34,7 +34,7 @@ Generated: 2026-06-12T21:34:29.446Z
 
 ## Warnings
 
-- 12 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
+- 11 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
 
 ## Duplicate Versions
 
@@ -66,7 +66,6 @@ Generated: 2026-06-12T21:34:29.446Z
 - bus_promos: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
 - ar_supplier_credentials: supabase/migrations/20260605223000_software_auto_repair_extended_schema.sql
 - payment_webhook_events: supabase/migrations/20260607163048_zivosmedia_payments_foundation.sql
-- payment_audit_logs: supabase/migrations/20260607163048_zivosmedia_payments_foundation.sql
 
 ## View Review Candidates
 

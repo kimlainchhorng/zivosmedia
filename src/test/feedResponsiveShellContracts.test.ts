@@ -19,8 +19,8 @@ describe("feed responsive shell contracts", () => {
       "zivo-shell-mobile zivo-social-surface lg:pb-0 flex-1 lg:max-w-2xl xl:max-w-3xl lg:mx-auto",
       'data-testid="feed-sticky-header"',
       "lg:hidden zivo-sticky-mobile-header px-2 pt-1 pb-1",
-      "zivo-pt-safe-sticky zivo-feed-mobile-header-panel zivo-social-header-glass",
-      "zivo-feed-tabs-shell hidden lg:flex justify-center sticky lg:top-[60px] z-20 py-1",
+      "zivo-pt-safe-sticky zivo-feed-mobile-header-panel relative rounded-[1.5rem] overflow-hidden",
+      "hidden justify-center sticky z-20 py-2 lg:flex lg:top-[66px]",
     ]) {
       expect(feed).toContain(needle);
     }

@@ -39,7 +39,7 @@ describe("native safe-area bridge contracts", () => {
     for (const needle of [
       "--zivo-safe-top: env(safe-area-inset-top, 0px);",
       "--zivo-safe-bottom: env(safe-area-inset-bottom, 0px);",
-      "--zivo-mobile-nav-h: 60px;",
+      "--zivo-mobile-nav-h: 68px;",
       "--zivo-safe-top-overlay: max(calc(var(--zivo-safe-top, 0px) + 1.25rem), 80px);",
       "--zivo-safe-top-sheet: max(var(--zivo-safe-top, 0px), 44px);",
       "--zivo-safe-top-sticky: max(calc(var(--zivo-safe-top, 0px) + 0.125rem), 64px);",

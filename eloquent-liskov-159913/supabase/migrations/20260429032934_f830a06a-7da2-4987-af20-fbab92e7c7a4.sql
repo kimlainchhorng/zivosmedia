@@ -1,1 +1,0 @@
-DROP POLICY IF EXISTS "Authenticated users can upload chat media" ON storage.objects;

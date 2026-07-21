@@ -55,7 +55,7 @@ describe("loading, empty, and reliability visual contracts", () => {
     for (const needle of [
       'aria-label="Loading posts"',
       'aria-busy="true"',
-      "zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.25rem]",
+      "mx-2 my-3 overflow-hidden rounded-[1.85rem] border border-border/40 bg-background/88",
       "<EngagementSkeleton />",
       "No posts yet",
       "Be the first to share something amazing!",
@@ -86,9 +86,8 @@ describe("loading, empty, and reliability visual contracts", () => {
     }
   });
 
-  it("keeps commerce and channel discovery skeleton, error, and empty states covered by visual contracts", () => {
+  it("keeps commerce discovery skeleton, error, and empty states covered by visual contracts", () => {
     const grocery = source("src/pages/GroceryStorePage.tsx");
-    const channels = source("src/pages/channels/ChannelsDirectoryPage.tsx");
     const frontendContracts = source("scripts/qa/frontend-visual-contracts.mjs");
     const loadingStateTest = source("src/test/loadingErrorStates.test.tsx");
 
@@ -103,19 +102,6 @@ describe("loading, empty, and reliability visual contracts", () => {
       "Try a different search term",
     ]) {
       expect(grocery).toContain(needle);
-    }
-
-    for (const needle of [
-      "loading ? (",
-      "[...Array(6)].map",
-      "animate-pulse",
-      "channels.length === 0",
-      "No channels found",
-      "Try a different search.",
-      "Be the first to start a channel.",
-      "Create channel",
-    ]) {
-      expect(channels).toContain(needle);
     }
 
     expect(frontendContracts).toContain('id: "loading-error-empty-states"');

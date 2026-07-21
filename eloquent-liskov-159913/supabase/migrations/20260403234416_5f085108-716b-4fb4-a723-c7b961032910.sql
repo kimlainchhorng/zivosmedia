@@ -1,1 +1,0 @@
-ALTER TABLE public.direct_messages ADD COLUMN locked_price_cents INTEGER DEFAULT NULL;

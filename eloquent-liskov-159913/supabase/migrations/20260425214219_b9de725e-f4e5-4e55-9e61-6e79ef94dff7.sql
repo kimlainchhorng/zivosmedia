@@ -1,1 +1,0 @@
-ALTER FUNCTION public.tg_ads_studio_creatives_updated_at() SET search_path = public;

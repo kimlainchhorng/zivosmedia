@@ -1,1 +1,0 @@
-UPDATE flights_launch_settings SET status = 'live', status_changed_at = now() WHERE status = 'test';

@@ -48,7 +48,7 @@ describe("account deletion lifecycle", () => {
     expect(deletionInfo).toContain("Delete from inside the app");
     expect(deletionInfo).toContain("Request deletion from the web");
     expect(deletionInfo).toContain("30-day grace period");
-    expect(deletionInfo).toContain("privacy@hizivo.com");
+    expect(deletionInfo).toContain("privacy@zivosmedia.com");
     expect(deletionInfo).toContain("/legal/data-retention");
   });
 });

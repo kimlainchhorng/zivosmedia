@@ -1,34 +1,34 @@
 # Supabase Migration Reconciliation Plan
 
-Generated: 2026-06-12T21:34:26.738Z
+Generated: 2026-07-21T17:42:16.830Z
 
 This plan is diagnostic only. It does not repair migration history or change the remote schema.
 
 ## Current State
 
-- Local migrations: 1122
-- Remote migration versions: 1570
-- Exact version matches: 1
-- One-to-one likely timestamp-drift matches: 616
-- High-confidence one-to-one matches: 584
-- Medium-confidence one-to-one matches: 32
-- Unmatched local migrations: 505
-- Unmatched local migrations inside remote version range: 486
-- Unmatched local migrations after remote version range: 19
-- Unmatched remote versions: 953
-- Unmatched remote versions inside local version range: 953
+- Local migrations: 1132
+- Remote migration versions: 0
+- Exact version matches: 0
+- One-to-one likely timestamp-drift matches: 0
+- High-confidence one-to-one matches: 0
+- Medium-confidence one-to-one matches: 0
+- Unmatched local migrations: 1132
+- Unmatched local migrations inside remote version range: 1132
+- Unmatched local migrations after remote version range: 0
+- Unmatched remote versions: 0
+- Unmatched remote versions inside local version range: 0
 - Unmatched remote versions before local version range: 0
 - Unmatched remote versions after local version range: 0
 
 ## Pending Local Risk Summary
 
-- Likely pending local migrations: 19
-- Creates tables: 1
+- Likely pending local migrations: 0
+- Creates tables: 0
 - Creates tables without RLS: 0
 - Creates tables without explicit grants: 0
 - Sequence-backed ids: 0
 - Sequence-backed ids without sequence grants: 0
-- SECURITY DEFINER migrations: 1
+- SECURITY DEFINER migrations: 0
 - SECURITY DEFINER without search_path: 0
 - Cron migrations: 0
 - Hardcoded Supabase URLs: 0
@@ -44,11 +44,11 @@ This plan is diagnostic only. It does not repair migration history or change the
 
 ## Review Order
 
-1. high-confidence candidate mappings (584 items)
-2. medium-confidence candidate mappings (32 items)
-3. unmatched local migrations after candidates (505 items)
-4. unmatched remote versions after candidates (953 items)
-5. likely pending local migrations after remote range (19 items)
+1. high-confidence candidate mappings (0 items)
+2. medium-confidence candidate mappings (0 items)
+3. unmatched local migrations after candidates (1132 items)
+4. unmatched remote versions after candidates (0 items)
+5. likely pending local migrations after remote range (0 items)
 
 ## Recommended Sequence
 
@@ -71,25 +71,7 @@ This plan is diagnostic only. It does not repair migration history or change the
 These local migrations are newer than the latest remote migration version and have no one-to-one candidate match.
 Review flags are generated in `docs/supabase-migration-pending-local-review.csv`.
 
-- 20260612000000: 20260612000000_add_store_default_language.sql (high, security/auth)
-- 20260612000100: 20260612000100_store_products_owner_write_policies.sql (high, security/auth)
-- 20260612000200: 20260612000200_add_ar_estimate_issue_and_start_dates.sql (high, chat/social)
-- 20260612000200: 20260612000200_ar_invoices_estimates_mileage.sql (high, general)
-- 20260612000300: 20260612000300_add_ar_invoice_issue_and_start_dates.sql (high, chat/social)
-- 20260612000300: 20260612000300_ar_invoices_estimates_vsm_fields.sql (high, chat/social)
-- 20260612000400: 20260612000400_ar_invoices_estimates_vehicle_engine.sql (high, general)
-- 20260613000000: 20260613000000_ar_customer_vehicles_oil_specs.sql (high, general)
-- 20260614000000: 20260614000000_zivosmedia_admin_customer_search_rpc.sql (high, security/auth)
-- 20260615000000: 20260615000000_ar_customer_vehicles_engine_transmission.sql (high, chat/social)
-- 20260615000100: 20260615000100_ar_customer_vehicles_drive_type.sql (high, chat/social)
-- 20260615000200: 20260615000200_marketing_campaigns_owner_manage_policy.sql (high, security/auth)
-- 20260615000300: 20260615000300_is_store_owner_recognize_store_profiles.sql (high, security/auth)
-- 20260615000400: 20260615000400_marketing_promotions_owner_rls.sql (high, security/auth)
-- 20260615000500: 20260615000500_store_posts_owner_manage_policy.sql (high, security/auth)
-- 20260615000600: 20260615000600_ads_daily_spend_owner_select.sql (high, security/auth)
-- 20260615000700: 20260615000700_ar_ro_documents.sql (high, security/auth)
-- 20260615000800: 20260615000800_user_contacts_added_via_chat_request.sql (high, security/auth)
-- 20260616090000: 20260616090000_notifications_user_owned_mutations.sql (high, security/auth)
+- None
 
 ## Current Gate
 

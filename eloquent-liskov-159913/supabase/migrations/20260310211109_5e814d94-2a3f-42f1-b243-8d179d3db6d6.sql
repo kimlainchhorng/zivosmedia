@@ -1,1 +1,0 @@
-DROP FUNCTION IF EXISTS public.get_nearby_drivers(double precision, double precision, integer, integer);

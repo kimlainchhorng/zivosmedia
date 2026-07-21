@@ -1,1 +1,0 @@
-ALTER TABLE public.service_bookings ADD COLUMN IF NOT EXISTS admin_notes TEXT;

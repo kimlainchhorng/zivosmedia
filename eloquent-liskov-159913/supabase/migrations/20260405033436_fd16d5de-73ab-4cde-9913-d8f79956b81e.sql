@@ -1,1 +1,0 @@
-ALTER TABLE public.store_time_entries ADD COLUMN clock_out_reason TEXT NULL;

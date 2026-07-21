@@ -1,1 +1,0 @@
-ALTER TABLE public.store_profiles ADD COLUMN IF NOT EXISTS gallery_images jsonb DEFAULT '[]'::jsonb;

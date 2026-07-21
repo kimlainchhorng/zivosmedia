@@ -1,1 +1,0 @@
-ALTER TABLE flight_bookings ALTER COLUMN price_per_passenger DROP NOT NULL;
