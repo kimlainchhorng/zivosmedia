@@ -1,0 +1,143 @@
+{
+  "generated_at": "2026-05-16T23:06:06.390Z",
+  "store": {
+    "id": "34bbfb3a-57d9-4ac2-822f-6db5170c58d4",
+    "name": "Kep Bungalows",
+    "slug": "kep-bungalows",
+    "category": "hotel",
+    "rating": 4.5,
+    "phone": "MISSING",
+    "address": "present",
+    "description": "present"
+  },
+  "permission": {
+    "documented_authorization_found": false,
+    "authorization_documents": [],
+    "conclusion": "No local written authorization/manifest found. Treat Booking.com/bstatic photos as NOT cleared for reuse."
+  },
+  "media": {
+    "profile_logo": {
+      "present": true,
+      "booking_or_bstatic": true,
+      "url": "https://cf.bstatic.com/xdata/images/hotel/square240/176109646.jpg"
+    },
+    "cover_banner": {
+      "present": true,
+      "booking_or_bstatic": true,
+      "url": "https://cf.bstatic.com/xdata/images/hotel/max1280x900/176109646.jpg"
+    },
+    "property_gallery_count": 8,
+    "property_gallery_booking_or_bstatic_count": 8,
+    "total_store_media_refs": 10,
+    "total_store_booking_or_bstatic_refs": 10
+  },
+  "rooms": {
+    "count": 5,
+    "total_room_photos": 80,
+    "total_booking_or_bstatic_room_photos": 80,
+    "rooms_missing_photos": 0,
+    "rooms_missing_original_or_discount": 5,
+    "details": [
+      {
+        "name": "Standard Double Room",
+        "room_type": "standard",
+        "photos": 16,
+        "booking_photos": 16,
+        "base_price": "$27.00",
+        "original_price": null,
+        "weekend_price": "$0.00",
+        "breakfast_price": null,
+        "discount": "weekly 0%, monthly 0%",
+        "max_guests": 2,
+        "beds": "1 queen bed",
+        "size_sqm": null,
+        "description": "MISSING",
+        "amenities_count": 21,
+        "missing": [
+          "original/rack price",
+          "description"
+        ]
+      },
+      {
+        "name": "Deluxe Double Bungalow with Mountain View",
+        "room_type": "deluxe",
+        "photos": 16,
+        "booking_photos": 16,
+        "base_price": "$40.00",
+        "original_price": null,
+        "weekend_price": "$0.00",
+        "breakfast_price": null,
+        "discount": "weekly 0%, monthly 0%",
+        "max_guests": 2,
+        "beds": "1 queen bed",
+        "size_sqm": null,
+        "description": "MISSING",
+        "amenities_count": 23,
+        "missing": [
+          "original/rack price",
+          "description"
+        ]
+      },
+      {
+        "name": "Superior Double Room with Garden View",
+        "room_type": "superior",
+        "photos": 16,
+        "booking_photos": 16,
+        "base_price": "$45.00",
+        "original_price": null,
+        "weekend_price": "$0.00",
+        "breakfast_price": null,
+        "discount": "weekly 0%, monthly 0%",
+        "max_guests": 2,
+        "beds": "1 queen bed",
+        "size_sqm": null,
+        "description": "MISSING",
+        "amenities_count": 22,
+        "missing": [
+          "original/rack price",
+          "description"
+        ]
+      },
+      {
+        "name": "Deluxe Twin Bungalow with Mountain View",
+        "room_type": "deluxe",
+        "photos": 15,
+        "booking_photos": 15,
+        "base_price": "$54.00",
+        "original_price": null,
+        "weekend_price": "$0.00",
+        "breakfast_price": null,
+        "discount": "weekly 0%, monthly 0%",
+        "max_guests": 4,
+        "beds": "2 queen beds",
+        "size_sqm": null,
+        "description": "MISSING",
+        "amenities_count": 23,
+        "missing": [
+          "original/rack price",
+          "description"
+        ]
+      },
+      {
+        "name": "Superior Twin Room with Garden View",
+        "room_type": "superior",
+        "photos": 17,
+        "booking_photos": 17,
+        "base_price": "$58.00",
+        "original_price": null,
+        "weekend_price": "$0.00",
+        "breakfast_price": null,
+        "discount": "weekly 0%, monthly 0%",
+        "max_guests": 4,
+        "beds": "2 queen beds",
+        "size_sqm": null,
+        "description": "MISSING",
+        "amenities_count": 22,
+        "missing": [
+          "original/rack price",
+          "description"
+        ]
+      }
+    ]
+  }
+}
