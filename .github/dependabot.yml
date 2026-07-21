@@ -39,6 +39,20 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-dom"
         update-types: ["version-update:semver-major"]
+      # HELD MAJORS — toolchain majors routinely break peers and the build.
+      # typescript ^7.0.2 slipped through on 2026-07-20: it conflicts with
+      # typescript-eslint's peer cap (<6.1.0), made npm install fail with
+      # ERESOLVE, and broke type-check and the Vite build on main (reverted in
+      # 4ad2cb312). ZIVO-wallet holds the same majors after its 2026-07-19
+      # incident. Bump these manually, peers first, with a local green build.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      # Capacitor majors change native iOS/Android project requirements and
+      # need a coordinated `cap sync` + native rebuild, not an auto-PR.
+      - dependency-name: "@capacitor/*"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
