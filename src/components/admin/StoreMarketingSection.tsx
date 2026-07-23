@@ -444,12 +444,17 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
         ends_at: promoForm.ends_at || null,
         is_active: promoForm.is_active,
       };
-      if (isEdit && editingPromo) {
-        const { error } = await supabase.from("promotions").update(payload as any).eq("id", editingPromo.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("promotions").insert(payload as any);
-        if (error) throw error;
+      const action = isEdit && editingPromo ? "update" : "create";
+      const { data, error } = await supabase.functions.invoke("promotion-manage", {
+        body: {
+          action,
+          merchant_id: storeId,
+          promotion_id: editingPromo?.id,
+          promotion: payload,
+        },
+      });
+      if (error || !data?.ok) {
+        throw error || new Error(data?.error || "Failed to save promotion");
       }
     },
     onSuccess: () => {
@@ -463,8 +468,12 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
   const deletePromo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("promotions").delete().eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("promotion-manage", {
+        body: { action: "delete", promotion_id: id },
+      });
+      if (error || !data?.ok) {
+        throw error || new Error(data?.error || "Failed to delete promotion");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["store-promotions", storeId] });
@@ -476,8 +485,12 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
 
   const togglePromoActive = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
-      const { error } = await supabase.from("promotions").update({ is_active: active } as any).eq("id", id);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke("promotion-manage", {
+        body: { action: "set_active", promotion_id: id, is_active: active },
+      });
+      if (error || !data?.ok) {
+        throw error || new Error(data?.error || "Failed to update promotion status");
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["store-promotions", storeId] });

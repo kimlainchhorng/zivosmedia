@@ -45,7 +45,7 @@ describe("zivo travel domain config", () => {
 
   it("keeps the telemetry backend env-only", () => {
     expect(ZIVO_TRAVEL_SUPABASE_PROJECT_ID).toBe("xbllvmpomorawkcrtbcq");
-    expect(ZIVO_TRAVEL_SUPABASE_URL).toBe("https://xbllvmpomorawkcrtbcq.supabase.co");
+    expect(ZIVO_TRAVEL_SUPABASE_URL).toBe(import.meta.env.VITE_ZIVO_TRAVEL_SUPABASE_URL || "");
     expect(ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY).toBe("");
   });
 });

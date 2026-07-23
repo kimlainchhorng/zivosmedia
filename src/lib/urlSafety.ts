@@ -194,7 +194,7 @@ function levenshtein(a: string, b: string): number {
 
 /**
  * Detect impersonation attempts of ZIVO-owned domains (e.g. h1zivo.com,
- * hizovo.com, hizvo.com). Returns true if hostname is *close to* but not
+ * zivosrnedia.com, zivosmedia-login.example). Returns true if hostname is *close to* but not
  * equal to a known ZIVO host.
  */
 export function isZivoTyposquat(url: string): boolean {

@@ -18,6 +18,7 @@ export default tseslint.config(
       "android/app/src/main/assets/public",
       "supabase/functions",
       "supabase/.branches",
+      "eloquent-liskov-159913",
       "UsersabigaAppDataLocalPlaywrightSession*",
       "zivo-ai-assistant",
       "zivo-ai-assistant-*",
@@ -49,6 +50,7 @@ export default tseslint.config(
       "react-hooks/purity": "off",
       "react-hooks/static-components": "off",
       "react-hooks/use-memo": "off",
+      "react-hooks/refs": "warn",
     },
   },
 );

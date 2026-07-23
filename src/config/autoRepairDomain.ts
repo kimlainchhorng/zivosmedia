@@ -18,7 +18,7 @@ export const ZIVO_SOFTWARE_HOME_PATH = "/business";
 export const ZIVO_SOFTWARE_AUTH_REDIRECT_PATH = "/business/new";
 
 export const ZIVO_SOFTWARE_SUPABASE_URL =
-  import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_URL || "https://ydxztoresbdeoeijhxww.supabase.co";
+  import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_URL || "";
 
 export const ZIVO_SOFTWARE_SUPABASE_PROJECT_ID = "ydxztoresbdeoeijhxww";
 

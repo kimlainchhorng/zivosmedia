@@ -3,21 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.myzivo.app",
-      "sha256_cert_fingerprints": [
-        "REPLACE_WITH_UPLOAD_OR_RELEASE_SHA256_FINGERPRINT",
-        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256_FINGERPRINT"
-      ]
-    }
-  },
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
       "package_name": "com.hizovo.app",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_UPLOAD_OR_RELEASE_SHA256_FINGERPRINT",
-        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256_FINGERPRINT"
+        "2C:B4:10:12:26:FB:4F:C9:55:84:39:E4:82:74:EE:3C:0C:19:55:A1:FB:87:7E:46:B3:ED:6E:84:0B:8B:D9:7E"
       ]
     }
   }

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -1027,7 +1027,6 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const notificationCenter = read("src/pages/NotificationCenterPage.tsx");
     const notificationsHook = read("src/hooks/useNotifications.ts");
     const personalNotifications = read("src/pages/app/personal/PersonalNotificationsPage.tsx");
-    const rideNotifications = read("src/components/rides/RideNotificationCenter.tsx");
     const notificationManageClient = read("src/lib/notifications/notificationManage.ts");
 
     // The notification-manage edge function stays available as a hardened server
@@ -1056,11 +1055,12 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
 
     // Feature surfaces route through the shared lib and never run raw
     // notification update/delete statements themselves.
-    for (const surface of [notificationCenter, notificationsHook, personalNotifications, rideNotifications]) {
+    for (const surface of [notificationCenter, notificationsHook, personalNotifications]) {
       expect(surface).toContain("@/lib/notifications/notificationManage");
       expect(surface).toContain("notifications");
       expect(surface).not.toMatch(/from\(['"]notifications['"]\)[\s\S]{0,260}\.(update|delete)/);
     }
+    expect(existsSync(path.join(root, "src/components/rides/RideNotificationCenter.tsx"))).toBe(false);
   });
 
   it("keeps talent invite notification creation behind verified server-side intake", () => {

@@ -1,6 +1,10 @@
 import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
 import { ZIVO_DRIVER_HOME_PATH, isZivoDriverHost } from "@/config/zivoDriverDomain";
 import {
+  deriveCanonicalRideFramePath,
+  updateCanonicalRideHostPath,
+} from "@/lib/canonicalRideLaunch";
+import {
   AUTO_REPAIR_STORE_ID,
   ZIVO_SOFTWARE_AUTH_REDIRECT_PATH,
   isAutoRepairSoftwareHost,
@@ -14,6 +18,8 @@ type RedirectLocation = {
 } | null | undefined;
 
 const AUTH_ROUTES = ["/login", "/verify-otp", "/auth-callback"];
+const UUID_PATH = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
+const RIDE_TRACKING_PATH_RE = new RegExp(`^/rides/track/${UUID_PATH}$`);
 const TRUSTED_ZIVO_AUTH_HOSTS = new Set([
   "zivosmedia.com",
   "www.zivosmedia.com",
@@ -57,6 +63,27 @@ const isTrustedZivoAuthHost = (hostname: string) =>
 
 const authFallbackForHost = (hostname: string) =>
   isZivoChatHost(hostname) ? ZIVO_CHAT_HOME_PATH : isZivoDriverHost(hostname) ? ZIVO_DRIVER_HOME_PATH : "/";
+
+const isCanonicalRideHostPath = (pathname: string) =>
+  pathname === "/rides/hub" ||
+  pathname === "/app/request-ride" ||
+  pathname === "/rides/multi-stop" ||
+  pathname === "/ride-quotes" ||
+  RIDE_TRACKING_PATH_RE.test(pathname);
+
+const sanitizeCanonicalRideRedirect = (value: string) => {
+  try {
+    const url = new URL(value, "https://zivosmedia.local");
+    if (!isCanonicalRideHostPath(url.pathname)) return null;
+    const childPath = deriveCanonicalRideFramePath(url.pathname, url.search);
+    return updateCanonicalRideHostPath(
+      `https://zivosmedia.local${url.pathname}${url.search}${url.hash}`,
+      childPath,
+    );
+  } catch {
+    return null;
+  }
+};
 
 export const getSafeRedirectTargetForHost = (
   value?: string | null,
@@ -132,7 +159,12 @@ export const getSafeRedirectTargetForHost = (
       safeValue.startsWith(`${route}#`),
   );
 
-  return isAuthRoute ? fallbackTarget : normalizeRedirectTarget(safeValue, currentHost);
+  if (isAuthRoute) return fallbackTarget;
+
+  return normalizeRedirectTarget(
+    sanitizeCanonicalRideRedirect(safeValue) ?? safeValue,
+    currentHost,
+  );
 };
 
 export const getSafeRedirectTarget = (value?: string | null) =>

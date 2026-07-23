@@ -8,7 +8,7 @@ export const ZIVO_DRIVER_HOME_PATH = "/";
 export const ZIVO_DRIVER_APP_PATH = "/driver";
 
 export const ZIVO_DRIVER_SUPABASE_URL =
-  import.meta.env.VITE_ZIVO_DRIVER_SUPABASE_URL || "https://yiedlgoxwjmansszdypf.supabase.co";
+  import.meta.env.VITE_ZIVO_DRIVER_SUPABASE_URL || "";
 
 export const ZIVO_DRIVER_SUPABASE_PROJECT_ID = "yiedlgoxwjmansszdypf";
 

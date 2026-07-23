@@ -30,6 +30,12 @@ const SKIP_FILES = new Set([
   "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb",
   ".env.example", "check-secrets.mjs",
 ]);
+const SKIP_PATHS = new Set([
+  // Firebase Android client config is intentionally distributed with the app;
+  // its Google API key is not an application secret. Keep this allowlist narrow
+  // so other AIza-prefixed keys still fail the repository scanner.
+  "android/app/google-services.json",
+]);
 const ALLOWED_DOT_DIRS = new Set([".github"]);
 const SCAN_EXTENSIONS = new Set([
   ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
@@ -87,6 +93,7 @@ function walk(dir) {
       continue;
     }
     if (name.startsWith(".") && !isEnvFile(name)) continue;
+    if (SKIP_PATHS.has(rel)) continue;
     if (SKIP_FILES.has(name)) continue;
     if (!includeLocalEnv && isLocalEnvFile(name)) continue;
 

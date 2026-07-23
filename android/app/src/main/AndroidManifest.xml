@@ -47,8 +47,6 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="zivosmedia.com" />
                 <data android:scheme="https" android:host="www.zivosmedia.com" />
-                <data android:scheme="https" android:host="hizovo.com" />
-                <data android:scheme="https" android:host="www.hizovo.com" />
             </intent-filter>
 
         </activity>

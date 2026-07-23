@@ -46,7 +46,7 @@ describe("zivo driver domain config", () => {
 
   it("keeps the driver backend key env-only until configured", () => {
     expect(ZIVO_DRIVER_SUPABASE_PROJECT_ID).toBe("yiedlgoxwjmansszdypf");
-    expect(ZIVO_DRIVER_SUPABASE_URL).toBe("https://yiedlgoxwjmansszdypf.supabase.co");
+    expect(ZIVO_DRIVER_SUPABASE_URL).toBe(import.meta.env.VITE_ZIVO_DRIVER_SUPABASE_URL || "");
     expect(ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY).toBe("");
   });
 });

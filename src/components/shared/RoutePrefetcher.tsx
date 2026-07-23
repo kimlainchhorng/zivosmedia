@@ -11,8 +11,12 @@ export const PREFETCH_ROUTE_MODULES = {
   "/flights": "@/pages/FlightLanding",
   "/hotels": "@/pages/HotelLanding",
   "/cars": "@/pages/CarRentalLanding",
-  "/rides": "@/pages/app/RideHubPage",
-  "/rides/hub": "@/pages/app/RideHubPage",
+  "/rides": "@/pages/app/CanonicalRidePage",
+  "/rides/hub": "@/pages/app/CanonicalRidePage",
+  "/app/request-ride": "@/pages/app/CanonicalRidePage",
+  "/rides/multi-stop": "@/pages/app/CanonicalRidePage",
+  "/rides/track/:tripId": "@/pages/app/CanonicalRidePage",
+  "/ride-quotes": "@/pages/app/CanonicalRidePage",
   "/eats": "@/pages/EatsLanding",
   [SOCIAL_ROUTE_PATHS.feed]: "@/pages/ReelsFeedPage",
   [SOCIAL_ROUTE_PATHS.reels]: "@/pages/FeedPage",
@@ -34,8 +38,12 @@ const PREFETCH_ROUTES: Record<string, () => Promise<unknown>> = {
   "/flights": () => import("@/pages/FlightLanding"),
   "/hotels": () => import("@/pages/HotelLanding"),
   "/cars": () => import("@/pages/CarRentalLanding"),
-  "/rides": () => import("@/pages/app/RideHubPage"),
-  "/rides/hub": () => import("@/pages/app/RideHubPage"),
+  "/rides": () => import("@/pages/app/CanonicalRidePage"),
+  "/rides/hub": () => import("@/pages/app/CanonicalRidePage"),
+  "/app/request-ride": () => import("@/pages/app/CanonicalRidePage"),
+  "/rides/multi-stop": () => import("@/pages/app/CanonicalRidePage"),
+  "/rides/track/:tripId": () => import("@/pages/app/CanonicalRidePage"),
+  "/ride-quotes": () => import("@/pages/app/CanonicalRidePage"),
   "/eats": () => import("@/pages/EatsLanding"),
   [SOCIAL_ROUTE_PATHS.feed]: () => import("@/pages/ReelsFeedPage"),
   // Bottom-nav targets — prefetched on touch-down so the chunk is in-memory
@@ -70,15 +78,21 @@ const FEED_IDLE_PREFETCH: readonly string[] = [
 
 const prefetched = new Set<string>();
 
+function resolvePrefetchRouteKey(path: string) {
+  if (path.startsWith("/rides/track/")) return "/rides/track/:tripId";
+  return path;
+}
+
 function prefetchRoute(path: string) {
-  if (prefetched.has(path)) return;
-  const loader = PREFETCH_ROUTES[path];
+  const routeKey = resolvePrefetchRouteKey(path);
+  if (prefetched.has(routeKey)) return;
+  const loader = PREFETCH_ROUTES[routeKey];
   if (!loader) return;
-  prefetched.add(path);
+  prefetched.add(routeKey);
   const schedule = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 100));
   schedule(() => {
     loader().catch(() => {
-      prefetched.delete(path);
+      prefetched.delete(routeKey);
     });
   });
 }

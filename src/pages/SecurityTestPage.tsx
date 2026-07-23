@@ -16,7 +16,7 @@ const SAMPLE_LINKS = [
   { label: "Suspicious TLD", url: "https://promo.zip/" },
   { label: "Punycode lookalike (xn--apple)", url: "https://xn--pple-43d.com/login" },
   { label: "ZIVO typosquat (h1zivo)", url: "https://h1zivo.com/login" },
-  { label: "ZIVO typosquat (hizovo)", url: "https://hizovo.com/" },
+  { label: "ZIVO typosquat (reserved demo)", url: "https://hizovo.invalid/" },
   { label: "Embedded credentials", url: "https://admin:pwd@evil.com/" },
   { label: "Raw IP address", url: "http://192.168.1.1/admin" },
 ];

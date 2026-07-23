@@ -172,6 +172,8 @@ self.addEventListener('notificationclick', (event) => {
 
   const data = event.notification.data || {};
   const type = data.type || data.notification_type || '';
+  const rideTripId = data.trip_id || data.job_id || data.jobId || data.order_id || data.orderId || data.ride_request_id;
+  const rideTrackingUrl = rideTripId ? `/rides/track/${encodeURIComponent(String(rideTripId))}` : '/rides/hub';
   let urlToOpen = '/';
 
   switch (type) {
@@ -180,11 +182,11 @@ self.addEventListener('notificationclick', (event) => {
     case 'driver_en_route':
     case 'driver_arrived':
     case 'trip_started':
-      urlToOpen = data.trip_id ? `/rides/hub?tab=tracking` : '/rides/hub?tab=tracking';
+      urlToOpen = rideTrackingUrl;
       break;
     case 'trip_completed':
     case 'ride_completed':
-      urlToOpen = '/rides/hub?tab=history';
+      urlToOpen = '/rides/hub?ride_path=%2Fhistory';
       break;
     case 'ride_cancelled':
     case 'ride_no_drivers':
@@ -234,14 +236,14 @@ self.addEventListener('notificationclick', (event) => {
     case 'payment_update':
     case 'payment_failed':
     case 'wallet_credited':
-      urlToOpen = '/rides/hub?tab=wallet';
+      urlToOpen = '/wallet';
       break;
 
     // Loyalty & Rewards
     case 'loyalty_reward':
     case 'miles_earned':
     case 'promo_code':
-      urlToOpen = '/rides/hub?tab=loyalty';
+      urlToOpen = '/rewards';
       break;
 
     // Delivery

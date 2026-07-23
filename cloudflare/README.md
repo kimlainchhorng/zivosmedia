@@ -119,7 +119,7 @@ Before a Cloudflare deploy, make sure the software-domain browser values are
 configured in the private deploy environment or CI secret store:
 
 ```sh
-VITE_ZIVO_SOFTWARE_SUPABASE_URL=https://ydxztoresbdeoeijhxww.supabase.co
+VITE_ZIVO_SOFTWARE_SUPABASE_URL=https://<software-project-ref>.supabase.co
 VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY=<software-project-publishable-key>
 ```
 

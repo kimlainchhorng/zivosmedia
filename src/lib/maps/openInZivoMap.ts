@@ -39,20 +39,23 @@ export interface ZivoMapTarget {
 
 function withDest(target: ZivoMapTarget): string {
   const destText = target.label || target.address || "";
-  let qs = `?tab=book`;
-  if (destText) qs += `&destination=${encodeURIComponent(destText)}`;
+  const params = new URLSearchParams();
+  if (destText) params.set("destination", destText);
   if (typeof target.lat === "number" && typeof target.lng === "number") {
-    qs += `&destLat=${target.lat}&destLng=${target.lng}`;
+    params.set("destLat", String(target.lat));
+    params.set("destLng", String(target.lng));
   }
   if (target.pickup) {
     if (typeof target.pickup.lat === "number" && typeof target.pickup.lng === "number") {
-      qs += `&pickupLat=${target.pickup.lat}&pickupLng=${target.pickup.lng}`;
+      params.set("pickupLat", String(target.pickup.lat));
+      params.set("pickupLng", String(target.pickup.lng));
     }
     if (target.pickup.name) {
-      qs += `&pickup=${encodeURIComponent(target.pickup.name)}`;
+      params.set("pickup", target.pickup.name);
     }
   }
-  return `/rides/hub${qs}`;
+  const search = params.toString();
+  return `/rides/hub${search ? `?${search}` : ""}`;
 }
 
 /**

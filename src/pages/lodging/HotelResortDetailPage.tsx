@@ -1464,8 +1464,8 @@ export default function HotelResortDetailPage() {
 
       {/* Location — actions stay inside ZIVO. "View on map" focuses the
           property pin on the ZIVO store map; "Get directions" pre-fills the
-          ride hub with this hotel as the destination so the user can either
-          see the route or book a ride to get here. */}
+          canonical Ride booking screen with this hotel as the destination so
+          the user can either see the route or book a ride to get here. */}
       {(location || (typeof store?.latitude === "number" && typeof store?.longitude === "number")) && (
         <Section title="Location">
           {(() => {
@@ -1476,7 +1476,7 @@ export default function HotelResortDetailPage() {
             const destParams = hasCoords
               ? `&destLat=${lat}&destLng=${lng}`
               : "";
-            const directionsUrl = `/rides/hub?tab=book&destination=${encodeURIComponent(store?.name || location || "")}${destParams}`;
+            const directionsUrl = `/rides/hub?destination=${encodeURIComponent(store?.name || location || "")}${destParams}`;
             // staticmap.openstreetmap.de went offline — use Google Static Maps
             // (key resolved via env var or maps-api-key edge function).
             const staticMapSrc = hasCoords && mapsKey
@@ -1659,14 +1659,10 @@ export default function HotelResortDetailPage() {
               const pickupParams = (store?.latitude != null && store?.longitude != null)
                 ? `&pickupLat=${store.latitude}&pickupLng=${store.longitude}&pickup=${encodeURIComponent(store?.name || "Hotel")}`
                 : "";
-              // Always land on the `book` tab — that's the screen with the
-              // actual pickup→destination route on the map. The `map` tab is a
-              // driver-side demand heatmap and was showing the wrong thing
-              // when the guest just wanted to see the route. The book screen
-              // has the map at the top and a (dismissible) ride CTA below, so
-              // a user who only wants to look at the route can do so without
-              // committing to a booking.
-              const rideUrl = `/rides/hub?tab=book&destination=${encodeURIComponent(label)}${pickupParams}`;
+              // Land directly on the canonical customer Ride booking surface
+              // with the route details prefilled. Old RideHub tab names are no
+              // longer part of the customer-facing launch contract.
+              const rideUrl = `/rides/hub?destination=${encodeURIComponent(label)}${pickupParams}`;
 
               return (
                 <button

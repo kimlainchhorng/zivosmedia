@@ -137,6 +137,33 @@ describe("auth redirect safety", () => {
     expect(getSafeRedirectTargetForHost("/login?redirect=/account", "zivosmedia.com")).toBe("/");
   });
 
+  it("normalizes canonical Ride redirects before adding them to login URLs", () => {
+    const tripId = "550e8400-e29b-41d4-a716-446655440000";
+
+    expect(
+      getSafeRedirectTargetForHost(
+        `/rides/track/${tripId}?token=secret&multi=Market%7CAirport#private`,
+        "zivosmedia.com",
+      ),
+    ).toBe(`/rides/track/${tripId}?multi=Market%7CAirport`);
+    expect(getSafeRedirectTargetForHost("/ride-quotes?token=secret#private", "zivosmedia.com"))
+      .toBe("/ride-quotes");
+    expect(getSafeRedirectTargetForHost("/rides/hub?destination=Airport&token=secret#private", "zivosmedia.com"))
+      .toBe("/rides/hub?destination=Airport");
+    expect(getSafeRedirectTargetForHost("/rides/hub?tab=history&token=secret#private", "zivosmedia.com"))
+      .toBe("/rides/hub?ride_path=%2Fhistory");
+    expect(getSafeRedirectTargetForHost(
+      `/rides/hub?tab=tracking&trip_id=${tripId}&token=secret#private`,
+      "zivosmedia.com",
+    )).toBe(`/rides/hub?ride_path=%2Ftracking%2F${tripId}`);
+    expect(getSafeRedirectTargetForHost(
+      `/rides/hub?tab=rate&trip_id=${tripId}&token=secret#private`,
+      "zivosmedia.com",
+    )).toBe(`/rides/hub?ride_path=%2Frate%2F${tripId}`);
+    expect(getSafeRedirectTargetForHost("/rides/hub?tab=reserve&token=secret#private", "zivosmedia.com"))
+      .toBe("/rides/hub");
+  });
+
   it("detects external redirect targets", () => {
     expect(isExternalRedirectTarget("https://zivosoftware.com/login")).toBe(true);
     expect(isExternalRedirectTarget("/account")).toBe(false);

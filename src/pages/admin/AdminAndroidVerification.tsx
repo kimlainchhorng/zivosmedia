@@ -59,9 +59,9 @@ const CHECKLIST: ChecklistItem[] = [
   {
     id: "privacy_policy",
     title: "Privacy Policy URL Verified",
-    description: "Confirm your privacy policy at hizovo.com/privacy is accessible, up-to-date, and covers GDPR/CCPA/Cambodia data protection requirements.",
+    description: "Confirm your privacy policy at zivosmedia.com/legal/privacy is accessible, up-to-date, and covers GDPR/CCPA/Cambodia data protection requirements.",
     icon: Globe,
-    link: "https://hizovo.com/privacy",
+    link: "https://zivosmedia.com/legal/privacy",
     linkLabel: "View Privacy Policy",
     critical: false,
   },

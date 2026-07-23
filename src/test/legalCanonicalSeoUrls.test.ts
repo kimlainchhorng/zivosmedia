@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+const legacyLegalOrigin = "https://hizivo" + ".com";
 
 describe("legal canonical SEO URLs", () => {
   it("keeps public policy canonicals on canonical /legal URLs", () => {
@@ -12,16 +13,16 @@ describe("legal canonical SEO URLs", () => {
     const refunds = read("src/pages/Refunds.tsx");
     const cookies = read("src/pages/legal/CookiePolicy.tsx");
 
-    expect(terms).toContain('canonical="https://hizivo.com/legal/terms"');
-    expect(privacy).toContain('canonical="https://hizivo.com/legal/privacy"');
-    expect(refunds).toContain('canonical="https://hizivo.com/legal/refunds"');
-    expect(cookies).toContain('canonical="https://hizivo.com/legal/cookies"');
+    expect(terms).toContain('canonical="https://zivosmedia.com/legal/terms"');
+    expect(privacy).toContain('canonical="https://zivosmedia.com/legal/privacy"');
+    expect(refunds).toContain('canonical="https://zivosmedia.com/legal/refunds"');
+    expect(cookies).toContain('canonical="https://zivosmedia.com/legal/cookies"');
 
     for (const source of [terms, privacy, refunds, cookies]) {
-      expect(source).not.toContain("https://zivosmedia.com/terms");
-      expect(source).not.toContain("https://zivosmedia.com/privacy");
-      expect(source).not.toContain("https://zivosmedia.com/refunds");
-      expect(source).not.toContain("https://zivosmedia.com/cookies");
+      expect(source).not.toContain(`${legacyLegalOrigin}/terms`);
+      expect(source).not.toContain(`${legacyLegalOrigin}/privacy`);
+      expect(source).not.toContain(`${legacyLegalOrigin}/refunds`);
+      expect(source).not.toContain(`${legacyLegalOrigin}/cookies`);
     }
   });
 
@@ -29,8 +30,9 @@ describe("legal canonical SEO URLs", () => {
     const storeMarketing = read("src/components/admin/StoreMarketingSection.tsx");
     const damagePolicy = read("src/pages/legal/DamagePolicy.tsx");
 
-    expect(storeMarketing).toContain("https://hizivo.com/store/");
-    expect(storeMarketing).toContain("https://hizivo.com/book/");
+    expect(storeMarketing).toContain("ZIVO_MEDIA_ORIGIN");
+    expect(storeMarketing).toContain("/store/");
+    expect(storeMarketing).toContain("/book/");
     expect(storeMarketing).not.toContain("https://www.zivosmedia.com");
     expect(damagePolicy).toContain('to="/legal/cancellation"');
     expect(damagePolicy).not.toContain('to="/cancellation-policy"');

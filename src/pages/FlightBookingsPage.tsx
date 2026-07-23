@@ -533,10 +533,10 @@ function BookingDetailsModal({ bookingId, onClose }: { bookingId: string | null;
                   <Separator className="bg-border/30" />
                   <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20 space-y-2">
                     <p className="text-xs font-semibold text-destructive">Need help?</p>
-                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizovo.com"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      <Mail className="w-3.5 h-3.5" /> support@hizovo.com
+                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@zivosmedia.com"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <Mail className="w-3.5 h-3.5" /> support@zivosmedia.com
                     </button>
-                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizovo.com/help"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://zivosmedia.com/help"))} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <MessageCircle className="w-3.5 h-3.5" /> Help Center
                     </button>
                   </div>

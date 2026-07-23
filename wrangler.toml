@@ -4,49 +4,16 @@ compatibility_date = "2026-05-23"
 workers_dev = true
 preview_urls = false
 
-[[routes]]
-pattern = "zivosoftware.com/*"
-zone_name = "zivosoftware.com"
-
-[[routes]]
-pattern = "www.zivosoftware.com/*"
-zone_name = "zivosoftware.com"
-
-[[routes]]
-pattern = "zivostravel.com/*"
-zone_name = "zivostravel.com"
-
-[[routes]]
-pattern = "www.zivostravel.com/*"
-zone_name = "zivostravel.com"
-
-# Super-app alias hosts served by the same build via in-app host detection
-# (src/config/zivo{Business,Driver,Employee}Domain.ts). Routing them to this
-# worker serves the current, env-baked ./dist instead of the stale Lovable
-# publish that otherwise renders the generic super-app feed.
-[[routes]]
-pattern = "zivobusiness.com/*"
-zone_name = "zivobusiness.com"
-
-[[routes]]
-pattern = "www.zivobusiness.com/*"
-zone_name = "zivobusiness.com"
-
-[[routes]]
-pattern = "zivodriver.com/*"
-zone_name = "zivodriver.com"
-
-[[routes]]
-pattern = "www.zivodriver.com/*"
-zone_name = "zivodriver.com"
-
-[[routes]]
-pattern = "zivoemployee.com/*"
-zone_name = "zivoemployee.com"
-
-[[routes]]
-pattern = "www.zivoemployee.com/*"
-zone_name = "zivoemployee.com"
+# Production custom domains for this Worker are managed in Cloudflare as Worker
+# custom domains (`zivosmedia.com` and `www.zivosmedia.com`). Do not add route
+# patterns here for sibling products: `zivosoftware.com` and `zivostravel.com`
+# are served by dedicated deployments, `zivodriver.com` must be served by the
+# dedicated Driver app/repo, and `admin.zivosmedia.com` / `zivoadmin.com` /
+# `www.zivoadmin.com` must be served by the dedicated Zivo-Admin app/API.
+# `zivobusiness.com` / `zivoemployee.com` are currently bound to the existing
+# `zivo-preview` Pages project. Keeping this list empty prevents Wrangler from
+# trying to take over those domains and failing route deployment with a
+# Cloudflare 409 conflict after the Worker version is already uploaded.
 
 # When the built Vite app is deployed to Cloudflare Workers, unknown routes
 # are served from index.html so React Router deep links work.
@@ -57,7 +24,7 @@ not_found_handling = "single-page-application"
 run_worker_first = true
 
 [vars]
-ALLOWED_ORIGINS = "https://zivosmedia.com,https://www.zivosmedia.com,https://zivoschat.com,https://www.zivoschat.com,https://zivosoftware.com,https://www.zivosoftware.com,https://zivobusiness.com,https://www.zivobusiness.com,https://zivodriver.com,https://www.zivodriver.com,https://zivoemployee.com,https://www.zivoemployee.com,https://zivostravel.com,https://www.zivostravel.com,https://app.zivosmedia.com,https://preview.zivosmedia.com,https://zivo.myzivo.workers.dev,https://zivo-web.myzivo.workers.dev,http://localhost:8081,http://localhost:5173,http://localhost:5174"
+ALLOWED_ORIGINS = "https://zivosmedia.com,https://www.zivosmedia.com,https://admin.zivosmedia.com,https://zivoschat.com,https://www.zivoschat.com,https://zivosoftware.com,https://www.zivosoftware.com,https://zivobusiness.com,https://www.zivobusiness.com,https://zivodriver.com,https://www.zivodriver.com,https://zivoadmin.com,https://www.zivoadmin.com,https://zivoemployee.com,https://www.zivoemployee.com,https://zivostravel.com,https://www.zivostravel.com,https://app.zivosmedia.com,https://preview.zivosmedia.com,https://zivo.myzivo.workers.dev,https://zivo-web.myzivo.workers.dev,http://localhost:8081,http://localhost:5173,http://localhost:5174"
 
 [[r2_buckets]]
 binding = "ZIVO_MEDIA"

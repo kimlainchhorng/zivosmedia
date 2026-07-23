@@ -819,9 +819,13 @@ console.log(JSON.stringify({
   localMigrations: local.length,
   invalidFilenames: invalid.length,
   duplicateVersions: duplicateVersions.length,
+  duplicateVersionGroups: summarizeDuplicateGroups(duplicateVersions),
   allowedDuplicateVersions: allowedDuplicateVersionGroups.length,
+  allowedDuplicateVersionGroups: summarizeDuplicateGroups(allowedDuplicateVersionGroups),
   newDuplicateVersions: blockingDuplicateVersions.length,
+  blockingDuplicateVersionGroups: summarizeDuplicateGroups(blockingDuplicateVersions),
   duplicateHashes: duplicateHashes.length,
+  duplicateHashGroups: summarizeDuplicateGroups(duplicateHashes, "hash"),
   supabaseAccessToken,
   remoteMigrations: remoteVersions.length,
   matchedVersions: matchedVersions.length,
@@ -868,10 +872,23 @@ if (strict && pendingLocalRiskGateFailures > 0) {
   console.error(`Pending local migration safety gates failed: ${JSON.stringify(pendingLocalRiskGateDetails)}`);
 }
 
+if (strict && blockingDuplicateVersions.length > 0) {
+  console.error(
+    `Blocking duplicate migration versions: ${JSON.stringify(summarizeDuplicateGroups(blockingDuplicateVersions))}`,
+  );
+}
+
 if (strict && linkedHistoryDisconnected) {
   console.error("Linked Supabase migration history is disconnected: local and remote have zero exact version matches.");
 }
 
 if (strict && (invalid.length || blockingDuplicateVersions.length || duplicateHashes.length || remoteError || pendingLocalRiskGateFailures > 0 || linkedHistoryDisconnected)) {
   process.exitCode = 1;
+}
+
+function summarizeDuplicateGroups(groups, key = "version") {
+  return groups.map((items) => ({
+    [key]: items[0]?.[key] ?? "",
+    files: items.map((item) => item.name),
+  }));
 }

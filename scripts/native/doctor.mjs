@@ -2,10 +2,22 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { findJava21Home, javaVersionText } from "./java21.mjs";
 
 const root = path.resolve(new URL("../..", import.meta.url).pathname);
 const ok = [];
 const warn = [];
+const args = new Set(process.argv.slice(2));
+const androidOnly = args.has("--android-only");
+const iosOnly = args.has("--ios-only");
+
+if (androidOnly && iosOnly) {
+  console.error("Choose only one native doctor mode: --android-only or --ios-only.");
+  process.exit(1);
+}
+
+const includeAndroid = !iosOnly;
+const includeIos = !androidOnly;
 
 const exists = (relativePath) => fs.existsSync(path.join(root, relativePath));
 
@@ -44,39 +56,59 @@ mark(Boolean(packageJson.dependencies?.["@capacitor/ios"]), "Capacitor iOS depen
 mark(Boolean(packageJson.dependencies?.["@capacitor/android"]), "Capacitor Android dependency", packageJson.dependencies?.["@capacitor/android"]);
 mark(capacitorConfig.includes("webDir: 'dist'") || capacitorConfig.includes('webDir: "dist"'), "Native webDir points to dist");
 mark(capacitorConfig.includes("overlaysWebView: true"), "iOS edge-to-edge status bar configured");
-
-const xcodeVersion = run("xcodebuild", ["-version"]).split("\n")[0];
-mark(Boolean(xcodeVersion), "Xcode available", xcodeVersion || "install Xcode from the App Store");
-mark(exists("ios/App/App.xcodeproj/project.pbxproj"), "iOS Xcode project found", "ios/App/App.xcodeproj");
-mark(exists("ios/App/CapApp-SPM/Package.swift"), "iOS Capacitor SwiftPM package found");
-
-const androidSdk = firstExistingDirectory(androidSdkCandidates);
 mark(
-  Boolean(androidSdk),
-  "Android SDK configured",
-  androidSdk ||
-    "install Android Studio/SDK, then add android/local.properties with sdk.dir=/Users/kimlain/Library/Android/sdk or export ANDROID_HOME",
+  packageJson.scripts?.["ios:build:sim"]?.includes("native:doctor -- --ios-only") &&
+    packageJson.scripts?.["ios:build:sim"]?.includes("xcodebuild"),
+  "iOS simulator build preflights Xcode",
 );
-mark(exists("android/app/build.gradle"), "Android app Gradle file found");
-mark(exists("android/gradlew"), "Android Gradle wrapper found");
+mark(
+  packageJson.scripts?.["android:build:debug"]?.includes("native:doctor -- --android-only") &&
+    packageJson.scripts?.["android:build:debug"]?.includes("assembleDebug"),
+  "Android debug build preflights the SDK",
+);
 
-if (exists("android/app/build.gradle")) {
-  const gradle = read("android/app/build.gradle");
-  mark(Boolean(gradle.match(/versionName\s+"1\.3\.0"/)), "Android versionName aligned", gradle.match(/versionName\s+"([^"]+)"/)?.[1] || "missing");
-  mark(Boolean(gradle.match(/versionCode\s+2026053101/)), "Android versionCode updated", gradle.match(/versionCode\s+(\d+)/)?.[1] || "missing");
+if (includeIos) {
+  const xcodeVersion = run("xcodebuild", ["-version"]).split("\n")[0];
+  mark(Boolean(xcodeVersion), "Xcode available", xcodeVersion || "install Xcode from the App Store");
+  mark(exists("ios/App/App.xcodeproj/project.pbxproj"), "iOS Xcode project found", "ios/App/App.xcodeproj");
+  mark(exists("ios/App/CapApp-SPM/Package.swift"), "iOS Capacitor SwiftPM package found");
 }
 
-const iosSettings = run("xcodebuild", [
-  "-project",
-  "ios/App/App.xcodeproj",
-  "-scheme",
-  "App",
-  "-showBuildSettings",
-]);
-mark(iosSettings.includes("MARKETING_VERSION = 1.3.0"), "iOS marketing version aligned", "1.3.0");
-mark(iosSettings.includes("PRODUCT_BUNDLE_IDENTIFIER = com.hizovo.app"), "iOS bundle id", "com.hizovo.app");
+const androidSdk = firstExistingDirectory(androidSdkCandidates);
+if (includeAndroid) {
+  mark(
+    Boolean(androidSdk),
+    "Android SDK configured",
+    androidSdk ||
+      "install Android Studio/SDK, then add android/local.properties with sdk.dir=/Users/kimlain/Library/Android/sdk or export ANDROID_HOME",
+  );
+  mark(Boolean(androidSdk && fs.existsSync(path.join(androidSdk, "platform-tools/adb"))), "Android platform-tools found", androidSdk ? "platform-tools/adb" : "SDK not found");
+  const java21Home = findJava21Home();
+  mark(Boolean(java21Home), "Java 21 available for Android builds", java21Home ? javaVersionText(java21Home).split("\n")[0] : "install JDK 21 or set JAVA_HOME");
+  mark(exists("android/app/build.gradle"), "Android app Gradle file found");
+  mark(exists("android/gradlew"), "Android Gradle wrapper found");
 
-console.log("Native readiness check\n");
+  if (exists("android/app/build.gradle")) {
+    const gradle = read("android/app/build.gradle");
+    mark(Boolean(gradle.match(/versionName\s+"1\.3\.0"/)), "Android versionName aligned", gradle.match(/versionName\s+"([^"]+)"/)?.[1] || "missing");
+    mark(Boolean(gradle.match(/versionCode\s+2026053101/)), "Android versionCode updated", gradle.match(/versionCode\s+(\d+)/)?.[1] || "missing");
+  }
+}
+
+if (includeIos) {
+  const iosSettings = run("xcodebuild", [
+    "-project",
+    "ios/App/App.xcodeproj",
+    "-scheme",
+    "App",
+    "-showBuildSettings",
+  ]);
+  mark(iosSettings.includes("MARKETING_VERSION = 1.3.0"), "iOS marketing version aligned", "1.3.0");
+  mark(iosSettings.includes("PRODUCT_BUNDLE_IDENTIFIER = com.hizovo.app"), "iOS bundle id", "com.hizovo.app");
+}
+
+const modeLabel = androidOnly ? " (Android only)" : iosOnly ? " (iOS only)" : "";
+console.log(`Native readiness check${modeLabel}\n`);
 for (const line of ok) console.log(`✓ ${line.replace(/^OK /, "")}`);
 for (const line of warn) console.log(`! ${line.replace(/^WARN /, "")}`);
 

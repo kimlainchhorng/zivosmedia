@@ -51,7 +51,7 @@ function defaultDeepLink(event: RideEvent, jobId?: string): string {
     case "trip_started":
       return jobId ? `/rides/track/${jobId}` : "/rides/hub";
     case "trip_completed":
-      return jobId ? `/rides/track/${jobId}` : "/rides/hub?tab=history";
+      return jobId ? `/rides/track/${jobId}` : "/rides/hub?ride_path=%2Fhistory";
     case "trip_cancelled":
       return "/rides/hub";
     case "surge_alert":

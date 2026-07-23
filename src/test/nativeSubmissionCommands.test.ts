@@ -14,10 +14,14 @@ describe("native submission commands", () => {
     for (const script of [
       '"native:sync": "npm run build && npx cap sync ios && npx cap sync android"',
       '"ios:sync": "npm run build && npx cap sync ios"',
-      '"ios:build:sim": "xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination',
+      '"ios:build:sim": "npm run native:doctor -- --ios-only && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination',
+      '"ios:archive:store": "npm run native:doctor -- --ios-only && node scripts/native/run-ios-store.mjs archive"',
+      '"ios:export:store": "node scripts/native/run-ios-store.mjs export"',
+      '"ios:upload:app-store": "node scripts/upload-to-app-store.mjs"',
       '"android:sync": "npm run build && npx cap sync android"',
-      '"android:build:debug": "cd android && ./gradlew assembleDebug"',
-      '"android:build:release": "cd android && ./gradlew bundleRelease"',
+      '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"',
+      '"android:build:release": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease"',
+      '"android:upload:play:draft": "node scripts/upload-to-play.mjs"',
     ]) {
       expect(packageJson).toContain(script);
     }
@@ -53,6 +57,7 @@ describe("native submission commands", () => {
 
     expect(doctor).toContain("Android Gradle wrapper found");
     expect(doctor).toContain("Xcode available");
+    expect(doctor).toContain("iOS simulator build preflights Xcode");
     expect(nativeContracts).toContain("native-submission-command-alignment");
   });
 });

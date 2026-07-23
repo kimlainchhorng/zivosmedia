@@ -119,7 +119,7 @@ serve(withSecurity("aviasales-search", async (req, ctx) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-real-host': 'hizovo.com',
+        'x-real-host': 'zivosmedia.com',
         'x-user-ip': clientIp,
         'x-signature': signature,
         'x-affiliate-user-id': MARKER,
@@ -189,7 +189,7 @@ serve(withSecurity("aviasales-search", async (req, ctx) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-real-host': 'hizovo.com',
+          'x-real-host': 'zivosmedia.com',
           'x-user-ip': clientIp,
           'x-marker': MARKER,
         },

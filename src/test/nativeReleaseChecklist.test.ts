@@ -12,12 +12,19 @@ describe("native release checklist", () => {
     for (const command of [
       "npm run qa:native-app-contracts",
       "npm run native:doctor",
+      "npm run native:doctor -- --android-only",
       "npm run native:sync",
       "npm run ios:sync",
       "npm run android:sync",
+      "npm run native:doctor -- --ios-only",
       "npm run ios:build:sim",
+      "npm run ios:archive:store",
+      "npm run ios:export:store",
+      "npm run ios:upload:app-store",
       "npm run android:build:debug",
       "npm run android:build:release",
+      "npm run android:upload:play:draft",
+      "npm run native:store-signing:preflight",
       "npm run deploy:update:dry-run",
     ]) {
       expect(checklist).toContain(command);

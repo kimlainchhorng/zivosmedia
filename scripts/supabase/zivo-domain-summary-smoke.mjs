@@ -28,12 +28,12 @@ Optional:
 }
 
 const env = process.env;
-const mainUrl = clean(env.SUPABASE_URL || env.VITE_SUPABASE_URL || "https://slirphzzwcogdbkeicff.supabase.co");
+const mainUrl = clean(env.SUPABASE_URL || env.VITE_SUPABASE_URL);
 const publishableKey =
   clean(env.SUPABASE_ANON_KEY) ||
   clean(env.SUPABASE_PUBLISHABLE_KEY) ||
   clean(env.VITE_SUPABASE_PUBLISHABLE_KEY);
-const summaryUrl = clean(env.ZIVO_DOMAIN_SUMMARY_URL) || `${mainUrl}/functions/v1/zivo-domain-summary`;
+const summaryUrl = clean(env.ZIVO_DOMAIN_SUMMARY_URL) || (mainUrl ? `${mainUrl}/functions/v1/zivo-domain-summary` : "");
 const configuredAccessToken = clean(env.ZIVO_DOMAIN_SUMMARY_ACCESS_TOKEN || env.ZIVO_TEST_ACCESS_TOKEN);
 const configuredRefreshToken = clean(env.ZIVO_DOMAIN_SUMMARY_REFRESH_TOKEN);
 const configuredSessionJson = clean(env.ZIVO_DOMAIN_SUMMARY_SESSION_JSON);
@@ -44,6 +44,10 @@ const domains = clean(env.ZIVO_DOMAIN_SUMMARY_DOMAINS)
   .map((item) => item.trim())
   .filter(Boolean);
 const limit = clamp(Number(env.ZIVO_DOMAIN_SUMMARY_LIMIT || 10) || 10, 1, 25);
+
+if (!summaryUrl) {
+  throw new Error("Set SUPABASE_URL/VITE_SUPABASE_URL or ZIVO_DOMAIN_SUMMARY_URL for the domain summary smoke check.");
+}
 
 function clean(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -67,16 +71,21 @@ async function resolveAccessToken() {
 
   const sessionTokens = parseSessionJson(configuredSessionJson);
   if (sessionTokens?.access_token && sessionTokens.refresh_token) {
+    if (!mainUrl) throw new Error("Set SUPABASE_URL/VITE_SUPABASE_URL to refresh ZIVO_DOMAIN_SUMMARY_SESSION_JSON.");
     const token = await refreshAccessToken(sessionTokens.refresh_token);
     return { token, source: "session-json-refresh-token" };
   }
 
   if (configuredRefreshToken) {
+    if (!mainUrl) throw new Error("Set SUPABASE_URL/VITE_SUPABASE_URL to refresh ZIVO_DOMAIN_SUMMARY_REFRESH_TOKEN.");
     const token = await refreshAccessToken(configuredRefreshToken);
     return { token, source: "refresh-token-env" };
   }
 
   if (!email || !password) return { token: "", source: "anonymous" };
+  if (!mainUrl) {
+    throw new Error("Set SUPABASE_URL/VITE_SUPABASE_URL to sign in a domain summary test user.");
+  }
   if (!publishableKey) {
     throw new Error("Set SUPABASE_ANON_KEY, SUPABASE_PUBLISHABLE_KEY, or VITE_SUPABASE_PUBLISHABLE_KEY to sign in a test user.");
   }
@@ -106,6 +115,9 @@ function parseSessionJson(value) {
 }
 
 async function refreshAccessToken(refreshToken) {
+  if (!mainUrl) {
+    throw new Error("Set SUPABASE_URL/VITE_SUPABASE_URL to refresh a Supabase session.");
+  }
   if (!publishableKey) {
     throw new Error("Set SUPABASE_ANON_KEY, SUPABASE_PUBLISHABLE_KEY, or VITE_SUPABASE_PUBLISHABLE_KEY to refresh a session.");
   }

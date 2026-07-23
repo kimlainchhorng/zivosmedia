@@ -209,7 +209,7 @@ export async function generateStoreCard(
   // Footer URL
   ctx.fillStyle = "#10b981";
   ctx.font = "700 28px system-ui, sans-serif";
-  const url = `hizovo.com/s/${store.slug}`;
+  const url = `zivosmedia.com/s/${store.slug}`;
   ctx.fillText(url, cardX + 56, cardY + cardH - 80);
 
   return await new Promise<Blob | null>((resolve) =>

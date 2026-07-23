@@ -28,9 +28,23 @@ function requireContains(id, text, needle, relativePath) {
   }
 }
 
+function requireExactTrimmedLine(id, text, needle, relativePath) {
+  const hasLine = text.split("\n").some((line) => line.trim() === needle);
+  if (!hasLine) {
+    failures.push(`${id}: ${relativePath} missing exact line ${JSON.stringify(needle)}`);
+  }
+}
+
 function requireNotContains(id, text, needle, relativePath) {
   if (text.includes(needle)) {
     failures.push(`${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`);
+  }
+}
+
+function requireNoExactTrimmedLine(id, text, needle, relativePath) {
+  const hasLine = text.split("\n").some((line) => line.trim() === needle);
+  if (hasLine) {
+    failures.push(`${id}: ${relativePath} must not contain exact line ${JSON.stringify(needle)}`);
   }
 }
 
@@ -119,10 +133,14 @@ const contracts = [
         "aps-environment",
         "com.apple.developer.applesignin",
         "com.apple.developer.associated-domains",
-        "applinks:hizovo.com",
-        "webcredentials:hizovo.com",
+        "applinks:zivosmedia.com",
+        "webcredentials:zivosmedia.com",
       ]) {
         requireContains(this.id, entitlements, needle, entitlementsPath);
+      }
+      for (const legacyDomain of ["hizovo.com", "www.hizovo.com"]) {
+        requireNotContains(this.id, entitlements, `applinks:${legacyDomain}`, entitlementsPath);
+        requireNotContains(this.id, entitlements, `webcredentials:${legacyDomain}`, entitlementsPath);
       }
       requireContains(this.id, listing, "Bundle ID: `com.hizovo.app`", listingPath);
       requireContains(this.id, listing, "Privacy URL:", listingPath);
@@ -139,10 +157,14 @@ const contracts = [
       const variablesPath = "android/variables.gradle";
       const listingPath = "android/store-listing/PLAY_STORE.md";
       const setupPath = "docs/native-android-setup.md";
+      const androidGitignorePath = "android/.gitignore";
+      const localPropertiesExamplePath = "android/local.properties.example";
       const build = source(buildPath);
       const variables = source(variablesPath);
       const listing = source(listingPath);
       const setup = source(setupPath);
+      const androidGitignore = source(androidGitignorePath);
+      const localPropertiesExample = source(localPropertiesExamplePath);
 
       for (const needle of [
         'namespace = "com.hizovo.app"',
@@ -151,6 +173,12 @@ const contracts = [
         'versionName "1.3.0"',
         "com.google.android.play:integrity",
         "keystore.properties",
+        "ZIVO_KEYSTORE_FILE",
+        "ZIVO_KEYSTORE_PASSWORD",
+        "ZIVO_KEY_ALIAS",
+        "ZIVO_KEY_PASSWORD",
+        "hasReleaseSigning",
+        "signingConfig signingConfigs.release",
         "google-services.json",
       ]) {
         requireContains(this.id, build, needle, buildPath);
@@ -170,7 +198,19 @@ const contracts = [
       requireContains(this.id, listing, "https://zivosmedia.com/delete-account", listingPath);
       requireNotContains(this.id, listing, "https://www.zivollc.com", listingPath);
       requireContains(this.id, setup, "android/local.properties", setupPath);
+      requireContains(this.id, setup, "android/local.properties.example", setupPath);
+      requireContains(this.id, setup, "cp android/local.properties.example android/local.properties", setupPath);
+      requireContains(this.id, androidGitignore, "Local configuration file (sdk path, etc)", androidGitignorePath);
+      requireExactTrimmedLine(this.id, androidGitignore, "local.properties", androidGitignorePath);
+      requireExactTrimmedLine(this.id, androidGitignore, "google-services.json", androidGitignorePath);
+      requireNoExactTrimmedLine(this.id, androidGitignore, "local.properties.example", androidGitignorePath);
+      requireContains(this.id, localPropertiesExample, "sdk.dir=/Users/kimlain/Library/Android/sdk", localPropertiesExamplePath);
+      requireContains(this.id, localPropertiesExample, "android/local.properties", localPropertiesExamplePath);
+      requireContains(this.id, setup, "npm run native:doctor -- --android-only", setupPath);
       requireContains(this.id, setup, "npm run android:build:debug", setupPath);
+      requireContains(this.id, setup, "GOOGLE_SERVICES_JSON_BASE64", setupPath);
+      requireContains(this.id, setup, "same Firebase project", setupPath);
+      requireContains(this.id, setup, "com.hizovo.app", setupPath);
     },
   },
   {
@@ -212,11 +252,14 @@ const contracts = [
         'android:usesCleartextTraffic="false"',
         'android:networkSecurityConfig="@xml/network_security_config"',
         'android:autoVerify="true"',
-        'android:host="hizovo.com"',
-        'android:host="www.hizovo.com"',
+        'android:host="zivosmedia.com"',
+        'android:host="www.zivosmedia.com"',
         'android:scheme="com.hizovo.app"',
       ]) {
         requireContains(this.id, androidManifest, needle, androidManifestPath);
+      }
+      for (const legacyDomain of ["hizovo.com", "www.hizovo.com"]) {
+        requireNotContains(this.id, androidManifest, `android:host="${legacyDomain}"`, androidManifestPath);
       }
       requireContains(this.id, androidNetwork, 'cleartextTrafficPermitted="false"', androidNetworkPath);
 
@@ -233,12 +276,16 @@ const contracts = [
         requireContains(this.id, iosInfo, needle, iosInfoPath);
       }
       for (const needle of [
-        "applinks:hizovo.com",
-        "applinks:www.hizovo.com",
-        "webcredentials:hizovo.com",
+        "applinks:zivosmedia.com",
+        "applinks:www.zivosmedia.com",
+        "webcredentials:zivosmedia.com",
         "com.apple.developer.usernotifications.communication",
       ]) {
         requireContains(this.id, iosEntitlements, needle, iosEntitlementsPath);
+      }
+      for (const legacyDomain of ["hizovo.com", "www.hizovo.com"]) {
+        requireNotContains(this.id, iosEntitlements, `applinks:${legacyDomain}`, iosEntitlementsPath);
+        requireNotContains(this.id, iosEntitlements, `webcredentials:${legacyDomain}`, iosEntitlementsPath);
       }
       for (const needle of [
         "UNUserNotificationCenter.current().delegate = self",
@@ -377,6 +424,16 @@ const contracts = [
     check() {
       const packagePath = "package.json";
       const doctorPath = "scripts/native/doctor.mjs";
+      const storeSigningPath = "scripts/native/store-signing-preflight.mjs";
+      const releaseSecretsGuidePath = "scripts/native/release-secrets-guide.mjs";
+      const pushSecretsPreflightPath = "scripts/native/push-secrets-preflight.mjs";
+      const pushSecretsPreflightTestPath = "scripts/native/push-secrets-preflight.test.mjs";
+      const appStoreUploadPath = "scripts/upload-to-app-store.mjs";
+      const playUploadPath = "scripts/upload-to-play.mjs";
+      const mobileWorkflowPath = ".github/workflows/mobile-build.yml";
+      const mobileCiPath = ".github/workflows/mobile-ci.yml";
+      const iosExportOptionsPath = "ios/App/ExportOptions.plist";
+      const androidKeystoreTemplatePath = "android/keystore.properties.example";
       const matrixPath = "scripts/qa/platform-readiness-matrix.mjs";
       const coveragePath = "scripts/qa/workflow-coverage.mjs";
       const checkCoveragePath = "scripts/qa/check-workflow-coverage.mjs";
@@ -384,6 +441,16 @@ const contracts = [
       const storeListingUrlTestPath = "src/test/nativeStoreListingCanonicalUrls.test.ts";
       const packageJson = source(packagePath);
       const doctor = source(doctorPath);
+      const storeSigning = source(storeSigningPath);
+      const releaseSecretsGuide = source(releaseSecretsGuidePath);
+      const pushSecretsPreflight = source(pushSecretsPreflightPath);
+      const pushSecretsPreflightTest = source(pushSecretsPreflightTestPath);
+      const appStoreUpload = source(appStoreUploadPath);
+      const playUpload = source(playUploadPath);
+      const mobileWorkflow = source(mobileWorkflowPath);
+      const mobileCi = source(mobileCiPath);
+      const iosExportOptions = source(iosExportOptionsPath);
+      const androidKeystoreTemplate = source(androidKeystoreTemplatePath);
       const matrix = source(matrixPath);
       const coverage = source(coveragePath);
       const checkCoverage = source(checkCoveragePath);
@@ -396,26 +463,189 @@ const contracts = [
         "qa:workflow-coverage:check",
         "qa:workflow-test-plan:check",
         "native:doctor",
+        "native:store-signing:preflight",
+        "native:release-secrets:guide",
+        "native:push-secrets:preflight",
+        "native:push-secrets:test",
         "native:sync",
         "ios:build:sim",
+        "ios:upload:app-store",
         "android:build:debug",
+        "android:upload:play:draft",
       ]) {
         requireContains(this.id, packageJson, `"${scriptName}"`, packagePath);
       }
       requireContains(this.id, packageJson, "npm run qa:native-app-contracts", packagePath);
       requireContains(this.id, packageJson, '"platform:audit": "npm run security:scan && npm run qa:platform-readiness', packagePath);
+      requireContains(this.id, packageJson, '"ios:build:sim": "npm run native:doctor -- --ios-only && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination', packagePath);
+      requireContains(this.id, packageJson, '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"', packagePath);
+      requireContains(this.id, packageJson, '"android:build:release": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease"', packagePath);
+      requireContains(this.id, packageJson, '"native:store-signing:preflight": "node scripts/native/store-signing-preflight.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"native:release-secrets:guide": "node scripts/native/release-secrets-guide.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"native:push-secrets:preflight": "node scripts/native/push-secrets-preflight.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"native:push-secrets:test": "node --test scripts/native/push-secrets-preflight.test.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"ios:upload:app-store": "node scripts/upload-to-app-store.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"android:upload:play:draft": "node scripts/upload-to-play.mjs"', packagePath);
       requireContains(this.id, packageJson, "npm run qa:platform-readiness && npm run qa:platform-readiness:check", packagePath);
       requireContains(this.id, packageJson, "npm run qa:workflow-coverage && npm run qa:workflow-coverage:check", packagePath);
       requireContains(this.id, packageJson, "npm run qa:workflow-test-plan && npm run qa:workflow-test-plan:check", packagePath);
       for (const needle of [
         "Capacitor config found",
         "Android SDK configured",
+        "Android platform-tools found",
+        "Java 21 available for Android builds",
+        "Android debug build preflights the SDK",
+        "iOS simulator build preflights Xcode",
+        "--ios-only",
+        "const includeAndroid = !iosOnly",
+        "const includeIos = !androidOnly",
         "Android versionName aligned",
         "iOS marketing version aligned",
         "iOS bundle id",
       ]) {
         requireContains(this.id, doctor, needle, doctorPath);
       }
+      for (const needle of [
+        'bundleId: "com.hizovo.app"',
+        'teamId: "9KWY67J6LX"',
+        "android/keystore.properties",
+        "Android keystore template present",
+        "isPlaceholder",
+        "Android store password is not a placeholder",
+        "Android key alias is not a placeholder",
+        "Android key password is not a placeholder",
+        "Android Firebase config present",
+        "Android Firebase config parses as JSON",
+        "Android Firebase project id present",
+        "Android Firebase package matches app",
+        "jarsigner",
+        "Android release AAB is signed",
+        "iOS App Store export options present",
+        "Apple Distribution",
+        "iPhone Distribution",
+        "App Store provisioning profile installed",
+        "process.exitCode = 1",
+      ]) {
+        requireContains(this.id, storeSigning, needle, storeSigningPath);
+      }
+      for (const needle of [
+        "ZIVO_APP_STORE_UPLOAD_CONFIRM",
+        "UPLOAD_APP",
+        "APP_STORE_CONNECT_API_KEY_ID",
+        "APP_STORE_CONNECT_API_ISSUER_ID",
+        "APP_STORE_CONNECT_API_KEY_PATH",
+        "APP_STORE_CONNECT_USERNAME",
+        "APP_SPECIFIC_PASSWORD",
+        "Missing App Store Connect upload credentials",
+        "--upload-package",
+        "does not submit for review",
+        "process.exitCode = 1",
+      ]) {
+        requireContains(this.id, appStoreUpload, needle, appStoreUploadPath);
+      }
+      for (const needle of [
+        "ZIVO_PLAY_UPLOAD_CONFIRM",
+        "UPLOAD_DRAFT",
+        "PLAY_CONSOLE_RELEASE_URL",
+        "waitForEvent(\"filechooser\"",
+        "This script intentionally does not click rollout",
+        "process.exitCode = 1",
+      ]) {
+        requireContains(this.id, playUpload, needle, playUploadPath);
+      }
+      for (const needle of [
+        'bundleId: "com.hizovo.app"',
+        'teamId: "9KWY67J6LX"',
+        "Safe GitHub secret commands",
+        "do not print secret values",
+        "gh secret set ANDROID_KEYSTORE_BASE64",
+        "gh secret set GOOGLE_SERVICES_JSON_BASE64",
+        "gh secret set VITE_VAPID_PUBLIC_KEY",
+        "gh secret set IOS_P12_BASE64",
+        "gh secret set IOS_PROVISIONING_PROFILE_B64",
+        "Supabase Edge push delivery secrets",
+        "FCM_SERVICE_ACCOUNT_JSON",
+        "APNS_ENV=production",
+        "VAPID_PRIVATE_KEY",
+        "supabase secrets set --env-file .env.push.production.local",
+        "npm run native:push-secrets:preflight",
+        "npm run native:store-signing:preflight",
+      ]) {
+        requireContains(this.id, releaseSecretsGuide, needle, releaseSecretsGuidePath);
+      }
+      for (const needle of [
+        'bundleId: "com.hizovo.app"',
+        'teamId: "9KWY67J6LX"',
+        ".env.push.production.local",
+        "FCM_SERVICE_ACCOUNT_JSON",
+        "APNS_ENV",
+        "production",
+        "VAPID_PUBLIC_KEY",
+        "VITE_VAPID_PUBLIC_KEY",
+        "No secret values were printed",
+        "process.exitCode = 1",
+      ]) {
+        requireContains(this.id, pushSecretsPreflight, needle, pushSecretsPreflightPath);
+      }
+      for (const needle of [
+        "customer push secret preflight accepts valid test-only shapes",
+        "customer push secret preflight rejects production APNs mismatch",
+        "customer push secret preflight rejects mismatched browser VAPID key",
+        "TEST_KEY_FOR_PREFLIGHT_ONLY",
+        "assert.doesNotMatch",
+      ]) {
+        requireContains(this.id, pushSecretsPreflightTest, needle, pushSecretsPreflightTestPath);
+      }
+      for (const needle of [
+        "VITE_VAPID_PUBLIC_KEY",
+        "Missing web VAPID public key",
+        "Missing Android release signing secrets",
+        "ANDROID_KEYSTORE_BASE64",
+        "ANDROID_KEYSTORE_PASSWORD",
+        "ANDROID_KEY_ALIAS",
+        "ANDROID_KEY_PASSWORD",
+        "GOOGLE_SERVICES_JSON_BASE64",
+        "Install Android Firebase config",
+        "Missing Android Firebase config",
+        "android/app/google-services.json",
+        "ORG_GRADLE_PROJECT_ZIVO_KEYSTORE_FILE",
+        "java-version: \"21\"",
+        "Missing iOS release signing secrets",
+        "IOS_P12_BASE64",
+        "IOS_P12_PASSWORD",
+        "IOS_PROVISIONING_PROFILE_B64",
+        "IOS_TEAM_ID",
+        "-project App.xcodeproj",
+        "CODE_SIGNING_ALLOWED=NO",
+        "Export iOS IPA",
+        "-exportArchive",
+        "-exportOptionsPlist ExportOptions.plist",
+        "$RUNNER_TEMP/ios-export",
+      ]) {
+        requireContains(this.id, mobileWorkflow, needle, mobileWorkflowPath);
+      }
+      for (const needle of [
+        "<key>method</key>",
+        "<string>app-store-connect</string>",
+        "<key>teamID</key>",
+        "<string>9KWY67J6LX</string>",
+        "<key>signingStyle</key>",
+        "<string>automatic</string>",
+      ]) {
+        requireContains(this.id, iosExportOptions, needle, iosExportOptionsPath);
+      }
+      for (const needle of [
+        "storeFile=app/release.keystore",
+        "storePassword=<owner-controlled password>",
+        "keyAlias=<owner-controlled alias>",
+        "keyPassword=<owner-controlled password>",
+      ]) {
+        requireContains(this.id, androidKeystoreTemplate, needle, androidKeystoreTemplatePath);
+      }
+      requireNotContains(this.id, mobileWorkflow, "App.xcworkspace", mobileWorkflowPath);
+      requireNotContains(this.id, mobileWorkflow, "pod install", mobileWorkflowPath);
+      requireContains(this.id, mobileCi, "Set up JDK 21", mobileCiPath);
+      requireContains(this.id, mobileCi, "java-version: \"21\"", mobileCiPath);
       requireContains(this.id, matrix, "native-mobile-release", matrixPath);
       requireContains(this.id, matrix, "qa:native-app-contracts", matrixPath);
       requireContains(this.id, coverage, "native-mobile-release", coveragePath);
@@ -446,9 +676,11 @@ const contracts = [
         "native:sync",
         "ios:sync",
         "ios:build:sim",
+        "ios:upload:app-store",
         "android:sync",
         "android:build:debug",
         "android:build:release",
+        "android:upload:play:draft",
       ]) {
         requireContains(this.id, packageJson, `"${scriptName}"`, packagePath);
       }
@@ -563,21 +795,31 @@ const contracts = [
     category: "release",
     check() {
       const checklistPath = "docs/native-release-checklist.md";
+      const iosSetupPath = "docs/native-ios-setup.md";
       const matrixPath = "scripts/qa/platform-readiness-matrix.mjs";
       const testPath = "src/test/nativeReleaseChecklist.test.ts";
       const checklist = source(checklistPath);
+      const iosSetup = source(iosSetupPath);
       const matrix = source(matrixPath);
       const test = source(testPath);
 
       for (const command of [
         "npm run qa:native-app-contracts",
         "npm run native:doctor",
+        "npm run native:doctor -- --android-only",
+        "npm run native:release-secrets:guide",
+        "npm run native:push-secrets:preflight",
         "npm run native:sync",
         "npm run ios:sync",
         "npm run android:sync",
         "npm run ios:build:sim",
+        "npm run ios:archive:store",
+        "npm run ios:export:store",
+        "npm run ios:upload:app-store",
         "npm run android:build:debug",
         "npm run android:build:release",
+        "npm run android:upload:play:draft",
+        "npm run native:store-signing:preflight",
         "npm run deploy:update:dry-run",
       ]) {
         requireContains(this.id, checklist, command, checklistPath);
@@ -592,11 +834,43 @@ const contracts = [
         requireContains(this.id, checklist, releaseValue, checklistPath);
       }
       requireContains(this.id, checklist, "OTA updates must not add native plugins", checklistPath);
+      requireContains(this.id, checklist, "local-only `android/local.properties` copied from", checklistPath);
+      requireContains(this.id, checklist, "`android/local.properties.example`", checklistPath);
+      requireContains(this.id, checklist, "must pass before claiming App Store or Google Play upload readiness", checklistPath);
+      requireContains(this.id, checklist, "safe setup commands for the GitHub", checklistPath);
+      requireContains(this.id, checklist, "APNS_ENV=production", checklistPath);
+      requireContains(this.id, checklist, "VITE_VAPID_PUBLIC_KEY", checklistPath);
+      requireContains(this.id, checklist, "native:push-secrets:preflight", checklistPath);
+      requireContains(this.id, checklist, "ios/App/ExportOptions.plist", checklistPath);
+      requireContains(this.id, checklist, "ZIVO_APP_STORE_UPLOAD_CONFIRM=UPLOAD_APP", checklistPath);
+      requireContains(this.id, checklist, "ZIVO_PLAY_UPLOAD_CONFIRM=UPLOAD_DRAFT", checklistPath);
+      requireContains(this.id, checklist, "does not submit the build for App Store review", checklistPath);
+      requireContains(this.id, checklist, "does not start rollout or submit the release for", checklistPath);
       requireContains(this.id, matrix, "src/test/nativeReleaseChecklist.test.ts", matrixPath);
       requireContains(this.id, matrix, "src/test/nativeSafeAreaBridgeContracts.test.ts", matrixPath);
       requireContains(this.id, matrix, "src/test/otaDeployBypass.test.ts", matrixPath);
       requireContains(this.id, matrix, "simulator/debug builds green", matrixPath);
       requireContains(this.id, test, "native release checklist", testPath);
+      for (const needle of [
+        "npm run native:doctor -- --ios-only",
+        "npm run ios:build:sim",
+        "npm run native:store-signing:preflight",
+        "npm run native:release-secrets:guide",
+        "npm run native:push-secrets:preflight",
+        "npm run ios:upload:app-store",
+        "ZIVO_APP_STORE_UPLOAD_CONFIRM=UPLOAD_APP",
+        "xcodebuild",
+        "ios/App/App.xcodeproj",
+        "IOS_P12_BASE64",
+        "ios/App/ExportOptions.plist",
+        "App Store Connect `.ipa`",
+        "Apple Distribution",
+        "APNS_ENV",
+        "production",
+        "Release workflow runs fail closed",
+      ]) {
+        requireContains(this.id, iosSetup, needle, iosSetupPath);
+      }
     },
   },
 ];

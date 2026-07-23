@@ -38,17 +38,29 @@ npx wrangler deploy
 
 ---
 
-## ACTION 3 — Ship the host landings (fixes zivodriver/business/employee)
-The landings are **uncommitted WIP** in your working tree (untracked `src/pages/ZivoDriverHome.tsx`, `ZivoBusinessHome.tsx`, `ZivoEmployeeHome.tsx` + uncommitted `App.tsx` wiring). Finish, then:
+## ACTION 3 — Ship satellite landings with the right owner
+
+Driver is now a dedicated app deployment. Do **not** add `zivodriver.com/*` back to the Zivosmedia Worker or bind it to the Zivosmedia Pages artifact.
+
+For `zivodriver.com`:
 ```sh
-git add src/pages/ZivoDriverHome.tsx src/pages/ZivoBusinessHome.tsx src/pages/ZivoEmployeeHome.tsx \
+cd /Users/kimlain/Documents/GitHub/zivodriver
+npm run test:production-preflight
+npm run check:release-contracts
+npm run build
+```
+Then bind `zivodriver.com` and `www.zivodriver.com` to the dedicated Driver deployment only, and confirm the live Zivosmedia `zivo` Worker has no Driver-domain route.
+
+For `zivobusiness.com` and `zivoemployee.com`, keep using the Zivosmedia host-landings path:
+```sh
+git add src/pages/ZivoBusinessHome.tsx src/pages/ZivoEmployeeHome.tsx \
         src/config/zivoBusinessDomain.ts src/config/zivoEmployeeDomain.ts src/App.tsx
-git commit -m "feat: host landings for zivodriver/zivobusiness/zivoemployee"
+git commit -m "feat: host landings for zivobusiness/zivoemployee"
 npm run build                  # confirm the new components compile/bundle
 # open PR -> review -> merge -> deploy
 ```
-**Pre-deploy check:** confirm `zivodriver.com` / `zivobusiness.com` / `zivoemployee.com` are bound to the **same** worker/Pages project as zivosmedia (Cloudflare → the `zivo` worker → Domains & Routes). They're not in `wrangler.toml [[routes]]` — binding is dashboard-managed. (See `INFRA_FIX_RUNBOOKS.md` Runbook A.)
-**Verify:** each domain's `/` renders its landing, not the Feed.
+**Pre-deploy check:** confirm `zivobusiness.com` and `zivoemployee.com` are bound to the Zivosmedia project or Worker routes. Confirm `zivodriver.com` is absent from that Worker and bound to Driver instead.
+**Verify:** each domain's `/` renders its own product surface, not the generic Feed.
 
 ---
 
@@ -64,7 +76,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<the publishable/anon key for that project>
 ---
 
 ## ACTION 5 — zivoadmin: DNS + host (canonical `admin.zivosmedia.com`)
-See `INFRA_FIX_RUNBOOKS.md` Runbook B. Summary: deploy the Zivo-Admin app behind staff auth, add a proxied `CNAME admin` in the `zivosmedia.com` zone, add `admin.zivosmedia.com` to `ALLOWED_ORIGINS`, optionally redirect `zivoadmin.com` → it.
+See `INFRA_FIX_RUNBOOKS.md` Runbook B. Summary: deploy the Zivo-Admin app behind staff auth, add a proxied `CNAME admin` in the `zivosmedia.com` zone, confirm the deployed Worker `ALLOWED_ORIGINS` keeps `admin.zivosmedia.com`, `zivoadmin.com`, and `www.zivoadmin.com`, and optionally redirect `zivoadmin.com` / `www.zivoadmin.com` → it.
 **Verify:** `dig +short admin.zivosmedia.com` resolves; the host shows an admin login / access-restricted page, never app-feed or unauthenticated data.
 
 ---
@@ -78,4 +90,4 @@ Not present in repo source. Check, in order: built `dist` assets; the GTM/tag-ma
 ```sh
 node scripts/tmp-live-audit.mjs    # re-renders all domains/paths -> scripts/tmp-audit-results.json + screenshots
 ```
-Expected post-deploy: `/hotels` = hotels, `/travel/checkout` = cart, `zivodriver.com/` = driver landing, no `emrld.ltd` request, zivoschat console clean.
+Expected post-deploy: `/hotels` = hotels, `/travel/checkout` = cart, `zivodriver.com/` = Driver artifact from the `zivodriver` repo, no `emrld.ltd` request, zivoschat console clean.

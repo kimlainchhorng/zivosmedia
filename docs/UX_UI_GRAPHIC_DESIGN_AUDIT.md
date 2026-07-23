@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-08 · Audit only. Evidence cites real files.
 
-> **Correction vs. an earlier draft:** the host landing pages **do exist** (`src/pages/ZivoDriverHome.tsx`, `ZivoBusinessHome.tsx`, `ZivoEmployeeHome.tsx`, `ZivoTravelHome`, software/business pages) and hostname routing is live at `src/App.tsx:1682` (`isCurrentZivoDriverHost()` etc.). A duplicate nested scaffold (`eloquent-liskov-159913/`) caused a false "missing pages" reading; the driver/business/employee landings are **WIP/undeployed**, not absent.
+> **Correction vs. an earlier draft:** the Zivosmedia host landing pages **do exist** for business/employee plus travel/software surfaces, while Driver has moved to the dedicated `zivodriver` repo/deployment. A duplicate nested scaffold (`eloquent-liskov-159913/`) caused a false "missing pages" reading; the remaining issue is deployment/domain cutover, not absence of product UI.
 
 ## Design-system maturity
 

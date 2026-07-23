@@ -28,7 +28,6 @@ import zivoReserveIcon from "@/assets/zivo-reserve-car.webp";
 import zivoShoppingIcon from "@/assets/zivo-shopping.webp";
 import zivoDeliveryBanner from "@/assets/zivo-delivery-banner.webp";
 import zivoPackageIcon from "@/assets/service-package.png";
-import zivoReserveBanner from "@/assets/zivo-reserve-banner.webp";
 import zivoTravelBanner from "@/assets/zivo-travel-banner.webp";
 import zivoGroupRideIcon from "@/assets/service-group-ride.png";
 import zivoAlcoholIcon from "@/assets/service-alcohol.png";
@@ -37,6 +36,7 @@ import zivoShoppingCartIcon from "@/assets/service-shopping.png";
 
 /* ── Types ── */
 interface ServiceItem {
+  id?: string;
   label: string;
   href: string;
   icon?: React.ComponentType<{ className?: string }>;
@@ -59,7 +59,6 @@ interface ServiceCategory {
    a vibrant, organised super-app hub without touching layout or interaction. */
 const ACCENT_BY_HREF: Record<string, { bg: string; icon: string }> = {
   "/rides/hub": { bg: "bg-blue-500/10 dark:bg-blue-400/15", icon: "text-blue-500 dark:text-blue-400" },
-  "/rides/hub?tab=reserve": { bg: "bg-rose-500/10 dark:bg-rose-400/15", icon: "text-rose-500 dark:text-rose-400" },
   "/delivery": { bg: "bg-violet-500/10 dark:bg-violet-400/15", icon: "text-violet-500 dark:text-violet-400" },
   "/flights": { bg: "bg-sky-500/10 dark:bg-sky-400/15", icon: "text-sky-500 dark:text-sky-400" },
   "/rent-car": { bg: "bg-amber-500/10 dark:bg-amber-400/15", icon: "text-amber-600 dark:text-amber-400" },
@@ -89,7 +88,7 @@ const getServiceCategories = (t: (key: string) => string, isCambodia = false): S
       { label: t("services.ride"), href: "/rides/hub", image: zivoRideIcon, badge: t("services.badge.off_10"), badgeVariant: "discount", animClass: "animate-car-run" },
       { label: t("services.package"), href: "/delivery", image: zivoPackageIcon, badge: "Live", badgeVariant: "new", animClass: "animate-pkg-bounce" },
       { label: t("services.travel"), href: "/flights", image: zivoFlightsIcon, badge: "Hot", badgeVariant: "promo", animClass: "animate-plane-fly" },
-      { label: t("services.reserve"), href: "/rides/hub?tab=reserve", image: zivoReserveIcon, badge: t("services.badge.promo"), badgeVariant: "promo", animClass: "animate-car-run" },
+      { id: "ride-reserve", label: t("services.reserve"), href: "/rides/hub", image: zivoReserveIcon, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
       { label: t("services.rental_cars"), href: "/rent-car", image: zivoRentalCarIcon, badge: "Book", badgeVariant: "promo", animClass: "animate-car-run" },
       { label: t("services.group_ride"), href: "/rides/hub", image: zivoGroupRideIcon, animClass: "animate-car-run" },
     ],
@@ -214,6 +213,8 @@ const badgeStyles = {
 
 const FAVORITES_KEY = "zivo_favorite_services";
 
+const serviceFavoriteKey = (service: ServiceItem) => service.id ?? service.href;
+
 /* ── Page ── */
 export default function ServicesPage() {
   const navigate = useNavigate();
@@ -231,11 +232,12 @@ export default function ServicesPage() {
     try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]"); } catch { return []; }
   });
 
-  const toggleFavorite = (href: string, e: React.MouseEvent) => {
+  const toggleFavorite = (service: ServiceItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = favorites.includes(href)
-      ? favorites.filter(f => f !== href)
-      : [...favorites, href];
+    const key = serviceFavoriteKey(service);
+    const next = favorites.includes(key)
+      ? favorites.filter(f => f !== key)
+      : [...favorites, key];
     setFavorites(next);
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
   };
@@ -245,7 +247,7 @@ export default function ServicesPage() {
     [serviceCategories]
   );
   const favoriteServices = useMemo(
-    () => allServices.filter(s => favorites.includes(s.href)),
+    () => allServices.filter(s => favorites.includes(serviceFavoriteKey(s))),
     [allServices, favorites]
   );
 
@@ -350,7 +352,6 @@ export default function ServicesPage() {
               { label: t("services.flights"), href: "/flights", image: zivoFlightsIcon, color: "from-sky-500 to-cyan-500" },
               { label: t("services.hotels"), href: "/hotels", image: zivoHotelsIcon, color: "from-purple-500 to-violet-600" },
               { label: t("services.grocery"), href: "/grocery", image: zivoShoppingIcon, color: "from-emerald-500 to-green-600" },
-              { label: t("services.reserve"), href: "/rides/hub?tab=reserve", image: zivoReserveIcon, color: "from-rose-500 to-pink-600" },
             ].map((s) => (
               <motion.button
                 key={s.label}
@@ -376,7 +377,7 @@ export default function ServicesPage() {
           <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
             {favoriteServices.map(s => (
               <motion.button
-                key={s.href + "-fav"}
+                key={serviceFavoriteKey(s) + "-fav"}
                 type="button"
                 onClick={() => handleServiceClick(s)}
                 whileTap={{ scale: 0.94 }}
@@ -391,7 +392,7 @@ export default function ServicesPage() {
                   <button
                     type="button"
                     aria-label="Remove from favorites"
-                    onClick={(e) => toggleFavorite(s.href, e)}
+                    onClick={(e) => toggleFavorite(s, e)}
                     className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-card border border-border/40 shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
@@ -401,23 +402,6 @@ export default function ServicesPage() {
               </motion.button>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Hero Reserve Banner */}
-      {!searchQuery && (
-        <div className="px-5 pt-3 relative z-10">
-          <PromoBanner
-            image={zivoReserveBanner}
-            alt={t("services.banner.reserve_alt")}
-            label={t("services.banner.reserve_label")}
-            title={t("services.banner.reserve_title")}
-            subtitle={t("services.banner.reserve_subtitle")}
-            href="/rides/hub?tab=reserve"
-            delay={0.1}
-            navigate={navigate}
-            objectPosition="top"
-          />
         </div>
       )}
 
@@ -476,18 +460,18 @@ export default function ServicesPage() {
                     {/* Favorite heart */}
                     <button
                       type="button"
-                      aria-label={favorites.includes(service.href) ? "Remove from favorites" : "Save to favorites"}
-                      onClick={(e) => toggleFavorite(service.href, e)}
+                      aria-label={favorites.includes(serviceFavoriteKey(service)) ? "Remove from favorites" : "Save to favorites"}
+                      onClick={(e) => toggleFavorite(service, e)}
                       className={cn(
                         "absolute -top-1 -right-1 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-card/80 backdrop-blur-sm border border-border/30 shadow-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        favorites.includes(service.href)
+                        favorites.includes(serviceFavoriteKey(service))
                           ? "opacity-100"
                           : "opacity-0 group-hover:opacity-100 focus:opacity-100"
                       )}
                     >
                       <Heart className={cn(
                         "w-3 h-3 transition-colors",
-                        favorites.includes(service.href) ? "fill-rose-500 text-rose-500" : "text-muted-foreground/60"
+                        favorites.includes(serviceFavoriteKey(service)) ? "fill-rose-500 text-rose-500" : "text-muted-foreground/60"
                       )} />
                     </button>
 

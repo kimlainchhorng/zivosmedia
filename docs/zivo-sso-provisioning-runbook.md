@@ -28,11 +28,14 @@ The foundation is scattered; assemble it into reviewable PRs first:
 - Run `get_advisors(security)` on each after applying.
 
 ## Phase 2 — secrets (never commit; set via dashboard/CLI)
-Per relying-party app (driver/travel/software):
+Per relying-party app (driver/travel/software/Ride):
 - `ZIVOSMEDIA_AUTH_CLIENT_SECRET` — a fresh random secret (store the **raw** value here).
 - `ZIVO_AUTHORITY_SUPABASE_URL=https://slirphzzwcogdbkeicff.supabase.co` (the hub).
 - `ZIVOSMEDIA_WEBHOOK_SECRET` — shared HMAC secret (same value on the hub emitter + all apps).
 - Driver also: `ZIVO_DRIVER_ADMIN_API_TOKEN` (admin-linked-user).
+- Ride uses `ZIVO_RIDE_AUTH_CLIENT_SECRET` in the shared Ride/Driver project
+  (`yiedlgoxwjmansszdypf`) and
+  `ZIVO_AUTHORITY_SUPABASE_URL=https://slirphzzwcogdbkeicff.supabase.co`.
 Hub (zivosmedia) emitter: `ZIVOSMEDIA_WEBHOOK_SECRET` + the standard `SUPABASE_URL` /
 `SUPABASE_SERVICE_ROLE_KEY`.
 Rotate the leaked driver `VITE_GOOGLE_MAPS_API_KEY` while here (it's still in git history).
@@ -60,6 +63,63 @@ Concrete `webhook_url` templates:
 - `zivo_software` → `https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/zivosmedia-{event}`
 - `zivo_travel`   → `https://zivostravel.com/webhooks/zivosmedia/{event}`
 - `zivo_chat`     → short-circuits on shared `slirph`; no cross-project webhook needed.
+- `zivo_ride`     → identity exchange only for the initial release; no hub webhook URL.
+
+### ZIVO Ride enablement
+
+Apply `20260722192749_zivo_ride_sso_integration.sql` on the hub first. It
+registers `zivo_ride` as `configuration_pending`/disabled and adds a database
+constraint that rejects partial enablement or a non-SHA-256 secret hash. Then
+provision one fresh, high-entropy raw secret in the Ride backend and store only
+its lowercase SHA-256 hash in the hub:
+
+**Current live status (2026-07-22):** the hub registration migration is applied
+on `slirphzzwcogdbkeicff`; `app_integrations.app_key='zivo_ride'` exists with
+`status='configuration_pending'`, `enabled=false`, and no stored secret hash.
+The Ride exchange Edge Function on `yiedlgoxwjmansszdypf` is deployed and reaches
+the hub; a fake-code smoke test is rejected with "App integration is not
+enabled", which is the expected locked state until the matching secret hash is
+written below. Do not enable this row until the raw
+`ZIVO_RIDE_AUTH_CLIENT_SECRET` value currently deployed to the Ride backend is
+available, or until that backend secret is rotated and the new hash is written
+in the same release window.
+
+```bash
+# Ride/Driver project (yiedlgoxwjmansszdypf). Never set this as VITE_*.
+npx supabase secrets set ZIVO_RIDE_AUTH_CLIENT_SECRET="<fresh-random-secret>" --project-ref yiedlgoxwjmansszdypf
+npx supabase secrets set ZIVO_AUTHORITY_SUPABASE_URL="https://slirphzzwcogdbkeicff.supabase.co" --project-ref yiedlgoxwjmansszdypf
+```
+
+```sql
+-- Hub project (slirphzzwcogdbkeicff). Run in one transaction.
+begin;
+create extension if not exists pgcrypto;
+
+update public.app_integrations
+set
+  client_secret_hash = encode(digest('<same-fresh-random-secret>', 'sha256'), 'hex'),
+  status = 'enabled',
+  enabled = true,
+  updated_at = now()
+where app_key = 'zivo_ride';
+
+-- Must return enabled=true, status=enabled, and a 64-character hash.
+select app_key, status, enabled, length(client_secret_hash) as secret_hash_length
+from public.app_integrations
+where app_key = 'zivo_ride';
+commit;
+```
+
+If the raw secret is available in a local shell, generate the same hub SQL
+without printing the raw value:
+
+```bash
+ZIVO_RIDE_AUTH_CLIENT_SECRET="<same-fresh-random-secret>" npm run supabase:zivo-ride-sso-enable-sql
+```
+
+Do not place the raw value in this repository, a browser `VITE_*` variable, a
+migration, or the hub database. Roll back instantly with
+`status='disabled', enabled=false`; retain or rotate the hash before re-enabling.
 
 ### Zivo Software local callback testing
 

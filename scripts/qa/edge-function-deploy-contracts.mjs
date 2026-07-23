@@ -19,6 +19,8 @@ const criticalFunctions = [
   { slug: "talent-invite-notification", verifyJwt: true, why: "job invite notification creation" },
   { slug: "admin-broadcast-notification", verifyJwt: true, why: "admin broadcast notification creation" },
   { slug: "mint-sso-handoff", verifyJwt: true, why: "cross-domain SSO one-time token minting" },
+  { slug: "zivosmedia-auth-issue-code", verifyJwt: true, why: "central PKCE authorization-code issuance" },
+  { slug: "zivosmedia-auth-validate-code", verifyJwt: false, why: "server-to-server client-secret + PKCE exchange" },
 ];
 
 function source(relativePath) {

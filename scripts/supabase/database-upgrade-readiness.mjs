@@ -109,7 +109,26 @@ function getSupabaseCli() {
 }
 
 function stripQuotes(value) {
-  return value.replace(/^"+|"+$/g, "").toLowerCase();
+  return value.replace(/^public\./i, "").replace(/^"+|"+$/g, "").toLowerCase();
+}
+
+function extractAccessReviewedTables(sql) {
+  const reviewedTables = new Set();
+  const tableListPattern = String.raw`(?:(?:public\.)?"?[\w]+"?\s*,\s*)*(?:public\.)?"?[\w]+"?`;
+  const accessRe = new RegExp(
+    String.raw`\b(?:grant|revoke)\b[\s\S]{0,500}?\bon\s+(?:table\s+)?(${tableListPattern})\s+(?:to|from)\s+([^;]+);`,
+    "gi",
+  );
+
+  for (const match of sql.matchAll(accessRe)) {
+    const grantees = match[2].toLowerCase();
+    if (!/\b(anon|authenticated|service_role)\b/.test(grantees)) continue;
+    for (const table of match[1].split(",").map((item) => stripQuotes(item.trim())).filter(Boolean)) {
+      reviewedTables.add(table);
+    }
+  }
+
+  return reviewedTables;
 }
 
 function stripSqlComments(sql) {
@@ -162,21 +181,18 @@ function extractPublicTables(migrations) {
 }
 
 function extractDataApiGrantReview(migrations, publicTables) {
-  const grantedTables = new Set();
-  const grantRe = /\bgrant\b[\s\S]{0,500}?\bon\s+(?:table\s+)?(?:public\.)?("?[\w]+"?)\s+to\s+([^;]+);/gi;
+  const accessReviewedTables = new Set();
   for (const migration of migrations) {
     const sql = stripSqlComments(migration.sql);
-    for (const match of sql.matchAll(grantRe)) {
-      const grantees = match[2].toLowerCase();
-      if (!/\b(anon|authenticated|service_role)\b/.test(grantees)) continue;
-      grantedTables.add(stripQuotes(match[1]));
+    for (const table of extractAccessReviewedTables(sql)) {
+      accessReviewedTables.add(table);
     }
   }
 
   return publicTables.created.filter((row) => (
     row.version &&
     row.version >= dataApiGrantReviewVersion &&
-    !grantedTables.has(row.table)
+    !accessReviewedTables.has(row.table)
   ));
 }
 

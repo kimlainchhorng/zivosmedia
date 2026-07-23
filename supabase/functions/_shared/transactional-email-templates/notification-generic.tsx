@@ -33,7 +33,7 @@ interface Props {
 }
 
 const PUBLIC_URL =
-  Deno.env.get('SITE_URL') ?? 'https://hizovo.com'
+  Deno.env.get('SITE_URL') ?? 'https://zivosmedia.com'
 
 const Email = ({ title = 'New notification', body, url, event_type }: Props) => (
   <Html lang="en">

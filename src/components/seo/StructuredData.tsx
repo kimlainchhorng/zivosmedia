@@ -31,8 +31,8 @@ interface OrganizationSchemaProps {
 export const OrganizationSchema = forwardRef<HTMLElement, OrganizationSchemaProps>(
   function OrganizationSchema({
     name = "ZIVO",
-    url = "https://hizovo.com",
-    logo = "https://hizovo.com/og-image.png",
+    url = "https://zivosmedia.com",
+    logo = "https://zivosmedia.com/og-image.png",
   }, _ref) {
     useJsonLd(
       {
@@ -58,7 +58,7 @@ interface WebsiteSearchSchemaProps {
 }
 
 export const WebsiteSearchSchema = forwardRef<HTMLElement, WebsiteSearchSchemaProps>(
-  function WebsiteSearchSchema({ url = "https://hizovo.com" }, _ref) {
+  function WebsiteSearchSchema({ url = "https://zivosmedia.com" }, _ref) {
     useJsonLd(
       {
         "@context": "https://schema.org",

@@ -236,10 +236,10 @@ const FlightConfirmation = () => {
                     <Separator className="mb-4 bg-destructive/10" />
                     <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Contact Support</p>
                     <div className="space-y-2.5">
-                      <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@hizovo.com"))} aria-label="Email support" className="flex items-center gap-3 text-sm hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">
-                        <Mail className="w-4 h-4 text-muted-foreground" /> support@hizovo.com
+                      <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openSystemUrl }) => openSystemUrl("mailto:support@zivosmedia.com"))} aria-label="Email support" className="flex items-center gap-3 text-sm hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">
+                        <Mail className="w-4 h-4 text-muted-foreground" /> support@zivosmedia.com
                       </button>
-                      <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://hizovo.com/help"))} className="flex items-center gap-3 text-sm hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">
+                      <button type="button" onClick={() => import("@/lib/openExternalUrl").then(({ openExternalUrl }) => openExternalUrl("https://zivosmedia.com/help"))} className="flex items-center gap-3 text-sm hover:text-[hsl(var(--flights))] transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">
                         <MessageCircle className="w-4 h-4 text-muted-foreground" /> Help Center
                       </button>
                     </div>

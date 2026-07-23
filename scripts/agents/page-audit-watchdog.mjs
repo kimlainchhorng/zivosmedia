@@ -49,7 +49,7 @@ const PAGES = [
   "src/pages/DeliveryPage.tsx",
   "src/pages/lodging/HotelsLandingPage.tsx",
   "src/pages/lodging/HotelResortDetailPage.tsx",
-  "src/pages/app/RideHubPage.tsx",
+  "src/pages/app/CanonicalRidePage.tsx",
 ];
 
 const AUDIT_TASK =

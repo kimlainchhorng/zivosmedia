@@ -6,7 +6,7 @@ describe("musicShare parsing", () => {
     const message = [
       "🎵 Midnight City — M83",
       "Synthwave · 3:58",
-      "Listen: https://hizovo.com/sound/midnight-city",
+      "Listen: https://zivosmedia.com/sound/midnight-city",
       "Preview: https://cdn.example.com/audio/midnight-city.mp3",
     ].join("\n");
 

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -191,7 +191,7 @@ describe("payments, refunds, and webhook workflow", () => {
     const bakong = source("supabase/functions/bakong-verify/index.ts");
     const abaHook = source("src/hooks/useAbaPayway.ts");
     const khqrModal = source("src/components/shop/KHQRPaymentModal.tsx");
-    const rideModal = source("src/components/rides/AbaPaymentModal.tsx");
+    const canonicalRideFrame = source("src/pages/app/CanonicalRidePage.tsx");
 
     for (const [route, fn] of Object.entries({
       "aba-payway-checkout": aba,
@@ -212,12 +212,13 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(bakong).toContain("validateSinceSec");
     expect(abaHook).toContain('supabase.functions.invoke("aba-payway-checkout"');
     expect(khqrModal).toContain('supabase.functions.invoke("aba-payway-checkout"');
-    expect(rideModal).toContain('supabase.functions.invoke("bakong-verify"');
+    expect(canonicalRideFrame).not.toContain("bakong-verify");
+    expect(existsSync(path.join(root, "src/components/rides/AbaPaymentModal.tsx"))).toBe(false);
   });
 
   it("keeps customer payment capture routes POST-gated and payment-rate-limited", () => {
     const paymentReturn = source("src/components/lodging/PaymentReturnHandler.tsx");
-    const rideHub = source("src/pages/app/RideHubPage.tsx");
+    const canonicalRideFrame = source("src/pages/app/CanonicalRidePage.tsx");
     const carCheckout = source("src/components/admin/store/car-rental/CarRentalCheckoutSection.tsx");
 
     for (const route of [
@@ -245,7 +246,9 @@ describe("payments, refunds, and webhook workflow", () => {
     ]) {
       expect(paymentReturn).toContain(`supabase.functions.invoke("${route}"`);
     }
-    expect(rideHub).toContain('supabase.functions.invoke("capture-ride-tip"');
+    expect(canonicalRideFrame).toContain("resolveRideAppBaseUrl");
+    expect(canonicalRideFrame).not.toContain("capture-ride-tip");
+    expect(existsSync(path.join(root, "src/pages/app/RideHubPage.tsx"))).toBe(false);
     expect(carCheckout).toContain('"capture-car-rental-balance"');
   });
 
@@ -488,7 +491,7 @@ describe("payments, refunds, and webhook workflow", () => {
     const lodgingCancel = source("supabase/functions/cancel-lodging-reservation/index.ts");
     const rideCancel = source("supabase/functions/cancel-ride-request/index.ts");
     const cancelSheet = source("src/components/lodging/guest/CancelReservationSheet.tsx");
-    const rideHome = source("src/components/rides/RideBookingHome.tsx");
+    const canonicalRideFrame = source("src/pages/app/CanonicalRidePage.tsx");
 
     for (const [route, fn] of Object.entries({
       "cancel-lodging-reservation": lodgingCancel,
@@ -503,7 +506,8 @@ describe("payments, refunds, and webhook workflow", () => {
     }
 
     expect(cancelSheet).toContain('supabase.functions.invoke("cancel-lodging-reservation"');
-    expect(rideHome).toContain('supabase.functions.invoke("cancel-ride-request"');
+    expect(canonicalRideFrame).not.toContain("cancel-ride-request");
+    expect(existsSync(path.join(root, "src/components/rides/RideBookingHome.tsx"))).toBe(false);
   });
 
   it("renders cancel, refund, dispute, and live payment states for customers and hosts", () => {

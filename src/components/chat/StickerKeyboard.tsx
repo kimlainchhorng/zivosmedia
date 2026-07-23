@@ -1290,7 +1290,7 @@ export default function StickerKeyboard({ open, onClose, onSendSticker, onQuickA
                         const lines = [
                           `🎵 ${track.title} — ${track.artist}`,
                           `${track.genre} · ${track.duration}`,
-                          `Listen: ${track.shareUrl || `https://hizovo.com/sound/${track.slug}`}`,
+                          `Listen: ${track.shareUrl || `https://zivosmedia.com/sound/${track.slug}`}`,
                           `Preview: ${track.previewUrl}`,
                         ];
                         quickSend(lines.join("\n"));

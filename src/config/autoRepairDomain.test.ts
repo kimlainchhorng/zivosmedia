@@ -77,8 +77,12 @@ describe("auto repair software domain config", () => {
 
   it("points the software domain at the dedicated software Supabase project", () => {
     expect(ZIVO_SOFTWARE_SUPABASE_PROJECT_ID).toBe("ydxztoresbdeoeijhxww");
-    expect(ZIVO_SOFTWARE_SUPABASE_URL).toBe("https://ydxztoresbdeoeijhxww.supabase.co");
-    expect(ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY).toMatch(/^sb_publishable_/);
+    expect(ZIVO_SOFTWARE_SUPABASE_URL).toBe(import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_URL || "");
+    if (import.meta.env.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY) {
+      expect(ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY).toMatch(/^sb_publishable_/);
+    } else {
+      expect(ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY).toBe("");
+    }
   });
 
   it("allows exact per-business UUID workspace routes on the software domain", () => {

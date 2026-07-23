@@ -14,6 +14,7 @@ const ZIVO_MEDIA_PROJECT_REF = "slirphzzwcogdbkeicff";
 const ZIVO_MEDIA_PROJECT_URL = `https://${ZIVO_MEDIA_PROJECT_REF}.supabase.co`;
 const ZIVO_SOFTWARE_PROJECT_REF = "ydxztoresbdeoeijhxww";
 const ZIVO_SOFTWARE_PROJECT_URL = `https://${ZIVO_SOFTWARE_PROJECT_REF}.supabase.co`;
+const ZIVO_RIDE_PRODUCTION_URL = "https://ride.zivosmedia.com";
 
 for (const file of [".env", ".env.local", ".env.deploy"]) {
   const envPath = path.join(root, file);
@@ -119,7 +120,59 @@ function validateSupabaseUrl(name, options = {}) {
   return value.replace(/\/+$/, "");
 }
 
+function validateRideAppUrl() {
+  const name = "VITE_ZIVO_RIDE_APP_URL";
+  const value = readEnv(name);
+  if (!value) {
+    add("critical", "zivo-ride-app-url-missing", `Missing ${name}.`);
+    return "";
+  }
+
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    add("critical", "zivo-ride-app-url-invalid", `${name} must be a valid URL.`);
+    return value;
+  }
+
+  if (url.protocol !== "https:") {
+    add("critical", "zivo-ride-app-url-not-https", `${name} must use https in deploy environments.`);
+  }
+
+  if (url.username || url.password) {
+    add("critical", "zivo-ride-app-url-credentials", `${name} must not include URL credentials.`);
+  }
+
+  if (url.port) {
+    add("critical", "zivo-ride-app-url-port", `${name} must not specify a custom port.`);
+  }
+
+  if (url.search || url.hash) {
+    add("critical", "zivo-ride-app-url-state", `${name} must not include a query string or fragment.`);
+  }
+
+  if (url.hostname.toLowerCase() !== "ride.zivosmedia.com") {
+    add(
+      "critical",
+      "zivo-ride-app-url-untrusted-host",
+      `${name} must use the exact Ride production host ride.zivosmedia.com.`,
+    );
+  }
+
+  if (value !== ZIVO_RIDE_PRODUCTION_URL) {
+    add(
+      "critical",
+      "zivo-ride-app-url-not-canonical",
+      `${name} must equal ${ZIVO_RIDE_PRODUCTION_URL} exactly.`,
+    );
+  }
+
+  return value;
+}
+
 const viteSupabaseUrl = validateSupabaseUrl("VITE_SUPABASE_URL", { required: true });
+const zivoRideAppUrl = validateRideAppUrl();
 const zivoSoftwareSupabaseUrl = validateSupabaseUrl("VITE_ZIVO_SOFTWARE_SUPABASE_URL", {
   required: requireSoftwareDomain,
 });
@@ -231,6 +284,7 @@ const summary = {
   warnings: findings.filter((finding) => finding.severity === "warning").length,
   checked: {
     viteSupabaseUrl: Boolean(viteSupabaseUrl),
+    zivoRideAppUrl: Boolean(zivoRideAppUrl),
     zivoSoftwareSupabaseUrl: Boolean(zivoSoftwareSupabaseUrl),
     zivoSoftwarePublishableKey: Boolean(zivoSoftwarePublishableKey),
     zivoDomainSummaryBridgeKeys: Boolean(

@@ -12,11 +12,8 @@
 	<array>
 		<string>applinks:zivosmedia.com</string>
 		<string>applinks:www.zivosmedia.com</string>
-		<string>applinks:hizovo.com</string>
-		<string>applinks:www.hizovo.com</string>
 		<string>applinks:myzivo.lovable.app</string>
 		<string>webcredentials:zivosmedia.com</string>
-		<string>webcredentials:hizovo.com</string>
 	</array>
 	<key>com.apple.developer.usernotifications.communication</key>
 	<true/>

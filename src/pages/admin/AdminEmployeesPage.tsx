@@ -283,7 +283,7 @@ export default function AdminEmployeesPage() {
                   <Label className="text-xs">Email</Label>
                   <Input
                     type="email"
-                    placeholder="employee@hizovo.com"
+                    placeholder="employee@zivosmedia.com"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                   />

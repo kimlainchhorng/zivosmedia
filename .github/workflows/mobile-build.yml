@@ -1,6 +1,6 @@
 name: Mobile Build (Capacitor)
 
-# Builds Android (APK + AAB) and iOS (unsigned archive) for releases.
+# Builds Android (APK + AAB) and iOS archives for releases.
 # Runs on version tags (v*) and can be triggered manually.
 #
 # Required repo secrets (signed Android release):
@@ -8,6 +8,8 @@ name: Mobile Build (Capacitor)
 #   ANDROID_KEYSTORE_PASSWORD
 #   ANDROID_KEY_ALIAS
 #   ANDROID_KEY_PASSWORD
+#   GOOGLE_SERVICES_JSON_BASE64   - base64 of android/app/google-services.json
+#   VITE_VAPID_PUBLIC_KEY         - public browser push key matching Supabase VAPID_PUBLIC_KEY
 #
 # Required repo secrets (signed iOS release):
 #   IOS_P12_BASE64                - base64 of distribution .p12
@@ -15,8 +17,9 @@ name: Mobile Build (Capacitor)
 #   IOS_PROVISIONING_PROFILE_B64  - base64 of .mobileprovision
 #   IOS_TEAM_ID
 #
-# Without secrets, jobs still produce unsigned debug artifacts so the workflow
-# is useful before signing is configured.
+# Release builds fail closed when signing secrets are missing. Debug builds still
+# work without store signing so the workflow remains useful before credentials
+# are configured.
 
 on:
   push:
@@ -52,7 +55,16 @@ jobs:
       - name: Build web bundle
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
-        run: npm run build
+          VITE_VAPID_PUBLIC_KEY: ${{ secrets.VITE_VAPID_PUBLIC_KEY }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] || [ "${RELEASE_TYPE}" = "release" ]; then
+            if [ -z "$VITE_VAPID_PUBLIC_KEY" ]; then
+              echo "Missing web VAPID public key. Add VITE_VAPID_PUBLIC_KEY and keep it matched to the Supabase VAPID_PUBLIC_KEY secret."
+              exit 1
+            fi
+          fi
+          npm run build
       - uses: actions/upload-artifact@v7
         with:
           name: web-dist
@@ -73,7 +85,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: "temurin"
-          java-version: "17"
+          java-version: "21"
 
       - run: npm ci --no-audit --no-fund
 
@@ -85,17 +97,39 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Decode keystore
-        if: env.HAS_KEYSTORE == 'true'
+      - name: Install Android Firebase config
         env:
-          HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > android/app/google-services.json
+          elif [ "${GITHUB_EVENT_NAME}" = "push" ] || [ "${RELEASE_TYPE}" = "release" ]; then
+            echo "Missing Android Firebase config. Add GOOGLE_SERVICES_JSON_BASE64 from android/app/google-services.json."
+            exit 1
+          else
+            echo "GOOGLE_SERVICES_JSON_BASE64 not set; debug build continues without native Firebase push config."
+          fi
+
+      - name: Prepare Android release signing
+        if: github.event_name == 'push' || inputs.release_type == 'release'
+        env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "Missing Android release signing secrets. Add ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, and ANDROID_KEY_PASSWORD."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
 
       - name: Build Android (release)
         if: github.event_name == 'push' || inputs.release_type == 'release'
         working-directory: android
         env:
+          ORG_GRADLE_PROJECT_ZIVO_KEYSTORE_FILE: app/release.keystore
           ORG_GRADLE_PROJECT_ZIVO_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ORG_GRADLE_PROJECT_ZIVO_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_ZIVO_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -136,18 +170,18 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Install pods
-        working-directory: ios/App
-        run: pod install --repo-update
-
       - name: Import signing assets
-        if: env.HAS_P12 == 'true'
+        if: github.event_name == 'push' || inputs.release_type == 'release'
         env:
-          HAS_P12: ${{ secrets.IOS_P12_BASE64 != '' }}
           P12_B64: ${{ secrets.IOS_P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
           PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE_B64 }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: |
+          if [ -z "$P12_B64" ] || [ -z "$P12_PASSWORD" ] || [ -z "$PROFILE_B64" ] || [ -z "$IOS_TEAM_ID" ]; then
+            echo "Missing iOS release signing secrets. Add IOS_P12_BASE64, IOS_P12_PASSWORD, IOS_PROVISIONING_PROFILE_B64, and IOS_TEAM_ID."
+            exit 1
+          fi
           KEYCHAIN=build.keychain
           security create-keychain -p actions "$KEYCHAIN"
           security default-keychain -s "$KEYCHAIN"
@@ -161,19 +195,43 @@ jobs:
       - name: Build iOS archive
         working-directory: ios/App
         env:
-          TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] || [ "${RELEASE_TYPE}" = "release" ]; then
+            xcodebuild \
+              -project App.xcodeproj \
+              -scheme App \
+              -configuration Release \
+              -sdk iphoneos \
+              -archivePath "$RUNNER_TEMP/App.xcarchive" \
+              DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+              archive
+          else
+            xcodebuild \
+              -project App.xcodeproj \
+              -scheme App \
+              -configuration Release \
+              -sdk iphoneos \
+              -archivePath "$RUNNER_TEMP/App.xcarchive" \
+              CODE_SIGNING_ALLOWED=NO \
+              archive
+          fi
+
+      - name: Export iOS IPA
+        if: github.event_name == 'push' || inputs.release_type == 'release'
+        working-directory: ios/App
         run: |
           xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
+            -exportArchive \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO \
-            archive
+            -exportPath "$RUNNER_TEMP/ios-export" \
+            -exportOptionsPlist ExportOptions.plist
 
       - uses: actions/upload-artifact@v7
         with:
           name: ios-archive
-          path: ${{ runner.temp }}/App.xcarchive
+          path: |
+            ${{ runner.temp }}/App.xcarchive
+            ${{ runner.temp }}/ios-export
           retention-days: 30

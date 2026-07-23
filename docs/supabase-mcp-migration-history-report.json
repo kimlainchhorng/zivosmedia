@@ -1,0 +1,23 @@
+{
+  "generated": "2026-07-22T19:38:01Z",
+  "projectRef": "slirphzzwcogdbkeicff",
+  "source": "supabase-mcp",
+  "localMigrations": 1135,
+  "remoteMigrations": 1595,
+  "firstRemoteVersion": "20260126182059",
+  "latestRemoteVersion": "20260722193446",
+  "verifiedAppliedMigrations": [
+    {
+      "version": "20260722192749",
+      "name": "zivo_ride_sso_integration"
+    },
+    {
+      "version": "20260722193417",
+      "name": "data_api_explicit_access_review"
+    },
+    {
+      "version": "20260722193446",
+      "name": "channel_data_api_least_privilege"
+    }
+  ]
+}

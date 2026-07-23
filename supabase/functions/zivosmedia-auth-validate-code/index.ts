@@ -72,17 +72,20 @@ serve(withSecurity("zivosmedia-auth-validate-code", async (req, ctx) => {
     return json({ error: "Invalid code verifier" }, 400);
   }
 
-  const { error: updateError } = await service
+  const { data: consumedCode, error: updateError } = await service
     .from("zivosmedia_auth_codes")
     .update({ used_at: new Date().toISOString() })
     .eq("id", authCode.id)
     .is("used_at", null)
-    .is("revoked_at", null);
+    .is("revoked_at", null)
+    .select("id")
+    .maybeSingle();
 
-  if (updateError) {
-    ctx.log.error("auth_code_mark_used_failed", { error: updateError.message });
-    await audit({ eventType: "auth_code.validate.failed", appKey: body.app_key, appId: app.id, userId: authCode.zivosmedia_user_id, success: false, errorCode: "mark_used_failed", req, ctx });
-    return json({ error: "Could not validate authorization code" }, 500);
+  if (updateError || !consumedCode) {
+    ctx.log.error("auth_code_mark_used_failed", { error: updateError?.message || "code_already_consumed" });
+    const errorCode = updateError ? "mark_used_failed" : "code_already_consumed";
+    await audit({ eventType: "auth_code.validate.failed", appKey: body.app_key, appId: app.id, userId: authCode.zivosmedia_user_id, success: false, errorCode, req, ctx });
+    return json({ error: updateError ? "Could not validate authorization code" : "Authorization code is expired or already used" }, updateError ? 500 : 400);
   }
 
   const { data: userData, error: userError } = await service.auth.admin.getUserById(authCode.zivosmedia_user_id);

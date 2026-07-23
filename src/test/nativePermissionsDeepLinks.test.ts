@@ -32,8 +32,8 @@ describe("native permissions, deep links, and push contracts", () => {
       'android:usesCleartextTraffic="false"',
       'android:networkSecurityConfig="@xml/network_security_config"',
       'android:autoVerify="true"',
-      'android:host="hizovo.com"',
-      'android:host="www.hizovo.com"',
+      'android:host="zivosmedia.com"',
+      'android:host="www.zivosmedia.com"',
       'android:scheme="com.hizovo.app"',
     ]) {
       expect(manifest).toContain(needle);
@@ -66,9 +66,9 @@ describe("native permissions, deep links, and push contracts", () => {
     }
 
     for (const needle of [
-      "applinks:hizovo.com",
-      "applinks:www.hizovo.com",
-      "webcredentials:hizovo.com",
+      "applinks:zivosmedia.com",
+      "applinks:www.zivosmedia.com",
+      "webcredentials:zivosmedia.com",
       "com.apple.developer.usernotifications.communication",
     ]) {
       expect(entitlements).toContain(needle);

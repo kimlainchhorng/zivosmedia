@@ -119,6 +119,15 @@ describe("push token lifecycle guard", () => {
     ]) {
       expect(serviceWorker).toContain(serviceWorkerGuard);
     }
+
+    expect(serviceWorker).toContain("const rideTrackingUrl = rideTripId ? `/rides/track/${encodeURIComponent(String(rideTripId))}` : '/rides/hub'");
+    expect(serviceWorker).toContain("urlToOpen = '/rides/hub?ride_path=%2Fhistory'");
+    expect(serviceWorker).toContain("urlToOpen = '/wallet'");
+    expect(serviceWorker).toContain("urlToOpen = '/rewards'");
+    expect(serviceWorker).not.toContain("/rides/hub?tab=tracking");
+    expect(serviceWorker).not.toContain("/rides/hub?tab=history");
+    expect(serviceWorker).not.toContain("/rides/hub?tab=wallet");
+    expect(serviceWorker).not.toContain("/rides/hub?tab=loyalty");
   });
 
   it("keeps push lifecycle coverage visible in the platform readiness lane", () => {

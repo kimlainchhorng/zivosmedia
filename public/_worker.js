@@ -25,7 +25,7 @@ const SOFTWARE_HOSTS = new Set([
 const SOFTWARE_TENANT_RESOLVER_PATH = "/business/new";
 
 const CSP_BASE =
-  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://platform.twitter.com https://static.cloudflareinsights.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://platform.twitter.com https://syndication.twitter.com https://*.twimg.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
+  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://platform.twitter.com https://static.cloudflareinsights.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://ride.zivosmedia.com https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://platform.twitter.com https://syndication.twitter.com https://*.twimg.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
 const CSP_REPORT_BY_HOST = new Map([
   ["zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
   ["www.zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
@@ -141,7 +141,7 @@ function securityHeaders(request, url) {
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set(
     "permissions-policy",
-    "camera=(self), microphone=(self), geolocation=(self), payment=(self), accelerometer=(), gyroscope=(self), magnetometer=(), usb=(), bluetooth=(), midi=(), serial=(), interest-cohort=(), display-capture=(), document-domain=()",
+    "camera=(self), microphone=(self), geolocation=(self \"https://ride.zivosmedia.com\"), payment=(self \"https://ride.zivosmedia.com\"), accelerometer=(), gyroscope=(self), magnetometer=(), usb=(), bluetooth=(), midi=(), serial=(), interest-cohort=(), display-capture=(), document-domain=()",
   );
   headers.set("cross-origin-opener-policy", "same-origin-allow-popups");
   headers.set("cross-origin-resource-policy", "same-site");
@@ -156,6 +156,22 @@ function withSecurityHeaders(response, request, url) {
     statusText: response.statusText,
     headers,
   });
+}
+
+async function appShellFallback(request, env, url, response) {
+  if (response.status !== 404 || (request.method !== "GET" && request.method !== "HEAD")) {
+    return response;
+  }
+
+  const accept = request.headers.get("accept") || "";
+  const looksLikeAsset = /\.[a-z0-9]{2,8}$/i.test(url.pathname);
+  if (looksLikeAsset || !accept.includes("text/html")) {
+    return response;
+  }
+
+  const fallbackUrl = new URL("/", url);
+  const fallbackRequest = new Request(fallbackUrl.toString(), request);
+  return env.ASSETS.fetch(fallbackRequest);
 }
 
 function json(data, status, request, url) {
@@ -192,6 +208,7 @@ export default {
     }
 
     const response = await env.ASSETS.fetch(request);
-    return withSecurityHeaders(response, request, url);
+    const fallbackResponse = await appShellFallback(request, env, url, response);
+    return withSecurityHeaders(fallbackResponse, request, url);
   },
 };

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -124,7 +124,7 @@ describe("customer booking and order workflow", () => {
   it("keeps ride ratings, lost items, and transfer requests server-gated", () => {
     const rideSupport = source("supabase/functions/ride-support-submit/index.ts");
     const rideGate = source("supabase/migrations/20260601043000_ride_support_server_gate.sql");
-    const rideHub = source("src/pages/app/RideHubPage.tsx");
+    const canonicalRideFrame = source("src/pages/app/CanonicalRidePage.tsx");
     const transferBridge = source("src/components/shared/AirportTransferBridge.tsx");
 
     expect(rideSupport).toContain('withSecurity("ride-support-submit"');
@@ -143,7 +143,11 @@ describe("customer booking and order workflow", () => {
     expect(rideGate).toContain("AS RESTRICTIVE");
     expect(rideGate).toContain("trusted server-side ingestion");
 
-    for (const client of [rideHub, transferBridge]) {
+    expect(canonicalRideFrame).toContain("deriveCanonicalRideFramePath");
+    expect(canonicalRideFrame).not.toContain("feedback_submissions");
+    expect(existsSync(path.join(root, "src/pages/app/RideHubPage.tsx"))).toBe(false);
+
+    for (const client of [transferBridge]) {
       expect(client).toContain('functions.invoke("ride-support-submit"');
       expect(client).not.toMatch(/from\("feedback_submissions"\)\.insert/);
     }

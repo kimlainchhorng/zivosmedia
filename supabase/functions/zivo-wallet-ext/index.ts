@@ -67,4 +67,11 @@ Deno.serve(withSecurity("zivo-wallet-ext", async (req, _ctx) => {
     default:
       return json({ error: "unknown_action" }, 400);
   }
-}, { skipBotDetection: true }));
+}, {
+  strictCors: true,
+  allowedMethods: ["POST"],
+  rateLimit: "payment",
+  trackNetwork: "suspicious",
+  blockNetworkRiskAt: 85,
+  skipBotDetection: true,
+}));

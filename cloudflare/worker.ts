@@ -32,6 +32,8 @@ type Env = {
   CLAUDE_API_KEY?: string;
   CHANNEL_OG_FUNCTION_URL?: string;
   SUPABASE_URL?: string;
+  ZIVO_SOFTWARE_SUPABASE_URL?: string;
+  ZIVO_TRAVEL_SUPABASE_URL?: string;
 };
 
 type ZivoHtmlRewriterElement = {
@@ -60,6 +62,7 @@ const buckets = new Map<string, { count: number; resetAt: number }>();
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://zivosmedia.com",
   "https://www.zivosmedia.com",
+  "https://admin.zivosmedia.com",
   "https://zivoschat.com",
   "https://www.zivoschat.com",
   "https://zivosoftware.com",
@@ -68,6 +71,8 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "https://www.zivobusiness.com",
   "https://zivodriver.com",
   "https://www.zivodriver.com",
+  "https://zivoadmin.com",
+  "https://www.zivoadmin.com",
   "https://zivoemployee.com",
   "https://www.zivoemployee.com",
   "https://zivostravel.com",
@@ -821,18 +826,45 @@ async function rewriteTravelHtml(request: Request, url: URL, response: Response)
 }
 
 const CSP_BASE =
-  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://platform.twitter.com https://static.cloudflareinsights.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://platform.twitter.com https://syndication.twitter.com https://*.twimg.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
+  "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://js.stripe.com https://*.stripe.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://pagead2.googlesyndication.com https://*.googlesyndication.com https://partner.googleadservices.com https://www.googleadservices.com https://adservice.google.com https://analytics.tiktok.com https://static.ads-twitter.com https://platform.twitter.com https://static.cloudflareinsights.com https://*.lovable.app https://*.lovable.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: blob: data:; media-src 'self' blob: data: https:; frame-src 'self' https://ride.zivosmedia.com https://js.stripe.com https://*.stripe.com https://www.google.com https://*.duffel.com https://platform.twitter.com https://syndication.twitter.com https://*.twimg.com https://googleads.g.doubleclick.net https://*.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self' https://*.stripe.com https://*.duffel.com; frame-ancestors 'self'; upgrade-insecure-requests";
 
-const CSP_REPORT_BY_HOST = new Map([
-  ["zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
-  ["www.zivosoftware.com", "https://ydxztoresbdeoeijhxww.supabase.co/functions/v1/csp-report"],
-  ["zivoschat.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
-  ["www.zivoschat.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
-  ["zivosmedia.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
-  ["www.zivosmedia.com", "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report"],
-  ["zivostravel.com", "https://xbllvmpomorawkcrtbcq.supabase.co/functions/v1/csp-report"],
-  ["www.zivostravel.com", "https://xbllvmpomorawkcrtbcq.supabase.co/functions/v1/csp-report"],
+const SUPABASE_PROJECT_REFS = {
+  media: "slirphzzwcogdbkeicff",
+  software: "ydxztoresbdeoeijhxww",
+  travel: "xbllvmpomorawkcrtbcq",
+} as const;
+
+type CspReportProject = keyof typeof SUPABASE_PROJECT_REFS;
+
+const CSP_REPORT_PROJECT_BY_HOST = new Map<string, CspReportProject>([
+  ["zivosoftware.com", "software"],
+  ["www.zivosoftware.com", "software"],
+  ["zivoschat.com", "media"],
+  ["www.zivoschat.com", "media"],
+  ["zivosmedia.com", "media"],
+  ["www.zivosmedia.com", "media"],
+  ["zivostravel.com", "travel"],
+  ["www.zivostravel.com", "travel"],
 ]);
+
+function normalizedSupabaseUrl(value?: string) {
+  return (value || "").trim().replace(/\/+$/, "");
+}
+
+function fallbackSupabaseProjectUrl(project: CspReportProject) {
+  return `https://${SUPABASE_PROJECT_REFS[project]}.supabase.co`;
+}
+
+function cspReportUriForProject(project: CspReportProject, env: Env) {
+  const configuredUrl =
+    project === "software"
+      ? env.ZIVO_SOFTWARE_SUPABASE_URL
+      : project === "travel"
+        ? env.ZIVO_TRAVEL_SUPABASE_URL
+        : env.SUPABASE_URL;
+  const baseUrl = normalizedSupabaseUrl(configuredUrl) || fallbackSupabaseProjectUrl(project);
+  return `${baseUrl}/functions/v1/csp-report`;
+}
 
 const immutableCache = "public, max-age=31536000, immutable";
 const authPathPattern = /^\/(?:login|signup|auth(?:\/|$)|admin(?:\/|$))/i;
@@ -920,8 +952,8 @@ function allowedOriginForRequest(request: Request, url: URL, env: Env) {
 function securityHeaders(request: Request, url: URL, env: Env) {
   const headers = new Headers();
   const allowOrigin = allowedOriginForRequest(request, url, env);
-  const cspReportUri =
-    CSP_REPORT_BY_HOST.get(url.hostname) ?? "https://slirphzzwcogdbkeicff.supabase.co/functions/v1/csp-report";
+  const cspReportProject = CSP_REPORT_PROJECT_BY_HOST.get(url.hostname) ?? "media";
+  const cspReportUri = cspReportUriForProject(cspReportProject, env);
 
   if (allowOrigin) {
     headers.set("access-control-allow-origin", allowOrigin);
@@ -939,7 +971,7 @@ function securityHeaders(request: Request, url: URL, env: Env) {
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set(
     "permissions-policy",
-    "camera=(self), microphone=(self), geolocation=(self), payment=(self), accelerometer=(), gyroscope=(self), magnetometer=(), usb=(), bluetooth=(), midi=(), serial=(), interest-cohort=(), display-capture=(), document-domain=()",
+    "camera=(self), microphone=(self), geolocation=(self \"https://ride.zivosmedia.com\"), payment=(self \"https://ride.zivosmedia.com\"), accelerometer=(), gyroscope=(self), magnetometer=(), usb=(), bluetooth=(), midi=(), serial=(), interest-cohort=(), display-capture=(), document-domain=()",
   );
   headers.set("cross-origin-opener-policy", "same-origin-allow-popups");
   headers.set("cross-origin-resource-policy", "same-site");

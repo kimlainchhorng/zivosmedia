@@ -1,23 +1,23 @@
 # Database Upgrade Readiness Report
 
-Generated: 2026-06-12T21:34:29.446Z
+Generated: 2026-07-23T03:19:20.698Z
 
 ## Summary
 
-- Supabase CLI: 2.105.0
-- Local migrations: 1122
+- Supabase CLI: 2.109.1
+- Local migrations: 1135
 - Invalid migration filenames: 0
 - Duplicate migration versions: 6
-- Allowed legacy duplicate migration versions: 0
-- New duplicate migration versions: 6
+- Allowed legacy duplicate migration versions: 6
+- New duplicate migration versions: 0
 - Duplicate SQL hashes: 0
-- Last linked drift report: local=1122, remote=1570, matched=1, near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=505, unmatchedRemote=953, localAfterRemoteRange=19, sharedDays=92, remoteError=no, generated=2026-06-12T21:34:26.712Z
-- Pending local migration gates: createsTables=1, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Last linked drift report: local=1135, remote=0, matched=0, near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1135, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0, remoteError=no, generated=2026-07-23T03:19:20.065Z
+- Pending local migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 - Declared extensions: btree_gist, citext, pg_cron, pg_net, pg_trgm, pgcrypto
 - Postgres 17 unsupported extensions found: 0
-- Public tables created in migrations: 933
+- Public tables created in migrations: 936
 - Public tables needing RLS review: 0
-- Recent public tables needing Data API grant review: 12
+- Recent public tables needing Data API grant review: 0
 - Views needing security_invoker review: 0
 - SECURITY DEFINER files needing search_path review: 0
 - Hardcoded Supabase URLs in migrations: 36
@@ -30,20 +30,20 @@ Generated: 2026-06-12T21:34:29.446Z
 
 ## Blockers
 
-- 6 new duplicate migration version(s) need reconciliation before db push/pull.
+- None
 
 ## Warnings
 
-- 12 recent public table(s) should be reviewed for explicit Data API grants after the Supabase exposure change.
+- None
 
 ## Duplicate Versions
 
-- 20260601000000: 20260601000000_revoke_anon_execute_admin_rpcs.sql, 20260601000000_salon_color_formulas.sql (needs reconciliation)
-- 20260601194500: 20260601194500_bus_booking_schema.sql, 20260601194500_car_rental_reservations_server_gate.sql (needs reconciliation)
-- 20260601210000: 20260601210000_bus_my_bookings_rpc.sql, 20260601210000_car_dealership_expenses_server_gate.sql (needs reconciliation)
-- 20260601211500: 20260601211500_car_dealership_financing_server_gate.sql, 20260601211500_fix_bus_rls_store_owner.sql (needs reconciliation)
-- 20260612000200: 20260612000200_add_ar_estimate_issue_and_start_dates.sql, 20260612000200_ar_invoices_estimates_mileage.sql (needs reconciliation)
-- 20260612000300: 20260612000300_add_ar_invoice_issue_and_start_dates.sql, 20260612000300_ar_invoices_estimates_vsm_fields.sql (needs reconciliation)
+- 20260601000000: 20260601000000_revoke_anon_execute_admin_rpcs.sql, 20260601000000_salon_color_formulas.sql (allowed legacy duplicate)
+- 20260601194500: 20260601194500_bus_booking_schema.sql, 20260601194500_car_rental_reservations_server_gate.sql (allowed legacy duplicate)
+- 20260601210000: 20260601210000_bus_my_bookings_rpc.sql, 20260601210000_car_dealership_expenses_server_gate.sql (allowed legacy duplicate)
+- 20260601211500: 20260601211500_car_dealership_financing_server_gate.sql, 20260601211500_fix_bus_rls_store_owner.sql (allowed legacy duplicate)
+- 20260612000200: 20260612000200_add_ar_estimate_issue_and_start_dates.sql, 20260612000200_ar_invoices_estimates_mileage.sql (allowed legacy duplicate)
+- 20260612000300: 20260612000300_add_ar_invoice_issue_and_start_dates.sql, 20260612000300_ar_invoices_estimates_vsm_fields.sql (allowed legacy duplicate)
 
 ## Postgres 17 Extension Review
 
@@ -55,18 +55,7 @@ Generated: 2026-06-12T21:34:29.446Z
 
 ## Data API Grant Review Candidates
 
-- bus_routes: supabase/migrations/20260601194500_bus_booking_schema.sql
-- bus_trips: supabase/migrations/20260601194500_bus_booking_schema.sql
-- channel_removed_users: supabase/migrations/20260602033500_add_channel_removed_users.sql
-- channel_admin_log: supabase/migrations/20260602034000_add_channel_admin_log.sql
-- channel_invite_links: supabase/migrations/20260602035000_add_channel_invite_links.sql
-- bus_vehicles: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
-- bus_drivers: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
-- bus_route_stops: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
-- bus_promos: supabase/migrations/20260604154500_bus_operator_tables_and_popular_routes.sql
-- ar_supplier_credentials: supabase/migrations/20260605223000_software_auto_repair_extended_schema.sql
-- payment_webhook_events: supabase/migrations/20260607163048_zivosmedia_payments_foundation.sql
-- payment_audit_logs: supabase/migrations/20260607163048_zivosmedia_payments_foundation.sql
+- None
 
 ## View Review Candidates
 

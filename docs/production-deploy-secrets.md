@@ -11,8 +11,8 @@ Use this checklist for the GitHub `production` environment and any CI runner tha
 | `VITE_SUPABASE_PROJECT_ID` | build, strict preflight | Supabase project ref; must match `VITE_SUPABASE_URL`. |
 | `VITE_ZIVO_SOFTWARE_SUPABASE_URL` | Cloudflare build, strict preflight | Dedicated browser Supabase URL for `zivosoftware.com`; must be `https://ydxztoresbdeoeijhxww.supabase.co`. |
 | `VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY` | Cloudflare build, strict preflight | Browser-safe publishable key for the `Zivo software` Supabase project. |
-| `VITE_ZIVO_DRIVER_SUPABASE_URL` | Cloudflare build for `zivodriver.com` browser bundle | Dedicated browser Supabase URL for Driver data calls; should be `https://yiedlgoxwjmansszdypf.supabase.co`. |
-| `VITE_ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY` | Cloudflare build for `zivodriver.com` browser bundle | Browser-safe publishable key for the `Zivo Driver` Supabase project. Leave blank until Driver browser routing is ready. |
+| `VITE_ZIVO_DRIVER_SUPABASE_URL` | Legacy/preview-only Zivosmedia Driver-host simulation | Dedicated browser Supabase URL for Driver data calls; should be `https://yiedlgoxwjmansszdypf.supabase.co`. Production `zivodriver.com` is served by the dedicated Driver repo, not this Zivosmedia build. |
+| `VITE_ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY` | Legacy/preview-only Zivosmedia Driver-host simulation | Browser-safe publishable key for the `Zivo Driver` Supabase project. Leave blank unless intentionally testing a Zivosmedia-side Driver preview; do not use this to make Zivosmedia own production `zivodriver.com`. |
 | `ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY` | `zivo-domain-summary` Edge Function | Browser-safe publishable key for the Driver project, used server-side to call `zivo_driver_share_summary` with the user's Bearer token. |
 | `ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY` | `zivo-domain-summary` Edge Function | Browser-safe publishable key for the Travel project, used server-side to call `zivo_travel_share_summary` with the user's Bearer token. |
 | `ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY` | `zivo-domain-summary` Edge Function | Browser-safe publishable key for the Software project, used server-side to call `zivo_software_share_summary` with the user's Bearer token. |
@@ -31,7 +31,7 @@ Use this checklist for the GitHub `production` environment and any CI runner tha
 - Store these as GitHub environment secrets on the `production` environment, not as committed files.
 - Keep real values out of `.env.example`, `.env.deploy.example`, docs, source code, and workflow logs.
 - Keep the `VITE_ZIVO_SOFTWARE_*` values tied to Supabase project `ydxztoresbdeoeijhxww` so `zivosoftware.com` does not boot with the main Zivo media backend key.
-- Keep the `VITE_ZIVO_DRIVER_*` values tied to Supabase project `yiedlgoxwjmansszdypf`; leaving the publishable key blank keeps Driver data calls on the main backend from this app.
+- Keep any legacy/preview `VITE_ZIVO_DRIVER_*` values tied to Supabase project `yiedlgoxwjmansszdypf`; production `zivodriver.com` must be cut over to the dedicated Driver deployment instead of adding Driver routes back to the Zivosmedia Worker.
 - Do not use `SUPABASE_SERVICE_ROLE_KEY` as `SUPABASE_ANON_KEY`.
 - Do not use `SUPABASE_ACCESS_TOKEN` or any `sbp_...` management token as `SUPABASE_ANON_KEY`.
 - Keep `SUPABASE_ACCESS_TOKEN` scoped to automation that needs migration-history checks, and rotate it if it is ever exposed.

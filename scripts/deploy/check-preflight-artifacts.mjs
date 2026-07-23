@@ -9,6 +9,7 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { KNOWN_DUPLICATE_MIGRATION_VERSION_SET } from "../supabase/migration-policy.mjs";
 
 const root = process.cwd();
 
@@ -161,13 +162,17 @@ function validateFilenameStartsWithVersion(artifactPath, lineNumber, versionColu
   }
 }
 
-function validateUniqueColumn(artifactPath, rows, column) {
+function validateUniqueColumn(artifactPath, rows, column, options = {}) {
   const seen = new Map();
+  const allowKnownDuplicateMigrationVersions = Boolean(options.allowKnownDuplicateMigrationVersions);
 
   for (const { lineNumber, row } of rows) {
     const value = row[column];
     if (!value) continue;
     if (seen.has(value)) {
+      if (allowKnownDuplicateMigrationVersions && KNOWN_DUPLICATE_MIGRATION_VERSION_SET.has(value)) {
+        continue;
+      }
       fail(`${artifactPath}:${lineNumber} ${column} duplicates value ${value} from line ${seen.get(value)}.`);
     }
     seen.set(value, lineNumber);
@@ -296,7 +301,7 @@ function validateCandidateCsv(artifactPath, summary) {
 
   const candidateStats = readCandidateStats(summary);
   const rows = readCsvRows(artifactPath);
-  validateUniqueColumn(artifactPath, rows, "local_version");
+  validateUniqueColumn(artifactPath, rows, "local_version", { allowKnownDuplicateMigrationVersions: true });
   validateUniqueColumn(artifactPath, rows, "remote_version");
   for (const { lineNumber, row } of rows) {
     validateTimestampVersion(artifactPath, lineNumber, "local_version", row.local_version);
@@ -349,7 +354,7 @@ function validatePendingLocalReviewCsv(artifactPath, summary) {
     "reconciliation.unmatchedLocalAfterRemoteRange",
   );
   const rows = readCsvRows(artifactPath);
-  validateUniqueColumn(artifactPath, rows, "version");
+  validateUniqueColumn(artifactPath, rows, "version", { allowKnownDuplicateMigrationVersions: true });
   for (const { lineNumber, row } of rows) {
     validateTimestampVersion(artifactPath, lineNumber, "version", row.version);
     validateOneOf(artifactPath, lineNumber, "risk", row.risk, ["high", "medium", "low"]);
@@ -373,7 +378,7 @@ function validateUnmatchedLocalCsv(artifactPath, summary) {
     "reconciliation.unmatchedLocalAfterCandidates",
   );
   const rows = readCsvRows(artifactPath);
-  validateUniqueColumn(artifactPath, rows, "local_version");
+  validateUniqueColumn(artifactPath, rows, "local_version", { allowKnownDuplicateMigrationVersions: true });
   for (const { lineNumber, row } of rows) {
     validateTimestampVersion(artifactPath, lineNumber, "local_version", row.local_version);
     validateOptionalTimestampVersion(artifactPath, lineNumber, "nearest_remote_version", row.nearest_remote_version);

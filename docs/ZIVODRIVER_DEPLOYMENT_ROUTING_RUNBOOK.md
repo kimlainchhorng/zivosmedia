@@ -1,10 +1,10 @@
-# Runbook — zivodriver.com (Deployment + Host Routing)
+# Runbook — zivodriver.com (Dedicated Driver Deployment + Route Cutover)
 
 **Issue:** `zivodriver.com` resolves and returns HTTP 200, but renders the **generic ZIVO super-app feed** instead of the Zivo Driver landing.
-**Class:** deployment + host-routing. **The landing now exists in code; this is about getting the right build live on this host.**
+**Class:** deployment + route ownership. **The domain must point at the dedicated Driver app/repo, not the Zivosmedia super-app artifact.**
 **This is a runbook, not a code change. No secrets are included.**
 
-> **Correction to the assumption "merged Driver landing":** there was no standalone driver landing in the deployed build. The driver landing is delivered by **host routing inside the zivosmedia web app** — component `src/pages/ZivoDriverHome.tsx`, rendered at `/` when `hostname === zivodriver.com`, with a `ZivoDriverHostGate` (see `src/App.tsx`). That work lives on branch **`feat/zivo-host-landings`**. `zivodriver.com` shows the generic feed because the build currently serving it predates that branch (it has no driver host branch, so it falls through to the default home). **Fix = merge `feat/zivo-host-landings` → main, rebuild, and republish the host that serves `zivodriver.com`.** No edge-worker redirect is needed — the SPA selects the driver home by hostname at `/`.
+> **Current correction:** the earlier host-landing plan kept Driver public routing inside the Zivosmedia web app. The production architecture now treats `zivodriver.com` as a dedicated Driver surface. Zivosmedia may still link to Driver, but it must not own the `zivodriver.com/*` Cloudflare route or serve generic Zivosmedia HTML for that domain.
 
 ---
 
@@ -12,13 +12,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Expected repo (web landing)** | `kimlainchhorng/zivosmedia` — the web app that serves `zivodriver.com` via host routing |
-| **Related repo (native/driver app + backend)** | `kimlainchhorng/zivodriver` (separate; not what serves the public web landing) |
+| **Expected repo** | `kimlainchhorng/zivodriver` — the dedicated Driver web/native app and backend |
+| **Related repo** | `kimlainchhorng/zivosmedia` links to Driver and owns the shared identity hub; it must not serve the Driver domain artifact |
 | **Expected domain** | `zivodriver.com` (+ `www.zivodriver.com`) |
-| **Expected deployment host** | The production zivosmedia web app. Per `cloudflare/README.md`, production `zivosmedia.com` + alias hosts are currently published via **Lovable** (Lovable-managed DNS, mid-transition to Cloudflare). **Confirm** whether `zivodriver.com` is served by the Lovable publish or a Cloudflare Pages/Worker custom domain. |
-| **Driver Supabase project** | `yiedlgoxwjmansszdypf` (used by the driver app backend — **not** required for the static landing) |
+| **Expected deployment host** | A dedicated Driver deployment built from `/Users/kimlain/Documents/GitHub/zivodriver`, then bound to `zivodriver.com` + `www.zivodriver.com` |
+| **Driver Supabase project** | `yiedlgoxwjmansszdypf` |
 
-> Note: the `zivo` Cloudflare Worker (`wrangler.toml`) routes **only** `zivosoftware.com/*` and `zivostravel.com/*`. `zivodriver.com` is **not** in those routes, which is consistent with it being served by the Lovable production deployment. Confirm before assuming Cloudflare.
+> Note: the Zivosmedia `zivo` Cloudflare Worker must not include `zivodriver.com/*` routes. If the live Cloudflare dashboard still binds `zivodriver.com` to the Zivosmedia worker, remove that binding only during the coordinated Driver cutover.
 
 ---
 
@@ -37,32 +37,31 @@ curl -I https://zivodriver.com
 | `zivodriver.com` | A/CNAME → the production app host (Lovable host or Cloudflare Pages/Worker). Resolves, 200. |
 | `www.zivodriver.com` | CNAME → apex (or same host). |
 
-If the app is being moved Lovable → Cloudflare, ensure `zivodriver.com` is bound on the **same** project as the published build (else you publish to a host the domain doesn't point at).
+Ensure `zivodriver.com` is bound to the **Driver** deployment, not to the Zivosmedia worker/build.
 
 ---
 
 ## 3. Cloudflare Pages / Workers routes to verify
 
-- No driver entry exists (or is needed) in the `zivo` Worker — **do not** add a worker redirect for driver. The SPA renders `ZivoDriverHome` at `/` from the hostname.
-- If `zivodriver.com` is (or will be) served by Cloudflare: project → **Custom domains** must list `zivodriver.com` as **Active**, bound to the project that holds the published `dist` containing the merged landing.
-- Verify the published `dist` is built from a commit that **includes `feat/zivo-host-landings`** (i.e., `src/pages/ZivoDriverHome.tsx` + the `/` host switch in `src/App.tsx`).
+- No driver entry belongs in the Zivosmedia `zivo` Worker — **do not** add a Zivosmedia worker redirect or route for Driver.
+- The Driver Cloudflare/Pages/Worker project must list `zivodriver.com` and `www.zivodriver.com` as **Active**.
+- Verify the published Driver artifact is built from the `zivodriver` repo and renders the Driver app/landing, not the Zivosmedia feed.
 
 ---
 
 ## 4. Lovable publish status to verify
 
-If production is on Lovable:
-1. Confirm the Lovable project is connected to `kimlainchhorng/zivosmedia` and tracks `main`.
-2. Merge `feat/zivo-host-landings` → `main`.
-3. **Republish** in Lovable so the new build (with the driver landing) goes live.
-4. Confirm the Lovable "last published" commit is at/after the merge.
+If production is still on Lovable:
+1. Confirm whether `zivodriver.com` is attached to a Zivosmedia Lovable publish.
+2. Prepare a dedicated Driver publish from the `zivodriver` repo.
+3. Move the custom domain binding to that Driver publish during the cutover.
+4. Confirm the last published artifact is the Driver app, not the Zivosmedia build.
 
 ---
 
 ## 5. Env vars needed
 
-**None for the landing.** `ZivoDriverHome` is static marketing + cross-domain links (`Continue with Zivosmedia` → `https://zivosmedia.com`; `ZivoChat` → `https://zivoschat.com`). No build-time env var is required to render it.
-(The driver *backend* uses Supabase `yiedlgoxwjmansszdypf`, but that is out of scope for serving the public landing.)
+Use the Driver repo's deployment docs and environment contract. Do not set Driver production browser data routing by adding `zivodriver.com/*` to the Zivosmedia worker.
 
 ---
 
@@ -88,7 +87,7 @@ If production is on Lovable:
 
 | Action | Owner |
 |--------|-------|
-| Merge `feat/zivo-host-landings` → `main` | Repo maintainer |
+| Merge dedicated Driver deployment changes → `main` | Repo maintainer |
 | Confirm which host serves `zivodriver.com` (Lovable vs Cloudflare) | Platform owner / Cloudflare admin |
 | Republish (Lovable) or redeploy (Cloudflare Pages/Worker) the new build | Deploy owner |
 | Bind/verify `zivodriver.com` custom domain on the publishing project | Cloudflare account admin (if Cloudflare) / Lovable domain owner |

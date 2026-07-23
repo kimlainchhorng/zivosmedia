@@ -250,7 +250,7 @@ export default function Status() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead title="System Status | ZIVO" description="Check the real-time status of ZIVO services." canonical="https://hizovo.com/status" />
+      <SEOHead title="System Status | ZIVO" description="Check the real-time status of ZIVO services." canonical="https://zivosmedia.com/status" />
       <header className="sticky top-0 safe-area-top z-50 bg-background/95 backdrop-blur-md border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

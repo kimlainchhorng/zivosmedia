@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-06-12T21:36:06.667Z
+Generated: 2026-07-23T03:19:34.381Z
 Mode: soft
 Options: strict=no, skipBuild=no, skipTypeCheck=yes
 
@@ -18,115 +18,191 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
 - Override JSON freshness window: append `-- --max-age-minutes=60`
 - Require a strict-mode summary: append `-- --require-mode=strict`
 - TypeScript SIGTERM/resource notes: `docs/typescript-preflight-resource-notes.md`
-- API readiness: critical=0, warnings=20
-- Environment readiness: critical=2, warnings=1
-- Runtime settings SQL: failed
-- Database readiness: blockers=1, warnings=1
+- API readiness: critical=0, warnings=0
+- Environment readiness: critical=0, warnings=0
+- Runtime settings SQL: passed
+- Database readiness: blockers=0, warnings=0
 - Edge Function deploy contracts: failures=0
 - Edge Function slot readiness: mode=local-plus-known-live-gap, missingLiveCritical=6, warnings=1, failures=0
-- Edge Function browser gates: gatedFunctions=6, failures=2
-- Supabase auth: envAccessToken=yes, driftAccessToken=yes
-- Supabase remote migration history read: yes
-- Supabase remote migration history status: read
-- Migration drift: duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, linkedHistoryDisconnected=no, remoteError=no
-- Reconciliation: candidates=616, highConfidence=584, mediumConfidence=32, unmatchedLocal=505, unmatchedRemote=953, likelyPendingLocal=19
-- Reconciliation review order: high-confidence candidate mappings (584) -> medium-confidence candidate mappings (32) -> unmatched local migrations after candidates (505) -> unmatched remote versions after candidates (953) -> likely pending local migrations after remote range (19)
-- Pending migration gates: createsTables=1, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Edge Function browser gates: gatedFunctions=6, failures=0
+- Supabase auth: envAccessToken=no, driftAccessToken=no
+- Supabase remote migration history read: no
+- Supabase remote migration history status: unavailable
+- Migration drift: duplicateVersions=6, allowedDuplicateVersions=6, newDuplicateVersions=0, linkedHistoryDisconnected=no, remoteError=yes
+- Reconciliation: candidates=0, highConfidence=0, mediumConfidence=0, unmatchedLocal=1135, unmatchedRemote=0, likelyPendingLocal=0
+- Reconciliation review order: high-confidence candidate mappings (0) -> medium-confidence candidate mappings (0) -> unmatched local migrations after candidates (1135) -> unmatched remote versions after candidates (0) -> likely pending local migrations after remote range (0)
+- Pending migration gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Steps
 
 ### Security scan
 
 - Command: `npm run security:scan`
-- Status: failed
-- Failure: exitStatus=1
+- Status: passed
 
 ### Supabase deploy environment
 
 - Command: `node scripts/deploy/env-preflight.mjs`
-- Status: failed
-- Failure: exitStatus=1
+- Status: passed
 
 ```json
 {
-  "critical": 2,
-  "warnings": 1,
+  "critical": 0,
+  "warnings": 0,
   "checked": {
-    "viteSupabaseUrl": false,
-    "zivoSoftwareSupabaseUrl": false,
-    "zivoSoftwarePublishableKey": false,
+    "viteSupabaseUrl": true,
+    "zivoRideAppUrl": true,
+    "zivoSoftwareSupabaseUrl": true,
+    "zivoSoftwarePublishableKey": true,
     "zivoDomainSummaryBridgeKeys": false,
     "zivoSoftwareDomainRequired": false,
     "backendSupabaseUrl": false,
-    "publishableKey": false,
+    "publishableKey": true,
     "anonKey": false,
     "runtimeSettingsSqlInputs": false,
     "serviceRoleKey": false,
-    "supabaseAccessToken": true,
+    "supabaseAccessToken": false,
     "channelOgUrl": false
   },
-  "findings": [
-    {
-      "severity": "critical",
-      "id": "VITE_SUPABASE_URL-missing",
-      "message": "Missing VITE_SUPABASE_URL."
-    },
-    {
-      "severity": "warning",
-      "id": "channel-og-unconfigured",
-      "message": "Channel share previews need SUPABASE_URL or CHANNEL_OG_FUNCTION_URL."
-    },
-    {
-      "severity": "critical",
-      "id": "VITE_SUPABASE_PUBLISHABLE_KEY-missing",
-      "message": "Missing VITE_SUPABASE_PUBLISHABLE_KEY."
-    }
-  ]
+  "findings": []
 }
 ```
 
 ### Supabase runtime settings SQL
 
 - Command: `node scripts/supabase/runtime-settings-sql.mjs`
-- Status: failed
-- Failure: exitStatus=1
+- Status: passed
 
 ```text
-runtime-settings-sql: Missing Supabase URL. Set SUPABASE_URL or pass --url/--project-ref. See docs/supabase-deploy-env-setup.md.
-runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key. See docs/supabase-deploy-env-setup.md.
+-- Supabase runtime settings for database-side Edge Function calls
+-- Review before running in the Supabase SQL editor.
+-- Preview mode used VITE_SUPABASE_PUBLISHABLE_KEY; use SUPABASE_ANON_KEY with --strict for production cron auth.
+alter database postgres set "app.settings.supabase_url" = 'https://slirphzzwcogdbkeicff.supabase.co';
+alter database postgres set "app.settings.supabase_anon_key" = '<redacted: set SUPABASE_ANON_KEY and rerun with --emit-secrets>';
+select pg_reload_conf();
 ```
 
 ### Supabase migration drift report
 
-- Command: `node scripts/supabase/audit-migration-drift.mjs --linked --write-report --allow-duplicate-version=20260429230000 --allow-duplicate-version=20260429240000 --allow-duplicate-version=20260429250000 --allow-duplicate-version=20260429260000 --allow-duplicate-version=20260430020000 --allow-duplicate-version=20260430040000 --allow-duplicate-version=20260430050000 --allow-duplicate-version=20260430060000`
+- Command: `node scripts/supabase/audit-migration-drift.mjs --linked --write-report --allow-duplicate-version=20260429230000 --allow-duplicate-version=20260429240000 --allow-duplicate-version=20260429250000 --allow-duplicate-version=20260429260000 --allow-duplicate-version=20260430020000 --allow-duplicate-version=20260430040000 --allow-duplicate-version=20260430050000 --allow-duplicate-version=20260430060000 --allow-duplicate-version=20260601000000 --allow-duplicate-version=20260601194500 --allow-duplicate-version=20260601210000 --allow-duplicate-version=20260601211500 --allow-duplicate-version=20260612000200 --allow-duplicate-version=20260612000300`
 - Status: passed
 
 ```json
 {
-  "localMigrations": 1122,
+  "localMigrations": 1135,
   "invalidFilenames": 0,
   "duplicateVersions": 6,
-  "allowedDuplicateVersions": 0,
-  "newDuplicateVersions": 6,
+  "duplicateVersionGroups": [
+    {
+      "version": "20260601000000",
+      "files": [
+        "20260601000000_revoke_anon_execute_admin_rpcs.sql",
+        "20260601000000_salon_color_formulas.sql"
+      ]
+    },
+    {
+      "version": "20260601194500",
+      "files": [
+        "20260601194500_bus_booking_schema.sql",
+        "20260601194500_car_rental_reservations_server_gate.sql"
+      ]
+    },
+    {
+      "version": "20260601210000",
+      "files": [
+        "20260601210000_bus_my_bookings_rpc.sql",
+        "20260601210000_car_dealership_expenses_server_gate.sql"
+      ]
+    },
+    {
+      "version": "20260601211500",
+      "files": [
+        "20260601211500_car_dealership_financing_server_gate.sql",
+        "20260601211500_fix_bus_rls_store_owner.sql"
+      ]
+    },
+    {
+      "version": "20260612000200",
+      "files": [
+        "20260612000200_add_ar_estimate_issue_and_start_dates.sql",
+        "20260612000200_ar_invoices_estimates_mileage.sql"
+      ]
+    },
+    {
+      "version": "20260612000300",
+      "files": [
+        "20260612000300_add_ar_invoice_issue_and_start_dates.sql",
+        "20260612000300_ar_invoices_estimates_vsm_fields.sql"
+      ]
+    }
+  ],
+  "allowedDuplicateVersions": 6,
+  "allowedDuplicateVersionGroups": [
+    {
+      "version": "20260601000000",
+      "files": [
+        "20260601000000_revoke_anon_execute_admin_rpcs.sql",
+        "20260601000000_salon_color_formulas.sql"
+      ]
+    },
+    {
+      "version": "20260601194500",
+      "files": [
+        "20260601194500_bus_booking_schema.sql",
+        "20260601194500_car_rental_reservations_server_gate.sql"
+      ]
+    },
+    {
+      "version": "20260601210000",
+      "files": [
+        "20260601210000_bus_my_bookings_rpc.sql",
+        "20260601210000_car_dealership_expenses_server_gate.sql"
+      ]
+    },
+    {
+      "version": "20260601211500",
+      "files": [
+        "20260601211500_car_dealership_financing_server_gate.sql",
+        "20260601211500_fix_bus_rls_store_owner.sql"
+      ]
+    },
+    {
+      "version": "20260612000200",
+      "files": [
+        "20260612000200_add_ar_estimate_issue_and_start_dates.sql",
+        "20260612000200_ar_invoices_estimates_mileage.sql"
+      ]
+    },
+    {
+      "version": "20260612000300",
+      "files": [
+        "20260612000300_add_ar_invoice_issue_and_start_dates.sql",
+        "20260612000300_ar_invoices_estimates_vsm_fields.sql"
+      ]
+    }
+  ],
+  "newDuplicateVersions": 0,
+  "blockingDuplicateVersionGroups": [],
   "duplicateHashes": 0,
-  "supabaseAccessToken": true,
-  "remoteMigrations": 1570,
-  "matchedVersions": 1,
+  "duplicateHashGroups": [],
+  "supabaseAccessToken": false,
+  "remoteMigrations": 0,
+  "matchedVersions": 0,
   "linkedHistoryDisconnected": false,
-  "localOnlyPending": 1121,
-  "remoteOnlyMissingLocally": 1569,
-  "nearTimestampPairsWithinFiveSeconds": 585,
-  "nearTimestampPairsWithinOneMinute": 618,
-  "oneToOneReconciliationCandidatesWithinFiveSeconds": 584,
-  "oneToOneReconciliationCandidatesWithinOneMinute": 616,
-  "sharedMigrationCalendarDays": 92,
-  "reconciliationCandidates": 616,
-  "unmatchedLocalAfterReconciliationCandidates": 505,
-  "unmatchedRemoteAfterReconciliationCandidates": 953,
-  "unmatchedLocalAfterRemoteRange": 19,
+  "localOnlyPending": 1135,
+  "remoteOnlyMissingLocally": 0,
+  "nearTimestampPairsWithinFiveSeconds": 0,
+  "nearTimestampPairsWithinOneMinute": 0,
+  "oneToOneReconciliationCandidatesWithinFiveSeconds": 0,
+  "oneToOneReconciliationCandidatesWithinOneMinute": 0,
+  "sharedMigrationCalendarDays": 0,
+  "reconciliationCandidates": 0,
+  "unmatchedLocalAfterReconciliationCandidates": 1135,
+  "unmatchedRemoteAfterReconciliationCandidates": 0,
+  "unmatchedLocalAfterRemoteRange": 0,
   "unmatchedRemoteBeforeLocalRange": 0,
   "pendingLocalRiskGates": {
-    "createsTables": 1,
+    "createsTables": 0,
     "withoutRls": 0,
     "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
@@ -144,18 +220,18 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
     "legacyAnonJwts": 0
   },
   "pendingRisk": {
-    "high": 1044,
-    "medium": 54,
+    "high": 1056,
+    "medium": 56,
     "low": 23
   },
-  "report": "docs\\supabase-migration-drift-report.md",
-  "reconciliationCandidatesReport": "docs\\supabase-migration-reconciliation-candidates.csv",
-  "unmatchedLocalReport": "docs\\supabase-migration-unmatched-local.csv",
-  "unmatchedRemoteReport": "docs\\supabase-migration-unmatched-remote.csv",
-  "reconciliationPlan": "docs\\supabase-migration-reconciliation-plan.md",
-  "pendingLocalReviewReport": "docs\\supabase-migration-pending-local-review.csv",
-  "reconciliationRepairDraft": "docs\\supabase-migration-reconciliation-repair-draft.sql",
-  "remoteError": null
+  "report": "docs/supabase-migration-drift-report.md",
+  "reconciliationCandidatesReport": "docs/supabase-migration-reconciliation-candidates.csv",
+  "unmatchedLocalReport": "docs/supabase-migration-unmatched-local.csv",
+  "unmatchedRemoteReport": "docs/supabase-migration-unmatched-remote.csv",
+  "reconciliationPlan": "docs/supabase-migration-reconciliation-plan.md",
+  "pendingLocalReviewReport": "docs/supabase-migration-pending-local-review.csv",
+  "reconciliationRepairDraft": "docs/supabase-migration-reconciliation-repair-draft.sql",
+  "remoteError": "Initialising login role...\n\u001b[31munexpected login role status 401: {\"message\":\"Unauthorized\"}\u001b[39m\nTry rerunning the command with --debug to troubleshoot the error."
 }
 ```
 
@@ -166,16 +242,16 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "blockers": 1,
-  "warnings": 1,
-  "localMigrations": 1122,
+  "blockers": 0,
+  "warnings": 0,
+  "localMigrations": 1135,
   "duplicateVersions": 6,
-  "allowedDuplicateVersions": 0,
-  "newDuplicateVersions": 6,
+  "allowedDuplicateVersions": 6,
+  "newDuplicateVersions": 0,
   "duplicateHashes": 0,
   "unsupportedPg17Extensions": 0,
   "publicTablesNeedingRlsReview": 0,
-  "dataApiGrantReviewCandidates": 12,
+  "dataApiGrantReviewCandidates": 0,
   "viewsNeedingSecurityInvokerReview": 0,
   "securityDefinerFilesNeedingSearchPathReview": 0,
   "hardcodedSupabaseUrls": 36,
@@ -186,7 +262,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
   "cronAnonKeyRemediation": true,
   "cronRemediationRegexIssues": 0,
   "pendingLocalMigrationGates": {
-    "createsTables": 1,
+    "createsTables": 0,
     "withoutRls": 0,
     "withoutGrants": 0,
     "sequenceWithoutGrants": 0,
@@ -194,7 +270,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
     "hardcodedUrls": 0,
     "legacyAnonJwts": 0
   },
-  "supabaseCli": "2.105.0",
+  "supabaseCli": "2.109.1",
   "report": "docs/database-upgrade-readiness-report.md"
 }
 ```
@@ -207,14 +283,14 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 ```json
 {
   "critical": 0,
-  "warnings": 20,
+  "warnings": 0,
   "edgeFunctions": {
-    "total": 453,
-    "highRisk": 168,
-    "withSecurity": 453,
-    "strictCors": 453,
-    "methodGated": 453,
-    "serviceRole": 349,
+    "total": 457,
+    "highRisk": 170,
+    "withSecurity": 457,
+    "strictCors": 457,
+    "methodGated": 457,
+    "serviceRole": 351,
     "highRiskMissingSecurity": [],
     "highRiskMissingMethodGate": [],
     "missingWithSecurity": [],
@@ -224,32 +300,48 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
     "looseRouteBacklog": []
   },
   "migrationDrift": {
-    "local": 1122,
+    "local": 1135,
     "duplicateVersions": 6,
-    "allowedDuplicateVersions": 0,
-    "newDuplicateVersions": 6,
-    "remote": 1570,
-    "matched": 1,
-    "localOnly": 1121,
-    "remoteOnly": 1569,
-    "nearFiveSeconds": 585,
-    "nearOneMinute": 618,
-    "oneToOneNearFiveSeconds": 584,
-    "oneToOneNearOneMinute": 616,
-    "unmatchedLocalAfterCandidates": 505,
-    "unmatchedRemoteAfterCandidates": 953,
-    "unmatchedLocalAfterRemoteRange": 19,
+    "allowedDuplicateVersions": 6,
+    "newDuplicateVersions": 0,
+    "remote": 0,
+    "matched": 0,
+    "localOnly": 1135,
+    "remoteOnly": 0,
+    "nearFiveSeconds": 0,
+    "nearOneMinute": 0,
+    "oneToOneNearFiveSeconds": 0,
+    "oneToOneNearOneMinute": 0,
+    "unmatchedLocalAfterCandidates": 1135,
+    "unmatchedRemoteAfterCandidates": 0,
+    "unmatchedLocalAfterRemoteRange": 0,
     "unmatchedRemoteBeforeLocalRange": 0,
-    "pendingCreatesTables": 1,
+    "pendingCreatesTables": 0,
     "pendingCreatesTablesWithoutRls": 0,
     "pendingCreatesTablesWithoutGrants": 0,
     "pendingSequenceBackedIdsWithoutSequenceGrants": 0,
     "pendingSecurityDefinersWithoutSearchPath": 0,
     "pendingHardcodedSupabaseUrls": 0,
     "pendingLegacyAnonJwts": 0,
-    "sharedDays": 92,
-    "remoteError": false,
-    "currentLocal": 1122
+    "sharedDays": 0,
+    "remoteError": true,
+    "currentLocal": 1135,
+    "mcpHistory": {
+      "file": "docs/supabase-mcp-migration-history-report.json",
+      "valid": true,
+      "source": "supabase-mcp",
+      "projectRef": "slirphzzwcogdbkeicff",
+      "generated": "2026-07-22T19:38:01Z",
+      "localMigrations": 1135,
+      "remoteMigrations": 1595,
+      "firstRemoteVersion": "20260126182059",
+      "latestRemoteVersion": "20260722193446",
+      "verifiedVersions": [
+        "20260722192749",
+        "20260722193417",
+        "20260722193446"
+      ]
+    }
   },
   "operations": {
     "present": true,
@@ -267,9 +359,9 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-06-12T21:34:33.227Z",
+  "generated": "2026-07-23T03:19:21.235Z",
   "counts": {
-    "functions": 7,
+    "functions": 9,
     "failures": 0
   },
   "functions": [
@@ -307,6 +399,16 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "slug": "mint-sso-handoff",
       "verifyJwt": true,
       "why": "cross-domain SSO one-time token minting"
+    },
+    {
+      "slug": "zivosmedia-auth-issue-code",
+      "verifyJwt": true,
+      "why": "central PKCE authorization-code issuance"
+    },
+    {
+      "slug": "zivosmedia-auth-validate-code",
+      "verifyJwt": false,
+      "why": "server-to-server client-secret + PKCE exchange"
     }
   ],
   "failures": []
@@ -320,11 +422,11 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-06-12T21:34:33.473Z",
+  "generated": "2026-07-23T03:19:21.299Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
-    "configuredFunctions": 88,
-    "localConfiguredFunctions": 88,
+    "configuredFunctions": 100,
+    "localConfiguredFunctions": 100,
     "liveFunctions": null,
     "knownMissingLiveFunctions": 6,
     "criticalFunctions": 7,
@@ -458,16 +560,15 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 ### Edge Function browser gates
 
 - Command: `node scripts/qa/edge-function-browser-gates.mjs`
-- Status: failed
-- Failure: exitStatus=1
+- Status: passed
 
 ```json
 {
-  "generated": "2026-06-12T21:34:41.093Z",
+  "generated": "2026-07-23T03:19:22.288Z",
   "counts": {
     "gatedFunctions": 6,
-    "scannedSrcFiles": 2844,
-    "failures": 2
+    "scannedSrcFiles": 2822,
+    "failures": 0
   },
   "gatedFunctions": [
     {
@@ -507,10 +608,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
       "errorName": "AdminBroadcastNotificationUnavailableError"
     }
   ],
-  "failures": [
-    "notification-manage: src/lib/notifications/notificationManage.ts missing VITE_NOTIFICATION_MANAGE_ENABLED",
-    "notification-manage: src/lib/notifications/notificationManage.ts must contain functions.invoke(\"notification-manage\")"
-  ]
+  "failures": []
 }
 ```
 
@@ -520,31 +618,31 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 - Status: passed
 
 ```text
-Media readiness report: 51 issue(s) across 11 file(s).
+Media readiness report: 35 issue(s) across 9 file(s).
 
-src\components\admin\marketing\CreateMarketingCampaignWizard.tsx
+src/components/admin/marketing/CreateMarketingCampaignWizard.tsx
   59: img missing loading="lazy"/SmartImage
   59: img missing decoding="async"/SmartImage
 
-src\components\admin\store\MediaCropDialog.tsx
+src/components/admin/store/MediaCropDialog.tsx
   223: img missing loading="lazy"/SmartImage
   223: img missing decoding="async"/SmartImage
 
-src\pages\AITripPlanner.tsx
-  269: img missing loading="lazy"/SmartImage
-  269: img missing decoding="async"/SmartImage
-  443: img missing loading="lazy"/SmartImage
-  443: img missing decoding="async"/SmartImage
-  798: img missing loading="lazy"/SmartImage
-  798: img missing decoding="async"/SmartImage
-  845: img missing loading="lazy"/SmartImage
-  845: img missing decoding="async"/SmartImage
+src/pages/AITripPlanner.tsx
+  270: img missing loading="lazy"/SmartImage
+  270: img missing decoding="async"/SmartImage
+  446: img missing loading="lazy"/SmartImage
+  446: img missing decoding="async"/SmartImage
+  802: img missing loading="lazy"/SmartImage
+  802: img missing decoding="async"/SmartImage
+  849: img missing loading="lazy"/SmartImage
+  849: img missing decoding="async"/SmartImage
 
-src\pages\FlightLanding.tsx
-  860: img missing loading="lazy"/SmartImage
-  860: img missing decoding="async"/SmartImage
+src/pages/FlightLanding.tsx
+  875: img missing loading="lazy"/SmartImage
+  875: img missing decoding="async"/SmartImage
 
-src\pages\Login.tsx
+src/pages/Signup.tsx
   58: img missing loading="lazy"/SmartImage
   58: img missing decoding="async"/SmartImage
   59: img missing loading="lazy"/SmartImage
@@ -554,46 +652,26 @@ src\pages\Login.tsx
   124: img missing loading="lazy"/SmartImage
   124: img missing decoding="async"/SmartImage
 
-src\pages\Signup.tsx
-  58: img missing loading="lazy"/SmartImage
-  58: img missing decoding="async"/SmartImage
-  59: img missing loading="lazy"/SmartImage
-  59: img missing decoding="async"/SmartImage
-  123: img missing loading="lazy"/SmartImage
-  123: img missing decoding="async"/SmartImage
-  124: img missing loading="lazy"/SmartImage
-  124: img missing decoding="async"/SmartImage
-
-src\pages\ZivoTravelHome.tsx
+src/pages/ZivoTravelHome.tsx
   633: img missing loading="lazy"/SmartImage
   633: img missing decoding="async"/SmartImage
   759: img missing decoding="async"/SmartImage
-  908: img missing decoding="async"/SmartImage
-  1003: img missing decoding="async"/SmartImage
-  2108: img missing decoding="async"/SmartImage
+  909: img missing decoding="async"/SmartImage
+  1005: img missing decoding="async"/SmartImage
+  2113: img missing decoding="async"/SmartImage
 
-src\pages\app\BusOperatorConsole.tsx
+src/pages/app/BusOperatorConsole.tsx
   1130: img missing loading="lazy"/SmartImage
   1130: img missing decoding="async"/SmartImage
 
-src\pages\business\BusinessLandingPage.tsx
+src/pages/business/BusinessLandingPage.tsx
   342: img missing decoding="async"/SmartImage
 
-src\pages\business\BusinessSoftwarePortalPage.tsx
-  368: img missing loading="lazy"/SmartImage
-  368: img missing decoding="async"/SmartImage
-  427: img missing loading="lazy"/SmartImage
-  427: img missing decoding="async"/SmartImage
-  501: img missing loading="lazy"/SmartImage
-  501: img missing decoding="async"/SmartImage
-  533: img missing loading="lazy"/SmartImage
-  533: img missing decoding="async"/SmartImage
-
-src\pages\channels\ChannelPage.tsx
-  430: img missing loading="lazy"/SmartImage
-  430: img missing decoding="async"/SmartImage
-  459: img missing loading="lazy"/SmartImage
-  459: img missing decoding="async"/SmartImage
+src/pages/channels/ChannelPage.tsx
+  494: img missing loading="lazy"/SmartImage
+  494: img missing decoding="async"/SmartImage
+  588: img missing loading="lazy"/SmartImage
+  588: img missing decoding="async"/SmartImage
 
 This command is report-only for now. Move high-traffic surfaces to SmartImage/LazyVideo first, then make it strict.
 ```
@@ -609,33 +687,21 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Migration Reconciliation
 
-- Candidate mappings: 616
-- High-confidence candidates: 584
-- Medium-confidence candidates: 32
-- Unmatched local after candidates: 505
-- Unmatched remote after candidates: 953
-- Likely pending local after remote range: 19
-- Review order: high-confidence candidate mappings (584) -> medium-confidence candidate mappings (32) -> unmatched local migrations after candidates (505) -> unmatched remote versions after candidates (953) -> likely pending local migrations after remote range (19)
+- Candidate mappings: 0
+- High-confidence candidates: 0
+- Medium-confidence candidates: 0
+- Unmatched local after candidates: 1135
+- Unmatched remote after candidates: 0
+- Likely pending local after remote range: 0
+- Review order: high-confidence candidate mappings (0) -> medium-confidence candidate mappings (0) -> unmatched local migrations after candidates (1135) -> unmatched remote versions after candidates (0) -> likely pending local migrations after remote range (0)
 
 ## Production Blockers
 
-- Failed command: Security scan
-- Failed command: Supabase deploy environment
-- Failed command: Supabase runtime settings SQL
-- Failed command: Edge Function browser gates
-- Environment readiness has 2 critical finding(s).
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
-- Environment readiness has 1 warning(s).
-- API readiness has 20 warning(s).
-- Database readiness has 1 blocker(s).
-- Database readiness has 1 warning(s).
-- Supabase migrations have 6 unresolved duplicate version(s).
+- Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
+- Supabase remote migration history is unavailable (unavailable).
 
 ## Current Gate Blockers
 
-- Failed command: Security scan
-- Failed command: Supabase deploy environment
-- Failed command: Supabase runtime settings SQL
-- Failed command: Edge Function browser gates
-- Environment readiness has 2 critical finding(s).
+- None

@@ -28,6 +28,12 @@ function requireContains(id, text, needle, relativePath) {
   }
 }
 
+function requireNotContains(id, text, needle, relativePath) {
+  if (text.includes(needle)) {
+    failures.push(`${id}: ${relativePath} must not contain ${JSON.stringify(needle)}`);
+  }
+}
+
 function requireMatch(id, text, pattern, relativePath) {
   if (!pattern.test(text)) {
     failures.push(`${id}: ${relativePath} missing pattern ${pattern}`);
@@ -198,9 +204,17 @@ const contracts = [
         "self.addEventListener('notificationclick'",
         "notification_type",
         "Incoming ZIVO call",
+        "const rideTrackingUrl = rideTripId ? `/rides/track/${encodeURIComponent(String(rideTripId))}` : '/rides/hub'",
+        "urlToOpen = '/rides/hub?ride_path=%2Fhistory'",
+        "urlToOpen = '/wallet'",
+        "urlToOpen = '/rewards'",
       ]) {
         requireContains(this.id, serviceWorker, needle, swPath);
       }
+      requireNotContains(this.id, serviceWorker, "/rides/hub?tab=tracking", swPath);
+      requireNotContains(this.id, serviceWorker, "/rides/hub?tab=history", swPath);
+      requireNotContains(this.id, serviceWorker, "/rides/hub?tab=wallet", swPath);
+      requireNotContains(this.id, serviceWorker, "/rides/hub?tab=loyalty", swPath);
     },
   },
 ];

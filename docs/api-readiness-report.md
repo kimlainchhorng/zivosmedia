@@ -1,25 +1,26 @@
 # API Readiness Report
 
-Generated: 2026-06-12T21:34:33.100Z
+Generated: 2026-07-23T03:19:21.182Z
 
 ## Summary
 
 - Critical findings: 0
-- Warnings: 20
-- Edge Functions inventoried: 453
-- High-risk Edge Functions: 168
-- Functions using withSecurity(): 453
-- Functions using strictCorsHeaders(): 453
-- Method-gated Edge Functions: 453
-- Functions using service role: 349
+- Warnings: 0
+- Edge Functions inventoried: 457
+- High-risk Edge Functions: 170
+- Functions using withSecurity(): 457
+- Functions using strictCorsHeaders(): 457
+- Method-gated Edge Functions: 457
+- Functions using service role: 351
 - Loose Edge Function security backlog: 0
 - Method gate backlog: 0
 - Required public env documented: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
 - Recommended backend env documented: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 - API operations runbook: present (0 missing topics)
-- Supabase migration drift: reportLocal=1122, currentLocal=1122, remote=1570, matched=1, duplicateVersions=6, allowedDuplicateVersions=0, newDuplicateVersions=6, remoteError=no
-- Supabase migration near-match diagnostics: near5s=585, near60s=618, oneToOne5s=584, oneToOne60s=616, unmatchedLocal=505, unmatchedRemote=953, localAfterRemoteRange=19, sharedDays=92
-- Pending local migration risk gates: createsTables=1, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
+- Supabase migration drift: reportLocal=1135, currentLocal=1135, remote=0, matched=0, duplicateVersions=6, allowedDuplicateVersions=6, newDuplicateVersions=0, remoteError=yes, mcpVerified=yes
+- Supabase MCP migration history: remote=1595, first=20260126182059, latest=20260722193446, verified=20260722192749, 20260722193417, 20260722193446
+- Supabase migration near-match diagnostics: near5s=0, near60s=0, oneToOne5s=0, oneToOne60s=0, unmatchedLocal=1135, unmatchedRemote=0, localAfterRemoteRange=0, sharedDays=0
+- Pending local migration risk gates: createsTables=0, withoutRls=0, withoutGrants=0, sequenceWithoutGrants=0, definerWithoutSearchPath=0, hardcodedUrls=0, legacyAnonJwts=0
 
 ## Critical
 
@@ -27,26 +28,7 @@ Generated: 2026-06-12T21:34:33.100Z
 
 ## Warnings
 
-- [hardcoded-supabase-browser-config] Browser Supabase URL/key are hardcoded. Prefer Vite env values so staging and production can use separate projects. (src/integrations/supabase/client.ts)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/config/autoRepairDomain.ts:20)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/config/zivoDriverDomain.ts:11)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/config/zivoTravelDomain.ts:11)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/integrations/supabase/client.ts:35)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (src/pages/OAuthForwarder.tsx:4)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (scripts/supabase/zivo-domain-summary-smoke.mjs:31)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (scripts/supabase/zivo-travel-readiness-audit.mjs:207)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (scripts/supabase/zivo-travel-readiness-audit.mjs:210)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/README.md:122)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:538)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:539)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:540)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:541)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:542)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:543)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:544)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:545)
-- [active-hardcoded-supabase-url] Active app/script code contains a hardcoded Supabase project URL. Prefer SUPABASE_URL/VITE_SUPABASE_URL. (cloudflare/worker.ts:635)
-- [duplicate-migration-versions] Local Supabase migrations contain 6 new duplicate version(s). (docs/supabase-migration-drift-report.md)
+- No warnings found.
 
 ## High-Risk Functions Missing withSecurity()
 
@@ -63,7 +45,7 @@ Generated: 2026-06-12T21:34:33.100Z
 ## Next Hardening Moves
 
 - Reconcile Supabase migration history before running production schema pushes.
-- Keep `SUPABASE_ACCESS_TOKEN` available in production readiness jobs so remote migration history remains comparable.
+- Supabase MCP migration history is verified for this run; keep `SUPABASE_ACCESS_TOKEN` available in CI so the CLI report can also compare remote history.
 - Configure `app.settings.supabase_url` and `app.settings.supabase_anon_key` per Supabase project before relying on database cron jobs.
 - Run `npm run supabase:upgrade-readiness` before a Postgres major-version upgrade or production schema push.
 - Keep new high-risk Edge Functions on `withSecurity()` and strict CORS from the first commit.

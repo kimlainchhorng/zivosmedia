@@ -1,12 +1,12 @@
 # Domain-by-Domain Fix Plan
 
-**Date:** 2026-06-08 · Audit only. Synthesizes the live website audit + this readiness pass into per-domain actions. Deployment topology: one zivosmedia build + worker serves all hosts via app-side hostname detection (`src/App.tsx`); `admin.zivosmedia.com` is a separate Zivo-Admin app; travel has a (incomplete) dedicated Supabase backend.
+**Date:** 2026-06-08 · Audit only. Synthesizes the live website audit + this readiness pass into per-domain actions. Deployment topology update: the Zivosmedia build + worker serves Zivosmedia-owned surfaces and the business/employee alias landings; `zivodriver.com` is a dedicated Driver deployment; `admin.zivosmedia.com` is a separate Zivo-Admin app; travel has a (incomplete) dedicated Supabase backend.
 
 | Domain | Live state | Root cause | Action | PR(s) |
 |--------|-----------|------------|--------|-------|
 | **zivosmedia.com** | Loads; `/hotels` fixed in repo (PR#66) but verify live; `/travel/checkout` fixed in HEAD, live stale | Deploy lag; missing cross-app UX | Deploy HEAD; add Continue-with-Zivosmedia, app switcher, ZivoChat entry | 1, 8, 9, 10 |
 | **zivobusiness.com** | Generic feed (live bundle stale) | Landing built, host-routed, and merged (`ZivoBusinessHome.tsx`, root host-switch `App.tsx:1688`, gate `ZivoBusinessHostGate`); live bundle predates the merge | **Code done** — redeploy zivosmedia main + verify live (`ZIVOSMEDIA_REDEPLOY_RUNBOOK.md`) | 6 |
-| **zivodriver.com** | Generic feed | Driver landing WIP/undeployed (`ZivoDriverHome.tsx`, routed `App.tsx:1682`) | Commit + build + deploy; verify host binding | 4 |
+| **zivodriver.com** | Generic feed | Live domain is bound to a generic/stale Zivosmedia artifact instead of the dedicated Driver deployment | Build/publish `/Users/kimlain/Documents/GitHub/zivodriver`, confirm Zivosmedia `zivo` Worker has no Driver-domain route, then bind apex + `www` to Driver | 4 |
 | **zivoemployee.com** | Generic feed (live bundle stale) | Landing built, host-routed, and merged (`ZivoEmployeeHome.tsx`, root host-switch `App.tsx:1688`, gate `ZivoEmployeeHostGate`); live bundle predates the merge | **Code done** — redeploy zivosmedia main + verify live (`ZIVOSMEDIA_REDEPLOY_RUNBOOK.md`) | 7 |
 | **zivoschat.com** | Chat login, but env warning | Built without `VITE_SUPABASE_URL`/`_PUBLISHABLE_KEY` | Set env in host + re-publish; add Continue-with-Zivosmedia copy→CTA | 5, 10 |
 | **zivosoftware.com** | Correct software landing | Missing cross-app UX | Add Continue-with-Zivosmedia + ZivoChat + Business cross-link | 8, 10, 23 |

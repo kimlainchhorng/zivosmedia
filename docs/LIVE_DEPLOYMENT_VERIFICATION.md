@@ -18,25 +18,27 @@ This pins down a question the redeploy runbook left open ("confirm whether produ
 | myzivo.com | `302 →` | 0 | **Kestrel** (not the Vite app) | ⚠️ different backend — out of scope here |
 | app.zivosmedia.com | no response (`000`) | — | — | ⚠️ does not resolve/serve |
 
-## Root cause (one cause, three domains)
+## Root cause (updated ownership)
 
-`zivodriver.com`, `zivobusiness.com`, and `zivoemployee.com` all serve the **identical** older bundle `index-26I4Q6Yn.js`, which **still contains the `emrld` tracker** — i.e. it predates `365f08ca5` and therefore contains **none** of the satellite host-landing code. They are bound, in Cloudflare, to a **single stale Pages build/project**. That is exactly why all three render the generic super-app feed: the merged landing/host-detection code never reaches the browser on those hosts.
+At the time of this snapshot, `zivodriver.com`, `zivobusiness.com`, and `zivoemployee.com` all served the **identical** older bundle `index-26I4Q6Yn.js`, which **still contained the `emrld` tracker** — i.e. it predated `365f08ca5` and therefore contained **none** of the satellite host-landing code.
+
+Current ownership has changed: `zivodriver.com` must move to the dedicated Driver deployment from `kimlainchhorng/zivodriver`; it must not be added to the Zivosmedia Worker or Pages artifact. `zivobusiness.com` and `zivoemployee.com` remain Zivosmedia alias-host surfaces.
 
 `zivosmedia.com` itself is current, so the code fixes already merged to `main` (host landings via `365f08ca5`, `/travel/checkout` provider fix, `/hotels` content) are live there.
 
 ## Routing topology (from `wrangler.toml`)
 
-The `zivo` Cloudflare Worker declares routes only for `zivosoftware.com` and `zivostravel.com`. `zivosmedia.com` is bound (dashboard) to a **current** Pages project. `zivodriver.com` / `zivobusiness.com` / `zivoemployee.com` are **not** in the Worker routes and are bound to a **stale** Pages project.
+The checked-in `zivo` Cloudflare Worker declares routes for Zivosmedia-owned surfaces. `zivodriver.com` is intentionally excluded and belongs on the dedicated Driver deployment. `zivobusiness.com` and `zivoemployee.com` are Zivosmedia alias hosts and may be served by the Zivosmedia build.
 
 ## The fix (operational — Cloudflare dashboard; no code change)
 
-The landing/routing code is already merged; **no source change makes these hosts correct.** Point the three stale domains at the current build, by any one of:
+For Driver, point the stale domain at the dedicated Driver build:
 
-1. **Add `zivodriver.com`, `zivobusiness.com`, `zivoemployee.com` (+ `www`) as custom domains on the same current Cloudflare Pages project that serves `zivosmedia.com`** (recommended — single source of truth), **or**
-2. **Re-publish the stale Pages project** those domains currently point at, from current `main`, **or**
-3. **Add their routes to the `zivo` Worker `wrangler.toml`** (like travel/software) and redeploy the Worker — only viable after removing the conflicting Pages custom-domain bindings for those hosts.
+1. Build/publish `kimlainchhorng/zivodriver`.
+2. Confirm the live Zivosmedia `zivo` Worker has no `zivodriver.com/*` or `www.zivodriver.com/*` route.
+3. Bind `zivodriver.com` and `www.zivodriver.com` to the Driver deployment only.
 
-After any of these, host detection (`isZivoBusinessHost` / `isZivoEmployeeHost` / the driver matcher in `src/App.tsx`) renders the correct landing immediately.
+For Business/Employee, point those stale domains at the current Zivosmedia build or Worker routes so their host detection (`isZivoBusinessHost` / `isZivoEmployeeHost`) renders the correct landing.
 
 ## Related
 

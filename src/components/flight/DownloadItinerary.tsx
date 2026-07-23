@@ -148,9 +148,9 @@ function generateItineraryHTML(data: ItineraryData): string {
   </div>
 
   <div class="footer">
-    <p><strong>ZIVO</strong> — hizovo.com</p>
+    <p><strong>ZIVO</strong> — zivosmedia.com</p>
     <p>This is your electronic ticket receipt. Present your booking reference at check-in.</p>
-    <p>Booking support is provided by the issuing travel partner. For website help, visit hizovo.com/help</p>
+    <p>Booking support is provided by the issuing travel partner. For website help, visit zivosmedia.com/help</p>
     <p style="margin-top:8px;font-size:10px;color:#cbd5e1">Prices shown include all taxes and fees at time of booking. Final terms confirmed by partner.</p>
   </div>
 </body>

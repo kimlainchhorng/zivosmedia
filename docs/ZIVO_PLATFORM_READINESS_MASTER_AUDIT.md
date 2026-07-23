@@ -58,8 +58,8 @@ Ran each script independently (the `platform:audit` chain stops at first failure
 | # | Known item | Audit verdict | Where it lands |
 |---|------------|---------------|----------------|
 | 1 | zivoadmin.com unreachable / admin control down | **Confirmed.** DNS NXDOMAIN; canonical host is `admin.zivosmedia.com` (per `src/config/zivoAdminDomain.ts`), also down. Control plane is a **separate Zivo-Admin repo**. | PR 3, PR 11 |
-| 2 | zivodriver live routing | **Landing code exists** (`src/pages/ZivoDriverHome.tsx`, routed at `App.tsx:1682` via `isCurrentZivoDriverHost`) but is **WIP/uncommitted + undeployed**. Pure deploy/verify. | PR 4 |
-| 3 | zivobusiness/zivoemployee generic feed | Same pattern — `ZivoBusinessHome.tsx`/`ZivoEmployeeHome.tsx` exist as WIP; not built/deployed. | PR 6, PR 7 |
+| 2 | zivodriver live routing | **Dedicated Driver repo/deployment required.** Build/publish `kimlainchhorng/zivodriver`, confirm Zivosmedia `zivo` Worker has no Driver-domain route, then bind `zivodriver.com` + `www` to Driver. | PR 4 |
+| 3 | zivobusiness/zivoemployee generic feed | Zivosmedia alias-host path — `ZivoBusinessHome.tsx`/`ZivoEmployeeHome.tsx` are owned by the Zivosmedia build/routes and must be deployed/bound there. | PR 6, PR 7 |
 | 4 | zivoschat Supabase env vars | **Confirmed** via console (`Missing VITE_SUPABASE_URL…`). Host config, not code. | PR 5 |
 | 5 | /travel/checkout crash | **Already fixed in committed HEAD** (`App.tsx` wraps route in `<TravelCartProvider>`); live is stale. Deploy clears it. | PR 1 + deploy |
 | 6 | emrld.ltd script injection | **Not present in repo source** (grep clean). Injected at edge/CDN/tag-manager/browser layer. CSP already blocks it. | PR 2 |

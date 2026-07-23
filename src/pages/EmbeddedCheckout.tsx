@@ -2,7 +2,7 @@
  * Embedded Partner Checkout Page
  * 
  * Displays partner checkout in an iframe within Hizovo
- * User never leaves hizovo.com during checkout
+ * User never leaves zivosmedia.com during checkout
  * 
  * IMPORTANT: Hizovo is NOT the merchant of record
  * All payments handled by licensed travel partners

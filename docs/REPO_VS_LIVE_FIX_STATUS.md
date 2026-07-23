@@ -13,7 +13,7 @@
 |--------------------|----------------|-------|-----------|--------|
 | `/hotels` shows "Rides available in Cambodia" (P0) | ✅ **Yes** | branch `fix/hotels-route-content` @ `7a8ceb6f9` | ❌ No | **Review → merge → deploy** |
 | `/travel/checkout` crash `useTravelCart…TravelCartProvider` (P1) | ✅ **Yes — in committed HEAD** | `App.tsx:2009` wraps route in `<TravelCartProvider>` | ❌ No (live still crashes) | **Deploy** (no code change) |
-| zivodriver.com serves Feed not driver landing (P0) | ⚠️ **WIP, uncommitted** | untracked `src/pages/ZivoDriverHome.tsx` + uncommitted `App.tsx` wiring | ❌ No | Commit → build → deploy (see Runbook A) |
+| zivodriver.com serves Feed not driver landing (P0) | ✅ **Dedicated Driver repo path exists** | `/Users/kimlain/Documents/GitHub/zivodriver` production preflight/build | ❌ No | Deploy the dedicated Driver artifact, confirm the Zivosmedia Worker has no Driver-domain route, then bind apex + `www` to Driver |
 | zivobusiness.com serves Feed (P1) | ⚠️ WIP, uncommitted | `ZivoBusinessHome.tsx` (untracked) | ❌ No | same as driver |
 | zivoemployee.com serves Feed (P1) | ⚠️ WIP, uncommitted | `ZivoEmployeeHome.tsx` (untracked) | ❌ No | same as driver |
 | zivoschat.com missing Supabase env vars (P1) | n/a (config, not code) | dashboard env | ❌ | Set env → re-publish (Runbook A note) |

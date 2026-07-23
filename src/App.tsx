@@ -231,7 +231,7 @@ const DestinationActivitiesPage = lazy(() => import("./pages/seo/DestinationActi
 const DestinationHotelsPage = lazy(() => import("./pages/seo/DestinationHotelsPage"));
 const GroceryPage = lazy(() => import("./pages/GroceryPage"));
 const NewServiceOrderPage = lazy(() => import("./pages/NewServiceOrderPage"));
-const RequestRidePage = lazy(() => import("./pages/app/RequestRidePage"));
+const CanonicalRidePage = lazy(() => import("./pages/app/CanonicalRidePage"));
 const CreateCVPage = lazy(() => import("./pages/app/CreateCVPage"));
 const ConnectWebsitePage = lazy(() => import("./pages/app/ConnectWebsitePage"));
 const ApplyJobHubPage = lazy(() => import("./pages/app/personal/ApplyJobHubPage"));
@@ -262,9 +262,7 @@ const MyReviewsPage = lazy(() => import("./pages/MyReviewsPage"));
 const ReviewModerationDashboard = lazy(() => import("./pages/admin/ReviewModerationDashboard"));
 
 const SupportCenterPage = lazy(() => import("./pages/app/SupportCenterPage"));
-const RideTrackingPage = lazy(() => import("./pages/app/RideTrackingPage"));
 const TripStatusPage = lazy(() => import("./pages/TripStatusPage"));
-const RideHubPage = lazy(() => import("./pages/app/RideHubPage"));
 const BusBookingPage = lazy(() => import("./pages/app/BusBookingPage"));
 const BusOperatorConsole = lazy(() => import("./pages/app/BusOperatorConsole"));
 const BusTicketsPage = lazy(() => import("./pages/app/BusTicketsPage"));
@@ -276,7 +274,6 @@ const NetworkPlacesPage = lazy(() => import("./pages/NetworkPlacesPage"));
 const SavedFavoritesPage = lazy(() => import("./pages/SavedFavoritesPage"));
 const ConciergePage = lazy(() => import("./pages/ConciergePage"));
 const PublicTripSharePage = lazy(() => import("./pages/PublicTripSharePage"));
-const MultiStopRideBuilder = lazy(() => import("./pages/MultiStopRideBuilder"));
 const PublicOrderSharePage = lazy(() => import("./pages/PublicOrderSharePage"));
 const ShareWatchlistPage = lazy(() => import("./pages/ShareWatchlistPage"));
 const EatsOrdersPage = lazy(() => import("./pages/EatsOrdersPage"));
@@ -755,7 +752,6 @@ const PollHistoryPage = lazy(() => import("./pages/PollHistoryPage"));
 const SpamDetectionsPage = lazy(() => import("./pages/SpamDetectionsPage"));
 const PlaceClicksPage = lazy(() => import("./pages/PlaceClicksPage"));
 const PriceAlertsPage = lazy(() => import("./pages/PriceAlertsPage"));
-const RideQuotesPage = lazy(() => import("./pages/RideQuotesPage"));
 const AutoMessagesLogPage = lazy(() => import("./pages/AutoMessagesLogPage"));
 const OrderDisputesPage = lazy(() => import("./pages/OrderDisputesPage"));
 const FlightPriceAlertsPage = lazy(() => import("./pages/FlightPriceAlertsPage"));
@@ -1696,7 +1692,6 @@ const App = () => (
                 <DeferredRoutePrefetcher />
                 <PaymentReturnBootstrap />
                 <AuthProvider>
-                  <DesktopNavBootstrap />
                   <AuthBackgroundServices />
                   <Suspense fallback={null}><ShareToChatSheet /></Suspense>
                   <LazyP2PTransferSheetHost />
@@ -1705,6 +1700,7 @@ const App = () => (
                   <ZivoPlusProvider>
                   <CustomerCityProvider>
                     <CurrencyProvider>
+                      <DesktopNavBootstrap />
                       <DeferredCurrencyPicker />
                       <UTMProvider>
                         <Suspense fallback={<PageLoader />}>
@@ -1793,9 +1789,9 @@ const App = () => (
                 <Route path="/book-hotel" element={<PreserveQueryRedirect to="/hotels" />} />
                 <Route path="/travel-extras" element={<PreserveQueryRedirect to="/extras" />} />
                 <Route path="/rides" element={<PreserveQueryRedirect to="/rides/hub" />} />
-                <Route path="/rides/track/:tripId" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><RideTrackingPage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />
+                <Route path="/rides/track/:tripId" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />
                 <Route path="/trip-status/:id" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><TripStatusPage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />
-                <Route path="/rides/hub" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><RideHubPage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />
+                <Route path="/rides/hub" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />
                 <Route path="/ride" element={<PreserveQueryRedirect to="/rides/hub" />} />
                 <Route path="/eats" element={<ProtectedRoute><PhoneRequiredGate><EatsLanding /></PhoneRequiredGate></ProtectedRoute>} />
                 <Route path="/eats/restaurant/:id" element={<ProtectedRoute><EatsLanding /></ProtectedRoute>} />
@@ -2276,7 +2272,7 @@ const App = () => (
                 <Route path="/spam-detections" element={<ProtectedRoute><SpamDetectionsPage /></ProtectedRoute>} />
                 <Route path="/place-clicks" element={<ProtectedRoute><PlaceClicksPage /></ProtectedRoute>} />
                 <Route path="/price-alerts" element={<ProtectedRoute><PriceAlertsPage /></ProtectedRoute>} />
-                <Route path="/ride-quotes" element={<ProtectedRoute><RideQuotesPage /></ProtectedRoute>} />
+                <Route path="/ride-quotes" element={<ProtectedRoute><CanonicalRidePage /></ProtectedRoute>} />
                 <Route path="/auto-messages" element={<ProtectedRoute><AutoMessagesLogPage /></ProtectedRoute>} />
                 <Route path="/order-disputes" element={<ProtectedRoute><OrderDisputesPage /></ProtectedRoute>} />
                 <Route path="/flight-price-alerts" element={<ProtectedRoute><FlightPriceAlertsPage /></ProtectedRoute>} />
@@ -2427,7 +2423,7 @@ const App = () => (
                 {/* Grocery + service flows */}
                 <Route path="/grocery" element={<GroceryPage />} />
                 <Route path="/services/new-order" element={<ProtectedRoute><NewServiceOrderPage /></ProtectedRoute>} />
-                <Route path="/app/request-ride" element={<ProtectedRoute><CambodiaOnlyGate><RequestRidePage /></CambodiaOnlyGate></ProtectedRoute>} />
+                <Route path="/app/request-ride" element={<ProtectedRoute><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></ProtectedRoute>} />
                 <Route path="/press" element={<Press />} />
                 <Route path="/for-customers" element={<ForCustomers />} />
                 <Route path="/promotions" element={<Promotions />} />
@@ -2483,7 +2479,7 @@ const App = () => (
                 <Route path="/favorites/network" element={<PreserveQueryRedirect to="/network/saved" />} />
                 <Route path="/concierge" element={<ConciergePage />} />
                 <Route path="/share/trip/:tripId" element={<PublicTripSharePage />} />
-                <Route path="/rides/multi-stop" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><MultiStopRideBuilder /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />
+                <Route path="/rides/multi-stop" element={<ProtectedRoute><PhoneRequiredGate><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></PhoneRequiredGate></ProtectedRoute>} />
                 <Route path="/share/order/:orderId" element={<PublicOrderSharePage />} />
                 <Route path="/share/with-me" element={<ShareWatchlistPage />} />
                 <Route path="/partner-login" element={<PartnerLogin />} />

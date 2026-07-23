@@ -2511,7 +2511,7 @@ function LinkPreviewCard({ url, isMe, hasText, messageText }: { url: string; isM
       const u = new URL(url);
       if (u.protocol !== "https:" && u.protocol !== "http:") return false;
       const host = u.hostname.toLowerCase();
-      const internalHosts = ["lovable.app", "hizovo.com"];
+      const internalHosts = ["lovable.app", "zivosmedia.com"];
       return (
         host === window.location.hostname.toLowerCase() ||
         internalHosts.some((h) => host === h || host.endsWith(`.${h}`))

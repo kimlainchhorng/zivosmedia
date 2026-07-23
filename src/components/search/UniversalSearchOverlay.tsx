@@ -362,7 +362,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
         iconBg: "bg-emerald-500/10",
         title: t.dropoff_address || "Trip",
         subtitle: `From ${t.pickup_address || "Unknown"} · ${t.status}`,
-        action: () => handleNavigate(`/rides/hub?tab=history`),
+        action: () => handleNavigate(`/rides/hub?ride_path=%2Fhistory`),
         badge: "Rebook",
       });
     });

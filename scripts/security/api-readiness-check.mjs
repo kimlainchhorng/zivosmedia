@@ -67,6 +67,14 @@ function readText(file) {
   }
 }
 
+function readJson(file) {
+  try {
+    return JSON.parse(readText(file));
+  } catch {
+    return null;
+  }
+}
+
 function walkFiles(dir, predicate, output = []) {
   if (!existsSync(dir)) return output;
   for (const entry of readdirSync(dir)) {
@@ -393,6 +401,46 @@ function inspectFunctions() {
   };
 }
 
+function readMcpMigrationHistoryReport(currentLocalCount) {
+  const file = path.join(root, "docs", "supabase-mcp-migration-history-report.json");
+  if (!existsSync(file)) return null;
+
+  const report = readJson(file);
+  const requiredVersions = [
+    "20260722192749",
+    "20260722193417",
+    "20260722193446",
+  ];
+  const verifiedVersions = new Set(
+    Array.isArray(report?.verifiedAppliedMigrations)
+      ? report.verifiedAppliedMigrations.map((item) => String(item?.version ?? ""))
+      : [],
+  );
+  const localMigrations = Number(report?.localMigrations ?? 0);
+  const remoteMigrations = Number(report?.remoteMigrations ?? 0);
+  const valid = (
+    report?.source === "supabase-mcp" &&
+    report?.projectRef === "slirphzzwcogdbkeicff" &&
+    localMigrations === currentLocalCount &&
+    remoteMigrations > 0 &&
+    typeof report?.latestRemoteVersion === "string" &&
+    requiredVersions.every((version) => verifiedVersions.has(version))
+  );
+
+  return {
+    file: rel(file),
+    valid,
+    source: String(report?.source ?? ""),
+    projectRef: String(report?.projectRef ?? ""),
+    generated: String(report?.generated ?? ""),
+    localMigrations,
+    remoteMigrations,
+    firstRemoteVersion: String(report?.firstRemoteVersion ?? ""),
+    latestRemoteVersion: String(report?.latestRemoteVersion ?? ""),
+    verifiedVersions: [...verifiedVersions].filter(Boolean).sort(),
+  };
+}
+
 function readMigrationDrift() {
   const file = path.join(root, "docs", "supabase-migration-drift-report.md");
   const migrationsDir = path.join(root, "supabase", "migrations");
@@ -434,6 +482,7 @@ function readMigrationDrift() {
     ? readdirSync(migrationsDir).filter((entry) => entry.endsWith(".sql")).length
     : 0;
   drift.currentLocal = currentLocalCount;
+  drift.mcpHistory = readMcpMigrationHistoryReport(currentLocalCount);
   if (currentLocalCount !== drift.local) {
     add(
       "warnings",
@@ -442,10 +491,18 @@ function readMigrationDrift() {
       { file: rel(file) },
     );
   }
+  if (drift.mcpHistory && !drift.mcpHistory.valid) {
+    add(
+      "warnings",
+      "stale-mcp-migration-history-report",
+      "Supabase MCP migration-history verification is missing required current production details.",
+      { file: drift.mcpHistory.file },
+    );
+  }
   if (drift.newDuplicateVersions > 0) {
     add("warnings", "duplicate-migration-versions", `Local Supabase migrations contain ${drift.newDuplicateVersions} new duplicate version(s).`, { file: rel(file) });
   }
-  if (drift.remoteError) {
+  if (drift.remoteError && !drift.mcpHistory?.valid) {
     add(
       "warnings",
       "migration-history-unavailable",
@@ -493,9 +550,11 @@ function renderReport(summary) {
   const drift = summary.migrationDrift;
   const nextMoves = [
     "- Reconcile Supabase migration history before running production schema pushes.",
-    drift?.remoteError
+    drift?.remoteError && !drift?.mcpHistory?.valid
       ? "- Configure `SUPABASE_ACCESS_TOKEN` or run `supabase login` so readiness checks can compare remote migration history. See `docs/supabase-migration-auth-setup.md`."
-      : "- Keep `SUPABASE_ACCESS_TOKEN` available in production readiness jobs so remote migration history remains comparable.",
+      : drift?.mcpHistory?.valid
+        ? "- Supabase MCP migration history is verified for this run; keep `SUPABASE_ACCESS_TOKEN` available in CI so the CLI report can also compare remote history."
+        : "- Keep `SUPABASE_ACCESS_TOKEN` available in production readiness jobs so remote migration history remains comparable.",
     "- Configure `app.settings.supabase_url` and `app.settings.supabase_anon_key` per Supabase project before relying on database cron jobs.",
     "- Run `npm run supabase:upgrade-readiness` before a Postgres major-version upgrade or production schema push.",
     "- Keep new high-risk Edge Functions on `withSecurity()` and strict CORS from the first commit.",
@@ -523,7 +582,8 @@ function renderReport(summary) {
     `- Required public env documented: ${requiredPublicEnv.join(", ")}`,
     `- Recommended backend env documented: ${recommendedBackendEnv.join(", ")}`,
     `- API operations runbook: ${summary.operations.present ? `present (${summary.operations.missingTopics.length} missing topics)` : "missing"}`,
-    drift ? `- Supabase migration drift: reportLocal=${drift.local}, currentLocal=${drift.currentLocal}, remote=${drift.remote}, matched=${drift.matched}, duplicateVersions=${drift.duplicateVersions}, allowedDuplicateVersions=${drift.allowedDuplicateVersions}, newDuplicateVersions=${drift.newDuplicateVersions}, remoteError=${drift.remoteError ? "yes" : "no"}` : "- Supabase migration drift: report missing",
+    drift ? `- Supabase migration drift: reportLocal=${drift.local}, currentLocal=${drift.currentLocal}, remote=${drift.remote}, matched=${drift.matched}, duplicateVersions=${drift.duplicateVersions}, allowedDuplicateVersions=${drift.allowedDuplicateVersions}, newDuplicateVersions=${drift.newDuplicateVersions}, remoteError=${drift.remoteError ? "yes" : "no"}, mcpVerified=${drift.mcpHistory?.valid ? "yes" : "no"}` : "- Supabase migration drift: report missing",
+    drift?.mcpHistory?.valid ? `- Supabase MCP migration history: remote=${drift.mcpHistory.remoteMigrations}, first=${drift.mcpHistory.firstRemoteVersion}, latest=${drift.mcpHistory.latestRemoteVersion}, verified=${drift.mcpHistory.verifiedVersions.join(", ")}` : "",
     drift ? `- Supabase migration near-match diagnostics: near5s=${drift.nearFiveSeconds}, near60s=${drift.nearOneMinute}, oneToOne5s=${drift.oneToOneNearFiveSeconds}, oneToOne60s=${drift.oneToOneNearOneMinute}, unmatchedLocal=${drift.unmatchedLocalAfterCandidates}, unmatchedRemote=${drift.unmatchedRemoteAfterCandidates}, localAfterRemoteRange=${drift.unmatchedLocalAfterRemoteRange}, sharedDays=${drift.sharedDays}` : "",
     drift ? `- Pending local migration risk gates: createsTables=${drift.pendingCreatesTables}, withoutRls=${drift.pendingCreatesTablesWithoutRls}, withoutGrants=${drift.pendingCreatesTablesWithoutGrants}, sequenceWithoutGrants=${drift.pendingSequenceBackedIdsWithoutSequenceGrants}, definerWithoutSearchPath=${drift.pendingSecurityDefinersWithoutSearchPath}, hardcodedUrls=${drift.pendingHardcodedSupabaseUrls}, legacyAnonJwts=${drift.pendingLegacyAnonJwts}` : "",
     "",

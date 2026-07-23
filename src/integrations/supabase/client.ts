@@ -32,12 +32,13 @@ const useZivoDriverBackend =
 
 const MAIN_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const MAIN_SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
-const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsaXJwaHp6d2NvZ2Ria2VpY2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NDUzMzgsImV4cCI6MjA4NTAyMTMzOH0.44uwdZZxQZYmmHr9yUALGO4Vr6mJVaVfSQW_pzJ0uoI";
+const MISSING_SUPABASE_CONFIG_URL = "https://zivo-supabase-env-required.invalid";
+const MISSING_SUPABASE_CONFIG_KEY = "missing-supabase-publishable-key";
+const hasMainSupabaseConfig = Boolean(MAIN_SUPABASE_URL && MAIN_SUPABASE_PUBLISHABLE_KEY);
 
-export const AUTH_SUPABASE_URL = MAIN_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+export const AUTH_SUPABASE_URL = MAIN_SUPABASE_URL || MISSING_SUPABASE_CONFIG_URL;
 export const AUTH_SUPABASE_PUBLISHABLE_KEY =
-  MAIN_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+  MAIN_SUPABASE_PUBLISHABLE_KEY || MISSING_SUPABASE_CONFIG_KEY;
 
 export const DATA_SUPABASE_URL = useZivoSoftwareBackend
   ? ZIVO_SOFTWARE_SUPABASE_URL
@@ -75,14 +76,14 @@ const SUPABASE_PROJECT_REF =
   (EFFECTIVE_AUTH_SUPABASE_URL ? new URL(EFFECTIVE_AUTH_SUPABASE_URL).hostname.split(".")[0] : "");
 const SUPABASE_AUTH_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
 
-if (!MAIN_SUPABASE_URL || !MAIN_SUPABASE_PUBLISHABLE_KEY) {
+if (!hasMainSupabaseConfig) {
   // Don't throw at module load — that crashes the whole React tree and leaves
   // visitors with a blank white page (seen on zivosmedia.com when the production
   // build was published without the VITE_SUPABASE_* env vars baked in).
   // Log loudly so the issue is still obvious in DevTools, but let the app boot.
   console.error(
     "[supabase/client] Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY — " +
-    "using bundled public fallback until the site is re-published with env vars."
+    "using a disabled placeholder endpoint until the site is re-published with env vars."
   );
 }
 

@@ -18,6 +18,8 @@ const migrationsDir = path.join(root, "supabase", "migrations");
 const reportJsonPath = path.join(docsDir, "zivo-travel-readiness-report.json");
 const reportMdPath = path.join(docsDir, "zivo-travel-readiness-report.md");
 const inventoryPath = path.join(docsDir, "zivo-travel-supabase-inventory.md");
+const travelSupabaseProjectRef = "xbllvmpomorawkcrtbcq";
+const expectedTravelSupabaseUrl = `https://${travelSupabaseProjectRef}.supabase.co`;
 
 const requiredEdgeFunctions = {
   flights: [
@@ -204,10 +206,10 @@ for (const file of [".env.example", ".env.deploy.example"]) {
   }
 }
 
-if (!envExample.includes("VITE_ZIVO_TRAVEL_SUPABASE_URL=https://xbllvmpomorawkcrtbcq.supabase.co")) {
+if (!envExample.includes(`VITE_ZIVO_TRAVEL_SUPABASE_URL=${expectedTravelSupabaseUrl}`)) {
   blockers.push(".env.example must document the travel Supabase URL.");
 }
-if (!envDeployExample.includes("VITE_ZIVO_TRAVEL_SUPABASE_URL=https://xbllvmpomorawkcrtbcq.supabase.co")) {
+if (!envDeployExample.includes(`VITE_ZIVO_TRAVEL_SUPABASE_URL=${expectedTravelSupabaseUrl}`)) {
   blockers.push(".env.deploy.example must document the travel Supabase URL.");
 }
 if (!configText.includes("VITE_ZIVO_TRAVEL_USE_DEDICATED_BACKEND")) {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 
-const FALLBACK_SUPABASE_URL = "https://slirphzzwcogdbkeicff.supabase.co";
+const SUPABASE_FUNCTIONS_ORIGIN = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/+$/, "");
 
 const CALLBACK_FUNCTION_BY_PATH: Record<string, string> = {
   "/auth/meta/callback": "oauth-callback",
@@ -19,10 +19,12 @@ export default function OAuthForwarder() {
   const title = TITLE_BY_PATH[pathname] ?? "Connecting";
 
   const destination = useMemo(() => {
-    return `${FALLBACK_SUPABASE_URL}/functions/v1/${functionName}${window.location.search}${window.location.hash}`;
+    if (!SUPABASE_FUNCTIONS_ORIGIN) return "";
+    return `${SUPABASE_FUNCTIONS_ORIGIN}/functions/v1/${functionName}${window.location.search}${window.location.hash}`;
   }, [functionName]);
 
   useEffect(() => {
+    if (!destination) return;
     window.location.replace(destination);
   }, [destination]);
 
@@ -32,7 +34,9 @@ export default function OAuthForwarder() {
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-zinc-900" aria-hidden="true" />
         <h1 className="text-xl font-semibold text-zinc-950">{title}</h1>
         <p className="max-w-sm text-sm text-zinc-600">
-          Finishing the secure connection with Zivo.
+          {destination
+            ? "Finishing the secure connection with Zivo."
+            : "This connection needs the Supabase callback URL configured before it can continue."}
         </p>
       </div>
     </main>

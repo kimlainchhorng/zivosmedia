@@ -192,5 +192,9 @@ describe("push notifications and notification-center workflow", () => {
     expect(serviceWorker).toContain("self.addEventListener('notificationclick'");
     expect(serviceWorker).toContain("notification_type");
     expect(serviceWorker).toContain("Incoming ZIVO call");
+    expect(serviceWorker).toContain("const rideTrackingUrl = rideTripId ? `/rides/track/${encodeURIComponent(String(rideTripId))}` : '/rides/hub'");
+    expect(serviceWorker).toContain("urlToOpen = '/rides/hub?ride_path=%2Fhistory'");
+    expect(serviceWorker).toContain("urlToOpen = '/wallet'");
+    expect(serviceWorker).toContain("urlToOpen = '/rewards'");
   });
 });

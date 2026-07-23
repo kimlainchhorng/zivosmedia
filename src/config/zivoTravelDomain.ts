@@ -8,7 +8,7 @@ export const ZIVO_TRAVEL_HOME_PATH = "/";
 export const ZIVO_TRAVEL_APP_PATH = "/travel";
 
 export const ZIVO_TRAVEL_SUPABASE_URL =
-  import.meta.env.VITE_ZIVO_TRAVEL_SUPABASE_URL || "https://xbllvmpomorawkcrtbcq.supabase.co";
+  import.meta.env.VITE_ZIVO_TRAVEL_SUPABASE_URL || "";
 
 export const ZIVO_TRAVEL_SUPABASE_PROJECT_ID = "xbllvmpomorawkcrtbcq";
 

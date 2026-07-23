@@ -71,7 +71,7 @@ export default function ZivosmediaAuthorize() {
       const { data: sessionData } = await authSupabase.auth.getSession();
       if (!sessionData.session) {
         const next = `${window.location.pathname}${window.location.search}`;
-        navigate(`/login?next=${encodeURIComponent(next)}`, { replace: true });
+        navigate(`/login?redirect=${encodeURIComponent(next)}`, { replace: true });
         return;
       }
 
