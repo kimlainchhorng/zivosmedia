@@ -3,10 +3,10 @@
 Brief for AI coding agents (Codex, Claude Code, etc.) working in this repo. Read this before building. Keep it updated when architecture changes.
 
 ## Multi-agent workflow (read first)
-Three agents work this repo **together**: **Claude Code**, **Codex**, and **DeepSeek**. To avoid collisions:
+Four agents work this repo **together**: **Claude Code**, **Codex**, **DeepSeek**, and **MiMo**. To avoid collisions:
 - **Coordination rules + roles:** [`docs/agent-workflow.md`](docs/agent-workflow.md).
 - **Shared task board (claim work here before editing):** [`AGENT_TASKS.md`](AGENT_TASKS.md).
-- **One verify gate before "done":** `npm run update` (type-check + worker type-check + production build — must pass).
+- **One verify gate before "done":** `npm run update` (6 steps: type-check + worker type-check + `test:zivo-ride-contract` + `test:zivo-ride-production-boundary` + `qa:zivo-ride-production-boundary` + production build — must pass).
 - **DeepSeek** runs as an advisor via `npm run agent:deepseek -- --task "…"` (it proposes plans/diffs; a human/Claude/Codex applies them). It is fed this file automatically by the runner.
 - One agent per file/page; re-check `git status` before editing a shared file; owner commits & deploys.
 
@@ -32,8 +32,10 @@ Three agents work this repo **together**: **Claude Code**, **Codex**, and **Deep
 ## Multi-domain federation (LOCKED architecture — read `docs/zivo-multidomain-architecture.md`)
 7 domains, each owns its vertical on its OWN Supabase project; **zivosmedia.com = all-in-one aggregator + identity authority**. Owner-locked: **(1) ONE ZIVO account across all domains** — auth ALWAYS on the main project; per-domain projects trust it via the SAME JWT secret + **claims-based RLS** (`auth.uid()`, not local `auth.users`); client becomes a **dual client** (auth=main, data=per-domain via supabase-js `accessToken`). **(2) per-domain data, federated** to zivosmedia. Map: travel→`xbllv`, software→`ydxz`, driver→`yiedl`, main→`slirph`. **Pilot order: Driver → Travel → Software → aggregation.** Guardrail: do NOT flip a domain's data routing until its project has schema + data + the shared JWT secret; back up before any data move; keep payments central on `slirph` initially. This supersedes the earlier "travel stays on shared backend" stance.
 
+> ⚠️ **OPEN OWNER DECISION — do not resolve in code without the owner.** The code currently routes **auth** on zivosoftware.com to the SOFTWARE project (`src/integrations/supabase/client.ts` `useDedicatedSoftwareAuth`), which contradicts the locked **"auth ALWAYS on main (`slirph`)"** decision above. The owner must pick: (a) keep software auth on the dedicated project (amend the locked decision), or (b) refactor software auth back onto the main project (dual-client pattern like the other domains). Until decided, treat this as a known, deliberate-looking deviation — don't "fix" it unilaterally.
+
 ## Guardrails (important)
-- **Live data + live Stripe key.** `src/lib/stripe.ts` holds a `pk_live` key; checkout charges are real. Don't run end-to-end payment tests casually; never expose secrets.
+- **Live data + live Stripe.** `src/lib/stripe.ts` reads the publishable key from env (`VITE_STRIPE_PUBLISHABLE_KEY`) — no hardcoded `pk_live` in the repo — but the configured key is LIVE: checkout charges are real. Don't run end-to-end payment tests casually; never expose secrets.
 - **Don't migrate/duplicate** live bookings/payments into the travel project. The travel site reuses the engine via API (shared-backend decision).
 - **Reuse existing engine routes** for booking/checkout/wallet — don't rebuild them.
 - Keep `type-check` at 0 errors. Respect `prefers-reduced-motion` in travel UI. Make cross-cutting changes **additive** (they ship to all domains).
@@ -46,11 +48,11 @@ File map:
 - `src/pages/ZivoTravelHome.tsx` — the 3D front-door. **Premium CSS/framer-motion 3D** (coverflow carousel, pointer-tilt, parallax, scroll reveals) — **not** heavy WebGL/Three.js (mobile + SEO matter). Autoplay must never clobber user input. Also runs a head-SEO reconcile (see SEO).
 - `src/config/zivoTravelDomain.ts` — host gating, allowed paths, travel project URL/key, `getZivoTravelUrl`.
 - `src/integrations/supabase/travelClient.ts` — telemetry client (`xbllvmpomorawkcrtbcq`).
-- `src/lib/crossDomainSSO.ts` + `src/pages/AuthHandoff.tsx` (route `/auth/handoff`) — same-project session handoff for SSO between zivosmedia ↔ zivostravel (tokens via URL hash, open-redirect guarded).
-- `src/pages/FlightLanding.tsx` — `useFlightDeepLinkInitial` reads inbound query params into the flight search form.
-- `cloudflare/worker.ts` — `travelSeoResponse` serves host-aware `robots.txt` + `sitemap.xml` for travel hosts.
+- `src/lib/crossDomainSSO.ts` + `src/pages/AuthHandoff.tsx` (route `/auth/handoff`) — same-project session handoff for SSO between zivosmedia ↔ zivostravel (**one-time magic-link OTP** minted by the `mint-sso-handoff` edge function — the old URL-hash refresh_token handoff was replaced; open-redirect guarded).
+- `src/pages/FlightLanding.tsx` — `useFlightDeepLinkInitial` reads inbound query params into the flight search form; `src/lib/flightDeepLink.ts` resolves free-text origin/destination to IATA so deep-linked searches can auto-run.
+- `cloudflare/worker.ts` — `travelSeoResponse` serves host-aware `robots.txt` + `sitemap.xml` for travel hosts; `rewriteTravelHtml` (HTMLRewriter) corrects the static `index.html` head on travel hosts for non-JS crawlers.
 
-Booking surfaces (reuse, don't rebuild): `/flights`, `/hotels` (wrapped in `CambodiaOnlyGate` — blocks non-Cambodia users), `/cars`, `/bus`, `/travel/checkout`, `/wallet`, `/payment-methods`.
+Booking surfaces (reuse, don't rebuild): `/flights`, `/hotels` (renders on all hosts — `ZivoTravelHotelGate` is a pass-through; `CambodiaOnlyGate` is rides/drive-only), `/cars`, `/bus`, `/travel/checkout`, `/wallet`, `/payment-methods`.
 
 **Deep-link param contract** (home → engine page; each page reads its own keys, keep additive):
 - flight → `/flights?from&to&start&end&travelers`
@@ -60,21 +62,18 @@ Booking surfaces (reuse, don't rebuild): `/flights`, `/hotels` (wrapped in `Camb
 
 SEO: the shared static `index.html` bakes **zivosmedia** SEO into every host; `ZivoTravelHome` reconciles the head client-side (de-dupes keeping its `<Helmet>` tags, drops non-`zivostravel` JSON-LD). The worker serves travel robots/sitemap.
 
-## Build backlog (good next tasks)
-- **Hotels gate**: decide whether to lift `CambodiaOnlyGate` for the zivostravel host (product decision — confirm with owner).
-- **Travel `og:image`**: add a branded public social image and wire `og:image`/`twitter:image` in `ZivoTravelHome` Helmet.
-- **Harden SSO**: replace the URL-hash refresh_token handoff with a one-time magic-link OTP via an edge function (mirror the existing `/connect/media` `verifyOtp` flow).
-- **SEO for non-JS crawlers**: add a Cloudflare HTMLRewriter in `worker.ts` to correct the static `index.html` head on travel hosts (current reconcile is client-side only).
-- **Flight one-click**: resolve free-text origin/destination to IATA so deep-linked flight searches can auto-run.
-- **Sitemap depth**: expand the travel sitemap with destination/route SEO pages.
+## Build backlog (remaining)
+The earlier 6-item backlog is DONE (hotels gate resolved — hotels render on all hosts; travel `og:image` wired; SSO hardened to magic-link OTP; worker HTMLRewriter head rewrite; flight IATA auto-resolution; sitemap depth). What remains:
+- **Travel booking-funnel theming** — apply the `.zivo-travel-3d` theme + kit to the ~20 booking-funnel pages (incl. `/travel/checkout`), not just the list pages.
+- **Result-deck theming** — flight/hotel/car/bus result lists onto `Coverflow3D` decks.
+- **Backend drift backfill** — reconcile live DB drift vs repo migrations (see Supabase projects section).
 
 ## Backend cutover guardrails (see docs/zivo-travel-backend-cutover.md)
-**OWNER DECISION (2026-06-05): keep the shared backend via API. Do NOT run the dedicated data migration or set `VITE_ZIVO_TRAVEL_USE_DEDICATED_BACKEND=true`. The travel project stays telemetry-only; zivostravel.com keeps using the live shared engine (`slirphzzwcogdbkeicff`).** If this is ever revisited, make the flag auth/payments-shared first (below).
+**OWNER DECISION (2026-06-05): keep the shared backend via API. Do NOT run the dedicated data migration or set `VITE_ZIVO_TRAVEL_USE_DEDICATED_BACKEND=true`. The travel project stays telemetry-only; zivostravel.com keeps using the live shared engine (`slirphzzwcogdbkeicff`).** If this is ever revisited, the remaining prerequisite is the DATA migration (below) — the flag itself is already auth-safe.
 
-The dedicated-backend flag `VITE_ZIVO_TRAVEL_USE_DEDICATED_BACKEND` (wired in `src/integrations/supabase/client.ts`) currently switches the MAIN client — **including auth** — to the travel project (`xbllvmpomorawkcrtbcq`) on the travel host. Before ever enabling it:
-- **Keep auth + payments on the shared main project (`slirphzzwcogdbkeicff`) even in dedicated mode** — switch only the travel content/edge client. Otherwise: the cross-domain SSO (`/auth/handoff`) breaks (Supabase JWTs are verified per-project, so a `slirph` token can't `setSession` on an `xbllv` client); user accounts split (the travel project has no users); and payouts/Stripe reconciliation split across two accounts.
+The dedicated-backend flag `VITE_ZIVO_TRAVEL_USE_DEDICATED_BACKEND` (wired in `src/integrations/supabase/client.ts`) now routes **DATA only** — the client is a dual client: auth stays on the shared main project (`slirphzzwcogdbkeicff`) via `authSupabase`, and only the per-domain data client switches, with the main-project session injected via supabase-js `accessToken`. Before ever enabling it:
 - **Plan the DATA migration, not just schema/functions** — live rows (airports/airlines/hotel inventory, bookings, PII) must be migrated or the travel project is empty when the flag flips.
-- Keep the flag **OFF** until both are handled. Default = shared backend via API.
+- Keep the flag **OFF** until the data migration is handled. Default = shared backend via API.
 
 ## 3D revamp — zivostravel.com ONLY (in progress, Claude + Codex)
 Owner wants a full 3D redesign for the travel domain: new imagery, layered scroll (up/down/left/right + turn/move), 3D UX/UI across the home AND inside flights/hotels/cars/bus + the booking funnel. **Decision: scoped 3D theme + scroll layer** (do NOT fork the shared engine pages or restyle them globally — zivosmedia must stay untouched).
