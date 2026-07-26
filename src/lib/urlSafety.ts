@@ -102,10 +102,19 @@ const URL_SHORTENERS = new Set([
 ]);
 
 /**
- * ZIVO-owned hostnames — anything that's *similar but not identical* to one
- * of these is treated as a typosquat attempt and blocked.
+ * ZIVO-owned hostnames — exact matches (and their subdomains) are trusted.
  */
 const ZIVO_OWNED_HOSTS = ['zivosmedia.com', 'myzivo.lovable.app'];
+
+/**
+ * Hostnames protected against typosquatting — anything that's *similar but
+ * not identical* to one of these is treated as an impersonation attempt and
+ * blocked. Includes ZIVO-owned hosts plus brand-lookalike hosts ZIVO does
+ * NOT own (e.g. hizivo.com from the dropped rebrand): those are never
+ * trusted themselves, but near-matches of them (h1zivo.com, hiz1vo.com, …)
+ * are unambiguous phishing.
+ */
+const ZIVO_PROTECTED_HOSTS = [...ZIVO_OWNED_HOSTS, 'hizivo.com'];
 
 /**
  * Check if a URL uses a safe protocol (http/https only).
@@ -200,9 +209,8 @@ function levenshtein(a: string, b: string): number {
 export function isZivoTyposquat(url: string): boolean {
   try {
     const host = new URL(url).hostname.toLowerCase();
-    if (ZIVO_OWNED_HOSTS.includes(host)) return false;
     if (ZIVO_OWNED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return false;
-    return ZIVO_OWNED_HOSTS.some((own) => {
+    return ZIVO_PROTECTED_HOSTS.some((own) => {
       const dist = levenshtein(host, own);
       return dist > 0 && dist <= 2;
     });

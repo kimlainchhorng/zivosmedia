@@ -71,7 +71,7 @@ export default function BusinessAccountPage() {
             <div className="h-16 w-16 rounded-3xl bg-ig-gradient flex items-center justify-center mx-auto mb-4 shadow-lg shadow-rose-500/20"><Building className="h-7 w-7 text-white" /></div>
             <p className="text-base font-bold text-foreground mb-1">No business account</p>
             <p className="text-xs text-muted-foreground mb-4">Apply for a business account to unlock corporate rates, priority support, and centralized billing.</p>
-            <Button onClick={() => navigate("/business-account/setup")} className="bg-ig-gradient text-white font-bold rounded-full h-10 px-5 hover:opacity-90 border-0">Apply</Button>
+            <Button onClick={() => navigate("/business/new")} className="bg-ig-gradient text-white font-bold rounded-full h-10 px-5 hover:opacity-90 border-0">Apply</Button>
           </div>
         )}
         {!isLoading && account && (

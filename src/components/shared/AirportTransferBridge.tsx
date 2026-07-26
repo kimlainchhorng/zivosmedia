@@ -77,7 +77,7 @@ const AirportTransferBridge = ({
       } });
       if (error) throw error;
       toast.success(`${option.name} booked! We'll confirm your transfer shortly.`);
-      navigate("/request-ride");
+      navigate("/app/request-ride");
     } catch {
       toast.error("Failed to book transfer. Please try again.");
     } finally {

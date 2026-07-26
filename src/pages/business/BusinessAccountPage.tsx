@@ -113,7 +113,7 @@ export default function BusinessAccountPage() {
               <p className="text-sm text-muted-foreground">Discounts</p>
             </div>
           </div>
-          <Button size="lg" onClick={() => navigate("/business/signup")}>
+          <Button size="lg" onClick={() => navigate("/business/new")}>
             <Plus className="w-5 h-5 mr-2" />
             Create Business Account
           </Button>
@@ -144,7 +144,7 @@ export default function BusinessAccountPage() {
               </Badge>
             </div>
           </div>
-          <Button variant="outline" onClick={() => navigate("/business/settings")}>
+          <Button variant="outline" onClick={() => navigate("/account/settings")}>
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>

@@ -99,7 +99,7 @@ const faqContent: Record<ResultsServiceType, { question: string; answer: React.R
         <>
           Check out our <Link to="/extras" className="text-foreground hover:underline font-medium">travel extras</Link> for 
           airport transfers, tours, eSIM data, and more. For any questions, visit our{" "}
-          <Link to="/contact" className="text-foreground hover:underline font-medium">contact page</Link> or email us directly.
+          <Link to="/help" className="text-foreground hover:underline font-medium">help center</Link> or email us directly.
         </>
       ),
       plainAnswer: "Check out our travel extras for airport transfers, tours, eSIM data, and more. For any questions, visit our contact page or email us directly.",
@@ -151,7 +151,7 @@ const faqContent: Record<ResultsServiceType, { question: string; answer: React.R
       answer: (
         <>
           For booking-related support, contact the partner site where you completed your reservation. 
-          For help using ZIVO, reach out via our <Link to="/contact" className="text-amber-500 hover:underline font-medium">contact page</Link>.
+          For help using ZIVO, reach out via our <Link to="/help" className="text-amber-500 hover:underline font-medium">help center</Link>.
         </>
       ),
       plainAnswer: "For booking-related support, contact the partner site where you completed your reservation. For help using ZIVO, reach out via our contact page.",

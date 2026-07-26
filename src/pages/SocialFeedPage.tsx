@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SocialFeedPage — Facebook-style social feed.
  *
  * Layout (top to bottom):
@@ -41,9 +41,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Link2, EyeOff, Flag, Trash2, UserMinus,
-  Pin, PinOff, BookmarkPlus, Pencil, ShoppingBag,
+  Pin, PinOff, BookmarkPlus,
   Globe2, Users as UsersIcon, Lock, Coins, BellOff,
-  Megaphone, FolderPlus, MessageSquareOff,
+  MessageSquareOff,
   Share2 as Share2Icon, Send as SendIcon,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -873,17 +873,6 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
     } catch { toast.error("Couldn't save post"); }
   };
 
-  // The detail-page UIs for these flows are next on the roadmap. Until then
-  // we gracefully tell the user it's coming so the menu never lands on a 404.
-  const comingSoon = (label: string) => () => toast(`${label} — coming soon`, {
-    description: "We're building this — your post is fine, the detail page just isn't live yet.",
-  });
-  const handleEdit = comingSoon("Edit post");
-  const handleManageProducts = comingSoon("Manage product links");
-  const handleAddToAlbum = comingSoon("Add to album");
-  const handleCreateBoost = comingSoon("Create boost");
-  const handleHideFromPeople = comingSoon("Hide from specific people");
-
   const handleVisibility = async (v: "public" | "friends" | "only_me") => {
     setVisibility(v);
     const ok = await updateOwnPost({ visibility: v });
@@ -965,15 +954,6 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
             <DropdownMenuItem onSelect={handleSaveOwn} className="gap-2">
               <BookmarkPlus className="h-4 w-4" /> Save to collection
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleEdit} className="gap-2">
-              <Pencil className="h-4 w-4" /> Edit post
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleManageProducts} className="gap-2">
-              <ShoppingBag className="h-4 w-4" /> Manage product links
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleAddToAlbum} className="gap-2">
-              <FolderPlus className="h-4 w-4" /> Add to album
-            </DropdownMenuItem>
 
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Visibility & controls</DropdownMenuLabel>
@@ -992,10 +972,6 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
                 <DropdownMenuItem onSelect={() => handleVisibility("only_me")} className="gap-2">
                   <Lock className="h-4 w-4" /> Only me {visibility === "only_me" && "·"}
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={handleHideFromPeople} className="gap-2">
-                  <EyeOff className="h-4 w-4" /> Hide from specific people…
-                </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
             <DropdownMenuItem onSelect={handleTipsToggle} className="gap-2">
@@ -1012,11 +988,6 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
             <DropdownMenuItem onSelect={handleNotifyToggle} className="gap-2">
               {notifyEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
               Notifications · {notifyEnabled ? "On" : "Off"}
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleCreateBoost} className="gap-2">
-              <Megaphone className="h-4 w-4" /> Create boost
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />

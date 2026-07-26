@@ -40,7 +40,6 @@ import Swords from "lucide-react/dist/esm/icons/swords";
 import Users from "lucide-react/dist/esm/icons/users";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import TrendingUp from "lucide-react/dist/esm/icons/trending-up";
-import Globe from "lucide-react/dist/esm/icons/globe";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag";
 import History from "lucide-react/dist/esm/icons/history";
@@ -1115,13 +1114,10 @@ export default function LiveStreamPage() {
  {[
  { id: "all", label: "All", icon: null, live: false },
  { id: "live", label: liveCount >0 ? `Live (${liveCount})` : "Live", icon: null, live: true },
- { id: "popular", label: "Popular", icon: Flame, live: false },
- { id: "following", label: "Following", icon: Heart, live: false },
- { id: "nearby", label: "Nearby", icon: Globe, live: false },
- { id: "pk", label: "PK Battles", icon: Swords, live: false },
- { id: "voice", label: "Voice Rooms", icon: Mic, live: false },
- { id: "multi", label: "Multi-Guest", icon: Users, live: false },
  { id: "scheduled", label: "Scheduled", icon: null, live: false },
+ // Popular / Following / Nearby / PK Battles / Voice Rooms / Multi-Guest
+ // chips are hidden — filteredStreams has no backing logic for them yet.
+ // They will return once each underlying data source ships.
  ].map((f) =>{
  const Icon = f.icon;
  return (

@@ -35,6 +35,12 @@ const URL_SHORTENERS = new Set([
 
 const ZIVO_OWNED_HOSTS = ["zivosmedia.com", "myzivo.lovable.app"];
 
+// Typosquat protection also covers brand-lookalike hosts ZIVO does NOT own
+// (hizivo.com, from the dropped rebrand): never trusted themselves, but
+// near-matches (h1zivo.com, hiz1vo.com, …) are unambiguous phishing.
+// Keep in sync with src/lib/urlSafety.ts.
+const ZIVO_PROTECTED_HOSTS = [...ZIVO_OWNED_HOSTS, "hizivo.com"];
+
 const ALLOWED_PARTNER_DOMAINS = new Set([
   "aviasales.com", "tp.media", "tpo.li", "hotellook.com", "economybookings.com",
   "qeeq.com", "getrentacar.com", "kiwitaxi.com", "gettransfer.com", "intui.travel",
@@ -83,7 +89,9 @@ function assess(url: string): "trusted" | "neutral" | "suspicious" | "blocked" {
     if (host === own || host.endsWith(`.${own}`)) {
       return "trusted";
     }
-    const dist = levenshtein(host, own);
+  }
+  for (const prot of ZIVO_PROTECTED_HOSTS) {
+    const dist = levenshtein(host, prot);
     if (dist > 0 && dist <= 2) return "blocked";
   }
 

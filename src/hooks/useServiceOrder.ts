@@ -125,10 +125,14 @@ export function useServiceOrder(orderId: string | null | undefined): UseServiceO
 
   const cancel = useCallback(async (reason?: string) => {
     if (!orderId) return;
-    const { error: invErr } = await supabase.functions.invoke("zivo-update-status", {
-      body: { order_id: orderId, to_status: "cancelled" as ServiceOrderStatus, meta: { reason: reason ?? "customer_cancelled" } },
-    });
-    if (invErr) setError(invErr.message);
+    try {
+      const { error: invErr } = await supabase.functions.invoke("zivo-update-status", {
+        body: { order_id: orderId, to_status: "cancelled" as ServiceOrderStatus, meta: { reason: reason ?? "customer_cancelled" } },
+      });
+      if (invErr) setError(invErr.message);
+    } catch (e: any) {
+      setError(e?.message || "Could not cancel order");
+    }
   }, [orderId]);
 
   const rate = useCallback(async (stars: number) => {

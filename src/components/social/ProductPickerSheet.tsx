@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Search from "lucide-react/dist/esm/icons/search";
 import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag";
@@ -221,7 +221,7 @@ export default function ProductPickerSheet({
               <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">Create a store first, then you can tag products from your catalog on any post.</p>
               <button
                 type="button"
-                onClick={() => { onOpenChange(false); navigate("/app/shop"); }}
+                onClick={() => { onOpenChange(false); navigate("/shop"); }}
                 className="mt-4 flex items-center gap-2 rounded-full bg-ig-gradient px-5 py-2 text-[13px] font-semibold text-white shadow-[0_4px_16px_rgba(236,72,153,0.30)] transition-transform active:scale-95"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -249,7 +249,7 @@ export default function ProductPickerSheet({
               {!query && (
                 <button
                   type="button"
-                  onClick={() => { onOpenChange(false); navigate("/app/shop/products"); }}
+                  onClick={() => { onOpenChange(false); navigate("/shop-dashboard/products"); }}
                   className="mt-4 flex items-center gap-2 rounded-full bg-ig-gradient px-5 py-2 text-[13px] font-semibold text-white shadow-[0_4px_16px_rgba(236,72,153,0.30)] transition-transform active:scale-95"
                 >
                   <Plus className="h-3.5 w-3.5" />

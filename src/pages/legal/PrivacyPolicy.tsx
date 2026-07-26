@@ -139,7 +139,7 @@ function ZivoSoftwarePrivacy() {
 }
 
 const PrivacyPolicy = () => {
-  const lastUpdated = "March 13, 2026";
+  const lastUpdated = "July 26, 2026";
   const companyName = "ZIVO LLC";
   const isZivoSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
@@ -400,7 +400,17 @@ const PrivacyPolicy = () => {
                 <li>Advertising and marketing partners such as Meta, Google Ads, and TikTok (and X) only when you consent to marketing cookies or similar tracking</li>
               </ul>
 
-              <h4 className="font-semibold text-foreground mt-6">3.3 For Legal Reasons</h4>
+              <h4 className="font-semibold text-foreground mt-6">3.3 Mobile Information and SMS Choices</h4>
+              <p>
+                We use a mobile number to send a one-time verification code only when a user requests it. Verifying a phone number does
+                not enroll a person in marketing or recurring SMS.
+              </p>
+              <p className="font-medium text-foreground">
+                ZIVO does not share mobile phone numbers or SMS opt-in consent with third parties or affiliates for their own marketing
+                or promotional purposes.
+              </p>
+
+              <h4 className="font-semibold text-foreground mt-6">3.4 For Legal Reasons</h4>
               <p>We may disclose information to:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Comply with applicable laws, regulations, or legal processes</li>
@@ -409,7 +419,7 @@ const PrivacyPolicy = () => {
                 <li>Investigate fraud, security issues, or terms violations</li>
               </ul>
 
-              <h4 className="font-semibold text-foreground mt-6">3.4 Business Transfers</h4>
+              <h4 className="font-semibold text-foreground mt-6">3.5 Business Transfers</h4>
               <p>
                 In the event of a merger, acquisition, or sale of assets, your information may be transferred
                 to the acquiring entity. We will notify you of any such transfer and any choices you may have.

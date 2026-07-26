@@ -74,7 +74,10 @@ export default function GroceryOrderConfirmed() {
         // Supabase project; folder lives in the zivodriver repo, not here).
         supabase.functions.invoke("dispatch-order", {
           body: { order_id: orderId, order_type: "shopping_delivery" },
-        }).catch(() => {/* best-effort */});
+        }).catch((dispatchErr) => {
+          // Dispatch is best-effort — log and never throw into the UI.
+          console.error("[grocery] dispatch-order failed:", dispatchErr);
+        });
       } catch (err) {
         console.error("Failed to update order:", err);
       } finally {

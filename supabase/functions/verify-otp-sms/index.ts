@@ -1,11 +1,13 @@
 /**
  * verify-otp-sms — verifies a phone OTP via Twilio Verify.
  *
- * Public endpoint (mid-signup or phone-add flow). Uses shared toolkit for CORS,
- * Zod-style validation, and standardized error envelopes. Success response
- * shape preserved: { success: true, message }.
+ * Authenticated endpoint for a signed-in user verifying their own phone
+ * number. Uses shared toolkit for CORS, Zod-style validation, and
+ * standardized error envelopes. Success response shape preserved:
+ * { success: true, message }.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { requireUser } from "../_shared/auth.ts";
 import { withErrorHandling, HttpError } from "../_shared/errors.ts";
 import { parseBody, v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
@@ -37,7 +39,15 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
   const body = await parseBody(req, Body);
   const phone_e164 = body.phone_e164 as string;
   const code = body.code as string;
-  const user_id = body.user_id as string;
+  const requestedUserId = body.user_id as string;
+  const { userId } = await requireUser(req);
+
+  if (userId !== requestedUserId) {
+    throw new HttpError(403, "You can only verify a phone number for your own account", {
+      success: false,
+      code: "USER_MISMATCH",
+    });
+  }
 
   const checkResponse = await fetch(
     `https://verify.twilio.com/v2/Services/${TWILIO_VERIFY_SERVICE_SID}/VerificationCheck`,
@@ -77,24 +87,44 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
     });
   }
 
-  const { error: prefsError } = await supabase
+  // Do not upsert unconditionally: an existing user's explicit SMS choice must
+  // survive phone verification, while a newly created preference row starts off.
+  const { data: existingPreferences, error: preferenceLookupError } = await supabase
     .from("notification_preferences")
-    .update({
-      phone_number: phone_e164,
-      phone_verified: true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", user_id);
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  if (prefsError) {
-    await supabase.from("notification_preferences").upsert({
-      user_id,
+  if (preferenceLookupError) {
+    console.error("Failed to look up notification preferences:", preferenceLookupError);
+  } else if (existingPreferences) {
+    const { error: prefsUpdateError } = await supabase
+      .from("notification_preferences")
+      .update({
+        phone_number: phone_e164,
+        phone_verified: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+
+    if (prefsUpdateError) {
+      console.error("Failed to update notification preferences:", prefsUpdateError);
+    }
+  } else {
+    const { error: createPrefsError } = await supabase.from("notification_preferences").insert({
+      user_id: userId,
       phone_number: phone_e164,
       phone_verified: true,
       email_enabled: true,
-      sms_enabled: true,
+      // Phone verification is not consent for ongoing SMS. Keep the safe
+      // default explicit even if a deployment's database defaults drift.
+      sms_enabled: false,
       in_app_enabled: true,
     });
+
+    if (createPrefsError) {
+      console.error("Failed to create notification preferences:", createPrefsError);
+    }
   }
 
   const { error: profileError } = await supabase
@@ -103,14 +133,13 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
       phone_e164,
       phone_verified: true,
       phone_verified_at: new Date().toISOString(),
-      sms_consent: true,
     })
-    .eq("user_id", user_id);
+    .eq("user_id", userId);
 
   if (profileError) {
     console.error("Failed to update profile:", profileError);
   } else {
-    console.log("Phone verified for user:", user_id);
+    console.log("Phone verified for user:", userId);
   }
 
   return ok(req, { success: true, message: "Phone number verified successfully" });

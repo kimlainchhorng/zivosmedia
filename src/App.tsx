@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { usePageViewTracker } from "@/hooks/usePageViewTracker";
 import { useGeoDetect } from "@/hooks/useGeoDetect";
 import { HelmetProvider } from "react-helmet-async";
+import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 const P2PTransferSheet = lazy(() => import("@/components/chat/P2PTransferSheet"));
@@ -229,7 +230,6 @@ const AirportTransfersPage = lazy(() => import("./pages/seo/AirportTransfersPage
 const CarRentalCityPage = lazy(() => import("./pages/seo/CarRentalCityPage"));
 const DestinationActivitiesPage = lazy(() => import("./pages/seo/DestinationActivitiesPage"));
 const DestinationHotelsPage = lazy(() => import("./pages/seo/DestinationHotelsPage"));
-const GroceryPage = lazy(() => import("./pages/GroceryPage"));
 const NewServiceOrderPage = lazy(() => import("./pages/NewServiceOrderPage"));
 const CanonicalRidePage = lazy(() => import("./pages/app/CanonicalRidePage"));
 const CreateCVPage = lazy(() => import("./pages/app/CreateCVPage"));
@@ -306,7 +306,6 @@ const TwoStepSetupPage = lazyWithRetry(() => import("./pages/chat/settings/TwoSt
 const PasscodeSetupPage = lazyWithRetry(() => import("./pages/chat/settings/PasscodeSetupPage"));
 const LoginAlertsPage = lazyWithRetry(() => import("./pages/chat/settings/LoginAlertsPage"));
 const ChatPrivacyHubPage = lazyWithRetry(() => import("./pages/chat/settings/ChatPrivacyHubPage"));
-const ChatSearchAllPage = lazyWithRetry(() => import("./pages/chat/ChatSearchAllPage"));
 const CustomFoldersPage = lazyWithRetry(() => import("./pages/chat/CustomFoldersPage"));
 const BroadcastListsPage = lazyWithRetry(() => import("./pages/chat/BroadcastListsPage"));
 const NewBroadcastPage = lazyWithRetry(() => import("./pages/chat/NewBroadcastPage"));
@@ -651,7 +650,6 @@ const GenericLegalPage = lazy(() => import("./pages/legal/GenericLegalPage"));
 const AffiliateDisclosure = lazy(() => import("./pages/AffiliateDisclosure"));
 const About = lazy(() => import("./pages/About"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
-const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Refunds = lazy(() => import("./pages/Refunds"));
 const Company = lazy(() => import("./pages/Company"));
@@ -670,7 +668,6 @@ const HashtagPage = lazy(() => import("./pages/HashtagPage"));
 const Status = lazy(() => import("./pages/Status"));
 const FAQPage = lazy(() => import("./pages/FAQPage"));
 const BookingReturn = lazy(() => import("./pages/BookingReturnPage"));
-const Feedback = lazy(() => import("./pages/Feedback"));
 const Roadmap = lazy(() => import("./pages/Roadmap"));
 const AITripPlanner = lazy(() => import("./pages/AITripPlanner"));
 const MultiCityBuilder = lazy(() => import("./pages/MultiCityBuilder"));
@@ -715,7 +712,6 @@ const GameScoresPage = lazy(() => import("./pages/GameScoresPage"));
 const ClubsPage = lazy(() => import("./pages/ClubsPage"));
 const ForumsPage = lazy(() => import("./pages/ForumsPage"));
 const PlaylistsPage = lazy(() => import("./pages/PlaylistsPage"));
-const TrendingTopicsPage = lazy(() => import("./pages/TrendingTopicsPage"));
 const ReelEffectsPage = lazy(() => import("./pages/ReelEffectsPage"));
 const PlacesPage = lazy(() => import("./pages/PlacesPage"));
 const ReactionPacksPage = lazy(() => import("./pages/ReactionPacksPage"));
@@ -726,7 +722,6 @@ const HashtagsDirectoryPage = lazy(() => import("./pages/HashtagsDirectoryPage")
 const CoinWalletPage = lazy(() => import("./pages/CoinWalletPage"));
 const GifLibraryPage = lazy(() => import("./pages/GifLibraryPage"));
 const SplitBillsPage = lazy(() => import("./pages/SplitBillsPage"));
-const FitnessActivitiesPage = lazy(() => import("./pages/FitnessActivitiesPage"));
 const FanBadgesPage = lazy(() => import("./pages/FanBadgesPage"));
 const MyUnlocksPage = lazy(() => import("./pages/MyUnlocksPage"));
 const VoiceNotesPage = lazy(() => import("./pages/VoiceNotesPage"));
@@ -1653,6 +1648,7 @@ function ZivoEmployeeHostGate() {
 
 const App = () => (
   <ErrorBoundary>
+    <MotionConfig reducedMotion="user">
     <HelmetProvider>
       <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false} storageKey="hizovo-theme">
         <QueryClientProvider client={queryClient}>
@@ -1864,7 +1860,6 @@ const App = () => (
                 <Route path="/chat/settings/passcode" element={<ProtectedRoute><PasscodeSetupPage /></ProtectedRoute>} />
                 <Route path="/chat/settings/login-alerts" element={<ProtectedRoute><LoginAlertsPage /></ProtectedRoute>} />
                 <Route path="/chat/settings/privacy-hub" element={<ProtectedRoute><ChatPrivacyHubPage /></ProtectedRoute>} />
-                <Route path="/chat/search" element={<ProtectedRoute><ChatSearchAllPage /></ProtectedRoute>} />
                 <Route path="/chat/folders" element={<ProtectedRoute><CustomFoldersPage /></ProtectedRoute>} />
                 <Route path="/chat/broadcasts" element={<ProtectedRoute><BroadcastListsPage /></ProtectedRoute>} />
                 <Route path="/chat/broadcasts/new" element={<ProtectedRoute><NewBroadcastPage /></ProtectedRoute>} />
@@ -2235,7 +2230,6 @@ const App = () => (
                 <Route path="/clubs" element={<ClubsPage />} />
                 <Route path="/forums" element={<ForumsPage />} />
                 <Route path="/playlists" element={<ProtectedRoute><PlaylistsPage /></ProtectedRoute>} />
-                <Route path="/trending" element={<TrendingTopicsPage />} />
                 <Route path="/reel-effects" element={<ReelEffectsPage />} />
                 <Route path="/places" element={<PlacesPage />} />
                 <Route path="/reaction-packs" element={<ReactionPacksPage />} />
@@ -2246,7 +2240,6 @@ const App = () => (
                 <Route path="/coins" element={<ProtectedRoute><CoinWalletPage /></ProtectedRoute>} />
                 <Route path="/gifs" element={<GifLibraryPage />} />
                 <Route path="/split-bills" element={<ProtectedRoute><SplitBillsPage /></ProtectedRoute>} />
-                <Route path="/fitness" element={<ProtectedRoute><FitnessActivitiesPage /></ProtectedRoute>} />
                 <Route path="/fan-badges" element={<ProtectedRoute><FanBadgesPage /></ProtectedRoute>} />
                 <Route path="/my-unlocks" element={<ProtectedRoute><MyUnlocksPage /></ProtectedRoute>} />
                 <Route path="/voice-notes" element={<ProtectedRoute><VoiceNotesPage /></ProtectedRoute>} />
@@ -2399,12 +2392,13 @@ const App = () => (
                 {/* Public */}
                 <Route path="/about" element={<About />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
-                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/refunds" element={<Refunds />} />
                 <Route path="/company" element={<Company />} />
                 <Route path="/security" element={<Security />} />
                 <Route path="/security-status" element={<SecurityStatus />} />
+                <Route path="/affiliate-disclosure" element={<AffiliateDisclosure />} />
                 {/* /saved is taken by BookmarksPage above; tile-grid view lives at /saved-posts */}
                 <Route path="/saved-posts" element={<ProtectedRoute><SavedPostsPage /></ProtectedRoute>} />
                 <Route path="/saved-collections/:id" element={<ProtectedRoute><SavedCollectionPage /></ProtectedRoute>} />
@@ -2420,8 +2414,7 @@ const App = () => (
                 <Route path="/destinations/:city/activities" element={<DestinationActivitiesPage />} />
                 <Route path="/destinations/:city/hotels" element={<DestinationHotelsPage />} />
 
-                {/* Grocery + service flows */}
-                <Route path="/grocery" element={<GroceryPage />} />
+                {/* Grocery + service flows — /grocery canonical route (GroceryMarketplace) defined above */}
                 <Route path="/services/new-order" element={<ProtectedRoute><NewServiceOrderPage /></ProtectedRoute>} />
                 <Route path="/app/request-ride" element={<ProtectedRoute><CambodiaOnlyGate><CanonicalRidePage /></CambodiaOnlyGate></ProtectedRoute>} />
                 <Route path="/press" element={<Press />} />
@@ -2500,10 +2493,8 @@ const App = () => (
                 <Route path="/support/site-issues" element={<SiteIssuesSupport />} />
                 <Route path="/support/tickets" element={<ProtectedRoute><UserSupportTicketsPage /></ProtectedRoute>} />
                 <Route path="/support/tickets/:id" element={<ProtectedRoute><TicketDetailPage /></ProtectedRoute>} />
-                {/* Referrals & Feedback */}
-                <Route path="/referrals" element={<ReferralProgram />} />
+                {/* Invite (/referrals and /feedback have canonical routes above) */}
                 <Route path="/invite" element={<ReferralProgram />} />
-                <Route path="/feedback" element={<Feedback />} />
                 <Route path="/roadmap" element={<Roadmap />} />
 
                 {/* Guides */}
@@ -2546,6 +2537,7 @@ const App = () => (
   </QueryClientProvider>
   </ThemeProvider>
   </HelmetProvider>
+  </MotionConfig>
   </ErrorBoundary>
 );
 

@@ -82,7 +82,7 @@ export default function MediaLibraryPage() {
           </div>
           <Button
             size="sm"
-            onClick={() => navigate("/feed/new")}
+            onClick={() => navigate("/feed-new")}
             className="bg-ig-gradient text-white font-bold rounded-full h-9 px-3 hover:opacity-90 border-0"
           >
             <Plus className="h-4 w-4 mr-1" strokeWidth={3} />
@@ -128,7 +128,7 @@ export default function MediaLibraryPage() {
               Share a photo or video and it will show up here for you to manage.
             </p>
             <Button
-              onClick={() => navigate("/feed/new")}
+              onClick={() => navigate("/feed-new")}
               className="bg-ig-gradient text-white font-bold rounded-full h-11 px-6 hover:opacity-90 border-0 shadow-md"
             >
               <Plus className="h-4 w-4 mr-1.5" strokeWidth={3} />

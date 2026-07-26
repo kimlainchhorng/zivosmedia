@@ -81,7 +81,7 @@ export default function CarRentalConfirmedPage() {
     const vehicle = booking.vehicle;
     openShareToChat({
       kind: "car",
-      title: `${vehicle?.year} ${vehicle?.make} ${vehicle?.model}` || "Car Rental",
+      title: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : "Car Rental",
       subtitle: `${format(parseISO(booking.pickup_date), "MMM d")} – ${format(parseISO(booking.return_date), "MMM d")} · ${booking.total_days}d`,
       meta: formatPrice(booking.total_amount),
       deepLink: `/cars/${id}`,

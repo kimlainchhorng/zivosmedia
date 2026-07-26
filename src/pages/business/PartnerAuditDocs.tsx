@@ -296,7 +296,7 @@ export default function PartnerAuditDocs() {
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
-          <Link to="/how-zivo-makes-money">
+          <Link to="/legal/partner-disclosure">
             <Button variant="outline" className="gap-2">
               How ZIVO Makes Money
               <ArrowRight className="w-4 h-4" />

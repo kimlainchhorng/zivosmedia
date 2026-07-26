@@ -72,7 +72,7 @@ export default function CreatorTiersSubscribe({ creatorId, creatorName, isOwnPro
   const handleSubscribe = async (tier: any) => {
     if (!user) {
       toast.error("Sign in to subscribe");
-      navigate("/auth");
+      navigate("/login");
       return;
     }
     if (tier.is_custom_price) {

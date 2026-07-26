@@ -70,6 +70,7 @@ function isAllowedRidePath(pathname: string): boolean {
     pathname === "/account" ||
     pathname === "/multi-stop" ||
     new RegExp(`^/tracking/${UUID_PATH}$`).test(pathname) ||
+    new RegExp(`^/receipt/${UUID_PATH}$`).test(pathname) ||
     new RegExp(`^/rate/${UUID_PATH}$`).test(pathname);
 }
 

@@ -290,7 +290,7 @@ export default function BusinessDashboard() {
                     <CardHeader>
                       <div className="flex justify-between items-center">
                         <CardTitle>Team Travelers</CardTitle>
-                        <Button className="gap-2" onClick={() => navigate("/business/invite")}>
+                        <Button className="gap-2" onClick={() => navigate("/account/travelers")}>
                           <PlusCircle className="w-4 h-4" />
                           Add Traveler
                         </Button>
@@ -382,7 +382,7 @@ export default function BusinessDashboard() {
                                 <p className="font-medium">{row.label}</p>
                                 <p className="text-sm text-muted-foreground">{row.desc}</p>
                               </div>
-                              <Button variant="outline" size="sm" onClick={() => navigate("/business/settings")}>Edit</Button>
+                              <Button variant="outline" size="sm" onClick={() => navigate("/business/account")}>Edit</Button>
                             </div>
                           </div>
                         ))}

@@ -289,12 +289,7 @@ const CompanyProfile = () => {
                       <ExternalLink className="w-3 h-3 ml-auto" />
                     </Link>
                   </Button>
-                  <Button variant="outline" className="w-full justify-start gap-2" asChild>
-                    <Link to="/investors">
-                      Investor Relations
-                      <ExternalLink className="w-3 h-3 ml-auto" />
-                    </Link>
-                  </Button>
+                  {/* Investor Relations link removed — /investors route does not exist (no investor page yet) */}
                   <Button variant="outline" className="w-full justify-start gap-2" asChild>
                     <Link to="/press">
                       Press & Media
@@ -302,7 +297,7 @@ const CompanyProfile = () => {
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start gap-2" asChild>
-                    <Link to="/strategic-partnerships">
+                    <Link to="/partners">
                       Strategic Partnerships
                       <ExternalLink className="w-3 h-3 ml-auto" />
                     </Link>

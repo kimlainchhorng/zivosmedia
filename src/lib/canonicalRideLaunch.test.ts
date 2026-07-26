@@ -52,6 +52,8 @@ describe("canonical Ride launch contract", () => {
     const id = "550e8400-e29b-41d4-a716-446655440000";
     expect(sanitizeCanonicalRidePath(`/tracking/${id}?multi=Market%7CAirport&token=secret`))
       .toBe(`/tracking/${id}?multi=Market%7CAirport`);
+    expect(sanitizeCanonicalRidePath(`/receipt/${id}?token=secret`))
+      .toBe(`/receipt/${id}`);
     expect(sanitizeCanonicalRidePath("//evil.example/tracking/x")).toBeNull();
     expect(sanitizeCanonicalRidePath("/admin")).toBeNull();
   });
@@ -91,6 +93,19 @@ describe("canonical Ride launch contract", () => {
     ).toBe("/multi-stop?from=Home&stops=Office%7CMarket");
     expect(sanitizeCanonicalRidePath("/multi-stop?from=Home&from=Duplicate&stops=Office"))
       .toBe("/multi-stop?from=Home&stops=Office");
+  });
+
+  it("preserves an authenticated receipt path across an embedded refresh", () => {
+    const tripId = "550e8400-e29b-41d4-a716-446655440000";
+    const hostPath = updateCanonicalRideHostPath(
+      "https://zivosmedia.com/rides/hub",
+      `/receipt/${tripId}`,
+    );
+
+    expect(hostPath).toBe(`/rides/hub?ride_path=%2Freceipt%2F${tripId}`);
+    const refreshed = new URL(hostPath!, "https://zivosmedia.com");
+    expect(deriveCanonicalRideFramePath(refreshed.pathname, refreshed.search))
+      .toBe(`/receipt/${tripId}`);
   });
 
   it("preserves a multi-stop to root-booking transition across refresh", () => {

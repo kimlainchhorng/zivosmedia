@@ -9,8 +9,8 @@ import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
  */
 export const PREFETCH_ROUTE_MODULES = {
   "/flights": "@/pages/FlightLanding",
-  "/hotels": "@/pages/HotelLanding",
-  "/cars": "@/pages/CarRentalLanding",
+  "/hotels": "@/pages/lodging/HotelsLandingPage",
+  "/cars": "@/pages/Cars",
   "/rides": "@/pages/app/CanonicalRidePage",
   "/rides/hub": "@/pages/app/CanonicalRidePage",
   "/app/request-ride": "@/pages/app/CanonicalRidePage",
@@ -28,7 +28,7 @@ export const PREFETCH_ROUTE_MODULES = {
   // Orphan-built destinations the feed empty state + library tiles route to:
   "/audio-rooms":     "@/pages/AudioRoomsPage",
   "/ama":             "@/pages/AMAPage",
-  "/trending":        "@/pages/TrendingTopicsPage",
+  "/trending":        "@/pages/TrendingPage",
   "/friend-requests": "@/pages/FriendRequestsPage",
   "/streaks":         "@/pages/StreaksPage",
   "/coins":           "@/pages/CoinWalletPage",
@@ -36,8 +36,8 @@ export const PREFETCH_ROUTE_MODULES = {
 
 const PREFETCH_ROUTES: Record<string, () => Promise<unknown>> = {
   "/flights": () => import("@/pages/FlightLanding"),
-  "/hotels": () => import("@/pages/HotelLanding"),
-  "/cars": () => import("@/pages/CarRentalLanding"),
+  "/hotels": () => import("@/pages/lodging/HotelsLandingPage"),
+  "/cars": () => import("@/pages/Cars"),
   "/rides": () => import("@/pages/app/CanonicalRidePage"),
   "/rides/hub": () => import("@/pages/app/CanonicalRidePage"),
   "/app/request-ride": () => import("@/pages/app/CanonicalRidePage"),

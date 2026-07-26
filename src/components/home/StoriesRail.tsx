@@ -1,4 +1,4 @@
-﻿/**
+/**
  * StoriesRail — Instagram-style horizontal stories carousel for Home.
  *
  * Renders the user's "Your story" entry first (with a `+` add affordance)
@@ -51,7 +51,7 @@ export default function StoriesRail() {
         {user && (
           <button
             type="button"
-            onClick={() => navigate("/feed/new")}
+            onClick={() => navigate("/feed-new")}
             className="shrink-0 flex flex-col items-center gap-1 touch-manipulation active:opacity-70 transition-opacity"
           >
             <div className="relative">

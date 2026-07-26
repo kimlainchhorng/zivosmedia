@@ -89,7 +89,7 @@ export default function DownloadedPacksPage() {
           <div className="rounded-2xl border border-border bg-card p-8 text-center">
             <div className="h-16 w-16 rounded-3xl bg-ig-gradient flex items-center justify-center mx-auto mb-4 shadow-lg shadow-rose-500/20"><Download className="h-7 w-7 text-white" /></div>
             <p className="text-base font-bold text-foreground mb-1">No packs downloaded</p>
-            <Button onClick={() => navigate("/sticker-store")} className="mt-3 bg-ig-gradient text-white font-bold rounded-full h-10 px-5 hover:opacity-90 border-0">Browse store</Button>
+            <Button onClick={() => navigate("/stickers")} className="mt-3 bg-ig-gradient text-white font-bold rounded-full h-10 px-5 hover:opacity-90 border-0">Browse store</Button>
           </div>
         )}
         {!isLoading && downloads.length > 0 && (

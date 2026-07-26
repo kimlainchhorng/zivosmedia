@@ -130,14 +130,22 @@ describe("deploy workflow gates", () => {
     const packageJson = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
     const readme = read("cloudflare/README.md");
 
-    for (const scriptName of ["cloudflare:check", "cloudflare:deploy", "cloudflare:pages:deploy"]) {
+    for (const scriptName of ["cloudflare:check", "cloudflare:pages:deploy"]) {
       const script = packageJson.scripts[scriptName];
       expect(script).toContain("npm run security:scan");
       expect(script).toContain("npm run deploy:preflight:local");
       expect(script.indexOf("npm run deploy:preflight:local")).toBeLessThan(script.indexOf("wrangler"));
     }
 
-    expect(packageJson.scripts["cloudflare:deploy"]).not.toContain("npm run build && npx wrangler deploy");
+    // cloudflare:deploy runs the stricter production chain: strict preflight plus
+    // release:production-gate (whose release:gate ends in `npm run security:scan`),
+    // all before wrangler — a superset of the local gate the other scripts use.
+    const deploy = packageJson.scripts["cloudflare:deploy"];
+    expect(deploy).toContain("npm run deploy:preflight:strict");
+    expect(deploy).toContain("npm run release:production-gate");
+    expect(deploy.indexOf("npm run deploy:preflight:strict")).toBeLessThan(deploy.indexOf("wrangler"));
+    expect(deploy.indexOf("npm run release:production-gate")).toBeLessThan(deploy.indexOf("wrangler"));
+
     expect(readme).toContain("Both Cloudflare deploy scripts run `npm run security:scan`");
     expect(readme).toContain("npm run deploy:preflight:local");
   });

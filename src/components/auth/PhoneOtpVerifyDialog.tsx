@@ -4,6 +4,7 @@
  * Flow: enter phone → receive 6-digit SMS code → verify → phone marked verified.
  */
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Loader2, Smartphone, ShieldCheck, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -114,7 +115,10 @@ export default function PhoneOtpVerifyDialog({ open, onOpenChange, onVerified, i
             <Label>Mobile number</Label>
             <CountryPhoneInput value={phone} onChange={setPhone} />
             <p className="text-xs text-muted-foreground">
-              Standard SMS rates may apply. Carrier delivery times vary.
+              By selecting <strong>Send code</strong>, you request one ZIVO verification message at this number. You may request another
+              code if needed. Message and data rates may apply. Reply STOP to opt out of future SMS delivery or HELP for help. Consent
+              is not a condition of purchase. See our <Link to="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</Link>{" "}
+              and <Link to="/legal/terms" className="underline underline-offset-2 hover:text-foreground">Terms of Service</Link>.
             </p>
           </div>
         )}

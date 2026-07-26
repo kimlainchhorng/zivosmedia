@@ -121,7 +121,7 @@ export default function TrendingCreators() {
 
   const handleFollow = async (targetId: string, targetName: string | null) => {
     if (!user) {
-      navigate("/auth");
+      navigate("/login");
       return;
     }
     setOptimisticallyFollowed((prev) => new Set(prev).add(targetId));

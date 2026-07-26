@@ -129,7 +129,7 @@ export default function CoinWalletPage() {
           </div>
           <Button
             size="sm"
-            onClick={() => navigate("/coin-purchase-success")}
+            onClick={() => navigate("/wallet/coins/success")}
             className="bg-ig-gradient text-white font-bold rounded-full h-9 px-3 hover:opacity-90 border-0"
           >
             <ShoppingBag className="h-4 w-4 mr-1" />
@@ -184,7 +184,7 @@ export default function CoinWalletPage() {
               <p className="text-base font-bold text-foreground mb-1">No coin activity yet</p>
               <p className="text-xs text-muted-foreground mb-4">Earn coins from tips, gifts, and creator activities — or buy a starter pack.</p>
               <Button
-                onClick={() => navigate("/coin-purchase-success")}
+                onClick={() => navigate("/wallet/coins/success")}
                 className="bg-ig-gradient text-white font-bold rounded-full h-10 px-5 hover:opacity-90 border-0"
               >
                 Buy your first coins

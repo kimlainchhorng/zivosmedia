@@ -191,7 +191,7 @@ export default function EnterpriseReady() {
                   enterprise@zivosmedia.com
                 </a>
               </Button>
-              <Link to="/security/enterprise">
+              <Link to="/security/trust">
                 <Button variant="outline" size="lg" className="gap-2">
                   Security Documentation
                   <ArrowRight className="w-4 h-4" />
@@ -205,7 +205,7 @@ export default function EnterpriseReady() {
         <div className="text-center mt-12">
           <h3 className="text-lg font-semibold mb-4">Additional Resources</h3>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link to="/business/corporate-travel">
+            <Link to="/corporate">
               <Button variant="outline" className="gap-2">
                 Corporate Travel
                 <ArrowRight className="w-4 h-4" />

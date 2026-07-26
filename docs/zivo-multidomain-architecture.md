@@ -40,7 +40,7 @@ Date: 2026-06-06 · Owner decisions **LOCKED**.
 - **Data client = the per-domain project**, created with supabase-js v2 `accessToken: () => <main session access_token>` so it sends the main-project JWT. RLS on the per-domain project then sees the same user.
 - Each per-domain project must be set with the **same JWT secret + issuer as `slirph`** (Supabase Dashboard → Auth → JWT) so main-issued tokens validate there.
 - **RLS on per-domain projects uses JWT claims (`auth.uid()`), NOT local `auth.users`** (users are not replicated). Reference `user_id` columns + `auth.uid()`; avoid joins to `auth.users`/`profiles` unless those are mirrored.
-- Net: refactor the client into a **dual client** — `authClient` (main) + `dataClient` (per-domain). `client.ts` currently switches the *whole* client per host; that must change so **auth stays on main** and only **data** routes per host.
+- Net: the client is now a **dual client** — `authClient` (main) + `dataClient` (per-domain); **auth stays on main** and only **data** routes per host (see Code touch-points below).
 
 ## Per-domain data
 - Each project gets its vertical's **schema** (tables, RLS, RPC, triggers, indexes, storage buckets) + **data** migrated from `slirph`.
@@ -69,7 +69,7 @@ Date: 2026-06-06 · Owner decisions **LOCKED**.
 ## Code touch-points
 - `src/integrations/supabase/client.ts` — now exposes `authSupabase` for main-project auth, `dataSupabase` for active domain data, and a compatibility `supabase` export whose `.auth` routes to main while `.from()` / `.functions` / `.storage` route to active domain data.
 - `src/config/zivoDriverDomain.ts` — added for `zivodriver.com`; data routing to `yiedlgoxwjmansszdypf` is gated by `VITE_ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY` so the browser bundle does not flip before the key is configured.
-- `src/config/` — later business/employee/chat dedicated-project configs can mirror `zivoTravelDomain.ts`, `zivoDriverDomain.ts`, and `autoRepairDomain.ts`.
+- `src/config/` — business/employee/chat/admin dedicated-project domain configs now exist (`zivoBusinessDomain.ts`, `zivoEmployeeDomain.ts`, `zivoChatDomain.ts`, `zivoAdminDomain.ts`) alongside `zivoTravelDomain.ts`, `zivoDriverDomain.ts`, and `autoRepairDomain.ts`.
 
 ## Immediate next migration work
 1. Add the missing Driver publishable key and Edge Function secrets, then verify the Driver app against `yiedlgoxwjmansszdypf`.

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GroceryCheckoutDrawer - 2026 Spatial UI Checkout (v4)
  * 2-step: Delivery Details → Review & Pay
  * Real-time ETA, substitution preferences, persistent profile
@@ -493,8 +493,16 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
         payment_method: selectedPayment,
         status: "pending",
       } as any).select("id").single();
-      if (error) throw new Error(error.message);
-      const orderId = (data as any)?.id;
+      // The order must still confirm to the user even if the insert fails
+      // (e.g. missing `grocery_orders` table) — log it and surface a
+      // non-blocking toast instead of throwing into the error path.
+      let orderId: string | null = null;
+      if (error) {
+        console.error("[grocery] order insert failed:", error);
+        toast.error("Order placed, but confirmation may be delayed. Check your orders or contact support.");
+      } else {
+        orderId = (data as any)?.id ?? null;
+      }
       const earnedPoints = addLoyaltyPoints(grandTotal);
       toast.success(
         selectedPayment === "cash"
@@ -506,9 +514,12 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
         // Supabase project; the folder lives in the zivodriver repo).
         supabase.functions.invoke("dispatch-order", {
           body: { order_id: orderId, order_type: "shopping_delivery" },
-        }).catch(() => {/* dispatch is best-effort */});
-        onOrderPlaced(orderId);
+        }).catch((dispatchErr) => {
+          // Dispatch is best-effort — log and never throw into the UI.
+          console.error("[grocery] dispatch-order failed:", dispatchErr);
+        });
       }
+      onOrderPlaced(orderId ?? "");
     } catch (err: any) {
       console.error("Cash/ABA order error:", err);
       toast.error(err.message || "Failed to place order");

@@ -373,6 +373,9 @@
 
   html {
     position: relative;
+    /* Global horizontal-overflow guard. `clip` (not `hidden`) so it doesn't
+       create a scroll container that would break position: sticky. */
+    overflow-x: clip;
   }
 
   /* Smooth-scroll only for fine pointers (desktop). On iOS WKWebView /
@@ -392,6 +395,7 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     font-feature-settings: "cv11", "ss01", "ss03";
+    overflow-x: clip;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -430,13 +434,6 @@
       scrollbar-width: thin;
       scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
     }
-  }
-
-  /* Crisper, brand-coloured focus ring everywhere */
-  :focus-visible {
-    outline: 2px solid hsl(var(--ring) / 0.85);
-    outline-offset: 2px;
-    border-radius: 4px;
   }
 
   /* Smooth out images so they don't look harsh on hi-DPI */

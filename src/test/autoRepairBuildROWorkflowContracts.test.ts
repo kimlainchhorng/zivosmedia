@@ -344,7 +344,7 @@ describe("auto repair Build R.O. workflow contracts", () => {
     expect(buildRO).toContain("handleSmsMenuOpenChange(false);");
     expect(buildRO).toContain("onOpenChange={handlePrintModalOpenChange}");
     expect(buildRO).toContain("onOpenChange={handleSmsMenuOpenChange}");
-    expect(buildRO).toContain("const copies = printCopies; handlePrintModalOpenChange(false); for (let i = 0; i < copies; i++) printRO();");
+    expect(buildRO).toContain("const copies = printCopies;\n                for (let i = 0; i < copies; i++) await printRO();\n                handlePrintModalOpenChange(false);");
     expect(buildRO).toContain("const msg = smsCustomMsg;");
     expect(buildRO).toContain("handleSmsMenuOpenChange(false);");
   });

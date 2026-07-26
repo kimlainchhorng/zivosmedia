@@ -1129,7 +1129,7 @@ export default function CreatePostModal({
             onClick={() => {
               if (!effectiveStoreId) {
                 toast.info("Create a store first to tag products", {
-                  action: { label: "Create store", onClick: () => navigate("/app/shop") },
+                  action: { label: "Create store", onClick: () => navigate("/shop") },
                 });
                 return;
               }

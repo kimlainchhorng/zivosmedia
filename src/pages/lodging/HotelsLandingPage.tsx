@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HotelsLandingPage
  * Booking-style discovery: tighter hero, dates+guests, quick filters,
  * price/amenities/rating on cards, "Near me" sort.
@@ -1663,7 +1663,7 @@ export default function HotelsLandingPage() {
               ) : (
                 <Button
                   className="mt-2 h-9 px-4 text-xs"
-                  onClick={() => navigate("/business/onboarding")}
+                  onClick={() => navigate("/become-partner")}
                 >
                   List your property
                 </Button>

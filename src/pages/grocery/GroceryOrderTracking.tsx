@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GroceryOrderTracking — Live order tracking with real-time status,
  * driver info, animated stepper, ETA countdown, and item details.
  * Uses Supabase Realtime for push updates.
@@ -334,10 +334,10 @@ export default function GroceryOrderTracking() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" aria-label="Message driver (coming soon)" className="h-10 w-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <button type="button" disabled aria-label="Message driver (coming soon)" className="h-10 w-10 rounded-xl bg-primary/10 opacity-50 cursor-not-allowed flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <MessageSquare className="h-4 w-4 text-primary" />
                   </button>
-                  <button type="button" aria-label="Call driver (coming soon)" className="h-10 w-10 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <button type="button" disabled aria-label="Call driver (coming soon)" className="h-10 w-10 rounded-xl bg-primary/10 opacity-50 cursor-not-allowed flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <Phone className="h-4 w-4 text-primary" />
                   </button>
                 </div>

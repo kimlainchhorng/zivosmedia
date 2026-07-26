@@ -1,11 +1,13 @@
 /**
  * send-otp-sms — sends a phone verification code via Twilio Verify.
  *
- * Public endpoint (signup/verification). Uses shared toolkit for CORS,
- * Zod-style validation, and standardized error envelopes. Success response
- * shape preserved: { success: true, message, expires_in }.
+ * Authenticated endpoint for a signed-in user verifying their own phone
+ * number. Uses shared toolkit for CORS, Zod-style validation, and
+ * standardized error envelopes. Success response shape preserved:
+ * { success: true, message, expires_in }.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { requireUser } from "../_shared/auth.ts";
 import { withErrorHandling, HttpError } from "../_shared/errors.ts";
 import { parseBody, v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
@@ -35,7 +37,15 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
 
   const body = await parseBody(req, Body);
   const phone_e164 = body.phone_e164 as string;
-  const user_id = body.user_id as string;
+  const requestedUserId = body.user_id as string;
+  const { userId } = await requireUser(req);
+
+  if (userId !== requestedUserId) {
+    throw new HttpError(403, "You can only request a phone verification code for your own account", {
+      success: false,
+      code: "USER_MISMATCH",
+    });
+  }
 
   // Rate limit: max 5 OTP requests per phone per hour (app-level)
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -72,7 +82,7 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
   }
 
   await supabase.from("sms_otp_codes").insert({
-    user_id,
+    user_id: userId,
     phone_e164,
     code: "VERIFY_API",
     expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
@@ -80,7 +90,7 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
 
   const maskedPhone = "***-***-" + phone_e164.slice(-4);
   await supabase.from("notification_audit").insert({
-    user_id,
+    user_id: userId,
     channel: "sms",
     event_type: "otp",
     destination_masked: maskedPhone,
@@ -89,7 +99,7 @@ const handler = withErrorHandling(async (req: Request): Promise<Response> => {
     error: null,
   });
 
-  console.log(`Twilio Verify sent to ${maskedPhone} for user ${user_id}, SID: ${verifyData.sid}`);
+  console.log(`Twilio Verify sent to ${maskedPhone} for user ${userId}, SID: ${verifyData.sid}`);
 
   return ok(req, { success: true, message: "Verification code sent", expires_in: 600 });
 }, "send-otp-sms");

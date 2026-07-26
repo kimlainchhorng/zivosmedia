@@ -249,7 +249,7 @@ export default function AiCreativeSuite() {
                     }}>
                       <Download className="h-4 w-4" /> Save Draft
                     </Button>
-                    <Button className="flex-1 rounded-xl gap-1.5" onClick={() => { navigate("/create-post"); toast.success("Opening Reel composer"); }}>
+                    <Button className="flex-1 rounded-xl gap-1.5" onClick={() => { navigate("/reels"); toast.success("Opening Reels…"); }}>
                       <Film className="h-4 w-4" /> Continue to Reel
                     </Button>
                   </div>

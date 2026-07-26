@@ -34,7 +34,7 @@ This file adds **how the agents coordinate**. The live to-do list is
 3. **One agent per file/page.** If two tasks touch the same file, do them one at a time.
    Re-check `git status` right before editing a shared file.
 4. **Verify before you finish.** Run **`npm run update`** (see below). It must pass
-   (types + worker types + production build) before a task moves to **Done**.
+   (types + worker types + Ride contract/boundary QA + production build) before a task moves to **Done**.
 5. **Owner commits & deploys.** Don't `git commit`, `git push`, or deploy unless the
    owner asks. Build changes **ready to deploy** and hand over the exact command.
 6. **Keep changes additive.** One build serves all domains — a change here ships
@@ -51,11 +51,14 @@ hard checks CI blocks on:
 npm run update
 ```
 
-It does three things, in order:
+It does six things, in order:
 
 1. `type-check` — the app must have **0 TypeScript errors**.
 2. `type-check:worker` — the Cloudflare worker (`cloudflare/worker.ts`) must type-check.
-3. `build` — the production build must succeed.
+3. `test:zivo-ride-contract` — the Ride contract tests (Vitest) must pass.
+4. `test:zivo-ride-production-boundary` — the Ride production-boundary contract tests must pass.
+5. `qa:zivo-ride-production-boundary` — the Ride production-boundary QA checks must pass.
+6. `build` — the production build must succeed.
 
 Faster inner-loop check (types only, skips the build):
 

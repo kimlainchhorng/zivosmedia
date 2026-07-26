@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GroceryOrderPlaced - Premium order confirmation with animated stepper
  * Fetches real order data and shows live ETA
  */
@@ -47,20 +47,24 @@ export default function GroceryOrderPlaced() {
       try {
         // Cash/ABA orders go into grocery_orders; card/PayPal/Square go into shopping_orders.
         // Try shopping_orders first, fall back to grocery_orders.
-        const { data: shoppingData } = await supabase
+        const { data: shoppingData, error: shoppingErr } = await supabase
           .from("shopping_orders")
           .select("store, total_amount, items, delivery_address, customer_name")
           .eq("id", orderId)
           .maybeSingle();
 
+        if (shoppingErr) console.error("[grocery] shopping_orders lookup failed:", shoppingErr);
+
         if (shoppingData) {
           setOrder(shoppingData as unknown as OrderData);
         } else {
-          const { data: groceryData } = await (supabase as any)
+          const { data: groceryData, error: groceryErr } = await (supabase as any)
             .from("grocery_orders")
             .select("store, total_amount, items, delivery_address, customer_name")
             .eq("id", orderId)
             .maybeSingle();
+          // The table may not exist — log and fall through to the generic confirmation UI.
+          if (groceryErr) console.error("[grocery] grocery_orders lookup failed:", groceryErr);
           if (groceryData) setOrder(groceryData as OrderData);
         }
       } catch (err) {

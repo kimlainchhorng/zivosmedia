@@ -1,4 +1,4 @@
-﻿/**
+/**
  * StoreSideRail — desktop-only sticky right column for StoreProfilePage.
  * Hosts mini map, address, primary CTAs, and (for lodging) the stay selector.
  */
@@ -332,7 +332,7 @@ export default function StoreSideRail({
           </div>
           <Button
             variant="outline"
-            onClick={() => isLodging && !hasPublishedRooms ? toast.info("Rooms are not published yet. Check back soon.") : navigate("/account/bookings")}
+            onClick={() => isLodging && !hasPublishedRooms ? toast.info("Rooms are not published yet. Check back soon.") : navigate("/my-trips")}
             className="mt-2.5 w-full h-9 rounded-xl gap-2 border-emerald-500/40 bg-background text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300 text-[12px] font-semibold"
           >
             <Lock className="h-3.5 w-3.5" />
@@ -382,7 +382,7 @@ export default function StoreSideRail({
 
       <p className="text-[10px] text-muted-foreground/60 text-center pt-1">
         Need help?{" "}
-        <Link to="/account/bookings" className="underline hover:text-foreground">
+        <Link to="/my-trips" className="underline hover:text-foreground">
           View my bookings
         </Link>
       </p>

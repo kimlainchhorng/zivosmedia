@@ -180,7 +180,7 @@ export default function NewServiceOrderPage() {
           <h1 className="text-2xl font-bold">Request service</h1>
           <p className="text-sm text-muted-foreground">A ride or delivery — same engine.</p>
         </div>
-        <Link to="/legal" className="text-xs text-primary hover:underline whitespace-nowrap">Legal Center →</Link>
+        <Link to="/account/legal" className="text-xs text-primary hover:underline whitespace-nowrap">Legal Center →</Link>
       </header>
 
       {error && <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}

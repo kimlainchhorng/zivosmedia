@@ -267,7 +267,7 @@ export default function Reliability() {
                 Disaster Recovery
               </Button>
             </Link>
-            <Link to="/security/enterprise">
+            <Link to="/enterprise-trust">
               <Button variant="outline" className="gap-2">
                 <Server className="w-4 h-4" />
                 Enterprise Security

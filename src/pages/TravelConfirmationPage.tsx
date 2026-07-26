@@ -298,7 +298,7 @@ const TravelConfirmationPage = () => {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button variant="outline" onClick={() => navigate("/my-orders")} className="gap-2">
+          <Button variant="outline" onClick={() => navigate("/my-trips")} className="gap-2">
             <Mail className="w-4 h-4" />
             {CHECKOUT_CONFIRMATION.buttons.view}
           </Button>

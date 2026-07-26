@@ -14,23 +14,25 @@ describe("release safety production secret contracts", () => {
     const summary = json("docs/production-preflight-summary.json");
 
     expect(summary.mode).toBe("soft");
-    expect(summary.readyForCurrentGate).toBe(false);
+    expect(summary.readyForCurrentGate).toBe(true);
     expect(summary.readyForProductionGate).toBe(false);
-    expect(summary.counts.environmentCritical).toBe(2);
+    expect(summary.counts.environmentCritical).toBe(0);
     expect(summary.counts.apiWarnings).toBeGreaterThanOrEqual(0);
     expect(summary.supabase).toEqual(
       expect.objectContaining({
-        envAccessToken: true,
-        driftAccessToken: true,
+        envAccessToken: false,
+        driftAccessToken: false,
         runtimeSettingsSqlInputs: false,
-        remoteMigrationHistoryRead: true,
-        remoteMigrationHistoryStatus: "read",
+        remoteMigrationHistoryRead: false,
+        remoteMigrationHistoryStatus: "unavailable",
       }),
     );
 
     expect(summary.blockers.production.length).toBeGreaterThan(0);
-    expect(summary.blockers.failedCommands).toContain("Supabase deploy environment");
-    expect(summary.blockers.failedCommands).toContain("Supabase runtime settings SQL");
+    expect(summary.blockers.production).toContain("Missing SUPABASE_URL for production backend cron/runtime settings.");
+    expect(summary.blockers.production).toContain("Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.");
+    expect(summary.blockers.production).toContain("Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.");
+    expect(summary.blockers.failedCommands).toEqual([]);
   });
 
   it("keeps deploy-secret documentation aligned with strict preflight requirements", () => {
@@ -81,7 +83,8 @@ describe("release safety production secret contracts", () => {
     expect(apiReport).toMatch(/- Warnings: \d+/);
     expect(apiReport).toContain("- Loose Edge Function security backlog: 0");
 
-    expect(driftReport).toContain("SUPABASE_ACCESS_TOKEN configured: yes");
+    expect(driftReport).toContain("SUPABASE_ACCESS_TOKEN configured: no");
+    expect(driftReport).toContain("Near-timestamp diagnostics require authenticated remote migration history.");
 
     expect(secretRunbook).toContain("Keep `SUPABASE_SERVICE_ROLE_KEY` separate from `SUPABASE_ANON_KEY`.");
     expect(secretRunbook).toContain("Remote migration history is readable when `SUPABASE_ACCESS_TOKEN` is configured.");

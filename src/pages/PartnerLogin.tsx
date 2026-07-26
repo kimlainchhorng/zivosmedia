@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Partner Login Page — Sign-in for ZIVO Partners (shop owners, merchants, etc.)
  * After login, redirects to partner dashboard based on user role.
  */
@@ -124,13 +124,15 @@ export default function PartnerLogin() {
       }
     } else if (restaurant.data) {
       toast.success("Welcome back, Partner!");
-      navigate("/restaurant/dashboard", { replace: true });
+      navigate("/eats/restaurant-dashboard", { replace: true });
     } else if (hotel.data) {
       toast.success("Welcome back, Partner!");
-      navigate("/hotel/dashboard", { replace: true });
+      navigate("/hotel-admin", { replace: true });
     } else if ((carRentals.data?.length ?? 0) > 0) {
       toast.success("Welcome back, Partner!");
-      navigate("/car-rental/dashboard", { replace: true });
+      // NOTE: no dedicated car-rental owner dashboard route exists yet (/car-rental/dashboard was a dead link);
+      // send rental-car owners to the car rental surface until one is built.
+      navigate("/car-rental", { replace: true });
     } else {
       // No partner role found — send to store setup
       toast.info("No partner account found. Please set up your business first.");

@@ -55,7 +55,7 @@ describe("loading, empty, and reliability visual contracts", () => {
     for (const needle of [
       'aria-label="Loading posts"',
       'aria-busy="true"',
-      "zivo-social-card mx-2 my-2 overflow-hidden rounded-[1.25rem]",
+      "mx-2 my-3 overflow-hidden rounded-[1.85rem] border border-border/40 bg-background/88",
       "<EngagementSkeleton />",
       "No posts yet",
       "Be the first to share something amazing!",

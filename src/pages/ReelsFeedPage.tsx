@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ReelsFeedPage — Instagram / Facebook style social feed
  * Full-width cards with author info, media, captions, and engagement
  * Everyone can post photos/videos that show up here
@@ -3227,7 +3227,7 @@ export default function ReelsFeedPage() {
             <div className="rounded-2xl border border-border/40 bg-card p-3">
               <div className="mb-1.5 flex items-center justify-between px-1.5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground/70">Birthdays</p>
-                <button type="button" onClick={() => navigate("/friends")} className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">See all</button>
+                <button type="button" onClick={() => navigate("/friend-requests")} className="text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">See all</button>
               </div>
               {birthdaysToday.length > 0 ? (
                 <div className="space-y-0.5">
@@ -3249,7 +3249,7 @@ export default function ReelsFeedPage() {
                 </div>
               ) : birthdaysLoaded ? (
                 <button type="button"
-                  onClick={() => navigate("/friends")}
+                  onClick={() => navigate("/friend-requests")}
                   className="w-full flex items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-500/15">

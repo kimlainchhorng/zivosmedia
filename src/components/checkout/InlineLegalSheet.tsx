@@ -16,7 +16,7 @@ const legalPages: Record<string, React.LazyExoticComponent<React.ComponentType>>
   "/legal/refunds": lazy(() => import("@/pages/legal/RefundPolicy")),
   "/legal/cancellation": lazy(() => import("@/pages/legal/CancellationPolicy")),
   "/terms": lazy(() => import("@/pages/Terms")),
-  "/privacy": lazy(() => import("@/pages/Privacy")),
+  "/privacy": lazy(() => import("@/pages/legal/PrivacyPolicy")),
   "/cookies": lazy(() => import("@/pages/legal/CookiePolicy")),
   "/partner-disclosure": lazy(() => import("@/pages/legal/PartnerDisclosure")),
   "/legal/partner-disclosure": lazy(() => import("@/pages/legal/PartnerDisclosure")),

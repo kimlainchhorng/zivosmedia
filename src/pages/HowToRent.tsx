@@ -1,4 +1,4 @@
-﻿/**
+/**
  * How to Rent Page
  * Marketing page explaining the rental process for renters
  */
@@ -92,9 +92,9 @@ export default function HowToRent() {
 
   const handleCTA = () => {
     if (user) {
-      navigate("/renter/dashboard");
+      navigate("/my-rentals");
     } else {
-      navigate("/signup?redirect=/renter/dashboard");
+      navigate("/signup?redirect=/my-rentals");
     }
   };
 

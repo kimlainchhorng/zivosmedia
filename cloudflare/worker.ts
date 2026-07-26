@@ -416,7 +416,6 @@ const TRAVEL_SITEMAP_ENTRIES: TravelSitemapEntry[] = [
   { path: "/cars", priority: "0.9", freq: "daily" },
   { path: "/bus", priority: "0.9", freq: "daily" },
   { path: "/things-to-do", priority: "0.6", freq: "weekly" },
-  { path: "/destinations", priority: "0.6", freq: "weekly" },
   { path: "/travel-insurance", priority: "0.5", freq: "weekly" },
   { path: "/guides/cheap-flights", priority: "0.6", freq: "weekly" },
 ];
@@ -867,6 +866,11 @@ function cspReportUriForProject(project: CspReportProject, env: Env) {
 }
 
 const immutableCache = "public, max-age=31536000, immutable";
+
+// Restrictive CSP for user-uploaded R2 objects: blocks script execution in
+// uploaded HTML/SVG (stored-XSS vector) while still allowing the object itself
+// (image/video/audio/document) to render inline.
+const R2_OBJECT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self'";
 const authPathPattern = /^\/(?:login|signup|auth(?:\/|$)|admin(?:\/|$))/i;
 const aiPathPattern = /^\/api\/(?:ai|deepseek)(?:\/|$)/i;
 const blockedPathPattern =
@@ -1090,7 +1094,19 @@ function authorizeWrite(request: Request, env: Env) {
   return constantTimeEqual(bearerToken(request), env.MEDIA_WRITE_TOKEN);
 }
 
-async function handleR2Object(request: Request, env: Env, key: string, publicUrlPrefix: string) {
+function contentDispositionAttachment(key: string) {
+  const base = key.split("/").pop() || "download";
+  const safeName = base.replace(/[^A-Za-z0-9._-]/g, "_") || "download";
+  return `attachment; filename="${safeName}"`;
+}
+
+async function handleR2Object(
+  request: Request,
+  env: Env,
+  key: string,
+  publicUrlPrefix: string,
+  options: { attachment?: boolean } = {},
+) {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders(request, env) });
   }
@@ -1111,6 +1127,13 @@ async function handleR2Object(request: Request, env: Env, key: string, publicUrl
     headers.set("etag", object.httpEtag);
     headers.set("accept-ranges", "bytes");
     headers.set("cache-control", headers.get("cache-control") || immutableCache);
+    // Hardening: uploaded objects carry uploader-supplied content-type; never
+    // let the browser sniff or execute scripts from stored HTML/SVG.
+    headers.set("x-content-type-options", "nosniff");
+    headers.set("content-security-policy", R2_OBJECT_CSP);
+    if (options.attachment) {
+      headers.set("content-disposition", contentDispositionAttachment(key));
+    }
 
     let status = 200;
     if (rangeHeader && object.range) {
@@ -1167,7 +1190,7 @@ async function handleMedia(request: Request, env: Env) {
 
 async function handleDownload(request: Request, env: Env) {
   const url = new URL(request.url);
-  return handleR2Object(request, env, downloadKey(url.pathname), "/");
+  return handleR2Object(request, env, downloadKey(url.pathname), "/", { attachment: true });
 }
 
 async function handleChannelSharePreview(request: Request, env: Env) {
@@ -1569,7 +1592,12 @@ export default {
       }
 
       if (isRateLimited(request, url)) {
-        return withSecurityHeaders(noStoreJson({ error: "Too many requests" }, { status: 429 }), request, env);
+        const retryAfter = String(Math.max(1, Math.ceil(WINDOW_MS / 1000)));
+        return withSecurityHeaders(
+          noStoreJson({ error: "Too many requests" }, { status: 429, headers: { "retry-after": retryAfter } }),
+          request,
+          env,
+        );
       }
     }
 

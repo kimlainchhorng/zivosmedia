@@ -282,7 +282,7 @@ export default function CreatorLiveEarningsPage() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    onClick={() => navigate("/live-streams")}
+                    onClick={() => navigate("/live")}
                     className="w-full text-left zivo-card-organic p-4 active:scale-[0.99] transition-transform hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="flex items-start gap-3">

@@ -247,7 +247,7 @@ export default function CreatorEarningsPage() {
 
         <button
           type="button"
-          onClick={() => navigate("/creator-live-earnings")}
+          onClick={() => navigate("/creator/live-earnings")}
           className="w-full h-12 rounded-2xl bg-ig-gradient text-white font-bold inline-flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all shadow-md shadow-rose-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Video className="h-4 w-4" />

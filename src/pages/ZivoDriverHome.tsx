@@ -114,7 +114,7 @@ export default function ZivoDriverHome() {
                 <Link to="/login">Driver sign in</Link>
               </Button>
               <Button asChild className="h-12 rounded-full bg-zinc-950 px-6 font-bold text-white hover:bg-zinc-800">
-                <Link to="/driver-signup">Become a driver</Link>
+                <Link to="/driver/onboarding/documents">Become a driver</Link>
               </Button>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function ZivoDriverHome() {
               </p>
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <Button asChild className="h-14 rounded-full bg-zinc-950 px-8 text-lg font-bold text-white hover:bg-zinc-800">
-                  <Link to="/driver-signup">
+                  <Link to="/driver/onboarding/documents">
                     Start driving <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
@@ -226,7 +226,7 @@ export default function ZivoDriverHome() {
           <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-6 py-10 text-sm font-medium text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
             <span>© ZIVO Driver — part of the Zivosmedia network</span>
             <div className="flex flex-wrap gap-5">
-              <Link to="/driver-signup" className="hover:text-zinc-900">Become a driver</Link>
+              <Link to="/driver/onboarding/documents" className="hover:text-zinc-900">Become a driver</Link>
               <Link to="/login" className="hover:text-zinc-900">Driver sign in</Link>
               <Link to="/support" className="hover:text-zinc-900">Support</Link>
               <Link to="/legal/privacy" className="hover:text-zinc-900">Privacy</Link>

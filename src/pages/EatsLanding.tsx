@@ -1,4 +1,4 @@
-﻿/**
+/**
  * EatsLanding - Food delivery hub page with full ordering flow
  * Connected to Supabase: restaurants, menu_items, food_orders
  */
@@ -1231,7 +1231,7 @@ export default function EatsLanding() {
                       <p className="text-sm font-bold">On orders over {fmtPrice(20)} today</p>
                     </div>
                   </button>
-                  <button type="button" onClick={() => navigate("/plus")}
+                  <button type="button" onClick={() => navigate("/zivo-plus")}
                     className="snap-start relative overflow-hidden shrink-0 min-w-[260px] sm:min-w-[320px] rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md hover:shadow-lg hover:shadow-violet-500/30 active:scale-[0.98] transition-all duration-300 flex items-center gap-3 text-left">
                     <div className="pointer-events-none absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10 blur-2xl" />
                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
@@ -1548,7 +1548,7 @@ export default function EatsLanding() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => navigate("/partner/eats")}
+                        onClick={() => navigate("/become-partner")}
                         className="group px-5 py-3 rounded-2xl bg-white text-foreground font-bold text-sm shadow-lg active:scale-[0.97] transition-transform touch-manipulation whitespace-nowrap inline-flex items-center gap-2"
                       >
                         Become a partner

@@ -154,7 +154,7 @@ const OwnerTerms = () => {
 
               <p className="text-sm text-muted-foreground">
                 You can track your earnings and payout history in your{" "}
-                <Link to="/owner/payouts" className="text-primary underline">Owner Dashboard</Link>.
+                <Link to="/wallet" className="text-primary underline">Wallet</Link>.
               </p>
             </CardContent>
           </Card>
@@ -293,7 +293,7 @@ const OwnerTerms = () => {
               </p>
               <p className="text-sm text-muted-foreground">
                 Disputes regarding damage claims follow our{" "}
-                <Link to="/damage-policy" className="text-primary underline">Damage & Incident Policy</Link>.
+                <Link to="/legal/damage-policy" className="text-primary underline">Damage & Incident Policy</Link>.
               </p>
             </CardContent>
           </Card>
@@ -312,7 +312,7 @@ const OwnerTerms = () => {
                   Insurance & Protection
                 </Badge>
               </Link>
-              <Link to="/damage-policy">
+              <Link to="/legal/damage-policy">
                 <Badge variant="outline" className="cursor-pointer hover:bg-muted">
                   Damage Policy
                 </Badge>
