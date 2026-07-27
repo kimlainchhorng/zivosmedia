@@ -21,7 +21,7 @@ export const WALLET_SOURCE_PRODUCT = "media" as const;
 
 export type WalletSupportedCurrency = "USD" | "KHR" | "THB";
 export type WalletMoney = { amountMinor: number; currency: WalletSupportedCurrency };
-export type WalletExternalProvider = "stripe" | "authorize_net" | "paypal" | "square" | "manual";
+export type WalletExternalProvider = "stripe" | "paypal" | "square" | "manual";
 export type WalletEntityType = "booking" | "order" | "trip" | "invoice" | "subscription" | "delivery";
 
 export type WalletPaymentStatus = {
