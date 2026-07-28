@@ -78,6 +78,8 @@ import { LIVE_FEATURE_FLAGS } from "@/config/liveFeatureFlags";
 import { useRecentlyWatchedLive } from "@/hooks/useRecentlyWatchedLive";
 import { useTopLiveGifters } from "@/hooks/useTopLiveGifters";
 
+const SHOW_MOCK_ONLY_LIVE_SECTIONS = false;
+
 const ZivoMobileNav = lazy(() =>import("@/components/app/ZivoMobileNav"));
 const GiftAnimationOverlay = lazy(() =>import("@/components/live/GiftAnimationOverlay"));
 const CoinRechargeSheet = lazy(() =>import("@/components/live/CoinRechargeSheet"));
@@ -900,7 +902,7 @@ function LiveWatcher({ stream, onLeave }: { stream: LiveStream; onLeave: () =>vo
  try {
  await recharge(coins);
  } catch (e: any) {
- throw new Error(e?.message ?? "Recharge failed");
+ throw new Error(e?.message ?? "Recharge failed", { cause: e });
  }
  }}
  />
@@ -1333,7 +1335,7 @@ export default function LiveStreamPage() {
     Hot News/Sports/Zodiac/DJ/Comedy/Quiz Live, Creator of Day, Rising Stars,
     Cosplay/ASMR/Crypto/Magic Live, Coin Recharge promo, Categories grid,
     Top Creators leaderboard) are mock-only and hidden until backends ship. */}
-{false && (<>
+{SHOW_MOCK_ONLY_LIVE_SECTIONS && (<>
  {/* ─── Replays / Top Moments ─── */}
 <div className="px-4 pt-4 pb-1">
 <div className="flex items-center justify-between mb-2.5">
@@ -2684,7 +2686,8 @@ export default function LiveStreamPage() {
    const isNotified = notifiedOffline.has(s.name);
    setNotifiedOffline(prev => {
      const next = new Set(prev);
-     isNotified ? next.delete(s.name) : next.add(s.name);
+     if (isNotified) next.delete(s.name);
+     else next.add(s.name);
      localStorage.setItem("zivo_live_notify", JSON.stringify([...next]));
      return next;
    });

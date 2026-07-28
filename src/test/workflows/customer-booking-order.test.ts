@@ -154,12 +154,12 @@ describe("customer booking and order workflow", () => {
   });
 
   it("keeps marketplace seller reviews behind authenticated server-side submission", () => {
-    const sheet = source("src/components/marketplace/MarketplaceReviewSheet.tsx");
+    // The submission sheet went with the withdrawn marketplace UI. The edge
+    // function and its RLS gate are still deployed, so the server-side half of
+    // this contract still needs guarding.
     const submit = source("supabase/functions/marketplace-review-submit/index.ts");
     const gate = source("supabase/migrations/20260601174500_marketplace_reviews_server_gate.sql");
 
-    expect(sheet).toContain('functions.invoke("marketplace-review-submit"');
-    expect(sheet).not.toMatch(/from\("marketplace_reviews"\)[\s\S]{0,320}\.(insert|update|delete|upsert)/);
     expect(submit).toContain('withSecurity("marketplace-review-submit"');
     expect(submit).toContain("strictCors: true");
     expect(submit).toContain("admin.auth.getUser(token)");
@@ -233,14 +233,13 @@ describe("customer booking and order workflow", () => {
     expect(bookingPage).toContain('functions.invoke("service-booking-submit"');
     expect(bookingPage).not.toMatch(/from\("service_bookings"\)[\s\S]{0,420}\.(insert|upsert)/);
 
-    // Owner-side management writes directly to the table; RLS owner-scopes every
-    // row (store_profiles.owner_id = auth.uid() OR admin), so no edge function is
-    // required and the never-deployed service-booking-manage path is not used.
-    expect(adminBookings).not.toContain('functions.invoke("service-booking-manage"');
+    // Owner-side management writes are mediated by the trusted edge function;
+    // the owner gate migration intentionally blocks direct authenticated writes.
+    expect(adminBookings).toContain('functions.invoke("service-booking-manage"');
     expect(adminBookings).toContain('.from("service_bookings")');
-    expect(adminBookings).toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.insert\(/);
-    expect(adminBookings).toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.update\(/);
-    expect(adminBookings).toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.delete\(/);
+    expect(adminBookings).not.toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.insert\(/);
+    expect(adminBookings).not.toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.update\(/);
+    expect(adminBookings).not.toMatch(/from\("service_bookings"\)[\s\S]{0,200}\.delete\(/);
 
     expect(submit).toContain('withSecurity("service-booking-submit"');
     expect(submit).toContain('allowedMethods: ["POST"]');

@@ -50,10 +50,11 @@ export function PriceAlertsDashboard({ className, onBookNow }: PriceAlertsDashbo
     switch (sortBy) {
       case 'price':
         return a.targetPrice - b.targetPrice;
-      case 'savings':
+      case 'savings': {
         const savingsA = a.currentPrice - a.targetPrice;
         const savingsB = b.currentPrice - b.targetPrice;
         return savingsB - savingsA;
+      }
       case 'date':
       default:
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();

@@ -306,7 +306,7 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
     const m: Record<string, { label: string; entries: any[]; totalMins: number; revenue: number }> = {};
     entries.forEach((e: any) => {
       let key = e.vehicle_id ?? "";
-      let label = "";
+      let label: string;
       if (e.vehicle_id && vehicleMap[e.vehicle_id]) {
         const v = vehicleMap[e.vehicle_id];
         label = vehicleLabel(v);

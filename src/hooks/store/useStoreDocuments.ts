@@ -78,7 +78,7 @@ export function useStoreDocuments(storeId: string) {
       if (!uid) throw new Error("Not signed in");
 
       const docId = crypto.randomUUID();
-      const safeName = input.file.name.replace(/[^\w.\-]+/g, "_");
+      const safeName = input.file.name.replace(/[^\w.-]+/g, "_");
       const path = `${storeId}/${docId}/${safeName}`;
 
       const { error: upErr } = await supabase.storage

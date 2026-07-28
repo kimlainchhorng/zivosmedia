@@ -3383,14 +3383,6 @@ const FEED_QUICK_LAUNCHES: FeedQuickLaunch[] = [
     keywords: ["onlyfans", "creator", "subscription", "fans", "tips"],
   },
   {
-    label: "Shop",
-    description: "Marketplace",
-    href: "/marketplace",
-    icon: Store,
-    tone: "bg-lime-500/10 text-lime-700 dark:text-lime-300",
-    keywords: ["shop", "marketplace", "store", "buy", "sell"],
-  },
-  {
     label: "Services",
     description: "Everything",
     href: "/services",

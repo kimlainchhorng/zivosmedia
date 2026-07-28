@@ -1,6 +1,8 @@
 import { validateExternalUrl } from "@/lib/urlSafety";
 import { assessLinkSync, type LinkRiskLevel } from "@/hooks/useLinkRisk";
 
+// Intentional C0-control filtering for untrusted chat text.
+// eslint-disable-next-line no-control-regex
 const CONTROL_CHARS_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const HTTP_URL_REGEX = /https?:\/\/[^\s<>"']+/gi;
 

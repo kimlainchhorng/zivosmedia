@@ -1,8 +1,8 @@
 # Production Preflight Report
 
-Generated: 2026-07-23T03:19:34.381Z
-Mode: soft
-Options: strict=no, skipBuild=no, skipTypeCheck=yes
+Generated: 2026-07-28T15:15:16.588Z
+Mode: strict
+Options: strict=yes, skipBuild=yes, skipTypeCheck=yes
 
 ## Summary
 
@@ -19,8 +19,8 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
 - Require a strict-mode summary: append `-- --require-mode=strict`
 - TypeScript SIGTERM/resource notes: `docs/typescript-preflight-resource-notes.md`
 - API readiness: critical=0, warnings=0
-- Environment readiness: critical=0, warnings=0
-- Runtime settings SQL: passed
+- Environment readiness: critical=6, warnings=0
+- Runtime settings SQL: failed
 - Database readiness: blockers=0, warnings=0
 - Edge Function deploy contracts: failures=0
 - Edge Function slot readiness: mode=local-plus-known-live-gap, missingLiveCritical=6, warnings=1, failures=0
@@ -38,16 +38,18 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
 ### Security scan
 
 - Command: `npm run security:scan`
-- Status: passed
+- Status: failed
+- Failure: exitStatus=1
 
 ### Supabase deploy environment
 
-- Command: `node scripts/deploy/env-preflight.mjs`
-- Status: passed
+- Command: `node scripts/deploy/env-preflight.mjs --strict`
+- Status: failed
+- Failure: exitStatus=1
 
 ```json
 {
-  "critical": 0,
+  "critical": 6,
   "warnings": 0,
   "checked": {
     "viteSupabaseUrl": true,
@@ -55,7 +57,7 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
     "zivoSoftwareSupabaseUrl": true,
     "zivoSoftwarePublishableKey": true,
     "zivoDomainSummaryBridgeKeys": false,
-    "zivoSoftwareDomainRequired": false,
+    "zivoSoftwareDomainRequired": true,
     "backendSupabaseUrl": false,
     "publishableKey": true,
     "anonKey": false,
@@ -64,22 +66,50 @@ Options: strict=no, skipBuild=no, skipTypeCheck=yes
     "supabaseAccessToken": false,
     "channelOgUrl": false
   },
-  "findings": []
+  "findings": [
+    {
+      "severity": "critical",
+      "id": "backend-supabase-url-missing",
+      "message": "Missing SUPABASE_URL for backend cron/runtime settings. See docs/supabase-deploy-env-setup.md."
+    },
+    {
+      "severity": "critical",
+      "id": "ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY-missing",
+      "message": "Missing ZIVO_DRIVER_SUPABASE_PUBLISHABLE_KEY."
+    },
+    {
+      "severity": "critical",
+      "id": "ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY-missing",
+      "message": "Missing ZIVO_TRAVEL_SUPABASE_PUBLISHABLE_KEY."
+    },
+    {
+      "severity": "critical",
+      "id": "ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY-missing",
+      "message": "Missing ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY."
+    },
+    {
+      "severity": "critical",
+      "id": "supabase-access-token-missing",
+      "message": "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification. See docs/supabase-deploy-env-setup.md."
+    },
+    {
+      "severity": "critical",
+      "id": "anon-key-missing",
+      "message": "Missing SUPABASE_ANON_KEY for Edge Function verification and database cron auth. See docs/supabase-deploy-env-setup.md."
+    }
+  ]
 }
 ```
 
 ### Supabase runtime settings SQL
 
-- Command: `node scripts/supabase/runtime-settings-sql.mjs`
-- Status: passed
+- Command: `node scripts/supabase/runtime-settings-sql.mjs --strict`
+- Status: failed
+- Failure: exitStatus=1
 
 ```text
--- Supabase runtime settings for database-side Edge Function calls
--- Review before running in the Supabase SQL editor.
--- Preview mode used VITE_SUPABASE_PUBLISHABLE_KEY; use SUPABASE_ANON_KEY with --strict for production cron auth.
-alter database postgres set "app.settings.supabase_url" = 'https://slirphzzwcogdbkeicff.supabase.co';
-alter database postgres set "app.settings.supabase_anon_key" = '<redacted: set SUPABASE_ANON_KEY and rerun with --emit-secrets>';
-select pg_reload_conf();
+runtime-settings-sql: Missing Supabase URL. Set SUPABASE_URL or pass --url/--project-ref. See docs/supabase-deploy-env-setup.md.
+runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key. See docs/supabase-deploy-env-setup.md.
 ```
 
 ### Supabase migration drift report
@@ -359,7 +389,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-07-23T03:19:21.235Z",
+  "generated": "2026-07-28T15:15:15.668Z",
   "counts": {
     "functions": 9,
     "failures": 0
@@ -422,7 +452,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-07-23T03:19:21.299Z",
+  "generated": "2026-07-28T15:15:15.713Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 100,
@@ -564,7 +594,7 @@ select pg_reload_conf();
 
 ```json
 {
-  "generated": "2026-07-23T03:19:22.288Z",
+  "generated": "2026-07-28T15:15:16.395Z",
   "counts": {
     "gatedFunctions": 6,
     "scannedSrcFiles": 2822,
@@ -676,14 +706,9 @@ src/pages/channels/ChannelPage.tsx
 This command is report-only for now. Move high-traffic surfaces to SmartImage/LazyVideo first, then make it strict.
 ```
 
-### Production build
-
-- Command: `node --max-old-space-size=8192 ./node_modules/vite/bin/vite.js build --logLevel warn`
-- Status: passed
-
 ## Production Gate
 
-- Soft mode reports readiness blockers but only fails for command/runtime failures.
+- Strict mode fails on any readiness warning, database blocker, failed command, or unavailable migration history.
 
 ## Migration Reconciliation
 
@@ -697,6 +722,10 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Production Blockers
 
+- Failed command: Security scan
+- Failed command: Supabase deploy environment
+- Failed command: Supabase runtime settings SQL
+- Environment readiness has 6 critical finding(s).
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
 - Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
@@ -704,4 +733,11 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Current Gate Blockers
 
-- None
+- Failed command: Security scan
+- Failed command: Supabase deploy environment
+- Failed command: Supabase runtime settings SQL
+- Environment readiness has 6 critical finding(s).
+- Missing SUPABASE_URL for production backend cron/runtime settings.
+- Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
+- Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
+- Supabase remote migration history is unavailable (unavailable).

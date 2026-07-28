@@ -2,6 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { Resend } from 'npm:resend@2.0.0'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from "../_shared/deps.ts";
+import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { SignupEmail } from '../_shared/email-templates/signup.tsx'
 import { InviteEmail } from '../_shared/email-templates/invite.tsx'
@@ -105,16 +106,65 @@ async function handlePreview(req: Request, corsHeaders: Record<string, string>):
 
 // Main webhook handler — sends auth emails via Resend
 async function handleWebhook(req: Request, corsHeaders: Record<string, string>): Promise<Response> {
-  // Auth: accept SUPABASE_AUTH_HOOK_SECRET (set in Supabase hook config) or
-  // LOVABLE_API_KEY as fallback. Skip check only if neither secret is configured.
-  const hookSecret = Deno.env.get('SUPABASE_AUTH_HOOK_SECRET') || Deno.env.get('LOVABLE_API_KEY')
-  if (hookSecret) {
+  // The hook is configured with either the native Supabase bearer secret or
+  // Lovable's signed webhook headers. Never accept an unverified request:
+  // verify_jwt is intentionally disabled for this provider callback.
+  const supabaseHookSecret = Deno.env.get('SUPABASE_AUTH_HOOK_SECRET')
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')
+  const hasLovableSignature = Boolean(
+    req.headers.get('x-lovable-signature') || req.headers.get('x-lovable-timestamp'),
+  )
+  let body: Record<string, any>
+
+  if (!supabaseHookSecret && !lovableApiKey) {
+    console.error('Auth email hook: no webhook secret configured')
+    return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  if (lovableApiKey && (hasLovableSignature || !supabaseHookSecret)) {
+    try {
+      const verified = await verifyWebhookRequest({
+        req: req.clone(),
+        secret: lovableApiKey,
+        parser: (raw: string) => {
+          const parsed = JSON.parse(raw)
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('Webhook payload must be an object')
+          }
+          return parsed as Record<string, any>
+        },
+      })
+      body = verified.payload
+    } catch (error) {
+      const code = error instanceof WebhookError ? error.code : 'verification_failed'
+      console.error('Auth email hook: webhook verification failed', { code })
+      const status = code === 'invalid_payload' || code === 'invalid_json' ? 400 : 401
+      return new Response(JSON.stringify({ error: status === 400 ? 'Invalid payload' : 'Invalid signature' }), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+  } else {
     const authHeader = req.headers.get('Authorization')
     const token = authHeader?.replace(/^Bearer\s+/i, '') ?? ''
-    if (!timingSafeEqual(token, hookSecret)) {
+    if (!supabaseHookSecret || !timingSafeEqual(token, supabaseHookSecret)) {
       console.error('Auth email hook: unauthorized request')
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    try {
+      const parsed = await req.json()
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Invalid payload')
+      body = parsed as Record<string, any>
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -125,16 +175,6 @@ async function handleWebhook(req: Request, corsHeaders: Record<string, string>):
     console.error('RESEND_API_KEY not configured')
     return new Response(JSON.stringify({ error: 'Server configuration error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
-  let body: any
-  try {
-    body = await req.json()
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
-      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }

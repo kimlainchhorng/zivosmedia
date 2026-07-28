@@ -201,8 +201,18 @@ export default function MyTripsPage() {
   const serviceFilter = (searchParams.get("service") || "all") as ServiceType | "all";
   const statusFilter = searchParams.get("status") || "all";
 
-  const setServiceFilter = (v: ServiceType | "all") => setSearchParams(p => { const n = new URLSearchParams(p); v === "all" ? n.delete("service") : n.set("service", v); return n; }, { replace: true });
-  const setStatusFilter = (v: string) => setSearchParams(p => { const n = new URLSearchParams(p); v === "all" ? n.delete("status") : n.set("status", v); return n; }, { replace: true });
+  const setServiceFilter = (v: ServiceType | "all") => setSearchParams(p => {
+    const n = new URLSearchParams(p);
+    if (v === "all") n.delete("service");
+    else n.set("service", v);
+    return n;
+  }, { replace: true });
+  const setStatusFilter = (v: string) => setSearchParams(p => {
+    const n = new URLSearchParams(p);
+    if (v === "all") n.delete("status");
+    else n.set("status", v);
+    return n;
+  }, { replace: true });
 
   const { data: trips, isLoading, refetch } = useUnifiedTrips({
     services: serviceFilter === "all" ? undefined : [serviceFilter],

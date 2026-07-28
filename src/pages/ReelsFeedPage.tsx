@@ -281,14 +281,6 @@ const FEED_SUPER_APP_TARGETS: FeedSuperAppTarget[] = [
     keywords: ["onlyfans", "creator", "subscription", "fans", "tips"],
   },
   {
-    label: "Shop",
-    description: "Marketplace",
-    href: "/marketplace",
-    icon: ShoppingBag,
-    tone: "bg-lime-500/10 text-lime-700 dark:text-lime-300",
-    keywords: ["shop", "marketplace", "store", "buy", "sell"],
-  },
-  {
     label: "Services",
     description: "All ZIVO apps",
     href: "/services",
@@ -2056,7 +2048,6 @@ export default function ReelsFeedPage() {
                                 { label: "Reel", desc: "Short video", icon: Film, color: "text-fuchsia-500", route: "/reels" },
                                 { label: "Story", desc: "Share for 24h", icon: Camera, color: "text-pink-500", route: "/feed?compose=story" },
                                 { label: "Live", desc: "Go live now", icon: Radio, color: "text-red-500", route: "/go-live" },
-                                { label: "Marketplace", desc: "Sell items", icon: ShoppingBag, color: "text-orange-500", route: "/marketplace" },
                                 { label: "Job", desc: "Post a hiring", icon: Briefcase, color: "text-sky-500", route: "/personal/employer" },
                                 { label: "Spaces", desc: "Audio room", icon: Mic2, color: "text-violet-500", route: "/spaces" },
                                 { label: "Post", desc: "Photo, text, poll", icon: Plus, color: "text-foreground", action: "compose" as const },
@@ -2746,24 +2737,6 @@ export default function ReelsFeedPage() {
                   {sidebarDataReady && idx === 5 && <Suspense fallback={null}><ReelsPreviewRow fullBleed={false} /></Suspense>}
                   {/* Featured creators row — Facebook-style discovery */}
                   {sidebarDataReady && idx === 10 && <Suspense fallback={null}><FeaturedCreatorsRow fullBleed={false} /></Suspense>}
-                  {/* Inject Marketplace banner after 8th post */}
-                  {idx === 7 && (
-                    <button type="button"
-                      onClick={() => navigate("/marketplace")}
-                      className="zivo-social-module mx-2 my-3 block w-[calc(100%-1rem)] rounded-[1.25rem] px-3 py-3 text-left active:scale-[0.99] transition-transform"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-amber-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
-                          <Package className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-bold text-foreground">Marketplace</p>
-                          <p className="text-[11px] text-muted-foreground leading-tight">Buy and sell near you — deals updated daily</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                      </div>
-                    </button>
-                  )}
                   {/* People you may know — real DB-backed component, self-hides if empty.
                       Hidden on xl+ since the right sidebar shows "Suggested for you" there. */}
                   {sidebarDataReady && idx === 9 && (
@@ -3687,9 +3660,11 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     const checkoutPath = commerce.checkout_path
       || (commerce.link_type === "store_product" && commerce.store_product_id
         ? `/grocery/shop/${item.store_slug || ""}?buy=${commerce.store_product_id}`
-        : commerce.link_type === "truck_sale" && commerce.truck_sale_id
-          ? `/marketplace?truckSale=${commerce.truck_sale_id}`
-          : null);
+        // Truck sales used to check out through the marketplace, which has been
+        // withdrawn. Falling through to null makes the caller show its existing
+        // "checkout path is not configured" notice rather than navigating to a
+        // route that no longer exists.
+        : null);
 
     if (!checkoutPath) {
       toast.error("Checkout path is not configured for this reel");
@@ -4816,9 +4791,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     const checkoutPath = commerce.checkout_path
       || (commerce.link_type === "store_product" && commerce.store_product_id
         ? `/grocery/shop/${item.store_slug || ""}?buy=${commerce.store_product_id}`
-        : commerce.link_type === "truck_sale" && commerce.truck_sale_id
-          ? `/marketplace?truckSale=${commerce.truck_sale_id}`
-          : null);
+        // Truck sales used to check out through the marketplace, which has been
+        // withdrawn. Falling through to null makes the caller show its existing
+        // "checkout path is not configured" notice rather than navigating to a
+        // route that no longer exists.
+        : null);
 
     if (!checkoutPath) {
       toast.error("Checkout path is not configured for this reel");

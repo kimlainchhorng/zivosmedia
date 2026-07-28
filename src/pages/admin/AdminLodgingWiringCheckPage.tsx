@@ -89,10 +89,14 @@ export default function AdminLodgingWiringCheckPage() {
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
-    filterAdmin ? next.set("admin", filterAdmin) : next.delete("admin");
-    filterRun ? next.set("run", filterRun) : next.delete("run");
-    filterCheck ? next.set("check", filterCheck) : next.delete("check");
-    filterType ? next.set("type", filterType) : next.delete("type");
+    if (filterAdmin) next.set("admin", filterAdmin);
+    else next.delete("admin");
+    if (filterRun) next.set("run", filterRun);
+    else next.delete("run");
+    if (filterCheck) next.set("check", filterCheck);
+    else next.delete("check");
+    if (filterType) next.set("type", filterType);
+    else next.delete("type");
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterAdmin, filterRun, filterCheck, filterType]);

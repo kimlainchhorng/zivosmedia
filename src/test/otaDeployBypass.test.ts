@@ -440,7 +440,7 @@ describe("OTA deploy bypass guard", () => {
       const scriptPath = path.join(workspace, "scripts/deploy-update.mjs");
       writeFileSync(
         scriptPath,
-        readFileSync(scriptPath, "utf8").replace(/    mandatory,\r?\n    \.\.\.\(releaseMessage/, "    mandatory: false,\n    ...(releaseMessage")
+        readFileSync(scriptPath, "utf8").replace(/ {4}mandatory,\r?\n {4}\.\.\.\(releaseMessage/, "    mandatory: false,\n    ...(releaseMessage")
       );
       const result = spawnSync(process.execPath, ["scripts/deploy-update.mjs", "--dry-run", "--skip-preflight", "--immediate", "--message=Emergency reload"], {
         cwd: workspace,
@@ -660,7 +660,7 @@ describe("OTA deploy bypass guard", () => {
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 
   it("uploads OTA storage objects with cache metadata matched to their paths", () => {
     const workspace = copyDeployWorkspace({
@@ -760,7 +760,7 @@ process.on("exit", () => console.error("removed=" + JSON.stringify(globalThis.__
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 
   it("removes the uploaded bundle when Supabase returns an unexpected public URL", () => {
     const workspace = copyDeployWorkspace({

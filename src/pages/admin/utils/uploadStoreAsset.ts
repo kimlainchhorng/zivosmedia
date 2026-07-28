@@ -83,7 +83,7 @@ export async function uploadStoreAsset({
       throw new Error("file not found after upload");
     }
   } catch (e: any) {
-    throw new Error(`${label} upload failed: ${e?.message || "verification failed"}`);
+    throw new Error(`${label} upload failed: ${e?.message || "verification failed"}`, { cause: e });
   }
 
   // 3) Public URL + HEAD verification

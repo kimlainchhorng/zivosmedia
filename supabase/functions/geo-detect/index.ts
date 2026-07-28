@@ -27,7 +27,7 @@ Deno.serve(withSecurity("geo-detect", async (req, ctx) => {
 
     try {
       // ip-api.com (free, no key needed, 45 req/min)
-      const res = await fetch("http://ip-api.com/json/?fields=countryCode", {
+      const res = await fetch("https://ip-api.com/json/?fields=countryCode", {
         signal: AbortSignal.timeout(3000),
       });
       const data = await res.json();

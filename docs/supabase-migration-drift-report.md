@@ -1,6 +1,6 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-07-23T03:19:20.065Z
+Generated: 2026-07-28T15:15:14.253Z
 
 ## Summary
 
@@ -74,7 +74,6 @@ Try rerunning the command with --debug to troubleshoot the error.
 ### Closest Local/Remote Version Pairs
 
 - None
-
 ## High Risk Pending Migrations
 
 - 20260126182101: 20260126182101_2f0234ed-56dc-4072-ab57-dfd72543853a.sql (security/auth)

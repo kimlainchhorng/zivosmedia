@@ -16,7 +16,7 @@ import {
   Library, Archive, Star, FolderHeart, Vote, AtSign, Trophy, BookImage, Handshake,
   Smile, Ticket, Gift, Palette, Award, Bell, BarChart2, Shield, Tag, Flag, Gamepad2,
   MessageSquare, Music, TrendingUp, Wand2, MapPin, NotebookPen, ClipboardList,
-  ArrowLeftRight, Hash, Coins, Image as ImageIcon, Receipt, Dumbbell, Unlock, Mic, Link2, ListTodo, ShoppingCart, ShieldAlert, MessageSquareHeart, Images, MessageCircleQuestion, Voicemail, AlertTriangle, Bug, ShieldCheck, Flame, ShieldOff, BellRing, Car, Send as SendIcon, Gavel, Plane, Radio, UserPlus, UtensilsCrossed, History, Briefcase, ListChecks, Eye, VolumeX, Banknote, MessageCircle, Scale, Headphones, Home as HomeIcon, Sticker, FileCheck, Building, Building2, Brain,
+  ArrowLeftRight, Hash, Coins, Image as ImageIcon, Receipt, Dumbbell, Unlock, Mic, Link2, ListTodo, ShieldAlert, MessageSquareHeart, Images, MessageCircleQuestion, Voicemail, AlertTriangle, Bug, ShieldCheck, Flame, ShieldOff, BellRing, Car, Send as SendIcon, Gavel, Plane, Radio, UserPlus, UtensilsCrossed, History, Briefcase, ListChecks, Eye, VolumeX, Banknote, MessageCircle, Scale, Headphones, Home as HomeIcon, Sticker, FileCheck, Building, Building2, Brain,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
@@ -141,7 +141,6 @@ const GROUPS: LibraryGroup[] = [
       { icon: Gift, title: "Referrals", description: "Generate shareable invite links", path: "/referrals" },
       { icon: Link2, title: "Affiliate Links", description: "Track your link-in-bio clicks, conversions, earnings", path: "/affiliate-links" },
       { icon: Gift, title: "Gift History", description: "Coin gifts sent + received in chat", path: "/gift-history" },
-      { icon: ShoppingCart, title: "Cart", description: "Marketplace items ready to checkout", path: "/marketplace-cart" },
       { icon: Coins, title: "Points History", description: "Loyalty points earned, redeemed, expired", path: "/points-history" },
       { icon: Receipt, title: "Transactions", description: "All payments, refunds, payouts, tips", path: "/transactions" },
       { icon: HeartIcon, title: "Favorites", description: "Saved hotels, flights, cars, activities", path: "/favorites" },

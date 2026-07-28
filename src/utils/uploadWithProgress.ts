@@ -36,7 +36,6 @@ export async function uploadWithProgress(
         resolve(data.publicUrl);
       } else {
         let msg = "Upload failed";
-        // eslint-disable-next-line no-empty
         try { msg = JSON.parse(xhr.responseText)?.message || msg; } catch {}
 
         // Translate Supabase Storage's cryptic schema-drift error into a

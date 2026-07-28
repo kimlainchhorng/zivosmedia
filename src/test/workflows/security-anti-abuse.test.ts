@@ -1029,17 +1029,18 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     const personalNotifications = read("src/pages/app/personal/PersonalNotificationsPage.tsx");
     const notificationManageClient = read("src/lib/notifications/notificationManage.ts");
 
-    // The notification-manage edge function stays available as a hardened server
-    // option (it owns its CORS + ownership checks) even though the browser now
-    // mutates directly under per-user RLS.
+    // Notification mutations stay behind the hardened server function. The
+    // browser wrapper remains disabled until the live function is deployed.
     expect(notificationFn).toContain('withSecurity("notification-manage"');
     expect(notificationFn).toContain("auth.getUser(token)");
     expect(notificationFn).toContain('.eq("user_id", user.id)');
+    expect(notificationFn).toContain('rateLimit: "api_general"');
+    expect(notificationFn).toContain('trackNetwork: "suspicious"');
+    expect(notificationFn).toContain("blockNetworkRiskAt: 80");
     expect(notificationFn).not.toContain('"Access-Control-Allow-Origin": "*"');
 
-    // Postgres RLS enforces ownership: a signed-in user may update/delete only
-    // their OWN notification rows (auth.uid() = user_id). The never-deployable
-    // server-gate block is dropped so the in-app bell can mutate directly.
+    // Postgres RLS still enforces ownership for notification reads and remains a
+    // defense-in-depth boundary around the server-mediated mutation path.
     expect(ownerPolicies).toContain("Users delete own notifications");
     expect(ownerPolicies).toContain("Users update own notifications");
     for (const policy of ["notifications_block_direct_update", "notifications_block_direct_delete"]) {
@@ -1048,10 +1049,10 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(gateNeutralised).toContain("drop policy if exists");
     expect(gateNeutralised).toContain("auth.uid()");
 
-    // The client always scopes its direct mutations to the signed-in user.
-    expect(notificationManageClient).toContain('from("notifications")');
-    expect(notificationManageClient).toContain("auth.getUser");
-    expect(notificationManageClient).toContain('.eq("user_id"');
+    expect(notificationManageClient).toContain("VITE_NOTIFICATION_MANAGE_ENABLED");
+    expect(notificationManageClient).toContain('functions.invoke("notification-manage"');
+    expect(notificationManageClient).toContain("NotificationManageUnavailableError");
+    expect(notificationManageClient).not.toMatch(/from\(["']notifications["']\)[\s\S]{0,260}\.(update|delete)/);
 
     // Feature surfaces route through the shared lib and never run raw
     // notification update/delete statements themselves.

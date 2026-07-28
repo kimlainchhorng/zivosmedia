@@ -27,6 +27,7 @@ const FFMPEG_CDN_BASE = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/esm";
 const ffmpegCoreUrl = `${FFMPEG_CDN_BASE}/ffmpeg-core.js`;
 const ffmpegWasmUrl = `${FFMPEG_CDN_BASE}/ffmpeg-core.wasm`;
 const LODGING_NAME_PATTERN = /\b(hotel|resort|villa|guest\s*house|guesthouse|lodge|inn|sanctuary)\b/i;
+const SHOW_GALLERY_IMAGES = false;
 
 const isLikelyLodgingStore = (store: any, category?: string | null) => {
   if (isLodgingStoreCategory(category)) return true;
@@ -1575,7 +1576,7 @@ export default function AdminStoreEditPage() {
       const isPlayable = await probeVideoFile(repairedFile);
       if (!isPlayable) repairedFile = null;
     } catch {
-      repairedFile = null;
+      // Continue to the full transcode fallback below.
     }
 
     if (!repairedFile) {
@@ -2336,7 +2337,8 @@ export default function AdminStoreEditPage() {
     const isLogo = type === "logo";
     const field = isLogo ? "logo_url" : "banner_url";
     const prevUrl = (form as any)[field];
-    isLogo ? setUploadingLogo(true) : setUploadingCover(true);
+    if (isLogo) setUploadingLogo(true);
+    else setUploadingCover(true);
     try {
       const { publicUrl } = await uploadStoreAsset({
         storeId: storeId!,
@@ -2359,7 +2361,8 @@ export default function AdminStoreEditPage() {
       updateField(field, prevUrl);
       toast.error(e?.message || `${isLogo ? "Profile" : "Cover"} image upload failed`);
     } finally {
-      isLogo ? setUploadingLogo(false) : setUploadingCover(false);
+      if (isLogo) setUploadingLogo(false);
+      else setUploadingCover(false);
     }
   };
 
@@ -2893,7 +2896,7 @@ export default function AdminStoreEditPage() {
         </div>
         )}
 
-        {false && (<>
+        {SHOW_GALLERY_IMAGES && (<>
         {/* ── Gallery Images ── */}
         <Card>
           <CardHeader className="pb-3">

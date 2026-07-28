@@ -14,7 +14,6 @@ type Metric = {
 
 function report(metric: Metric) {
   // Keep noise low — single readable line per metric
-  // eslint-disable-next-line no-console
   console.info(
     `[vitals] ${metric.name} ${metric.value.toFixed(1)} (${metric.rating})`,
   );

@@ -170,7 +170,12 @@ export default function AutoRepairPartShopSection({ storeId, isSoftwareDomain = 
   // Jobs checklist
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
   const toggleJob = (label: string) =>
-    setSelectedJobs(prev => { const s = new Set(prev); s.has(label) ? s.delete(label) : s.add(label); return s; });
+    setSelectedJobs(prev => {
+      const s = new Set(prev);
+      if (s.has(label)) s.delete(label);
+      else s.add(label);
+      return s;
+    });
   const jobCats = useMemo(() => {
     const cats = new Set<string>();
     JOBS.filter(j => selectedJobs.has(j.label)).forEach(j => j.cats.forEach(c => cats.add(c)));

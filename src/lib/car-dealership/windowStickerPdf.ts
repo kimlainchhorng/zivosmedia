@@ -35,7 +35,7 @@ export function printWindowSticker(
   const margin = 44;
   const contentW = pageW - margin * 2;
 
-  let y = 0;
+  let y: number;
 
   // ── Header bar ──────────────────────────────────────────────────────────────
   doc.setFillColor(30, 41, 59); // slate-800
@@ -135,7 +135,7 @@ export function printWindowSticker(
       theme: "plain",
     });
 
-    // @ts-ignore jspdf-autotable augments the instance
+    // @ts-expect-error jspdf-autotable augments the instance
     y = (doc as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y + 40;
     y += 10;
   }
@@ -221,7 +221,6 @@ export function printWindowSticker(
   doc.setFontSize(28);
   doc.setTextColor(30, 41, 59);
   doc.text(fmt(vehicle.asking_price_cents), pageW - margin, y + 6, { align: "right" });
-  y += 36;
 
   // ── Footer ──────────────────────────────────────────────────────────────────
   const footY = pageH - 36;

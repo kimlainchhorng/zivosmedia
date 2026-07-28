@@ -12,6 +12,8 @@ const MULTI_STOP_QUERY_KEYS = new Set(["from", "stops"]);
 
 function cleanText(value: unknown, maxLength = 240): string | undefined {
   if (typeof value !== "string") return undefined;
+  // Intentional C0-control stripping for untrusted query text.
+  // eslint-disable-next-line no-control-regex
   const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   return cleaned ? cleaned.slice(0, maxLength) : undefined;
 }

@@ -11,6 +11,7 @@ declare global {
   }
 
   namespace JSX {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- JSX marker interface must merge with React's declarations.
     interface ElementClass extends AnyClassComponent {}
     interface IntrinsicAttributes {
       [key: string]: any;
@@ -23,6 +24,7 @@ declare global {
 
 declare module "react" {
   namespace JSX {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- JSX marker interface must merge with React's declarations.
     interface ElementClass extends AnyClassComponent {}
     interface IntrinsicAttributes {
       [key: string]: any;

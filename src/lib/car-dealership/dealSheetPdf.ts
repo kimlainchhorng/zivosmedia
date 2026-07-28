@@ -195,7 +195,7 @@ export function printDealSheet(sale: DealershipSale, storeName = "Auto Dealershi
     alternateRowStyles: { fillColor: [248, 250, 252] },
   });
 
-  // @ts-ignore jspdf-autotable adds lastAutoTable to the doc instance
+  // @ts-expect-error jspdf-autotable adds lastAutoTable to the doc instance
   y = (doc as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y + 40;
   y += 8;
 
@@ -235,7 +235,7 @@ export function printDealSheet(sale: DealershipSale, storeName = "Auto Dealershi
     },
   });
 
-  // @ts-ignore
+  // @ts-expect-error jspdf-autotable adds lastAutoTable to the doc instance
   y = (doc as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y + 40;
   y += 20;
 

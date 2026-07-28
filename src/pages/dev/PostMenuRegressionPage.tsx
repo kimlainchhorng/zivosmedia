@@ -102,8 +102,11 @@ const ROWS: CheckRow[] = [
     description: "Verifies the comment-control state machine.",
     run: async () => {
       const allowed = ["everyone", "followers", "off"] as const;
-      let value: (typeof allowed)[number] = "everyone";
+      let value: (typeof allowed)[number];
+      value = "everyone";
+      if (value !== "everyone") throw new Error("Everyone state transition failed");
       value = "followers";
+      if (value !== "followers") throw new Error("Follower state transition failed");
       value = "off";
       if (!allowed.includes(value)) throw new Error("Invalid state");
       return `Final state: ${value}`;

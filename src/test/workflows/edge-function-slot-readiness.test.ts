@@ -33,10 +33,9 @@ describe("Edge Function slot readiness", () => {
     expect(deployEnvExample).toContain("VITE_TALENT_INVITE_NOTIFICATION_ENABLED=false");
     expect(envExample).toContain("VITE_ADMIN_BROADCAST_NOTIFICATION_ENABLED=false");
     expect(deployEnvExample).toContain("VITE_ADMIN_BROADCAST_NOTIFICATION_ENABLED=false");
-    // notificationManage now mutates directly under per-user RLS (no browser
-    // feature flag); it still surfaces NotificationManageUnavailableError when
-    // there is no signed-in user.
+    expect(notificationManage).toContain("VITE_NOTIFICATION_MANAGE_ENABLED");
     expect(notificationManage).toContain("NotificationManageUnavailableError");
+    expect(notificationManage).toContain('functions.invoke("notification-manage"');
     expect(socialNotificationManage).toContain("VITE_SOCIAL_NOTIFICATION_MANAGE_ENABLED");
     expect(socialNotificationManage).toContain("SocialNotificationManageUnavailableError");
     expect(pushDeviceManage).toContain("VITE_PUSH_DEVICE_MANAGE_ENABLED");

@@ -3,8 +3,6 @@
  * Personal, Shop, Support, Ride + Group chats
  * 2026-style design with premium UI
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-empty */
 import { useState, useEffect, useMemo, useRef, lazy, Suspense, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -726,6 +724,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     );
     // `groupLastSeenSignature` intentionally omitted: marking-seen writes a new
     // timestamp into groupLastSeen, which would re-fire this effect and loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- groupLastSeenSignature is intentionally omitted to prevent a mark-seen loop.
   }, [markGroupChatSeen, openGroupChat, queryClient, user?.id]);
 
   useEffect(() => {
@@ -741,7 +740,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           : chat
       )
     );
-  }, [openShopChat]);
+  }, [openShopChat, queryClient, user?.id]);
 
   useEffect(() => {
     if (!openRideChat) return;
@@ -759,6 +758,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     );
     // `rideLastSeenSignature` intentionally omitted: marking-seen writes a new
     // timestamp into rideLastSeen, which would re-fire this effect and loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rideLastSeenSignature is intentionally omitted to prevent a mark-seen loop.
   }, [markOverlayChatSeen, openRideChat, queryClient, user?.id]);
 
   useEffect(() => {
@@ -777,6 +777,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     );
     // `supportLastSeenSignature` intentionally omitted: marking-seen writes a
     // new timestamp into supportLastSeen, which would re-fire this effect and loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supportLastSeenSignature is intentionally omitted to prevent a mark-seen loop.
   }, [markOverlayChatSeen, openSupportChat, queryClient, user?.id]);
 
   // Share mode state
@@ -809,7 +810,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       }
     };
     verify();
-  }, [searchParams, user]);
+  }, [searchParams, setSearchParams, user]);
 
   // Handle premium gift checkout return: /chat?gift=success|canceled
   useEffect(() => {
@@ -875,7 +876,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         initialJumpMessageId,
       });
     })();
-  }, [searchParams, user, setSearchParams]);
+  }, [searchParams, setActive, setOpenPersonalChat, setSearchParams, user]);
 
   // Handle ?group=<groupId> deep-link from invite redemption or copied group links
   useEffect(() => {
@@ -986,7 +987,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       setActive("personal");
       setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false });
     }
-  }, [location.pathname, normalizedRouteOpenChat, routeState, user?.id]);
+  }, [location.pathname, normalizedRouteOpenChat, routeState, setActive, setOpenPersonalChat, user?.id]);
 
   useMarkOpenPersonalChatRead({
     userId: user?.id,
@@ -1515,7 +1516,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     if (folder === "all" || folder === "unread" || folder === "personal") return;
     setFolder("personal");
     // setFolder is a stable closure over setFolderState; folder is intentionally read.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zivoOFMode, folder]);
 
   const folderTabs = useMemo(

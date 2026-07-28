@@ -55,15 +55,11 @@ export function useBusinessInvoices(): UseBusinessInvoicesReturn {
 
       return data.map((invoice) => {
         // Determine status: paid, pending, or overdue
-        let status: "paid" | "pending" | "overdue" = "pending";
-        
-        if (invoice.status === "paid") {
-          status = "paid";
-        } else if (invoice.due_at && new Date(invoice.due_at) < now) {
-          status = "overdue";
-        } else {
-          status = "pending";
-        }
+        const status: "paid" | "pending" | "overdue" = invoice.status === "paid"
+          ? "paid"
+          : invoice.due_at && new Date(invoice.due_at) < now
+            ? "overdue"
+            : "pending";
 
         return {
           id: invoice.id,

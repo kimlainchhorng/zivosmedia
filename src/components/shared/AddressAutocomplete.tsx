@@ -237,7 +237,10 @@ export function AddressAutocomplete({
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => { suggestions.length > 0 && setIsOpen(true); onFocus?.(); }}
+          onFocus={() => {
+            if (suggestions.length > 0) setIsOpen(true);
+            onFocus?.();
+          }}
           placeholder={placeholder}
           disabled={disabled}
           className="pl-10 pr-10"

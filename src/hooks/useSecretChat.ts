@@ -98,13 +98,14 @@ export function useSecretChat(partnerId: string | null) {
 
         // 3. Find or create the secret_chats row (ordered pair).
         const [a, b] = [user.id, partnerId].sort();
-        let { data: chatRow, error: chatErr } = await supabase
+        const { data: initialChatRow, error: chatErr } = await supabase
           .from("secret_chats")
           .select("id, ttl_seconds")
           .eq("user_a", a)
           .eq("user_b", b)
           .maybeSingle();
         if (chatErr) throw chatErr;
+        let chatRow = initialChatRow;
         if (!chatRow) {
           const { data: created, error: createErr } = await supabase
             .from("secret_chats")
@@ -438,7 +439,7 @@ export function useSecretChat(partnerId: string | null) {
     cid: string,
   ): Promise<SecretMessage> {
     const senderPub = row.sender_public_key_jwk as JsonWebKey;
-    let plaintext = "";
+    let plaintext: string;
     let failed = false;
     try {
       plaintext = await decryptMessage({

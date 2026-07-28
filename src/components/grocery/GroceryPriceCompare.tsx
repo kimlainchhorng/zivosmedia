@@ -47,7 +47,7 @@ export function GroceryPriceCompare({ productName, currentStore, currentPrice }:
 
     // Simplify search query — use first 4-5 significant words
     const searchTerms = productName
-      .replace(/[,\(\)\-]/g, " ")
+      .replace(/[,()-]/g, " ")
       .split(/\s+/)
       .filter((w) => w.length > 2)
       .slice(0, 5)

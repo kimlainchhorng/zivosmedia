@@ -65,9 +65,10 @@ export default function FloatingProductCard({
       commerceLink.checkout_path ||
       (commerceLink.link_type === "store_product" && commerceLink.store_product_id
         ? `/grocery/shop/${storeSlug || ""}?buy=${commerceLink.store_product_id}`
-        : commerceLink.link_type === "truck_sale" && commerceLink.truck_sale_id
-          ? `/marketplace?truckSale=${commerceLink.truck_sale_id}`
-          : null);
+        // Truck sales checked out through the marketplace, which has been
+        // withdrawn; fall through so the caller shows its "not configured"
+        // notice instead of navigating to a removed route.
+        : null);
 
     if (!checkoutPath) {
       toast.error("Checkout not configured for this product");

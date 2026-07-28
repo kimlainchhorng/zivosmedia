@@ -131,7 +131,8 @@ export default function SalonServiceHistorySection({ storeId }: SalonServiceHist
   }, [rows, search]);
 
   const totals = useMemo(() => {
-    let revenue = 0, tips = 0, visits = filtered.length;
+    let revenue = 0, tips = 0;
+    const visits = filtered.length;
     for (const r of filtered) {
       // Owner revenue = services + add-ons + retail. Tax is pass-through;
       // tips are shown separately below.

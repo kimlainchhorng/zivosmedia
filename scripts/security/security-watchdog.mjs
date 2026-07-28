@@ -765,7 +765,6 @@ async function main() {
     return;
   }
   console.error(`🔁 Watchdog loop every ${INTERVAL_MIN} min. Ctrl+C to stop.`);
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     if (acquireLock()) {
       try {

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo, useRef } from "react";
+﻿import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,16 @@ const STATUS_DOT: Record<string, string> = {
   cancelled: "bg-rose-400",
 };
 const statusDot = (s: string) => STATUS_DOT[s] ?? "bg-primary";
+
+async function invokeServiceBookingManage(payload: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke("service-booking-manage", {
+    body: payload,
+  });
+  if (error) throw error;
+  const response = data as { error?: string } | null;
+  if (response?.error) throw new Error(response.error);
+  return data;
+}
 
 // "09:00" / "14:30" → { time: "9:00", ampm: "AM" } for the agenda time rail.
 function fmtTime(t: string | null | undefined): { time: string; ampm: string } {
@@ -133,15 +143,19 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       preferred_time: newDialog.time,
       status: newDialog.status,
     };
-    const { error } = await supabase.from("service_bookings").insert(payload as any);
-    setSaving(false);
-    if (error) { toast.error(error.message || "Failed to create booking"); return; }
-    toast.success("Booking created");
-    resetNewDialog();
-    fetchBookings();
+    try {
+      await invokeServiceBookingManage({ action: "create", store_id: storeId, booking: payload });
+      toast.success("Booking created");
+      resetNewDialog();
+      await fetchBookings();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to create booking");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     const { data } = await supabase
       .from("service_bookings")
       .select("*")
@@ -149,9 +163,9 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       .order("created_at", { ascending: sortOrder === "asc" });
     setBookings(data || []);
     setLoading(false);
-  };
+  }, [sortOrder, storeId]);
 
-  useEffect(() => { fetchBookings(); }, [storeId, sortOrder]);
+  useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
   // On first load, jump the calendar to the month of the most recent booking
   // so the day-count indicators are visible right away.
@@ -171,21 +185,24 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
 
   const deleteBooking = async (id: string) => {
     if (!window.confirm("Delete this booking? This cannot be undone.")) return;
-    const { error } = await supabase.from("service_bookings").delete().eq("id", id);
-    if (error) { toast.error(error.message || "Failed to delete booking"); return; }
-    toast.success("Booking deleted");
-    if (expandedId === id) setExpandedId(null);
-    fetchBookings();
+    try {
+      await invokeServiceBookingManage({ action: "delete", booking_id: id });
+      toast.success("Booking deleted");
+      if (expandedId === id) setExpandedId(null);
+      await fetchBookings();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to delete booking");
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase
-      .from("service_bookings")
-      .update({ status, updated_at: new Date().toISOString() } as any)
-      .eq("id", id);
-    if (error) { toast.error(error.message || "Failed to update"); return; }
-    toast.success(`Booking ${status}`);
-    fetchBookings();
+    try {
+      await invokeServiceBookingManage({ action: "update_status", booking_id: id, status });
+      toast.success(`Booking ${status}`);
+      await fetchBookings();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to update");
+    }
   };
 
   const [convertingId, setConvertingId] = useState<string | null>(null);
@@ -242,10 +259,13 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       .select("id")
       .single();
     if (woErr || !wo) { toast.error("Failed to create work order"); setConvertingId(null); return; }
-    await supabase
-      .from("service_bookings")
-      .update({ workorder_id: wo.id, updated_at: new Date().toISOString() } as any)
-      .eq("id", b.id);
+    try {
+      await invokeServiceBookingManage({ action: "link_workorder", booking_id: b.id, workorder_id: wo.id });
+    } catch (error: any) {
+      setConvertingId(null);
+      toast.error(error?.message || "Failed to link work order to booking");
+      return;
+    }
     setConvertingId(null);
     toast.success(`Work Order ${woNumber} created${vehicleId ? " with linked vehicle" : ""}`);
     fetchBookings();
@@ -253,15 +273,20 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
 
   const saveNotes = async () => {
     setSaving(true);
-    const { error } = await supabase
-      .from("service_bookings")
-      .update({ admin_notes: notesDialog.notes.trim() || null, updated_at: new Date().toISOString() } as any)
-      .eq("id", notesDialog.bookingId);
-    setSaving(false);
-    if (error) { toast.error(error.message || "Failed to save notes"); return; }
-    toast.success("Notes saved");
-    setNotesDialog({ open: false, bookingId: "", notes: "" });
-    fetchBookings();
+    try {
+      await invokeServiceBookingManage({
+        action: "save_notes",
+        booking_id: notesDialog.bookingId,
+        admin_notes: notesDialog.notes.trim() || null,
+      });
+      toast.success("Notes saved");
+      setNotesDialog({ open: false, bookingId: "", notes: "" });
+      await fetchBookings();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to save notes");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveReschedule = async () => {
@@ -270,19 +295,21 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("service_bookings")
-      .update({
+    try {
+      await invokeServiceBookingManage({
+        action: "reschedule",
+        booking_id: rescheduleDialog.bookingId,
         preferred_date: format(rescheduleDialog.date, "yyyy-MM-dd"),
         preferred_time: rescheduleDialog.time,
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq("id", rescheduleDialog.bookingId);
-    setSaving(false);
-    if (error) { toast.error(error.message || "Failed to reschedule"); return; }
-    toast.success("Booking rescheduled");
-    setRescheduleDialog({ open: false, bookingId: "", date: undefined, time: "" });
-    fetchBookings();
+      });
+      toast.success("Booking rescheduled");
+      setRescheduleDialog({ open: false, bookingId: "", date: undefined, time: "" });
+      await fetchBookings();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to reschedule");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Drag-to-reschedule: drop a booking on a calendar day to move it there,
@@ -293,15 +320,14 @@ export default function AdminBookingsTab({ storeId }: { storeId: string }) {
     if (!b || b.preferred_date === newDateStr) return;
     const prevDate = b.preferred_date;
     setBookings((list) => list.map((x) => x.id === bookingId ? { ...x, preferred_date: newDateStr } : x));
-    const { error } = await supabase
-      .from("service_bookings")
-      .update({
+    try {
+      await invokeServiceBookingManage({
+        action: "reschedule",
+        booking_id: bookingId,
         preferred_date: newDateStr,
         preferred_time: b.preferred_time || "09:00",
-        updated_at: new Date().toISOString(),
-      } as any)
-      .eq("id", bookingId);
-    if (error) {
+      });
+    } catch {
       setBookings((list) => list.map((x) => x.id === bookingId ? { ...x, preferred_date: prevDate } : x));
       toast.error("Couldn't move booking");
       return;

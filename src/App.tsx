@@ -12,13 +12,11 @@ const P2PTransferSheet = lazy(() => import("@/components/chat/P2PTransferSheet")
 const PartnerSignupSheet = lazy(() => import("@/components/partner/PartnerSignupSheet"));
 const AffiliateRedirectPage = lazy(() => import("@/pages/AffiliateRedirectPage"));
 const EventsHubPage = lazy(() => import("@/pages/hubs/EventsHubPage"));
-const MarketplaceHubPage = lazy(() => import("@/pages/hubs/MarketplaceHubPage"));
 const JobsHubPage = lazy(() => import("@/pages/hubs/JobsHubPage"));
 const VoiceRoomsHubPage = lazy(() => import("@/pages/hubs/VoiceRoomsHubPage"));
 const FitnessHubPage = lazy(() => import("@/pages/hubs/FitnessHubPage"));
 const CreateEventPage = lazy(() => import("@/pages/hubs/CreateEventPage"));
 const EventDetailPage = lazy(() => import("@/pages/hubs/EventDetailPage"));
-const CreateListingPage = lazy(() => import("@/pages/hubs/CreateListingPage"));
 const CreateJobPage = lazy(() => import("@/pages/hubs/CreateJobPage"));
 const JobPostingDetailPage = lazy(() => import("@/pages/hubs/JobPostingDetailPage"));
 const StartVoiceRoomPage = lazy(() => import("@/pages/hubs/StartVoiceRoomPage"));
@@ -351,9 +349,7 @@ const GoLivePage = lazy(() => import("./pages/GoLivePage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const CommunitiesPage = lazy(() => import("./pages/CommunitiesPage"));
 const CommunityDetailPage = lazy(() => import("./pages/CommunityDetailPage"));
-const MarketplacePage = lazy(() => import("./pages/MarketplacePage"));
 const ContentAnalyticsPage = lazy(() => import("./pages/ContentAnalyticsPage"));
-const MarketplaceOrdersPage = lazy(() => import("./pages/MarketplaceOrdersPage"));
 const ImportShopPage = lazy(() => import("./pages/shop/ImportShopPage"));
 const ImportProductPage = lazy(() => import("./pages/shop/ImportProductPage"));
 const ImportCartPage = lazy(() => import("./pages/shop/ImportCartPage"));
@@ -728,7 +724,6 @@ const VoiceNotesPage = lazy(() => import("./pages/VoiceNotesPage"));
 const AffiliateLinksPage = lazy(() => import("./pages/AffiliateLinksPage"));
 const GiftHistoryPage = lazy(() => import("./pages/GiftHistoryPage"));
 const SharedTodosPage = lazy(() => import("./pages/SharedTodosPage"));
-const MarketplaceCartPage = lazy(() => import("./pages/MarketplaceCartPage"));
 const PointsHistoryPage = lazy(() => import("./pages/PointsHistoryPage"));
 const ModerationAppealsPage = lazy(() => import("./pages/ModerationAppealsPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
@@ -1886,8 +1881,6 @@ const App = () => (
                 <Route path="/events" element={<EventsPage />} />
                 <Route path="/communities" element={<CommunitiesPage />} />
                 <Route path="/communities/:id" element={<CommunityDetailPage />} />
-                <Route path="/marketplace" element={<MarketplacePage />} />
-                <Route path="/marketplace/orders" element={<ProtectedRoute><MarketplaceOrdersPage /></ProtectedRoute>} />
                 <Route path="/shop" element={<ImportShopPage />} />
                 <Route path="/shop/product/:id" element={<ImportProductPage />} />
                 <Route path="/shop/cart" element={<ImportCartPage />} />
@@ -2157,13 +2150,11 @@ const App = () => (
                 <Route path="/p/:code" element={<ShareProfileRedirect />} />
                 <Route path="/r/:slug" element={<AffiliateRedirectPage />} />
                 <Route path="/events-hub" element={<EventsHubPage />} />
-                <Route path="/marketplace-hub" element={<MarketplaceHubPage />} />
                 <Route path="/jobs-hub" element={<JobsHubPage />} />
                 <Route path="/voice-rooms" element={<VoiceRoomsHubPage />} />
                 <Route path="/fitness" element={<FitnessHubPage />} />
                 <Route path="/events-hub/create" element={<CreateEventPage />} />
                 <Route path="/events-hub/:id" element={<EventDetailPage />} />
-                <Route path="/marketplace-hub/create" element={<CreateListingPage />} />
                 <Route path="/jobs-hub/create" element={<ProtectedRoute><CreateJobPage /></ProtectedRoute>} />
                 <Route path="/jobs-hub/:id" element={<JobPostingDetailPage />} />
                 <Route path="/voice-rooms/create" element={<ProtectedRoute><StartVoiceRoomPage /></ProtectedRoute>} />
@@ -2246,7 +2237,6 @@ const App = () => (
                 <Route path="/affiliate-links" element={<ProtectedRoute><AffiliateLinksPage /></ProtectedRoute>} />
                 <Route path="/gift-history" element={<ProtectedRoute><GiftHistoryPage /></ProtectedRoute>} />
                 <Route path="/shared-todos" element={<ProtectedRoute><SharedTodosPage /></ProtectedRoute>} />
-                <Route path="/marketplace-cart" element={<ProtectedRoute><MarketplaceCartPage /></ProtectedRoute>} />
                 <Route path="/points-history" element={<ProtectedRoute><PointsHistoryPage /></ProtectedRoute>} />
                 <Route path="/moderation-appeals" element={<ProtectedRoute><ModerationAppealsPage /></ProtectedRoute>} />
                 <Route path="/feedback" element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />

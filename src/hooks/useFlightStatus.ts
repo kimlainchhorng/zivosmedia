@@ -36,7 +36,7 @@ const simulateFlightStatus = (
   const hoursUntilDeparture = (departureTime.getTime() - now.getTime()) / (1000 * 60 * 60);
   const hoursSinceDeparture = -hoursUntilDeparture;
   
-  let status: FlightStatusData['status'] = 'scheduled';
+  let status: FlightStatusData['status'];
   let flightProgress = 0;
   let delayMinutes: number | undefined;
   

@@ -49,7 +49,7 @@ function validatePayoutForm(form: {
     errors.account_holder_name = "Account holder name is required";
   } else if (holder.length < 3) {
     errors.account_holder_name = "Name must be at least 3 characters";
-  } else if (!/^[\p{L}][\p{L}\s.'\-]+$/u.test(holder)) {
+  } else if (!/^[\p{L}][\p{L}\s.'-]+$/u.test(holder)) {
     errors.account_holder_name = "Name can only contain letters, spaces, '-', '.' and apostrophes";
   }
 

@@ -5,7 +5,7 @@
 - **Monthly review**: All npm and Deno dependencies are reviewed monthly for security patches.
 - **Edge function pinning**: All edge functions import from `supabase/functions/_shared/deps.ts` with pinned versions.
 - **Stripe API version**: Standardized to `2025-08-27.basil` across all functions.
-- **Supabase JS version**: Pinned to `@2.57.2` for edge functions.
+- **Supabase JS version**: Pinned to `@2.106.0` for edge functions.
 
 ## Security Architecture
 
@@ -91,11 +91,11 @@ Sensitive endpoints now require an AAL2 session (TOTP-completed). Enforcement po
 - **Article 15 — Right of access / portability**: `account-export` edge function returns a JSON dump of all user-owned data across 16 tables (`profiles`, `direct_messages`, `bookings`, `wallet_transactions`, etc.) plus the `auth.users` record. Requires AAL2. Rate-limited to 3 / 5 min.
 - **Article 17 — Right to erasure**: `account-delete-self` edge function deletes user-owned storage objects across all chat buckets, then calls `auth.admin.deleteUser()`. Caller must POST `{ confirm: "DELETE MY ACCOUNT" }` and be at AAL2. Action is audited before deletion.
 
-## Dependency Hygiene (verified 2026-04-29)
+## Dependency Hygiene (verified 2026-07-28)
 
-- **`npm audit` baseline**: 0 vulnerabilities (down from 11 — 8 high, 3 moderate).
-- **Transitive override**: `package.json` now includes an `overrides` block forcing `serialize-javascript ^7.0.5`. This pins the patched version through `vite-plugin-pwa → workbox-build → @rollup/plugin-terser`, avoiding the breaking-change downgrade `npm audit fix --force` would have triggered.
-- **Build verification**: `npm run build` succeeds end-to-end (vite 7.3.2, PWA service worker generation, 1296 precache entries) after every dep change.
+- **`npm audit` status**: clean as of 2026-07-28. `react-router-dom` is kept as a compatibility import name backed by the patched `react-router@8.3.0` package, which removes the affected React Router 7 dependency range without rewriting the app's 901 existing import sites.
+- **Toolchain compatibility**: TypeScript `6.0.3` is within the `typescript-eslint` `8.65.0` peer range, and the ZXing packages are pinned to the Node 22-compatible `browser` `0.1.5` / `library` `0.21.3` pair.
+- **Build verification**: `npm run build` succeeds end-to-end with Vite `8.1.5`, PWA service-worker generation, and 18 core precache entries.
 - **Run regularly**: `npm run security:audit` (or `npm run security:scan` for audit + secret scan).
 
 ## Live SPKI Pins (computed 2026-04-29)

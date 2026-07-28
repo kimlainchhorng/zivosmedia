@@ -146,11 +146,7 @@ export function useVoiceRecorder() {
           s = testMic.stream;
         }
       } else {
-        try {
-          s = await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch (e) {
-          throw e;
-        }
+        s = await navigator.mediaDevices.getUserMedia({ audio: true });
       }
 
       if (canUseLocalhostTestMic() && testAudioCtx.current && !testMicNoticeShown.current) {

@@ -42,7 +42,7 @@ function generateMonthPrices(year: number, month: number, basePrice: number): Re
     const seed = (year * 365 + month * 31 + day) % 100;
 
     // Tue/Wed/Sat tend cheaper, Fri/Sun pricier
-    let modifier = 0;
+    let modifier: number;
     if (dow === 2 || dow === 3) modifier = -0.12;
     else if (dow === 6) modifier = -0.08;
     else if (dow === 0 || dow === 5) modifier = 0.15;

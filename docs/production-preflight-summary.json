@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-07-23T03:19:34.384Z",
-  "mode": "soft",
+  "generated": "2026-07-28T15:15:16.590Z",
+  "mode": "strict",
   "options": {
-    "strict": false,
-    "skipBuild": false,
+    "strict": true,
+    "skipBuild": true,
     "skipTypeCheck": true
   },
-  "readyForCurrentGate": true,
+  "readyForCurrentGate": false,
   "readyForProductionGate": false,
   "counts": {
     "apiCritical": 0,
     "apiWarnings": 0,
-    "environmentCritical": 0,
+    "environmentCritical": 6,
     "environmentWarnings": 0,
     "databaseBlockers": 0,
     "databaseWarnings": 0,
     "edgeFunctionDeployFailures": 0,
     "edgeFunctionMissingLiveCritical": 6,
     "edgeFunctionBrowserGateFailures": 0,
-    "failedCommands": 0,
-    "productionBlockers": 4,
-    "currentGateBlockers": 0
+    "failedCommands": 3,
+    "productionBlockers": 5,
+    "currentGateBlockers": 5
   },
   "supabase": {
     "envAccessToken": false,
@@ -104,29 +104,40 @@
   },
   "blockers": {
     "production": [
+      "Environment readiness has 6 critical finding(s).",
       "Missing SUPABASE_URL for production backend cron/runtime settings.",
       "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
       "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
       "Supabase remote migration history is unavailable (unavailable)."
     ],
-    "currentGate": [],
-    "failedCommands": []
+    "currentGate": [
+      "Environment readiness has 6 critical finding(s).",
+      "Missing SUPABASE_URL for production backend cron/runtime settings.",
+      "Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.",
+      "Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.",
+      "Supabase remote migration history is unavailable (unavailable)."
+    ],
+    "failedCommands": [
+      "Security scan",
+      "Supabase deploy environment",
+      "Supabase runtime settings SQL"
+    ]
   },
   "steps": [
     {
       "id": "secrets",
       "title": "Security scan",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "environment",
       "title": "Supabase deploy environment",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "runtime-settings-sql",
       "title": "Supabase runtime settings SQL",
-      "status": "passed"
+      "status": "failed"
     },
     {
       "id": "migration-drift",
@@ -162,11 +173,6 @@
       "id": "media-readiness",
       "title": "Media lazy-load readiness",
       "status": "passed"
-    },
-    {
-      "id": "build",
-      "title": "Production build",
-      "status": "passed"
     }
   ],
   "artifacts": {
@@ -186,17 +192,17 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 22739
+      "bytes": 24286
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 6932
+      "bytes": 7398
     },
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
       "exists": true,
-      "bytes": 12403
+      "bytes": 12401
     },
     "databaseReadiness": {
       "path": "docs/database-upgrade-readiness-report.md",
@@ -243,6 +249,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 184785
+    "bytes": 186796
   }
 }

@@ -24,7 +24,7 @@ interface RiskAssessment {
 }
 
 function assess(url: string): RiskAssessment {
-  let hostname = "";
+  let hostname: string;
   try { hostname = new URL(url).hostname; } catch {
     return { level: "blocked", warnings: ["Invalid URL"], hostname: "" };
   }

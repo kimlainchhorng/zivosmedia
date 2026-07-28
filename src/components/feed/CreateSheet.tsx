@@ -28,7 +28,6 @@ import {
   Search,
   Settings,
   ShieldCheck,
-  ShoppingBag,
   Sparkles,
   Store,
   TrendingUp,
@@ -70,7 +69,6 @@ const CREATE_ITEMS: CreateItem[] = [
   { id: "story", label: "Story", sublabel: "Share for 24h", icon: Camera, iconClass: "text-orange-600", bgClass: "bg-orange-500/10", accentClass: "from-orange-400 to-pink-500", path: "/feed?compose=story", studio: "create", requiresAuth: true, featured: true },
   { id: "live", label: "Live", sublabel: "Go live now", icon: Radio, iconClass: "text-red-600", bgClass: "bg-red-500/10", accentClass: "from-red-500 to-pink-600", path: "/feed?compose=live", studio: "create", requiresAuth: true, featured: true },
   { id: "spaces", label: "Spaces", sublabel: "Audio room", icon: Mic2, iconClass: "text-purple-600", bgClass: "bg-purple-500/10", accentClass: "from-purple-500 to-violet-500", path: "/voice-rooms/create", studio: "create", requiresAuth: true },
-  { id: "marketplace", label: "Marketplace", sublabel: "Sell items", icon: ShoppingBag, iconClass: "text-emerald-600", bgClass: "bg-emerald-500/10", accentClass: "from-emerald-500 to-teal-500", path: "/feed?compose=shop", studio: "grow", requiresAuth: true },
   { id: "job", label: "Job", sublabel: "Post a hiring", icon: Briefcase, iconClass: "text-indigo-600", bgClass: "bg-indigo-500/10", accentClass: "from-indigo-500 to-sky-500", path: "/jobs-hub/create", studio: "grow", requiresAuth: true },
   { id: "boost", label: "Boost", sublabel: "Promote a post", icon: Rocket, iconClass: "text-rose-600", bgClass: "bg-rose-500/10", accentClass: "from-rose-500 to-orange-500", path: "/shop-dashboard/boost", studio: "grow", requiresAuth: true },
   { id: "group", label: "Group", sublabel: "Build a community", icon: Users, iconClass: "text-blue-600", bgClass: "bg-blue-500/10", accentClass: "from-blue-500 to-indigo-500", path: "/communities?new=1", studio: "grow", requiresAuth: true },
@@ -91,13 +89,11 @@ const STUDIO_MODES: Array<{ id: StudioMode; label: string; description: string }
 
 const GOAL_CARDS = [
   { id: "launch", label: "Launch fast", description: "Start with a reel, then add story follow-up.", icon: Rocket, path: "/feed?compose=reel", requiresAuth: true },
-  { id: "sell", label: "Sell something", description: "Open marketplace mode and tag the offer.", icon: Store, path: "/feed?compose=shop", requiresAuth: true },
   { id: "community", label: "Build community", description: "Create an event or group around the topic.", icon: HeartHandshake, path: "/events-hub/create", requiresAuth: true },
   { id: "announce", label: "Make an announcement", description: "Publish a post and share it to story.", icon: Megaphone, path: "/feed?compose=post", requiresAuth: true },
 ];
 
 const PUBLISH_TEMPLATES = [
-  { id: "drop", label: "Product drop", copy: "New drop is live. Tap in before it sells out.", path: "/feed?compose=shop" },
   { id: "behind", label: "Behind the scenes", copy: "A quick look at what I am building today.", path: "/feed?compose=story" },
   { id: "question", label: "Ask the audience", copy: "What should I make next?", path: "/feed?compose=poll" },
   { id: "live", label: "Live promo", copy: "Going live now. Come hang out.", path: "/feed?compose=live" },

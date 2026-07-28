@@ -125,6 +125,8 @@ export function isSafeProtocol(url: string): boolean {
   // before resolving its scheme, so "java\tscript:" and "\x01javascript:" still
   // execute. Strip those same characters before the prefix check — matching on
   // the raw string alone is trivially bypassed.
+  // Intentional C0-control stripping before scheme validation.
+  // eslint-disable-next-line no-control-regex
   const trimmed = url.replace(/[\u0000-\u001F\u007F]/g, '').trim().toLowerCase();
   if (
     trimmed.startsWith('javascript:') ||

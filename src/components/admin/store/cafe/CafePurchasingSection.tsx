@@ -70,7 +70,8 @@ export default function CafePurchasingSection({ storeId }: Props) {
   const [receiveQty, setReceiveQty] = useState("");
 
   const stats = useMemo(() => {
-    let openValue = 0, openCount = 0, totalSuppliers = purch.suppliers.length;
+    let openValue = 0, openCount = 0;
+    const totalSuppliers = purch.suppliers.length;
     for (const o of purch.orders) {
       if (o.status === "draft" || o.status === "sent" || o.status === "partial") {
         openValue += o.total_cents - 0;

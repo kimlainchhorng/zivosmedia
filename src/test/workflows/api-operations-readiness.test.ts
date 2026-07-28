@@ -1016,12 +1016,11 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(supplier).not.toContain("req.headers.get(\"origin\") ?? \"*\"");
   });
 
-  it("routes bug and marketplace reports through trusted server-side ingestion", () => {
+  it("routes bug reports through trusted server-side ingestion", () => {
     const fn = source("supabase/functions/bug-report-submit/index.ts");
     const gate = source("supabase/migrations/20260601021500_bug_reports_server_gate.sql");
     const bugPage = source("src/pages/BugReportsPage.tsx");
     const bugSheet = source("src/components/support/BugReportSheet.tsx");
-    const marketplace = source("src/pages/MarketplacePage.tsx");
 
     expect(fn).toContain('withSecurity("bug-report-submit"');
     expect(fn).toContain("strictCors: true");
@@ -1039,13 +1038,12 @@ describe("API, speed, and operations readiness workflow", () => {
     expect(gate).toContain('CREATE POLICY "bug_reports_select_own"');
     expect(gate).toContain("trusted server-side ingestion through bug-report-submit");
 
-    for (const client of [bugPage, bugSheet, marketplace]) {
+    // MarketplacePage was a third client here until the marketplace feature was
+    // withdrawn; the remaining clients still carry the full contract.
+    for (const client of [bugPage, bugSheet]) {
       expect(client).toContain('functions.invoke("bug-report-submit"');
       expect(client).not.toMatch(/from\("bug_reports"\)\.insert/);
     }
-
-    expect(marketplace).toContain('category: "marketplace"');
-    expect(marketplace).toContain("marketplace_listing_report");
   });
 
   it("routes account support tickets through trusted server-side ingestion", () => {

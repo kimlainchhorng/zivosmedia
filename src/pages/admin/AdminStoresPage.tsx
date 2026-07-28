@@ -171,7 +171,8 @@ export default function AdminStoresPage() {
 
   const uploadStoreImage = async (file: File, type: "logo" | "banner") => {
     const isLogo = type === "logo";
-    isLogo ? setUploadingLogo(true) : setUploadingBanner(true);
+    if (isLogo) setUploadingLogo(true);
+    else setUploadingBanner(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `temp/${type}-${Date.now()}.${ext}`;
@@ -185,7 +186,8 @@ export default function AdminStoresPage() {
     } catch (e: any) {
       toast.error(e.message || "Upload failed");
     } finally {
-      isLogo ? setUploadingLogo(false) : setUploadingBanner(false);
+      if (isLogo) setUploadingLogo(false);
+      else setUploadingBanner(false);
     }
   };
 

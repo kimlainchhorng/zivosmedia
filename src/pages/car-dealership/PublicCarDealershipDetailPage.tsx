@@ -672,7 +672,7 @@ export default function PublicCarDealershipDetailPage() {
         .order("created_at", { ascending: false })
         .limit(6);
 
-      let pool = (similarSameMake ?? []) as unknown as SimilarVehicle[];
+      const pool = (similarSameMake ?? []) as unknown as SimilarVehicle[];
 
       // If we didn't find enough by make, broaden the search.
       if (pool.length < 3 && v.body_type) {

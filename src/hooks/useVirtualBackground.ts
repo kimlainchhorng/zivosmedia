@@ -145,7 +145,8 @@ export function useVirtualBackground(
                 // cover-fit
                 const ir = bgImg.width / bgImg.height;
                 const cr = W / H;
-                let dw = W, dh = H, dx = 0, dy = 0;
+                let dw: number, dh: number;
+                let dx = 0, dy = 0;
                 if (ir > cr) {
                   dh = H;
                   dw = H * ir;

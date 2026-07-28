@@ -774,7 +774,8 @@ function MedsView() {
   const toggleTaken = (name: string) => {
     setTakenToday((prev) => {
       const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
       localStorage.setItem(`wellness_meds_taken_${todayKey()}`, JSON.stringify([...next]));
       return next;
     });

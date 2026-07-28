@@ -9,7 +9,7 @@ export const normalizeStoreCategory = (category?: string | null) =>
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/b\s*and\s*b/g, "bed and breakfast")
-    .replace(/[\/_-]+/g, " ")
+    .replace(/[/_-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 

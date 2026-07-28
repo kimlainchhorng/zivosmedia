@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Car, Shield, MapPin, Sparkles, Package, Gift, Crown,
   Wine, ShoppingCart, Pill, Ship, FileCheck, ChevronRight,
-  Search, X, Heart, Tv, Briefcase, Store, Dumbbell, Mail, CheckCircle,
+  Search, X, Heart, Tv, Briefcase, Dumbbell, Mail, CheckCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,6 @@ import zivoTravelBanner from "@/assets/zivo-travel-banner.webp";
 import zivoGroupRideIcon from "@/assets/service-group-ride.png";
 import zivoAlcoholIcon from "@/assets/service-alcohol.png";
 import zivoPharmacyIcon from "@/assets/service-pharmacy.png";
-import zivoShoppingCartIcon from "@/assets/service-shopping.png";
 
 /* ── Types ── */
 interface ServiceItem {
@@ -64,7 +63,6 @@ const ACCENT_BY_HREF: Record<string, { bg: string; icon: string }> = {
   "/rent-car": { bg: "bg-amber-500/10 dark:bg-amber-400/15", icon: "text-amber-600 dark:text-amber-400" },
   "/eats": { bg: "bg-orange-500/10 dark:bg-orange-400/15", icon: "text-orange-500 dark:text-orange-400" },
   "/grocery": { bg: "bg-emerald-500/10 dark:bg-emerald-400/15", icon: "text-emerald-500 dark:text-emerald-400" },
-  "/marketplace": { bg: "bg-fuchsia-500/10 dark:bg-fuchsia-400/15", icon: "text-fuchsia-500 dark:text-fuchsia-400" },
   "/hotels": { bg: "bg-indigo-500/10 dark:bg-indigo-400/15", icon: "text-indigo-500 dark:text-indigo-400" },
   "/travel-insurance": { bg: "bg-teal-500/10 dark:bg-teal-400/15", icon: "text-teal-500 dark:text-teal-400" },
   "/explore": { bg: "bg-pink-500/10 dark:bg-pink-400/15", icon: "text-pink-500 dark:text-pink-400" },
@@ -101,7 +99,6 @@ const getServiceCategories = (t: (key: string) => string, isCambodia = false): S
       { label: t("services.grocery"), href: "/grocery", image: zivoShoppingIcon, animClass: "animate-food-wiggle", badge: "Shop", badgeVariant: "promo" as const },
       { label: t("services.alcohol"), href: "/grocery", image: zivoAlcoholIcon, badge: "New", badgeVariant: "new", animClass: "animate-food-wiggle" },
       { label: t("services.pharmacy"), href: "/grocery", image: zivoPharmacyIcon, badge: "New", badgeVariant: "new", animClass: "animate-pkg-bounce" },
-      { label: t("services.shopping"), href: "/marketplace", image: zivoShoppingCartIcon, animClass: "animate-food-wiggle" },
     ],
   },
   {
@@ -126,7 +123,6 @@ const getServiceCategories = (t: (key: string) => string, isCambodia = false): S
       { label: "ZIVO+", href: "/zivo-plus", icon: Crown, badge: "Premium", badgeVariant: "new" },
       { label: t("services.rewards"), href: "/rewards", icon: Gift, badge: "Earn", badgeVariant: "promo" },
       { label: t("services.deals"), href: "/deals", icon: Sparkles, badge: "Hot", badgeVariant: "promo" },
-      { label: t("services.marketplace"), href: "/marketplace", icon: Store, badge: "Shop", badgeVariant: "promo" },
       { label: t("services.live"), href: "/live", icon: Tv, badge: "Live", badgeVariant: "new" },
       { label: t("services.wellness"), href: "/wellness", icon: Dumbbell, badge: "New", badgeVariant: "new" },
       { label: t("services.creator"), href: "/creator-dashboard", icon: Briefcase },

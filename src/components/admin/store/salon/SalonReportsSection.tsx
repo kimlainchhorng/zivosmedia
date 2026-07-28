@@ -66,7 +66,7 @@ export default function SalonReportsSection({ storeId }: SalonReportsSectionProp
   }, [storeId, from, to]);
 
   const summary = useMemo(() => {
-    let total = rows.length;
+    const total = rows.length;
     let completed = 0, cancelled = 0, noShow = 0;
     let revenue = 0, tips = 0;
     const byService = new Map<string, { count: number; revenue: number }>();
@@ -126,7 +126,7 @@ export default function SalonReportsSection({ storeId }: SalonReportsSectionProp
   }, [rows]);
 
   const priorSummary = useMemo(() => {
-    let total = priorRows.length;
+    const total = priorRows.length;
     let completed = 0, cancelled = 0, noShow = 0;
     let revenue = 0;
     for (const r of priorRows) {

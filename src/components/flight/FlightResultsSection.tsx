@@ -71,10 +71,11 @@ export default function FlightResultsSection({
     return [...searchResults].sort((a, b) => {
       switch (sortBy) {
         case "price": return a.price - b.price;
-        case "duration":
+        case "duration": {
           const dA = parseInt(a.duration.match(/(\d+)h/)?.[1] || "0");
           const dB = parseInt(b.duration.match(/(\d+)h/)?.[1] || "0");
           return dA - dB;
+        }
         case "departure": return a.departure.time.localeCompare(b.departure.time);
         case "rating": return (b.onTimePerformance || 0) - (a.onTimePerformance || 0);
         default: return 0;

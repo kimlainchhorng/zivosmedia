@@ -203,7 +203,7 @@ export function CountryPhoneInput({ value, onChange, onBlur, name }: CountryPhon
     const cleaned = num
       .normalize("NFKD")
       .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 65248))
-      .replace(/[^\d\s\-]/g, "");
+      .replace(/[^\d\s-]/g, "");
 
     setLocalNumber(cleaned);
     const e164 = buildPhoneE164(selectedCountry.dial, cleaned);

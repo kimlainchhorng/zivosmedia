@@ -39,6 +39,8 @@ export function validateFileClient(file: File, category: FileCategory): FileVali
   const name = file.name.trim();
   if (!name) return { ok: false, error: 'File name is required.' };
   if (name.length > 180) return { ok: false, error: 'File name is too long.' };
+  // Intentional C0-control filtering for untrusted filenames.
+  // eslint-disable-next-line no-control-regex
   if (/[\\/\0-\x1F\x7F]/.test(name) || name.includes('..')) {
     return { ok: false, error: 'File name contains an unsafe path sequence.' };
   }

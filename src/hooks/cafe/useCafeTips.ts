@@ -119,7 +119,7 @@ export function useCafeTips(storeId: string | undefined, windowDays = 1) {
 
     if (mode === "equal") {
       const share = Math.floor(poolCents / lines.length);
-      let rem = poolCents - share * lines.length;
+      const rem = poolCents - share * lines.length;
       lines = lines.map((l, idx) => ({ ...l, weight: 1, payout_cents: share + (idx < rem ? 1 : 0) }));
     } else if (mode === "by_hours") {
       const totalMin = lines.reduce((s, l) => s + l.minutes_worked, 0);

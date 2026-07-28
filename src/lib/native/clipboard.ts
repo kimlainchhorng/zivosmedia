@@ -14,7 +14,7 @@ function execCommandCopy(text: string): boolean {
   ta.style.top = "0";
   ta.style.opacity = "0";
   document.body.appendChild(ta);
-  let ok = false;
+  let ok: boolean;
   try {
     ta.focus();
     ta.select();

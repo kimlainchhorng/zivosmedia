@@ -14,7 +14,7 @@ export interface LinkRisk {
 /** Synchronous heuristic-only assessment — fast, runs on every render */
 export function assessLinkSync(url: string): LinkRisk {
   const warnings: string[] = [];
-  let host = "";
+  let host: string;
   try { host = new URL(url).hostname; } catch {
     return { level: "blocked", warnings: ["Invalid URL"] };
   }

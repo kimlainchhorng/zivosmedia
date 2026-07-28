@@ -36,11 +36,14 @@ describe("CreateSheet", () => {
   it("searches across all studio modes, not only the selected tab", () => {
     renderCreateSheet();
 
+    // "Boost" lives in the Grow studio, not the default Create tab — so finding
+    // it proves search spans every mode. (This used to search for "Marketplace",
+    // which was withdrawn along with the marketplace feature.)
     fireEvent.change(screen.getByPlaceholderText("Search create tools"), {
-      target: { value: "marketplace" },
+      target: { value: "boost" },
     });
 
-    expect(screen.getByRole("button", { name: "Create Marketplace" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Boost" })).toBeInTheDocument();
     expect(screen.getByText("Search results")).toBeInTheDocument();
   });
 

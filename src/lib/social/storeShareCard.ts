@@ -229,7 +229,7 @@ export async function shareStoreWithCard(
   const url = buildShopDeepLink(store.slug);
   const text = `Check out ${store.name} on ZIVO`;
 
-  let blob: Blob | null = null;
+  let blob: Blob | null;
   try {
     blob = await generateStoreCard(store, opts);
   } catch {
