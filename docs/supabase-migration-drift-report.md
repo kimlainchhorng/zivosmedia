@@ -1,6 +1,6 @@
 # Supabase Migration Drift Report
 
-Generated: 2026-07-28T15:15:14.253Z
+Generated: 2026-07-28T17:29:18.966Z
 
 ## Summary
 

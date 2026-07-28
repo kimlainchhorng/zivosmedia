@@ -107,7 +107,6 @@ export default function ServiceBookingPage() {
       if (!storeRow) { setLoading(false); return; }
       setStore(storeRow);
 
-      // @ts-expect-error - deep type instantiation
       const { data: p } = await supabase
         .from("store_products")
         .select("id, name, price, category, image_url")

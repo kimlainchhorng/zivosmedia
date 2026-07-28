@@ -135,7 +135,6 @@ export function printWindowSticker(
       theme: "plain",
     });
 
-    // @ts-expect-error jspdf-autotable augments the instance
     y = (doc as { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y + 40;
     y += 10;
   }

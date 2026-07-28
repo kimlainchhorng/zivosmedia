@@ -1,6 +1,6 @@
 # Production Preflight Report
 
-Generated: 2026-07-28T15:15:16.588Z
+Generated: 2026-07-28T17:29:24.383Z
 Mode: strict
 Options: strict=yes, skipBuild=yes, skipTypeCheck=yes
 
@@ -38,8 +38,7 @@ Options: strict=yes, skipBuild=yes, skipTypeCheck=yes
 ### Security scan
 
 - Command: `npm run security:scan`
-- Status: failed
-- Failure: exitStatus=1
+- Status: passed
 
 ### Supabase deploy environment
 
@@ -389,7 +388,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-07-28T15:15:15.668Z",
+  "generated": "2026-07-28T17:29:22.207Z",
   "counts": {
     "functions": 9,
     "failures": 0
@@ -452,7 +451,7 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-07-28T15:15:15.713Z",
+  "generated": "2026-07-28T17:29:22.307Z",
   "mode": "local-plus-known-live-gap",
   "counts": {
     "configuredFunctions": 100,
@@ -594,10 +593,10 @@ runtime-settings-sql: Missing anon key. Set SUPABASE_ANON_KEY or pass --anon-key
 
 ```json
 {
-  "generated": "2026-07-28T15:15:16.395Z",
+  "generated": "2026-07-28T17:29:23.977Z",
   "counts": {
     "gatedFunctions": 6,
-    "scannedSrcFiles": 2822,
+    "scannedSrcFiles": 2815,
     "failures": 0
   },
   "gatedFunctions": [
@@ -722,7 +721,6 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Production Blockers
 
-- Failed command: Security scan
 - Failed command: Supabase deploy environment
 - Failed command: Supabase runtime settings SQL
 - Environment readiness has 6 critical finding(s).
@@ -733,7 +731,6 @@ This command is report-only for now. Move high-traffic surfaces to SmartImage/La
 
 ## Current Gate Blockers
 
-- Failed command: Security scan
 - Failed command: Supabase deploy environment
 - Failed command: Supabase runtime settings SQL
 - Environment readiness has 6 critical finding(s).

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-07-28T15:15:16.590Z",
+  "generated": "2026-07-28T17:29:24.387Z",
   "mode": "strict",
   "options": {
     "strict": true,
@@ -19,7 +19,7 @@
     "edgeFunctionDeployFailures": 0,
     "edgeFunctionMissingLiveCritical": 6,
     "edgeFunctionBrowserGateFailures": 0,
-    "failedCommands": 3,
+    "failedCommands": 2,
     "productionBlockers": 5,
     "currentGateBlockers": 5
   },
@@ -118,7 +118,6 @@
       "Supabase remote migration history is unavailable (unavailable)."
     ],
     "failedCommands": [
-      "Security scan",
       "Supabase deploy environment",
       "Supabase runtime settings SQL"
     ]
@@ -127,7 +126,7 @@
     {
       "id": "secrets",
       "title": "Security scan",
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "environment",
@@ -192,12 +191,12 @@
     "markdown": {
       "path": "docs/production-preflight-report.md",
       "exists": true,
-      "bytes": 24286
+      "bytes": 24198
     },
     "json": {
       "path": "docs/production-preflight-summary.json",
       "exists": true,
-      "bytes": 7398
+      "bytes": 7375
     },
     "migrationDrift": {
       "path": "docs/supabase-migration-drift-report.md",
@@ -249,6 +248,6 @@
     "total": 11,
     "existing": 11,
     "missing": 0,
-    "bytes": 186796
+    "bytes": 186685
   }
 }

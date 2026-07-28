@@ -39,7 +39,9 @@ describe("release safety production secret contracts", () => {
     expect(summary.blockers.production).toContain("Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.");
     expect(summary.blockers.production).toContain("Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.");
     if (summary.mode === "strict") {
-      expect(summary.blockers.failedCommands).toContain("Security scan");
+      expect(summary.blockers.failedCommands).toContain("Supabase deploy environment");
+      expect(summary.blockers.failedCommands).toContain("Supabase runtime settings SQL");
+      expect(summary.blockers.failedCommands).not.toContain("Security scan");
     }
   });
 
