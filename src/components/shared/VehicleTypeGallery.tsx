@@ -45,6 +45,14 @@ const rideVehicleTypes = [
     alt: "Sedan ride - comfortable 4-passenger vehicle",
   },
   {
+    type: "sedan_ev" as const,
+    label: "Sedan EV",
+    passengers: 4,
+    description: "Green electric ride",
+    src: "/vehicles/sedan-ev.png",
+    alt: "Green electric sedan for ZIVO Ride",
+  },
+  {
     type: "suv" as const,
     label: "SUV",
     passengers: 6,
@@ -67,6 +75,22 @@ const rideVehicleTypes = [
     description: "Group travel",
     src: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=450&fit=crop&q=75&fm=webp&auto=format",
     alt: "XL ride - spacious van for groups",
+  },
+  {
+    type: "tuktuk" as const,
+    label: "Tuk Tuk",
+    passengers: 3,
+    description: "Three-wheel city ride",
+    src: "/vehicles/zivo-tuktuk.png",
+    alt: "Tuk Tuk ride for city travel",
+  },
+  {
+    type: "motorcycle" as const,
+    label: "Motorcycle",
+    passengers: 1,
+    description: "Fast two-wheel ride",
+    src: "/vehicles/zivo-moto-v2.png",
+    alt: "Motorcycle ride for one passenger",
   },
 ];
 
@@ -101,7 +125,7 @@ export default function VehicleTypeGallery({
         bags: 0,
         width: 600,
         height: 450,
-        isElectric: false,
+        isElectric: v.type === "sedan_ev",
       }));
 
   const handleClick = (vehicleType: string) => {
