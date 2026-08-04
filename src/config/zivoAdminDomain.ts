@@ -2,7 +2,7 @@
 // with VITE_ADMIN_APP_URL (e.g. http://localhost:5188); defaults to the production
 // admin host. The dashboard navigates via in-page hash anchors (e.g. "#travel-ops"),
 // matching the `adminHref` values in Zivo-Admin's config/connected-workflows.json.
-const FALLBACK_ADMIN_ORIGIN = "https://admin.zivosmedia.com";
+const FALLBACK_ADMIN_ORIGIN = "https://zivoadmin.com";
 
 export const ZIVO_ADMIN_ORIGIN = (
   ((import.meta.env?.VITE_ADMIN_APP_URL as string | undefined) ?? "").trim() || FALLBACK_ADMIN_ORIGIN

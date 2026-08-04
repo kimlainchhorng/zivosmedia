@@ -1,6 +1,6 @@
 /**
  * KHQRPaymentModal — Dynamic QR code payment for ABA PayWay
- * Shows QR, polls for confirmation, fires Meta Purchase on success
+ * Shows a provider-issued QR and waits for a separately verified payment result.
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,10 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
-import { trackPurchase } from "@/services/metaConversion";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
-import { Loader2, CheckCircle, XCircle, QrCode, RefreshCw } from "lucide-react";
+import { Loader2, XCircle, QrCode, RefreshCw } from "lucide-react";
 
 interface KHQRPaymentModalProps {
   open: boolean;
@@ -22,35 +19,43 @@ interface KHQRPaymentModalProps {
   reference?: string;
   sourceTable?: string;
   sourceId?: string;
+  /**
+   * Kept for call-site compatibility. A browser QR acknowledgement must never
+   * invoke it; completion needs a separately server-verified provider result.
+   */
   onSuccess?: (transactionId: string) => void;
   onCancel?: () => void;
 }
 
-type PaymentStatus = "generating" | "pending" | "confirmed" | "failed" | "expired";
+type PaymentStatus = "generating" | "pending" | "failed" | "expired";
 
-export default function KHQRPaymentModal({
-  open,
-  onOpenChange,
-  amount,
-  currency = "USD",
-  description = "ZIVO Payment",
-  reference,
-  sourceTable,
-  sourceId,
-  onSuccess,
-  onCancel,
-}: KHQRPaymentModalProps) {
-  const { user } = useAuth();
+export default function KHQRPaymentModal(props: KHQRPaymentModalProps) {
+  const {
+    open,
+    onOpenChange,
+    amount,
+    currency = "USD",
+    description = "ZIVO Payment",
+    reference,
+    onCancel,
+  } = props;
   const [status, setStatus] = useState<PaymentStatus>("generating");
   const [qrData, setQrData] = useState<string | null>(null);
-  const [tranId, setTranId] = useState<string | null>(null);
   const [deepLink, setDeepLink] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const stopWaiting = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
   const generateQR = useCallback(async () => {
+    stopWaiting();
     setStatus("generating");
     setQrData(null);
+    setDeepLink(null);
     try {
       const { data, error } = await supabase.functions.invoke("aba-payway-checkout", {
         body: {
@@ -63,72 +68,41 @@ export default function KHQRPaymentModal({
       });
       if (error) throw error;
 
-      const qr = data?.qr_string || data?.abapay_deeplink || `KHQR:${data?.tran_id || reference}:${amount}`;
-      setQrData(qr);
-      setTranId(data?.tran_id || reference || crypto.randomUUID());
-      setDeepLink(data?.abapay_deeplink || null);
+      // A deep link is not a KHQR payload. Never invent a QR or local transaction
+      // reference when the provider response is incomplete.
+      const providerQr = typeof data?.qr_string === "string" ? data.qr_string.trim() : "";
+      if (!providerQr) {
+        throw new Error("ABA did not return a usable payment QR. Please try again.");
+      }
+
+      const providerDeepLink = typeof data?.abapay_deeplink === "string"
+        ? data.abapay_deeplink.trim()
+        : "";
+      setQrData(providerQr);
+      setDeepLink(providerDeepLink || null);
       setStatus("pending");
 
       // Auto-expire after 10 minutes
       timeoutRef.current = setTimeout(() => {
         setStatus("expired");
-        stopPolling();
+        stopWaiting();
       }, 10 * 60 * 1000);
     } catch (err) {
       console.error("KHQR generation failed:", err);
       setStatus("failed");
     }
-  }, [amount, currency, description, reference]);
-
-  const stopPolling = useCallback(() => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-  }, []);
-
-  // Simulate payment confirmation polling
-  // In production, this would check ABA's transaction status API
-  const handleConfirmPayment = useCallback(async () => {
-    if (!tranId) return;
-    setStatus("confirmed");
-    stopPolling();
-
-    // Fire Meta Purchase event with bank transaction ID as event_id
-    try {
-      await trackPurchase({
-        eventId: tranId, // Bank transaction ID = Event ID (prevents double counting)
-        externalId: user?.id,
-        value: amount,
-        currency,
-        sourceType: "khqr",
-        sourceTable: sourceTable || "store_orders",
-        sourceId: sourceId || tranId,
-      });
-    } catch {
-      // Meta tracking failure shouldn't block payment flow
-    }
-
-    toast.success("Payment confirmed!");
-    onSuccess?.(tranId);
-  }, [tranId, user, amount, currency, sourceTable, sourceId, onSuccess, stopPolling]);
+  }, [amount, currency, description, reference, stopWaiting]);
 
   useEffect(() => {
     if (open) {
       generateQR();
     }
-    return () => stopPolling();
-  }, [open, generateQR, stopPolling]);
+    return () => stopWaiting();
+  }, [open, generateQR, stopWaiting]);
 
   const handleClose = () => {
-    stopPolling();
-    if (status !== "confirmed") {
-      onCancel?.();
-    }
+    stopWaiting();
+    onCancel?.();
     onOpenChange(false);
   };
 
@@ -164,10 +138,13 @@ export default function KHQRPaymentModal({
                 <QRCodeSVG value={qrData} size={200} level="H" />
               </div>
               <Badge variant="secondary" className="animate-pulse">
-                Waiting for payment...
+                Waiting for ABA verification...
               </Badge>
               <p className="text-xs text-muted-foreground text-center max-w-xs">
                 Scan this QR code with your ABA Mobile or any KHQR-supported banking app
+              </p>
+              <p className="text-xs text-muted-foreground text-center max-w-xs">
+                Payment will be confirmed only after ABA verifies it.
               </p>
               {deepLink && (
                 <Button
@@ -179,23 +156,7 @@ export default function KHQRPaymentModal({
                   Open ABA Mobile App
                 </Button>
               )}
-              {/* Manual confirm button (sandbox mode) */}
-              <Button
-                onClick={handleConfirmPayment}
-                className="w-full rounded-xl font-bold"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                I've Completed Payment
-              </Button>
             </>
-          )}
-
-          {status === "confirmed" && (
-            <div className="text-center space-y-3">
-              <CheckCircle className="h-16 w-16 text-emerald-500 mx-auto" />
-              <p className="text-lg font-bold text-emerald-600">Payment Confirmed!</p>
-              <p className="text-xs text-muted-foreground">Transaction ID: {tranId}</p>
-            </div>
           )}
 
           {status === "failed" && (

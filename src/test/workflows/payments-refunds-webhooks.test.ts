@@ -216,6 +216,30 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(existsSync(path.join(root, "src/components/rides/AbaPaymentModal.tsx"))).toBe(false);
   });
 
+  it("keeps KHQR customer confirmation provider-authoritative", () => {
+    const khqrModal = source("src/components/shop/KHQRPaymentModal.tsx");
+
+    // A usable QR must come from the checkout provider; a deep link or a
+    // locally invented reference is not a KHQR payment payload.
+    expect(khqrModal).toContain('const providerQr = typeof data?.qr_string === "string" ? data.qr_string.trim() : "";');
+    expect(khqrModal).toContain("if (!providerQr) {");
+    expect(khqrModal).toContain("setQrData(providerQr);");
+
+    // A customer acknowledgement must never mark a payment paid, emit a purchase,
+    // or invoke a completion callback. Those actions need a verified server result.
+    expect(khqrModal).not.toContain("I've Completed Payment");
+    expect(khqrModal).not.toContain("handleConfirmPayment");
+    expect(khqrModal).not.toContain('setStatus("confirmed")');
+    expect(khqrModal).not.toContain("onSuccess?.(");
+    expect(khqrModal).not.toContain("trackPurchase");
+    expect(khqrModal).not.toContain("crypto.randomUUID()");
+    expect(khqrModal).not.toContain("data?.abapay_deeplink || `KHQR:");
+
+    // The actual provider deep link remains available alongside a real QR.
+    expect(khqrModal).toContain('window.open(deepLink, "_blank")');
+    expect(khqrModal).toContain("Payment will be confirmed only after ABA verifies it.");
+  });
+
   it("keeps customer payment capture routes POST-gated and payment-rate-limited", () => {
     const paymentReturn = source("src/components/lodging/PaymentReturnHandler.tsx");
     const canonicalRideFrame = source("src/pages/app/CanonicalRidePage.tsx");
