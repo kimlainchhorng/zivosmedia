@@ -645,6 +645,7 @@ const GenericLegalPage = lazy(() => import("./pages/legal/GenericLegalPage"));
 
 const AffiliateDisclosure = lazy(() => import("./pages/AffiliateDisclosure"));
 const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Refunds = lazy(() => import("./pages/Refunds"));
@@ -2381,6 +2382,9 @@ const App = () => (
 
                 {/* Public */}
                 <Route path="/about" element={<About />} />
+                {/* Unauthenticated by design -- see src/pages/Contact.tsx. */}
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/contact-us" element={<Contact />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<Terms />} />

@@ -3,6 +3,7 @@ import { ArrowLeft, FileText, Shield, AlertTriangle, Scale, Users, Car, Utensils
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import BusinessIdentity from "@/components/legal/BusinessIdentity";
 import { ADVANCED_LEGAL_CLAUSES, COMPANY_INFO } from "@/config/legalContent";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
@@ -224,6 +225,48 @@ const TermsOfService = () => {
               <p>
                 If you do not agree to these Terms, you may not access or use our Services. We reserve the right to 
                 modify these Terms at any time. Continued use of the Services after changes constitutes acceptance.
+              </p>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Who you are actually contracting with, and where we trade.
+              Stated explicitly because this site offers Cambodian payment rails
+              (ABA PayWay, KHQR) and Cambodian market pricing while the
+              contracting entity is a Delaware LLC. Unexplained, that pairing
+              reads as a mismatch between the named merchant and the business
+              actually trading -- to a customer checking who charged them, and
+              to a payment processor reviewing the account. Facts come from
+              COMPANY_INFO so this can never drift from /contact or the footer. */}
+          <AccordionItem value="entity" id="entity" className="border border-border rounded-lg px-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Globe className="w-4 h-4 text-primary" />
+                </div>
+                <span className="font-semibold">Who You Are Contracting With</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="text-muted-foreground space-y-4 pb-6">
+              <p>
+                <strong className="text-foreground">{COMPANY_INFO.name}</strong> is incorporated in the State
+                of {COMPANY_INFO.stateOfFormation}, {COMPANY_INFO.registeredAddress.country}. It is the
+                contracting entity and the merchant of record for every transaction made through the ZIVO
+                platform, and it is the party these Terms are between.
+              </p>
+              <p>
+                ZIVO operates principally in {COMPANY_INFO.operationsAddress.country}, where local payment
+                methods including ABA PayWay and KHQR are offered alongside international card payments.
+                Card charges appear on your statement as{" "}
+                <strong className="text-foreground">{COMPANY_INFO.statementDescriptor}</strong>. If you do not
+                recognise a charge under that name, contact us before disputing it with your bank.
+              </p>
+              <p>
+                Our registered office and operating addresses, and contact routes for support, billing, and
+                legal notices, are published on our{" "}
+                <Link to="/contact" className="text-primary hover:underline">
+                  Contact page
+                </Link>
+                .
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -727,11 +770,7 @@ const TermsOfService = () => {
               <p>
                 For questions about these Terms, contact us at:
               </p>
-              <div className="mt-2 p-4 bg-muted rounded-lg">
-                <p><strong>{COMPANY_INFO.name}</strong></p>
-                <p>Legal Department</p>
-                <p>Email: {COMPANY_INFO.email}</p>
-              </div>
+              <BusinessIdentity className="mt-2 p-4 bg-muted rounded-lg" />
             </AccordionContent>
           </AccordionItem>
 

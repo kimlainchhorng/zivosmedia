@@ -1,8 +1,16 @@
 /**
  * Refund Policy Page
- * Updated for ZIVO hybrid model:
- * - Hotels & Cars: ZIVO MoR (processes refunds directly)
- * - Flights: Partner ticketing (refunds handled by airline)
+ *
+ * ZIVO hybrid model:
+ * - Hotels, Cars, Rides, Eats, Delivery, Shopping: ZIVO is merchant of record
+ *   and processes refunds directly.
+ * - Flights: partner ticketing, refunds handled by the airline.
+ *
+ * Rides/Eats/Delivery/Shopping were missing from this page for a long time even
+ * though they are what ZIVO charges for in its operating market, and the reason
+ * behind every cash, ABA PayWay, and KHQR payment. Keep them here: a refund
+ * policy that omits most of what a business sells reads as though those
+ * services have no refund terms.
  */
 import { Link } from "react-router-dom";
 import { ArrowLeft, RefreshCcw, Car, Plane, Hotel, Clock, AlertCircle, CheckCircle, CreditCard, Mail, ExternalLink } from "lucide-react";
@@ -11,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { COMPANY_INFO } from "@/config/legalContent";
 import NavBar from "@/components/home/NavBar";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -21,8 +30,8 @@ const RefundPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
-        title="Refund Policy – ZIVO Travel"
-        description="Understand refund terms for hotels, car rentals processed by ZIVO, and flights handled by airline partners."
+        title="Refund Policy – ZIVO"
+        description="Refund terms for rides, food orders, deliveries, shopping, hotels, and car rentals processed by ZIVO, and flights handled by airline partners."
         canonical="https://zivosmedia.com/legal/refunds"
       />
       <NavBar />
@@ -59,6 +68,13 @@ const RefundPolicy = () => {
               <li className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-500" />
                 <span><strong>Hotels & Car Rentals:</strong> Refunds processed by ZIVO (we are the merchant of record)</span>
+              </li>
+              {/* Named here, not only in the tab below. This summary is what a
+                  reader takes away, and listing only travel implied the rest of
+                  what ZIVO sells had no refund terms. */}
+              <li className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                <span><strong>Rides, Eats, Delivery & Shopping:</strong> Refunds processed by ZIVO (we are the merchant of record)</span>
               </li>
               <li className="flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-amber-500" />
@@ -102,10 +118,11 @@ const RefundPolicy = () => {
 
         {/* Service-Specific Policies */}
         <Tabs defaultValue="hotels" className="mb-8">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="hotels" className="text-xs sm:text-sm">Hotels</TabsTrigger>
             <TabsTrigger value="cars" className="text-xs sm:text-sm">Car Rentals</TabsTrigger>
             <TabsTrigger value="flights" className="text-xs sm:text-sm">Flights</TabsTrigger>
+            <TabsTrigger value="rides" className="text-xs sm:text-sm">Rides &amp; Eats</TabsTrigger>
           </TabsList>
 
           {/* Hotels */}
@@ -288,13 +305,106 @@ const RefundPolicy = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Rides, Eats, Delivery and Shopping.
+              These were absent from this page entirely, even though they are
+              the services ZIVO actually charges for in its operating market and
+              the ones behind every cash, ABA PayWay, and KHQR payment. A refund
+              policy that documents only Hotels, Cars, and Flights reads, to a
+              customer or a payment processor comparing it against what the site
+              sells, as though these services have no refund terms at all. */}
+          <TabsContent value="rides">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="h-5 w-5 text-primary" />
+                  Rides, Eats, Delivery &amp; Shopping (ZIVO Processes Refunds)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                  <p className="font-medium flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    ZIVO is Merchant of Record
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Refunds for rides, food orders, package delivery, and shopping orders are handled
+                    directly by ZIVO. Drivers, restaurants, and shops are independent providers and do
+                    not issue refunds themselves.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3">When You Are Entitled to a Refund</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• Ride cancelled by the driver, or no driver arrived — full refund</li>
+                    <li>• Charged for a ride you did not take — full refund</li>
+                    <li>• Order never delivered — full refund</li>
+                    <li>• Items missing from an order — refund for the missing items</li>
+                    <li>• Food arrived unsafe to eat or materially wrong — full or partial refund</li>
+                    <li>• Package lost or damaged in transit — reviewed case by case</li>
+                    <li>• Duplicate or unrecognised charge — full refund once verified</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3">When a Refund May Not Apply</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• You cancelled after a driver had already arrived at the pickup point</li>
+                    <li>• Food was prepared correctly and to the order as placed</li>
+                    <li>• Delivery was completed to the address you supplied</li>
+                    <li>• The request is made more than 48 hours after the service</li>
+                  </ul>
+                </div>
+
+                {/* Refund route depends on the tender. Saying so matters: a cash
+                    rider has no card for money to return to, so promising a
+                    "refund to your original payment method" would be a term
+                    ZIVO could not honour for the market's most common tender. */}
+                <div>
+                  <h4 className="font-semibold mb-3">How the Refund Reaches You</h4>
+                  <div className="space-y-3 text-sm text-muted-foreground">
+                    <p>
+                      <strong className="text-foreground">Card:</strong> returned to the card that was
+                      charged, typically within 5&ndash;10 business days once approved.
+                    </p>
+                    <p>
+                      <strong className="text-foreground">ABA PayWay / KHQR:</strong> returned to the
+                      account that paid. Settlement timing depends on the bank and may take longer
+                      than a card refund.
+                    </p>
+                    <p>
+                      <strong className="text-foreground">Cash:</strong> a cash fare is paid straight
+                      to the driver, so there is no ZIVO-held payment to reverse. Where a refund is
+                      due on a cash trip it is issued as ZIVO credit, or arranged with you directly.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-muted rounded-xl">
+                  <p className="font-medium">Time Limit</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Report a problem within <strong className="text-foreground">48 hours</strong> of the
+                    ride or delivery. Contact{" "}
+                    <a
+                      href={`mailto:${COMPANY_INFO.supportEmail}`}
+                      className="text-primary hover:underline"
+                    >
+                      {COMPANY_INFO.supportEmail}
+                    </a>{" "}
+                    with your order or trip reference.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* General Information */}
         <Accordion type="single" collapsible className="space-y-4">
           <AccordionItem value="process" className="border border-border rounded-lg px-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200">
             <AccordionTrigger className="hover:no-underline">
-              <span className="font-semibold">How to Request a Refund (Hotels & Car Rentals)</span>
+              <span className="font-semibold">How to Request a Refund (Everything ZIVO Refunds Directly)</span>
             </AccordionTrigger>
             <AccordionContent className="text-muted-foreground space-y-4 pb-6">
               <ol className="list-decimal list-inside space-y-3">
@@ -339,7 +449,7 @@ const RefundPolicy = () => {
           <CardContent className="p-6 text-center">
             <h3 className="font-display font-bold text-lg mb-2">Need Help?</h3>
             <p className="text-muted-foreground mb-4">
-              For hotel and car rental refunds, contact ZIVO. For flight refunds, contact your airline partner.
+              For hotels, car rentals, rides, orders, and deliveries, contact ZIVO — we process those refunds. For flight refunds, contact your airline partner.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <a href="mailto:support@zivosmedia.com">

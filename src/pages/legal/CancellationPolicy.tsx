@@ -1,6 +1,11 @@
 /**
  * Cancellation Policy Page
- * Covers cancellation terms for Hotels, Car Rentals (MoR), and Flights (partner)
+ * Covers cancellation terms for Rides, Eats, Delivery, Hotels and Car Rentals
+ * (ZIVO is merchant of record) and Flights (partner ticketing).
+ *
+ * The Rides/Eats/Delivery figures mirror the live `public.cancellation_rules`
+ * rows and DEFAULT_RULE in supabase/functions/cancel-order. Change them here in
+ * the same commit that changes them there.
  */
 import NavBar from "@/components/home/NavBar";
 import Footer from "@/components/Footer";
@@ -15,8 +20,8 @@ const CancellationPolicy = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Cancellation Policy – ZIVO Travel"
-        description="Understand cancellation terms for Hotels, Car Rentals, and Flights booked through ZIVO. Different policies apply based on service type."
+        title="Cancellation Policy – ZIVO"
+        description="Cancellation terms for rides, food orders, and deliveries, plus hotels and car rentals booked through ZIVO, and flights ticketed by airline partners."
         canonical="https://zivosmedia.com/legal/cancellation"
       />
       <NavBar />
@@ -46,7 +51,9 @@ const CancellationPolicy = () => {
             <CardContent className="p-6">
               <p className="text-muted-foreground leading-relaxed">
                 ZIVO operates a hybrid business model. Cancellation policies differ based on the service type.
-                Please review the relevant section for your booking.
+                Rides, food orders, deliveries, hotels, and car rentals are cancelled through ZIVO;
+                flights are cancelled under the airline partner's rules. Please review the relevant
+                section for your booking.
               </p>
             </CardContent>
           </Card>
@@ -162,6 +169,93 @@ const CancellationPolicy = () => {
             </CardContent>
           </Card>
 
+          {/* Rides, Eats and Delivery.
+              Absent from this page entirely until now, despite ride
+              cancellation being by far the most common cancellation a ZIVO
+              customer makes and the one most likely to be disputed.
+
+              Every figure below is the live rule, not an illustration: they are
+              the seeded `public.cancellation_rules` rows for ride/delivery/eats
+              (120s free window, $2 after, $5 once the driver has arrived), and
+              they match DEFAULT_RULE in supabase/functions/cancel-order. If an
+              operator changes those rows, update this page in the same change —
+              a published fee that disagrees with the one actually charged is a
+              chargeback the platform will lose. */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Car className="h-5 w-5 text-primary" />
+                Rides, Eats &amp; Delivery (ZIVO is Merchant of Record)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-muted-foreground">
+                You can cancel a ride, food order, or delivery from the app at any time before it is
+                completed. Whether a fee applies depends on how long the booking has been open and
+                whether a driver has already arrived.
+              </p>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">Within 2 minutes of booking</p>
+                    <p className="text-sm text-muted-foreground">Before a driver is on the way</p>
+                  </div>
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">No Fee</Badge>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">After 2 minutes</p>
+                    <p className="text-sm text-muted-foreground">Driver assigned and en route</p>
+                  </div>
+                  <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">$2.00</Badge>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">After the driver has arrived</p>
+                    <p className="text-sm text-muted-foreground">$3.00 of this goes to the driver</p>
+                  </div>
+                  <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">$5.00</Badge>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">Cancelled by the driver, or no driver found</p>
+                  </div>
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">No Fee</Badge>
+                </div>
+              </div>
+
+              {/* The single most important disclosure on this page. Documented
+                  because cancel-order deliberately charges no fee on a cash
+                  booking: the fare never passes through ZIVO, so there is no
+                  payment to deduct from and no way to collect. Publishing a fee
+                  schedule without this exception would state a charge the
+                  platform does not make and cannot make. */}
+              <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                <p className="font-medium flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                  Paying with cash? No cancellation fee applies
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  A cash fare is paid directly to the driver at the end of the trip, so ZIVO never
+                  holds the money and no cancellation fee is charged on a cash booking — whatever the
+                  timing. Fees above apply to card, ABA PayWay, and KHQR bookings.
+                </p>
+              </div>
+
+              <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                <p className="font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-500" />
+                  Repeated Cancellations
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Cancellations are limited per day. Persistent cancelling after drivers have been
+                  dispatched may temporarily restrict your ability to book.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Flights */}
           <Card className="mb-8">
             <CardHeader>
@@ -228,8 +322,8 @@ const CancellationPolicy = () => {
             <CardContent className="p-6 text-center">
               <h3 className="font-bold text-lg mb-2">Need Help?</h3>
               <p className="text-muted-foreground mb-4">
-                For hotel and car rental cancellations, contact ZIVO support.
-                For flight cancellations, contact your airline partner.
+                For rides, food orders, deliveries, hotels, and car rentals, contact ZIVO support —
+                we handle those cancellations. For flight cancellations, contact your airline partner.
               </p>
               <a
                 href="mailto:support@zivosmedia.com"

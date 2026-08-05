@@ -8,6 +8,26 @@ import { getCurrencyConfig, FALLBACK_RATES, type CurrencyConfig } from "@/config
 export type ExchangeRates = Record<string, number>;
 
 /**
+ * Riel per USD for ZIVO's own Cambodia pricing.
+ *
+ * Distinct from `FALLBACK_RATES.KHR`, which is the generic multi-currency
+ * display fallback for the storefront. This constant is the rate at which
+ * operator-set Riel prices become the USD figure ZIVO actually charges, so it
+ * has to match what the rest of the ecosystem uses.
+ *
+ * It did not. `useCityPricing` and the lodging deposit field each carried
+ * 4062.5 while ZIVO-ride, zivodriver and Zivo-Admin were all pinned to 4100.
+ * Grocery delivery is priced from Riel figures an operator sets (1000៛ base,
+ * 900៛/km, 3000៛ minimum), so a stale divisor meant the USD charged did not
+ * represent the Riel price that was set: a 3000៛ minimum was billed as $0.74
+ * rather than $0.73.
+ *
+ * Cross-repo constraint: `Zivo-Admin/scripts/check-ride-ecosystem-contracts.mjs`
+ * asserts this equals the rate in the rider, driver, and admin apps.
+ */
+export const KHR_PER_USD = 4100;
+
+/**
  * Format a price with proper locale-aware formatting
  * @param amount - The amount to format
  * @param currencyCode - Currency code (e.g., 'USD', 'EUR')

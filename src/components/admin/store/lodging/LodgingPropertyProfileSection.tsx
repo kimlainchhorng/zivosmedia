@@ -31,6 +31,7 @@ import ContactCard from "./property-profile/ContactCard";
 import GuestEssentialsCard from "./property-profile/GuestEssentialsCard";
 import StorefrontContentCard from "./property-profile/StorefrontContentCard";
 import { Wifi, BookOpen } from "lucide-react";
+import { KHR_PER_USD as ECOSYSTEM_KHR_PER_USD } from "@/lib/currency";
 
 const LANGUAGES = ["English", "Spanish", "French", "German", "Italian", "Portuguese", "Khmer", "Thai", "Vietnamese", "Chinese", "Japanese", "Korean", "Russian", "Arabic", "Hindi"];
 const FACILITY_GROUPS: { label: string; items: string[] }[] = [
@@ -63,7 +64,8 @@ const INCLUDED = [
 const PAYMENT_METHODS = ["card", "cash", "aba", "bank_transfer"];
 const PAYMENT_LABELS: Record<string, string> = { card: "Card", cash: "Cash", aba: "ABA Pay", bank_transfer: "Bank transfer" };
 const CURRENCIES = ["USD", "KHR", "THB", "EUR", "GBP", "JPY"];
-const KHR_PER_USD = 4062.5;
+// Uses the one ecosystem rate; this file previously carried a local 4062.5.
+const KHR_PER_USD = ECOSYSTEM_KHR_PER_USD;
 
 export default function LodgingPropertyProfileSection({ storeId }: { storeId: string }) {
   const { data, isLoading, upsert, defaults } = useLodgePropertyProfile(storeId);
