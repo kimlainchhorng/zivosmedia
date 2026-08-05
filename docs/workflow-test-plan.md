@@ -1,14 +1,14 @@
 # Workflow Test Plan
 
-Generated: 2026-06-08T16:40:19.057Z
+Generated: 2026-08-05T17:43:23.981Z
 
 Source: `docs/workflow-coverage.json`
 
 ## Gate Context
 
-- Mode: soft
+- Mode: strict
 - Production gate ready: no
-- Remote migration history status: access_token_missing
+- Remote migration history status: unavailable
 
 ## Audit Command
 
@@ -19,20 +19,17 @@ Source: `docs/workflow-coverage.json`
 
 ## Production Blockers
 
+- Environment readiness has 6 critical finding(s).
 - Missing SUPABASE_URL for production backend cron/runtime settings.
 - Missing SUPABASE_ANON_KEY for production Edge Function verification and database cron auth.
 - Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.
-- API readiness has 19 warning(s).
-- Database readiness has 1 blocker(s).
-- Database readiness has 1 warning(s).
-- Supabase remote migration history is unavailable (access_token_missing).
-- Supabase migrations have 6 unresolved duplicate version(s).
+- Supabase remote migration history is unavailable (unavailable).
 
 ## Ordered Test Work
 
 1. SSO, Auth, Sessions, Devices
    - Status: covered
-   - Test coverage ratio: 0.0435
+   - Test coverage ratio: 0.042
    - Target: `tests/e2e/sso-session-roles.spec.ts, tests/e2e/auth-sso-role-matrix.spec.ts`
    - Command: `npm run test:e2e -- tests/e2e/sso-session-roles.spec.ts tests/e2e/auth-sso-role-matrix.spec.ts`
    - Acceptance:
@@ -41,7 +38,7 @@ Source: `docs/workflow-coverage.json`
      - Session revoke/device management blocks stale access.
 2. Customer Booking, Order, Trip
    - Status: covered
-   - Test coverage ratio: 0.0266
+   - Test coverage ratio: 0.0302
    - Target: `src/test/workflows/customer-booking-order.test.ts`
    - Command: `npm run test -- src/test/workflows/customer-booking-order.test.ts`
    - Acceptance:
@@ -50,7 +47,7 @@ Source: `docs/workflow-coverage.json`
      - Guest/authenticated paths do not expose another customer data.
 3. Shop Owner Setup and Operations
    - Status: covered
-   - Test coverage ratio: 0.0413
+   - Test coverage ratio: 0.0419
    - Target: `src/test/workflows/shop-owner-workflow.test.ts`
    - Command: `npm run test -- src/test/workflows/shop-owner-workflow.test.ts`
    - Acceptance:
@@ -59,7 +56,7 @@ Source: `docs/workflow-coverage.json`
      - Non-owners cannot mutate owner-only shop data.
 4. Client, Staff, Employee Workflows
    - Status: covered
-   - Test coverage ratio: 0.0256
+   - Test coverage ratio: 0.0245
    - Target: `src/test/workflows/client-staff-workflow.test.ts`
    - Command: `npm run test -- src/test/workflows/client-staff-workflow.test.ts`
    - Acceptance:
@@ -68,7 +65,7 @@ Source: `docs/workflow-coverage.json`
      - Schedule/payroll/client data requires the correct role.
 5. Payments, Refunds, Webhooks
    - Status: covered
-   - Test coverage ratio: 0.0351
+   - Test coverage ratio: 0.0327
    - Target: `src/test/workflows/payments-refunds-webhooks.test.ts`
    - Command: `npm run test -- src/test/workflows/payments-refunds-webhooks.test.ts`
    - Acceptance:
@@ -77,7 +74,7 @@ Source: `docs/workflow-coverage.json`
      - Refund/dispute/cancel states render and audit correctly.
 6. Payouts, Earnings, Balances
    - Status: covered
-   - Test coverage ratio: 0.0502
+   - Test coverage ratio: 0.0463
    - Target: `src/test/workflows/payouts-earnings-workflow.test.ts`
    - Command: `npm run test -- src/test/workflows/payouts-earnings-workflow.test.ts`
    - Acceptance:
@@ -86,7 +83,7 @@ Source: `docs/workflow-coverage.json`
      - Payout changes are audit logged and idempotent.
 7. Email Marketing, Consent, Suppression
    - Status: covered
-   - Test coverage ratio: 0.0633
+   - Test coverage ratio: 0.0612
    - Target: `src/test/workflows/email-marketing-consent.test.ts`
    - Command: `npm run test -- src/test/workflows/email-marketing-consent.test.ts`
    - Acceptance:
@@ -95,7 +92,7 @@ Source: `docs/workflow-coverage.json`
      - Consent basis/template/version is recorded for outbound messages.
 8. Ads, Monetization, Conversion Tracking
    - Status: covered
-   - Test coverage ratio: 0.0372
+   - Test coverage ratio: 0.0368
    - Target: `src/test/workflows/ads-monetization-tracking.test.ts`
    - Command: `npm run test -- src/test/workflows/ads-monetization-tracking.test.ts`
    - Acceptance:
@@ -104,7 +101,7 @@ Source: `docs/workflow-coverage.json`
      - Creator subscriptions, paid video, affiliate tracking, and payouts stay connected.
 9. Push Notifications and Notification Center
    - Status: covered
-   - Test coverage ratio: 0.0377
+   - Test coverage ratio: 0.0372
    - Target: `src/test/workflows/push-notifications-workflow.test.ts`
    - Command: `npm run test -- src/test/workflows/push-notifications-workflow.test.ts`
    - Acceptance:
@@ -113,7 +110,7 @@ Source: `docs/workflow-coverage.json`
      - Digest/test-send paths do not bypass opt-out state.
 10. Storage, Media, CDN, Downloads
    - Status: covered
-   - Test coverage ratio: 0.0542
+   - Test coverage ratio: 0.0519
    - Target: `src/test/fileUploadSecurity.test.ts, src/test/workflows/storage-media-workflow.test.ts`
    - Command: `npm run platform:test:storage-media`
    - Acceptance:
@@ -123,7 +120,7 @@ Source: `docs/workflow-coverage.json`
      - Delete/retention behavior matches user privacy and policy promises.
 11. Law, Policy, Compliance, Trust
    - Status: covered
-   - Test coverage ratio: 0.0495
+   - Test coverage ratio: 0.049
    - Target: `src/test/workflows/legal-policy-workflow.test.ts`
    - Command: `npm run test -- src/test/workflows/legal-policy-workflow.test.ts`
    - Acceptance:
@@ -132,7 +129,7 @@ Source: `docs/workflow-coverage.json`
      - Policy acceptance or consent logging has database/backend evidence.
 12. API, Server Speed, Observability
    - Status: covered
-   - Test coverage ratio: 0.0317
+   - Test coverage ratio: 0.0301
    - Target: `src/test/workflows/api-operations-readiness.test.ts`
    - Command: `npm run test -- src/test/workflows/api-operations-readiness.test.ts`
    - Acceptance:
@@ -141,7 +138,7 @@ Source: `docs/workflow-coverage.json`
      - Slow query and auth/payment spike checks have documented owners.
 13. Security, Anti-Abuse, Hacker Protection
    - Status: covered
-   - Test coverage ratio: 0.0459
+   - Test coverage ratio: 0.0444
    - Target: `src/test/workflows/security-anti-abuse.test.ts`
    - Command: `npm run test -- src/test/workflows/security-anti-abuse.test.ts`
    - Acceptance:
@@ -150,7 +147,7 @@ Source: `docs/workflow-coverage.json`
      - Attack drills cover account takeover, card testing, spam, scraping, and fake bookings.
 14. Graphics, Design, Frontend Speed
    - Status: covered
-   - Test coverage ratio: 0.0238
+   - Test coverage ratio: 0.0224
    - Target: `tests/visual/workflow-visual-readiness.spec.ts, tests/visual/safe-area.spec.ts, tests/e2e/mobile-layout-no-overlap.spec.ts, src/test/loadingErrorStates.test.tsx`
    - Command: `npm run qa:frontend-visual-contracts && npm run test:visual && npm run qa:safe-area:all && npm run test -- src/test/loadingErrorStates.test.tsx`
    - Acceptance:
@@ -160,7 +157,7 @@ Source: `docs/workflow-coverage.json`
      - Media-heavy surfaces use lazy/optimized image/video primitives.
 15. Native iOS, Android, OTA, Store Release
    - Status: covered
-   - Test coverage ratio: 0.0285
+   - Test coverage ratio: 0.0283
    - Target: `src/test/workflows/native-app-release.test.ts, src/test/otaDeployBypass.test.ts`
    - Command: `npm run test -- src/test/workflows/native-app-release.test.ts src/test/otaDeployBypass.test.ts`
    - Acceptance:

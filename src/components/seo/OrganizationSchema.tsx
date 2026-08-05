@@ -1,5 +1,34 @@
 import { useEffect } from "react";
 
+import { COMPANY_INFO, hasPostalAddress } from "@/config/legalContent";
+
+/**
+ * schema.org PostalAddress for the registered entity, or null when
+ * COMPANY_INFO does not yet hold a real one. Registered rather than operations
+ * because this schema describes the legal Organization.
+ */
+const postalAddress = hasPostalAddress(COMPANY_INFO.registeredAddress)
+  ? {
+      "@type": "PostalAddress",
+      ...(COMPANY_INFO.registeredAddress.line1.trim()
+        ? { "streetAddress": [COMPANY_INFO.registeredAddress.line1, COMPANY_INFO.registeredAddress.line2]
+            .map((part) => part.trim())
+            .filter(Boolean)
+            .join(", ") }
+        : {}),
+      ...(COMPANY_INFO.registeredAddress.city.trim()
+        ? { "addressLocality": COMPANY_INFO.registeredAddress.city.trim() }
+        : {}),
+      ...(COMPANY_INFO.registeredAddress.region.trim()
+        ? { "addressRegion": COMPANY_INFO.registeredAddress.region.trim() }
+        : {}),
+      ...(COMPANY_INFO.registeredAddress.postalCode.trim()
+        ? { "postalCode": COMPANY_INFO.registeredAddress.postalCode.trim() }
+        : {}),
+      "addressCountry": COMPANY_INFO.registeredAddress.country.trim(),
+    }
+  : null;
+
 /**
  * Injects Organization and WebSite structured data for SEO
  * This component should be rendered once at the app level
@@ -18,6 +47,13 @@ export default function OrganizationSchema() {
       "description": "ZIVO is a travel search and comparison platform helping users find the best deals on flights, hotels, and car rentals from 500+ partners.",
       "foundingDate": "2024",
       "email": "info@zivosmedia.com",
+      // Emitted only when COMPANY_INFO actually holds an address. An
+      // `address` key with empty strings is worse than no key: it publishes a
+      // machine-readable claim that the business has no location.
+      ...(postalAddress ? { "address": postalAddress } : {}),
+      ...(COMPANY_INFO.supportPhone.trim()
+        ? { "telephone": COMPANY_INFO.supportPhone.trim() }
+        : {}),
       "sameAs": [
         "https://twitter.com/zivotravel",
         "https://facebook.com/zivotravel",

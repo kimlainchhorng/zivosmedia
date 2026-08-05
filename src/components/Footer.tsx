@@ -13,6 +13,7 @@ import {
   MapPin,
 } from "lucide-react";
 import ZivoLogo from "./ZivoLogo";
+import { COMPANY_INFO, formatPostalAddress } from "@/config/legalContent";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,7 @@ const footerSections = [
 ];
 
 const legalLinks = [
+  { name: "Contact", href: "/contact" },
   { name: "Terms", href: "/legal/terms" },
   { name: "Privacy", href: "/legal/privacy" },
   { name: "Cookies", href: "/legal/cookies" },
@@ -76,6 +78,21 @@ const legalLinks = [
   { name: "Accessibility", href: "/legal/accessibility" },
   { name: "Do Not Sell My Info", href: "/legal/do-not-sell" },
 ];
+
+/**
+ * Registered office first: that is the entity a payment processor reconciles
+ * the account against. Operations is the fallback, so a footer with only the
+ * Cambodia address filled in still shows a real one rather than nothing.
+ * `formatPostalAddress` returns [] for an address that is country-only, which
+ * is what makes that fallback fire instead of printing "United States" alone.
+ * /contact shows both regardless.
+ */
+const footerAddressLines = (() => {
+  const registered = formatPostalAddress(COMPANY_INFO.registeredAddress);
+  return registered.length > 0
+    ? registered
+    : formatPostalAddress(COMPANY_INFO.operationsAddress);
+})();
 
 const socialLinks = [
   { label: "X", href: "https://x.com/hizovo", icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> },
@@ -154,6 +171,37 @@ const Footer = ({ className }: { className?: string }) => {
             <p className="text-sm text-primary-foreground/40 max-w-xs leading-relaxed">
               Book flights, hotels, and car rentals with transparent pricing and secure checkout. Your next adventure starts here.
             </p>
+
+            {/* Merchant contact details, in the footer of every page.
+                A payment-processor review looks for a reachable business here
+                first; until now the only support address lived inside /help,
+                which a reviewer has no reason to open. Values come from
+                COMPANY_INFO so this cannot drift from /contact or the Terms,
+                and unfilled ones are omitted rather than shown blank. */}
+            <div className="text-sm text-primary-foreground/40 max-w-xs space-y-1 text-center lg:text-left">
+              <p className="font-medium text-primary-foreground/70">{COMPANY_INFO.name}</p>
+              {footerAddressLines.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+              <p>
+                <a
+                  href={`mailto:${COMPANY_INFO.supportEmail}`}
+                  className="hover:text-primary-foreground transition-colors break-all"
+                >
+                  {COMPANY_INFO.supportEmail}
+                </a>
+              </p>
+              {COMPANY_INFO.supportPhone.trim() && (
+                <p>
+                  <a
+                    href={`tel:${COMPANY_INFO.supportPhone.replace(/[^+\d]/g, "")}`}
+                    className="hover:text-primary-foreground transition-colors"
+                  >
+                    {COMPANY_INFO.supportPhone}
+                  </a>
+                </p>
+              )}
+            </div>
 
             {/* App Store + Google Play — premium badges */}
             <div className="flex flex-wrap justify-center lg:justify-start gap-3">

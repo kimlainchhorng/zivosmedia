@@ -3,18 +3,126 @@
  * Locked legal text for compliance - MAXIMUM LIABILITY PROTECTION
  */
 
+/**
+ * The single source of truth for who ZIVO is, legally and operationally.
+ *
+ * A card-network / payment-processor review compares what this site publishes
+ * against what the payment account declares. Where the two disagree -- or where
+ * the site simply does not say -- the account is what gets held. So every
+ * business-identity fact renders from HERE and nowhere else: the footer, the
+ * public contact page, the Organization schema, and the legal clauses all read
+ * these fields rather than hardcoding their own copy, which is how they drifted
+ * apart in the first place.
+ *
+ * ZIVO is a US parent operating in Cambodia. Both halves are stated because a
+ * reviewer who sees Khmer-market payment rails (KHQR, ABA PayWay) on a site
+ * declaring only a Delaware entity reads that as a mismatch, not as a group
+ * structure.
+ *
+ * UNSET FIELDS RENDER AS NOTHING, NEVER AS A PLACEHOLDER. `formatPostalAddress`
+ * and the components below drop empty values, so a half-filled address shows a
+ * shorter address rather than a line reading "[Address]". Publishing an invented
+ * address to satisfy a reviewer is worse than publishing none.
+ */
 export const COMPANY_INFO = {
   name: "ZIVO LLC",
   dba: "ZIVO",
-  address: "United States",
   email: "info@zivosmedia.com",
   supportEmail: "support@zivosmedia.com",
   billingEmail: "payment@zivosmedia.com",
+  legalEmail: "legal@zivosmedia.com",
   website: "https://zivosmedia.com",
   stateOfFormation: "Delaware",
   governingLaw: "State of Delaware",
-  lastUpdated: "March 13, 2026",
+  lastUpdated: "August 5, 2026",
+
+  /**
+   * The registered address of the entity that holds the payment account. This
+   * is the one a processor reconciles against its own records, so it must be
+   * the address on the incorporation filing -- not a mailing address and not an
+   * office.
+   */
+  registeredAddress: {
+    line1: "",
+    line2: "",
+    city: "",
+    region: "Delaware",
+    postalCode: "",
+    country: "United States",
+  },
+
+  /**
+   * Where the business actually trades. Distinct from the registered address:
+   * riders, drivers, and merchants are in Cambodia, and a reviewer looking for
+   * "does this business really operate where it says" is looking for this one.
+   */
+  operationsAddress: {
+    line1: "",
+    line2: "",
+    city: "Phnom Penh",
+    region: "",
+    postalCode: "",
+    country: "Cambodia",
+  },
+
+  /**
+   * A reachable voice line for customers. Left empty rather than filled with a
+   * number that does not answer -- a dead support number fails a review harder
+   * than an absent one.
+   */
+  supportPhone: "",
+  supportHours: "Monday to Sunday, 08:00-20:00 (ICT, UTC+7)",
+
+  /**
+   * What customers see on their card statement. It must match what is
+   * configured on the payment account, or every unrecognised line becomes a
+   * chargeback.
+   */
+  statementDescriptor: "ZIVO",
 };
+
+export interface PostalAddress {
+  line1: string;
+  line2: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: string;
+}
+
+/**
+ * Renders an address as display lines, dropping every field that has not been
+ * filled in.
+ *
+ * Returns an empty array unless a STREET line is present, so callers hide the
+ * block entirely rather than print it. The bar is `line1` specifically, not
+ * "two or more non-empty fields": `registeredAddress` ships with
+ * `region: "Delaware"` and `operationsAddress` with `city: "Phnom Penh"`, which
+ * are jurisdiction hints for the surrounding prose, not an address anyone could
+ * send a letter to. A looser check rendered a heading reading "Registered
+ * office" above the words "Delaware / United States" — which is worse than
+ * showing nothing, because it presents a jurisdiction as though it were the
+ * merchant's address to anyone reviewing the site.
+ */
+export function formatPostalAddress(address: PostalAddress): string[] {
+  if (!address.line1.trim()) return [];
+
+  const street = [address.line1, address.line2]
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const locality = [address.city, address.region, address.postalCode]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(", ");
+  const country = address.country.trim();
+
+  return [...street, locality, country].filter(Boolean);
+}
+
+/** True when there is a real, publishable address for this entity. */
+export function hasPostalAddress(address: PostalAddress): boolean {
+  return formatPostalAddress(address).length > 0;
+}
 
 export const TERMS_OF_SERVICE = {
   version: "3.0",
@@ -154,7 +262,11 @@ export const ADVANCED_LEGAL_CLAUSES = {
   classActionOptOut: {
     id: "class_action_opt_out",
     title: "Arbitration & Class Action Waiver Opt-Out",
-    content: `YOU MAY OPT OUT OF THE ARBITRATION AGREEMENT AND CLASS ACTION WAIVER by sending written notice within thirty (30) days of first accepting these Terms to: ZIVO LLC, Legal Department, [Address]. The notice must include your full legal name, email address, physical address, and a clear statement that you wish to opt out of the arbitration agreement and class action waiver. Opting out will not affect any other provisions of these Terms. If you do not opt out within 30 days, you shall be bound by the arbitration agreement and class action waiver.`,
+    // Addressed to the legal mailbox rather than a street address: an opt-out
+    // right that routes to an unfilled "[Address]" placeholder is not a right a
+    // user can actually exercise, and an unexercisable term reads as bad faith
+    // to a regulator or a processor reviewing the site.
+    content: `YOU MAY OPT OUT OF THE ARBITRATION AGREEMENT AND CLASS ACTION WAIVER by sending written notice within thirty (30) days of first accepting these Terms to ZIVO LLC, Legal Department, at legal@zivosmedia.com, or to the registered office address published on our Contact page. The notice must include your full legal name, email address, physical address, and a clear statement that you wish to opt out of the arbitration agreement and class action waiver. Opting out will not affect any other provisions of these Terms. If you do not opt out within 30 days, you shall be bound by the arbitration agreement and class action waiver.`,
     version: "1.0",
   },
 

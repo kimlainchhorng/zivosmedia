@@ -15,6 +15,7 @@ import {
   formatConvertedPrice,
   getPriceDisplay,
   parsePrice,
+  KHR_PER_USD,
 } from "./currency";
 
 const RATES = { USD: 1, EUR: 0.5, JPY: 100, GBP: 2 };
@@ -131,5 +132,26 @@ describe("formatConvertedPrice", () => {
     const a = formatConvertedPrice(50, "EUR", "USD", RATES);
     const b = formatPrice(convertPrice(50, "EUR", "USD", RATES), "USD");
     expect(a).toBe(b);
+  });
+});
+
+describe("KHR_PER_USD (ZIVO Cambodia pricing rate)", () => {
+  it("is the one rate the whole ecosystem is pinned to", () => {
+    // Zivo-Admin/scripts/check-ride-ecosystem-contracts.mjs asserts this
+    // equals the rider, driver, and admin apps. This test is the local half:
+    // it fails here before anyone has to run the cross-repo gate.
+    expect(KHR_PER_USD).toBe(4100);
+  });
+
+  it("round-trips an operator's Riel price back to itself", () => {
+    // The defect this pins: useCityPricing divided Riel by a local 4062.5 to
+    // get the USD actually charged. Grocery delivery is priced from Riel
+    // figures an operator sets, so a divisor that disagreed with the
+    // ecosystem rate meant a 3000៛ minimum was billed as $0.74 instead of
+    // $0.73 -- the customer was not charged the price that was set.
+    for (const riel of [1000, 900, 3000, 12500]) {
+      const usd = riel / KHR_PER_USD;
+      expect(Math.round(usd * KHR_PER_USD)).toBe(riel);
+    }
   });
 });
