@@ -17,7 +17,7 @@ import { EmptyState as SharedEmptyState } from "@/components/ui/empty-state";
 interface UserResult { id: string; name: string; username: string | null; bio: string | null; avatar: string | null; }
 interface PostResult { id: string; author: string; content: string; }
 interface CommunityResult { id: string; name: string; members: number; description: string | null; }
-interface MarketResult { id: string; title: string; price: string; condition: string | null; }
+interface MarketResult { id: string; title: string; price: string; }
 
 interface Results {
   users: UserResult[];
@@ -82,7 +82,7 @@ export default function SmartSearchPage() {
         .ilike("name", term)
         .limit(8),
       (supabase as any).from("store_products")
-        .select("id, name, price_khr, price_usd, condition")
+        .select("id, name, price_khr, price")
         .ilike("name", term)
         .limit(8),
     ]);
@@ -109,8 +109,7 @@ export default function SmartSearchPage() {
       marketplace: (mktRes.data ?? []).map((m: any) => ({
         id: m.id,
         title: m.name ?? "Item",
-        price: m.price_usd ? `$${m.price_usd}` : m.price_khr ? `${m.price_khr} KHR` : "—",
-        condition: m.condition,
+        price: m.price ? `$${m.price}` : m.price_khr ? `${m.price_khr} KHR` : "—",
       })),
     });
 
@@ -301,7 +300,7 @@ function MarketCard({ item }: { item: MarketResult }) {
         <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center shrink-0"><ShoppingBag className="h-5 w-5 text-primary" /></div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-foreground text-sm truncate">{item.title}</p>
-          <p className="text-xs text-muted-foreground">{item.price}{item.condition ? ` · ${item.condition}` : ""}</p>
+          <p className="text-xs text-muted-foreground">{item.price}</p>
         </div>
       </Card>
     </motion.div>

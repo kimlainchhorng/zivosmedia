@@ -85,7 +85,7 @@ export default function SalesAttributionPage() {
         // Get orders/sales
         const { data: orders } = await (supabase as any)
           .from("store_orders")
-          .select("id, total_amount, created_at")
+          .select("id, total_cents, created_at")
           .eq("store_id", store.id)
           .eq("status", "completed")
           .limit(500);
@@ -93,7 +93,7 @@ export default function SalesAttributionPage() {
         const totalViews = (posts || []).reduce((s: number, p: any) => s + (p.view_count || 0), 0);
         const totalClicks = (clicks || []).length;
         const totalPurchases = (orders || []).length;
-        const totalRevenue = (orders || []).reduce((s: number, o: any) => s + (Number(o.total_amount) || 0), 0);
+        const totalRevenue = (orders || []).reduce((s: number, o: any) => s + (Number(o.total_cents) || 0), 0) / 100;
 
         setFunnel({
           reelViews: totalViews,

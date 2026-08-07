@@ -204,12 +204,15 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
       const db = supabase as any;
       const { data } = await db
         .from("food_orders")
-        .select("id, restaurant_name, total, status, created_at")
+        // food_orders has neither `restaurant_name` nor `total`: the
+        // restaurant is a foreign key and the money column is `total_amount`,
+        // stored in dollars. Searching by name joins through the relation.
+        .select("id, total_amount, status, created_at, restaurants!inner(name)")
         .eq("customer_id", user.id)
-        .ilike("restaurant_name", `%${debouncedQuery}%`)
+        .ilike("restaurants.name", `%${debouncedQuery}%`)
         .order("created_at", { ascending: false })
         .limit(5);
-      return (data || []) as { id: string; restaurant_name: string; total: number; status: string; created_at: string }[];
+      return (data || []) as { id: string; restaurants: { name: string } | null; total_amount: number; status: string; created_at: string }[];
     },
     enabled: debouncedQuery.length >= 2 && !!user?.id,
     staleTime: 30_000,
@@ -223,12 +226,12 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
       const db = supabase as any;
       const { data } = await db
         .from("trips")
-        .select("id, pickup_address, dropoff_address, status, created_at, fare")
+        .select("id, pickup_address, dropoff_address, status, created_at")
         .eq("rider_id", user.id)
         .or(`pickup_address.ilike.%${debouncedQuery}%,dropoff_address.ilike.%${debouncedQuery}%`)
         .order("created_at", { ascending: false })
         .limit(5);
-      return (data || []) as { id: string; pickup_address: string; dropoff_address: string; status: string; created_at: string; fare: number | null }[];
+      return (data || []) as { id: string; pickup_address: string; dropoff_address: string; status: string; created_at: string }[];
     },
     enabled: debouncedQuery.length >= 2 && !!user?.id,
     staleTime: 30_000,
@@ -345,8 +348,8 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
         icon: ShoppingBag,
         iconColor: "text-primary",
         iconBg: "bg-primary/10",
-        title: o.restaurant_name || "Order",
-        subtitle: `$${((o.total || 0) / 100).toFixed(2)} · ${o.status}`,
+        title: o.restaurants?.name || "Order",
+        subtitle: `$${(o.total_amount || 0).toFixed(2)} · ${o.status}`,
         action: () => handleNavigate(`/eats/orders`),
         badge: "Reorder",
       });

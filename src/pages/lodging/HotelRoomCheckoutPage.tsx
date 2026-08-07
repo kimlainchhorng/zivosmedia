@@ -225,7 +225,7 @@ export default function HotelRoomCheckoutPage() {
     const refreshReservation = async () => {
       const { data } = await (supabase as any)
         .from("lodge_reservations")
-        .select("id, number, status, payment_status, total_cents, last_payment_error, card_brand, card_last4")
+        .select("id, number, status, payment_status, total_cents, last_payment_error")
         .eq("id", checkoutReservation.id)
         .maybeSingle();
       if (!cancelled && data) setCheckoutReservation(data as CheckoutReservation);
@@ -258,7 +258,7 @@ export default function HotelRoomCheckoutPage() {
     const restoreReservation = async () => {
       const { data } = await (supabase as any)
         .from("lodge_reservations")
-        .select("id, number, status, payment_status, total_cents, last_payment_error, card_brand, card_last4")
+        .select("id, number, status, payment_status, total_cents, last_payment_error")
         .eq("id", reservationIdParam)
         .eq("store_id", storeId)
         .maybeSingle();

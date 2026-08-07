@@ -62,9 +62,16 @@ Deno.serve(withSecurity("ads-studio-track-conversion", async (req, ctx) => {
   }
 
   // Fetch store_id from the order
-  const { data: order } = await admin.from("food_orders").select("restaurant_id, total_cents").eq("id", body.order_id).maybeSingle();
+  // food_orders has no total_cents — the column is total_amount, in DOLLARS
+  // (AdminGodView multiplies it by 100 to get cents). Selecting the missing
+  // column failed the whole request, so storeId was always undefined and this
+  // endpoint answered 404 for every eats conversion it was asked to record.
+  const { data: order } = await admin.from("food_orders").select("restaurant_id, total_amount").eq("id", body.order_id).maybeSingle();
   const storeId = (order as any)?.restaurant_id;
-  const revenue = body.revenue_cents ?? (order as any)?.total_cents ?? 0;
+  const orderTotalCents = Number.isFinite(Number((order as any)?.total_amount))
+    ? Math.round(Number((order as any).total_amount) * 100)
+    : 0;
+  const revenue = body.revenue_cents ?? orderTotalCents;
 
   if (!storeId) {
     return new Response(JSON.stringify({ error: "order/store not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });

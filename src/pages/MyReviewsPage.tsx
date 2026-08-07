@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 interface UserReview {
   id: string;
   service_type: string;
-  service_id: string;
+  target_id: string;
   booking_reference: string | null;
   rating: number;
   title: string;
@@ -62,7 +62,7 @@ export default function MyReviewsPage() {
       const { data, error } = await (supabase as any)
         .from("reviews")
         .select("*")
-        .eq("reviewer_id", user.id)
+        .eq("reviewer_user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (!error && data) {
@@ -106,7 +106,7 @@ export default function MyReviewsPage() {
     try {
       const { error } = await (supabase as any)
         .from("reviews")
-        .update({ title: editTitle.trim(), body: editBody.trim(), rating: editRating })
+        .update({ comment: editBody.trim(), rating: editRating })
         .eq("id", editingId);
       if (error) throw error;
       setReviews(prev => prev.map(r =>

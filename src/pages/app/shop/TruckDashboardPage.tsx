@@ -165,12 +165,12 @@ export default function TruckDashboardPage() {
     if (!barcodeInput.trim() || !storeId) return;
     setSyncing(true);
     try {
-      // Look up product by barcode/SKU
+      // Look up product by SKU — store_products has no separate barcode column.
       const { data: product } = await (supabase as any)
         .from("store_products")
         .select("id, name, price")
         .eq("store_id", storeId)
-        .or(`barcode.eq.${barcodeInput},sku.eq.${barcodeInput}`)
+        .eq("sku", barcodeInput)
         .maybeSingle();
 
       if (!product) {

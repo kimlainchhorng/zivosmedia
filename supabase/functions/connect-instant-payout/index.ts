@@ -4,6 +4,10 @@ import { createClient } from "../_shared/deps.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { getIdempotencyKey, withIdempotency } from "../_shared/idempotency.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 serve(withSecurity("connect-instant-payout", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
@@ -40,6 +44,15 @@ serve(withSecurity("connect-instant-payout", async (req, ctx) => {
       throw new Error("Minimum payout is $1.00");
     }
     if (amount_cents > 1_000_000_00) throw new Error("Amount exceeds maximum");
+
+    // Adult creators do not take payouts from this Stripe account — see
+    // _shared/adultCreatorPaymentBoundary.ts. Deliberately OUTSIDE the
+    // idempotency wrapper below: a refusal is not a result worth caching
+    // against the request key, and caching it would make the boundary look
+    // like a completed payout on a retry.
+    if (await isAdultCreatorAccount(supabase, user.id)) {
+      return adultCreatorPaymentBlockedResponse(corsHeaders);
+    }
 
     const idempotencyKey = getIdempotencyKey(req);
     const result = await withIdempotency(req, "connect-instant-payout", user.id, async () => {

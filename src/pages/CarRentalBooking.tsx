@@ -344,6 +344,14 @@ const CarRentalBooking = () => {
     }, 100);
   };
 
+  // "View all car types" is the inverse of picking one: clear the filter and
+  // run the same search, so the user lands on the full list rather than on a
+  // button that appeared interactive and did nothing.
+  const handleViewAllCategories = () => {
+    setSelectedCategory(null);
+    setHasSearched(true);
+  };
+
   const handleCategoryTileSelect = (category: CarCategory) => {
     const categoryMap: Record<CarCategory, string> = {
       economy: "Economy", compact: "Compact", midsize: "Midsize",
@@ -837,7 +845,7 @@ const CarRentalBooking = () => {
         {/* ── Discovery Sections ────────────────────────────────────── */}
         {!hasSearched && (
           <>
-            <CarCategoryTiles onSelect={handleCategoryTileSelect} selectedCategory={null} />
+            <CarCategoryTiles onSelect={handleCategoryTileSelect} onViewAll={handleViewAllCategories} selectedCategory={null} />
             <SEOContentBlock serviceType="cars" className="bg-muted/5" />
             <DestinationCardsGrid service="cars" onSelect={handleLocationSelect} />
             <TrustFeatureCards columns={4} />

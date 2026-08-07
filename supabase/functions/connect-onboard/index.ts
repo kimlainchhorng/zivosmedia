@@ -2,6 +2,10 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 serve(withSecurity("connect-onboard", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
@@ -41,6 +45,19 @@ serve(withSecurity("connect-onboard", async (req, ctx) => {
         country,
         message: `Stripe Connect is not available in ${country}. Use ABA, bank wire, or PayPal instead.`,
       }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Adult creators are not onboarded onto this platform's Stripe Connect —
+    // see _shared/adultCreatorPaymentBoundary.ts. This is the OUTBOUND half of
+    // that boundary: blocking the charges but still opening a Connect account
+    // would leave the platform sponsoring a restricted business directly, which
+    // is attributed to the platform rather than to the creator.
+    //
+    // Scoped to the signed-in account holder, so salon, lodging, and other
+    // merchants that share this endpoint are unaffected — they carry neither
+    // is_of_creator nor creator_type.
+    if (await isAdultCreatorAccount(supabase, user.id)) {
+      return adultCreatorPaymentBlockedResponse(corsHeaders);
     }
 
     const origin = req.headers.get("origin") || "https://zivosmedia.com";

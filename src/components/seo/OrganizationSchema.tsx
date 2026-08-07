@@ -41,10 +41,14 @@ export default function OrganizationSchema() {
       "@type": "Organization",
       "name": "ZIVO",
       "legalName": "ZIVO LLC",
-      "alternateName": "ZIVO Travel",
+      "alternateName": "ZIVO Super-App",
       "url": "https://zivosmedia.com",
       "logo": "https://zivosmedia.com/og-image.png",
-      "description": "ZIVO is a travel search and comparison platform helping users find the best deals on flights, hotels, and car rentals from 500+ partners.",
+      // Describes the business as it operates, matching /about, the Terms, and
+      // the Refund Policy. The previous text called ZIVO a travel comparison
+      // site — the machine-readable twin of the same outdated claim, and the
+      // version aggregators and search engines actually consume.
+      "description": "ZIVO is a super-app for rides, food and package delivery, shopping, and travel booking, operating principally in Cambodia. ZIVO is the merchant of record for the services it operates; flights are ticketed by licensed airline partners.",
       "foundingDate": "2024",
       "email": "info@zivosmedia.com",
       // Emitted only when COMPANY_INFO actually holds an address. An
@@ -84,12 +88,13 @@ export default function OrganizationSchema() {
         "name": "Worldwide"
       },
       "knowsAbout": [
-        "Flight booking",
+        "Ride hailing",
+        "Food delivery",
+        "Package delivery",
+        "Online shopping",
         "Hotel reservations",
         "Car rentals",
-        "Travel comparison",
-        "Ride services",
-        "Food delivery"
+        "Flight booking"
       ]
     };
 

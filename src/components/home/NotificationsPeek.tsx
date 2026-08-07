@@ -73,7 +73,11 @@ export default function NotificationsPeek() {
           .limit(2),
         sb
           .from("hotel_bookings")
-          .select("id,hotel_name,city,check_in_date,updated_at,created_at")
+          // hotel_bookings has neither hotel_name nor city — only hotel_id.
+          // PostgREST rejects the whole request over an unknown column, so this
+          // widget's hotel entries were always empty. QuickActionsSection
+          // already embeds `hotels(name, city)`; this matches it.
+          .select("id,check_in_date,updated_at,created_at,hotels(name,city)")
           .eq("customer_id", user.id)
           .order("updated_at", { ascending: false })
           .limit(2),
@@ -150,8 +154,8 @@ export default function NotificationsPeek() {
           {
             id: `htl-${h.id}`,
             kind: "hotel",
-            title: h.hotel_name ?? "Hotel",
-            subtitle: h.city ?? "Stay",
+            title: h.hotels?.name ?? "Hotel",
+            subtitle: h.hotels?.city ?? "Stay",
             ago: timeAgo(h.updated_at ?? h.created_at),
             href: "/trips",
           },

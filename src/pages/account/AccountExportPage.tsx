@@ -82,10 +82,22 @@ const buildCategories = (): ExportCategory[] => [
     desc: "Chat history (up to 500 most recent)",
     icon: MessageCircle,
     fetch: async (uid) => {
+      // `messages` is conversation-scoped and has no receiver column, so a
+      // user's history is what they sent plus everything in conversations
+      // they own.
+      const { data: conversations } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("created_by", uid);
+      const ids = (conversations || []).map((c) => c.id);
       const { data } = await supabase
         .from("messages")
         .select("*")
-        .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
+        .or(
+          ids.length
+            ? `sender_user_id.eq.${uid},conversation_id.in.(${ids.join(",")})`
+            : `sender_user_id.eq.${uid}`,
+        )
         .order("created_at", { ascending: false })
         .limit(500);
       return data || [];

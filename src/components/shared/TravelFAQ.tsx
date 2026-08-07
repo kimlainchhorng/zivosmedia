@@ -48,8 +48,15 @@ const FAQ_DATA: Record<string, FAQItem[]> = {
       answer: "ZIVO helps you compare hotel prices from multiple booking sites including Booking.com, Hotels.com, Expedia, and more. When you find a hotel you like, click 'View Deal' to be redirected to the booking site to complete your reservation."
     },
     {
+      // Scoped to the COMPARISON path, which is what this FAQ is about. The
+      // previous answer opened "No. ZIVO is a comparison platform only" and
+      // stated flatly that "we do not process payments" — false for the other
+      // hotel path: ZIVO also sells its own lodging, takes deposits, and runs
+      // its own checkout (create-lodging-deposit, create-lodging-square-checkout,
+      // hotel_bookings). A guest who booked through ZIVO and read this would be
+      // told their own payment was somebody else's to fix.
       question: "Does ZIVO handle hotel payments or reservations?",
-      answer: "No. ZIVO is a comparison platform only. All reservations, payments, cancellations, and modifications are handled by the booking site you choose (like Booking.com or Hotels.com). We do not process payments or hold reservations."
+      answer: "It depends on how you booked. If you compared prices here and were redirected to a partner site like Booking.com or Hotels.com, that site holds your reservation and handles the payment, changes, and cancellation. If you booked a stay directly on ZIVO, we take the payment and are the merchant of record — contact ZIVO support and see our Refund Policy."
     },
     {
       question: "How do I cancel or modify my hotel booking?",
@@ -65,7 +72,7 @@ const FAQ_DATA: Record<string, FAQItem[]> = {
     },
     {
       question: "Does ZIVO charge any fees?",
-      answer: "No, ZIVO is free to use. We earn a commission from our partners when you complete a booking, at no additional cost to you."
+      answer: "Browsing and comparing is free. For bookings you complete on a partner site, we are paid a commission by that partner at no extra cost to you. For anything you book and pay for on ZIVO, any payment processing fee is included in the total shown before you confirm, and cancellation fees are set out in our Cancellation Policy."
     },
   ],
   cars: [
@@ -75,7 +82,7 @@ const FAQ_DATA: Record<string, FAQItem[]> = {
     },
     {
       question: "Does ZIVO process car rental payments?",
-      answer: "No. ZIVO is a search and comparison service. All rentals, payments, insurance, and modifications are handled directly by the car rental company or booking site you choose."
+      answer: "It depends on how you booked. If you compared prices here and were redirected to a rental company or booking site, they take the payment and handle insurance and modifications. If you booked a vehicle directly on ZIVO, we take the payment and are the merchant of record — contact ZIVO support and see our Refund Policy."
     },
     {
       question: "How do I modify or cancel my car rental?",
@@ -91,7 +98,7 @@ const FAQ_DATA: Record<string, FAQItem[]> = {
     },
     {
       question: "Does ZIVO charge booking fees?",
-      answer: "No. ZIVO is free for travelers. We earn a small commission from our partners when you complete a rental, at no extra cost to you."
+      answer: "Browsing and comparing is free. Where you complete a rental with a partner, they pay us a commission at no extra cost to you. For a vehicle booked and paid for on ZIVO, the total shown before you confirm includes any payment processing fee, and cancellation terms are in our Cancellation Policy."
     },
   ],
 };
@@ -155,9 +162,19 @@ export default function TravelFAQ({ serviceType, className = '' }: TravelFAQProp
               </>
             ) : (
               <>
-                <strong className="text-foreground">Important:</strong> All bookings, payments, refunds, and changes 
-                are handled directly by our travel partners. ZIVO is a search and comparison platform for hotels and car rentals.{' '}
-                <Link to="/legal/partner-disclosure" className="text-foreground hover:underline">Learn more</Link>
+                {/* Split by who actually took the money. The previous wording
+                    said every booking, payment, and refund is "handled directly
+                    by our travel partners" — false for stays and vehicles booked
+                    on ZIVO itself, which run through ZIVO's own checkout
+                    (create-lodging-deposit, capture-car-rental-balance). A guest
+                    reading that would chase a refund from the wrong company. */}
+                <strong className="text-foreground">Important:</strong> Where you compared prices here and
+                were redirected to a partner site, that partner holds the booking and handles payments,
+                refunds, and changes. Stays and vehicles booked directly on ZIVO are handled by ZIVO —
+                see our{' '}
+                <Link to="/legal/refunds" className="text-foreground hover:underline">Refund Policy</Link>
+                {' '}or{' '}
+                <Link to="/legal/partner-disclosure" className="text-foreground hover:underline">partner disclosure</Link>
               </>
             )}
           </p>

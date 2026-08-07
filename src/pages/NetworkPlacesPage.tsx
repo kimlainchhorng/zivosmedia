@@ -39,9 +39,9 @@ interface HotelRow {
   id: string;
   name: string;
   city: string | null;
-  cover_image_url: string | null;
+  images: string[] | null;
+  logo_url: string | null;
   rating: number | null;
-  starting_price_cents: number | null;
 }
 
 const FALLBACK_RESTAURANT =
@@ -80,7 +80,7 @@ export default function NetworkPlacesPage() {
           .limit(40),
         supabase
           .from("hotels")
-          .select("id,name,city,cover_image_url,rating,starting_price_cents")
+          .select("id,name,city,images,logo_url,rating")
           .order("rating", { ascending: false, nullsFirst: false })
           .limit(40),
       ]);
@@ -395,7 +395,7 @@ function HotelCard({
   delay: number;
   navigate: (path: string) => void;
 }) {
-  const cover = h.cover_image_url || FALLBACK_HOTEL;
+  const cover = h.images?.[0] || h.logo_url || FALLBACK_HOTEL;
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -424,12 +424,6 @@ function HotelCard({
             <MapPin className="w-3 h-3" />
             {h.city ?? "—"}
           </div>
-          {h.starting_price_cents != null && h.starting_price_cents > 0 && (
-            <div className="text-[11px] text-foreground mt-1">
-              From <span className="font-bold">${(h.starting_price_cents / 100).toFixed(0)}</span>
-              <span className="text-muted-foreground"> / night</span>
-            </div>
-          )}
         </div>
       </button>
       <div className="px-3 pb-3">

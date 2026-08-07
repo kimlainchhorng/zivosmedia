@@ -87,9 +87,15 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead 
-        title="About ZIVO – Global Travel Search & Comparison Platform"
-        description="ZIVO is a global travel search and comparison platform helping users find and compare flights, hotels, car rentals, and travel services from trusted partners worldwide."
+      {/* This page describes what the business actually does, which is the
+          first thing a customer, a partner, or anyone reviewing the company
+          reads. It used to describe a travel comparison site that explicitly
+          "does not process payments" — a description of an earlier ZIVO that
+          contradicted the Terms, the Refund Policy, and every transaction the
+          platform now settles. */}
+      <SEOHead
+        title="About ZIVO – Rides, Food Delivery, Shopping & Travel"
+        description="ZIVO is a super-app for rides, food and package delivery, shopping, and travel booking. ZIVO processes payments and is the merchant of record for the services it operates; flights are ticketed by licensed airline partners."
       />
       <Header />
       
@@ -105,8 +111,9 @@ const About = () => {
               About <span className="text-ig-gradient">ZIVO</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              ZIVO is a global travel search and comparison platform that helps users find and compare 
-              flights, hotels, car rentals, and travel services from trusted partners worldwide.
+              ZIVO is a super-app for everyday journeys and errands — rides, food and package
+              delivery, and shopping — alongside travel booking for hotels, car rentals, and flights.
+              ZIVO operates principally in Cambodia and is available worldwide for travel search.
             </p>
           </motion.div>
 
@@ -116,25 +123,45 @@ const About = () => {
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-bold mb-4">What We Do</h2>
+                  {/* The claim that replaced "ZIVO does not sell tickets or
+                      process payments." That sentence was true of an earlier,
+                      affiliate-only ZIVO and false of this one: the platform
+                      settles rides, food and package delivery, shopping, hotels
+                      and car rentals, and the Terms and Refund Policy both name
+                      ZIVO LLC as merchant of record for them. Leaving it stood
+                      as a flat denial, in bold, of what the business does.
+                      The flights half of the original claim IS still true, so it
+                      is kept — scoped to flights, where it belongs. */}
                   <div className="space-y-4 text-muted-foreground text-lg leading-relaxed">
                     <p>
-                      ZIVO aggregates and compares travel options from multiple trusted partners, 
-                      helping travelers find the best flights, hotels, car rentals, and travel services 
-                      in one place.
+                      ZIVO connects you with independent drivers, restaurants, shops, and travel
+                      providers, and handles the booking and payment in one place — so a ride, a meal,
+                      a delivery, and a hotel all work the same way.
                     </p>
                     <p className="font-medium text-foreground">
-                      ZIVO does not sell tickets or process payments.
+                      ZIVO processes the payment and is the merchant of record for what you book
+                      here — rides, food and package delivery, shopping, hotels, car rentals, and
+                      flights.
                     </p>
+                    {/* Sells is not the same as issues. ZIVO takes the flight
+                        payment and processes flight refunds through its own
+                        payment account (create-flight-payment-intent,
+                        process-flight-refund); the TICKET is issued by a
+                        licensed ticketing partner under airline fare rules.
+                        Stating only "we don't issue tickets" reads as "we don't
+                        take your money", which is the opposite of true. */}
                     <p>
-                      When users are ready to book, they are redirected to our travel partners to 
-                      complete their reservation securely.
+                      For flights, ZIVO sells as a sub-agent of licensed ticketing providers: we take
+                      the payment, and your ticket is issued by an authorised partner under the
+                      airline's fare rules. Those fare rules decide what a flight refund is worth —
+                      but the refund itself is paid back by ZIVO.
                     </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-6 rounded-2xl bg-card/80 border border-border/50 text-center hover:border-border hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                    <Plane className="w-8 h-8 text-foreground mx-auto mb-3" />
-                    <p className="font-semibold">Flights</p>
+                    <Car className="w-8 h-8 text-primary mx-auto mb-3" />
+                    <p className="font-semibold">Rides</p>
                   </div>
                   <div className="p-6 rounded-2xl bg-card/80 border border-border/50 text-center hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-1 transition-all duration-300">
                     <Hotel className="w-8 h-8 text-amber-500 mx-auto mb-3" />
@@ -145,8 +172,8 @@ const About = () => {
                     <p className="font-semibold">Car Rentals</p>
                   </div>
                   <div className="p-6 rounded-2xl bg-card/80 border border-border/50 text-center hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300">
-                    <Ticket className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
-                    <p className="font-semibold">Activities</p>
+                    <Plane className="w-8 h-8 text-emerald-500 mx-auto mb-3" />
+                    <p className="font-semibold">Flights</p>
                   </div>
                 </div>
               </div>
@@ -162,7 +189,8 @@ const About = () => {
               </Badge>
               <h2 className="text-2xl sm:text-3xl font-bold mb-4">How ZIVO Makes Money</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                We believe in full transparency about our business model.
+                We believe in full transparency about our business model. The exact amount of any
+                fee is always shown before you confirm a booking.
               </p>
             </div>
             
@@ -170,29 +198,29 @@ const About = () => {
               {[
                 {
                   icon: Users,
-                  title: "Free for Users",
-                  description: "ZIVO is completely free for travelers to use",
+                  title: "Free to Join",
+                  description: "Creating an account and browsing ZIVO costs nothing",
                   color: "text-sky-500",
                   bgColor: "bg-sky-500/10"
                 },
                 {
-                  icon: DollarSign,
-                  title: "No Booking Fees",
-                  description: "We never charge fees for using our platform",
-                  color: "text-emerald-500",
-                  bgColor: "bg-emerald-500/10"
-                },
-                {
                   icon: Building2,
-                  title: "Affiliate Revenue",
-                  description: "We earn commissions when users book through partner links",
+                  title: "Service Commission",
+                  description: "We take a commission from drivers, restaurants, and shops on completed orders",
                   color: "text-violet-500",
                   bgColor: "bg-violet-500/10"
                 },
                 {
+                  icon: DollarSign,
+                  title: "Payment Fee on Digital Tenders",
+                  description: "Card and ABA PayWay bookings carry a small processing fee, shown in your total before you pay. Cash rides carry none",
+                  color: "text-emerald-500",
+                  bgColor: "bg-emerald-500/10"
+                },
+                {
                   icon: CheckCircle,
-                  title: "No Price Impact",
-                  description: "Our commission has no impact on the price you pay",
+                  title: "Affiliate Revenue on Travel",
+                  description: "For flights, we earn a commission from the airline partner at no extra cost to you",
                   color: "text-amber-500",
                   bgColor: "bg-amber-500/10"
                 }

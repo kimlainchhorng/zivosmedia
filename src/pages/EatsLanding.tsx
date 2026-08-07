@@ -2459,7 +2459,7 @@ export default function EatsLanding() {
                         // Validate promo code against DB
                         const { data: promo } = await (supabase as any)
                           .from("promo_codes")
-                          .select("id, discount_percent, discount_amount_cents, is_active, min_order_cents, expires_at")
+                          .select("id, discount_type, discount_value, is_active, min_fare, expires_at")
                           .eq("code", promoCode.trim().toUpperCase())
                           .eq("is_active", true)
                           .maybeSingle() as { data: any };
@@ -2471,12 +2471,18 @@ export default function EatsLanding() {
                           toast.error("This promo code has expired");
                           return;
                         }
-                        if (promo.min_order_cents && cartTotal * 100 < promo.min_order_cents) {
-                          toast.error(`Minimum order $${(promo.min_order_cents / 100).toFixed(2)} required`);
+                        if (promo.min_fare && cartTotal < promo.min_fare) {
+                          toast.error(`Minimum order $${Number(promo.min_fare).toFixed(2)} required`);
                           return;
                         }
                         setPromoApplied(true);
-                        setPromoData({ discount_percent: promo.discount_percent, discount_amount_cents: promo.discount_amount_cents });
+                        // promo_codes stores discount_type + discount_value (dollars), not the
+                        // percent/cents pair this used to select.
+                        setPromoData(
+                          promo.discount_type === "percent"
+                            ? { discount_percent: Number(promo.discount_value), discount_amount_cents: null }
+                            : { discount_percent: null, discount_amount_cents: Math.round(Number(promo.discount_value) * 100) },
+                        );
                         toast.success("Promo applied!");
                       }}
                       disabled={!promoCode.trim()} className="rounded-xl h-10 px-4 text-xs font-bold">

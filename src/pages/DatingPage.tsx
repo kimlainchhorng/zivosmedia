@@ -29,7 +29,7 @@ export default function DatingPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("profiles")
-        .select("id, full_name, avatar_url, bio, city, country, is_verified")
+        .select("id, full_name, avatar_url, bio, selected_city_name, is_verified")
         .neq("id", user?.id || "")
         .limit(30);
       if (error) throw error;
@@ -178,10 +178,10 @@ export default function DatingPage() {
                       )}
                     </div>
 
-                    {(currentProfile.city || currentProfile.country) && (
+                    {currentProfile.selected_city_name && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
                         <MapPin className="h-3 w-3" />
-                        {[currentProfile.city, currentProfile.country].filter(Boolean).join(", ")}
+                        {currentProfile.selected_city_name}
                       </p>
                     )}
 

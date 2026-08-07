@@ -19,7 +19,7 @@
     "native:push-secrets:test": "node --test scripts/native/push-secrets-preflight.test.mjs",
     "platform:audit": "npm run security:scan && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run qa:workflow-coverage && npm run qa:workflow-coverage:check && npm run qa:workflow-test-plan && npm run qa:workflow-test-plan:check && npm run qa:frontend-visual-contracts && npm run qa:native-app-contracts && npm run qa:storage-media-contracts && npm run qa:database-storage-contracts && npm run qa:security-anti-abuse-contracts && npm run qa:legal-policy-contracts && npm run qa:sso-auth-contracts && npm run qa:api-operations-contracts && npm run qa:edge-function-deploy-contracts && npm run qa:edge-function-slot-readiness && npm run qa:edge-function-browser-gates && npm run qa:email-marketing-contracts && npm run qa:push-notification-contracts && npm run qa:ads-monetization-contracts && npm run qa:payouts-earnings-contracts && npm run qa:payments-refunds-contracts && npm run qa:customer-booking-contracts && npm run qa:shop-owner-contracts && npm run qa:client-staff-contracts && npm run native:doctor",
     "release:gate": "npm run deploy:preflight:test-summary-schema && npm run deploy:preflight:check-artifacts && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run qa:edge-function-deploy-contracts && npm run qa:edge-function-slot-readiness && npm run qa:edge-function-browser-gates && npm run security:scan",
-    "release:production-gate": "npm run release:gate && npm run deploy:preflight:check-production-summary",
+    "release:production-gate": "npm run release:gate && npm run check:business-identity && npm run deploy:preflight:check-production-summary",
     "platform:test:ads-monetization": "npm run test -- src/test/workflows/ads-monetization-tracking.test.ts",
     "platform:test:storage-media": "npm run test -- src/test/fileUploadSecurity.test.ts src/test/workflows/storage-media-workflow.test.ts",
     "ios:sync": "npm run build && npx cap sync ios",
@@ -63,6 +63,7 @@
     "test:rls": "vitest run src/test/rls",
     "test:e2e": "playwright test --project=chromium",
     "test:visual": "playwright test --project=visual",
+    "qa:dead-links": "node scripts/qa/check-dead-links.mjs",
     "qa:conflict-markers": "node scripts/qa/conflict-markers.mjs",
     "qa:safe-area": "node scripts/qa/safe-area-check.mjs",
     "qa:safe-area:e2e": "playwright test tests/e2e/safe-area.spec.ts",
@@ -102,6 +103,9 @@
     "security:check-supabase-token-fragments:local": "node scripts/security/check-supabase-token-fragments.mjs --include-local-env",
     "security:api-readiness": "node scripts/security/api-readiness-check.mjs --strict",
     "security:api-readiness:report": "node scripts/security/api-readiness-check.mjs --write-report",
+    "check:business-identity": "node scripts/deploy/check-business-identity.mjs",
+    "payments:adult-wind-down": "node scripts/payments/wind-down-adult-creator-subscriptions.mjs",
+    "payments:adult-wind-down:apply": "node scripts/payments/wind-down-adult-creator-subscriptions.mjs --apply",
     "security:scan": "npm run security:audit && npm run security:check-secrets && npm run security:check-supabase-token-fragments",
     "security:scan:local": "npm run security:audit && npm run security:check-secrets:local && npm run security:check-supabase-token-fragments:local",
     "security:watch": "node scripts/security/security-watchdog.mjs",
@@ -245,6 +249,7 @@
   "overrides": {
     "brace-expansion": "5.0.9",
     "fast-uri": "^3.1.5",
+    "js-yaml": "^4.3.1",
     "serialize-javascript": "^7.0.5"
   },
   "devDependencies": {
@@ -283,5 +288,5 @@
     "vitest": "^4.1.10"
   },
   "license": "MIT",
-  "description": "ZIVO zivosmedia app — private repository"
+  "description": "ZIVO zivosmedia app \u2014 private repository"
 }

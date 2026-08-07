@@ -158,7 +158,18 @@ describe("deploy workflow gates", () => {
     expect(packageJson.scripts["deploy:production-relevance"]).toBe("node scripts/deploy/production-deploy-relevance.mjs");
     expect(packageJson.scripts["release:gate"]).toBe("npm run deploy:preflight:test-summary-schema && npm run deploy:preflight:check-artifacts && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run qa:edge-function-deploy-contracts && npm run qa:edge-function-slot-readiness && npm run qa:edge-function-browser-gates && npm run security:scan");
     expect(packageJson.scripts["release:gate"]).toContain("npm run qa:edge-function-browser-gates");
-    expect(packageJson.scripts["release:production-gate"]).toBe("npm run release:gate && npm run deploy:preflight:check-production-summary");
+    // Asserted as required STEPS rather than an exact string. The production
+    // gate is expected to grow — check:business-identity was added so an
+    // incomplete published business address cannot reach production — and an
+    // equality check turns every legitimate addition into a failure that says
+    // nothing about whether the gate still protects what it should.
+    for (const step of [
+      "npm run release:gate",
+      "npm run check:business-identity",
+      "npm run deploy:preflight:check-production-summary",
+    ]) {
+      expect(packageJson.scripts["release:production-gate"]).toContain(step);
+    }
     expect(packageJson.scripts["security:check-secrets:local"]).toBe("node scripts/security/check-secrets.mjs --include-local-env");
     expect(packageJson.scripts["security:check-supabase-token-fragments"]).toBe("node scripts/security/check-supabase-token-fragments.mjs");
     expect(packageJson.scripts["security:check-supabase-token-fragments:local"]).toBe("node scripts/security/check-supabase-token-fragments.mjs --include-local-env");

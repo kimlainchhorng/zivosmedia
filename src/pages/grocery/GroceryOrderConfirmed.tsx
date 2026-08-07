@@ -63,7 +63,7 @@ export default function GroceryOrderConfirmed() {
 
         const { data } = await supabase
           .from("shopping_orders")
-          .select("store, total_amount, delivery_fee, items, delivery_address, customer_name, payment_provider, payment_method")
+          .select("store, total_amount, delivery_fee, items, delivery_address, customer_name, payment_provider")
           .eq("id", orderId)
           .eq("user_id", user.id)
           .single();
@@ -154,7 +154,7 @@ export default function GroceryOrderConfirmed() {
         >
           {order?.payment_provider === "paypal"
             ? "Your PayPal payment was received. A ZIVO driver will shop and deliver your items."
-            : order?.payment_method === "cash" || order?.payment_provider == null
+            : order?.payment_provider === "cash" || order?.payment_provider == null
             ? "Your order was placed. Pay the driver in cash upon delivery."
             : order?.payment_method === "aba"
             ? "Your order was placed. Complete your ABA/KHQR payment to confirm."

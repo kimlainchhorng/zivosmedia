@@ -78,7 +78,7 @@ export default function BadgesPage() {
         (supabase as any).from("user_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         (supabase as any).from("follows").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
         (supabase as any).from("post_reactions").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-        (supabase as any).from("messages").select("id", { count: "exact", head: true }).eq("sender_id", user.id),
+        (supabase as any).from("messages").select("id", { count: "exact", head: true }).eq("sender_user_id", user.id),
       ]);
       return {
         post_count: posts.count ?? 0,

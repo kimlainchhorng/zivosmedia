@@ -17,8 +17,7 @@ type Talent = {
   full_name: string | null;
   avatar_url: string | null;
   bio: string | null;
-  city: string | null;
-  country: string | null;
+  selected_city_name: string | null;
   skills: string[] | null;
 };
 
@@ -34,14 +33,31 @@ export default function FindTalentTab() {
     let cancel = false;
     (async () => {
       setLoading(true);
+      // profiles has no `skills` column — skills live on user_cvs. Selecting
+      // it here made PostgREST reject the request, so the talent list was
+      // always empty. Fetch the profiles, then attach skills by user_id.
       const { data } = await (supabase as any)
         .from("profiles")
-        .select("user_id,full_name,avatar_url,bio,city,country,skills")
+        .select("user_id,full_name,avatar_url,bio,selected_city_name")
         .eq("open_to_work", true)
         .order("updated_at", { ascending: false })
         .limit(60);
+      const rows = (data ?? []) as Talent[];
+      const ids = rows.map((r) => r.user_id).filter(Boolean);
+      let skillsByUser = new Map<string, string[]>();
+      if (ids.length > 0) {
+        const { data: cvs } = await (supabase as any)
+          .from("user_cvs")
+          .select("user_id,skills")
+          .in("user_id", ids);
+        skillsByUser = new Map(
+          ((cvs ?? []) as Array<{ user_id: string; skills: string[] | null }>)
+            .filter((cv) => cv.user_id)
+            .map((cv) => [cv.user_id, cv.skills ?? []]),
+        );
+      }
       if (!cancel) {
-        setTalents((data ?? []) as Talent[]);
+        setTalents(rows.map((r) => ({ ...r, skills: skillsByUser.get(r.user_id) ?? null })));
         setLoading(false);
       }
     })();
@@ -54,7 +70,7 @@ export default function FindTalentTab() {
     return talents.filter(t => {
       const name = (t.full_name ?? "").toLowerCase();
       const skillMatch = (t.skills ?? []).some(sk => sk.toLowerCase().includes(s));
-      return name.includes(s) || (t.bio ?? "").toLowerCase().includes(s) || (t.city ?? "").toLowerCase().includes(s) || skillMatch;
+      return name.includes(s) || (t.bio ?? "").toLowerCase().includes(s) || (t.selected_city_name ?? "").toLowerCase().includes(s) || skillMatch;
     });
   }, [q, talents]);
 
@@ -107,9 +123,9 @@ export default function FindTalentTab() {
                       <Briefcase className="mr-1 h-2.5 w-2.5" /> Open
                     </Badge>
                   </div>
-                  {(t.city || t.country) && (
+                  {t.selected_city_name && (
                     <p className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <MapPin className="h-3 w-3" />{[t.city, t.country].filter(Boolean).join(", ")}
+                      <MapPin className="h-3 w-3" />{[t.selected_city_name].filter(Boolean).join(", ")}
                     </p>
                   )}
                   {t.bio && <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{t.bio}</p>}

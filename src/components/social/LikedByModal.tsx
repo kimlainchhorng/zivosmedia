@@ -74,10 +74,10 @@ export default function LikedByModal({ open, onOpenChange, postId, source, total
         if (user?.id) {
           const { data: follows } = await (supabase as any)
             .from("user_followers")
-            .select("followed_id")
+            .select("following_id")
             .eq("follower_id", user.id)
-            .in("followed_id", userIds);
-          followingSet = new Set((follows ?? []).map((f: any) => f.followed_id));
+            .in("following_id", userIds);
+          followingSet = new Set((follows ?? []).map((f: any) => f.following_id));
         }
 
         const map = new Map<string, any>((profiles ?? []).map((p: any) => [p.user_id, p]));
@@ -116,11 +116,11 @@ export default function LikedByModal({ open, onOpenChange, postId, source, total
           .from("user_followers")
           .delete()
           .eq("follower_id", user.id)
-          .eq("followed_id", targetId);
+          .eq("following_id", targetId);
       } else {
         await (supabase as any)
           .from("user_followers")
-          .insert({ follower_id: user.id, followed_id: targetId });
+          .insert({ follower_id: user.id, following_id: targetId });
       }
       setRows((prev) =>
         prev.map((r) => (r.user_id === targetId ? { ...r, is_following: !currentlyFollowing } : r))

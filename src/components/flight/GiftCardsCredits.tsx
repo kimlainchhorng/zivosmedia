@@ -70,12 +70,12 @@ export const GiftCardsCredits = ({
           originalAmount: g.initial_balance, expiresAt: g.expires_at ?? "", type: "gift" as const,
         })));
       });
-    (supabase as any).from("promo_codes").select("code, discount_value, discount_type, min_order_amount")
+    (supabase as any).from("promo_codes").select("code, discount_value, discount_type, min_fare")
       .eq("is_active", true).then(({ data }: { data: any[] | null }) => {
         if (data) setPromoCodes(data.map((p: any) => ({
           code: p.code, discount: p.discount_value ?? 0,
           type: (p.discount_type === "percent" ? "percent" : "fixed") as "percent" | "fixed",
-          description: `${p.discount_value}${p.discount_type === "percent" ? "% off" : "$ off"}`, minPurchase: p.min_order_amount ?? undefined,
+          description: `${p.discount_value}${p.discount_type === "percent" ? "% off" : "$ off"}`, minPurchase: p.min_fare ?? undefined,
         })));
       });
   }, [user]);

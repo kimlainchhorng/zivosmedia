@@ -11,6 +11,7 @@ import {
   UserPlus, Coffee, Palmtree, Thermometer, User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/lib/csvExport";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -348,6 +349,39 @@ export default function StoreScheduleSection({ storeId }: Props) {
     setAssignForm(f => ({ ...f, workDays: f.workDays.includes(day) ? f.workDays.filter(d => d !== day) : [...f.workDays, day].sort() }));
   };
 
+  // One row per scheduled shift, walking the same employee x day grid the week
+  // summary counts. A rota is read as a list once it leaves the screen —
+  // exporting the grid shape would give a spreadsheet of mostly empty cells.
+  const exportSchedule = () => {
+    const rows: (string | number)[][] = [];
+    employees.forEach((emp: any) => {
+      weekDates.forEach((date) => {
+        const dayStatus = getDayStatus(emp.id, date);
+        if (dayStatus.status !== "working" || !dayStatus.assignment) return;
+        const [sh, sm] = dayStatus.assignment.shiftStart.split(":").map(Number);
+        const [eh, em] = dayStatus.assignment.shiftEnd.split(":").map(Number);
+        rows.push([
+          format(date, "yyyy-MM-dd"),
+          format(date, "EEEE"),
+          emp.name ?? "",
+          emp.role ?? "",
+          dayStatus.assignment.shiftStart,
+          dayStatus.assignment.shiftEnd,
+          Math.max(0, (eh + em / 60) - (sh + sm / 60)).toFixed(2),
+        ]);
+      });
+    });
+    // Chronological, then by name. Sorted by employee it reads as seven
+    // separate lists rather than one week.
+    rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])) || String(a[2]).localeCompare(String(b[2])));
+    downloadCsv(
+      `schedule-${format(weekStart, "yyyy-MM-dd")}`,
+      ["Date", "Day", "Employee", "Role", "Start", "End", "Hours"],
+      rows,
+    );
+  };
+
+
   const weekStats = useMemo(() => {
     let totalShifts = 0, totalHours = 0;
     const scheduledIds = new Set<string>();
@@ -498,7 +532,7 @@ export default function StoreScheduleSection({ storeId }: Props) {
           <Button variant="ghost" size="sm" className="gap-1.5 text-[11px] h-8 rounded-lg" onClick={() => { toast.success("Copied to next week"); setWeekStart(addWeeks(weekStart, 1)); }}>
             <Copy className="w-3 h-3" /> Copy
           </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-[11px] h-8 rounded-lg">
+          <Button variant="ghost" size="sm" className="gap-1.5 text-[11px] h-8 rounded-lg" onClick={exportSchedule} disabled={weekStats.totalShifts === 0}>
             <Download className="w-3 h-3" /> Export
           </Button>
         </div>

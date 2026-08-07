@@ -44,14 +44,34 @@ describe("cancellation policy service coverage", () => {
     expect(body).toContain("$3.00"); // driver_comp_if_arrived
   });
 
-  it("states that a cash booking is never charged a cancellation fee", () => {
-    // The exception that matters most, and the easiest to omit. cancel-order
-    // deliberately charges nothing on a cash booking because the fare never
-    // passes through ZIVO, so there is no payment to deduct from. Publishing
-    // the fee table without this states a charge that is never made.
+  it("leads with cash, because that is what the operating market pays with", () => {
+    // Cambodia is seeded digital_payments_enabled = false, and cancel-order
+    // treats cash as free_cancel unconditionally (`|| isCashSettlement`), so
+    // the timing table is unreachable for rides there.
+    //
+    // Ordering is the assertion: this page first led with the $2/$5 fees and
+    // relegated cash to a footnote, which read as though Cambodian riders were
+    // routinely charged to cancel — and directly contradicted the Ride app,
+    // whose own policy states Cambodia Ride has no cancellation fee. A rider
+    // could read either and be told opposite things about their own money.
     const body = renderPolicy();
-    expect(body).toMatch(/no cancellation fee applies/i);
+    const cashRule = body.search(/Cancelling is always free/i);
+    const feeTable = body.search(/Within 2 minutes of booking/i);
+
+    expect(cashRule).toBeGreaterThan(-1);
+    expect(feeTable).toBeGreaterThan(-1);
+    expect(cashRule).toBeLessThan(feeTable);
+  });
+
+  it("says plainly that rides in Cambodia are cash, so the fees do not apply there", () => {
+    const body = renderPolicy();
     expect(body).toMatch(/paid directly to the driver/i);
+    expect(body).toMatch(/Rides in Cambodia are cash/i);
+  });
+
+  it("scopes the fee table to markets that actually offer a digital tender", () => {
+    const body = renderPolicy();
+    expect(body).toMatch(/Where a market offers card, ABA PayWay, or KHQR/i);
   });
 
   it("does not charge the customer when the driver cancels or none is found", () => {

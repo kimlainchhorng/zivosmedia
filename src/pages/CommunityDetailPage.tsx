@@ -64,7 +64,7 @@ export default function CommunityDetailPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("community_posts")
-        .select("id, content, created_at, user_id, like_count")
+        .select("id, content, created_at, user_id, likes_count")
         .eq("community_id", id)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -299,10 +299,10 @@ export default function CommunityDetailPage() {
                   <p className="text-[13px] text-foreground/90 leading-relaxed">
                     <SafeCaption text={post.content} />
                   </p>
-                  {post.like_count > 0 && (
+                  {post.likes_count > 0 && (
                     <div className="flex items-center gap-1 mt-2 text-[11px] text-muted-foreground">
                       <Heart className="w-3.5 h-3.5 text-foreground fill-rose-400" />
-                      <span>{post.like_count}</span>
+                      <span>{post.likes_count}</span>
                     </div>
                   )}
                 </motion.div>

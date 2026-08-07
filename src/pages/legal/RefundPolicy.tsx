@@ -76,9 +76,16 @@ const RefundPolicy = () => {
                 <CheckCircle className="w-4 h-4 text-emerald-500" />
                 <span><strong>Rides, Eats, Delivery & Shopping:</strong> Refunds processed by ZIVO (we are the merchant of record)</span>
               </li>
+              {/* ZIVO takes the flight payment and issues the flight refund
+                  through its own payment account (create-flight-payment-intent,
+                  process-flight-refund → stripe.refunds.create). What the
+                  AIRLINE controls is the fare rule deciding how much is
+                  refundable, not who holds the money. Disclaiming merchant of
+                  record here told customers to chase a refund from a company
+                  that never charged them. */}
               <li className="flex items-center gap-2">
                 <ExternalLink className="w-4 h-4 text-amber-500" />
-                <span><strong>Flights:</strong> Refunds handled by the airline partner (we are not the merchant of record)</span>
+                <span><strong>Flights:</strong> Refunded by ZIVO, in the amount the airline's fare rules allow</span>
               </li>
             </ul>
           </CardContent>
@@ -245,18 +252,20 @@ const RefundPolicy = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Plane className="h-5 w-5 text-foreground" />
-                  Flights (Airline Partner Processes Refunds)
+                  Flights (Airline Fare Rules Decide the Amount)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                   <p className="font-medium flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-500" />
-                    Important: ZIVO Does NOT Issue Tickets
+                    Important: ZIVO Does Not Issue Tickets — But We Do Refund You
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Flight refunds are processed by the airline partner who issued your ticket. 
-                    Contact them directly for refund requests.
+                    Your ticket is issued by a licensed ticketing partner, and the airline's fare
+                    rules decide how much of your fare is refundable. The refund itself is paid back
+                    by ZIVO to the card you used. Request it through ZIVO support — you do not need
+                    to contact the airline yourself.
                   </p>
                 </div>
 
@@ -344,6 +353,12 @@ const RefundPolicy = () => {
                     <li>• Food arrived unsafe to eat or materially wrong — full or partial refund</li>
                     <li>• Package lost or damaged in transit — reviewed case by case</li>
                     <li>• Duplicate or unrecognised charge — full refund once verified</li>
+                    {/* Waiting is billed as a SEPARATE charge after the trip, so it is
+                        disputed and refunded on its own rather than as part of the fare.
+                        ZIVO only bills it when the driver's arrival was verified against
+                        their recorded position; where that check did not pass, the charge
+                        should not have been made and comes back in full. */}
+                    <li>• Charged for waiting on a ride where the driver&rsquo;s arrival was not verified — full refund of the waiting amount</li>
                   </ul>
                 </div>
 
@@ -353,6 +368,7 @@ const RefundPolicy = () => {
                     <li>• You cancelled after a driver had already arrived at the pickup point</li>
                     <li>• Food was prepared correctly and to the order as placed</li>
                     <li>• Delivery was completed to the address you supplied</li>
+                    <li>• Waiting time past the free window on a card ride, where the driver&rsquo;s arrival was verified and the free window had already passed</li>
                     <li>• The request is made more than 48 hours after the service</li>
                   </ul>
                 </div>

@@ -186,7 +186,7 @@ export default function StoryArchivePage() {
               Stories disappear after 24 hours but we'll save them here so you can revisit and repost.
             </p>
             <Button
-              onClick={() => navigate("/feed/new")}
+              onClick={() => navigate("/feed-new")}
               className="bg-ig-gradient text-white font-bold rounded-full h-11 px-6 hover:opacity-90 border-0 shadow-md"
             >
               Share your first story

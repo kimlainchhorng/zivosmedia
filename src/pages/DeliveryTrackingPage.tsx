@@ -37,7 +37,7 @@ interface DeliveryRow {
 }
 
 interface DriverProfile {
-  display_name: string | null;
+  full_name: string | null;
   avatar_url: string | null;
 }
 
@@ -113,7 +113,9 @@ export default function DeliveryTrackingPage() {
     (async () => {
       const { data } = await (supabase as any)
         .from("profiles")
-        .select("display_name, avatar_url")
+        // profiles has full_name, not display_name; selecting a column that
+        // does not exist fails the whole request under PostgREST.
+        .select("full_name, avatar_url")
         .eq("id", driverId)
         .maybeSingle();
       if (!cancelled) setDriver(data ?? null);
@@ -357,7 +359,7 @@ export default function DeliveryTrackingPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] text-muted-foreground leading-none mb-0.5">Your driver</p>
                   <p className="font-semibold text-[14px] truncate">
-                    {driver?.display_name ?? "Driver assigned"}
+                    {driver?.full_name ?? "Driver assigned"}
                   </p>
                 </div>
                 {delivery.pickup_location?.phone && (

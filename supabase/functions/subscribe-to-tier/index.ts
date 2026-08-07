@@ -4,6 +4,10 @@ import { createClient } from "../_shared/deps.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 const log = (s: string, d?: any) => console.log(`[SUBSCRIBE-TO-TIER] ${s}${d ? " " + JSON.stringify(d) : ""}`);
 
@@ -50,6 +54,14 @@ serve(withSecurity("subscribe-to-tier", async (req, ctx) => {
     if (tierErr || !tier) throw new Error("Tier not found");
     if (!tier.is_active) throw new Error("Tier not active");
     if (tier.creator_id !== creator_id) throw new Error("Tier does not belong to creator");
+
+    // Adult-creator subscriptions do not settle on this Stripe account — see
+    // _shared/adultCreatorPaymentBoundary.ts. A recurring charge is the worst
+    // shape to get wrong: left unguarded it keeps billing restricted content on
+    // the platform's account every month without anyone re-approving it.
+    if (await isAdultCreatorAccount(sbAdmin, creator_id)) {
+      return adultCreatorPaymentBlockedResponse(corsHeaders);
+    }
 
     const result = await withIdempotency(req, "subscribe-to-tier", user.id, async () => {
       if (tier.is_free) {

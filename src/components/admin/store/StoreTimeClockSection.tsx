@@ -13,6 +13,7 @@ import { StoreQRDisplay } from "@/components/clock/StoreQRDisplay";
 import { QRScannerModal } from "@/components/clock/QRScannerModal";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/lib/csvExport";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -102,6 +103,34 @@ export default function StoreTimeClockSection({ storeId }: Props) {
   const clockedIn = entries.filter(e => !e.clockOut);
   const onBreak = clockedIn.filter(e => e.isOnBreak);
   const todayEntries = entries.filter(e => format(e.clockIn, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd"));
+
+  // Exports the same day the "Time Log" heading names, not all history — the
+  // button sits on that card and a file covering a different range would be
+  // read as if it covered this one.
+  //
+  // Break minutes exclude a break still running: a shift in progress has no
+  // final figure, and inventing one puts a wrong number on a payroll input.
+  const exportTimeLog = () => {
+    downloadCsv(
+      `time-log-${format(new Date(), "yyyy-MM-dd")}`,
+      ["Employee", "Role", "Clock In", "Clock Out", "Break (min)", "Hours"],
+      todayEntries.map((entry) => {
+        const breakMs = entry.breaks.reduce(
+          (total, b) => total + (b.end ? b.end.getTime() - b.start.getTime() : 0),
+          0,
+        );
+        const workedMs = (entry.clockOut ? entry.clockOut.getTime() : Date.now()) - entry.clockIn.getTime();
+        return [
+          entry.employeeName,
+          entry.role,
+          format(entry.clockIn, "HH:mm"),
+          entry.clockOut ? format(entry.clockOut, "HH:mm") : "still clocked in",
+          Math.round(breakMs / 60000),
+          entry.clockOut ? (Math.max(0, workedMs - breakMs) / 3600000).toFixed(2) : "",
+        ];
+      }),
+    );
+  };
 
   const handleClockIn = () => {
     if (!selectedEmployee) return;
@@ -286,7 +315,7 @@ export default function StoreTimeClockSection({ storeId }: Props) {
           <Card className="overflow-hidden">
             <div className="px-5 py-3 border-b flex items-center justify-between">
               <h3 className="font-semibold text-sm">Time Log — {format(new Date(), "EEEE, MMMM d")}</h3>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs"><Download className="w-3.5 h-3.5" /> Export</Button>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={exportTimeLog} disabled={todayEntries.length === 0}><Download className="w-3.5 h-3.5" /> Export</Button>
             </div>
             {todayEntries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground text-sm">No entries for today.</div>

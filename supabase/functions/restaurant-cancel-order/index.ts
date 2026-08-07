@@ -124,7 +124,7 @@ Deno.serve(withSecurity("restaurant-cancel-order", async (req, ctx) => {
           const refund = await stripe.refunds.create({
             payment_intent: (order as any).stripe_payment_id,
             amount: refundCents,
-            metadata: { order_id, type: "restaurant_cancel" },
+            order_id,
           });
           stripeRefundId = refund.id;
           nextPaymentStatus = refund.status === "succeeded" ? "refunded" : "refund_pending";
@@ -198,12 +198,12 @@ Deno.serve(withSecurity("restaurant-cancel-order", async (req, ctx) => {
           squareRefundId = j.refund?.id ?? null;
           nextPaymentStatus = j.refund?.status === "COMPLETED" ? "refunded" : "refund_pending";
         } else if (provider === "wallet") {
-          const { error: walErr } = await admin.from("wallet_transactions").insert({
+          const { error: walErr } = await admin.from("customer_wallet_transactions").insert({
             user_id: (order as any).customer_id,
             amount_cents: refundCents,
-            kind: "refund",
+            type: "refund",
             description: `Eats order ${(order as any).tracking_code || order_id} — restaurant cancelled`,
-            metadata: { order_id, type: "restaurant_cancel" },
+            order_id,
           } as any);
           if (walErr) throw walErr;
           nextPaymentStatus = "refunded";
@@ -228,7 +228,7 @@ Deno.serve(withSecurity("restaurant-cancel-order", async (req, ctx) => {
         status: "cancelled",
         payment_status: nextPaymentStatus,
         last_payment_error: providerRefundError ? `Restaurant cancelled: ${providerRefundError}` : null,
-        cancel_reason: reason ? String(reason).slice(0, 500) : "Restaurant cancelled",
+        cancellation_reason: reason ? String(reason).slice(0, 500) : "Restaurant cancelled",
         cancelled_at: new Date().toISOString(),
         cancelled_by: "restaurant",
       } as any)

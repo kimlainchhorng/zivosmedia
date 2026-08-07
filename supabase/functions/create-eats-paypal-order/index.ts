@@ -51,7 +51,12 @@ Deno.serve(withSecurity("create-eats-paypal-order", async (req, ctx) => {
     });
     const { data: order } = await admin
       .from("food_orders")
-      .select("id, customer_id, payment_status, total")
+      // `total` does not exist on food_orders (the column is total_amount) and
+      // was never read here — only customer_id and payment_status are. But
+      // PostgREST rejects the whole request over one unknown column, so this
+      // select returned nothing and every PayPal checkout answered
+      // "Order not found" with a 404.
+      .select("id, customer_id, payment_status")
       .eq("id", order_id)
       .maybeSingle();
     if (!order) return new Response(JSON.stringify({ error: "Order not found" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });

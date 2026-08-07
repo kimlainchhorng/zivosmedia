@@ -109,7 +109,7 @@ export default function AdminSystemHealth() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("admin_security_alerts")
-        .select("id, alert_type, severity, message, created_at, resolved_at")
+        .select("id, alert_type, severity, description, created_at, resolved_at")
         .is("resolved_at", null)
         .order("created_at", { ascending: false })
         .limit(10);
@@ -144,7 +144,7 @@ export default function AdminSystemHealth() {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await (supabase as any)
         .from("customer_wallet_transactions")
-        .select("id, type, status, created_at")
+        .select("id, type, is_redeemed, created_at")
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -375,7 +375,7 @@ export default function AdminSystemHealth() {
                             {alert.severity || "medium"}
                           </Badge>
                         </div>
-                        <p className="text-sm text-foreground">{alert.message}</p>
+                        <p className="text-sm text-foreground">{alert.description}</p>
                         <p className="text-[10px] text-muted-foreground mt-1">
                           {new Date(alert.created_at).toLocaleString()}
                         </p>
@@ -408,12 +408,11 @@ export default function AdminSystemHealth() {
                           variant="outline"
                           className={cn(
                             "text-[10px]",
-                            tx.status === "completed" ? "bg-green-500/10 text-green-600 border-green-500/20" :
-                            tx.status === "pending" ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" :
+                            tx.is_redeemed ? "bg-green-500/10 text-green-600 border-green-500/20" :
                             "bg-muted text-muted-foreground"
                           )}
                         >
-                          {tx.status}
+                          {tx.is_redeemed ? "redeemed" : "pending"}
                         </Badge>
                       </div>
                     ))}

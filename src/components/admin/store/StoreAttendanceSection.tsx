@@ -10,6 +10,7 @@ import {
   Filter, Download, History, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/lib/csvExport";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -69,6 +70,18 @@ export default function StoreAttendanceSection({ storeId }: Props) {
       return (data || []) as any[];
     },
   });
+
+  // Sorted newest-first to match the "Recent Attendance History" list this
+  // button sits on, so the file opens in the order the operator was reading.
+  const exportAttendance = () => {
+    downloadCsv(
+      "attendance",
+      ["Date", "Employee", "Status"],
+      [...attendanceRecords]
+        .sort((a, b) => b.date.localeCompare(a.date) || a.employeeName.localeCompare(b.employeeName))
+        .map((r) => [r.date, r.employeeName, r.status]),
+    );
+  };
 
   const submitLeave = () => {
     if (!leaveForm.employeeId || !leaveForm.startDate) return;
@@ -334,7 +347,7 @@ export default function StoreAttendanceSection({ storeId }: Props) {
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-sm flex items-center gap-2"><History className="w-4 h-4 text-muted-foreground" /> Recent Attendance History</h3>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs"><Download className="w-3.5 h-3.5" /> Export</Button>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={exportAttendance} disabled={attendanceRecords.length === 0}><Download className="w-3.5 h-3.5" /> Export</Button>
             </div>
             {attendanceRecords.length === 0 ? (
               <div className="text-center py-10 text-muted-foreground text-sm">No attendance records yet. Mark attendance above to see history.</div>

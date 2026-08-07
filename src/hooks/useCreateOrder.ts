@@ -44,9 +44,12 @@ export function useCreateOrder() {
           tracking_code: trackingCode,
           status: "pending",
           subtotal: params.totalAmount || 0,
-          holder_name: holder?.name || `${holder?.firstName || ""} ${holder?.lastName || ""}`.trim(),
-          holder_email: holder?.email || user.email,
-          holder_phone: holder?.phone || "",
+          // food_orders stores these as customer_name / customer_email /
+          // customer_phone. The holder_* names do not exist, so PostgREST
+          // rejected every order insert — no food order could be created.
+          customer_name: holder?.name || `${holder?.firstName || ""} ${holder?.lastName || ""}`.trim(),
+          customer_email: holder?.email || user.email,
+          customer_phone: holder?.phone || "",
         })
         .select("id")
         .single();

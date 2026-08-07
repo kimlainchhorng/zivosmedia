@@ -10,7 +10,7 @@ import { Star, Quote } from "lucide-react";
 interface ReviewRow {
   id: string;
   rating: number | null;
-  comment: string | null;
+  body: string | null;
   guest_name: string | null;
   created_at: string;
   reply: string | null;
@@ -26,7 +26,7 @@ export default function LodgingReviewsSummaryCard({ storeId }: { storeId: string
     queryFn: async () => {
       const { data: rows, error } = await (supabase as any)
         .from("lodging_reviews")
-        .select("id, rating, comment, guest_name, created_at, reply")
+        .select("id, rating, body, guest_name, created_at, reply")
         .eq("store_id", storeId)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -35,7 +35,7 @@ export default function LodgingReviewsSummaryCard({ storeId }: { storeId: string
       const rated = list.filter(r => typeof r.rating === "number");
       const avg = rated.length ? rated.reduce((s, r) => s + (r.rating || 0), 0) / rated.length : 0;
       const featured = [...rated].sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .find(r => (r.comment || "").trim().length > 20) || null;
+        .find(r => (r.body || "").trim().length > 20) || null;
       return { rows: list, avg, count: list.length, featured };
     },
   });
@@ -72,10 +72,10 @@ export default function LodgingReviewsSummaryCard({ storeId }: { storeId: string
             <p className="text-[10px] text-muted-foreground">Top-rated guest experiences</p>
           </div>
         </div>
-        {data.featured?.comment && (
+        {data.featured?.body && (
           <div className="mt-2.5 rounded-lg border border-border bg-muted/20 p-2.5">
             <Quote className="h-3.5 w-3.5 text-primary mb-1" />
-            <p className="text-[11px] text-foreground line-clamp-3">{data.featured.comment}</p>
+            <p className="text-[11px] text-foreground line-clamp-3">{data.featured.body}</p>
             <p className="text-[10px] text-muted-foreground mt-1.5">— {data.featured.guest_name || "Guest"}</p>
           </div>
         )}

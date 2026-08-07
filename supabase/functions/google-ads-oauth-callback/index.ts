@@ -119,8 +119,12 @@ Deno.serve(withSecurity("google-ads-oauth-callback", async (req) => {
         token_expires_at: expiresAt,
         scopes: tokens.scope ?? null,
         status: "connected",
-        connected_by: stateRow.user_id,
-        connected_at: new Date().toISOString(),
+        // store_ad_platform_connections has no connected_by / connected_at
+        // columns (the legacy store_ad_accounts mirror below does). Sending
+        // them made PostgREST reject the upsert, so a completed Google Ads
+        // OAuth never recorded the connection.
+        last_synced_at: new Date().toISOString(),
+        metadata: { connected_by: stateRow.user_id },
       },
       { onConflict: "store_id,platform" }
     );

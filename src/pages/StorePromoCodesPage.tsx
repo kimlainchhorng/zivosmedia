@@ -25,7 +25,7 @@ interface PromoRow {
   per_customer_limit: number;
   redemption_count: number;
   is_active?: boolean;
-  ends_at?: string | null;
+  expires_at?: string | null;
   created_at?: string;
 }
 
@@ -56,8 +56,8 @@ export default function StorePromoCodesPage() {
           };
         };
       };
-      const { data } = await sb.from("marketing_promo_codes").select("id, store_id, code, type, value, min_order_cents, max_redemptions, per_customer_limit, redemption_count, is_active, ends_at, created_at").order("created_at", { ascending: false }).limit(60);
-      return (data ?? []).filter((p) => p.is_active !== false && (!p.ends_at || new Date(p.ends_at).getTime() > Date.now()));
+      const { data } = await sb.from("marketing_promo_codes").select("id, store_id, code, type, value, min_order_cents, max_redemptions, per_customer_limit, redemption_count, is_active, expires_at, created_at").order("created_at", { ascending: false }).limit(60);
+      return (data ?? []).filter((p) => p.is_active !== false && (!p.expires_at || new Date(p.expires_at).getTime() > Date.now()));
     },
     staleTime: 60_000,
   });
@@ -158,7 +158,7 @@ export default function StorePromoCodesPage() {
                         {p.min_order_cents > 0 && <span className="text-[11px] text-muted-foreground">on ${(p.min_order_cents / 100).toFixed(0)}+ orders</span>}
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                        {p.ends_at && <span className="inline-flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {formatRelative(p.ends_at)}</span>}
+                        {p.expires_at && <span className="inline-flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {formatRelative(p.expires_at)}</span>}
                         {remaining !== null && <><span>·</span><span>{remaining} left</span></>}
                       </div>
                     </div>

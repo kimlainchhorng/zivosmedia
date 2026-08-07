@@ -24,8 +24,7 @@ export function ReviewsSummary({
           .from("reviews") as any)
           .select("rating")
           .eq("service_type", serviceType)
-          .eq("service_id", serviceId)
-          .eq("status", "published");
+          .eq("target_id", serviceId);
 
         if (error) throw error;
 

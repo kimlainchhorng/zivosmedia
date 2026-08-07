@@ -47,10 +47,10 @@ interface JobRow {
 interface DriverProfile {
   full_name: string | null;
   rating: number | null;
-  trips_count: number | null;
+  total_trips: number | null;
   vehicle_model: string | null;
   vehicle_color: string | null;
-  license_plate: string | null;
+  vehicle_plate: string | null;
   phone: string | null;
   avatar_url: string | null;
 }
@@ -249,10 +249,16 @@ export default function TripStatusPage() {
       const driverId = (driverRow as { id?: string } | null)?.id ?? rawId;
       setResolvedDriverId(driverId);
 
+      // Was querying driver_profiles, which holds only driver_id /
+      // phone_verified / timestamps — none of these columns — and filtering on
+      // `id`, which that table does not have either. PostgREST rejected the
+      // whole request, `data` was always null, and the rider saw a trip with no
+      // driver name, rating, vehicle or plate. `drivers` is where this lives,
+      // and driverId above is already resolved to drivers.id.
       const { data } = await (supabase as any)
-        .from("driver_profiles")
+        .from("drivers")
         .select(
-          "full_name,rating,trips_count,vehicle_model,vehicle_color,license_plate,phone,avatar_url"
+          "full_name,rating,total_trips,vehicle_model,vehicle_color,vehicle_plate,phone,avatar_url"
         )
         .eq("id", driverId)
         .maybeSingle();
@@ -355,8 +361,8 @@ export default function TripStatusPage() {
     ? {
         name: driverProfile.full_name ?? "",
         rating: driverProfile.rating ?? 4.8,
-        trips: driverProfile.trips_count ?? 0,
-        plate: driverProfile.license_plate ?? "",
+        trips: driverProfile.total_trips ?? 0,
+        plate: driverProfile.vehicle_plate ?? "",
         vehicle: driverProfile.vehicle_model ?? "",
         vehicleColor: driverProfile.vehicle_color ?? "",
         phone: driverProfile.phone ?? undefined,

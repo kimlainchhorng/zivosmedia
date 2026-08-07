@@ -74,7 +74,7 @@ export default function RewardsPage() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("achievements")
-        .select("id, name, description, points_reward, icon, target_count")
+        .select("id, name, description, reward_json, icon, condition_value")
         .eq("is_active", true)
         .order("sort_order", { ascending: true })
         .limit(3);
@@ -306,7 +306,7 @@ export default function RewardsPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-foreground">{c.name}</p>
-                        {c.points_reward && <Badge className="bg-amber-500/10 text-amber-500 border-0 text-[8px]">{c.points_reward} pts</Badge>}
+                        {Number((c.reward_json as { points?: number } | null)?.points) > 0 && <Badge className="bg-amber-500/10 text-amber-500 border-0 text-[8px]">{(c.reward_json as { points?: number }).points} pts</Badge>}
                       </div>
                       <p className="text-[10px] text-muted-foreground">{c.description}</p>
                       <div className="h-1.5 rounded-full bg-muted/50 mt-1.5 overflow-hidden">

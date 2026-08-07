@@ -37,7 +37,7 @@ Deno.serve(withSecurity("check-device-integrity", async (req, ctx) => {
       .from("risk_events")
       .select("id")
       .eq("user_id", user.id)
-      .eq("status", "open")
+      .eq("is_resolved", false)
       .limit(5);
 
     const valid = !riskEvents || riskEvents.length < 3;

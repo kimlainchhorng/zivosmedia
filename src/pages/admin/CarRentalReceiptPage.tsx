@@ -84,12 +84,8 @@ interface ResAddon {
 interface Store {
   name: string;
   logo_url: string | null;
-  address_line1: string | null;
-  city: string | null;
-  state: string | null;
-  postal_code: string | null;
+  address: string | null;
   phone: string | null;
-  email: string | null;
 }
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -130,7 +126,7 @@ export default function CarRentalReceiptPage() {
       setAddons((addonsR.data ?? []) as unknown as ResAddon[]);
 
       const [storeR, custR] = await Promise.all([
-        supabase.from("store_profiles").select("name, logo_url, address_line1, city, state, postal_code, phone, email").eq("id", r.store_id).maybeSingle(),
+        supabase.from("store_profiles").select("name, logo_url, address, phone").eq("id", r.store_id).maybeSingle(),
         r.customer_id ? supabase.from("car_rental_customers").select("driver_license_number, driver_license_state, driver_license_country, driver_license_expiry, address, city, state").eq("id", r.customer_id).maybeSingle() : Promise.resolve({ data: null }),
       ]);
       if (storeR.data) setStore(storeR.data as any);
@@ -194,7 +190,7 @@ export default function CarRentalReceiptPage() {
               doc.text(store?.name ?? "Car Rental Receipt", m, y); y += 22;
               doc.setFontSize(10); doc.setFont("helvetica", "normal");
               if (store) {
-                const addr = [store.address_line1, store.city, store.state, store.postal_code].filter(Boolean).join(", ");
+                const addr = store.address ?? "";
                 if (addr) { doc.text(addr, m, y); y += 14; }
               }
               y += 8;
@@ -266,10 +262,10 @@ export default function CarRentalReceiptPage() {
             <h1 className="text-2xl font-bold text-foreground">{store?.name ?? "Rental Receipt"}</h1>
             {store && (
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {[store.address_line1, store.city, store.state, store.postal_code].filter(Boolean).join(", ")}
+                {store.address ?? ""}
               </p>
             )}
-            {store?.phone && <p className="text-xs text-muted-foreground">{store.phone}{store.email ? ` · ${store.email}` : ""}</p>}
+            {store?.phone && <p className="text-xs text-muted-foreground">{store.phone}</p>}
           </div>
           <div className="text-right">
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Rental Receipt</p>

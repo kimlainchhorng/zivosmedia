@@ -15,7 +15,15 @@ const legalPages: Record<string, React.LazyExoticComponent<React.ComponentType>>
   "/legal/cookies": lazy(() => import("@/pages/legal/CookiePolicy")),
   "/legal/refunds": lazy(() => import("@/pages/legal/RefundPolicy")),
   "/legal/cancellation": lazy(() => import("@/pages/legal/CancellationPolicy")),
-  "/terms": lazy(() => import("@/pages/Terms")),
+  // Short paths alias the canonical /legal component, exactly as /privacy and
+  // /cookies already did. "/terms" was the one exception: it rendered a second,
+  // separate Terms page that had drifted from the canonical one, so a customer
+  // reading the terms AT CHECKOUT saw different terms from the ones the site
+  // links everywhere else — and from the ones the checkout's own footer points
+  // at. Two divergent contracts shown to the same buyer is worse than one
+  // incomplete contract.
+  "/terms": lazy(() => import("@/pages/legal/TermsOfService")),
+  "/refunds": lazy(() => import("@/pages/legal/RefundPolicy")),
   "/privacy": lazy(() => import("@/pages/legal/PrivacyPolicy")),
   "/cookies": lazy(() => import("@/pages/legal/CookiePolicy")),
   "/partner-disclosure": lazy(() => import("@/pages/legal/PartnerDisclosure")),

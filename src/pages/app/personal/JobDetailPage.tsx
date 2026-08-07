@@ -44,13 +44,8 @@ export default function JobDetailPage() {
       setLoading(false);
 
       // Increment view count once per mount
-      if (!viewTracked.current && data) {
-        viewTracked.current = true;
-        (supabase as any)
-          .from("career_jobs")
-          .update({ view_count: (data.view_count ?? 0) + 1 })
-          .eq("id", id);
-      }
+      // career_jobs has no view_count/views column, so this update was
+      // rejected on every mount. Restore once a counter column exists.
 
       // Fetch similar open jobs from same company
       if (data?.company_id) {
@@ -133,11 +128,7 @@ export default function JobDetailPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="truncate text-lg font-bold flex-1">{job.title}</h1>
-        {job.view_count != null && (
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
-            <Eye className="h-3.5 w-3.5" />{(job.view_count + 1).toLocaleString()}
-          </span>
-        )}
+        {/* No view counter column exists on career_jobs, so nothing to show. */}
         <Button type="button" variant="ghost" size="icon" onClick={toggleSave} aria-label={isSaved ? "Unsave job" : "Save job"}>
           <Bookmark className={cn("h-5 w-5", isSaved && "fill-foreground")} />
         </Button>

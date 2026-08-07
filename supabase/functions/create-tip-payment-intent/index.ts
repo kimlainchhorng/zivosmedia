@@ -7,6 +7,10 @@ import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { scanContentForLinks, logBlockedAttempt, isAbuseThresholdExceeded, isIpAbuseThresholdExceeded, getRequestIpHash } from "../_shared/contentLinkValidation.ts";
 import { isLikelyMaliciousBot } from "../_shared/botDetection.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 Deno.serve(withSecurity("create-tip-payment-intent", async (req, ctx) => {
   const cors = ctx.corsHeaders;
@@ -85,6 +89,18 @@ Deno.serve(withSecurity("create-tip-payment-intent", async (req, ctx) => {
         });
         logBlockedAttempt(admin, { endpoint: "create-tip-payment-intent", userId: user.id, urls: linkScan.blocked, text: message, ip: req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") });
         return new Response(JSON.stringify({ error: "blocked_link", code: "blocked_link", urls: linkScan.blocked }), { status: 422, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+    }
+
+    // Tips to adult creators do not settle on this Stripe account — see
+    // _shared/adultCreatorPaymentBoundary.ts. Before the Stripe client exists,
+    // so no payment intent is created and left dangling.
+    {
+      const admin = createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      if (await isAdultCreatorAccount(admin, creator_id)) {
+        return adultCreatorPaymentBlockedResponse(cors);
       }
     }
 

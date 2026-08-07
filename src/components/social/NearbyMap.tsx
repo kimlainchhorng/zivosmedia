@@ -69,16 +69,16 @@ export default function NearbyMap({ onClose }: NearbyMapProps) {
     queryFn: async () => {
       const { data } = await supabase
         .from("restaurants")
-        .select("id, name, logo_url, latitude, longitude")
+        .select("id, name, logo_url, lat, lng")
         .limit(20);
       return (data || [])
-        .filter((r: any) => r.latitude && r.longitude)
+        .filter((r: any) => r.lat && r.lng)
         .map((r: any) => ({
           id: r.id,
           name: r.name,
           type: "restaurant" as const,
-          lat: r.latitude,
-          lng: r.longitude,
+          lat: r.lat,
+          lng: r.lng,
           avatar: r.logo_url,
         }));
     },

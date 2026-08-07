@@ -84,10 +84,19 @@ export default function CreatorDashboardPage() {
   const { data: postCount = 0 } = useQuery({
     queryKey: ["creator-post-count", user?.id],
     queryFn: async () => {
+      // store_posts is keyed by store_id, not by the creator's auth id.
+      // Filtering user_id made PostgREST reject the request, so the post
+      // count on the creator dashboard always read 0.
+      const { data: store } = await (supabase as any)
+        .from("store_profiles")
+        .select("id")
+        .eq("owner_id", user!.id)
+        .maybeSingle();
+      if (!store?.id) return 0;
       const { count } = await (supabase as any)
         .from("store_posts")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user!.id);
+        .eq("store_id", store.id);
       return (count as number) || 0;
     },
     enabled: !!user,
@@ -108,10 +117,17 @@ export default function CreatorDashboardPage() {
   const { data: totalViews = 0 } = useQuery({
     queryKey: ["creator-views", user?.id],
     queryFn: async () => {
+      // store_posts is keyed by store_id (see the post-count query above).
+      const { data: store } = await (supabase as any)
+        .from("store_profiles")
+        .select("id")
+        .eq("owner_id", user!.id)
+        .maybeSingle();
+      if (!store?.id) return 0;
       const { data } = await (supabase as any)
         .from("store_posts")
         .select("view_count")
-        .eq("user_id", user!.id);
+        .eq("store_id", store.id);
       return ((data as any[]) || []).reduce((s: number, p: any) => s + (p.view_count ?? 0), 0);
     },
     enabled: !!user,

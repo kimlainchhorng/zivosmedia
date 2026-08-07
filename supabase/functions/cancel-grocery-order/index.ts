@@ -107,7 +107,7 @@ Deno.serve(withSecurity("cancel-grocery-order", async (req, ctx) => {
           const refund = await stripe.refunds.create({
             payment_intent: (o as any).stripe_payment_intent_id,
             amount: refundCents,
-            metadata: { order_id, type: "grocery_cancel" },
+            order_id,
           });
           stripeRefundId = refund.id;
           nextPaymentStatus = refund.status === "succeeded" ? "refunded" : "refund_pending";
@@ -144,12 +144,12 @@ Deno.serve(withSecurity("cancel-grocery-order", async (req, ctx) => {
           squareRefundId = j.refund?.id ?? null;
           nextPaymentStatus = j.refund?.status === "COMPLETED" ? "refunded" : "refund_pending";
         } else if (provider === "wallet") {
-          const { error: walErr } = await admin.from("wallet_transactions").insert({
+          const { error: walErr } = await admin.from("customer_wallet_transactions").insert({
             user_id: user.id,
             amount_cents: refundCents,
-            kind: "refund",
+            type: "refund",
             description: `Grocery order ${order_id} — cancellation refund`,
-            metadata: { order_id, type: "grocery_cancel" },
+            order_id,
           } as any);
           if (walErr) throw walErr;
           nextPaymentStatus = "refunded";

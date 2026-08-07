@@ -274,7 +274,7 @@ export default function MessageRequestsPage() {
     if (!senderIds.length) return;
     const { error } = await (supabase as any)
       .from("direct_messages")
-      .update({ is_read: true, read_at: new Date().toISOString() })
+      .update({ is_read: true })
       .eq("receiver_id", user.id)
       .in("sender_id", senderIds)
       .eq("is_read", false);

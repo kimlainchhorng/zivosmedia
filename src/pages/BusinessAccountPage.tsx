@@ -19,8 +19,8 @@ interface BizRow {
   company_size: string | null;
   industry: string | null;
   tax_id: string | null;
-  business_email: string | null;
-  verified_at: string | null;
+  billing_contact_email: string | null;
+  approved_at: string | null;
   created_at: string;
 }
 
@@ -38,7 +38,7 @@ export default function BusinessAccountPage() {
     queryFn: async () => {
       if (!user?.id) return null;
       const sb = supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: BizRow | null }> } } } };
-      const { data } = await sb.from("business_renter_accounts").select("id, user_id, company_name, company_size, industry, tax_id, business_email, verified_at, created_at").eq("user_id", user.id).maybeSingle();
+      const { data } = await sb.from("business_renter_accounts").select("id, user_id, company_name, company_size, industry, tax_id, billing_contact_email, approved_at, created_at").eq("user_id", user.id).maybeSingle();
       return data;
     },
     enabled: !!user?.id,
@@ -63,7 +63,7 @@ export default function BusinessAccountPage() {
           <Sparkles className="absolute top-3 right-3 h-5 w-5 text-white/40" />
           <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Corporate access</p>
           <p className="text-2xl font-extrabold mt-1 line-clamp-1">{account?.company_name ?? "Not set up"}</p>
-          {account?.verified_at && <p className="text-sm text-white/85 mt-1 inline-flex items-center gap-1"><FileCheck className="h-3.5 w-3.5" /> Verified {formatDate(account.verified_at)}</p>}
+          {account?.approved_at && <p className="text-sm text-white/85 mt-1 inline-flex items-center gap-1"><FileCheck className="h-3.5 w-3.5" /> Verified {formatDate(account.approved_at)}</p>}
         </motion.div>
         {isLoading && <div className="h-40 bg-muted animate-pulse rounded-2xl" />}
         {!isLoading && !account && (
@@ -90,12 +90,12 @@ export default function BusinessAccountPage() {
                 <p className="text-sm font-bold text-foreground">{account.company_size ?? "—"}</p>
               </div>
             </div>
-            {account.business_email && (
+            {account.billing_contact_email && (
               <div className="flex items-center gap-3">
                 <div className="shrink-0 h-10 w-10 rounded-xl bg-ig-gradient/10 flex items-center justify-center"><Mail className="h-4 w-4 text-ig-gradient" /></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Business email</p>
-                  <p className="text-sm font-bold text-foreground line-clamp-1">{account.business_email}</p>
+                  <p className="text-sm font-bold text-foreground line-clamp-1">{account.billing_contact_email}</p>
                 </div>
               </div>
             )}

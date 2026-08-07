@@ -74,7 +74,11 @@ export default function TodayPlanWidget() {
           .eq("departure_date", todayISO),
         sb
           .from("hotel_bookings")
-          .select("id,hotel_name,city,check_in_date")
+          // hotel_bookings has neither hotel_name nor city — only hotel_id.
+          // PostgREST rejects the whole request over an unknown column, so this
+          // widget's hotel entries were always empty. QuickActionsSection
+          // already embeds `hotels(name, city)`; this matches it.
+          .select("id,check_in_date,hotels(name,city)")
           .eq("customer_id", user.id)
           .eq("check_in_date", todayISO),
       ]);
@@ -120,11 +124,11 @@ export default function TodayPlanWidget() {
         next.push({
           id: `htl-${h.id}`,
           kind: "hotel",
-          title: `Check-in: ${h.hotel_name ?? "Hotel"}`,
-          detail: h.city ?? "Today",
+          title: `Check-in: ${h.hotels?.name ?? "Hotel"}`,
+          detail: h.hotels?.city ?? "Today",
           time: null,
           minutesUntil: null,
-          venue: h.hotel_name,
+          venue: h.hotels?.name,
           href: "/trips",
         });
       });

@@ -60,7 +60,6 @@ serve(withSecurity("notification-preferences-update", async (req, ctx) => {
 
     return upsertPreferences(admin, user.id, {
       sms_enabled: true,
-      sms_consent_at: now,
       updated_at: now,
     }, json);
   }
@@ -89,15 +88,15 @@ async function upsertPreferences(
     .upsert({
       user_id: userId,
       email_enabled: true,
-      push_enabled: true,
       sms_enabled: false,
       in_app_enabled: true,
       marketing_enabled: false,
       operational_enabled: true,
+      // notification_preferences has no push_enabled, quiet_hours_* or
+      // sms_consent_* columns (verified against the live database). Sending
+      // them made PostgREST reject the upsert, so NO preference change saved
+      // at all. Those settings need a migration before they can persist.
       phone_verified: false,
-      quiet_hours_enabled: false,
-      quiet_hours_start: "22:00",
-      quiet_hours_end: "08:00",
       ...patch,
     }, { onConflict: "user_id" })
     .select()
@@ -114,12 +113,10 @@ async function upsertPreferences(
 function cleanPreferencePatch(body: Body, now: string): Record<string, unknown> {
   const patch: Record<string, unknown> = { updated_at: now };
   setBool(patch, "email_enabled", body.emailEnabled);
-  setBool(patch, "push_enabled", body.pushEnabled);
   setBool(patch, "sms_enabled", body.smsEnabled);
   setBool(patch, "in_app_enabled", body.inAppEnabled);
   setBool(patch, "marketing_enabled", body.marketingEnabled);
   setBool(patch, "operational_enabled", body.operationalEnabled);
-  setBool(patch, "quiet_hours_enabled", body.quietHoursEnabled);
   setBool(patch, "automated_messages_enabled", body.automatedMessagesEnabled);
   setBool(patch, "automated_cart_reminders", body.automatedCartReminders);
   setBool(patch, "automated_reengagement", body.automatedReengagement);
@@ -127,10 +124,6 @@ function cleanPreferencePatch(body: Body, now: string): Record<string, unknown> 
 
   if (body.phoneNumber === null) patch.phone_number = null;
   if (typeof body.phoneNumber === "string") patch.phone_number = body.phoneNumber.trim().slice(0, 32);
-  if (typeof body.quietHoursStart === "string" && isTime(body.quietHoursStart)) patch.quiet_hours_start = body.quietHoursStart;
-  if (typeof body.quietHoursEnd === "string" && isTime(body.quietHoursEnd)) patch.quiet_hours_end = body.quietHoursEnd;
-  if (typeof body.smsConsentText === "string") patch.sms_consent_text = body.smsConsentText.trim().slice(0, 500);
-  if (body.smsConsentAt !== undefined || body.smsEnabled === true) patch.sms_consent_at = now;
   return patch;
 }
 

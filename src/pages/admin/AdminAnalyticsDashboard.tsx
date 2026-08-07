@@ -213,7 +213,7 @@ export default function AdminAnalyticsDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("store_orders")
-        .select("id, status, total, created_at")
+        .select("id, status, total_cents, created_at")
         .gte("created_at", since);
       if (error) return [];
       return data || [];
@@ -782,7 +782,7 @@ export default function AdminAnalyticsDashboard() {
       const day = (o.created_at as string).slice(0, 10);
       if (!byDay[day]) byDay[day] = { date: day, orders: 0, revenue: 0 };
       byDay[day].orders++;
-      if (o.total) byDay[day].revenue += Number(o.total) || 0;
+      byDay[day].revenue += (Number(o.total_cents) || 0) / 100;
     });
     return Object.values(byDay).sort((a, b) => a.date.localeCompare(b.date));
   }, [storeOrderData]);

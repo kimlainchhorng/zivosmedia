@@ -79,8 +79,9 @@ export default function HowItWorksSection() {
 
         {/* Clarification */}
         <p className="text-center text-sm text-muted-foreground mt-8 max-w-xl mx-auto">
-          ZIVO is a search and comparison platform. We don't sell tickets directly — 
-          we help you find the best prices and redirect you to trusted booking partners.
+          ZIVO does not issue airline tickets. For flights we compare prices and hand you to a
+          licensed ticketing partner to complete the booking. Rides, delivery, shopping, stays, and
+          car rentals booked on ZIVO are paid and refunded through ZIVO.
         </p>
       </div>
     </section>

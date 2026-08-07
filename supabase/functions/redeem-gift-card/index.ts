@@ -105,7 +105,6 @@ serve(withSecurity("redeem-gift-card", async (req, ctx) => {
           user_id: user.id,
           balance_cents: 0,
           lifetime_credits_cents: 0,
-          pending_credits_cents: 0,
         })
         .select()
         .single();

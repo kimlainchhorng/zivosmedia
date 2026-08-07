@@ -7,9 +7,7 @@ const read = (relativePath: string) => readFileSync(path.join(root, relativePath
 
 const files = [
   "src/pages/security/PrivacyCompliance.tsx",
-  "src/pages/Refunds.tsx",
   "src/pages/TravelCheckoutPage.tsx",
-  "src/pages/Privacy.tsx",
   "src/pages/account/PrivacyControls.tsx",
   "src/components/home/NewsletterSection.tsx",
   "src/pages/legal/InsurancePolicy.tsx",
@@ -20,11 +18,16 @@ describe("residual public legal canonical links", () => {
   it("keeps remaining public privacy, refund, and checkout links canonical", () => {
     const combined = files.map((file) => read(file)).join("\n");
 
+    // Only what this file set actually links to. `to="/legal/partner-disclosure"`
+    // dropped out when the stale duplicate Refunds page was deleted — it is
+    // still canonical everywhere it appears (PartnerConsentModal, and the
+    // booking/flight/hotel compliance footers), and checkoutLegalCanonicalLinks
+    // asserts it there. Listing it here would only re-fail whenever this set
+    // shrinks, without protecting anything.
     for (const canonical of [
       'to="/legal/terms"',
       'to="/legal/privacy"',
       'to="/legal/cookies"',
-      'to="/legal/partner-disclosure"',
     ]) {
       expect(combined).toContain(canonical);
     }

@@ -3,6 +3,7 @@
  * Pulls from ads_studio_creative_stats view (impressions, clicks, conversions, revenue, AI spend).
  */
 import { useEffect, useState, useMemo, memo, useCallback } from "react";
+import { downloadCsv } from "@/lib/csvExport";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,27 +81,22 @@ export default function AdsStudioAnalytics({ storeId }: Props) {
   );
 
   const exportCsv = useCallback(() => {
-    const header = "goal,date,impressions,clicks,conversions,revenue,spend\n";
-    const lines = stats
-      .map((s) =>
-        [
-          s.goal,
-          new Date(s.created_at).toISOString().slice(0, 10),
-          s.impressions,
-          s.clicks,
-          s.conversions,
-          (s.revenue_cents / 100).toFixed(2),
-          (s.spend_cents / 100).toFixed(2),
-        ].join(",")
-      )
-      .join("\n");
-    const blob = new Blob([header + lines], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ads-performance-${storeId}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // `goal` is user-entered campaign text. Joined raw, a goal containing a
+    // comma shifted date, impressions, clicks and both money columns — on a
+    // report someone would use to judge ad spend.
+    downloadCsv(
+      `ads-performance-${storeId}`,
+      ["goal", "date", "impressions", "clicks", "conversions", "revenue", "spend"],
+      stats.map((s) => [
+        s.goal,
+        new Date(s.created_at).toISOString().slice(0, 10),
+        s.impressions,
+        s.clicks,
+        s.conversions,
+        (s.revenue_cents / 100).toFixed(2),
+        (s.spend_cents / 100).toFixed(2),
+      ]),
+    );
   }, [stats, storeId]);
 
   const columns = useMemo<BreakdownColumn<CreativeStat>[]>(() => ([

@@ -85,7 +85,11 @@ export default function UnifiedActivityTimeline() {
           .limit(FETCH_LIMIT),
         sb
           .from("hotel_bookings")
-          .select("id,status,hotel_name,city,check_in_date,check_out_date,created_at")
+          // hotel_bookings has neither hotel_name nor city — only hotel_id.
+          // PostgREST rejects the whole request over an unknown column, so this
+          // widget's hotel entries were always empty. QuickActionsSection
+          // already embeds `hotels(name, city)`; this matches it.
+          .select("id,status,check_in_date,check_out_date,created_at,hotels(name,city)")
           .eq("customer_id", user.id)
           .order("check_in_date", { ascending: false })
           .limit(FETCH_LIMIT),
@@ -153,8 +157,8 @@ export default function UnifiedActivityTimeline() {
         collected.push({
           id: `htl-${h.id}`,
           vertical: "hotel",
-          title: h.hotel_name ?? "Hotel stay",
-          subtitle: [h.city, h.check_in].filter(Boolean).join(" · "),
+          title: h.hotels?.name ?? "Hotel stay",
+          subtitle: [h.hotels?.city, h.check_in].filter(Boolean).join(" · "),
           status: h.status ?? "confirmed",
           occurredAt: h.check_in ? `${h.check_in}T00:00:00` : h.created_at,
           href: `/trips`,

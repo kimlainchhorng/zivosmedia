@@ -18,13 +18,11 @@ interface TrustRow {
   id: string;
   user_id: string;
   score: number | null;
-  factors: Record<string, unknown> | null;
-  last_calculated_at: string | null;
-  report_count: number | null;
-  violation_count: number | null;
-  positive_signals: number | null;
-  created_at: string;
-  updated_at: string;
+  last_updated: string | null;
+  // trust_scores holds only id/user_id/role/score/last_updated. The
+  // breakdown fields this page was written against (factors, report_count,
+  // violation_count, positive_signals) do not exist, and selecting them
+  // made PostgREST reject the request so the score itself never loaded.
 }
 
 function tier(score: number): { label: string; tone: string; bg: string } {
@@ -61,7 +59,7 @@ export default function TrustScorePage() {
       };
       const { data } = await sb
         .from("trust_scores")
-        .select("id, user_id, score, factors, last_calculated_at, report_count, violation_count, positive_signals, created_at, updated_at")
+        .select("id, user_id, score, last_updated")
         .eq("user_id", user.id)
         .maybeSingle();
       return data;
@@ -73,8 +71,8 @@ export default function TrustScorePage() {
   const score = Math.max(0, Math.min(100, Number(row?.score ?? 50)));
   const t = tier(score);
   const factors = useMemo(() => {
-    if (!row?.factors || typeof row.factors !== "object") return [] as Array<{ key: string; value: unknown }>;
-    return Object.entries(row.factors as Record<string, unknown>).map(([key, value]) => ({ key, value }));
+    // No factors column exists yet, so the breakdown section stays hidden.
+    return [] as Array<{ key: string; value: unknown }>;
   }, [row]);
 
   return (
@@ -109,9 +107,9 @@ export default function TrustScorePage() {
           <div className="mt-3 h-2 rounded-full bg-white/20 overflow-hidden">
             <div className="h-full bg-white rounded-full transition-all" style={{ width: `${score}%` }} />
           </div>
-          {row?.last_calculated_at && (
+          {row?.last_updated && (
             <p className="text-[10px] text-white/70 mt-2 inline-flex items-center gap-0.5">
-              <Clock className="h-2.5 w-2.5" /> Updated {formatRelative(row.last_calculated_at)}
+              <Clock className="h-2.5 w-2.5" /> Updated {formatRelative(row.last_updated)}
             </p>
           )}
         </motion.div>
@@ -123,21 +121,21 @@ export default function TrustScorePage() {
               <ThumbsUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Positive</p>
             </div>
-            <p className="text-lg font-extrabold text-foreground">{row?.positive_signals ?? 0}</p>
+            <p className="text-lg font-extrabold text-foreground">{0}</p>
           </div>
           <div className="rounded-xl bg-card border border-border p-3">
             <div className="flex items-center gap-1 mb-0.5">
               <Flag className="h-3 w-3 text-amber-600 dark:text-amber-400" />
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Reports</p>
             </div>
-            <p className="text-lg font-extrabold text-foreground">{row?.report_count ?? 0}</p>
+            <p className="text-lg font-extrabold text-foreground">{0}</p>
           </div>
           <div className="rounded-xl bg-card border border-border p-3">
             <div className="flex items-center gap-1 mb-0.5">
               <AlertTriangle className="h-3 w-3 text-rose-600 dark:text-rose-400" />
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Violations</p>
             </div>
-            <p className="text-lg font-extrabold text-foreground">{row?.violation_count ?? 0}</p>
+            <p className="text-lg font-extrabold text-foreground">{0}</p>
           </div>
         </div>
 

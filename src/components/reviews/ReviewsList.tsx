@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Review {
   id: string;
-  reviewer_id: string;
+  reviewer_user_id: string;
   rating: number;
   title: string;
   body: string;
@@ -33,8 +33,7 @@ export function ReviewsList({ serviceType, serviceId }: ReviewsListProps) {
           .from("reviews") as any)
           .select("*")
           .eq("service_type", serviceType)
-          .eq("service_id", serviceId)
-          .eq("status", "published")
+          .eq("target_id", serviceId)
           .order("created_at", { ascending: false })
           .limit(10);
 

@@ -157,7 +157,7 @@ Deno.serve(withSecurity("confirm-flight-payment", async (req, ctx) => {
         .update({
           payment_status: "paid",
           ticketing_status: duffelOrderId ? "issued" : "processing",
-          duffel_order_id: duffelOrderId || undefined,
+          ticketing_partner_order_id: duffelOrderId || undefined,
           booking_reference: duffelBookingRef || booking.booking_reference,
         } as any)
         .eq("id", booking_id);

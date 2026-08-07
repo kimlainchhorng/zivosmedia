@@ -37,12 +37,17 @@ export function useLoyaltySettings() {
   return useQuery({
     queryKey: ["loyalty-settings"],
     queryFn: async () => {
+      // loyalty_settings is a key/value table (key, value), not a columnar
+      // settings row. Selecting points_per_dollar / min_redeem_points /
+      // expiry_days as columns made PostgREST reject the whole request.
       const { data } = await (supabase as any)
         .from("loyalty_settings")
-        .select("id, points_per_dollar, min_redeem_points, expiry_days, is_active")
-        .limit(1)
-        .maybeSingle();
-      return (data || {}) as any;
+        .select("key, value");
+      const settings: Record<string, unknown> = {};
+      for (const row of (data || []) as Array<{ key: string; value: unknown }>) {
+        if (row?.key) settings[row.key] = row.value;
+      }
+      return settings;
     },
   });
 }

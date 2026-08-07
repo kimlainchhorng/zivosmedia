@@ -55,7 +55,10 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
       // Over-fetch so we still get 12 even if many results are filtered out.
       const { data, error } = await (supabase as any)
         .from("profiles")
-        .select("id, full_name, avatar_url, bio, is_verified, follower_count, posts_count")
+        // profiles carries neither of the two count columns this used to select;
+        // followers are rows in user_followers. Selecting them made PostgREST
+        // reject the request, so the whole carousel rendered empty.
+        .select("id, full_name, avatar_url, bio, is_verified")
         .neq("id", user?.id || "")
         .limit(40);
       if (error) throw error;
@@ -66,7 +69,22 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
         const j = Math.floor(Math.random() * (i + 1));
         [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
       }
-      return filtered.slice(0, 12);
+      const shown = filtered.slice(0, 12);
+
+      // Attach a real follower count for just the profiles we display.
+      const shownIds = shown.map((p: any) => p.id).filter(Boolean);
+      if (shownIds.length > 0) {
+        const { data: counts } = await (supabase as any)
+          .from("user_followers")
+          .select("following_id")
+          .in("following_id", shownIds);
+        const tally = new Map<string, number>();
+        for (const row of (counts || []) as Array<{ following_id: string }>) {
+          tally.set(row.following_id, (tally.get(row.following_id) ?? 0) + 1);
+        }
+        for (const p of shown) p.follower_count = tally.get(p.id) ?? 0;
+      }
+      return shown;
     },
     enabled: !!user,
     staleTime: 5 * 60_000,
@@ -387,8 +405,6 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                 <p className="zivo-social-chip mx-auto mb-1 mt-1 w-fit rounded-full px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
                   {profile.follower_count > 0
                     ? `${formatFollowerCount(profile.follower_count)} followers`
-                    : profile.posts_count > 0
-                    ? `${profile.posts_count} posts`
                     : "New member"}
                 </p>
                 <MutualFollowsBadge mutual={mutualMap?.get(profile.id)} className="mb-1.5 text-center text-[9px]" />

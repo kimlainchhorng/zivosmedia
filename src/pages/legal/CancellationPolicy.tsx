@@ -191,8 +191,34 @@ const CancellationPolicy = () => {
             <CardContent className="space-y-6">
               <p className="text-muted-foreground">
                 You can cancel a ride, food order, or delivery from the app at any time before it is
-                completed. Whether a fee applies depends on how long the booking has been open and
-                whether a driver has already arrived.
+                completed. Whether a fee applies depends on how you are paying.
+              </p>
+
+              {/* Leads with cash, because that is what ZIVO's operating market
+                  actually uses. Cambodia is seeded digital_payments_enabled =
+                  false (market_payment_settings), so rides there are cash, and
+                  cancel-order treats cash as free_cancel unconditionally — the
+                  timing table below is unreachable for them.
+                  Presenting the fees first read as though Cambodian riders were
+                  routinely charged to cancel, and contradicted the Ride app's
+                  own policy page, which states plainly that Cambodia Ride has
+                  no cancellation fee. Both are now saying the same thing. */}
+              <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                <p className="font-medium flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                  Paying with cash? Cancelling is always free
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  A cash fare is paid directly to the driver at the end of the trip, so ZIVO never
+                  holds the money and no cancellation fee is charged — whatever the timing, and
+                  however far the driver has travelled. Rides in Cambodia are cash, so this is the
+                  rule that applies there.
+                </p>
+              </div>
+
+              <p className="text-muted-foreground">
+                Where a market offers card, ABA PayWay, or KHQR and you pay with one of them, ZIVO
+                holds the payment and the timing below applies:
               </p>
 
               <div className="space-y-3">
@@ -225,21 +251,32 @@ const CancellationPolicy = () => {
                 </div>
               </div>
 
-              {/* The single most important disclosure on this page. Documented
-                  because cancel-order deliberately charges no fee on a cash
-                  booking: the fare never passes through ZIVO, so there is no
-                  payment to deduct from and no way to collect. Publishing a fee
-                  schedule without this exception would state a charge the
-                  platform does not make and cannot make. */}
-              <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+              {/* Waiting at the pickup.
+                  Disclosed here because this is the Stripe-facing surface and a
+                  waiting charge is a SECOND charge: the fare is captured when
+                  the ride is booked, so waiting can never be added to it and
+                  arrives separately after the trip. An undisclosed second
+                  charge is the shape of a dispute the platform loses.
+
+                  Card only, because a second charge needs a saved instrument to
+                  bill off-session. Cash never reaches ZIVO, and ABA PayWay and
+                  KHQR settle through manual operator review with nothing stored
+                  to re-charge — so waiting is never billed on those. */}
+              <div className="p-4 bg-muted rounded-lg mb-4">
                 <p className="font-medium flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-500" />
-                  Paying with cash? No cancellation fee applies
+                  <Clock className="w-4 h-4 text-foreground" />
+                  Waiting at the Pickup
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  A cash fare is paid directly to the driver at the end of the trip, so ZIVO never
-                  holds the money and no cancellation fee is charged on a cash booking — whatever the
-                  timing. Fees above apply to card, ABA PayWay, and KHQR bookings.
+                  Cash, ABA PayWay and KHQR rides are never charged for waiting. On card rides the
+                  first minutes of waiting are always free — never fewer than the five minutes
+                  during which a customer cannot cancel, so no one is charged for time they are not
+                  allowed to escape. Anything charged beyond that is capped, appears as its own line
+                  on the receipt with the minutes it covers, and is paid in full to the driver.
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Because the fare is charged when the ride is booked, a waiting amount is billed
+                  separately after the trip rather than added to the original fare.
                 </p>
               </div>
 

@@ -145,7 +145,7 @@ export default function SocialFeedPage() {
         .from("chat_messages")
         .select("id", { count: "exact", head: true })
         .neq("sender_id", user.id)
-        .is("read_at", null), signal);
+        .eq("is_read", false), signal);
       return count ?? 0;
     },
   });
@@ -1032,7 +1032,7 @@ function FollowPill({ targetUserId }: { targetUserId: string }) {
     (async () => {
       try {
         const [{ data: storeRow }, { data: profileRow }] = await Promise.all([
-          (supabase as any).from("store_profiles").select("id").eq("user_id", targetUserId).maybeSingle(),
+          (supabase as any).from("store_profiles").select("id").eq("owner_id", targetUserId).maybeSingle(),
           (supabase as any).from("profiles").select("display_brand_name").or(`id.eq.${targetUserId},user_id.eq.${targetUserId}`).maybeSingle(),
         ]);
         if (!alive) return;

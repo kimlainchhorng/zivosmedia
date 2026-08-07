@@ -57,7 +57,11 @@ export default function InsightsCard() {
           .gte("created_at", monthStart),
         sb
           .from("hotel_bookings")
-          .select("id,check_in_date,city,created_at")
+          // hotel_bookings has neither hotel_name nor city — only hotel_id.
+          // PostgREST rejects the whole request over an unknown column, so this
+          // widget's hotel entries were always empty. QuickActionsSection
+          // already embeds `hotels(name, city)`; this matches it.
+          .select("id,check_in_date,created_at,hotels(city)")
           .eq("customer_id", user.id)
           .gte("created_at", monthStart),
         sb
@@ -85,9 +89,9 @@ export default function InsightsCard() {
           if (!hDate) return false;
           const sameishCity =
             f.destination &&
-            h.city &&
+            h.hotels?.city &&
             String(f.destination).toLowerCase().slice(0, 3) ===
-              String(h.city).toLowerCase().slice(0, 3);
+              String(h.hotels?.city).toLowerCase().slice(0, 3);
           return sameishCity && Math.abs(hDate - fDate) <= SEVEN_DAYS;
         });
         if (matched) bundles += 1;

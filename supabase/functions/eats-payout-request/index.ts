@@ -57,7 +57,7 @@ serve(withSecurity("eats-payout-request", async (req, ctx) => {
 
     const { data: restaurant, error: re } = await supabase
       .from("restaurants")
-      .select("id, owner_id, market, name")
+      .select("id, owner_id, name")
       .eq("id", restaurant_id)
       .maybeSingle();
     if (re || !restaurant) throw new Error("Restaurant not found");
@@ -74,7 +74,8 @@ serve(withSecurity("eats-payout-request", async (req, ctx) => {
       throw new Error("Payout method does not belong to this user");
     }
 
-    const country = String((restaurant as any).market || (method as any).country_code || "US").toUpperCase().slice(0, 2);
+    // `restaurants` has no market/country column; the payout method carries it.
+      const country = String((method as any).country_code || "US").toUpperCase().slice(0, 2);
     const rail = ((method as any).rail || (method as any).method_type || "bank_wire") as string;
 
     if (!ALLOWED_RAILS.has(rail)) return json({ error: `Unsupported payout rail "${rail}".` }, 400);

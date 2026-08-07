@@ -74,7 +74,7 @@ Deno.serve(withSecurity("approve-lodging-change", async (req, ctx) => {
 
       const nights = daysBetween(cr.proposed_check_in, cr.proposed_check_out);
       await admin.from("lodge_reservations").update({ check_in: cr.proposed_check_in, check_out: cr.proposed_check_out, nights, total_cents: cr.proposed_total_cents, paid_cents: Number(reservation.paid_cents || 0) + Math.max(0, delta) }).eq("id", cr.reservation_id);
-      await admin.from("lodge_reservation_audit").insert({ reservation_id: reservation.id, store_id: reservation.store_id, action: "reschedule_approved", actor_id: user.id, notes: host_response || null, metadata: { change_request_id: cr.id, price_delta_cents: delta } }).then(() => null);
+      await admin.from("lodge_reservation_audit").insert({ reservation_id: reservation.id, store_id: reservation.store_id, to_status: "reschedule_approved", actor_id: user.id, note: host_response || null }).then(() => null);
     }
 
     await admin.from("lodge_reservation_change_requests").update({ status: "approved", host_response: host_response || null, decided_by: user.id, decided_at: now, applied_at: now, payment_status: paymentStatus, stripe_payment_intent_id: paymentIntentId }).eq("id", change_request_id);

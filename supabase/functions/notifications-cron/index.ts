@@ -238,8 +238,11 @@ serve(withSecurity("notifications-cron", async (req, ctx) => {
     const todayStamp = `${today.getUTCFullYear()}-${mm}-${dd}`;
     // Pull every profile whose birthday MM-DD matches today. Limit + paginate.
     const { data: birthdays, error } = await supabase
+      // profiles has full_name, not display_name. Selecting the missing
+      // column failed the whole request, so this birthday job read nothing
+      // and quietly sent no greetings at all.
       .from("profiles")
-      .select("id, display_name, username, date_of_birth")
+      .select("id, full_name, username, date_of_birth")
       .not("date_of_birth", "is", null)
       .filter("date_of_birth", "neq", "")
       .limit(2000);
@@ -249,7 +252,7 @@ serve(withSecurity("notifications-cron", async (req, ctx) => {
       if (!dob) continue;
       const m = dob.match(/^\d{4}-(\d{2})-(\d{2})$/);
       if (!m || m[1] !== mm || m[2] !== dd) continue;
-      const name = (p as any).display_name || (p as any).username || "there";
+      const name = (p as any).full_name || (p as any).username || "there";
       const ok = await dispatchOne({
         user_id: (p as any).id,
         event_type: "birthday_greeting",

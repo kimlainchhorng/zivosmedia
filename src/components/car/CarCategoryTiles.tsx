@@ -13,6 +13,10 @@ import type { CarCategory } from "@/config/photos";
 
 interface CarCategoryTilesProps {
   onSelect?: (category: CarCategory) => void;
+  /** Clears the category filter and shows every type. The complement to
+      onSelect — both "View all" buttons below were rendered with hover and
+      press states but no handler, so they looked live and did nothing. */
+  onViewAll?: () => void;
   selectedCategory?: CarCategory | null;
   className?: string;
 }
@@ -31,6 +35,7 @@ const categoryPricing: Record<CarCategory, { priceFrom: number; popular?: boolea
 
 export default function CarCategoryTiles({
   onSelect,
+  onViewAll,
   selectedCategory,
   className,
 }: CarCategoryTilesProps) {
@@ -47,7 +52,7 @@ export default function CarCategoryTiles({
               Find the perfect vehicle for your trip
             </p>
           </div>
-          <button type="button" className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-[0.97] touch-manipulation">
+          <button type="button" onClick={() => onViewAll?.()} className="hidden sm:flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-[0.97] touch-manipulation">
             View all <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -123,7 +128,7 @@ export default function CarCategoryTiles({
         </div>
 
         {/* Mobile view all */}
-        <button type="button" className="sm:hidden w-full mt-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 flex items-center justify-center gap-2 rounded-xl bg-card border border-border hover:border-primary/20 hover:shadow-sm active:scale-[0.98] touch-manipulation min-h-[44px]">
+        <button type="button" onClick={() => onViewAll?.()} className="sm:hidden w-full mt-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 flex items-center justify-center gap-2 rounded-xl bg-card border border-border hover:border-primary/20 hover:shadow-sm active:scale-[0.98] touch-manipulation min-h-[44px]">
           View all car types <ArrowRight className="w-4 h-4" />
         </button>
       </div>
