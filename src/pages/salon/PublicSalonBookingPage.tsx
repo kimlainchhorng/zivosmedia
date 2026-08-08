@@ -44,7 +44,7 @@ interface Service {
   id: string; name: string; description: string | null; duration_minutes: number; price_cents: number; image_url: string | null; category: string | null;
 }
 interface Stylist {
-  id: string; display_name: string; title: string | null; photo_url: string | null;
+  id: string; display_name: string; title: string | null; photo_url?: string | null;
   service_ids: string[];
 }
 
@@ -168,7 +168,7 @@ export default function PublicSalonBookingPage() {
           .eq("store_id", (storeRow as any).id).eq("is_active", true)
           .order("sort_order", { ascending: true }),
         supabase.from("salon_stylists")
-          .select("id,display_name,title,photo_url,salon_stylist_services(service_id)")
+          .select("id,display_name,title,image_url,salon_stylist_services(service_id)")
           .eq("store_id", (storeRow as any).id).eq("is_active", true)
           .order("sort_order", { ascending: true }),
         supabase.from("salon_reviews")
@@ -185,7 +185,7 @@ export default function PublicSalonBookingPage() {
       if (cancelled) return;
       setServices((servicesRes.data ?? []) as unknown as Service[]);
       const sty = (stylistsRes.data ?? []).map((s: any) => ({
-        id: s.id, display_name: s.display_name, title: s.title, photo_url: s.photo_url,
+        id: s.id, display_name: s.display_name, title: s.title, photo_url: s.image_url,
         service_ids: (s.salon_stylist_services ?? []).map((j: any) => j.service_id as string),
       }));
       setStylists(sty);

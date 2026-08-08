@@ -35,7 +35,7 @@ interface ServiceRow {
   price_cents: number;
   duration_minutes: number;
   description: string | null;
-  photo_url: string | null;
+  image_url: string | null;
 }
 
 interface StatusRow {
@@ -95,7 +95,7 @@ export default function PublicSalonCheckinPage() {
       if (!checkinId) {
         const { data: servicesData, error: svcErr } = await supabase
           .from("salon_services")
-          .select("id, name, price_cents, duration_minutes, description, photo_url")
+          .select("id, name, price_cents, duration_minutes, description, image_url")
           .eq("store_id", s.id)
           .eq("is_active", true)
           .order("sort_order", { ascending: true })

@@ -3,6 +3,7 @@
  * Real-time orders with status updates, filters, search, CSV export, receipts
  */
 import { useState, useMemo } from "react";
+import { downloadCsv } from "@/lib/csvExport";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -185,14 +186,9 @@ export default function StoreOrdersSection({ storeId }: Props) {
       (o.total_cents / 100).toFixed(2),
       format(new Date(o.created_at), "yyyy-MM-dd HH:mm"),
     ]);
-    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `orders-${format(new Date(), "yyyy-MM-dd")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // customer_name is free text. Joined raw, a customer called
+    // "Smith, John" shifted Status, Items, Total and Date by one column.
+    downloadCsv("orders", headers, rows);
     toast.success("Orders exported!");
   };
 

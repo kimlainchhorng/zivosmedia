@@ -130,14 +130,19 @@ Deno.serve(withSecurity("create-ride-payment-intent", async (req, ctx) => {
         // Server-side fare validation: recalculate from ride_request distance/duration
         const { data: rideReq } = await serviceAdmin
           .from("ride_requests")
-          .select("distance_miles, duration_minutes, surge_multiplier")
+          // The column is quoted_surge_multiplier. Selecting the missing
+          // `surge_multiplier` failed the whole request, so rideReq was null
+          // and the guard below — the SERVER-SIDE fare validation — was
+          // skipped entirely on every ride. The client-supplied amount was
+          // never checked against a recalculated fare.
+          .select("distance_miles, duration_minutes, quoted_surge_multiplier")
           .eq("id", ride_request_id)
           .maybeSingle();
 
         if (rideReq && p.base_fare != null && p.per_mile != null) {
           const dist = rideReq.distance_miles ?? 0;
           const dur = rideReq.duration_minutes ?? 0;
-          const surge = rideReq.surge_multiplier ?? 1.0;
+          const surge = rideReq.quoted_surge_multiplier ?? 1.0;
           const rawFare = ((p.base_fare + p.per_mile * dist + p.per_minute * dur) * surge) + p.booking_fee;
           const expectedCents = Math.round(Math.max(rawFare, p.minimum_fare ?? 0) * 100);
           // Allow 15% tolerance for rounding, promo adjustments, wallet credits

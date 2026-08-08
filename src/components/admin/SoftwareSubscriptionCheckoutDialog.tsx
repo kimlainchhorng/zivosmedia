@@ -58,10 +58,10 @@ export default function SoftwareSubscriptionCheckoutDialog({
       const returnPath = `/admin/stores/${encodeURIComponent(storeId)}?tab=subscriptions`;
       const result = await createSoftwareCheckoutUrl({
         planId: selectedPlanId,
+        cycle,
         businessId: storeId,
         idempotencyKey: idempotencyKey.current,
-        successUrl: `${window.location.origin}${returnPath}&checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}${returnPath}&checkout=cancelled`,
+        returnUrl: returnPath,
       });
       window.location.assign(result.url);
     } catch (checkoutError) {

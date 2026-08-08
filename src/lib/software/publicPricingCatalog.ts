@@ -2,6 +2,8 @@ export type SoftwareBillingCycle = "monthly" | "annual";
 
 export type SoftwarePricingCatalogPlan = {
   id: string;
+  /** Stable catalog key used by the dedicated Software checkout function. */
+  planId: string;
   displayName: string;
   currency: "USD";
   monthlyPlanId: string;
@@ -100,8 +102,13 @@ function parseUuid(value: unknown, label: string): string {
 
 /**
  * Strictly parses the browser-safe view backed by active server pricing.
- * There is intentionally no client fallback: an empty or malformed catalog
- * must never be presented as a checkoutable set of plans.
+ *
+ * The dedicated Software project currently exposes its older, USD-only view:
+ * it returns the stable plan key and prices, while the authenticated checkout
+ * function resolves the selected cycle and Stripe price server-side. The
+ * newer shared view returns separate interval UUIDs. Accept both shapes so a
+ * schema rollout cannot turn a valid public catalog into a 400 or silently
+ * create a client-priced checkout.
  */
 export function parseSoftwarePricingCatalog(value: unknown): SoftwarePricingCatalogPlan[] {
   if (!Array.isArray(value) || value.length === 0 || value.length > 20) {
@@ -122,6 +129,8 @@ export function parseSoftwarePricingCatalog(value: unknown): SoftwarePricingCata
     }
     ids.add(id);
 
+    const usesLegacyDedicatedContract =
+      row.monthly_plan_id === undefined && row.annual_plan_id === undefined;
     const sortOrder = positiveInteger(row.sort_order, "Plan order", 10_000);
     if (sortOrders.has(sortOrder)) {
       throw new SoftwarePricingCatalogError("Plan order is unavailable.");
@@ -132,22 +141,38 @@ export function parseSoftwarePricingCatalog(value: unknown): SoftwarePricingCata
       throw new SoftwarePricingCatalogError("Plan availability is unavailable.");
     }
 
-    const monthlyPlanId = parseUuid(row.monthly_plan_id, "Monthly plan");
-    const annualPlanId = parseUuid(row.annual_plan_id, "Annual plan");
-    if (
-      monthlyPlanId === annualPlanId ||
-      billingPlanIds.has(monthlyPlanId) ||
-      billingPlanIds.has(annualPlanId)
-    ) {
-      throw new SoftwarePricingCatalogError("Plan availability is unavailable.");
+    const monthlyPlanId = usesLegacyDedicatedContract
+      ? id
+      : parseUuid(row.monthly_plan_id, "Monthly plan");
+    const annualPlanId = usesLegacyDedicatedContract
+      ? id
+      : parseUuid(row.annual_plan_id, "Annual plan");
+    if (!usesLegacyDedicatedContract) {
+      if (
+        monthlyPlanId === annualPlanId ||
+        billingPlanIds.has(monthlyPlanId) ||
+        billingPlanIds.has(annualPlanId)
+      ) {
+        throw new SoftwarePricingCatalogError("Plan availability is unavailable.");
+      }
+      billingPlanIds.add(monthlyPlanId);
+      billingPlanIds.add(annualPlanId);
     }
-    billingPlanIds.add(monthlyPlanId);
-    billingPlanIds.add(annualPlanId);
+
+    const currency =
+      row.currency === undefined && usesLegacyDedicatedContract
+        ? "USD"
+        : parseCurrency(row.currency);
+    const cancellationTerms =
+      row.cancellation_terms === undefined && usesLegacyDedicatedContract
+        ? "Manage cancellation in billing settings."
+        : requiredString(row.cancellation_terms, "Cancellation terms", 240);
 
     return {
       id,
+      planId: id,
       displayName: requiredString(row.display_name, "Plan name", 80),
-      currency: parseCurrency(row.currency),
+      currency,
       monthlyPlanId,
       annualPlanId,
       monthlyAmountCents: positiveInteger(
@@ -165,7 +190,7 @@ export function parseSoftwarePricingCatalog(value: unknown): SoftwarePricingCata
       features: parseFeatures(row.features),
       limits: parseLimits(row.limits),
       support: requiredString(row.support, "Support details", 160),
-      cancellationTerms: requiredString(row.cancellation_terms, "Cancellation terms", 240),
+      cancellationTerms,
       featured: row.featured,
       sortOrder,
     };

@@ -68,9 +68,9 @@ export default function TravelItineraryCard() {
       const itin = itineraries[0];
       const { data: items } = await supabase
         .from("trip_items")
-        .select("id, item_type, title, description, date, status")
+        .select("id, item_type, title, description, start_datetime, status")
         .eq("itinerary_id", itin.id)
-        .order("date", { ascending: true });
+        .order("start_datetime", { ascending: true });
 
       return {
         destination: itin.destination || itin.title,
@@ -81,7 +81,7 @@ export default function TravelItineraryCard() {
           type: (i.item_type as "flight" | "hotel" | "car") || "flight",
           title: i.title || "",
           subtitle: i.description || "",
-          date: i.date || itin.start_date,
+          date: i.start_datetime || itin.start_date,
           status: (i.status as "confirmed" | "pending" | "upcoming") || "upcoming",
         })),
       } as TripGroup;

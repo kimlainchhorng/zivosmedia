@@ -9,6 +9,7 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 import { notifyEatsOrderConfirmed, notifyEatsRefundIssued } from "../_shared/eats-notifications.ts";
 import { notifyGroceryOrderConfirmed } from "../_shared/grocery-notifications.ts";
 import { creditCreatorTipToWallet } from "../_shared/tipWalletCredit.ts";
+import { isAdultCreatorAccount } from "../_shared/adultCreatorPaymentBoundary.ts";
 
 // Audit logging helper
 async function logPaymentAudit(
@@ -2006,6 +2007,43 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
         // Metadata is set by stripe.checkout.sessions.create({ metadata: { tier_id, creator_id, subscriber_id } })
         // and propagates to the resulting Subscription via session settings.
         if (metadata.tier_id && metadata.creator_id && metadata.subscriber_id) {
+          // Wind down adult-creator subscriptions that predate the payment
+          // boundary (see _shared/adultCreatorPaymentBoundary.ts). The create
+          // paths refuse new ones, but a subscription opened before that guard
+          // existed keeps renewing on its own — so blocking only new charges
+          // would leave restricted content settling on this account every
+          // month, which is precisely what a processor review would find.
+          //
+          // Cancelled AT PERIOD END, not immediately: the subscriber has paid
+          // for the current period and pulling access mid-term would take
+          // something they are owed and invite the dispute this is meant to
+          // avoid. No further renewal is charged.
+          //
+          // Idempotent — the flag is only set when not already set, so repeated
+          // webhook deliveries do not re-issue the Stripe call.
+          if (
+            subscription.status !== "canceled" &&
+            !subscription.cancel_at_period_end &&
+            (await isAdultCreatorAccount(supabase, metadata.creator_id))
+          ) {
+            try {
+              await stripe.subscriptions.update(subscription.id, {
+                cancel_at_period_end: true,
+                metadata: { ...metadata, adult_creator_wind_down: "true" },
+              });
+              console.log("[Webhook] adult-creator subscription set to cancel at period end", {
+                sub: subscription.id,
+              });
+            } catch (windDownError) {
+              // Surfaced rather than swallowed: a failure here means the
+              // subscription is still due to renew, and someone has to know.
+              console.error("[Webhook] adult-creator wind-down failed", {
+                sub: subscription.id,
+                error: windDownError instanceof Error ? windDownError.message : String(windDownError),
+              });
+            }
+          }
+
           const periodEnd = subscription.current_period_end
             ? new Date(subscription.current_period_end * 1000).toISOString()
             : null;

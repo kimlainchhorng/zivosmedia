@@ -91,7 +91,7 @@ Deno.serve(withSecurity("request-lodging-change", async (req, ctx) => {
 
     if (autoApprove) {
       await admin.from("lodge_reservations").update({ check_in, check_out, nights: newNights, total_cents: proposedTotalCents }).eq("id", reservation_id);
-      await admin.from("lodge_reservation_audit").insert({ reservation_id, store_id: reservation.store_id, action: "rescheduled", actor_id: user.id, notes: reason || null, metadata: { check_in, check_out, price_delta_cents: priceDeltaCents } }).then(() => null);
+      await admin.from("lodge_reservation_audit").insert({ reservation_id, store_id: reservation.store_id, to_status: "rescheduled", actor_id: user.id, note: reason || null }).then(() => null);
     }
     await notifyLodgingReservation(admin, { reservationId: reservation_id, event: "reschedule_update", templateName: "lodging-reschedule-update", idempotencyKey: `reschedule-request-${inserted.id}`, title: autoApprove ? "Dates updated" : "Date change sent to host", message: autoApprove ? "Your new lodging dates are confirmed." : "Your date change request was sent to the property for approval.", templateData: { checkIn: check_in, checkOut: check_out, status: autoApprove ? "auto approved" : "pending" }, smsBody: autoApprove ? "ZIVO: Your lodging dates were updated." : "ZIVO: Your lodging date change was sent to the host." });
 

@@ -106,7 +106,7 @@ Deno.serve(withSecurity("grocery-order-receipt", async (req, ctx) => {
 
     const { data: o, error } = await admin
       .from("shopping_orders")
-      .select("id, user_id, customer_email, customer_name, store, delivery_address, status, payment_status, payment_provider, total_amount, final_total, delivery_fee, service_fee, tip, promo_discount, items, placed_at, stripe_payment_intent_id, paypal_capture_id, paypal_order_id, square_payment_id")
+      .select("id, user_id, customer_email, customer_name, store, delivery_address, status, payment_status, payment_provider, total_amount, final_total, delivery_fee, items, placed_at, stripe_payment_intent_id, paypal_capture_id, paypal_order_id, square_payment_id")
       .eq("id", orderId)
       .maybeSingle();
     if (error || !o) return new Response(JSON.stringify({ error: "not_found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -120,9 +120,13 @@ Deno.serve(withSecurity("grocery-order-receipt", async (req, ctx) => {
     const totalCents = fromDollars((o as any).final_total || (o as any).total_amount);
     const subtotalCents = fromDollars((o as any).total_amount);
     const deliveryFeeCents = fromDollars((o as any).delivery_fee);
-    const serviceFeeCents = fromDollars((o as any).service_fee);
-    const tipCents = fromDollars((o as any).tip);
-    const discountCents = fromDollars((o as any).promo_discount);
+    // shopping_orders stores none of service_fee / tip / promo_discount.
+    // Selecting them made PostgREST reject the whole request, so no grocery
+    // receipt could be generated at all. These render as zero until the
+    // columns exist.
+    const serviceFeeCents = 0;
+    const tipCents = 0;
+    const discountCents = 0;
     const paidCents = (o as any).payment_status === "paid" ? totalCents : 0;
 
     const provider = (o as any).payment_provider as string | null;

@@ -16,6 +16,73 @@ type ValidateCodeBody = {
   code_verifier?: unknown;
 };
 
+const DRIVER_BOOTSTRAP_SCOPE = "driver:bootstrap";
+const DRIVER_DOCUMENT_URL_TTL_SECONDS = 5 * 60;
+
+type MainDriverRecord = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  license_number: string | null;
+  vehicle_type: string | null;
+  vehicle_model: string | null;
+  vehicle_plate: string | null;
+  vehicle_color: string | null;
+  vehicle_year: number | null;
+  avatar_url: string | null;
+  status: string | null;
+  rating: number | null;
+  total_trips: number | null;
+  documents_verified: boolean | null;
+};
+
+type MainDriverDocument = {
+  id: string;
+  document_type: string | null;
+  file_path: string | null;
+  status: string | null;
+  rejection_reason: string | null;
+  uploaded_at: string | null;
+};
+
+type DriverBootstrapPayload = {
+  version: 1;
+  source: "zivosmedia";
+  market: {
+    country: "KH";
+    city: "Phnom Penh";
+    zone_code: "PP";
+    currency: "USD";
+    display_currency: "KHR";
+  };
+  driver: {
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+    license_number: string | null;
+    vehicle_type: string | null;
+    vehicle_model: string | null;
+    vehicle_plate: string | null;
+    vehicle_color: string | null;
+    vehicle_year: number | null;
+    avatar_url: string | null;
+    status: string | null;
+    rating: number | null;
+    total_trips: number | null;
+    documents_verified: boolean | null;
+  };
+  documents: Array<{
+    source_document_id: string;
+    source_document_type: string;
+    file_name: string | null;
+    signed_url: string | null;
+    status: string;
+    rejection_reason: string | null;
+    uploaded_at: string | null;
+  }>;
+};
+
 serve(withSecurity("zivosmedia-auth-validate-code", async (req, ctx) => {
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
@@ -94,12 +161,30 @@ serve(withSecurity("zivosmedia-auth-validate-code", async (req, ctx) => {
     return json({ error: "Zivosmedia user not found" }, 404);
   }
 
+  // The Driver app gets a narrow server-to-server bootstrap only when it
+  // explicitly requested the dedicated scope. The signed URLs are consumed by
+  // the Driver edge function and are never returned to the Driver browser.
+  let driverBootstrap: DriverBootstrapPayload | null | undefined;
+  const scopes = Array.isArray(authCode.scopes) ? authCode.scopes : [];
+  if (body.app_key === "zivo_driver" && scopes.includes(DRIVER_BOOTSTRAP_SCOPE)) {
+    try {
+      driverBootstrap = await buildDriverBootstrap(service, userData.user.id);
+    } catch (error) {
+      driverBootstrap = null;
+      ctx.log.error("driver_bootstrap_failed", {
+        error: error instanceof Error ? error.message : String(error),
+        userId: userData.user.id,
+      });
+    }
+  }
+
   await audit({ eventType: "auth_code.validated", appKey: body.app_key, appId: app.id, userId: userData.user.id, success: true, req, ctx });
   return json({
     token_type: "zivosmedia_identity",
     profile: publicProfileFromUser(userData.user),
     scopes: authCode.scopes,
     linked_at: new Date().toISOString(),
+    ...(driverBootstrap ? { driver_bootstrap: driverBootstrap } : {}),
   });
 }, {
   allowedMethods: ["POST"],
@@ -115,6 +200,115 @@ function serviceClient() {
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) throw new Error("Server misconfigured: service role credentials missing");
   return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function buildDriverBootstrap(
+  service: ReturnType<typeof serviceClient>,
+  userId: string,
+): Promise<DriverBootstrapPayload | null> {
+  const { data: driver, error: driverError } = await service
+    .from("drivers")
+    .select("id, full_name, email, phone, license_number, vehicle_type, vehicle_model, vehicle_plate, vehicle_color, vehicle_year, avatar_url, status, rating, total_trips, documents_verified")
+    .eq("user_id", userId)
+    .maybeSingle() as { data: MainDriverRecord | null; error: { message?: string } | null };
+
+  if (driverError) throw new Error(`driver_profile_lookup_failed:${driverError.message || "unknown"}`);
+  if (!driver) return null;
+
+  const { data: sourceDocuments, error: documentError } = await service
+    .from("driver_documents")
+    .select("id, document_type, file_path, status, rejection_reason, uploaded_at")
+    .eq("driver_id", driver.id)
+    .order("uploaded_at", { ascending: false }) as { data: MainDriverDocument[] | null; error: { message?: string } | null };
+
+  if (documentError) throw new Error(`driver_documents_lookup_failed:${documentError.message || "unknown"}`);
+
+  const documents = await Promise.all((sourceDocuments ?? []).map(async (document) => {
+    const sourcePath = cleanString(document.file_path, 1024);
+    let signedUrl: string | null = null;
+
+    // Main onboarding paths are scoped to the authenticated user's UUID. Do
+    // not sign a path that could point at another user's private object.
+    if (sourcePath && sourcePath.startsWith(`${userId}/`)) {
+      const signed = await service
+        .storage
+        .from("driver-documents")
+        .createSignedUrl(sourcePath, DRIVER_DOCUMENT_URL_TTL_SECONDS);
+      signedUrl = signed.data?.signedUrl ?? null;
+    }
+
+    return {
+      source_document_id: document.id,
+      source_document_type: cleanString(document.document_type, 100) || "unknown",
+      file_name: fileNameFromPath(sourcePath),
+      signed_url: signedUrl,
+      status: normalizeDocumentStatus(document.status),
+      rejection_reason: cleanString(document.rejection_reason, 1000),
+      uploaded_at: cleanIsoDate(document.uploaded_at),
+    };
+  }));
+
+  // Bulk transfer eligibility is document-backed: do not expose a Driver
+  // bootstrap for an account that has no safely signable private document.
+  if (!documents.some((document) => document.signed_url)) return null;
+
+  return {
+    version: 1,
+    source: "zivosmedia",
+    // Zivosmedia's legacy driver table does not carry the dedicated driver's
+    // market columns. This is the current product launch market and matches
+    // the Driver project's PP/KH backfill; it is not a live GPS location.
+    // USD remains the canonical pricing source while the Driver/Admin surfaces
+    // display Cambodia amounts in KHR (៛).
+    market: {
+      country: "KH",
+      city: "Phnom Penh",
+      zone_code: "PP",
+      currency: "USD",
+      display_currency: "KHR",
+    },
+    driver: {
+      full_name: cleanString(driver.full_name, 120),
+      email: cleanString(driver.email, 180),
+      phone: cleanString(driver.phone, 40),
+      license_number: cleanString(driver.license_number, 80),
+      vehicle_type: cleanString(driver.vehicle_type, 40),
+      vehicle_model: cleanString(driver.vehicle_model, 120),
+      vehicle_plate: cleanString(driver.vehicle_plate, 40),
+      vehicle_color: cleanString(driver.vehicle_color, 80),
+      vehicle_year: finiteNumber(driver.vehicle_year),
+      avatar_url: cleanString(driver.avatar_url, 500),
+      status: cleanString(driver.status, 40),
+      rating: finiteNumber(driver.rating),
+      total_trips: finiteNumber(driver.total_trips),
+      documents_verified: typeof driver.documents_verified === "boolean" ? driver.documents_verified : null,
+    },
+    documents,
+  };
+}
+
+function cleanString(value: unknown, maxLength: number): string | null {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, maxLength) : null;
+}
+
+function cleanIsoDate(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function normalizeDocumentStatus(value: unknown): string {
+  return value === "approved" || value === "rejected" || value === "pending" ? value : "pending";
+}
+
+function fileNameFromPath(value: string | null): string | null {
+  if (!value) return null;
+  const name = value.split("/").pop()?.trim() ?? "";
+  return name ? name.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 180) : null;
 }
 
 async function audit(input: {

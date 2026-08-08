@@ -25,7 +25,7 @@ export default function HotelImageShowcase({ onSelect, className }: HotelImageSh
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("store_profiles")
-        .select("id, name, address, rating, banner_url, logo_url, slug, price_per_night, category, is_verified")
+        .select("id, name, address, rating, banner_url, logo_url, slug, category, is_verified")
         .in("category", HOTEL_CATEGORIES)
         .eq("is_active", true)
         .order("rating", { ascending: false })
@@ -126,12 +126,7 @@ export default function HotelImageShowcase({ onSelect, className }: HotelImageSh
                   )}
 
                   <div className="flex items-center justify-between">
-                    {s.price_per_night != null && (
-                      <div>
-                        <span className="text-2xl sm:text-3xl font-bold text-primary-foreground">${s.price_per_night}</span>
-                        <span className="text-primary-foreground/60 text-sm">/night</span>
-                      </div>
-                    )}
+                    {/* store_profiles has no price_per_night column, so there is no rate to show here. */}
                     <Button
                       size="sm"
                       className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-primary-foreground border-0 gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"

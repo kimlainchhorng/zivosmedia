@@ -171,7 +171,10 @@ describe("release safety preflight contracts", () => {
     expect(packageJson).toContain('"platform:audit": "npm run security:scan && npm run qa:platform-readiness');
     expect(packageJson).toContain('"release:gate": "npm run deploy:preflight:test-summary-schema && npm run deploy:preflight:check-artifacts && npm run qa:platform-readiness && npm run qa:platform-readiness:check && npm run qa:edge-function-deploy-contracts && npm run qa:edge-function-slot-readiness && npm run qa:edge-function-browser-gates && npm run security:scan"');
     expect(packageJson).toContain("npm run qa:edge-function-browser-gates");
-    expect(packageJson).toContain('"release:production-gate": "npm run release:gate && npm run deploy:preflight:check-production-summary"');
+    // Required steps, not an exact string — see deployWorkflowGates for why.
+    expect(packageJson).toContain('"release:production-gate": "npm run release:gate');
+    expect(packageJson).toContain("npm run check:business-identity");
+    expect(packageJson).toContain("npm run deploy:preflight:check-production-summary");
     expect(packageJson).toContain("npm run qa:platform-readiness && npm run qa:platform-readiness:check");
     expect(packageJson).toContain("npm run qa:workflow-coverage && npm run qa:workflow-coverage:check");
     expect(packageJson).toContain("npm run qa:workflow-test-plan && npm run qa:workflow-test-plan:check");

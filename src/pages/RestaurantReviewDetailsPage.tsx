@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, UtensilsCrossed, Sparkles, Star, ThumbsUp, ThumbsDown, Clock, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, UtensilsCrossed, Sparkles, Star, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
@@ -16,26 +16,27 @@ import { cn } from "@/lib/utils";
 
 interface ReviewRow {
   id: string;
-  reviewer_id: string;
+  reviewer_user_id: string;
   service_type: string;
-  service_id: string;
+  // `reviews` keys the author as reviewer_user_id and the subject as target_id.
+  // It has no title / helpful_count / unhelpful_count / verified_purchase /
+  // status columns, and the review text lives in `comment`.
+  target_id: string;
+  order_id: string | null;
   rating: number;
-  title: string | null;
-  body: string | null;
-  helpful_count: number;
-  unhelpful_count: number;
-  verified_purchase: boolean;
-  status: string;
+  comment: string | null;
   created_at: string;
 }
 
 interface RestaurantReviewExtra {
-  review_id: string;
+  // restaurant_reviews has no review_id; it links to a review through order_id.
+  // Its sub-ratings are food / packaging / accuracy — there is no service,
+  // atmosphere, value or would_recommend column.
+  order_id: string;
   food_rating: number | null;
-  service_rating: number | null;
-  atmosphere_rating: number | null;
-  value_rating: number | null;
-  would_recommend: boolean | null;
+  packaging_rating: number | null;
+  accuracy_rating: number | null;
+  overall_rating: number | null;
 }
 
 function formatRelative(iso: string): string {
@@ -64,33 +65,40 @@ export default function RestaurantReviewDetailsPage() {
     queryFn: async () => {
       if (!user?.id) return [] as ReviewRow[];
       const sb = supabase as unknown as { from: (t: string) => { select: (s: string) => { eq: (k: string, v: string) => { eq: (k: string, v: string) => { order: (k: string, o: { ascending: boolean }) => Promise<{ data: ReviewRow[] | null }> } } } } };
-      const { data } = await sb.from("reviews").select("id, reviewer_id, service_type, service_id, rating, title, body, helpful_count, unhelpful_count, verified_purchase, status, created_at").eq("reviewer_id", user.id).eq("service_type", "restaurant").order("created_at", { ascending: false });
+      const { data } = await sb.from("reviews").select("id, reviewer_user_id, service_type, target_id, order_id, rating, comment, created_at").eq("reviewer_user_id", user.id).eq("service_type", "restaurant").order("created_at", { ascending: false });
       return data ?? [];
     },
     enabled: !!user?.id,
     staleTime: 30_000,
   });
 
-  const reviewIds = useMemo(() => reviews.map((r) => r.id), [reviews]);
+  const orderIds = useMemo(
+    () => reviews.map((r) => r.order_id).filter((id): id is string => !!id),
+    [reviews],
+  );
 
   const { data: extras = [] } = useQuery({
-    queryKey: ["restaurant-review-extras", reviewIds.join(",")],
+    queryKey: ["restaurant-review-extras", orderIds.join(",")],
     queryFn: async () => {
-      if (reviewIds.length === 0) return [] as RestaurantReviewExtra[];
+      if (orderIds.length === 0) return [] as RestaurantReviewExtra[];
       const sb = supabase as unknown as { from: (t: string) => { select: (s: string) => { in: (k: string, v: string[]) => Promise<{ data: RestaurantReviewExtra[] | null }> } } };
-      const { data } = await sb.from("restaurant_reviews").select("review_id, food_rating, service_rating, atmosphere_rating, value_rating, would_recommend").in("review_id", reviewIds);
+      const { data } = await sb.from("restaurant_reviews").select("order_id, food_rating, packaging_rating, accuracy_rating, overall_rating").in("order_id", orderIds);
       return data ?? [];
     },
-    enabled: reviewIds.length > 0,
+    enabled: orderIds.length > 0,
     staleTime: 60_000,
   });
 
-  const extraMap = useMemo(() => new Map(extras.map((e) => [e.review_id, e])), [extras]);
+  const extraMap = useMemo(() => new Map(extras.map((e) => [e.order_id, e])), [extras]);
 
   const stats = useMemo(() => {
     const total = reviews.length;
     const avg = total > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / total : 0;
-    const recommended = reviews.filter((r) => extraMap.get(r.id)?.would_recommend).length;
+    // No would_recommend column: treat a 4+ overall rating as a recommendation.
+    const recommended = reviews.filter((r) => {
+      const x = r.order_id ? extraMap.get(r.order_id) : undefined;
+      return (x?.overall_rating ?? r.rating) >= 4;
+    }).length;
     return { total, avg, recommended };
   }, [reviews, extraMap]);
 
@@ -125,28 +133,22 @@ export default function RestaurantReviewDetailsPage() {
         {!isLoading && reviews.length > 0 && (
           <div className="space-y-2">
             {reviews.map((r, idx) => {
-              const x = extraMap.get(r.id);
+              const x = r.order_id ? extraMap.get(r.order_id) : undefined;
               return (
                 <motion.div key={r.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx, 12) * 0.03 }} className="rounded-2xl bg-card border border-border p-3.5">
                   <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                     <StarsInline value={r.rating} size={3} />
-                    {r.verified_purchase && <span className="inline-flex items-center gap-0.5 text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full"><CheckCircle2 className="h-2.5 w-2.5" />Verified</span>}
                   </div>
-                  {r.title && <p className="text-sm font-bold text-foreground line-clamp-1">{r.title}</p>}
-                  {r.body && <p className="text-xs text-foreground/85 line-clamp-3 mt-0.5">{r.body}</p>}
+                  {r.comment && <p className="text-xs text-foreground/85 line-clamp-3 mt-0.5">{r.comment}</p>}
                   {x && (
                     <div className="grid grid-cols-2 gap-2 mt-2 text-[11px]">
                       {x.food_rating != null && <div className="flex items-center justify-between"><span className="text-muted-foreground">Food</span><span className="font-bold text-foreground">{x.food_rating}/5</span></div>}
-                      {x.service_rating != null && <div className="flex items-center justify-between"><span className="text-muted-foreground">Service</span><span className="font-bold text-foreground">{x.service_rating}/5</span></div>}
-                      {x.atmosphere_rating != null && <div className="flex items-center justify-between"><span className="text-muted-foreground">Atmosphere</span><span className="font-bold text-foreground">{x.atmosphere_rating}/5</span></div>}
-                      {x.value_rating != null && <div className="flex items-center justify-between"><span className="text-muted-foreground">Value</span><span className="font-bold text-foreground">{x.value_rating}/5</span></div>}
+                      {x.packaging_rating != null && <div className="flex items-center justify-between"><span className="text-muted-foreground">Packaging</span><span className="font-bold text-foreground">{x.packaging_rating}/5</span></div>}
+                      {x.accuracy_rating != null && <div className="flex items-center justify-between"><span className="text-muted-foreground">Accuracy</span><span className="font-bold text-foreground">{x.accuracy_rating}/5</span></div>}
                     </div>
                   )}
                   <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-foreground">
                     <span className="inline-flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {formatRelative(r.created_at)}</span>
-                    {r.helpful_count > 0 && <><span>·</span><span className="inline-flex items-center gap-0.5"><ThumbsUp className="h-2.5 w-2.5" /> {r.helpful_count}</span></>}
-                    {r.unhelpful_count > 0 && <><span>·</span><span className="inline-flex items-center gap-0.5"><ThumbsDown className="h-2.5 w-2.5" /> {r.unhelpful_count}</span></>}
-                    {x?.would_recommend && (<><span>·</span><span className="text-emerald-600 dark:text-emerald-400 font-bold">Recommends</span></>)}
                   </div>
                 </motion.div>
               );

@@ -63,7 +63,7 @@ export function LegalPreviewLink({ kind, className, children }: LegalPreviewLink
   const Icon = isTerms ? FileText : ShieldCheck;
   const title = isTerms ? "Terms of Service" : "Privacy Policy";
   const subtitle = isTerms
-    ? "How ZIVO works as a travel search and referral platform."
+    ? "Who you contract with, and how ZIVO services and payments work."
     : "How we collect, use, and protect your data.";
   const sections = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS;
   const fullPath = isTerms ? "/legal/terms" : "/legal/privacy";

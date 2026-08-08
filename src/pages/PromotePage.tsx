@@ -189,7 +189,7 @@ export default function PromotePage() {
               <p className="text-sm font-bold text-foreground mb-1">No posts yet</p>
               <p className="text-xs text-muted-foreground mb-4">Share a photo or video first, then come back to boost it.</p>
               <Button
-                onClick={() => navigate("/feed/new")}
+                onClick={() => navigate("/feed-new")}
                 className="bg-ig-gradient text-white font-bold rounded-full h-10 px-5 hover:opacity-90 border-0"
               >
                 Share a post

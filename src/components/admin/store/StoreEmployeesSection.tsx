@@ -11,6 +11,7 @@ import {
   Briefcase, Award, CalendarDays, ChevronDown, ArrowUpDown, Eye, Send, MailCheck, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/lib/csvExport";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -177,6 +178,22 @@ export default function StoreEmployeesSection({ storeId }: Props) {
   };
   const closeDialog = () => { setDialog(false); setEditing(null); setForm(emptyForm); };
 
+  // Exports the filtered list rather than every employee: the operator has
+  // already narrowed it on screen and expects the file to match what they see.
+  const exportEmployees = () => {
+    downloadCsv(
+      "employees",
+      ["Name", "Email", "Role", "Status", "Joined"],
+      filtered.map((e) => [
+        e.name,
+        e.email ?? "",
+        e.role,
+        e.status,
+        e.created_at ? new Date(e.created_at).toISOString().slice(0, 10) : "",
+      ]),
+    );
+  };
+
   const filtered = useMemo(() => {
     let list = employees.filter((e) =>
       e.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -261,7 +278,7 @@ export default function StoreEmployeesSection({ storeId }: Props) {
           <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => window.open(`/personal/employer?storeId=${storeId}`, "_blank")}>
             <Briefcase className="w-3.5 h-3.5" /> Post a Job
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 h-9"><Download className="w-3.5 h-3.5" /> Export</Button>
+          <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={exportEmployees} disabled={filtered.length === 0}><Download className="w-3.5 h-3.5" /> Export</Button>
           <Button onClick={openAdd} size="sm" className="gap-1.5 h-9"><Plus className="w-4 h-4" /> Add Employee</Button>
         </div>
       </div>

@@ -645,9 +645,8 @@ const GenericLegalPage = lazy(() => import("./pages/legal/GenericLegalPage"));
 
 const AffiliateDisclosure = lazy(() => import("./pages/AffiliateDisclosure"));
 const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
-const Terms = lazy(() => import("./pages/Terms"));
-const Refunds = lazy(() => import("./pages/Refunds"));
 const Company = lazy(() => import("./pages/Company"));
 const Security = lazy(() => import("./pages/Security"));
 const PrivacySecurity = lazy(() => import("./pages/PrivacySecurity"));
@@ -2381,10 +2380,22 @@ const App = () => (
 
                 {/* Public */}
                 <Route path="/about" element={<About />} />
+                {/* Unauthenticated by design -- see src/pages/Contact.tsx. */}
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/contact-us" element={<Contact />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/refunds" element={<Refunds />} />
+                {/* One canonical policy per topic. These short paths used to
+                    serve SEPARATE Terms and Refund pages that had drifted from
+                    the /legal ones — while both already declared
+                    <link rel="canonical"> pointing AT /legal, i.e. they
+                    themselves said /legal was authoritative. Two live, divergent
+                    versions of the same policy is a worse position than one
+                    incomplete policy: a customer in a dispute, or anyone
+                    reviewing the site, can cite whichever they happened to land
+                    on, and /refunds is the more guessable URL of the two. */}
+                <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
+                <Route path="/refunds" element={<Navigate to="/legal/refunds" replace />} />
                 <Route path="/company" element={<Company />} />
                 <Route path="/security" element={<Security />} />
                 <Route path="/security-status" element={<SecurityStatus />} />

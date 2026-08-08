@@ -35,7 +35,8 @@ interface HotelRow {
   id: string;
   name: string;
   city: string | null;
-  cover_image_url: string | null;
+  images: string[] | null;
+  logo_url: string | null;
   rating: number | null;
 }
 
@@ -70,7 +71,7 @@ export default function SavedFavoritesPage() {
         hotelIds.length
           ? supabase
               .from("hotels")
-              .select("id,name,city,cover_image_url,rating")
+              .select("id,name,city,images,logo_url,rating")
               .in("id", hotelIds)
           : Promise.resolve({ data: [] as HotelRow[] }),
       ]);
@@ -285,7 +286,7 @@ function HotelCard({
   onUnfavorite: () => void;
   navigate: (path: string) => void;
 }) {
-  const cover = h.cover_image_url || FALLBACK_HOTEL;
+  const cover = h.images?.[0] || h.logo_url || FALLBACK_HOTEL;
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}

@@ -104,6 +104,33 @@ const defaultForm = {
   is_active: true,
 };
 
+function createPricingForm(isCambodia: boolean, overrides: Partial<typeof defaultForm> = {}) {
+  return {
+    ...defaultForm,
+    ...(isCambodia
+      ? {
+          // Cambodia city_pricing rows are stored as whole Riel amounts. Start
+          // new rows empty instead of showing misleading USD-style defaults.
+          base_fare: 0,
+          per_mile: 0,
+          per_minute: 0,
+          booking_fee: 0,
+          minimum_fare: 0,
+          card_fee_pct: 0,
+        }
+      : {}),
+    ...overrides,
+  };
+}
+
+function formatPricingAmount(value: number | null | undefined, isCambodia: boolean): string {
+  const amount = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: isCambodia ? 0 : 2,
+    maximumFractionDigits: isCambodia ? 0 : 2,
+  }).format(amount);
+}
+
 export default function AdminPricingPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -281,7 +308,7 @@ export default function AdminPricingPage() {
                 const filter = COUNTRY_FILTERS[countryFilter];
                 const countryCities = filter.cities !== "all" ? filter.cities : [];
                 const defaultCity = cityFilter || (countryCities.length > 0 ? countryCities[0] : "default");
-                setForm({ ...defaultForm, city: defaultCity, ride_type: RIDE_TYPES[0] });
+                setForm(createPricingForm(isCambodia, { city: defaultCity, ride_type: RIDE_TYPES[0] }));
               }}>
                 <Plus className="w-4 h-4 mr-1.5" /> Add Pricing
               </Button>
@@ -343,23 +370,23 @@ export default function AdminPricingPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Base Fare ({isCambodia ? "៛ KHR" : "$"})</Label>
-                    <Input type="number" step="0.01" value={form.base_fare || ""} onChange={(e) => setForm({ ...form, base_fare: e.target.value === "" ? 0 : +e.target.value })} />
+                    <Input type="number" step={isCambodia ? "1" : "0.01"} inputMode={isCambodia ? "numeric" : "decimal"} min="0" value={form.base_fare || ""} onChange={(e) => setForm({ ...form, base_fare: e.target.value === "" ? 0 : +e.target.value })} />
                   </div>
                   <div>
                     <Label>Per {isCambodia ? "Km" : "Mile"} ({isCambodia ? "៛ KHR" : "$"})</Label>
-                    <Input type="number" step="0.01" value={form.per_mile || ""} onChange={(e) => setForm({ ...form, per_mile: e.target.value === "" ? 0 : +e.target.value })} />
+                    <Input type="number" step={isCambodia ? "1" : "0.01"} inputMode={isCambodia ? "numeric" : "decimal"} min="0" value={form.per_mile || ""} onChange={(e) => setForm({ ...form, per_mile: e.target.value === "" ? 0 : +e.target.value })} />
                   </div>
                   <div>
                     <Label>Per Minute ({isCambodia ? "៛ KHR" : "$"})</Label>
-                    <Input type="number" step="0.01" value={form.per_minute || ""} onChange={(e) => setForm({ ...form, per_minute: e.target.value === "" ? 0 : +e.target.value })} />
+                    <Input type="number" step={isCambodia ? "1" : "0.01"} inputMode={isCambodia ? "numeric" : "decimal"} min="0" value={form.per_minute || ""} onChange={(e) => setForm({ ...form, per_minute: e.target.value === "" ? 0 : +e.target.value })} />
                   </div>
                   <div>
                     <Label>Booking Fee ({isCambodia ? "៛ KHR" : "$"})</Label>
-                    <Input type="number" step="0.01" value={form.booking_fee || ""} onChange={(e) => setForm({ ...form, booking_fee: e.target.value === "" ? 0 : +e.target.value })} />
+                    <Input type="number" step={isCambodia ? "1" : "0.01"} inputMode={isCambodia ? "numeric" : "decimal"} min="0" value={form.booking_fee || ""} onChange={(e) => setForm({ ...form, booking_fee: e.target.value === "" ? 0 : +e.target.value })} />
                   </div>
                   <div>
                     <Label>Minimum Fare ({isCambodia ? "៛ KHR" : "$"})</Label>
-                    <Input type="number" step="0.01" value={form.minimum_fare || ""} onChange={(e) => setForm({ ...form, minimum_fare: e.target.value === "" ? 0 : +e.target.value })} />
+                    <Input type="number" step={isCambodia ? "1" : "0.01"} inputMode={isCambodia ? "numeric" : "decimal"} min="0" value={form.minimum_fare || ""} onChange={(e) => setForm({ ...form, minimum_fare: e.target.value === "" ? 0 : +e.target.value })} />
                   </div>
                   <div>
                     <Label>Card Fee (%)</Label>
@@ -470,11 +497,11 @@ export default function AdminPricingPage() {
                         <span>{getRideTypeLabel(row.ride_type || "", isCambodia)}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{sym}{(row.base_fare ?? 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{sym}{(row.per_mile ?? 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{sym}{(row.per_minute ?? 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{sym}{(row.booking_fee ?? 0).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{sym}{(row.minimum_fare ?? 0).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{sym}{formatPricingAmount(row.base_fare, isCambodia)}</TableCell>
+                    <TableCell className="text-right">{sym}{formatPricingAmount(row.per_mile, isCambodia)}</TableCell>
+                    <TableCell className="text-right">{sym}{formatPricingAmount(row.per_minute, isCambodia)}</TableCell>
+                    <TableCell className="text-right">{sym}{formatPricingAmount(row.booking_fee, isCambodia)}</TableCell>
+                    <TableCell className="text-right">{sym}{formatPricingAmount(row.minimum_fare, isCambodia)}</TableCell>
                     <TableCell className="text-right">{(row.card_fee_pct ?? 0)}%</TableCell>
                     <TableCell>
                       <span className={row.is_active ? "text-green-500 text-xs font-medium" : "text-muted-foreground text-xs"}>

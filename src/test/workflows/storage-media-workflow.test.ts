@@ -56,7 +56,10 @@ describe("storage, media, CDN, and downloads workflow", () => {
     expect(chatFiles).toContain("Users can upload their own chat files");
     expect(chatFiles).toContain("Users can delete their own chat files");
     expect(useChatFiles).toContain(".createSignedUrl(path, 60 * 60)");
-    expect(useChatFiles).toContain("url: path");
+    // chat_files stores the object path in bucket_path; it has no `url`
+    // column, so the previous insert was rejected outright and no file
+    // metadata row was ever written.
+    expect(useChatFiles).toContain("bucket_path: path");
     expect(useChatFiles).toContain("thumbnail_url: thumbPath");
 
     expect(ppv).toContain("VALUES ('ppv-media', 'ppv-media', false)");

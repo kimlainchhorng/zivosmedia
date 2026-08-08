@@ -113,7 +113,7 @@ export function useHasStoreBooking(storeId: string | undefined) {
         .from("lodge_reservations")
         .select("id")
         .eq("store_id", storeId)
-        .eq("guest_user_id", user.id)
+        .eq("guest_id", user.id)
         .in("status", LODGE_OK)
         .limit(1);
 
@@ -130,7 +130,7 @@ export function useHasStoreBooking(storeId: string | undefined) {
       const foodByUser = sb
         .from("food_orders")
         .select("id")
-        .eq("store_id", storeId)
+        .eq("restaurant_id", storeId)
         .eq("user_id", user.id)
         .in("status", FOOD_OK)
         .limit(1);
@@ -139,7 +139,7 @@ export function useHasStoreBooking(storeId: string | undefined) {
         ? sb
             .from("food_orders")
             .select("id")
-            .eq("store_id", storeId)
+            .eq("restaurant_id", storeId)
             .ilike("customer_email", email)
             .in("status", FOOD_OK)
             .limit(1)

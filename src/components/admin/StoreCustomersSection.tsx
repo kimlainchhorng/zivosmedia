@@ -5,6 +5,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { downloadCsv } from "@/lib/csvExport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,19 +154,19 @@ export default function StoreCustomersSection({ storeId }: Props) {
 
   const daysSinceLast = (date: string) => differenceInDays(new Date(), parseISO(date));
 
+  // Was building the CSV with `row.join(",")`, correct only while no value
+  // contains a comma — and the first column is a customer name. "Smith, John"
+  // shifted every column after it, silently.
   const exportCSV = () => {
-    const headers = ["Name", "Phone", "Orders", "Total Spent", "Avg Order", "Last Order", "First Order"];
-    const rows = customers.map(c => [
-      c.name, c.phone || "", c.orderCount, `$${c.totalSpent.toFixed(2)}`,
-      `$${c.avgOrder.toFixed(2)}`, format(parseISO(c.lastOrderDate), "yyyy-MM-dd"),
-      format(parseISO(c.firstOrderDate), "yyyy-MM-dd"),
-    ]);
-    const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "customers.csv"; a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(
+      "customers",
+      ["Name", "Phone", "Orders", "Total Spent", "Avg Order", "Last Order", "First Order"],
+      customers.map((c) => [
+        c.name, c.phone || "", c.orderCount, `$${c.totalSpent.toFixed(2)}`,
+        `$${c.avgOrder.toFixed(2)}`, format(parseISO(c.lastOrderDate), "yyyy-MM-dd"),
+        format(parseISO(c.firstOrderDate), "yyyy-MM-dd"),
+      ]),
+    );
   };
 
   return (

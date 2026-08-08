@@ -3,6 +3,10 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 serve(withSecurity("connect-account-session", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
@@ -32,6 +36,16 @@ serve(withSecurity("connect-account-session", async (req, ctx) => {
     const user = userData.user;
 
     const { country = "US" } = await req.json().catch(() => ({}));
+
+    // The SECOND onboarding path. connect-onboard returns a hosted account
+    // link; this one creates the same Connect account and an embedded session
+    // for StripeEmbeddedOnboarding. Guarding only the hosted route would leave
+    // the embedded one open, and an account created here is just as much the
+    // platform's to answer for — it is even tagged source: "zivo_creator".
+    if (await isAdultCreatorAccount(supabase, user.id)) {
+      return adultCreatorPaymentBlockedResponse(corsHeaders);
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Find or create connected account

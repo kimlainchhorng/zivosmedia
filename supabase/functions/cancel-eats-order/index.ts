@@ -132,7 +132,7 @@ Deno.serve(withSecurity("cancel-eats-order", async (req, ctx) => {
           const refund = await stripe.refunds.create({
             payment_intent: (o as any).stripe_payment_id,
             amount: refundCents,
-            metadata: { order_id, type: "eats_cancel" },
+            order_id,
           });
           stripeRefundId = refund.id;
           nextPaymentStatus = refund.status === "succeeded" ? "refunded" : "refund_pending";
@@ -215,12 +215,16 @@ Deno.serve(withSecurity("cancel-eats-order", async (req, ctx) => {
           nextPaymentStatus = j.refund?.status === "COMPLETED" ? "refunded" : "refund_pending";
         } else if (provider === "wallet") {
           // Credit back to ZIVO wallet — uses existing wallet_transactions infra.
-          const { error: walErr } = await admin.from("wallet_transactions").insert({
+          // wallet_transactions here is DRIVER-scoped (driver_id, no user column)
+          // and has `type`, not `kind`. Crediting a customer refund there was
+          // rejected outright and threw, so cancelling a wallet-paid Eats order
+          // failed entirely. customer_wallet_transactions is the rider-facing one.
+          const { error: walErr } = await admin.from("customer_wallet_transactions").insert({
             user_id: user.id,
             amount_cents: refundCents,
-            kind: "refund",
+            type: "refund",
             description: `Eats order ${(o as any).tracking_code ?? order_id} — cancellation refund`,
-            metadata: { order_id, type: "eats_cancel" },
+            order_id,
           } as any);
           if (walErr) throw walErr;
           nextPaymentStatus = "refunded";

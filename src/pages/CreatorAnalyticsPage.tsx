@@ -60,13 +60,15 @@ export default function CreatorAnalyticsPage() {
   const { data: profile } = useQuery({
     queryKey: ["creator-profile-views", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("profiles")
-        .select("profile_views")
-        .eq("id", user!.id)
-        .maybeSingle();
+      // profiles has no profile_views column; views are rows in the
+      // profile_views table. Selecting it as a column made PostgREST reject
+      // the request, so the Profile Visits tile always read 0.
+      const { count, error } = await (supabase as any)
+        .from("profile_views")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", user!.id);
       if (error) throw error;
-      return data;
+      return { profile_views: count ?? 0 };
     },
     enabled: !!user,
   });

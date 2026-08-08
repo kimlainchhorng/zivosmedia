@@ -55,7 +55,9 @@ serve(withSecurity("talent-invite-notification", async (req, ctx) => {
     .from("notifications")
     .insert({
       user_id: targetUserId,
-      actor_id: user.id,
+      // notifications has no actor_id column — carrying it rejected the
+      // whole insert, so no invite notification was ever created.
+      metadata: { actor_id: user.id },
       title: "You've been invited to apply",
       body: "An employer thinks you're a great fit. Check open jobs on Zivo Careers.",
       category: "operational",

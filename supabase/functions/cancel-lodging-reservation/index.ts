@@ -221,7 +221,7 @@ Deno.serve(withSecurity("cancel-lodging-reservation", async (req, ctx) => {
     });
 
     await admin.from("lodge_reservations").update({ status: "cancelled", payment_status: paymentStatus, last_payment_error: null }).eq("id", reservation_id);
-    await admin.from("lodge_reservation_audit").insert({ reservation_id, store_id: r.store_id, action: "cancelled", actor_id: user.id, notes: reason || null, metadata: { refund_cents: policy.refundCents, non_refundable_cents: policy.nonRefundableCents, payment_status: paymentStatus } }).then(() => null);
+    await admin.from("lodge_reservation_audit").insert({ reservation_id, store_id: r.store_id, to_status: "cancelled", actor_id: user.id, note: reason || null }).then(() => null);
     await notifyLodgingReservation(admin, { reservationId: r.id, event: "cancellation_update", templateName: "lodging-cancellation-update", idempotencyKey: `cancel-${reservation_id}-${paymentStatus}`, title: "Reservation cancelled", message: policy.refundCents > 0 ? "Your cancellation was processed and refund handling has started." : "Your cancellation was processed. No refund is due under the current policy.", templateData: { refundCents: policy.refundCents, paymentStatus }, smsBody: `ZIVO: Reservation cancelled. Refund status: ${paymentStatus.replace(/_/g, " ")}.` });
 
     // Refund-issued notification — only when there's a real refund amount.

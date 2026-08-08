@@ -10,6 +10,7 @@ import {
   Calculator, Banknote, PiggyBank, CreditCard, Calendar, Edit, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/lib/csvExport";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -96,6 +97,26 @@ export default function StorePayrollSection({ storeId }: Props) {
     },
   });
   const payRuns = payRunsData ?? [];
+
+  // Gross and net are exported as plain numbers, not "$1,234.56". A currency
+  // string with a thousands separator is another comma the spreadsheet has to
+  // survive, and a store owner summing a payroll column needs numbers anyway.
+  const exportPayRuns = () => {
+    downloadCsv(
+      "payroll",
+      ["Period", "Employees", "Gross", "Net", "Status", "Created"],
+      payRuns.map((run) => [
+        run.period,
+        run.employees,
+        run.totalGross.toFixed(2),
+        run.totalNet.toFixed(2),
+        run.status,
+        run.createdAt instanceof Date && !Number.isNaN(run.createdAt.getTime())
+          ? run.createdAt.toISOString().slice(0, 10)
+          : "",
+      ]),
+    );
+  };
 
   const saveSettingsMutation = useMutation({
     mutationFn: async () => {
@@ -243,7 +264,7 @@ export default function StorePayrollSection({ storeId }: Props) {
               <SelectContent>{periods.map((p, i) => <SelectItem key={i} value={String(i)}>{p.label}</SelectItem>)}</SelectContent>
             </Select>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="gap-1.5 h-9"><Download className="w-3.5 h-3.5" /> Export</Button>
+              <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={exportPayRuns} disabled={payRuns.length === 0}><Download className="w-3.5 h-3.5" /> Export</Button>
               <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => setBonusDialog(true)}><Award className="w-3.5 h-3.5" /> Add Bonus</Button>
               <Button size="sm" className="gap-1.5 h-9" onClick={() => setRunDialog(true)}><Plus className="w-3.5 h-3.5" /> Run Payroll</Button>
             </div>

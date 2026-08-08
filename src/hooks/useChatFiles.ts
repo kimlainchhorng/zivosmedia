@@ -68,13 +68,16 @@ export function useChatFiles() {
       const { data: row, error: insErr } = await (supabase as any)
         .from("chat_files")
         .insert({
-          user_id: user.id,
-          conversation_id: opts.conversationId ?? null,
-          storage_path: path,
-          url: path, // legacy column — store path so it doesn't expire
-          filename: opts.filename,
-          mime_type: opts.mimeType,
-          size,
+          // chat_files columns are owner_id / bucket_path / file_name / mime /
+          // size_bytes. The old payload named user_id / storage_path / url /
+          // filename / mime_type / size / conversation_id — none of which exist —
+          // so PostgREST rejected every insert. The error was only console.warn'd,
+          // so uploads looked fine while no metadata row was ever written.
+          owner_id: user.id,
+          bucket_path: path,
+          file_name: opts.filename,
+          mime: opts.mimeType,
+          size_bytes: size,
           page_count: opts.pageCount ?? null,
           thumbnail_url: thumbPath,
           source: opts.source ?? "upload",

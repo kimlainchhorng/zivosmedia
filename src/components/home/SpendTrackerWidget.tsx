@@ -53,7 +53,11 @@ export default function SpendTrackerWidget() {
       const [rides, orders, flights, hotels] = await Promise.all([
         supabase
           .from("trips")
-          .select("fare_cents,total_amount,fare,price")
+          // All four of fare_cents / total_amount / fare / price were guesses;
+          // none is a trips column, so PostgREST rejected the request and the
+          // rides figure was always $0. customer_total is what the rider was
+          // charged; fare_amount is the fare before adjustments.
+          .select("customer_total,fare_amount")
           .eq("rider_id", user.id)
           .eq("status", "completed")
           .gte("created_at", start),
@@ -66,12 +70,12 @@ export default function SpendTrackerWidget() {
         (supabase as any)
           .from("flight_bookings")
           .select("total_amount,passengers")
-          .eq("user_id", user.id)
+          .eq("customer_id", user.id)
           .gte("created_at", start),
         (supabase as any)
           .from("hotel_bookings")
           .select("total_amount")
-          .eq("user_id", user.id)
+          .eq("customer_id", user.id)
           .gte("created_at", start),
       ]);
 
@@ -79,7 +83,8 @@ export default function SpendTrackerWidget() {
 
       const next: Record<Bucket, number> = {
         rides: sumDollars(rides.data ?? [], (r: any) =>
-          dollarsFromCents(r.fare_cents) ?? toDollars(r.total_amount ?? r.fare ?? r.price),
+          // Both are dollar amounts, so no cents conversion here.
+          toDollars(r.customer_total ?? r.fare_amount),
         ),
         eats: sumDollars(orders.data ?? [], (o: any) => toDollars(o.total_amount)),
         flights: sumDollars(flights.data ?? [], (f: any) =>
@@ -186,12 +191,6 @@ function startOfMonthISO(): string {
 
 function monthLabel(): string {
   return new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" });
-}
-
-function dollarsFromCents(v: any): number | null {
-  const n = Number(v);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return n / 100;
 }
 
 function toDollars(v: any): number {

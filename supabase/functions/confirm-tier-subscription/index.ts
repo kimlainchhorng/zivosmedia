@@ -24,6 +24,10 @@ import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 const log = (s: string, d?: any) =>
   console.log(`[CONFIRM-TIER-SUBSCRIPTION] ${s}${d ? " " + JSON.stringify(d) : ""}`);
@@ -68,6 +72,22 @@ serve(withSecurity("confirm-tier-subscription", async (req, ctx) => {
     if (!tier_id || !creator_id) throw new Error("tier_id and creator_id required");
     if (mode !== "payment" && mode !== "subscription") {
       throw new Error("mode must be 'payment' or 'subscription'");
+    }
+
+    // Defence in depth. The create paths (subscribe-to-tier,
+    // subscribe-to-tier-intent) already refuse adult creators, so reaching here
+    // means either a subscription predating this boundary or a caller that
+    // skipped them. Confirming would grant paid access and mark the platform's
+    // Stripe account as having settled it, so refuse here too. Uses an admin
+    // client because the creator's profile is not readable as the buyer.
+    {
+      const sbGuard = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      );
+      if (await isAdultCreatorAccount(sbGuard, creator_id)) {
+        return adultCreatorPaymentBlockedResponse(corsHeaders);
+      }
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });

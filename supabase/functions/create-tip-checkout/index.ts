@@ -7,6 +7,10 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 import { scanContentForLinks, logBlockedAttempt, isAbuseThresholdExceeded, isIpAbuseThresholdExceeded, getRequestIpHash } from "../_shared/contentLinkValidation.ts";
 import { isLikelyMaliciousBot } from "../_shared/botDetection.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 Deno.serve(withSecurity("create-tip-checkout", async (req, ctx) => {
   const cors = ctx.corsHeaders;
@@ -57,6 +61,13 @@ Deno.serve(withSecurity("create-tip-checkout", async (req, ctx) => {
     }
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
+    // Tips to adult creators do not settle on this Stripe account — see
+    // _shared/adultCreatorPaymentBoundary.ts. Placed before the Stripe client
+    // is constructed so no checkout session is created and abandoned.
+    if (await isAdultCreatorAccount(admin, creator_id)) {
+      return adultCreatorPaymentBlockedResponse(cors);
+    }
+
     const ipHash = await getRequestIpHash(req);
     if (await isIpAbuseThresholdExceeded(admin, ipHash)) {
       return new Response(JSON.stringify({ error: "rate_limited", code: "ip_abuse_threshold_exceeded", message: "Too many recent blocked submissions from your network." }), { status: 429, headers: { ...cors, "Content-Type": "application/json" } });
@@ -83,12 +94,16 @@ Deno.serve(withSecurity("create-tip-checkout", async (req, ctx) => {
     // Look up creator name for display
     const { data: creatorProfile } = await admin
       .from("profiles")
-      .select("display_name, full_name")
+      // `profiles` has no display_name — full_name and username are the real
+      // columns. PostgREST rejects the whole request over one unknown column,
+      // so this returned null, the error was never checked, and every tip
+      // checkout showed the fallback "Creator" instead of the creator's name.
+      .select("full_name, username")
       .eq("user_id", creator_id)
       .limit(1)
       .maybeSingle();
 
-    const creatorName = creatorProfile?.display_name || creatorProfile?.full_name || "Creator";
+    const creatorName = creatorProfile?.full_name || creatorProfile?.username || "Creator";
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 

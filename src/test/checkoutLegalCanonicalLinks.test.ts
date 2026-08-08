@@ -25,14 +25,30 @@ describe("checkout legal canonical links", () => {
     expect(cookieConsent).not.toContain('to="/privacy-policy"');
   });
 
-  it("keeps the public terms related links canonical", () => {
-    const terms = read("src/pages/Terms.tsx");
+  /**
+   * The checkout sheet renders policy COMPONENTS by path, so a short path
+   * mapped to a stale duplicate showed a buyer different terms from the ones
+   * the same checkout links to — two divergent contracts in one flow.
+   *
+   * Every short path must resolve to the same canonical component its /legal
+   * twin does. This replaces an assertion against the duplicate Terms page,
+   * which has since been deleted in favour of a redirect.
+   */
+  it("resolves every short legal path to the canonical policy component", () => {
+    const sheet = read("src/components/checkout/InlineLegalSheet.tsx");
 
-    expect(terms).toContain('to="/legal/privacy"');
-    expect(terms).toContain('to="/legal/refunds"');
-    expect(terms).toContain('to="/legal/partner-disclosure"');
-    expect(terms).not.toContain('to="/privacy"');
-    expect(terms).not.toContain('to="/refund-policy"');
-    expect(terms).not.toContain('to="/partner-disclosure"');
+    for (const [shortPath, canonicalModule] of [
+      ["/terms", "@/pages/legal/TermsOfService"],
+      ["/refunds", "@/pages/legal/RefundPolicy"],
+      ["/privacy", "@/pages/legal/PrivacyPolicy"],
+      ["/cookies", "@/pages/legal/CookiePolicy"],
+    ] as const) {
+      expect(sheet).toContain(`"${shortPath}": lazy(() => import("${canonicalModule}"))`);
+    }
+
+    // The deleted duplicates must never be wired back in here.
+    expect(sheet).not.toContain('import("@/pages/Terms")');
+    expect(sheet).not.toContain('import("@/pages/Refunds")');
+    expect(sheet).not.toContain('import("@/pages/Privacy")');
   });
 });

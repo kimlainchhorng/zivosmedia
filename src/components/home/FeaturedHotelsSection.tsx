@@ -34,7 +34,12 @@ export default function FeaturedHotelsSection() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("store_profiles")
-        .select("id, name, address, rating, logo_url, banner_url, slug, price_per_night, category, is_verified, amenities")
+        // Same defect as FeaturedCarsSection: price_per_night and amenities are
+        // not store_profiles columns (they belong to hotel_rooms / hotels), so
+        // the request failed outright and the `length === 0` guard below hid
+        // this whole section. Both render sites are already null-guarded, so
+        // dropping them shows the properties rather than nothing.
+        .select("id, name, address, rating, logo_url, banner_url, slug, category, is_verified")
         .in("category", HOTEL_CATEGORIES)
         .eq("is_active", true)
         .order("rating", { ascending: false })

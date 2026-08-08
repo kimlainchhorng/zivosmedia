@@ -57,8 +57,12 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
     (async () => {
       const { data } = await (supabase
         .from("car_rental_reservation_addons") as any)
-        .select("addon_id, total_cents")
-        .eq("store_id", storeId);
+        // car_rental_reservation_addons has no store_id; it belongs to a
+        // reservation, and the reservation carries the store. Filtering the
+        // addon table directly made PostgREST reject the request, so the
+        // add-on revenue breakdown was always empty.
+        .select("addon_id, total_cents, car_rental_reservations!inner(store_id)")
+        .eq("car_rental_reservations.store_id", storeId);
       if (cancelled) return;
       const m = new Map<string, { revenue: number; count: number }>();
       for (const r of (data ?? []) as Array<{ addon_id: string | null; total_cents: number }>) {

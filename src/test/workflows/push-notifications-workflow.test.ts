@@ -90,7 +90,11 @@ describe("push notifications and notification-center workflow", () => {
     expect(prefsFn).toContain('from("notification_preferences")');
     expect(prefsFn).toContain('from("profiles")');
     expect(prefsFn).toContain("sms_opted_out: false");
-    expect(prefsFn).toContain("sms_consent_at: now");
+    // notification_preferences has no sms_consent_at column (verified against
+    // the live database), so writing it made PostgREST reject the whole upsert
+    // and NO preference change saved at all. The consent record lives on
+    // profiles.sms_consent until a migration adds the column.
+    expect(prefsFn).toContain("sms_consent: true");
     expect(prefsFn).not.toContain('"Access-Control-Allow-Origin": "*"');
 
     for (const policy of [

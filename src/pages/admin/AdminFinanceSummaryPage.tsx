@@ -67,10 +67,13 @@ export default function AdminFinanceSummaryPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("store_orders")
-        .select("total_amount, status")
+        // total_cents, not total_amount — and it is ALREADY cents, so the
+        // `* 100` below is gone. Selecting the missing column made every row
+        // fail to load, so this GMV tile read $0 for all store orders.
+        .select("total_cents, status")
         .neq("status", "cancelled");
       const rows = data ?? [];
-      const gmv = rows.reduce((s: number, r: any) => s + (Number(r.total_amount) * 100 || 0), 0);
+      const gmv = rows.reduce((s: number, r: any) => s + (Number(r.total_cents) || 0), 0);
       return { gmv, count: rows.length };
     },
   });
@@ -81,10 +84,13 @@ export default function AdminFinanceSummaryPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("deliveries")
-        .select("total_amount, status")
+        // `deliveries` has no order total at all — delivery_fee is the only
+        // revenue column on it, and it is in dollars. The previous select
+        // named a column that does not exist, so this tile read $0.
+        .select("delivery_fee, status")
         .neq("status", "cancelled");
       const rows = data ?? [];
-      const gmv = rows.reduce((s: number, r: any) => s + (Number(r.total_amount) * 100 || 0), 0);
+      const gmv = rows.reduce((s: number, r: any) => s + (Math.round((Number(r.delivery_fee) || 0) * 100)), 0);
       return { gmv, count: rows.length };
     },
   });
@@ -95,10 +101,11 @@ export default function AdminFinanceSummaryPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("lodge_reservations")
-        .select("total_price, status")
+        // total_cents, not total_price — already in cents, so no `* 100`.
+        .select("total_cents, status")
         .in("status", ["confirmed", "checked_in", "completed"]);
       const rows = data ?? [];
-      const gmv = rows.reduce((s: number, r: any) => s + (Number(r.total_price) * 100 || 0), 0);
+      const gmv = rows.reduce((s: number, r: any) => s + (Number(r.total_cents) || 0), 0);
       return { gmv, count: rows.length };
     },
   });
@@ -110,12 +117,12 @@ export default function AdminFinanceSummaryPage() {
       const { data: deposits } = await (supabase as any)
         .from("customer_wallet_transactions")
         .select("amount_cents")
-        .eq("transaction_type", "credit")
+        .eq("type", "credit")
         .eq("is_redeemed", true);
       const { data: withdrawals } = await (supabase as any)
         .from("customer_wallet_transactions")
         .select("amount_cents")
-        .eq("transaction_type", "debit")
+        .eq("type", "debit")
         .eq("is_redeemed", true);
       const totalDeposits = (deposits ?? []).reduce((s: number, r: any) => s + (r.amount_cents || 0), 0);
       const totalWithdrawals = (withdrawals ?? []).reduce((s: number, r: any) => s + (r.amount_cents || 0), 0);

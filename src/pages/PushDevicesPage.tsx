@@ -22,7 +22,7 @@ interface PushRow {
   id: string;
   user_id: string;
   endpoint: string;
-  device_type: DeviceType | null;
+  platform: DeviceType | null;
   created_at: string;
 }
 
@@ -66,7 +66,7 @@ export default function PushDevicesPage() {
           };
         };
       };
-      const { data } = await sb.from("push_subscriptions").select("id, user_id, endpoint, device_type, created_at").eq("user_id", user.id).order("created_at", { ascending: false });
+      const { data } = await sb.from("push_subscriptions").select("id, user_id, endpoint, platform, created_at").eq("user_id", user.id).order("created_at", { ascending: false });
       return data ?? [];
     },
     enabled: !!user?.id,
@@ -75,7 +75,7 @@ export default function PushDevicesPage() {
 
   const stats = useMemo(() => {
     const c: Record<string, number> = {};
-    subs.forEach((s) => { if (s.device_type) c[s.device_type] = (c[s.device_type] ?? 0) + 1; });
+    subs.forEach((s) => { if (s.platform) c[s.platform] = (c[s.platform] ?? 0) + 1; });
     return { total: subs.length, web: c.web ?? 0, ios: c.ios ?? 0, android: c.android ?? 0 };
   }, [subs]);
 
@@ -130,7 +130,7 @@ export default function PushDevicesPage() {
         {!isLoading && subs.length > 0 && (
           <div className="space-y-2">
             {subs.map((s, idx) => {
-              const dt = (s.device_type ?? "web") as DeviceType;
+              const dt = (s.platform ?? "web") as DeviceType;
               const meta = DEVICE_META[dt] ?? DEVICE_META.web;
               const Icon = meta.icon;
               return (

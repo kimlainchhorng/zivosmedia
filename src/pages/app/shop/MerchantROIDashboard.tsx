@@ -64,7 +64,7 @@ export default function MerchantROIDashboard() {
         (supabase as any).from("map_pin_clicks")
           .select("id, created_at").eq("store_id", store.id).limit(1000),
         (supabase as any).from("store_orders")
-          .select("id, total_amount, created_at, status")
+          .select("id, total_cents, created_at, status")
           .eq("store_id", store.id).eq("status", "completed").limit(1000),
         (supabase as any).from("merchant_ad_spend")
           .select("amount_cents").eq("store_id", store.id),
@@ -84,7 +84,7 @@ export default function MerchantROIDashboard() {
       const totalViews = posts.reduce((s: number, p: any) => s + (p.view_count || 0), 0);
       const totalClicks = clicks.length;
       const totalOrders = orders.length;
-      const totalRevenue = orders.reduce((s: number, o: any) => s + (Number(o.total_amount) || 0), 0);
+      const totalRevenue = orders.reduce((s: number, o: any) => s + (Number(o.total_cents) || 0), 0) / 100;
       const totalAdSpend = adSpendRows.reduce((s: number, a: any) => s + (a.amount_cents || 0), 0) / 100;
 
       // Build weekly chart data (last 7 days)
@@ -97,7 +97,7 @@ export default function MerchantROIDashboard() {
           .reduce((s: number, p: any) => s + (p.view_count || 0), 0);
         const dayClicks = clicks.filter((c: any) => c.created_at?.startsWith(dateStr)).length;
         const dayRevenue = orders.filter((o: any) => o.created_at?.startsWith(dateStr))
-          .reduce((s: number, o: any) => s + (Number(o.total_amount) || 0), 0);
+          .reduce((s: number, o: any) => s + (Number(o.total_cents) || 0), 0) / 100;
         return { day: dayStr, views: dayViews, clicks: dayClicks, revenue: dayRevenue };
       });
 

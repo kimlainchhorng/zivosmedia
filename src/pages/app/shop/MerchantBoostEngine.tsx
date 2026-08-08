@@ -39,9 +39,18 @@ export default function MerchantBoostEngine() {
     const loadMetrics = async () => {
       if (!user) return;
       try {
+        // merchant_ad_spend and merchant_boosts are keyed by store_id, not by
+        // the owner's auth id. Filtering user_id made PostgREST reject both
+        // requests, so every metric on this page read 0.
+        const { data: store } = await (supabase as any)
+          .from("store_profiles")
+          .select("id")
+          .eq("owner_id", user.id)
+          .maybeSingle();
+        if (!store?.id) return;
         const [spendRes, salesRes] = await Promise.all([
-          (supabase as any).from("merchant_ad_spend").select("amount_cents").eq("user_id", user.id),
-          (supabase as any).from("merchant_boosts").select("id, amount_cents, status").eq("user_id", user.id),
+          (supabase as any).from("merchant_ad_spend").select("amount_cents").eq("store_id", store.id),
+          (supabase as any).from("merchant_boosts").select("id, amount_cents, status").eq("store_id", store.id),
         ]);
         const totalSpend = (spendRes.data || []).reduce((s: number, r: any) => s + (r.amount_cents || 0), 0);
         const totalSales = (salesRes.data || []).filter((b: any) => b.status === "completed").length;

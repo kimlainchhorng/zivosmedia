@@ -53,8 +53,12 @@ export default function DriverHomePage() {
           setIsOnline(data.is_online);
           return;
         }
+        // Fallback when drivers_status has no row yet. Was querying
+        // driver_profiles, which has neither an `is_online` column nor an
+        // `id` — so the fallback never returned anything and a driver with
+        // no status row saw the default instead of their real state.
         const { data: profile } = await (supabase as any)
-          .from("driver_profiles")
+          .from("drivers")
           .select("is_online")
           .eq("id", driverId)
           .maybeSingle();

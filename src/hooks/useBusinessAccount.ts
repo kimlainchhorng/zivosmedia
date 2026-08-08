@@ -53,7 +53,7 @@ export function useAuthorizedDrivers(accountId?: string) {
       const { data, error } = await (supabase as any)
         .from("business_authorized_drivers")
         .select("*")
-        .eq("business_id", accountId)
+        .eq("business_account_id", accountId)
         .order("created_at", { ascending: false });
       if (error) return [];
       return (data || []) as AuthorizedDriver[];

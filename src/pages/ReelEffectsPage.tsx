@@ -71,7 +71,7 @@ export default function ReelEffectsPage() {
       return;
     }
     toast.success(`${e.name} ready — opens in Reels creator next.`);
-    navigate("/feed/new");
+    navigate("/feed-new");
   };
 
   return (

@@ -367,14 +367,15 @@ export default function BusinessSoftwarePortalPage() {
 
   return (
     <>
-      <main className="software-landing">
-        <a className="sl-skip-link" href="#software-main">
-          Skip to main content
-        </a>
-
+      <main id="main-content" className="software-landing">
         <header className="sl-header">
           <div className="sl-header-inner">
-            <Link to="/business" className="sl-brand" aria-label="ZIVO Software home">
+            <Link
+              to="/business"
+              className="sl-brand"
+              aria-label="Home"
+              title="ZIVO Software home"
+            >
               <BrandMark />
               <span>
                 <strong>ZIVO</strong>
@@ -463,7 +464,7 @@ export default function BusinessSoftwarePortalPage() {
           </div>
         </header>
 
-        <div id="software-main" tabIndex={-1}>
+        <div>
           <section className="sl-hero" id="product">
             <div className="sl-container sl-hero-grid">
               <div className="sl-hero-copy">

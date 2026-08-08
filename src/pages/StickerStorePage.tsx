@@ -290,7 +290,7 @@ export default function StickerStorePage() {
 
               <div className="p-3 border-t border-border bg-card flex items-center gap-2">
                 <Button
-                  onClick={() => { setOpenPackId(null); navigate("/feed/new"); }}
+                  onClick={() => { setOpenPackId(null); navigate("/feed-new"); }}
                   className="flex-1 bg-ig-gradient text-white font-bold rounded-xl h-10 hover:opacity-90 border-0 gap-2"
                 >
                   <Plus className="h-4 w-4" strokeWidth={3} /> Use in a story

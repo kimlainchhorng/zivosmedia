@@ -3,6 +3,7 @@
  */
 
 import { useState } from "react";
+import { downloadCsv } from "@/lib/csvExport";
 import { Helmet } from "react-helmet-async";
 import {
   Users, Plane, Building2, Car, TrendingUp, DollarSign, Calendar,
@@ -155,12 +156,7 @@ export default function BusinessDashboard() {
         inv.status,
       ]),
     ];
-    const csv = rows.map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "business-report.csv"; a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv("business-report", rows[0] as string[], rows.slice(1));
     toast.success("Report downloaded");
   };
 

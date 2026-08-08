@@ -127,7 +127,13 @@ export function useUnifiedTrips(filter: TripsFilter = {}) {
       if (!services || services.includes("rides")) {
         const { data } = await (supabase as any)
           .from("jobs")
-          .select("id, status, created_at, pickup_address, dropoff_address, estimated_fare, job_type")
+          // `estimated_fare` is not a jobs column. PostgREST rejects the whole
+          // request over one unknown column, so `data` was null and NO ride
+          // ever appeared in the unified trip list — the `(data || [])` below
+          // turned a failed query into an empty history.
+          // final_total is what was actually settled (complete-trip writes it);
+          // price_total is the quote, used until the trip closes.
+          .select("id, status, created_at, pickup_address, dropoff_address, final_total, price_total, job_type")
           .eq("customer_id", user!.id)
           .order("created_at", { ascending: false })
           .limit(limit);
@@ -140,7 +146,7 @@ export function useUnifiedTrips(filter: TripsFilter = {}) {
             subtitle: `${t.pickup_address?.split(",")[0] || "Pickup"} → ${t.dropoff_address?.split(",")[0] || "Dropoff"}`,
             status: t.status,
             date: t.created_at,
-            amount: Number(t.estimated_fare) || 0,
+            amount: Number(t.final_total ?? t.price_total) || 0,
             currency: "USD",
             icon: "car-taxi-front",
             details: { trip: t },
@@ -208,7 +214,7 @@ export function useUnifiedTrips(filter: TripsFilter = {}) {
       if (!services || services.includes("move")) {
         const { data } = await (supabase as any)
           .from("jobs")
-          .select("id, status, created_at, pickup_address, dropoff_address, estimated_fare, job_type")
+          .select("id, status, created_at, pickup_address, dropoff_address, final_total, price_total, job_type")
           .eq("customer_id", user!.id)
           .eq("job_type", "move")
           .order("created_at", { ascending: false })
@@ -222,7 +228,7 @@ export function useUnifiedTrips(filter: TripsFilter = {}) {
             subtitle: `${m.pickup_address?.split(",")[0] || "Pickup"} → ${m.dropoff_address?.split(",")[0] || "Dropoff"}`,
             status: m.status,
             date: m.created_at,
-            amount: Number(m.estimated_fare) || 0,
+            amount: Number(m.final_total ?? m.price_total) || 0,
             currency: "USD",
             icon: "package",
             details: { trip: m },

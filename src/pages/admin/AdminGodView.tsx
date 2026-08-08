@@ -100,7 +100,7 @@ export default function AdminGodView() {
       const [storeOrders, foodOrders, truckSales, travelOrders, deliveries, trips] = await Promise.all([
         db.from("store_orders").select("total_cents, status").gte("created_at", from).in("status", ["completed", "delivered", "confirmed"]),
         db.from("food_orders").select("total_amount, status").gte("created_at", from).in("status", ["completed", "delivered"]),
-        db.from("truck_sales").select("amount_cents, status").gte("created_at", from).eq("status", "completed"),
+        db.from("truck_sales").select("total_amount, status").gte("created_at", from).eq("status", "completed"),
         db.from("travel_orders").select("total, status").gte("created_at", from).eq("status", "confirmed"),
         db.from("deliveries").select("id, status").gte("created_at", from),
         db.from("trips").select("id, status").gte("created_at", from),
@@ -108,7 +108,7 @@ export default function AdminGodView() {
 
       const storeVolume = (storeOrders.data || []).reduce((s: number, o: any) => s + (o.total_cents || 0), 0);
       const foodVolume = (foodOrders.data || []).reduce((s: number, o: any) => s + ((o.total_amount || 0) * 100), 0);
-      const truckVolume = (truckSales.data || []).reduce((s: number, o: any) => s + (o.amount_cents || 0), 0);
+      const truckVolume = (truckSales.data || []).reduce((s: number, o: any) => s + ((o.total_amount || 0) * 100), 0);
       const travelVolume = (travelOrders.data || []).reduce((s: number, o: any) => s + ((Number(o.total) || 0) * 100), 0);
       const totalCents = storeVolume + foodVolume + truckVolume + travelVolume;
 
@@ -158,11 +158,11 @@ export default function AdminGodView() {
         db.from("profiles").select("id", { count: "exact", head: true }),
         db.from("store_profiles").select("id", { count: "exact", head: true }),
         db.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", from),
-        db.from("loyalty_points").select("id, points").gte("created_at", from).limit(500),
+        db.from("loyalty_points").select("id, points_balance").gte("created_at", from).limit(500),
         db.from("feedback_submissions").select("id", { count: "exact", head: true }).gte("created_at", from),
         db.from("admin_security_alerts").select("id", { count: "exact", head: true }).is("resolved_at", null),
       ]);
-      const totalPoints = (loyaltyRes.data || []).reduce((s: number, r: any) => s + (r.points || 0), 0);
+      const totalPoints = (loyaltyRes.data || []).reduce((s: number, r: any) => s + (r.points_balance || 0), 0);
       return {
         users: users.count || 0,
         stores: stores.count || 0,

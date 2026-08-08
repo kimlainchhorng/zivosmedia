@@ -28,7 +28,15 @@ export default function FeaturedCarsSection() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("store_profiles")
-        .select("id, name, address, rating, logo_url, banner_url, slug, price_per_day, category, vehicle_type, seats, fuel_type, is_verified")
+        // price_per_day, vehicle_type, seats and fuel_type are not columns on
+        // store_profiles — they belong to individual vehicles
+        // (car_rental_vehicles). Asking for them made PostgREST reject the
+        // whole request, so liveStores was always [] and the `length === 0`
+        // guard below hid this entire home-page section. Every render site
+        // already treats these as optional, so dropping them shows the rental
+        // businesses instead of showing nothing; surfacing real per-vehicle
+        // price and seats needs a join to car_rental_vehicles.
+        .select("id, name, address, rating, logo_url, banner_url, slug, category, is_verified")
         .in("category", CAR_CATEGORIES)
         .eq("is_active", true)
         .order("rating", { ascending: false })

@@ -393,11 +393,15 @@ const SafeAreaQAPage = () => {
           </CardContent>
         </Card>
 
+        {/* A repo file, not a served route. As a <Link> it went into the
+            router and landed on the catch-all — an underlined link that looks
+            clickable and goes nowhere. Rendered as a path to look up instead,
+            which is what it actually is. */}
         <p className="text-xs text-muted-foreground">
           Reference:{" "}
-          <Link className="underline" to="/docs/dev/capacitor-safe-area.md">
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
             docs/dev/capacitor-safe-area.md
-          </Link>
+          </code>
         </p>
       </main>
     </div>

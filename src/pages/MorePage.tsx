@@ -957,8 +957,8 @@ export default function MorePage() {
       const { count } = await (supabase as any)
         .from("flight_bookings")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user!.id)
-        .gte("departure_at", new Date().toISOString());
+        .eq("customer_id", user!.id)
+        .gte("departure_date", new Date().toISOString());
       return count || 0;
     },
     enabled: !!user,

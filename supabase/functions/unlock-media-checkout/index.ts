@@ -3,6 +3,10 @@ import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 const logStep = (step: string, details?: any) => {
   const d = details ? ` - ${JSON.stringify(details)}` : "";
@@ -65,6 +69,15 @@ serve(withSecurity("unlock-media-checkout", async (req, ctx) => {
     if ((message as any).sender_id !== seller_id) throw new Error("Seller does not match message");
     const lockedPrice = Number((message as any).locked_price_cents || 0);
     const finalPriceCents = lockedPrice >= 50 ? lockedPrice : priceCents;
+
+    // Adult-creator paid media does not settle on this Stripe account — see
+    // _shared/adultCreatorPaymentBoundary.ts. Checked against the seller
+    // resolved from the message row above, not a client-supplied id, and
+    // before any Stripe object exists so no session is left orphaned.
+    if (await isAdultCreatorAccount(admin, (message as any).sender_id)) {
+      logStep("Blocked adult-creator unlock", { message_id });
+      return adultCreatorPaymentBlockedResponse(corsHeaders);
+    }
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY missing");

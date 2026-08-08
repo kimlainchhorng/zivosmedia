@@ -51,9 +51,9 @@ export default function ChannelPostInsights({ post, open: openProp, onOpenChange
         const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
         const { data: views } = await (supabase as any)
           .from("channel_post_views")
-          .select("user_id, viewed_at")
+          .select("user_id, last_viewed_at")
           .eq("post_id", post.id)
-          .gte("viewed_at", sevenDaysAgo);
+          .gte("last_viewed_at", sevenDaysAgo);
 
         if (!cancelled) {
           const uniq = new Set((views ?? []).map((v: any) => v.user_id));
@@ -62,7 +62,7 @@ export default function ChannelPostInsights({ post, open: openProp, onOpenChange
           // Bucket by local calendar day (date-fns format), not the raw UTC
           // slice: in Cambodia (UTC+7) a view before 07:00 local has a UTC date
           // of the previous day, so a UTC slice would attribute it to the wrong
-          // bar. Keys and the viewed_at lookup both use the local formatter so
+          // bar. Keys and the last_viewed_at lookup both use the local formatter so
           // they stay consistent.
           const buckets = new Map<string, number>();
           for (let i = 6; i >= 0; i--) {
@@ -70,7 +70,7 @@ export default function ChannelPostInsights({ post, open: openProp, onOpenChange
             buckets.set(format(d, "yyyy-MM-dd"), 0);
           }
           for (const v of views ?? []) {
-            const day = format(new Date(v.viewed_at), "yyyy-MM-dd");
+            const day = format(new Date(v.last_viewed_at), "yyyy-MM-dd");
             if (buckets.has(day)) buckets.set(day, (buckets.get(day) ?? 0) + 1);
           }
           setDaily(Array.from(buckets.entries()).map(([day, count]) => ({ day, count })));

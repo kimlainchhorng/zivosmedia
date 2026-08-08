@@ -1,9 +1,18 @@
 /**
  * useInvoicePdfExport Hook
  * Generate and download invoice PDFs using the print dialog pattern
+ *
+ * The footer names ZIVO LLC as the issuer and states the statement descriptor.
+ * It previously read "ZIVO is a travel search and referral service. Payment and
+ * ticketing are handled by our licensed travel partners" — on a BUSINESS invoice
+ * showing a Total Due that ZIVO itself charged. An invoice is the document a
+ * customer forwards to their bank in a dispute, so one that disclaims handling
+ * the payment argues the cardholder's case for them. The descriptor is included
+ * for the same reason: an unrecognised statement line is where disputes start.
  */
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { COMPANY_INFO } from "@/config/legalContent";
 import type { Invoice } from "./useBusinessInvoices";
 
 interface InvoicePdfData {
@@ -230,7 +239,9 @@ export function useInvoicePdfExport() {
     <div class="footer">
       <p>Thank you for choosing <a href="https://zivosmedia.com">ZIVO</a></p>
       <p class="footer-note">
-        ZIVO is a travel search and referral service. Payment and ticketing are handled by our licensed travel partners.
+        Issued by ${COMPANY_INFO.name}. Charges appear on your statement as
+        ${COMPANY_INFO.statementDescriptor}. Questions about this invoice:
+        <a href="mailto:${COMPANY_INFO.billingEmail}">${COMPANY_INFO.billingEmail}</a>.
       </p>
     </div>
   </div>

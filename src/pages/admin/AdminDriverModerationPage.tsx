@@ -30,7 +30,7 @@ export default function AdminDriverModerationPage() {
     const [r, f, lr] = await Promise.all([
       (supabase as any).from("abuse_reports").select("*").eq("status", "open").order("created_at", { ascending: false }).limit(50),
       (supabase as any).from("driver_flags").select("*, drivers(full_name, phone)").eq("active", true).order("created_at", { ascending: false }),
-      (supabase as any).from("ride_requests").select("id, assigned_driver_id, drivers(full_name)").lte("driver_rating" as any, 2).order("created_at", { ascending: false }).limit(50),
+      (supabase as any).from("ride_requests").select("id, assigned_driver_id, drivers(full_name)").lte("rating" as any, 2).order("created_at", { ascending: false }).limit(50),
     ]);
     setReports(r.data || []);
     setFlags(f.data || []);

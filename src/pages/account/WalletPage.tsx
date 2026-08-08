@@ -3,6 +3,7 @@
  * Real Supabase/Stripe data throughout
  */
 import { useState, useEffect } from "react";
+import { downloadCsv } from "@/lib/csvExport";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import {
@@ -1212,11 +1213,13 @@ export default function WalletPage() {
                         tx.transaction_type !== "payment" ? "In" : "Out",
                         Math.abs(Number(tx.amount)).toFixed(2),
                       ]);
-                    const csv = ["Date,Description,Type,Amount", ...rows.map(r => r.join(","))].join("\n");
-                    const a = document.createElement("a");
-                    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-                    a.download = "transactions.csv";
-                    a.click();
+                    // `description` is free text a rider or merchant wrote.
+                    // Joined raw, any comma in it split the row and shifted
+                    // Type and Amount by one column — on someone's own
+                    // financial record, where they have no way to tell.
+                    // The object URL was also never revoked, leaking the
+                    // blob for the life of the page.
+                    downloadCsv("transactions", ["Date", "Description", "Type", "Amount"], rows);
                   }}
                   className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:opacity-80 transition-opacity">
                   <TrendingUp className="w-3.5 h-3.5" /> Export CSV

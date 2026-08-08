@@ -3,6 +3,10 @@ import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  adultCreatorPaymentBlockedResponse,
+  isAdultCreatorAccount,
+} from "../_shared/adultCreatorPaymentBoundary.ts";
 
 const log = (s: string, d?: any) => console.log(`[SUBSCRIBE-TO-TIER-INTENT] ${s}${d ? " " + JSON.stringify(d) : ""}`);
 
@@ -55,6 +59,13 @@ serve(withSecurity("subscribe-to-tier-intent", async (req, ctx) => {
     const cents = Math.max(tier.is_custom_price ? (amount_cents ?? tier.price_cents) : tier.price_cents, 99);
     const intervalCfg = INTERVAL_MAP[tier.billing_interval || "month"];
     const isOneTime = intervalCfg === null;
+
+    // Adult-creator subscriptions do not settle on this Stripe account — see
+    // _shared/adultCreatorPaymentBoundary.ts. Before the Stripe client exists,
+    // so neither a payment intent nor a subscription is created.
+    if (await isAdultCreatorAccount(sbAdmin, creator_id)) {
+      return adultCreatorPaymentBlockedResponse(corsHeaders);
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 

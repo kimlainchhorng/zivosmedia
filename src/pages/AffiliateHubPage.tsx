@@ -37,8 +37,8 @@ export default function AffiliateHubPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("referrals")
-        .select("id, status, reward_cents, created_at")
-        .eq("referrer_id", user!.id)
+        .select("id, status, referrer_credit_cents, created_at")
+        .eq("referrer_user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -52,7 +52,7 @@ export default function AffiliateHubPage() {
     queryKey: ["affiliate-wallet", user?.id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("wallets")
+        .from("customer_wallets")
         .select("balance_cents")
         .eq("user_id", user!.id)
         .maybeSingle();
@@ -62,7 +62,7 @@ export default function AffiliateHubPage() {
     enabled: !!user,
   });
 
-  const totalEarnings = referrals.reduce((s: number, r: any) => s + (r.reward_cents || 0), 0);
+  const totalEarnings = referrals.reduce((s: number, r: any) => s + (r.referrer_credit_cents || 0), 0);
   const completedReferrals = referrals.filter((r: any) => r.status === "completed").length;
   const pendingReferrals = referrals.filter((r: any) => r.status === "pending").length;
   const convRate = referrals.length > 0 ? ((completedReferrals / referrals.length) * 100).toFixed(0) : "0";

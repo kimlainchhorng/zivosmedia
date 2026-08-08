@@ -1348,10 +1348,10 @@ export default function StoreMapPage() {
     let active = true;
     (async () => {
       const { data } = await (supabase as any)
-        .from("check_ins").select("store_id").eq("user_id", currentUserId);
+        .from("check_ins").select("place_id").eq("user_id", currentUserId);
       if (!active || !data) return;
       const safeId = (v: any) => (v && typeof v === "string" && v !== "null" && v !== "undefined") ? v : typeof v === "number" ? String(v) : null;
-      setVisitedStoreIds(new Set<string>(data.map((r: any) => safeId(r.store_id)).filter((id): id is string => !!id)));
+      setVisitedStoreIds(new Set<string>(data.map((r: any) => safeId(r.place_id)).filter((id): id is string => !!id)));
     })();
     return () => { active = false; };
   }, [currentUserId]);
@@ -1463,12 +1463,12 @@ export default function StoreMapPage() {
       const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const { data } = await (supabase as any)
         .from("check_ins")
-        .select("store_id")
+        .select("place_id")
         .gte("created_at", cutoff);
       if (!active) return;
       const counts: Record<string, number> = {};
       for (const row of data || []) {
-        if (row?.store_id) counts[String(row.store_id)] = (counts[String(row.store_id)] || 0) + 1;
+        if (row?.place_id) counts[String(row.place_id)] = (counts[String(row.place_id)] || 0) + 1;
       }
       setCheckInMap(counts);
     };

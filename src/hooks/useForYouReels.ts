@@ -54,7 +54,7 @@ export function useForYouReels() {
       const { data } = await db
         .from("store_orders")
         .select("store_id, store_profiles(category, name)")
-        .eq("user_id", user.id)
+        .eq("customer_id", user.id)
         .in("status", ["completed", "delivered"])
         .order("created_at", { ascending: false })
         .limit(50);

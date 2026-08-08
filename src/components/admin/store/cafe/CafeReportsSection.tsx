@@ -3,6 +3,7 @@
  * and a CSV export of completed orders for the chosen window.
  */
 import { useState } from "react";
+import { downloadCsv } from "@/lib/csvExport";
 import { BarChart3, Download, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,14 +28,10 @@ export default function CafeReportsSection({ storeId }: Props) {
       ["date", "revenue_cents", "tickets", "expenses_cents"],
       ...dataset.daily.map((d) => [d.date, String(d.revenue_cents), String(d.tickets), String(d.expenses_cents)]),
     ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `cafe-daily-${days}d.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Currently all-numeric, so nothing corrupts today. Routed through the
+    // shared writer anyway: the first free-text column somebody adds here
+    // would silently break every row, and nobody would connect the two.
+    downloadCsv(`cafe-daily-${days}d`, rows[0] as string[], rows.slice(1));
   };
 
   return (

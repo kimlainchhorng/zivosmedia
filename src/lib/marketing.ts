@@ -120,7 +120,7 @@ export async function getTargetedUsers(criteria: CampaignTargetCriteria, limit =
     .from("profiles")
     .select("id, email, full_name")
     .limit(limit);
-  if (criteria.city) query = (query as any).eq("city", criteria.city);
+  if (criteria.city) query = (query as any).eq("selected_city_name", criteria.city);
   if (criteria.role) query = (query as any).eq("role", criteria.role);
   const { data } = await query;
   return data ?? [];
@@ -130,7 +130,7 @@ export async function getTargetPreviewCount(criteria: CampaignTargetCriteria): P
   let query = supabase
     .from("profiles")
     .select("*", { count: "exact", head: true });
-  if (criteria.city) query = (query as any).eq("city", criteria.city);
+  if (criteria.city) query = (query as any).eq("selected_city_name", criteria.city);
   if (criteria.role) query = (query as any).eq("role", criteria.role);
   const { count } = await query;
   return count ?? 0;

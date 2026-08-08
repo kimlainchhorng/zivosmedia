@@ -184,7 +184,12 @@ export default function EnterpriseTrust() {
                 We maintain comprehensive documentation and are prepared for security reviews.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
-                <Link to="/legal/payment-transparency">
+                {/* Was /legal/payment-transparency, which has never existed — the
+                    button sat on a page inviting payment-processor review and
+                    went nowhere. #entity is the Terms section that actually
+                    answers what a processor asks: the contracting entity, who
+                    the merchant of record is, and the statement descriptor. */}
+                <Link to="/legal/terms#entity">
                   <Button variant="outline" className="gap-2">
                     Payment Documentation
                     <ArrowRight className="w-4 h-4" />

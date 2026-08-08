@@ -191,7 +191,7 @@ export default function SoundsPage() {
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => navigate("/feed/new")}
+                    onClick={() => navigate("/feed-new")}
                     className="bg-ig-gradient text-white font-bold rounded-full h-8 px-3 hover:opacity-90 border-0 shrink-0"
                   >
                     <Plus className="h-3.5 w-3.5 mr-1" strokeWidth={3} />

@@ -310,7 +310,7 @@ export default function MonetizationPage() {
       const { count } = await (supabase as any)
         .from("referrals")
         .select("id", { count: "exact", head: true })
-        .eq("referrer_id", user!.id);
+        .eq("referrer_user_id", user!.id);
       return (count as number) || 0;
     },
     enabled: !!user,

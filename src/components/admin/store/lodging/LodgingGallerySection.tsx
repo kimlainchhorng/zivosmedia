@@ -34,7 +34,7 @@ export default function LodgingGallerySection({ storeId }: { storeId: string }) 
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("store_profiles")
-        .select("id,name,gallery_images,gallery_positions,logo_url,cover_url")
+        .select("id,name,gallery_images,gallery_positions,logo_url,banner_url")
         .eq("id", storeId)
         .maybeSingle();
       return data || null;
@@ -89,7 +89,7 @@ export default function LodgingGallerySection({ storeId }: { storeId: string }) 
   const roomPhotos = photos.filter((p) => p.source === "room");
   const visible = tab === "property" ? propertyPhotos : tab === "rooms" ? roomPhotos : photos;
   const isLoading = roomsQuery.isLoading || storeQuery.isLoading;
-  const hasCover = propertyPhotos.some((p) => p.isCover) || Boolean(storeQuery.data?.cover_url);
+  const hasCover = propertyPhotos.some((p) => p.isCover) || Boolean(storeQuery.data?.banner_url);
 
   return (
     <SectionShell

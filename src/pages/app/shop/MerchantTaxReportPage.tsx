@@ -47,7 +47,7 @@ export default function MerchantTaxReportPage() {
       if (!store?.id) return [];
       const { data: orders } = await (supabase as any)
         .from("store_orders")
-        .select("id, total_cents, status, created_at, meta_event_id")
+        .select("id, total_cents, status, created_at")
         .eq("store_id", store.id)
         .in("status", ["completed", "delivered"])
         .order("created_at", { ascending: false })
@@ -64,10 +64,6 @@ export default function MerchantTaxReportPage() {
         const entry = monthMap.get(key)!;
         entry.orders.push(order);
 
-        // Track Meta event_ids for duplicate detection
-        if (order.meta_event_id) {
-          entry.eventIds.add(order.meta_event_id);
-        }
       }
 
       const summaries: MonthSummary[] = [];
@@ -75,8 +71,10 @@ export default function MerchantTaxReportPage() {
         const [y, m] = key.split("-");
         const totalSales = monthOrders.reduce((s: number, o: any) => s + (o.total_cents || 0), 0) / 100;
         const platformFee = totalSales * PLATFORM_FEE_RATE;
-        // Duplicate = orders with identical meta_event_id
-        const duplicateCount = monthOrders.length - eventIds.size;
+        // store_orders has no column to de-duplicate against. Deriving this
+        // from an always-empty id set counted EVERY order as a duplicate.
+        const duplicateCount = 0;
+        void eventIds;
 
         summaries.push({
           month: key,

@@ -3765,23 +3765,6 @@ html.underline-links a:not([class*="no-underline"]):not(button) {
 .software-landing :focus-visible { outline: 3px solid var(--sl-green-dark); outline-offset: 3px; }
 .software-landing :where(section, footer) { scroll-margin-top: 76px; }
 .sl-container { width: min(calc(100% - 40px), 1240px); min-width: 0; margin-inline: auto; }
-.sl-skip-link {
-  position: fixed;
-  z-index: 120;
-  top: 10px;
-  left: 12px;
-  min-height: 44px;
-  padding: 11px 15px;
-  border-radius: 10px;
-  color: #fff;
-  background: var(--sl-green-dark);
-  font-weight: 800;
-  transform: translateY(-160%);
-  transition: transform 0.16s ease;
-}
-.sl-skip-link:focus { transform: translateY(0); }
-#software-main:focus { outline: none; }
-
 .sl-header {
   position: sticky;
   z-index: 40;

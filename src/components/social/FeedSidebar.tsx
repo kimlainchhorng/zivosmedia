@@ -2,7 +2,7 @@
  * FeedSidebar — Left sidebar for Feed page (desktop only)
  * Contains navigation shortcuts, services, and account switching
  */
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   Car, UtensilsCrossed, MapPin, Plane, Hotel, CarFront,
@@ -11,6 +11,7 @@ import {
   Radio, Film, Bell, Star, Mic2, ShoppingCart,
   BadgeCheck, ChevronRight, ChevronsUpDown, Crown, LogOut, Gift, Building2,
 } from "lucide-react";
+import { COMPANY_INFO } from "@/config/legalContent";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -68,6 +69,19 @@ const MORE_ITEMS = [
   { label: "Settings", icon: Settings, path: "/settings" },
 ];
 
+
+/**
+ * The minimum a visitor must be able to reach without an account: who the
+ * merchant is, how to contact them, and what the money terms are. Kept short
+ * on purpose — this is a rail, not a sitemap. Refunds is included by name
+ * because it is the policy customers and reviewers look for first.
+ */
+const LEGAL_RAIL_LINKS = [
+  { label: "Contact", href: "/contact" },
+  { label: "Terms", href: "/legal/terms" },
+  { label: "Privacy", href: "/legal/privacy" },
+  { label: "Refunds", href: "/legal/refunds" },
+] as const;
 type NavItem = { label: string; icon: any; path: string };
 
 // ── Shared style primitives (refined & calm) ────────────────────────────────
@@ -299,6 +313,42 @@ export default function FeedSidebar() {
             </button>
           </div>
         )}
+
+        {/* Business and legal links — deliberately OUTSIDE the `user &&` block
+            above, and deliberately here rather than in <Footer/>.
+            The feed is the landing route for zivosmedia.com and renders no
+            <Footer/> at all; even if it did, an infinite-scrolling feed has no
+            reachable bottom. So for a signed-out visitor — a customer chasing a
+            charge, a regulator, or a payment-processor reviewer assessing the
+            account — this rail was the whole page, and it offered no route to
+            who we are, how to reach us, or what the refund policy says.
+            "Merchant could not be contacted" is a finding against the account.
+            Same left-rail link cluster pattern the other feed apps use. */}
+        <nav
+          aria-label="Business and legal"
+          className="mt-4 px-3 pb-2 pt-3 border-t border-border/40"
+        >
+          <ul className="flex flex-wrap gap-x-2 gap-y-1">
+            {LEGAL_RAIL_LINKS.map((link, index) => (
+              <li key={link.href} className="flex items-center gap-2">
+                <Link
+                  to={link.href}
+                  className="text-[11px] leading-tight text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {link.label}
+                </Link>
+                {index < LEGAL_RAIL_LINKS.length - 1 && (
+                  <span aria-hidden className="text-[11px] text-muted-foreground/40">
+                    ·
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] leading-tight text-muted-foreground/70">
+            © {new Date().getFullYear()} {COMPANY_INFO.name}
+          </p>
+        </nav>
       </div>
     </aside>
 

@@ -2,6 +2,7 @@
  * Admin Flight Orders - View and manage customer flight bookings
  */
 import { useState, useMemo, useCallback } from "react";
+import { downloadCsv } from "@/lib/csvExport";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -147,29 +148,26 @@ export default function AdminFlightOrders() {
   const handleExport = useCallback(() => {
     if (!filtered?.length) return;
     const headers = ["Date", "Route", "Booking Ref", "Customer Email", "Status", "Payment", "Amount", "Passengers", "PNR", "ZIVO Markup", "Duffel Cost"];
-    const csvRows = [headers.join(",")];
-    filtered.forEach((o) => {
-      csvRows.push([
-        format(new Date(o.created_at), "yyyy-MM-dd"),
-        `${o.origin || ""}→${o.destination || ""}`,
-        o.booking_reference,
-        o.customer_email || "",
-        o.status || "",
-        o.payment_status || "",
-        Number(o.total_amount || 0).toFixed(2),
-        o.total_passengers,
-        o.pnr || "",
-        Number(o.zivo_markup || 0).toFixed(2),
-        Number(o.duffel_cost || 0).toFixed(2),
-      ].join(","));
-    });
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `flight-orders-${format(new Date(), "yyyy-MM-dd")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      // customer_email and the route string are free text. A comma in
+      // either shifted every column after it — including Amount, ZIVO Markup
+      // and Duffel Cost, which is what this report exists to reconcile.
+      downloadCsv(
+        "flight-orders",
+        headers,
+        filtered.map((o) => [
+          format(new Date(o.created_at), "yyyy-MM-dd"),
+          `${o.origin || ""}→${o.destination || ""}`,
+          o.booking_reference,
+          o.customer_email || "",
+          o.status || "",
+          o.payment_status || "",
+          Number(o.total_amount || 0).toFixed(2),
+          o.total_passengers,
+          o.pnr || "",
+          Number(o.zivo_markup || 0).toFixed(2),
+          Number(o.duffel_cost || 0).toFixed(2),
+        ]),
+      );
     toast.success("CSV downloaded");
   }, [filtered]);
 
