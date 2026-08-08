@@ -22,6 +22,7 @@ let pricingState: {
   data:
     | Array<{
         id: string;
+        planId: string;
         displayName: string;
         currency: "USD";
         monthlyPlanId: string;
@@ -72,6 +73,7 @@ import BusinessSoftwarePortalPage from "./BusinessSoftwarePortalPage";
 
 const activePlan = {
   id: "gold",
+  planId: "gold",
   displayName: "Gold",
   currency: "USD" as const,
   monthlyPlanId: "7f7816a2-020f-4cca-91f8-2ca52decb3eb",
@@ -116,6 +118,7 @@ describe("BusinessSoftwarePortalPage", () => {
     expect(screen.getByRole("heading", { name: "Inspections" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Built for the auto-repair workday." })).toBeInTheDocument();
     expect(screen.getByText("Other verticals planned")).toBeInTheDocument();
+    expect(document.querySelector("main#main-content")).toBeInTheDocument();
 
     expect(document.title).toBe("ZIVO Software | Business Management Software");
     expect(document.querySelector('meta[name="description"]')).toHaveAttribute(

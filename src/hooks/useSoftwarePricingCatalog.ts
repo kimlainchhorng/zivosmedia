@@ -7,23 +7,12 @@ import {
   type SoftwarePricingCatalogPlan,
 } from "@/lib/software/publicPricingCatalog";
 
-const PUBLIC_PRICING_COLUMNS = [
-  "id",
-  "display_name",
-  "currency",
-  "monthly_plan_id",
-  "annual_plan_id",
-  "monthly_amount_cents",
-  "annual_amount_cents",
-  "trial_days",
-  "tagline",
-  "features",
-  "limits",
-  "support",
-  "cancellation_terms",
-  "featured",
-  "sort_order",
-].join(",");
+// The dedicated Software project and the newer shared catalog view do not
+// expose the same optional columns during the migration window. This is a
+// curated public view (never the pricing table), so selecting its public shape
+// keeps the browser compatible with both versions without requesting a column
+// that may not exist yet.
+const PUBLIC_PRICING_COLUMNS = "*";
 
 type PublicCatalogQueryResult = {
   data: unknown;

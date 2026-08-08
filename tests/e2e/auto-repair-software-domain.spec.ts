@@ -43,8 +43,11 @@ test("zivosoftware.com opens the business software login flow", async () => {
     await expect(page.getByText("Chat", { exact: true })).toHaveCount(0);
     await expect(page.getByText("Profile", { exact: true })).toHaveCount(0);
 
+    // Standalone Chat is now owned by the dedicated zivoschat.com app. The
+    // shared shell should hand the route off instead of rendering social Chat
+    // inside the software domain.
     await page.goto(`http://${host}:${port}/chat`, { waitUntil: "domcontentloaded" });
-    await expect(page).toHaveURL(new RegExp(`^http://${host}:${port}/business`));
+    await expect(page).toHaveURL(/^https:\/\/zivoschat\.com\/(?:chat|login)(?:\?.*)?$/);
 
     await page.goto(`http://${host}:${port}/admin/stores/${STORE_ID}?tab=ar-dashboard`, {
       waitUntil: "domcontentloaded",

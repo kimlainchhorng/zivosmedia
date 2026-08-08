@@ -73,8 +73,13 @@ describe("ZIVO Software billing release security contracts", () => {
       .map((match) => match[1]);
 
     expect(invokedFunctions).toEqual(["software-create-subscription"]);
-    expect(executableCheckout).toMatch(/body:\s*\{\s*plan_id:\s*input\.planId,\s*business_id:\s*input\.businessId,/);
+    expect(executableCheckout).toMatch(/body:\s*\{\s*plan_id:\s*input\.planId,\s*cycle:\s*input\.cycle,\s*business_id:\s*input\.businessId,/);
+    expect(executableCheckout).toContain("cycle: input.cycle");
+    expect(executableCheckout).toContain("return_url: dedicatedReturnPath(input.returnUrl)");
+    expect(executableCheckout).toContain("success_url: checkoutReturnUrl(absoluteUrl, \"success\")");
+    expect(executableCheckout).toContain("cancel_url: checkoutReturnUrl(absoluteUrl, \"cancelled\")");
     expect(executableCheckout).toContain('headers: { "Idempotency-Key": input.idempotencyKey }');
+    expect(checkoutFile).toContain("payload.checkout_url");
     expect(executableCheckout).not.toMatch(/\b(?:amount|amount_cents|currency|price_id)\s*:/i);
 
     const dialog = source("src/components/admin/SoftwareSubscriptionCheckoutDialog.tsx");
@@ -93,6 +98,21 @@ describe("ZIVO Software billing release security contracts", () => {
     expectBefore(genericCheckout, 'if (platform === "zivo_software")', "await withIdempotency(");
     expectBefore(genericCheckout, 'if (platform === "zivo_software")', "stripe.checkout.sessions.create");
     expect(genericCheckout).not.toContain('body.source_platform || "zivo_software"');
+  });
+
+  it("routes billing management to the backend that owns the current host", () => {
+    const checkoutFile = source("src/lib/software/softwareCheckout.ts");
+    const portal = compact(section(checkoutFile, "export async function createSoftwareBillingPortalUrl"));
+
+    expect(portal).toContain('dedicated ? "software-subscription-portal" : "zivopay-create-billing-portal"');
+    expect(portal).toContain("business_id: input.businessId");
+    expect(portal).toContain("store_id: input.businessId");
+    expect(portal).toContain("dedicated ? dedicatedReturnPath(input.returnUrl) : input.returnUrl");
+    expect(portal).toContain('headers: { "Idempotency-Key": input.idempotencyKey }');
+
+    const subscriptionHook = compact(source("src/hooks/useSoftwareSubscription.ts"));
+    expect(subscriptionHook).toContain("body: { business_id: businessId, store_id: businessId }");
+    expect(subscriptionHook).toContain("normalizeSoftwareSubscription");
   });
 
   it("authenticates and authorizes before creating a checkout from an active Stripe DB plan", () => {

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isZivoSoftwareHost } from "@/config/autoRepairDomain";
 
 export class SoftwareCheckoutError extends Error {
   code?: string;
@@ -63,37 +64,74 @@ export function newSoftwareBillingIdempotencyKey(scope: "checkout" | "portal"): 
   return `zivo-software-${scope}-${crypto.randomUUID()}`;
 }
 
+function dedicatedSoftwareBillingHost(): boolean {
+  return typeof window !== "undefined" && isZivoSoftwareHost(window.location.hostname);
+}
+
+function dedicatedReturnPath(returnUrl: string): string {
+  try {
+    const base = typeof window !== "undefined" ? window.location.origin : "https://zivosoftware.com";
+    const url = new URL(returnUrl, base);
+    return `${url.pathname}${url.search}${url.hash}` || "/business";
+  } catch {
+    return "/business";
+  }
+}
+
+function absoluteReturnUrl(returnUrl: string): string {
+  try {
+    const base = typeof window !== "undefined" ? window.location.origin : "https://zivosoftware.com";
+    return new URL(returnUrl, base).toString();
+  } catch {
+    return "https://zivosoftware.com/business";
+  }
+}
+
+function checkoutReturnUrl(returnUrl: string, status: "success" | "cancelled"): string {
+  const url = absoluteReturnUrl(returnUrl);
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}checkout=${status}${status === "success" ? "&session_id={CHECKOUT_SESSION_ID}" : ""}`;
+}
+
 /**
- * Starts the canonical hosted Stripe Checkout flow. The browser selects only a
- * server catalog plan UUID; price, currency, trial, product, and entitlement
+ * Starts the hosted Stripe Checkout flow. The browser selects only a server
+ * catalog identifier and billing cycle; price, trial, product, and entitlement
  * metadata are loaded again by the authenticated Edge Function.
  */
 export async function createSoftwareCheckoutUrl(input: {
   planId: string;
+  cycle: "monthly" | "annual";
   businessId: string;
   idempotencyKey: string;
-  successUrl: string;
-  cancelUrl: string;
+  returnUrl: string;
 }): Promise<CreateSoftwareCheckoutResult> {
+  const absoluteUrl = absoluteReturnUrl(input.returnUrl);
   const { data, error } = await supabase.functions.invoke("software-create-subscription", {
     body: {
       plan_id: input.planId,
+      cycle: input.cycle,
       business_id: input.businessId,
-      success_url: input.successUrl,
-      cancel_url: input.cancelUrl,
+      // Dedicated Software consumes return_url; the shared billing function
+      // consumes success_url/cancel_url. Sending the compatible fields keeps
+      // the same checkout action correct on either backend.
+      return_url: dedicatedReturnPath(input.returnUrl),
+      success_url: checkoutReturnUrl(absoluteUrl, "success"),
+      cancel_url: checkoutReturnUrl(absoluteUrl, "cancelled"),
     },
     headers: { "Idempotency-Key": input.idempotencyKey },
   });
   if (error) throw await functionError(error, "checkout");
 
   const payload = (data ?? {}) as Record<string, unknown>;
-  const url = String(payload.url || "");
+  // Dedicated Software returns checkout_url; the shared provider boundary
+  // historically returned url. Accept both while deployments converge.
+  const url = String(payload.checkout_url || payload.url || "");
   if (!isStripeHostedUrl(url)) {
     throw new SoftwareCheckoutError("Couldn't start checkout. Please try again.", "invalid_checkout_url");
   }
   return {
     url,
-    checkoutSessionId: String(payload.checkout_session_id || ""),
+    checkoutSessionId: String(payload.checkout_session_id || payload.session_id || ""),
     cached: payload.cached === true,
   };
 }
@@ -103,10 +141,20 @@ export async function createSoftwareBillingPortalUrl(input: {
   idempotencyKey: string;
   returnUrl: string;
 }): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("zivopay-create-billing-portal", {
-    body: { business_id: input.businessId, return_url: input.returnUrl },
-    headers: { "Idempotency-Key": input.idempotencyKey },
-  });
+  const dedicated = dedicatedSoftwareBillingHost();
+  const { data, error } = await supabase.functions.invoke(
+    dedicated ? "software-subscription-portal" : "zivopay-create-billing-portal",
+    {
+      body: {
+        // Main uses business_id; the dedicated Software function uses
+        // store_id. Both refer to the same owner-scoped workspace.
+        business_id: input.businessId,
+        store_id: input.businessId,
+        return_url: dedicated ? dedicatedReturnPath(input.returnUrl) : input.returnUrl,
+      },
+      headers: { "Idempotency-Key": input.idempotencyKey },
+    },
+  );
   if (error) throw await functionError(error, "portal");
 
   const url = String((data as Record<string, unknown> | null)?.url || "");

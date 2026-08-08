@@ -40,6 +40,7 @@ describe("parseSoftwarePricingCatalog", () => {
 
     expect(plans.map((plan) => plan.id)).toEqual(["base", "gold"]);
     expect(plans[1]).toMatchObject({
+      planId: "gold",
       currency: "USD",
       monthlyPlanId: "7f7816a2-020f-4cca-91f8-2ca52decb3eb",
       annualPlanId: "dfadbf9b-e70c-4054-a4ec-b3e546a2c890",
@@ -47,6 +48,33 @@ describe("parseSoftwarePricingCatalog", () => {
       annualAmountCents: 29_990,
       trialDays: 14,
       cancellationTerms: "Cancel at period end; access continues through the current billing period.",
+    });
+  });
+
+  it("normalizes the dedicated Software project's stable-key catalog contract", () => {
+    const plans = parseSoftwarePricingCatalog([
+      {
+        id: "base",
+        display_name: "Base",
+        monthly_amount_cents: 999,
+        annual_amount_cents: 9590,
+        trial_days: 14,
+        tagline: "Server-priced access.",
+        features: ["Auto-repair workspace"],
+        limits: { workspace: "Auto repair" },
+        support: "Contact support.",
+        featured: false,
+        sort_order: 10,
+      },
+    ]);
+
+    expect(plans[0]).toMatchObject({
+      id: "base",
+      planId: "base",
+      currency: "USD",
+      monthlyPlanId: "base",
+      annualPlanId: "base",
+      cancellationTerms: "Manage cancellation in billing settings.",
     });
   });
 
