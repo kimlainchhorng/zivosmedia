@@ -318,35 +318,35 @@ export default defineConfig(({ mode }) => ({
     alias: [
       {
         find: "lucide-react/dist/esm/icons/facebook",
-        replacement: path.resolve(__dirname, "./src/lib/icons/facebook.tsx"),
+        replacement: path.resolve(import.meta.dirname, "./src/lib/icons/facebook.tsx"),
       },
       {
         find: "lucide-react/dist/esm/icons/instagram",
-        replacement: path.resolve(__dirname, "./src/lib/icons/instagram.tsx"),
+        replacement: path.resolve(import.meta.dirname, "./src/lib/icons/instagram.tsx"),
       },
       {
         find: "lucide-react/dist/esm/icons/linkedin",
-        replacement: path.resolve(__dirname, "./src/lib/icons/linkedin.tsx"),
+        replacement: path.resolve(import.meta.dirname, "./src/lib/icons/linkedin.tsx"),
       },
       {
         find: "lucide-react/dist/esm/icons/twitter",
-        replacement: path.resolve(__dirname, "./src/lib/icons/twitter.tsx"),
+        replacement: path.resolve(import.meta.dirname, "./src/lib/icons/twitter.tsx"),
       },
       {
         find: "lucide-react/dist/esm/icons/youtube",
-        replacement: path.resolve(__dirname, "./src/lib/icons/youtube.tsx"),
+        replacement: path.resolve(import.meta.dirname, "./src/lib/icons/youtube.tsx"),
       },
       {
         find: /^lucide-react$/,
-        replacement: path.resolve(__dirname, "./src/lib/lucide-react.ts"),
+        replacement: path.resolve(import.meta.dirname, "./src/lib/lucide-react.ts"),
       },
       {
         find: "@",
-        replacement: path.resolve(__dirname, "./src"),
+        replacement: path.resolve(import.meta.dirname, "./src"),
       },
       {
         find: "@radix-ui/react-slot",
-        replacement: path.resolve(__dirname, "./node_modules/@radix-ui/react-slot"),
+        replacement: path.resolve(import.meta.dirname, "./node_modules/@radix-ui/react-slot"),
       },
       // React 19.2 re-invokes identity-changing callback refs on every commit,
       // so Radix PopperAnchor's setState-in-ref (onAnchorChange) loops forever
@@ -356,14 +356,14 @@ export default defineConfig(({ mode }) => ({
       // the loop app-wide. Keep in sync with @radix-ui/react-compose-refs' API.
       {
         find: /^@radix-ui\/react-compose-refs$/,
-        replacement: path.resolve(__dirname, "./src/lib/radix-compose-refs-shim.ts"),
+        replacement: path.resolve(import.meta.dirname, "./src/lib/radix-compose-refs-shim.ts"),
       },
       // React 19 hoists <title>/<meta>/<link> natively. react-helmet-async
       // collides with that hoisting, causing NotFoundError on commit/unmount
       // (App failed to start crash on iOS WKWebView in particular).
       {
         find: "react-helmet-async",
-        replacement: path.resolve(__dirname, "./src/lib/react-helmet-shim.tsx"),
+        replacement: path.resolve(import.meta.dirname, "./src/lib/react-helmet-shim.tsx"),
       },
     ],
     // Prevent duplicate React copies (fixes "Cannot read properties of null (reading 'useEffect')")

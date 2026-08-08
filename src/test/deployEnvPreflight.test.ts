@@ -140,6 +140,7 @@ describe("deploy env preflight", () => {
         VITE_SUPABASE_URL: mediaSupabaseUrl,
         VITE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_fake`,
         VITE_SUPABASE_PROJECT_ID: mediaProjectId,
+        VITE_ZIVO_RIDE_APP_URL: "https://ride.zivosmedia.com",
         VITE_ZIVO_SOFTWARE_SUPABASE_URL: "https://ydxztoresbdeoeijhxww.supabase.co",
         VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: `sb_${"publishable"}_software_fake`,
       },

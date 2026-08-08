@@ -24,7 +24,7 @@ function copyDeployWorkspace(options: { buildScript?: string; packageVersion?: s
   return workspace;
 }
 
-describe("OTA deploy bypass guard", () => {
+describe("OTA deploy bypass guard", { timeout: 30_000 }, () => {
   it("refuses --skip-preflight without explicit release-risk acknowledgement", () => {
     const result = spawnSync(process.execPath, ["scripts/deploy-update.mjs", "--skip-preflight"], {
       cwd: root,

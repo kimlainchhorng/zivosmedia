@@ -7,10 +7,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: [path.resolve(__dirname, "./src/test/setup.ts")],
+    setupFiles: [path.resolve(import.meta.dirname, "./src/test/setup.ts")],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: { "@": path.resolve(import.meta.dirname, "./src") },
   },
 });

@@ -62,7 +62,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.changes.outputs.relevant == 'true'
-        run: npm ci --no-audit --no-fund && npm install react-dom@19.2.7 --save-exact --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Verify ZIVO Ride production boundary
         if: steps.changes.outputs.relevant == 'true'
