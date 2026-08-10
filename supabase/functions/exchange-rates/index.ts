@@ -9,7 +9,7 @@ const STATIC_RATES: Record<string, number> = {
   USD: 1,
   EUR: 0.92,
   GBP: 0.79,
-  KHR: 4100,
+  KHR: 4000,
   THB: 35.5,
   JPY: 155,
   AUD: 1.55,

@@ -318,7 +318,7 @@ export default function EatsLanding() {
     try { return (localStorage.getItem(CURRENCY_KEY) as "USD" | "KHR") || "USD"; } catch { return "USD"; }
   });
   useEffect(() => { try { localStorage.setItem(CURRENCY_KEY, currency); } catch {} }, [currency]);
-  const KHR_RATE = 4100;
+  const KHR_RATE = 4000;
   const fmtPrice = (usd: number) => currency === "USD"
     ? `$${usd.toFixed(2)}`
     : `៛${Math.round(usd * KHR_RATE).toLocaleString()}`;

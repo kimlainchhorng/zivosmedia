@@ -25,7 +25,7 @@ const currencies = [
 
 const FALLBACK_RATES: Record<string, number> = {
   USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149.50, AUD: 1.53, CAD: 1.36,
-  CHF: 0.88, CNY: 7.24, MXN: 17.15, INR: 83.12, KHR: 4100, SGD: 1.35,
+  CHF: 0.88, CNY: 7.24, MXN: 17.15, INR: 83.12, KHR: 4000, SGD: 1.35,
   THB: 36.1, VND: 25000, KRW: 1340,
 };
 

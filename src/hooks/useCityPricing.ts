@@ -43,7 +43,7 @@ const DB_TO_VEHICLE_ID: Record<string, string> = {
 // Cambodia cities where pricing is stored in KHR (Riel)
 const KHR_CITIES = ["phnom penh", "siem reap", "sihanoukville", "battambang", "kampong cham", "poipet", "kampot", "takeo", "svay rieng", "prey veng", "pursat", "kratie", "koh kong", "stung treng", "ratanakiri", "mondulkiri", "pailin", "kep", "banteay meanchey", "kandal", "kampong chhnang", "kampong speu", "kampong thom", "preah vihear", "oddar meanchey", "tboung khmum"];
 // One ecosystem rate. This was a local 4062.5 while every other ZIVO app used
-// 4100, so the USD charged did not represent the Riel price an operator set.
+// 4000, so the USD charged did not represent the Riel price an operator set.
 const KHR_RATE = KHR_PER_USD;
 
 /** Check if a city stores pricing in KHR */

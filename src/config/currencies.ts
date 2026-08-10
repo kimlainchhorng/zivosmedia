@@ -84,7 +84,7 @@ export const FALLBACK_RATES: Record<string, number> = {
   KRW: 1320.0,
   SGD: 1.34,
   THB: 35.5,
-  KHR: 4100.0,
+  KHR: 4000.0,
   CNY: 7.24,
   INR: 83.5,
   MXN: 17.15,

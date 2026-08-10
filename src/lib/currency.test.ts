@@ -140,7 +140,7 @@ describe("KHR_PER_USD (ZIVO Cambodia pricing rate)", () => {
     // Zivo-Admin/scripts/check-ride-ecosystem-contracts.mjs asserts this
     // equals the rider, driver, and admin apps. This test is the local half:
     // it fails here before anyone has to run the cross-repo gate.
-    expect(KHR_PER_USD).toBe(4100);
+    expect(KHR_PER_USD).toBe(4000);
   });
 
   it("round-trips an operator's Riel price back to itself", () => {
