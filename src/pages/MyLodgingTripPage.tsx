@@ -35,6 +35,7 @@ import { LodgingReviewSheet } from "@/components/reviews/LodgingReviewSheet";
 import { ReviewsList } from "@/components/reviews/ReviewsList";
 import { ReviewsSummary } from "@/components/reviews/ReviewsSummary";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import {
   getLodgingTripStateCopy,
   humanizeLodgingStatus,
@@ -216,20 +217,24 @@ export default function MyLodgingTripPage() {
 
   if (isLoading) {
     return (
-      <div className="container max-w-3xl mx-auto p-4 space-y-4 safe-area-top">
-        <Skeleton className="h-48 w-full rounded-2xl" />
-        <Skeleton className="h-32 w-full rounded-2xl" />
-      </div>
+      <TravelPageFrame>
+        <div className="container max-w-3xl mx-auto p-4 space-y-4 safe-area-top">
+          <Skeleton className="h-48 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+        </div>
+      </TravelPageFrame>
     );
   }
 
   if (!reservation || !visibleReservation) {
     return (
-      <div className="container max-w-3xl mx-auto p-8 text-center safe-area-top">
-        <h1 className="text-2xl font-bold mb-2">Reservation not found or unavailable</h1>
-        <p className="text-muted-foreground mb-4">This reservation may belong to another account, be unavailable under privacy rules, or no longer exist.</p>
-        <Button asChild><Link to="/my-trips">Back to my trips</Link></Button>
-      </div>
+      <TravelPageFrame>
+        <div className="container max-w-3xl mx-auto p-8 text-center safe-area-top">
+          <h1 className="text-2xl font-bold mb-2">Reservation not found or unavailable</h1>
+          <p className="text-muted-foreground mb-4">This reservation may belong to another account, be unavailable under privacy rules, or no longer exist.</p>
+          <Button asChild><Link to="/my-trips">Back to my trips</Link></Button>
+        </div>
+      </TravelPageFrame>
     );
   }
 
@@ -257,7 +262,8 @@ export default function MyLodgingTripPage() {
   const canDispute = reservationStatus === "cancelled" || String(paymentStatus || "").includes("refund") || paymentStatus === "cancelled_no_refund";
 
   return (
-    <div className="container max-w-3xl mx-auto p-4 space-y-4 pb-24 safe-area-top">
+    <TravelPageFrame>
+      <div className="container max-w-3xl mx-auto p-4 space-y-4 pb-24 safe-area-top">
       <div className="flex items-center justify-between gap-3">
         <Link to="/my-trips" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> All trips
@@ -525,6 +531,7 @@ export default function MyLodgingTripPage() {
         guestName={visibleReservation.guest_name}
         propertyName={store?.name || "Your stay"}
       />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

@@ -210,38 +210,37 @@ function RestaurantCard({
       transition={{ delay }}
       className="relative rounded-2xl overflow-hidden border border-border/40 bg-card shadow-sm"
     >
-      <button type="button"
-        onClick={() => navigate(`/eats/restaurant/${r.id}`)}
-        className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
-      >
-        <div className="relative aspect-[16/10] overflow-hidden">
-          <img src={cover} alt={r.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
-          <PartnerBadge size="xs" className="absolute top-2 left-2 shadow-sm" />
-          <button type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onUnfavorite();
-            }}
-            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/55 backdrop-blur flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-            aria-label="Remove from saved"
-          >
-            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-          </button>
-          {r.rating ? (
-            <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/55 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-white">
-              <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-              {r.rating.toFixed(1)}
-            </div>
-          ) : null}
-        </div>
-        <div className="p-3">
-          <div className="text-sm font-bold text-foreground truncate">{r.name}</div>
-          <div className="text-[11px] text-muted-foreground truncate">
-            {[r.cuisine_type, r.city].filter(Boolean).join(" · ")}
+      <div className="relative">
+        <button type="button"
+          onClick={() => navigate(`/eats/restaurant/${r.id}`)}
+          className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
+        >
+          <div className="relative aspect-[16/10] overflow-hidden">
+            <img src={cover} alt={r.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+            <PartnerBadge size="xs" className="absolute top-2 left-2 shadow-sm" />
+            {r.rating ? (
+              <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/55 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-white">
+                <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                {r.rating.toFixed(1)}
+              </div>
+            ) : null}
           </div>
-        </div>
-      </button>
+          <div className="p-3">
+            <div className="text-sm font-bold text-foreground truncate">{r.name}</div>
+            <div className="text-[11px] text-muted-foreground truncate">
+              {[r.cuisine_type, r.city].filter(Boolean).join(" · ")}
+            </div>
+          </div>
+        </button>
+        <button type="button"
+          onClick={onUnfavorite}
+          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-black/55 backdrop-blur flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          aria-label="Remove from saved"
+        >
+          <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+        </button>
+      </div>
       <div className="px-3 pb-3 grid grid-cols-3 gap-1.5">
         <Button
           size="sm"
@@ -294,39 +293,38 @@ function HotelCard({
       transition={{ delay }}
       className="relative rounded-2xl overflow-hidden border border-border/40 bg-card shadow-sm"
     >
-      <button type="button"
-        onClick={() => navigate(`/hotels?hotelId=${h.id}`)}
-        className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
-      >
-        <div className="relative aspect-[16/10] overflow-hidden">
-          <img src={cover} alt={h.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
-          <PartnerBadge size="xs" className="absolute top-2 left-2 shadow-sm" />
-          <button type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onUnfavorite();
-            }}
-            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/55 backdrop-blur flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-            aria-label="Remove from saved"
-          >
-            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-          </button>
-          {h.rating ? (
-            <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/55 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-white">
-              <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-              {h.rating.toFixed(1)}
-            </div>
-          ) : null}
-        </div>
-        <div className="p-3">
-          <div className="text-sm font-bold text-foreground truncate">{h.name}</div>
-          <div className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
-            <MapPin className="w-3 h-3" />
-            {h.city ?? "—"}
+      <div className="relative">
+        <button type="button"
+          onClick={() => navigate(`/hotels?hotelId=${h.id}`)}
+          className="block w-full text-left active:scale-[0.99] transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
+        >
+          <div className="relative aspect-[16/10] overflow-hidden">
+            <img src={cover} alt={h.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+            <PartnerBadge size="xs" className="absolute top-2 left-2 shadow-sm" />
+            {h.rating ? (
+              <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/55 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-white">
+                <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                {h.rating.toFixed(1)}
+              </div>
+            ) : null}
           </div>
-        </div>
-      </button>
+          <div className="p-3">
+            <div className="text-sm font-bold text-foreground truncate">{h.name}</div>
+            <div className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {h.city ?? "—"}
+            </div>
+          </div>
+        </button>
+        <button type="button"
+          onClick={onUnfavorite}
+          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-black/55 backdrop-blur flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          aria-label="Remove from saved"
+        >
+          <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+        </button>
+      </div>
       <div className="px-3 pb-3 grid grid-cols-2 gap-1.5">
         <Button
           size="sm"

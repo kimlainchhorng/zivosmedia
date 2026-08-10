@@ -18,6 +18,197 @@ interface VEvent {
   summary?: string;
 }
 
+
+const MAX_ICAL_URL_LENGTH = 2_048;
+const MAX_ICAL_BYTES = 1_000_000;
+const MAX_ICAL_EVENTS = 500;
+const MAX_EVENT_DAYS = 366;
+const MAX_IMPORTED_DAYS = 5_000;
+const MAX_REDIRECTS = 3;
+const CALENDAR_FETCH_TIMEOUT_MS = 10_000;
+const DAY_MS = 24 * 60 * 60 * 1_000;
+
+function normalizedHostname(hostname: string): string {
+  return hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "");
+}
+
+function isBlockedIpAddress(value: string): boolean {
+  const hostname = normalizedHostname(value);
+  const ipv4 = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipv4) {
+    const octets = ipv4.slice(1).map(Number);
+    if (
+      octets.some(
+        (octet) => !Number.isInteger(octet) || octet < 0 || octet > 255,
+      )
+    )
+      return true;
+    const [first, second] = octets;
+    return (
+      first === 0 ||
+      first === 10 ||
+      first === 127 ||
+      (first === 100 && second >= 64 && second <= 127) ||
+      (first === 169 && second === 254) ||
+      (first === 172 && second >= 16 && second <= 31) ||
+      (first === 192 && second === 168) ||
+      (first === 198 && (second === 18 || second === 19)) ||
+      first >= 224
+    );
+  }
+
+  if (!hostname.includes(":")) return false;
+  if (hostname === "::" || hostname === "::1" || hostname.startsWith("::ffff:"))
+    return true;
+  const firstHextet = Number.parseInt(hostname.split(":")[0] || "0", 16);
+  return (
+    firstHextet === 0 ||
+    firstHextet === 0xfc ||
+    firstHextet === 0xfd ||
+    (firstHextet >= 0xfe80 && firstHextet <= 0xfebf) ||
+    firstHextet >= 0xff00
+  );
+}
+
+function isIpLiteral(hostname: string): boolean {
+  const normalized = normalizedHostname(hostname);
+  return /^\d+\.\d+\.\d+\.\d+$/.test(normalized) || normalized.includes(":");
+}
+
+function isBlockedHostname(hostname: string): boolean {
+  const normalized = normalizedHostname(hostname);
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized.endsWith(".local") ||
+    normalized.endsWith(".internal") ||
+    normalized.endsWith(".home.arpa") ||
+    normalized === "metadata.google" ||
+    normalized === "metadata.google.internal" ||
+    normalized === "instance-data.ec2.internal" ||
+    isBlockedIpAddress(normalized)
+  );
+}
+
+async function validateCalendarUrl(value: string): Promise<URL> {
+  if (!value || value.length > MAX_ICAL_URL_LENGTH) {
+    throw new Error("Calendar URL is invalid");
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error("Calendar URL is invalid");
+  }
+
+  const hostname = normalizedHostname(parsed.hostname);
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.port ||
+    parsed.username ||
+    parsed.password ||
+    isBlockedHostname(hostname)
+  ) {
+    throw new Error("Calendar destination is not allowed");
+  }
+
+  if (isIpLiteral(hostname)) return parsed;
+
+  // Resolve every address before connecting so private/link-local DNS answers
+  // cannot be used as an iCal egress target. Fail closed if DNS is unavailable.
+  const [ipv4, ipv6] = await Promise.all([
+    Deno.resolveDns(hostname, "A").catch(() => [] as string[]),
+    Deno.resolveDns(hostname, "AAAA").catch(() => [] as string[]),
+  ]);
+  const addresses = [...ipv4, ...ipv6];
+  if (!addresses.length || addresses.some(isBlockedIpAddress)) {
+    throw new Error("Calendar destination is not allowed");
+  }
+
+  return parsed;
+}
+
+async function fetchCalendarText(value: string): Promise<string> {
+  let target = await validateCalendarUrl(value);
+
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      CALENDAR_FETCH_TIMEOUT_MS,
+    );
+    let response: Response;
+    try {
+      response = await fetch(target.toString(), {
+        redirect: "manual",
+        signal: controller.signal,
+      });
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location || hop === MAX_REDIRECTS) {
+          throw new Error("Too many or invalid calendar redirects");
+        }
+        target = await validateCalendarUrl(
+          new URL(location, target).toString(),
+        );
+        continue;
+      }
+
+      if (!response.ok)
+        throw new Error(`Calendar fetch failed (${response.status})`);
+
+      const declaredLengthHeader = response.headers.get("content-length");
+      const declaredLength =
+        declaredLengthHeader === null ? 0 : Number(declaredLengthHeader);
+      if (
+        declaredLengthHeader !== null &&
+        (!Number.isFinite(declaredLength) ||
+          declaredLength < 0 ||
+          declaredLength > MAX_ICAL_BYTES)
+      ) {
+        throw new Error("Calendar response too large");
+      }
+
+      if (!response.body) throw new Error("Calendar response is empty");
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      try {
+        while (true) {
+          const { done, value: chunk } = await reader.read();
+          if (done) break;
+          if (!chunk) continue;
+          total += chunk.byteLength;
+          if (total > MAX_ICAL_BYTES) {
+            await reader.cancel("calendar_too_large");
+            throw new Error("Calendar response too large");
+          }
+          chunks.push(chunk);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      const bytes = new Uint8Array(total);
+      let offset = 0;
+      for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      return new TextDecoder().decode(bytes);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw new Error("Too many or invalid calendar redirects");
+}
+
 function parseICal(text: string): VEvent[] {
   // Unfold lines (RFC 5545: lines starting with space/tab continue previous)
   const unfolded = text.replace(/\r?\n[ \t]/g, "");
@@ -33,6 +224,7 @@ function parseICal(text: string): VEvent[] {
     }
     if (line === "END:VEVENT") {
       if (cur && cur.uid && cur.start && cur.end) {
+        if (events.length >= MAX_ICAL_EVENTS) throw new Error("Calendar contains too many events");
         events.push(cur as VEvent);
       }
       cur = null;
@@ -86,17 +278,25 @@ async function syncConnection(
     return { id: conn.id, ok: false, events: 0, error: "No import URL" };
   }
   try {
-    const resp = await fetch(conn.ical_import_url, { redirect: "follow" });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const text = await resp.text();
+    const text = await fetchCalendarText(conn.ical_import_url);
     const events = parseICal(text);
 
     let written = 0;
+    let plannedDays = 0;
     for (const ev of events) {
       if (!ev.start || !ev.end) continue;
       // Expand range into per-day rows; check_out is exclusive in iCal
       const start = new Date(ev.start + "T00:00:00Z");
       const end = new Date(ev.end + "T00:00:00Z");
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+      const dayCount = (endMs - startMs) / DAY_MS;
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs) ||
+          !Number.isInteger(dayCount) || dayCount < 1 || dayCount > MAX_EVENT_DAYS) {
+        throw new Error("Calendar event range is invalid or too large");
+      }
+      plannedDays += dayCount;
+      if (plannedDays > MAX_IMPORTED_DAYS) throw new Error("Calendar import exceeds write limit");
       for (let d = new Date(start); d < end; d.setUTCDate(d.getUTCDate() + 1)) {
         const blockDate = d.toISOString().slice(0, 10);
         const { error } = await admin.from("lodge_room_blocks").upsert(

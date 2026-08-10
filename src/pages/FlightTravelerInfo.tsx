@@ -35,6 +35,7 @@ import { FLIGHT_CONSENT, FLIGHT_DISCLAIMERS } from "@/config/flightCompliance";
 import { cn } from "@/lib/utils";
 import { completeZivoAiChat } from "@/lib/zivoAiChat";
 import DuffelSeatPicker from "@/components/flight/DuffelSeatPicker";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 import { FlightSummaryCompact } from "@/components/flight/traveler/FlightSummaryCompact";
 import {
@@ -1188,7 +1189,7 @@ const FlightTravelerInfo = () => {
 
   if (isMobile) {
     return (
-      <>
+      <TravelPageFrame>
         <SEOHead title="Traveler Details – ZIVO Flights" description="Enter passenger information for your flight booking." />
         <AppLayout hideHeader hideNav>
           <div className="relative overflow-hidden min-h-[100dvh]">
@@ -1209,12 +1210,13 @@ const FlightTravelerInfo = () => {
           </div>
         </AppLayout>
         {stickyCTA}
-      </>
+      </TravelPageFrame>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background relative overflow-hidden flex flex-col">
+    <TravelPageFrame>
+      <div className="min-h-[100dvh] bg-background relative overflow-hidden flex flex-col">
       <SEOHead title="Traveler Details – ZIVO Flights" description="Enter passenger information for your flight booking." />
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
@@ -1232,7 +1234,8 @@ const FlightTravelerInfo = () => {
       </main>
       {stickyCTA}
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 };
 

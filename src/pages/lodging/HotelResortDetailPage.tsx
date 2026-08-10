@@ -55,6 +55,7 @@ import Settings from "lucide-react/dist/esm/icons/settings";
 import Users from "lucide-react/dist/esm/icons/users";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
@@ -64,6 +65,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import { toast } from "sonner";
 
 interface StoreRow {
@@ -81,6 +83,34 @@ interface StoreRow {
   latitude?: number | null;
   longitude?: number | null;
 }
+
+const HOTEL_FAVORITES_KEY = "zivo:hotels:favorites";
+const HOTEL_RECENTLY_VIEWED_KEY = "zivo:hotels:recently-viewed";
+
+const hotelStorageKey = (baseKey: string, userId: string | null): string | null =>
+  userId ? `${baseKey}:${userId}` : null;
+
+const readHotelFavoriteIds = (userId: string | null): string[] => {
+  const key = hotelStorageKey(HOTEL_FAVORITES_KEY, userId);
+  if (!key || typeof window === "undefined") return [];
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string" && value.length > 0).slice(0, 100)
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeHotelFavoriteIds = (userId: string | null, ids: string[]) => {
+  const key = hotelStorageKey(HOTEL_FAVORITES_KEY, userId);
+  if (!key || typeof window === "undefined") return;
+  try {
+    if (ids.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(ids.slice(0, 100)));
+  } catch {}
+};
 
 const AMENITY_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   wifi: Wifi,
@@ -260,6 +290,8 @@ interface PromoInfo {
 export default function HotelResortDetailPage() {
   const { storeId = "" } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const { data: ownerStore } = useOwnerStoreProfile();
   const isOwner = ownerStore?.id === storeId;
   const { format: formatCurrency } = useCurrency();
@@ -351,22 +383,21 @@ export default function HotelResortDetailPage() {
   }, [lightboxIdx, visibleGalleryImages.length]);
   const activeLightboxPhoto = visibleGalleryImages[lightboxIdx] || visibleGalleryImages[0] || "";
   const heroSentinelRef = useRef<HTMLDivElement | null>(null);
-  const [isFavorite, setIsFavorite] = useState<boolean>(() => {
-    if (!storeId) return false;
-    try {
-      const set = new Set(JSON.parse(localStorage.getItem("hotel_faves") || "[]") as string[]);
-      return set.has(storeId);
-    } catch { return false; }
-  });
+  const [favoriteState, setFavoriteState] = useState<{ userId: string | null; items: string[] }>(() => ({
+    userId,
+    items: readHotelFavoriteIds(userId),
+  }));
+  const favoriteIds = favoriteState.userId === userId ? favoriteState.items : readHotelFavoriteIds(userId);
+  const isFavorite = !!storeId && favoriteIds.includes(storeId);
   const toggleFavorite = () => {
-    setIsFavorite((prev) => {
-      const next = !prev;
-      try {
-        const set = new Set(JSON.parse(localStorage.getItem("hotel_faves") || "[]") as string[]);
-        if (next) set.add(storeId); else set.delete(storeId);
-        localStorage.setItem("hotel_faves", JSON.stringify([...set]));
-      } catch {}
-      return next;
+    if (!userId || !storeId) return;
+    setFavoriteState((previous) => {
+      const current = previous.userId === userId ? previous.items : readHotelFavoriteIds(userId);
+      const next = current.includes(storeId)
+        ? current.filter((id) => id !== storeId)
+        : [...current, storeId].slice(-100);
+      writeHotelFavoriteIds(userId, next);
+      return { userId, items: next };
     });
   };
 
@@ -624,9 +655,9 @@ export default function HotelResortDetailPage() {
   // can surface it. Only persist once we have a name (avoids storing during
   // the initial loading phase) and dedupe by id with newest-first ordering.
   useEffect(() => {
-    if (!storeId || !store?.name) return;
+    const key = hotelStorageKey(HOTEL_RECENTLY_VIEWED_KEY, userId);
+    if (!storeId || !store?.name || !key) return;
     try {
-      const KEY = "hotel_recently_viewed";
       const MAX = 12;
       const entry = {
         id: storeId,
@@ -637,14 +668,20 @@ export default function HotelResortDetailPage() {
         banner_url: store.banner_url ?? null,
         viewed_at: Date.now(),
       };
-      const raw = localStorage.getItem(KEY);
-      const list: any[] = raw ? JSON.parse(raw) : [];
+      const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+      const list = Array.isArray(parsed)
+        ? parsed.filter((item): item is { id: string } => (
+          !!item
+          && typeof item === "object"
+          && typeof (item as { id?: unknown }).id === "string"
+        ))
+        : [];
       const next = [entry, ...list.filter((x) => x?.id !== storeId)].slice(0, MAX);
-      localStorage.setItem(KEY, JSON.stringify(next));
+      window.localStorage.setItem(key, JSON.stringify(next));
     } catch {
       // localStorage may be disabled — fail silently
     }
-  }, [storeId, store?.name, store?.category, store?.address, store?.logo_url, store?.banner_url]);
+  }, [storeId, userId, store?.name, store?.category, store?.address, store?.logo_url, store?.banner_url]);
 
   // Open the in-app "share to a ZIVO chat" sheet. Centralized so the hero
   // icon, desktop CTA, and any future share entrypoint all push the same
@@ -706,25 +743,30 @@ export default function HotelResortDetailPage() {
 
   if (!storeId) {
     return (
-      <div className="min-h-dvh flex items-center justify-center p-6 text-center">
-        <p className="text-sm text-muted-foreground">No property selected.</p>
-      </div>
+      <TravelPageFrame>
+        <div className="min-h-dvh flex items-center justify-center p-6 text-center">
+          <p className="text-sm text-muted-foreground">No property selected.</p>
+        </div>
+      </TravelPageFrame>
     );
   }
 
   if (!isLoading && !store) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center p-6 text-center gap-3">
-        <Hotel className="w-10 h-10 text-muted-foreground" />
-        <h1 className="text-lg font-semibold">Property not found</h1>
-        <p className="text-sm text-muted-foreground">This hotel or resort is no longer available.</p>
-        <Button variant="outline" onClick={() => navigate(-1)}>Go back</Button>
-      </div>
+      <TravelPageFrame>
+        <div className="min-h-dvh flex flex-col items-center justify-center p-6 text-center gap-3">
+          <Hotel className="w-10 h-10 text-muted-foreground" />
+          <h1 className="text-lg font-semibold">Property not found</h1>
+          <p className="text-sm text-muted-foreground">This hotel or resort is no longer available.</p>
+          <Button variant="outline" onClick={() => navigate(-1)}>Go back</Button>
+        </div>
+      </TravelPageFrame>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-background pb-32 md:pb-12">
+    <TravelPageFrame>
+      <div className="min-h-dvh bg-background pb-32 md:pb-12">
       {/* Sticky compact header (appears once the hero scrolls out) */}
       <div
         className={cn(
@@ -1979,7 +2021,8 @@ export default function HotelResortDetailPage() {
           </motion.div>
         </div>
       )}
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }
 

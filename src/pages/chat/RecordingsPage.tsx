@@ -132,7 +132,7 @@ export default function RecordingsPage() {
         .from(STORAGE_BUCKET)
         .createSignedUrl(rec.storage_path, SIGNED_URL_TTL, { download: true });
       if (error || !data?.signedUrl) throw error || new Error("no url");
-      window.open(data.signedUrl, "_blank");
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (e: any) {
       toast.error(e?.message || "Could not download");
     }

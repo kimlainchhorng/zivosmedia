@@ -34,6 +34,7 @@ import { useReservationLive } from "@/hooks/lodging/useReservationLive";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 import { cancellationLabel, cancellationDescription } from "@/lib/lodging/cancellationCopy";
 import { validateGuest } from "@/lib/lodging/guestSchema";
 import { createLodgeGuestReservation } from "@/lib/lodging/createLodgeReservation";
@@ -276,7 +277,8 @@ export function LodgingBookingDrawer({
       });
       if (fnErr) throw fnErr;
       if (sessionData?.url) {
-        window.open(sessionData.url, "_blank");
+        if (!isAllowedCheckoutUrl(sessionData.url)) throw new Error("Invalid Stripe checkout URL");
+        window.open(sessionData.url, "_blank", "noopener,noreferrer");
         toast.success("Opening secure Stripe checkout…");
       }
     } catch (payErr: any) {

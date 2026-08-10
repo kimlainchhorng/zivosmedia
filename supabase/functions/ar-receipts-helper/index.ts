@@ -83,7 +83,8 @@ Deno.serve(withSecurity("ar-receipts-helper", async (req, ctx) => {
     });
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // Resolve user id with multiple fallbacks: auth.getUser → getClaims → raw JWT decode.
+    // Resolve user id only from Supabase-verified authentication results.
+    // Never trust an unverified JWT payload for service-role writes.
     let userId: string | null = null;
     let authDetails: string | null = null;
     try {
@@ -97,16 +98,6 @@ Deno.serve(withSecurity("ar-receipts-helper", async (req, ctx) => {
       try {
         const { data: c } = await userClient.auth.getClaims(accessToken);
         if (c?.claims?.sub) userId = String(c.claims.sub);
-      } catch { /* ignore */ }
-    }
-    if (!userId) {
-      // Last-resort: decode JWT payload (token signature was already passed via header).
-      try {
-        const parts = accessToken.split(".");
-        if (parts.length >= 2) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-          if (payload?.sub) userId = String(payload.sub);
-        }
       } catch { /* ignore */ }
     }
     if (!userId) {

@@ -8,10 +8,8 @@
  *
  * SECURITY NOTE: body_html comes from an authenticated salon owner via RLS-
  * protected writes to salon_campaigns.body_html (which has a length cap).
- * We do basic tag stripping for the most dangerous elements (script, iframe,
- * object) — a salon owner setting a `<script>` in their own template only
- * harms their own clients' email clients, and modern clients strip those
- * tags anyway. But we lock down the obvious vectors for defense in depth.
+ * Email clients are not a sufficient security boundary, so the body is
+ * reduced to a small formatting/link allowlist before React renders it.
  */
 import * as React from 'npm:react@18.3.1'
 import {
@@ -27,17 +25,76 @@ interface Props {
   unsubscribe_url?: string
 }
 
-const stripDangerousTags = (html: string): string => {
-  // Lightweight scrub: remove <script>, <iframe>, <object>, <embed>, <link>,
-  // <meta>, on* event handler attributes, and javascript: URLs. Aimed at
-  // accidental owner mistakes, not malicious actors (the owner has full RLS
-  // write access to body_html already).
-  return html
-    .replace(/<\s*(script|iframe|object|embed|link|meta)\b[^>]*>[\s\S]*?<\/\s*\1\s*>/gi, '')
-    .replace(/<\s*(script|iframe|object|embed|link|meta)\b[^>]*\/?\s*>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, '')
-    .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, '')
-    .replace(/javascript\s*:/gi, '')
+const CAMPAIGN_TAGS = new Set([
+  'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'ul', 'ol', 'li',
+  'h1', 'h2', 'h3', 'blockquote', 'a',
+])
+const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
+
+const escapeHtml = (value: string): string => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+
+const decodeBasicEntities = (value: string): string => value
+  .replace(/&amp;/gi, '&')
+  .replace(/&quot;/gi, '"')
+  .replace(/&#39;|&apos;/gi, "'")
+  .replace(/&lt;/gi, '<')
+  .replace(/&gt;/gi, '>')
+
+const safeHref = (value: string): string | null => {
+  const decoded = decodeBasicEntities(value).trim()
+  if (!decoded || /[\u0000-\u001f\u007f]/.test(decoded)) return null
+  try {
+    const url = new URL(decoded)
+    return SAFE_LINK_PROTOCOLS.has(url.protocol) ? decoded : null
+  } catch {
+    return null
+  }
+}
+
+const readHref = (attributes: string): string | null => {
+  const match = attributes.match(/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i)
+  return safeHref(match?.[1] ?? match?.[2] ?? match?.[3] ?? '')
+}
+
+const sanitizeCampaignHtml = (html: string): string => {
+  const input = String(html ?? '').slice(0, 20000)
+  const tokenPattern = /<!--[\s\S]*?-->|<[^>]*>/g
+  let cursor = 0
+  let output = ''
+
+  for (const match of input.matchAll(tokenPattern)) {
+    const token = match[0]
+    const index = match.index ?? 0
+    output += escapeHtml(input.slice(cursor, index))
+    cursor = index + token.length
+
+    if (token.startsWith('<!--')) continue
+    const tag = token.match(/^<\s*(\/?)\s*([a-z][a-z0-9]*)\b([\s\S]*?)\/?>$/i)
+    if (!tag) continue
+
+    const closing = Boolean(tag[1])
+    const name = tag[2].toLowerCase()
+    if (!CAMPAIGN_TAGS.has(name)) continue
+    if (closing) {
+      output += `</${name}>`
+      continue
+    }
+    if (name === 'br') {
+      output += '<br />'
+    } else if (name === 'a') {
+      const href = readHref(tag[3])
+      if (href) output += `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">`
+    } else {
+      output += `<${name}>`
+    }
+  }
+
+  return output + escapeHtml(input.slice(cursor))
 }
 
 const Email = ({
@@ -46,7 +103,8 @@ const Email = ({
   salon_name = 'your salon',
   unsubscribe_url,
 }: Props) => {
-  const safeHtml = stripDangerousTags(body_html)
+  const safeHtml = sanitizeCampaignHtml(body_html)
+  const safeUnsubscribeUrl = unsubscribe_url ? safeHref(unsubscribe_url) : null
   return (
     <Html lang="en">
       <Head />
@@ -59,10 +117,10 @@ const Email = ({
           <Hr style={hr} />
           <Text style={meta}>
             You're receiving this because you opted in to marketing offers from {salon_name}.
-            {unsubscribe_url ? (
+            {safeUnsubscribeUrl ? (
               <>
                 {' '}
-                <a href={unsubscribe_url} style={metaLink}>Unsubscribe</a>.
+                <a href={safeUnsubscribeUrl} style={metaLink}>Unsubscribe</a>.
               </>
             ) : null}
           </Text>

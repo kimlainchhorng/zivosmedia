@@ -27,6 +27,11 @@ async function getAccessToken(): Promise<string> {
   return (await res.json()).access_token;
 }
 
+function toCents(value: unknown): number | null {
+  const cents = Number(value);
+  return Number.isInteger(cents) && cents >= 0 ? cents : null;
+}
+
 Deno.serve(withSecurity("capture-lodging-paypal-order", async (req, ctx) => {
   const cors = ctx.corsHeaders;
   if (req.method !== "POST") {
@@ -65,7 +70,7 @@ Deno.serve(withSecurity("capture-lodging-paypal-order", async (req, ctx) => {
 
     const { data: r } = await admin
       .from("lodge_reservations")
-      .select("id, guest_id, status, payment_status, total_cents, deposit_cents, paypal_capture_id")
+      .select("id, guest_id, status, payment_status, paid_cents, total_cents, deposit_cents, paypal_capture_id")
       .eq("paypal_order_id", order_id)
       .maybeSingle();
     if (!r) {
@@ -124,6 +129,15 @@ Deno.serve(withSecurity("capture-lodging-paypal-order", async (req, ctx) => {
       const cap = capJson.purchase_units?.[0]?.payments?.captures?.[0];
       captureId = cap?.id ?? null;
       paidCents = Math.round(parseFloat(cap?.amount?.value ?? "0") * 100);
+      const expectedCents = toCents((r as any).total_cents);
+      const alreadyPaidCents = toCents((r as any).paid_cents) ?? 0;
+      if (expectedCents == null || paidCents !== Math.max(0, expectedCents - alreadyPaidCents) ||
+          String(cap?.amount?.currency_code ?? "").toUpperCase() !== "USD" || !captureId) {
+        await admin.from("lodge_reservations").update({ last_payment_error: "PayPal amount or currency mismatch; payment requires review" }).eq("id", r.id);
+        return new Response(JSON.stringify({ error: "PayPal payment amount requires review" }), {
+          status: 409, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
       nextStatus = "paid";
     } else {
       const authRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders/${order_id}/authorize`, {
@@ -145,6 +159,15 @@ Deno.serve(withSecurity("capture-lodging-paypal-order", async (req, ctx) => {
       const auth = authJson.purchase_units?.[0]?.payments?.authorizations?.[0];
       captureId = auth?.id ?? null;
       paidCents = Math.round(parseFloat(auth?.amount?.value ?? "0") * 100);
+      const expectedCents = toCents((r as any).deposit_cents);
+      const alreadyPaidCents = toCents((r as any).paid_cents) ?? 0;
+      if (expectedCents == null || paidCents !== Math.max(0, expectedCents - alreadyPaidCents) ||
+          String(auth?.amount?.currency_code ?? "").toUpperCase() !== "USD" || !captureId) {
+        await admin.from("lodge_reservations").update({ last_payment_error: "PayPal amount or currency mismatch; payment requires review" }).eq("id", r.id);
+        return new Response(JSON.stringify({ error: "PayPal payment amount requires review" }), {
+          status: 409, headers: { ...cors, "Content-Type": "application/json" },
+        });
+      }
       nextStatus = "authorized";
     }
 

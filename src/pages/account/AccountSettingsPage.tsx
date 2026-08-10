@@ -30,6 +30,7 @@ import ProfileShareDialog from "@/components/account/ProfileShareDialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateExternalUrl } from "@/lib/urlSafety";
 import packageJson from "../../../package.json";
 
 type BadgeVariant = "ok" | "warn" | "info" | "danger";
@@ -494,7 +495,11 @@ export default function AccountSettingsPage() {
         options: { redirectTo: `${window.location.origin}/account/settings` },
       });
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) {
+        const safeUrl = validateExternalUrl(data.url);
+        if (!safeUrl) throw new Error("Invalid identity provider URL");
+        window.location.href = safeUrl;
+      }
     } catch (e: any) {
       toast.error(e?.message || "Could not link account");
     }

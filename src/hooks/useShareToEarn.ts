@@ -63,10 +63,10 @@ export function useShareToEarn() {
       const shareText = `Check out ${storeName} on ZIVO! 🔥 ${result.shareUrl}`;
 
       if (platform === "telegram") {
-        window.open(`https://t.me/share/url?url=${encodeURIComponent(result.shareUrl)}&text=${encodeURIComponent(`Check out ${storeName} on ZIVO! 🔥`)}`, "_blank");
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(result.shareUrl)}&text=${encodeURIComponent(`Check out ${storeName} on ZIVO! 🔥`)}`, "_blank", "noopener,noreferrer");
         toast.success("Shared to Telegram! You'll earn $1.00 if they make a purchase.");
       } else if (platform === "whatsapp") {
-        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
         toast.success("Shared to WhatsApp! You'll earn $1.00 if they make a purchase.");
       } else {
         await navigator.clipboard.writeText(result.shareUrl);

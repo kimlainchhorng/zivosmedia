@@ -48,7 +48,7 @@ export default function JobApplicantsPage() {
   const downloadResume = async (path: string) => {
     const { data, error } = await supabase.storage.from("job-resumes").createSignedUrl(path, 60);
     if (error || !data?.signedUrl) return toast.error("Could not get resume.");
-    window.open(data.signedUrl, "_blank");
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   if (loading) return <div className="p-6 text-center text-sm text-muted-foreground">Loading…</div>;

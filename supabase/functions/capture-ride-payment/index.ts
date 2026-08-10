@@ -13,6 +13,19 @@ Deno.serve(withSecurity("capture-ride-payment", async (req, ctx) => {
     });
   }
 
+  // The canonical Rider/Driver checkout owns payment capture. This legacy
+  // Media endpoint remains available only for an explicit server-side
+  // compatibility window; stale clients and direct calls otherwise stop here.
+  if (Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true") {
+    return new Response(JSON.stringify({
+      error: "Legacy Media ride payments are retired. Use the canonical ZIVO Ride checkout.",
+      code: "legacy_media_ride_payments_retired",
+    }), {
+      status: 410,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     // Auth
     const authHeader = req.headers.get("Authorization") ?? "";

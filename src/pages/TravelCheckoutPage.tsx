@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { usePromotionValidation } from "@/hooks/usePromotionValidation";
 import { Tag, X, CheckCircle2, Loader2 as PromoLoader } from "lucide-react";
 import SEOHead from "@/components/SEOHead";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const TravelCheckoutPage = () => {
   const navigate = useNavigate();
@@ -62,41 +63,47 @@ const TravelCheckoutPage = () => {
   // Show maintenance screen if travel service is paused
   if (maintenanceLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </TravelPageFrame>
     );
   }
 
   if (isInMaintenance) {
     return (
-      <MaintenanceScreen
-        serviceName="ZIVO Travel"
-        browseUrl="/hotels"
-        browseLabel="Browse Hotels"
-        ordersUrl="/account/bookings"
-        ordersLabel="View Past Bookings"
-        showBrowse
-        showOrders
-      />
+      <TravelPageFrame>
+        <MaintenanceScreen
+          serviceName="ZIVO Travel"
+          browseUrl="/hotels"
+          browseLabel="Browse Hotels"
+          ordersUrl="/account/bookings"
+          ordersLabel="View Past Bookings"
+          showBrowse
+          showOrders
+        />
+      </TravelPageFrame>
     );
   }
 
   // Redirect if cart is empty
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
-            <p className="text-muted-foreground mb-4">
-              Add hotels, activities, or transfers to your cart to checkout.
-            </p>
-            <Button onClick={() => navigate("/hotels")}>Browse Hotels</Button>
-          </CardContent>
-        </Card>
-      </div>
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Card className="max-w-md w-full mx-4">
+            <CardContent className="pt-6 text-center">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
+              <p className="text-muted-foreground mb-4">
+                Add hotels, activities, or transfers to your cart to checkout.
+              </p>
+              <Button onClick={() => navigate("/hotels")}>Browse Hotels</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </TravelPageFrame>
     );
   }
 
@@ -152,7 +159,8 @@ const TravelCheckoutPage = () => {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
       <SEOHead
         title="Travel Checkout – Secure Booking – ZIVO"
         description="Complete your travel booking securely. Review hotel accommodations, activities, and transfers with flexible payment options and instant confirmation."
@@ -439,7 +447,8 @@ const TravelCheckoutPage = () => {
           </div>
         </div>
       </motion.main>
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 };
 

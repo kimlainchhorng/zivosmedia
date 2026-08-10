@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isAllowedPayPalCheckoutUrl, isAllowedSquareCheckoutUrl } from "@/lib/urlSafety";
 import type { GroceryCartItem } from "@/hooks/useGroceryCart";
 import { GroceryPromoInput } from "@/components/grocery/GroceryPromoBanner";
 import GroceryInlinePaymentForm from "@/components/grocery/GroceryInlinePaymentForm";
@@ -135,7 +136,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
       if (userProfile.phone && !phone) setPhone(userProfile.phone);
       setProfileAutoFilled(true);
     }
-  }, [userProfile, profileAutoFilled]);
+  }, [userProfile, profileAutoFilled, name, phone]);
 
   // Auto-fill address from live GPS
   useEffect(() => {
@@ -151,7 +152,7 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
         })
         .catch(() => {});
     }
-  }, []);
+  }, [address, gpsAutoFilled, getCurrentLocation, reverseGeocode]);
   const [tip, setTip] = useState(3);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
@@ -455,6 +456,10 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
       if ((data as any)?.error) throw new Error((data as any).error);
       const redirect = provider === "paypal" ? (data as any).approve_url : (data as any).url;
       if (!redirect) throw new Error(`${provider} did not return a redirect URL`);
+      const validRedirect = provider === "paypal"
+        ? isAllowedPayPalCheckoutUrl(redirect)
+        : isAllowedSquareCheckoutUrl(redirect);
+      if (!validRedirect) throw new Error(`Invalid ${provider} checkout URL`);
       window.location.assign(redirect);
     } catch (err: any) {
       console.error(`[grocery] ${provider} order error:`, err);

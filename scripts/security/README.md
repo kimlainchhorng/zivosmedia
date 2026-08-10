@@ -29,7 +29,7 @@ Exits non-zero on detection. Add this to CI **before** any deploy step.
 
 ## security:audit
 
-Runs `npm audit --audit-level=high` against installed dependencies.
+Runs `npm audit --audit-level=moderate` against installed dependencies.
 
 ```bash
 npm run security:audit
@@ -43,7 +43,8 @@ npm run security:audit:fix
 
 ## security:scan
 
-Combined: dependency audit, general secret scan, and Supabase token-fragment scan in one command.
+Combined: dependency audit, general secret scan, Supabase token-fragment scan, and
+production CSP policy checks in one command.
 
 ```bash
 npm run security:scan
@@ -51,6 +52,17 @@ npm run security:scan:local
 ```
 
 Use `security:scan:local` for incident response or personal machine audits; it includes local-only env files and fails when those files still contain matching secrets.
+
+## check-csp.mjs
+
+Checks every production CSP emitter and fails if a policy permits executable
+`unsafe-inline` or `unsafe-eval`. Analytics consent loading and font activation
+run from the same-origin `/analytics-bootstrap.js`; `style-src 'unsafe-inline'`
+remains only for the app's critical and runtime-generated styles.
+
+```bash
+npm run security:check-csp
+```
 
 ## check-supabase-token-fragments.mjs
 

@@ -91,7 +91,7 @@ export async function isUserBlocked(userId: string | null): Promise<boolean> {
       console.error(JSON.stringify({
         level: 'error', msg: 'is_user_blocked_failed', error: String(error),
       }));
-      return false;
+      throw new Error('User blocklist unavailable');
     }
     const blocked = data === true;
     userBlocklistCache.set(userId, { blocked, expiresAt: now + CACHE_TTL_MS });
@@ -100,7 +100,7 @@ export async function isUserBlocked(userId: string | null): Promise<boolean> {
     console.error(JSON.stringify({
       level: 'error', msg: 'is_user_blocked_threw', error: String(e),
     }));
-    return false;
+    throw new Error('User blocklist unavailable');
   }
 }
 

@@ -91,6 +91,35 @@ type ServiceConfig = {
 
 const TRAVEL_THEME_COLOR = "#f8fbff";
 
+const formatDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const createDefaultTripDates = () => {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(start.getDate() + 14);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+
+  return {
+    today: formatDateInput(today),
+    start: formatDateInput(start),
+    end: formatDateInput(end),
+  };
+};
+
+const DEFAULT_TRIP_DATES = createDefaultTripDates();
+const DEFAULT_TRIP_LABEL = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+}).format(new Date(`${DEFAULT_TRIP_DATES.start}T12:00:00`));
+const DEFAULT_TRIP_REFERENCE = `Trip ZT-${DEFAULT_TRIP_DATES.start.replace(/-/g, "")}`;
+
 const services: ServiceConfig[] = [
   {
     id: "flight",
@@ -189,28 +218,28 @@ const popularSearches = [
     title: "New York to Paris",
     body: "Flights with flexible travel dates.",
     icon: Plane,
-    href: "/flights?from=New%20York%2C%20JFK&to=Paris%2C%20CDG&start=2026-07-10&end=2026-07-17&travelers=1",
+    href: `/flights?from=New%20York%2C%20JFK&to=Paris%2C%20CDG&start=${DEFAULT_TRIP_DATES.start}&end=${DEFAULT_TRIP_DATES.end}&travelers=1`,
     tone: "bg-sky-100 text-sky-700",
   },
   {
     title: "Santorini stays",
     body: "Hotels near the ocean view.",
     icon: Hotel,
-    href: "/hotels?city=Santorini&ci=2026-07-10&co=2026-07-17&adults=2",
+    href: `/hotels?city=Santorini&ci=${DEFAULT_TRIP_DATES.start}&co=${DEFAULT_TRIP_DATES.end}&adults=2`,
     tone: "bg-fuchsia-100 text-fuchsia-700",
   },
   {
     title: "LAX rental car",
     body: "Pickup and return at the airport.",
     icon: CarFront,
-    href: "/cars?city=Los%20Angeles&pickup_date=2026-07-10&return_date=2026-07-17",
+    href: `/cars?city=Los%20Angeles&pickup_date=${DEFAULT_TRIP_DATES.start}&return_date=${DEFAULT_TRIP_DATES.end}`,
     tone: "bg-emerald-100 text-emerald-700",
   },
   {
     title: "Bangkok to Chiang Mai",
     body: "Bus route with easy seat booking.",
     icon: Bus,
-    href: "/bus?from=Bangkok&to=Chiang%20Mai&date=2026-07-10",
+    href: `/bus?from=Bangkok&to=Chiang%20Mai&date=${DEFAULT_TRIP_DATES.start}`,
     tone: "bg-orange-100 text-orange-700",
   },
 ];
@@ -316,7 +345,7 @@ const tripStack = [
   {
     service: services[0],
     title: "JFK to Paris",
-    detail: "Round trip · Economy · Jul 10",
+    detail: `Round trip · Economy · ${DEFAULT_TRIP_LABEL}`,
     price: "$189",
     layer: "Air layer",
   },
@@ -348,10 +377,10 @@ const itineraryPreview = [
     service: services[0],
     title: "Air",
     route: "JFK -> Paris CDG",
-    detail: "Jul 10, round trip",
+    detail: `${DEFAULT_TRIP_LABEL}, round trip`,
     status: "Offer held",
     price: "$189",
-    href: "/flights?from=JFK&to=CDG&start=2026-07-10&end=2026-07-17&travelers=1",
+    href: `/flights?from=JFK&to=CDG&start=${DEFAULT_TRIP_DATES.start}&end=${DEFAULT_TRIP_DATES.end}&travelers=1`,
   },
   {
     service: services[1],
@@ -360,7 +389,7 @@ const itineraryPreview = [
     detail: "7 nights, flexible",
     status: "Rooms ready",
     price: "$518",
-    href: "/hotels?city=Paris&ci=2026-07-10&co=2026-07-17&adults=1",
+    href: `/hotels?city=Paris&ci=${DEFAULT_TRIP_DATES.start}&co=${DEFAULT_TRIP_DATES.end}&adults=1`,
   },
   {
     service: services[2],
@@ -369,7 +398,7 @@ const itineraryPreview = [
     detail: "EV sedan, insured",
     status: "Deposit ready",
     price: "$29/day",
-    href: "/cars?city=Paris&pickup_date=2026-07-10&return_date=2026-07-17",
+    href: `/cars?city=Paris&pickup_date=${DEFAULT_TRIP_DATES.start}&return_date=${DEFAULT_TRIP_DATES.end}`,
   },
   {
     service: services[3],
@@ -378,7 +407,7 @@ const itineraryPreview = [
     detail: "Seat hold, QR ticket",
     status: "Ticket ready",
     price: "$9",
-    href: "/bus?from=Phnom%20Penh&to=Siem%20Reap&date=2026-07-10",
+    href: `/bus?from=Phnom%20Penh&to=Siem%20Reap&date=${DEFAULT_TRIP_DATES.start}`,
   },
 ];
 
@@ -1413,7 +1442,7 @@ function PaymentPayoutFlow() {
               </div>
 
               <div className="mt-8 rounded-[1.7rem] border p-5" style={{ backgroundColor: "rgba(2,6,23,0.72)", borderColor: "rgba(255,255,255,0.12)" }}>
-                <p className="text-sm font-black uppercase tracking-wide" style={{ color: "#94a3b8" }}>Trip ZT-2026-0710</p>
+                <p className="text-sm font-black uppercase tracking-wide" style={{ color: "#94a3b8" }}>{DEFAULT_TRIP_REFERENCE}</p>
                 <h3 className="mt-2 text-4xl font-black leading-none" style={{ color: "#ffffff" }}>JFK + hotel + car + bus</h3>
                 <div className="mt-6 space-y-3">
                   {payoutLedgerRows.map((row) => (
@@ -1544,8 +1573,8 @@ export default function ZivoTravelHome() {
   const [index, setIndex] = useState(0);
   const [from, setFrom] = useState(services[0].fromValue);
   const [to, setTo] = useState(services[0].toValue);
-  const [dateStart, setDateStart] = useState("2026-07-10");
-  const [dateEnd, setDateEnd] = useState("2026-07-17");
+  const [dateStart, setDateStart] = useState(DEFAULT_TRIP_DATES.start);
+  const [dateEnd, setDateEnd] = useState(DEFAULT_TRIP_DATES.end);
   const [travelers, setTravelers] = useState("1");
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -1988,6 +2017,7 @@ export default function ZivoTravelHome() {
                       <input
                         type="date"
                         value={dateStart}
+                        min={DEFAULT_TRIP_DATES.today}
                         onChange={(event) => setDateStart(event.target.value)}
                         className="w-full bg-transparent text-sm font-bold text-white outline-none [color-scheme:dark]"
                       />
@@ -2017,6 +2047,7 @@ export default function ZivoTravelHome() {
                       <input
                         type="date"
                         value={dateEnd}
+                        min={dateStart || DEFAULT_TRIP_DATES.today}
                         onChange={(event) => setDateEnd(event.target.value)}
                         className="w-full bg-transparent text-sm font-bold text-white outline-none [color-scheme:dark]"
                       />

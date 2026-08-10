@@ -4,6 +4,7 @@ import { Bot as BotIcon, MessageCircle, Star, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { isAllowedCheckoutUrl, validateExternalUrl } from "@/lib/urlSafety";
 
 type PublicBot = {
   id: string;
@@ -42,8 +43,14 @@ export default function BotPublicProfilePage() {
       const row = Array.isArray(data) ? data[0] : data;
       if (!row) setNotFound(true);
       else setBot(row as PublicBot);
-      setApps((a ?? []) as App[]);
-      setPays((p ?? []) as Pay[]);
+      setApps(((a ?? []) as App[]).flatMap((app) => {
+        const safeUrl = validateExternalUrl(app.app_url);
+        return safeUrl ? [{ ...app, app_url: safeUrl }] : [];
+      }));
+      setPays(((p ?? []) as Pay[]).flatMap((pay) => {
+        const checkoutUrl = pay.checkout_url.trim();
+        return isAllowedCheckoutUrl(checkoutUrl) ? [{ ...pay, checkout_url: checkoutUrl }] : [];
+      }));
       setLoading(false);
     })();
   }, [username]);
@@ -61,6 +68,8 @@ export default function BotPublicProfilePage() {
       </div>
     );
   }
+
+  const avatarUrl = validateExternalUrl(bot.avatar_url);
 
   const startChat = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -86,8 +95,9 @@ export default function BotPublicProfilePage() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         <section className="rounded-2xl bg-card border border-border p-6 text-center">
           <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center overflow-hidden mb-3">
-            {bot.avatar_url
-	              ? <img src={bot.avatar_url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+
+            {avatarUrl
+	              ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
               : <BotIcon className="w-10 h-10 text-primary" />}
           </div>
           <div className="text-lg font-semibold flex items-center justify-center gap-1">

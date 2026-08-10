@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { getStorePublicPath } from "@/lib/storeLink";
 import { useSmartBack } from "@/lib/smartBack";
 import SEOHead from "@/components/SEOHead";
@@ -534,7 +535,23 @@ function collectStoreImageUrls(input: unknown): string[] {
   if (!input) return [];
   if (typeof input === "string") {
     const trimmed = input.trim();
-    return trimmed ? [trimmed] : [];
+    if (!trimmed) return [];
+
+    // Store/gallery media is data-driven. Only permit URLs that the browser
+    // will fetch as an image without executing a script or loading an opaque
+    // custom protocol. Relative paths are resolved against this app's origin.
+    try {
+      const parsed = new URL(trimmed, window.location.origin);
+      const isLocalDevelopmentHttp = import.meta.env.DEV && parsed.protocol === "http:";
+      const isSafeDataImage = /^data:image\/(?:png|jpe?g|gif|webp);base64,/i.test(trimmed);
+      if (parsed.protocol === "https:" || isLocalDevelopmentHttp || isSafeDataImage) {
+        return [trimmed];
+      }
+    } catch {
+      // Ignore malformed media values rather than handing them to an image
+      // element or the Google Maps marker implementation.
+    }
+    return [];
   }
   if (Array.isArray(input)) return input.flatMap((item) => collectStoreImageUrls(item));
   if (typeof input === "object") {
@@ -630,7 +647,7 @@ function navigateShoppingTrail(stops: StorePin[], origin: { lat: number; lng: nu
   const parts: string[] = [];
   if (origin) parts.push(`${origin.lat},${origin.lng}`);
   stops.forEach((s) => parts.push(`${s.latitude},${s.longitude}`));
-  window.open(`https://www.google.com/maps/dir/${parts.join("/")}`, "_blank");
+  window.open(`https://www.google.com/maps/dir/${parts.join("/")}`, "_blank", "noopener,noreferrer");
 }
 
 /** Returns minutes until closing if store closes within 60 min, otherwise null */
@@ -652,27 +669,71 @@ function getClosingSoonMinutes(hours: string | null): number | null {
   return diffMin > 0 && diffMin <= 60 ? Math.round(diffMin) : null;
 }
 
-const RECENT_STORES_KEY = "zivo:map:recent";
-const RECENT_SEARCHES_KEY = "zivo:map:searches";
-function saveRecentSearch(q: string) {
+const MAP_RECENT_STORES_KEY = "zivo:map:recent";
+const MAP_RECENT_SEARCHES_KEY = "zivo:map:searches";
+
+const mapStorageKey = (baseKey: string, userId: string | null): string | null =>
+  userId ? `${baseKey}:${userId}` : null;
+
+function readMapRecentList(baseKey: string, userId: string | null, maxItems: number): string[] {
+  const key = mapStorageKey(baseKey, userId);
+  if (!key || typeof window === "undefined") return [];
   try {
-    const arr: string[] = JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY) || "[]");
-    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify([q, ...arr.filter((x) => x !== q)].slice(0, 5)));
-  } catch { /* noop */ }
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set<string>();
+    return parsed.reduce<string[]>((items, value) => {
+      if (typeof value !== "string") return items;
+      const normalized = value.trim();
+      if (!normalized || seen.has(normalized) || items.length >= maxItems) return items;
+      seen.add(normalized);
+      items.push(normalized);
+      return items;
+    }, []);
+  } catch {
+    return [];
+  }
 }
-function getRecentSearches(): string[] {
-  try { return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY) || "[]"); }
-  catch { return []; }
-}
-function saveRecentStore(id: string) {
+
+function writeMapRecentList(baseKey: string, userId: string | null, items: string[], maxItems: number): string[] {
+  const cleaned = items.slice(0, maxItems);
+  const key = mapStorageKey(baseKey, userId);
+  if (!key || typeof window === "undefined") return cleaned;
   try {
-    const arr: string[] = JSON.parse(localStorage.getItem(RECENT_STORES_KEY) || "[]");
-    localStorage.setItem(RECENT_STORES_KEY, JSON.stringify([id, ...arr.filter((x) => x !== id)].slice(0, 8)));
+    if (cleaned.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(cleaned));
   } catch { /* noop */ }
+  return cleaned;
 }
-function getRecentStoreIds(): string[] {
-  try { return JSON.parse(localStorage.getItem(RECENT_STORES_KEY) || "[]"); }
-  catch { return []; }
+
+function saveRecentSearch(q: string, userId: string | null): string[] {
+  if (!userId) return [];
+  const current = readMapRecentList(MAP_RECENT_SEARCHES_KEY, userId, 5);
+  return writeMapRecentList(
+    MAP_RECENT_SEARCHES_KEY,
+    userId,
+    [q.trim(), ...current.filter((item) => item !== q.trim())],
+    5,
+  );
+}
+
+function getRecentSearches(userId: string | null): string[] {
+  return readMapRecentList(MAP_RECENT_SEARCHES_KEY, userId, 5);
+}
+
+function saveRecentStore(id: string, userId: string | null): string[] {
+  if (!userId) return [];
+  const current = readMapRecentList(MAP_RECENT_STORES_KEY, userId, 8);
+  return writeMapRecentList(
+    MAP_RECENT_STORES_KEY,
+    userId,
+    [id, ...current.filter((item) => item !== id)],
+    8,
+  );
+}
+
+function getRecentStoreIds(userId: string | null): string[] {
+  return readMapRecentList(MAP_RECENT_STORES_KEY, userId, 8);
 }
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
@@ -922,13 +983,30 @@ function createPhotoMarkerElement(
 
   const fallback = document.createElement("span");
   fallback.setAttribute("aria-hidden", "true");
-  fallback.innerHTML = `
-    <svg width="${selected ? 20 : 16}" height="${selected ? 20 : 16}" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 10h18l-1.5-6h-15L3 10Z" fill="#fff"/>
-      <path d="M5 10v10h14V10" fill="#fff"/>
-      <path d="M9 20v-6h6v6"/>
-      <path d="M3 10c1 2 4 2 5 0 1 2 4 2 5 0 1 2 4 2 5 0 1 2 4 2 5 0"/>
-    </svg>`;
+  const fallbackIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const fallbackAttributes = {
+    width: selected ? "20" : "16",
+    height: selected ? "20" : "16",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#0f172a",
+    "stroke-width": "2.2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  };
+  Object.entries(fallbackAttributes).forEach(([name, value]) => fallbackIcon.setAttribute(name, value));
+  const fallbackPaths: Array<[string, Record<string, string>]> = [
+    ["path", { d: "M3 10h18l-1.5-6h-15L3 10Z", fill: "#fff" }],
+    ["path", { d: "M5 10v10h14V10", fill: "#fff" }],
+    ["path", { d: "M9 20v-6h6v6" }],
+    ["path", { d: "M3 10c1 2 4 2 5 0 1 2 4 2 5 0 1 2 4 2 5 0 1 2 4 2 5 0" }],
+  ];
+  fallbackPaths.forEach(([tag, attrs]) => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.entries(attrs).forEach(([name, value]) => path.setAttribute(name, value));
+    fallbackIcon.appendChild(path);
+  });
+  fallback.appendChild(fallbackIcon);
   media.appendChild(fallback);
 
   const img = document.createElement("img");
@@ -1192,6 +1270,8 @@ function StoreLogo({ store, size = "md", className = "" }: { store: StorePin; si
 
 export default function StoreMapPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const mapUserId = user?.id ?? null;
   const smartBack = useSmartBack("/");
   const queryClient = useQueryClient();
   const [urlParams, setUrlParams] = useSearchParams();
@@ -1228,8 +1308,18 @@ export default function StoreMapPage() {
   const [dealsOnly, setDealsOnly] = useState(false);
   const [smartFilterActive, setSmartFilterActive] = useState(false);
   const [visitedStoreIds, setVisitedStoreIds] = useState<Set<string>>(new Set());
-  const [recentIds, setRecentIds] = useState<string[]>(() => getRecentStoreIds());
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => getRecentSearches());
+  const [recentIdsState, setRecentIdsState] = useState<{ userId: string | null; items: string[] }>(() => ({
+    userId: mapUserId,
+    items: getRecentStoreIds(mapUserId),
+  }));
+  const [recentSearchesState, setRecentSearchesState] = useState<{ userId: string | null; items: string[] }>(() => ({
+    userId: mapUserId,
+    items: getRecentSearches(mapUserId),
+  }));
+  const recentIds = recentIdsState.userId === mapUserId ? recentIdsState.items : getRecentStoreIds(mapUserId);
+  const recentSearches = recentSearchesState.userId === mapUserId
+    ? recentSearchesState.items
+    : getRecentSearches(mapUserId);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
   const [locationNoticeDismissed, setLocationNoticeDismissed] = useState(false);
@@ -1330,10 +1420,9 @@ export default function StoreMapPage() {
 
   /* Save recently viewed when a store is selected */
   useEffect(() => {
-    if (!selectedStoreId) return;
-    saveRecentStore(selectedStoreId);
-    setRecentIds(getRecentStoreIds());
-  }, [selectedStoreId]);
+    if (!selectedStoreId || !mapUserId) return;
+    setRecentIdsState({ userId: mapUserId, items: saveRecentStore(selectedStoreId, mapUserId) });
+  }, [mapUserId, selectedStoreId]);
 
   /* Persist filter prefs */
   useEffect(() => { localStorage.setItem("zivo:map:trending", trendingOnly ? "1" : "0"); }, [trendingOnly]);
@@ -2875,9 +2964,11 @@ export default function StoreMapPage() {
                           key={s.id}
                           className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors text-left"
                           onClick={() => {
-                            if (searchQuery.trim()) {
-                              saveRecentSearch(searchQuery.trim());
-                              setRecentSearches(getRecentSearches());
+                            if (searchQuery.trim() && mapUserId) {
+                              setRecentSearchesState({
+                                userId: mapUserId,
+                                items: saveRecentSearch(searchQuery.trim(), mapUserId),
+                              });
                             }
                             setSelectedStore(s);
                             setSearchOpen(false);

@@ -24,6 +24,7 @@ import Printer from "lucide-react/dist/esm/icons/printer";
 import FileText from "lucide-react/dist/esm/icons/file-text";
 import { toast } from "sonner";
 import { POINTS, COLORS, ICONS, type Status } from "@/lib/autorepair/inspectionPoints";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 export type EstimatePrefill = {
   vehicle_label: string;
@@ -144,18 +145,24 @@ export default function AutoRepairInspectionsSection({ storeId, onCreateEstimate
   const printInspection = (i: Inspection) => {
     const cl = (i.checklist || {}) as Record<string, Status>;
     const statusLabel = { good: "✅ Good", attention: "⚠️ Attention", urgent: "🔴 Urgent" };
-    const html = `<html><head><title>Inspection — ${i.vehicle_label || "Vehicle"}</title>
+    const vehicleLabel = escapeHtml(i.vehicle_label || "Vehicle");
+    const customerName = escapeHtml((i as any).customer_name || "");
+    const customerPhone = escapeHtml((i as any).customer_phone || "");
+    const technicianName = escapeHtml(i.technician_name || "");
+    const inspectionDate = escapeHtml(new Date(i.created_at).toLocaleDateString());
+    const summaryText = escapeHtml(i.summary || "");
+    const html = `<html><head><title>Inspection — ${vehicleLabel}</title>
     <style>body{font-family:sans-serif;padding:24px;color:#111}h1{font-size:18px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #ddd}th{font-size:11px;text-transform:uppercase;color:#666}.summary{margin-top:16px;padding:12px;background:#f5f5f5;border-radius:6px;font-size:13px}</style>
     </head><body>
     <h1>Digital Vehicle Inspection</h1>
-    <p><b>Vehicle:</b> ${i.vehicle_label || "—"}</p>
-    ${(i as any).customer_name ? `<p><b>Customer:</b> ${(i as any).customer_name}${(i as any).customer_phone ? ` · ${(i as any).customer_phone}` : ""}</p>` : ""}
-    ${i.technician_name ? `<p><b>Technician:</b> ${i.technician_name}</p>` : ""}
-    <p><b>Date:</b> ${new Date(i.created_at).toLocaleDateString()}</p>
+    <p><b>Vehicle:</b> ${vehicleLabel || "—"}</p>
+    ${customerName ? `<p><b>Customer:</b> ${customerName}${customerPhone ? ` · ${customerPhone}` : ""}</p>` : ""}
+    ${technicianName ? `<p><b>Technician:</b> ${technicianName}</p>` : ""}
+    <p><b>Date:</b> ${inspectionDate}</p>
     <table><tr><th>Inspection point</th><th>Status</th></tr>
     ${POINTS.map(p => `<tr><td>${p}</td><td>${statusLabel[cl[p] ?? "good"]}</td></tr>`).join("")}
     </table>
-    ${i.summary ? `<div class="summary"><b>Summary / Recommendations:</b><br>${i.summary}</div>` : ""}
+    ${summaryText ? `<div class="summary"><b>Summary / Recommendations:</b><br>${summaryText}</div>` : ""}
     </body></html>`;
     import("@/lib/native/printDocument").then(({ printOrShareHtml }) =>
       printOrShareHtml(html, `inspection-${i.vehicle_label || "vehicle"}.pdf`, "Inspection"),

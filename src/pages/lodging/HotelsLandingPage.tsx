@@ -36,6 +36,7 @@ const HotelConciergeSheet = lazy(() => import("@/components/lodging/HotelConcier
 const GOOGLE_MAPS_KEY: string =
   (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_GOOGLE_MAPS_API_KEY || "";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { LODGING_STORE_CATEGORIES, normalizeStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -69,6 +70,82 @@ interface DirectoryStore {
   longitude?: number | null;
   created_at?: string | null;
 }
+
+type RecentlyViewed = {
+  id: string;
+  name: string;
+  category: string | null;
+  address: string | null;
+  logo_url: string | null;
+  banner_url: string | null;
+  viewed_at: number;
+};
+
+const HOTEL_RECENT_SEARCHES_KEY = "zivo:hotels:recent-searches";
+const HOTEL_FAVORITES_KEY = "zivo:hotels:favorites";
+const HOTEL_RECENTLY_VIEWED_KEY = "zivo:hotels:recently-viewed";
+
+const hotelStorageKey = (baseKey: string, userId: string | null): string | null =>
+  userId ? `${baseKey}:${userId}` : null;
+
+const readHotelStringList = (baseKey: string, userId: string | null, maxItems: number): string[] => {
+  const key = hotelStorageKey(baseKey, userId);
+  if (!key || typeof window === "undefined") return [];
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set<string>();
+    return parsed.reduce<string[]>((items, value) => {
+      if (typeof value !== "string") return items;
+      const normalized = value.trim();
+      if (!normalized || seen.has(normalized) || items.length >= maxItems) return items;
+      seen.add(normalized);
+      items.push(normalized);
+      return items;
+    }, []);
+  } catch {
+    return [];
+  }
+};
+
+const writeHotelStringList = (baseKey: string, userId: string | null, items: string[], maxItems: number) => {
+  const key = hotelStorageKey(baseKey, userId);
+  if (!key || typeof window === "undefined") return;
+  try {
+    const cleaned = items.slice(0, maxItems);
+    if (cleaned.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(cleaned));
+  } catch {}
+};
+
+const isRecentlyViewed = (value: unknown): value is RecentlyViewed => {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<RecentlyViewed>;
+  return typeof candidate.id === "string"
+    && candidate.id.length > 0
+    && typeof candidate.name === "string"
+    && candidate.name.length > 0;
+};
+
+const readHotelRecentlyViewed = (userId: string | null): RecentlyViewed[] => {
+  const key = hotelStorageKey(HOTEL_RECENTLY_VIEWED_KEY, userId);
+  if (!key || typeof window === "undefined") return [];
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter(isRecentlyViewed).slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeHotelRecentlyViewed = (userId: string | null, items: RecentlyViewed[]) => {
+  const key = hotelStorageKey(HOTEL_RECENTLY_VIEWED_KEY, userId);
+  if (!key || typeof window === "undefined") return;
+  try {
+    if (items.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(items.slice(0, 8)));
+  } catch {}
+};
 
 const FILTERS: Array<{ id: string; label: string; match: (cat: string) => boolean }> = [
   { id: "all", label: "All", match: () => true },
@@ -114,6 +191,8 @@ export default function HotelsLandingPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const { format: fmtPrice } = useCurrency();
   const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const seoOrigin = isTravelHost ? ZIVO_TRAVEL_ORIGIN : "https://zivosmedia.com";
@@ -164,18 +243,13 @@ export default function HotelsLandingPage() {
   const [search, setSearch] = useState(initial.city);
   const [activeFilter, setActiveFilter] = useState<string>(initial.filter);
   const [activeTags, setActiveTags] = useState<string[]>(initial.tags);
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem("hotel_recent_searches") || "[]") as string[];
-      // Strip junk (single-letter / 2-letter typos) that previously slipped in
-      // via onBlur of half-typed queries.
-      const cleaned = Array.from(new Set(raw.map((s) => s.trim()).filter((s) => s.length >= 3)));
-      if (cleaned.length !== raw.length) {
-        try { localStorage.setItem("hotel_recent_searches", JSON.stringify(cleaned)); } catch {}
-      }
-      return cleaned;
-    } catch { return []; }
-  });
+  const [recentSearchState, setRecentSearchState] = useState<{ userId: string | null; items: string[] }>(() => ({
+    userId,
+    items: readHotelStringList(HOTEL_RECENT_SEARCHES_KEY, userId, 5),
+  }));
+  const recentSearches = recentSearchState.userId === userId
+    ? recentSearchState.items
+    : readHotelStringList(HOTEL_RECENT_SEARCHES_KEY, userId, 5);
   const [searchFocused, setSearchFocused] = useState(false);
   const [checkIn, setCheckIn] = useState<Date>(() => initial.ci ?? todayUTC());
   const [checkOut, setCheckOut] = useState<Date>(
@@ -203,27 +277,24 @@ export default function HotelsLandingPage() {
   const [showStickyBar, setShowStickyBar] = useState(false);
   const heroSentinelRef = useRef<HTMLDivElement | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [favorites, setFavorites] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem("hotel_faves") || "[]") as string[]); }
-    catch { return new Set<string>(); }
-  });
-
-  type RecentlyViewed = {
-    id: string;
-    name: string;
-    category: string | null;
-    address: string | null;
-    logo_url: string | null;
-    banner_url: string | null;
-    viewed_at: number;
-  };
-  const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewed[]>(() => {
-    try { return (JSON.parse(localStorage.getItem("hotel_recently_viewed") || "[]") as RecentlyViewed[]).filter((x) => x?.id && x?.name); }
-    catch { return []; }
-  });
+  const [favoriteState, setFavoriteState] = useState<{ userId: string | null; items: string[] }>(() => ({
+    userId,
+    items: readHotelStringList(HOTEL_FAVORITES_KEY, userId, 100),
+  }));
+  const favoriteIds = favoriteState.userId === userId
+    ? favoriteState.items
+    : readHotelStringList(HOTEL_FAVORITES_KEY, userId, 100);
+  const favorites = useMemo(() => new Set(favoriteIds), [favoriteIds]);
+  const [recentlyViewedState, setRecentlyViewedState] = useState<{ userId: string | null; items: RecentlyViewed[] }>(() => ({
+    userId,
+    items: readHotelRecentlyViewed(userId),
+  }));
+  const recentlyViewed = recentlyViewedState.userId === userId
+    ? recentlyViewedState.items
+    : readHotelRecentlyViewed(userId);
   const clearRecentlyViewed = () => {
-    try { localStorage.removeItem("hotel_recently_viewed"); } catch {}
-    setRecentlyViewed([]);
+    setRecentlyViewedState({ userId, items: [] });
+    writeHotelRecentlyViewed(userId, []);
   };
 
   const [viewMode, setViewMode] = useState<"list" | "map">(initial.view);
@@ -237,13 +308,18 @@ export default function HotelsLandingPage() {
 
   const toggleFavorite = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      try { localStorage.setItem("hotel_faves", JSON.stringify([...next])); } catch {}
-      return next;
+    if (!userId) return;
+    setFavoriteState((previous) => {
+      const current = previous.userId === userId
+        ? previous.items
+        : readHotelStringList(HOTEL_FAVORITES_KEY, userId, 100);
+      const next = current.includes(id)
+        ? current.filter((favoriteId) => favoriteId !== id)
+        : [id, ...current].slice(0, 100);
+      writeHotelStringList(HOTEL_FAVORITES_KEY, userId, next, 100);
+      return { userId, items: next };
     });
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -352,21 +428,28 @@ export default function HotelsLandingPage() {
     const v = value.trim();
     // Skip half-typed queries — only save things the user is likely to want
     // to search for again.
-    if (v.length < 3) return;
-    setRecentSearches((prev) => {
-      const next = [v, ...prev.filter((p) => p.toLowerCase() !== v.toLowerCase())].slice(0, 5);
-      try { localStorage.setItem("hotel_recent_searches", JSON.stringify(next)); } catch {}
-      return next;
+    if (v.length < 3 || !userId) return;
+    setRecentSearchState((previous) => {
+      const current = previous.userId === userId
+        ? previous.items
+        : readHotelStringList(HOTEL_RECENT_SEARCHES_KEY, userId, 5);
+      const next = [v, ...current.filter((p) => p.toLowerCase() !== v.toLowerCase())].slice(0, 5);
+      writeHotelStringList(HOTEL_RECENT_SEARCHES_KEY, userId, next, 5);
+      return { userId, items: next };
     });
-  }, []);
+  }, [userId]);
 
   const removeRecentSearch = useCallback((value: string) => {
-    setRecentSearches((prev) => {
-      const next = prev.filter((p) => p.toLowerCase() !== value.toLowerCase());
-      try { localStorage.setItem("hotel_recent_searches", JSON.stringify(next)); } catch {}
-      return next;
+    if (!userId) return;
+    setRecentSearchState((previous) => {
+      const current = previous.userId === userId
+        ? previous.items
+        : readHotelStringList(HOTEL_RECENT_SEARCHES_KEY, userId, 5);
+      const next = current.filter((p) => p.toLowerCase() !== value.toLowerCase());
+      writeHotelStringList(HOTEL_RECENT_SEARCHES_KEY, userId, next, 5);
+      return { userId, items: next };
     });
-  }, []);
+  }, [userId]);
 
   // Scroll the results section to the top of the viewport. Uses an explicit
   // window.scrollTo (not scrollIntoView) and a short timeout so that React
@@ -1118,8 +1201,8 @@ export default function HotelsLandingPage() {
             <button
               type="button"
               onClick={() => {
-                setRecentSearches([]);
-                try { localStorage.removeItem("hotel_recent_searches"); } catch {}
+                setRecentSearchState({ userId, items: [] });
+                writeHotelStringList(HOTEL_RECENT_SEARCHES_KEY, userId, [], 5);
               }}
               className="shrink-0 text-[11px] text-muted-foreground underline ml-1"
             >

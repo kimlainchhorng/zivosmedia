@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import LodgingQuickJump from "./LodgingQuickJump";
 import LodgingSectionStatusBanner from "./LodgingSectionStatusBanner";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 interface Reservation {
   id: string;
@@ -192,7 +193,7 @@ export default function LodgingFolioSection({ storeId }: { storeId: string }) {
       `PAID:  ${fmt(selected.paid_cents)}`,
       `BALANCE DUE: ${fmt(balance)}`,
     ].join("\n");
-    const html = `<pre style="font-family:monospace;font-size:13px;padding:20px">${lines}</pre>`;
+    const html = `<pre style="font-family:monospace;font-size:13px;padding:20px">${escapeHtml(lines)}</pre>`;
     import("@/lib/native/printDocument").then(({ printOrShareHtml }) =>
       printOrShareHtml(html, `folio-${selected.number}.pdf`, "Guest folio"),
     );

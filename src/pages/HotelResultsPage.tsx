@@ -44,6 +44,7 @@ import PartnerConsentModal from "@/components/checkout/PartnerConsentModal";
 // SponsoredResultCard removed
 import { buildOutRedirectUrl, buildBookingDeepLink } from "@/lib/partnerDeepLinks";
 import { HOTEL_DISCLAIMERS } from "@/config/hotelCompliance";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 // Parse and validate URL parameters
 interface ParsedSearchParams {
@@ -265,7 +266,8 @@ export default function HotelResultsPage() {
     : "Search and compare hotel prices across booking sites.";
 
   return (
-    <div className="min-h-screen bg-background">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
       <SEOHead title={pageTitle} description={pageDescription} />
       <Header />
 
@@ -474,6 +476,7 @@ export default function HotelResultsPage() {
       />
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

@@ -1,7 +1,8 @@
 /**
  * Auto Repair — Parts Suppliers
- * Saves portal credentials to localStorage (per store + supplier).
- * "Save & Open Portal" stores creds then opens the supplier URL in a new tab.
+ * Saves non-secret supplier account metadata per store + supplier.
+ * Passwords are used only during the setup session and are never persisted in
+ * browser storage. "Save & Open Portal" saves the metadata then opens the URL.
  */
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +46,9 @@ type Supplier = {
 };
 
 type Cred = { username: string; password: string; account?: string; email?: string };
+type StoredCred = Omit<Cred, "password">;
+
+const EMPTY_CRED: Cred = { username: "", password: "", account: "", email: "" };
 
 type VendorSetup = {
   useAccountEmail: boolean;
@@ -110,17 +114,41 @@ function credKey(storeId: string, supplierId: string) {
   return `ar_supplier_${storeId}_${supplierId}`;
 }
 
-function loadCred(storeId: string, supplierId: string): Cred | null {
+function loadCred(storeId: string, supplierId: string): StoredCred | null {
+  const key = credKey(storeId, supplierId);
   try {
-    const raw = localStorage.getItem(credKey(storeId, supplierId));
-    return raw ? (JSON.parse(raw) as Cred) : null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") {
+      localStorage.removeItem(key);
+      return null;
+    }
+    const safe: StoredCred = {
+      username: typeof parsed.username === "string" ? parsed.username : "",
+      account: typeof parsed.account === "string" ? parsed.account : "",
+      email: typeof parsed.email === "string" ? parsed.email : "",
+    };
+    if (!safe.username && !safe.account && !safe.email) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    // Migrate legacy entries by overwriting them without the old password.
+    try { localStorage.setItem(key, JSON.stringify(safe)); } catch { /* storage may be read-only */ }
+    return safe;
   } catch {
+    try { localStorage.removeItem(key); } catch { /* ignore malformed storage */ }
     return null;
   }
 }
 
-function persistCred(storeId: string, supplierId: string, cred: Cred) {
-  localStorage.setItem(credKey(storeId, supplierId), JSON.stringify(cred));
+function persistCred(storeId: string, supplierId: string, cred: StoredCred) {
+  const safe: StoredCred = {
+    username: cred.username,
+    account: cred.account?.trim() || "",
+    email: cred.email?.trim() || "",
+  };
+  localStorage.setItem(credKey(storeId, supplierId), JSON.stringify(safe));
 }
 
 function removeCred(storeId: string, supplierId: string) {
@@ -129,8 +157,8 @@ function removeCred(storeId: string, supplierId: string) {
 
 /**
  * Vendors the shop has connected (saved an account/credentials for), for use in
- * other AR screens like Build R.O.'s vendor picker. Reads the same localStorage
- * keys this screen writes. Returns the supplier name + portal URL.
+ * other AR screens like Build R.O.'s vendor picker. Reads the same metadata-only
+ * localStorage keys this screen writes. Returns the supplier name + portal URL.
  */
 export type ConnectedVendor = { id: string; name: string; url: string; account?: string };
 export function listConnectedVendors(storeId: string): ConnectedVendor[] {
@@ -153,8 +181,8 @@ export default function AutoRepairPartSuppliersSection({ storeId, isSoftwareDoma
   const [form, setForm] = useState<Cred>({ username: "", password: "", account: "", email: "" });
   const [showPw, setShowPw] = useState(false);
 
-  const [savedMap, setSavedMap] = useState<Record<string, Cred | null>>(() => {
-    const map: Record<string, Cred | null> = {};
+  const [savedMap, setSavedMap] = useState<Record<string, StoredCred | null>>(() => {
+    const map: Record<string, StoredCred | null> = {};
     SUPPLIERS.forEach(s => { map[s.id] = loadCred(storeId, s.id); });
     return map;
   });
@@ -173,7 +201,7 @@ export default function AutoRepairPartSuppliersSection({ storeId, isSoftwareDoma
 
   const openDialog = (s: Supplier) => {
     const existing = savedMap[s.id];
-    setForm(existing ?? { username: "", password: "", account: "", email: "" });
+    setForm(existing ? { ...existing, password: "" } : { ...EMPTY_CRED });
     setShowPw(false);
     setTarget(s);
   };
@@ -193,12 +221,18 @@ export default function AutoRepairPartSuppliersSection({ storeId, isSoftwareDoma
     } else {
       if (!form.username.trim()) { toast.error("Username / email is required"); return; }
     }
-    const cred: Cred = { username: form.username.trim(), password: form.password, account: form.account?.trim() || "", email: form.email?.trim() || "" };
-    persistCred(storeId, target.id, cred);
-    setSavedMap(prev => ({ ...prev, [target.id]: cred }));
+    const safeCred: StoredCred = {
+      username: form.username.trim(),
+      account: form.account?.trim() || "",
+      email: form.email?.trim() || "",
+    };
+    persistCred(storeId, target.id, safeCred);
+    setSavedMap(prev => ({ ...prev, [target.id]: safeCred }));
     toast.success(`${target.name} — account saved`);
     const saved = target;
     setTarget(null);
+    setForm({ ...EMPTY_CRED });
+    setShowPw(false);
     openPortal(saved);
   };
 
@@ -207,6 +241,8 @@ export default function AutoRepairPartSuppliersSection({ storeId, isSoftwareDoma
     setSavedMap(prev => ({ ...prev, [s.id]: null }));
     toast.success(`${s.name} disconnected`);
     setTarget(null);
+    setForm({ ...EMPTY_CRED });
+    setShowPw(false);
   };
 
   return (
@@ -323,7 +359,13 @@ export default function AutoRepairPartSuppliersSection({ storeId, isSoftwareDoma
       </Card>
 
       {/* VSM-styled Setup Vendor Account dialog */}
-      <Dialog open={!!target} onOpenChange={open => { if (!open) setTarget(null); }}>
+      <Dialog open={!!target} onOpenChange={open => {
+        if (!open) {
+          setTarget(null);
+          setForm({ ...EMPTY_CRED });
+          setShowPw(false);
+        }
+      }}>
         <DialogContent className="max-w-lg gap-0 overflow-hidden border-slate-700 bg-[#0b1220] p-0 text-slate-100">
           <DialogHeader className="p-0">
             {/* Title bar */}
@@ -419,6 +461,7 @@ export default function AutoRepairPartSuppliersSection({ storeId, isSoftwareDoma
                       </button>
                     </div>
                   </div>
+                  <p className="text-[11px] text-slate-500">Password is used for this setup session only and is never stored in browser storage.</p>
                 </div>
               );
             })()}
@@ -436,7 +479,11 @@ export default function AutoRepairPartSuppliersSection({ storeId, isSoftwareDoma
               className="rounded bg-[#1e90ff] px-10 py-2.5 font-semibold text-white hover:bg-[#1577e0]">
               Save
             </button>
-            <button onClick={() => setTarget(null)}
+            <button onClick={() => {
+              setTarget(null);
+              setForm({ ...EMPTY_CRED });
+              setShowPw(false);
+            }}
               className="flex items-center gap-1 rounded border border-red-500/60 bg-slate-800 px-6 py-2.5 font-semibold text-red-400 hover:bg-slate-700">
               <X className="h-4 w-4" /> Cancel
             </button>

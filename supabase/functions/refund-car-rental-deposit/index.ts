@@ -12,7 +12,6 @@
  * and then refunded once the refund settles.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
@@ -24,9 +23,8 @@ interface Body {
   reason?: string;
 }
 
-Deno.serve(withSecurity("refund-car-rental-deposit", async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("refund-car-rental-deposit", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");

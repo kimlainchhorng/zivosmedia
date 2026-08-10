@@ -154,6 +154,8 @@ describe("push notifications and notification-center workflow", () => {
     expect(dispatch).toContain("payload.category !== \"marketing\"");
     expect(dispatch).toContain("marketing_enabled");
     expect(dispatch).toContain("const deliveryAllowed = eventFlagAllowed && marketingAllowed");
+    expect(dispatch).toContain("publishable anon");
+    expect(dispatch).toContain("!isServiceCall && (!callerUserId || payload.user_id !== callerUserId)");
     expect(dispatch).toContain("marketing_disabled");
     expect(dispatch).toMatch(/requested\.has\("push"\) && pushEnabled && deliveryAllowed/);
     expect(dispatch).toMatch(/requested\.has\("email"\) && emailEnabled && deliveryAllowed/);

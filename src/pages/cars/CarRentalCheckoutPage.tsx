@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const parseParamDate = (s: string | null) => {
   if (!s) return null;
@@ -125,7 +126,7 @@ export default function CarRentalCheckoutPage() {
   const image = vehicle?.images?.[0];
 
   return (
-    <>
+    <TravelPageFrame>
       <SEOHead title="Car Rental Checkout – ZIVO" description="Complete your car rental booking. Review pricing, enter driver information, and choose your payment method." />
       <div className="min-h-screen bg-background pb-32">
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/40 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
@@ -330,6 +331,6 @@ export default function CarRentalCheckoutPage() {
 
       <ZivoMobileNav />
     </div>
-    </>
+    </TravelPageFrame>
   );
 }

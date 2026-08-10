@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 
 type SearchTab = "flights" | "hotels" | "cars";
 
@@ -32,8 +33,47 @@ interface PremiumSearchOverlayProps {
   onSearch?: (params: URLSearchParams) => void;
 }
 
-const RECENT_SEARCHES_KEY = "zivo_recent_searches";
+const RECENT_SEARCHES_KEY = "zivo:travel-search:recent";
 const MAX_RECENT_SEARCHES = 5;
+
+type RecentSearchState = { userId: string | null; items: RecentSearch[] };
+
+const travelSearchStorageKey = (userId: string | null): string | null =>
+  userId ? `${RECENT_SEARCHES_KEY}:${userId}` : null;
+
+const isRecentSearch = (value: unknown): value is RecentSearch => {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as { type?: unknown; query?: unknown; params?: unknown; timestamp?: unknown };
+  if (candidate.type !== "flights" && candidate.type !== "hotels" && candidate.type !== "cars") return false;
+  if (typeof candidate.query !== "string" || candidate.query.trim().length === 0) return false;
+  if (!candidate.params || typeof candidate.params !== "object" || Array.isArray(candidate.params)) return false;
+  return Object.values(candidate.params).every((param) => typeof param === "string")
+    && typeof candidate.timestamp === "number";
+};
+
+const readRecentSearches = (userId: string | null): RecentSearch[] => {
+  const key = travelSearchStorageKey(userId);
+  if (!key || typeof window === "undefined") return [];
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isRecentSearch).map((search) => ({
+      ...search,
+      query: search.query.trim(),
+    })).slice(0, MAX_RECENT_SEARCHES);
+  } catch {
+    return [];
+  }
+};
+
+const writeRecentSearches = (userId: string | null, items: RecentSearch[]) => {
+  const key = travelSearchStorageKey(userId);
+  if (!key || typeof window === "undefined") return;
+  try {
+    if (items.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(items.slice(0, MAX_RECENT_SEARCHES)));
+  } catch {}
+};
 
 // Animation variants
 const backdropVariants = {
@@ -94,23 +134,24 @@ export default function PremiumSearchOverlay({
   onSearch,
 }: PremiumSearchOverlayProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const inputRef = useRef<HTMLInputElement>(null);
   
   const [activeTab, setActiveTab] = useState<SearchTab>(defaultTab);
   const [destination, setDestination] = useState("");
-  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+  const [recentSearchState, setRecentSearchState] = useState<RecentSearchState>(() => ({
+    userId,
+    items: readRecentSearches(userId),
+  }));
+  const recentSearches = recentSearchState.userId === userId
+    ? recentSearchState.items
+    : readRecentSearches(userId);
   
   // Load recent searches from localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-      if (stored) {
-        setRecentSearches(JSON.parse(stored));
-      }
-    } catch (e) {
-      console.error("Failed to load recent searches:", e);
-    }
-  }, []);
+    setRecentSearchState({ userId, items: readRecentSearches(userId) });
+  }, [userId]);
 
   // Focus input when overlay opens
   useEffect(() => {
@@ -143,17 +184,17 @@ export default function PremiumSearchOverlay({
 
   // Save recent search
   const saveRecentSearch = useCallback((search: RecentSearch) => {
-    setRecentSearches(prev => {
-      const filtered = prev.filter(s => s.query !== search.query);
+    if (!userId) return;
+    setRecentSearchState(previous => {
+      const current = previous.userId === userId
+        ? previous.items
+        : readRecentSearches(userId);
+      const filtered = current.filter(s => s.query !== search.query);
       const updated = [search, ...filtered].slice(0, MAX_RECENT_SEARCHES);
-      try {
-        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-      } catch (e) {
-        console.error("Failed to save recent searches:", e);
-      }
-      return updated;
+      writeRecentSearches(userId, updated);
+      return { userId, items: updated };
     });
-  }, []);
+  }, [userId]);
 
   // Handle search submission
   const handleSearch = useCallback(() => {

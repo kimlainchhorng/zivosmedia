@@ -5,6 +5,12 @@ import { cn } from "@/lib/utils";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
+const SAFE_CSS_NAME = /^[A-Za-z0-9_-]{1,64}$/;
+const SAFE_CSS_COLOR = /^(?:#[0-9a-f]{3,8}|[A-Za-z][A-Za-z0-9-]*|(?:rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color-mix)\([A-Za-z0-9_%+.,*/()\s-]+\)|var\(--[A-Za-z0-9_-]+\))$/i;
+
+function isSafeCssColor(value: unknown): value is string {
+  return typeof value === "string" && SAFE_CSS_COLOR.test(value.trim());
+}
 
 export type ChartConfig = {
   [k in string]: {
@@ -59,31 +65,34 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "Chart";
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
+  const safeId = CSS.escape(id);
+  const colorConfig = Object.entries(config).filter(([key, itemConfig]) => {
+    if (!SAFE_CSS_NAME.test(key)) return false;
+    return isSafeCssColor(itemConfig.color)
+      || Object.values(itemConfig.theme ?? {}).some(isSafeCssColor);
+  });
 
   if (!colorConfig.length) {
     return null;
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+  const css = Object.entries(THEMES)
+    .map(
+      ([theme, prefix]) => `
+${prefix} [data-chart=${safeId}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
+    return isSafeCssColor(color) ? `  --color-${key}: ${color.trim()};` : null;
   })
   .join("\n")}
 }
 `,
-          )
-          .join("\n"),
-      }}
-    />
+    )
+    .join("\n");
+
+  return (
+    <style>{css}</style>
   );
 };
 

@@ -232,7 +232,7 @@ export default function SandboxModePage() {
           <Button
             variant="outline"
             className="w-full rounded-xl text-xs"
-            onClick={() => window.open("https://business.facebook.com/events_manager", "_blank")}
+            onClick={() => window.open("https://business.facebook.com/events_manager", "_blank", "noopener,noreferrer")}
           >
             <ExternalLink className="h-3 w-3 mr-2" />
             Open Meta Events Manager

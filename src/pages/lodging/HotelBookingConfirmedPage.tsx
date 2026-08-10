@@ -16,6 +16,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import { openInZivoMap } from "@/lib/maps/openInZivoMap";
 import SEOHead from "@/components/SEOHead";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 interface ReservationSummary {
   id: string;
@@ -201,51 +202,54 @@ export default function HotelBookingConfirmedPage() {
   if (!loading && !reservation) {
     const missingId = !reservationId;
     return (
-      <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
-        <SEOHead
-          title={missingId ? "Hotel Booking Link Missing - ZIVO" : "Hotel Reservation Unavailable - ZIVO"}
-          description="Open your hotel reservation from ZIVO trips or return to the hotel page."
-        />
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-amber-500/10 blur-[80px]" />
-        </div>
-        <div className="relative max-w-md mx-auto px-5 pt-14 flex flex-col items-center text-center">
-          <div className="h-20 w-20 rounded-full bg-amber-500/10 flex items-center justify-center mb-5 ring-4 ring-amber-500/10">
-            <AlertCircle className="h-10 w-10 text-amber-600 dark:text-amber-400" />
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
+          <SEOHead
+            title={missingId ? "Hotel Booking Link Missing - ZIVO" : "Hotel Reservation Unavailable - ZIVO"}
+            description="Open your hotel reservation from ZIVO trips or return to the hotel page."
+          />
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-amber-500/10 blur-[80px]" />
           </div>
-          <h1 className="text-2xl font-extrabold text-foreground mb-2 tracking-tight">
-            {missingId ? "Reservation link missing" : "Reservation not found or unavailable"}
-          </h1>
-          <p className="text-[13px] text-muted-foreground max-w-xs mb-6">
-            {missingId
-              ? "This confirmation link is missing a reservation reference. Return to the hotel or open your trips to find the booking."
-              : "We could not open this reservation. It may belong to another account, be unavailable under privacy rules, or no longer exist."}
-          </p>
-          <div className="flex flex-col gap-2.5 w-full">
-            <Button onClick={() => navigate(recoveryRoute)} className="w-full rounded-2xl h-12 font-bold gap-2">
-              <Hotel className="h-4 w-4" />
-              {storeId ? "Back to Hotel" : "Find Hotels"}
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/my-trips")} className="w-full rounded-2xl h-11">
-              View My Trips
-            </Button>
+          <div className="relative max-w-md mx-auto px-5 pt-14 flex flex-col items-center text-center">
+            <div className="h-20 w-20 rounded-full bg-amber-500/10 flex items-center justify-center mb-5 ring-4 ring-amber-500/10">
+              <AlertCircle className="h-10 w-10 text-amber-600 dark:text-amber-400" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-foreground mb-2 tracking-tight">
+              {missingId ? "Reservation link missing" : "Reservation not found or unavailable"}
+            </h1>
+            <p className="text-[13px] text-muted-foreground max-w-xs mb-6">
+              {missingId
+                ? "This confirmation link is missing a reservation reference. Return to the hotel or open your trips to find the booking."
+                : "We could not open this reservation. It may belong to another account, be unavailable under privacy rules, or no longer exist."}
+            </p>
+            <div className="flex flex-col gap-2.5 w-full">
+              <Button onClick={() => navigate(recoveryRoute)} className="w-full rounded-2xl h-12 font-bold gap-2">
+                <Hotel className="h-4 w-4" />
+                {storeId ? "Back to Hotel" : "Find Hotels"}
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/my-trips")} className="w-full rounded-2xl h-11">
+                View My Trips
+              </Button>
+            </div>
           </div>
+          <ZivoMobileNav />
         </div>
-        <ZivoMobileNav />
-      </div>
+      </TravelPageFrame>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
-      <SEOHead
-        title={loading ? "Hotel Booking – ZIVO" : `${reservation?.room?.name || "Hotel"} Booking Confirmed – ZIVO`}
-        description="Your hotel booking has been confirmed. View your reservation details and check-in information."
-      />
-      {/* Ambient glow */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-emerald-500/10 blur-[80px]" />
-      </div>
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
+        <SEOHead
+          title={loading ? "Hotel Booking – ZIVO" : `${reservation?.room?.name || "Hotel"} Booking Confirmed – ZIVO`}
+          description="Your hotel booking has been confirmed. View your reservation details and check-in information."
+        />
+        {/* Ambient glow */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-emerald-500/10 blur-[80px]" />
+        </div>
 
       <div className="relative max-w-md mx-auto px-5 pt-12 flex flex-col items-center">
 
@@ -486,6 +490,7 @@ export default function HotelBookingConfirmedPage() {
       </div>
 
       <ZivoMobileNav />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

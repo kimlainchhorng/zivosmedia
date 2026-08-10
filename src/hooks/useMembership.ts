@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 
 export interface MembershipPlan {
   id: string;
@@ -172,6 +173,7 @@ export function useCreateMembershipCheckout() {
         body: { plan, plan_id: planId },
       });
       if (error) throw new Error(error.message || "Failed to create checkout session");
+      if (!data?.url || !isAllowedCheckoutUrl(data.url)) throw new Error("Invalid membership checkout URL");
       return data as { url: string; session_id?: string };
     },
     onError: (error: Error) => {
@@ -220,6 +222,7 @@ export function useOpenCustomerPortal() {
 
       const { data, error } = await supabase.functions.invoke("zivo-plus-portal");
       if (error) throw new Error(error.message || "Failed to open portal");
+      if (!data?.url || !isAllowedCheckoutUrl(data.url)) throw new Error("Invalid billing portal URL");
       return data as { url: string };
     },
     onSuccess: (data) => {

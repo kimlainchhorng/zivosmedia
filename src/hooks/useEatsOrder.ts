@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { createFoodOrder, type EatsCartItem } from "./useEatsData";
 import { useEatsNotifications } from "./useEatsNotifications";
 import { deductWalletBalance } from "./useWalletPayment";
+import { isAllowedPayPalCheckoutUrl, isAllowedSquareCheckoutUrl } from "@/lib/urlSafety";
 
 export interface PlaceOrderParams {
   restaurantId: string;
@@ -118,7 +119,7 @@ export function useEatsOrder() {
         const { data, error } = await supabase.functions.invoke("create-eats-paypal-order", {
           body: { order_id: orderId, amount_cents: amountCents, return_url: returnUrl, cancel_url: cancelUrl },
         });
-        if (error || !data?.approve_url) {
+        if (error || !data?.approve_url || !isAllowedPayPalCheckoutUrl(data.approve_url)) {
           toast.error("PayPal checkout could not start. You can retry from order details.");
         } else {
           window.location.assign(data.approve_url);
@@ -129,7 +130,7 @@ export function useEatsOrder() {
         const { data, error } = await supabase.functions.invoke("create-eats-square-checkout", {
           body: { order_id: orderId, amount_cents: amountCents, return_url: returnUrl },
         });
-        if (error || !data?.url) {
+        if (error || !data?.url || !isAllowedSquareCheckoutUrl(data.url)) {
           toast.error("Square checkout could not start. You can retry from order details.");
         } else {
           window.location.assign(data.url);

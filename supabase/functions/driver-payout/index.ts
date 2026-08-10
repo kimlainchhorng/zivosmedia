@@ -15,6 +15,19 @@ Deno.serve(withSecurity("driver-payout", async (req, ctx) => {
     });
   }
 
+  // Direct Stripe transfers for legacy Media ride rows are superseded by the
+  // canonical Driver settlement workflow. The only escape hatch is a
+  // deliberate server-side compatibility window.
+  if (Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true") {
+    return new Response(JSON.stringify({
+      error: "Legacy Media ride payments are retired. Use the canonical ZIVO Ride checkout.",
+      code: "legacy_media_ride_payments_retired",
+    }), {
+      status: 410,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {

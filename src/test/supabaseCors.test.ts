@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOriginAllowed, strictCorsHeaders } from "../../supabase/functions/_shared/cors.ts";
+import { getCorsHeaders, isOriginAllowed, strictCorsHeaders } from "../../supabase/functions/_shared/cors.ts";
 
 describe("Supabase strict CORS origin allowlist", () => {
   it("allows local development and production ZIVO origins", () => {
@@ -46,5 +46,20 @@ describe("Supabase strict CORS origin allowlist", () => {
       }),
     );
     expect(rejected).toBeNull();
+  });
+
+  it("keeps the legacy helper fail-closed for unknown and server origins", () => {
+    const allowed = getCorsHeaders(new Request("https://example.test", {
+      headers: { origin: "https://zivosmedia.com" },
+    }));
+    expect(allowed["Access-Control-Allow-Origin"]).toBe("https://zivosmedia.com");
+
+    const unknown = getCorsHeaders(new Request("https://example.test", {
+      headers: { origin: "https://evil.example" },
+    }));
+    expect(unknown["Access-Control-Allow-Origin"]).toBeUndefined();
+
+    const server = getCorsHeaders(new Request("https://example.test"));
+    expect(server["Access-Control-Allow-Origin"]).toBeUndefined();
   });
 });

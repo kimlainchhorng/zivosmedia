@@ -30,8 +30,9 @@ jobs:
 
     steps:
       - name: Checkout commit that passed CI
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          persist-credentials: false
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 2
 
@@ -46,7 +47,7 @@ jobs:
 
       - name: Set up Node.js
         if: steps.changes.outputs.relevant == 'true'
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version-file: ".nvmrc"
           cache: npm
@@ -76,7 +77,7 @@ jobs:
 
       - name: Upload production preflight reports
         if: steps.changes.outputs.relevant == 'true' && always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: production-preflight-${{ github.event.workflow_run.head_sha }}
           path: |
@@ -139,7 +140,7 @@ jobs:
 
       - name: Deploy production to Netlify
         if: steps.changes.outputs.relevant == 'true' && steps.netlify-secrets.outputs.available == 'true'
-        uses: nwtgck/actions-netlify@v4.0
+        uses: nwtgck/actions-netlify@d22a32a27c918fe470bbc562e984f80ec48c2668
         with:
           publish-dir: ./dist
           production-branch: main

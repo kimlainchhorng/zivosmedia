@@ -7,6 +7,11 @@ import {
   isUrlShortener,
   isZivoTyposquat,
   isAllowedPartnerUrl,
+  isAllowedCheckoutUrl,
+  isAllowedStripeConnectUrl,
+  isAllowedPayPalCheckoutUrl,
+  isAllowedSquareCheckoutUrl,
+  validateExternalUrl,
   sanitizePathSegment,
 } from "./urlSafety";
 
@@ -124,6 +129,54 @@ describe("isAllowedPartnerUrl", () => {
   });
   it("rejects evil.com", () => {
     expect(isAllowedPartnerUrl("https://evil.com")).toBe(false);
+  });
+  it("rejects HTTP and credential-bearing partner URLs", () => {
+    expect(isAllowedPartnerUrl("http://booking.com/hotel")).toBe(false);
+    expect(isAllowedPartnerUrl("https://user:pass@booking.com/hotel")).toBe(false);
+  });
+});
+
+describe("validateExternalUrl", () => {
+  it("accepts HTTPS links and rejects custom protocols or credentials", () => {
+    expect(validateExternalUrl("https://example.com/path")).toBe("https://example.com/path");
+    expect(validateExternalUrl("javascript:alert(1)")).toBeNull();
+    expect(validateExternalUrl("web+zivo://example.com")).toBeNull();
+    expect(validateExternalUrl("https://user:pass@example.com/path")).toBeNull();
+  });
+});
+
+describe("server-returned Stripe URLs", () => {
+  it("accepts HTTPS Stripe Checkout URLs", () => {
+    expect(isAllowedCheckoutUrl("https://checkout.stripe.com/c/pay/cs_test_123")).toBe(true);
+  });
+
+  it("rejects non-HTTPS or non-Stripe checkout URLs", () => {
+    expect(isAllowedCheckoutUrl("http://checkout.stripe.com/c/pay/cs_test_123")).toBe(false);
+    expect(isAllowedCheckoutUrl("https://checkout.stripe.com.evil.example/c/pay/cs_test_123")).toBe(false);
+  });
+
+  it("rejects checkout URLs with embedded credentials", () => {
+    expect(isAllowedCheckoutUrl("https://attacker:secret@checkout.stripe.com/c/pay/cs_test_123")).toBe(false);
+  });
+
+  it("accepts Stripe Connect and rejects lookalike hosts", () => {
+    expect(isAllowedStripeConnectUrl("https://connect.stripe.com/setup/s/acct_123")).toBe(true);
+    expect(isAllowedStripeConnectUrl("https://stripe.com.evil.example/setup")).toBe(false);
+    expect(isAllowedStripeConnectUrl("https://attacker:secret@connect.stripe.com/setup")).toBe(false);
+  });
+});
+
+describe("server-returned hosted payment URLs", () => {
+  it("accepts official PayPal and Square HTTPS hosts", () => {
+    expect(isAllowedPayPalCheckoutUrl("https://www.sandbox.paypal.com/checkoutnow?token=abc")).toBe(true);
+    expect(isAllowedSquareCheckoutUrl("https://square.link/u/example")).toBe(true);
+  });
+
+  it("rejects lookalike, insecure, and credential-bearing provider URLs", () => {
+    expect(isAllowedPayPalCheckoutUrl("https://paypal.com.evil.example/checkoutnow")).toBe(false);
+    expect(isAllowedPayPalCheckoutUrl("http://www.paypal.com/checkoutnow")).toBe(false);
+    expect(isAllowedSquareCheckoutUrl("https://square.link.evil.example/u/example")).toBe(false);
+    expect(isAllowedSquareCheckoutUrl("https://attacker:secret@square.link/u/example")).toBe(false);
   });
 });
 

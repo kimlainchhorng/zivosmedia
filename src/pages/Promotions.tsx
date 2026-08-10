@@ -145,7 +145,6 @@ const Promotions = () => {
     { title: "Weekend Rides Special", discount: "15% OFF", description: "All rides on weekends", validUntil: "Every Sat-Sun", code: "WEEKEND15", gradient: "from-primary to-teal-400" },
     { title: "Late Night Eats", discount: "Free Delivery", description: "Orders after 10 PM", validUntil: "Ongoing", code: "LATENIGHT", gradient: "from-eats to-orange-500" },
     { title: "Luxury Car Rental", discount: "$50 OFF", description: "Premium vehicle rentals 3+ days", validUntil: "Limited time", code: "LUXURY50", gradient: "from-muted to-muted" },
-    { title: "Hotel + Flight Bundle", discount: "20% OFF", description: "Book together and save", validUntil: "Mar 2026", code: "BUNDLE20", gradient: "from-muted to-muted" },
   ];
 
   const rewards = [

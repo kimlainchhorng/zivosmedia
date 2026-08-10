@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ReviewSubmissionSheet } from "@/components/reviews/ReviewSubmissionSheet";
 import { ReviewsList } from "@/components/reviews/ReviewsList";
 import { ReviewsSummary } from "@/components/reviews/ReviewsSummary";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const formatPrice = (amount: number) =>
   amount > 0 ? `$${amount.toFixed(0)}` : "—";
@@ -99,11 +100,12 @@ export default function MyFlightTripPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-32">
-      <SEOHead
-        title={loading ? "Flight Booking" : `${booking?.departure_airport} to ${booking?.arrival_airport}`}
-        description="View your flight booking details and reservation information."
-      />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background pb-32">
+        <SEOHead
+          title={loading ? "Flight Booking" : `${booking?.departure_airport} to ${booking?.arrival_airport}`}
+          description="View your flight booking details and reservation information."
+        />
 
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/40 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
         <button type="button"
@@ -299,6 +301,7 @@ export default function MyFlightTripPage() {
       />
 
       <ZivoMobileNav />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

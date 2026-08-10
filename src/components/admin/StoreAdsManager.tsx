@@ -47,6 +47,7 @@ import {
   type AdPlatform,
 } from "@/hooks/useStoreAdsOverview";
 import { cn } from "@/lib/utils";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 
 interface Props {
   storeId: string;
@@ -141,6 +142,7 @@ export default function StoreAdsManager({ storeId }: Props) {
       if (error) throw error;
       const url = (data as any)?.url as string | undefined;
       if (!url) throw new Error((data as any)?.error || "Could not start checkout");
+      if (!isAllowedCheckoutUrl(url)) throw new Error("Invalid Stripe checkout URL");
       window.location.href = url; // Stripe Checkout
     } catch (e: any) {
       toast.error(e.message || "Could not start top-up");

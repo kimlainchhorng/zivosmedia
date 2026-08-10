@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import CrossServiceCTAs from "@/components/shared/CrossServiceCTAs";
 import { downloadICS } from "@/lib/buildICS";
 import CalendarPlus from "lucide-react/dist/esm/icons/calendar-plus";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const CONFIRM_STEPS = [
   { label: "Search", completed: true, active: false },
@@ -142,7 +143,8 @@ const FlightConfirmation = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background relative overflow-hidden">
       <SEOHead title="Booking Confirmation – ZIVO Flights" description="Your flight booking confirmation." />
 
       {/* Decorative */}
@@ -534,7 +536,8 @@ const FlightConfirmation = () => {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 };
 

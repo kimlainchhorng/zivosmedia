@@ -6,27 +6,27 @@ Deno.test("public-signup — OPTIONS preflight returns CORS headers", async () =
 });
 
 Deno.test("public-signup — missing email returns 400", async () => {
-  const res = await callFn("public-signup", { body: { password: "longenoughpw", fullName: "A" } });
+  const res = await callFn("public-signup", { body: {} });
   assertValidationError(res, "email");
 });
 
-Deno.test("public-signup — short password returns 400", async () => {
+Deno.test("public-signup — rejects pre-verification credentials", async () => {
   const res = await callFn("public-signup", {
     body: { email: "x@y.com", password: "short", fullName: "A" },
   });
   assertValidationError(res, "password");
 });
 
-Deno.test("public-signup — missing fullName returns 400", async () => {
+Deno.test("public-signup — rejects caller-selected account targets", async () => {
   const res = await callFn("public-signup", {
-    body: { email: "x@y.com", password: "longenoughpw" },
+    body: { email: "x@y.com", userId: "00000000-0000-0000-0000-000000000000" },
   });
-  assertValidationError(res, "fullName");
+  assertValidationError(res, "userId");
 });
 
 Deno.test("public-signup — invalid email returns 400", async () => {
   const res = await callFn("public-signup", {
-    body: { email: "not-an-email", password: "longenoughpw", fullName: "A" },
+    body: { email: "not-an-email" },
   });
   assertValidationError(res, "email");
 });

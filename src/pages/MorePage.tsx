@@ -197,6 +197,26 @@ const persistStoredStringList = (key: string, items: string[], maxItems = items.
   } catch {}
 };
 
+type AccountStringListState = { userId: string | null; items: string[] };
+
+const accountStorageKey = (baseKey: string, userId: string | null): string | null =>
+  userId ? `${baseKey}:${userId}` : null;
+
+const readAccountStoredStringList = (baseKey: string, userId: string | null, maxItems: number): string[] => {
+  const key = accountStorageKey(baseKey, userId);
+  return key ? readStoredStringList(key, maxItems) : [];
+};
+
+const persistAccountStoredStringList = (
+  baseKey: string,
+  userId: string | null,
+  items: string[],
+  maxItems: number,
+) => {
+  const key = accountStorageKey(baseKey, userId);
+  if (key) persistStoredStringList(key, items, maxItems);
+};
+
 const sameStringList = (a: string[], b: string[]) =>
   a.length === b.length && a.every((item, index) => item === b[index]);
 
@@ -564,6 +584,7 @@ export default function MorePage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { user, signOut, isAdmin } = useAuth();
+  const userId = user?.id ?? null;
   const { theme, resolvedTheme } = useTheme();
   const [showPartnerSheet, setShowPartnerSheet] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -730,20 +751,23 @@ export default function MorePage() {
 
   // ===== Recent searches (localStorage) =====
   const SEARCH_HISTORY_KEY = "zivo:more:searches";
-  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
-    return readStoredStringList(SEARCH_HISTORY_KEY, 5);
-  });
-  useEffect(() => {
-    const cleaned = searchHistory.slice(0, 5);
-    persistStoredStringList(SEARCH_HISTORY_KEY, cleaned, 5);
-  }, [searchHistory]);
+  const [searchHistoryState, setSearchHistoryState] = useState<AccountStringListState>(() => ({
+    userId,
+    items: readAccountStoredStringList(SEARCH_HISTORY_KEY, userId, 5),
+  }));
+  const searchHistory = searchHistoryState.userId === userId
+    ? searchHistoryState.items
+    : readAccountStoredStringList(SEARCH_HISTORY_KEY, userId, 5);
   const recordSearch = (q: string) => {
     const v = q.trim();
     if (v.length < 2) return;
-    setSearchHistory((prev) => {
-      const next = [v, ...prev.filter((s) => s.toLowerCase() !== v.toLowerCase())].slice(0, 5);
-      persistStoredStringList(SEARCH_HISTORY_KEY, next, 5);
-      return next;
+    setSearchHistoryState((previous) => {
+      const current = previous.userId === userId
+        ? previous.items
+        : readAccountStoredStringList(SEARCH_HISTORY_KEY, userId, 5);
+      const next = [v, ...current.filter((s) => s.toLowerCase() !== v.toLowerCase())].slice(0, 5);
+      persistAccountStoredStringList(SEARCH_HISTORY_KEY, userId, next, 5);
+      return { userId, items: next };
     });
   };
 
@@ -787,15 +811,16 @@ export default function MorePage() {
 
   // ===== Daily streak (localStorage) =====
   const STREAK_KEY = "zivo:more:streak";
+  const streakStorageKey = accountStorageKey(STREAK_KEY, userId);
   const streak = useMemo(() => {
-    if (typeof window === "undefined") return { days: 1, lastDate: "" };
+    if (!streakStorageKey || typeof window === "undefined") return { days: 1, lastDate: "" };
     try {
-      const raw = window.localStorage.getItem(STREAK_KEY);
+      const raw = window.localStorage.getItem(streakStorageKey);
       const today = new Date().toISOString().slice(0, 10);
       const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
       if (!raw) {
         const init = { days: 1, lastDate: today };
-        window.localStorage.setItem(STREAK_KEY, JSON.stringify(init));
+        window.localStorage.setItem(streakStorageKey, JSON.stringify(init));
         return init;
       }
       const parsed = JSON.parse(raw) as { days: number; lastDate: string };
@@ -804,12 +829,12 @@ export default function MorePage() {
         days: parsed.lastDate === yesterday ? parsed.days + 1 : 1,
         lastDate: today,
       };
-      window.localStorage.setItem(STREAK_KEY, JSON.stringify(next));
+      window.localStorage.setItem(streakStorageKey, JSON.stringify(next));
       return next;
     } catch {
       return { days: 1, lastDate: "" };
     }
-  }, []);
+  }, [streakStorageKey]);
 
   // ===== Connected providers (from Supabase auth identities) =====
   const connectedProviders = useMemo(() => {
@@ -858,33 +883,47 @@ export default function MorePage() {
   });
   // ===== Recently Used (localStorage) =====
   const RECENT_KEY = "zivo:more:recent";
-  const [recentHrefs, setRecentHrefs] = useState<string[]>(() => {
-    return readStoredStringList(RECENT_KEY, 8);
-  });
+  const [recentState, setRecentState] = useState<AccountStringListState>(() => ({
+    userId,
+    items: readAccountStoredStringList(RECENT_KEY, userId, 8),
+  }));
+  const recentHrefs = recentState.userId === userId
+    ? recentState.items
+    : readAccountStoredStringList(RECENT_KEY, userId, 8);
   const trackRecent = (href: string) => {
     const normalizedHref = normalizeInternalHref(href);
     if (!normalizedHref) return;
-    setRecentHrefs((prev) => {
-      const next = [normalizedHref, ...prev.filter((h) => h !== normalizedHref)].slice(0, 8);
-      persistStoredStringList(RECENT_KEY, next, 8);
-      return next;
+    setRecentState((previous) => {
+      const current = previous.userId === userId
+        ? previous.items
+        : readAccountStoredStringList(RECENT_KEY, userId, 8);
+      const next = [normalizedHref, ...current.filter((h) => h !== normalizedHref)].slice(0, 8);
+      persistAccountStoredStringList(RECENT_KEY, userId, next, 8);
+      return { userId, items: next };
     });
   };
 
   // ===== Pinned / Favorites (localStorage) =====
   const PIN_KEY = "zivo:more:pinned";
-  const [pinnedHrefs, setPinnedHrefs] = useState<string[]>(() => {
-    return readStoredStringList(PIN_KEY, 12);
-  });
+  const [pinnedState, setPinnedState] = useState<AccountStringListState>(() => ({
+    userId,
+    items: readAccountStoredStringList(PIN_KEY, userId, 12),
+  }));
+  const pinnedHrefs = pinnedState.userId === userId
+    ? pinnedState.items
+    : readAccountStoredStringList(PIN_KEY, userId, 12);
   const togglePin = (href: string) => {
     const normalizedHref = normalizeInternalHref(href);
     if (!normalizedHref) return;
-    setPinnedHrefs((prev) => {
-      const next = prev.includes(normalizedHref)
-        ? prev.filter((h) => h !== normalizedHref)
-        : [normalizedHref, ...prev.filter((h) => h !== normalizedHref)].slice(0, 12);
-      persistStoredStringList(PIN_KEY, next, 12);
-      return next;
+    setPinnedState((previous) => {
+      const current = previous.userId === userId
+        ? previous.items
+        : readAccountStoredStringList(PIN_KEY, userId, 12);
+      const next = current.includes(normalizedHref)
+        ? current.filter((h) => h !== normalizedHref)
+        : [normalizedHref, ...current.filter((h) => h !== normalizedHref)].slice(0, 12);
+      persistAccountStoredStringList(PIN_KEY, userId, next, 12);
+      return { userId, items: next };
     });
   };
 
@@ -1765,18 +1804,18 @@ export default function MorePage() {
     const validHrefs = new Set(recentCatalogLinks.map((link) => link.href));
     const cleaned = recentHrefs.filter((href) => validHrefs.has(href)).slice(0, 8);
     if (sameStringList(cleaned, recentHrefs)) return;
-    setRecentHrefs(cleaned);
-    persistStoredStringList(RECENT_KEY, cleaned, 8);
-  }, [recentCatalogLinks, recentHrefs]);
+    setRecentState({ userId, items: cleaned });
+    persistAccountStoredStringList(RECENT_KEY, userId, cleaned, 8);
+  }, [recentCatalogLinks, recentHrefs, userId]);
 
   useEffect(() => {
     if (!pinnedHrefs.length || typeof window === "undefined") return;
     const validHrefs = new Set(recentCatalogLinks.map((link) => link.href));
     const cleaned = pinnedHrefs.filter((href) => validHrefs.has(href)).slice(0, 12);
     if (sameStringList(cleaned, pinnedHrefs)) return;
-    setPinnedHrefs(cleaned);
-    persistStoredStringList(PIN_KEY, cleaned, 12);
-  }, [pinnedHrefs, recentCatalogLinks]);
+    setPinnedState({ userId, items: cleaned });
+    persistAccountStoredStringList(PIN_KEY, userId, cleaned, 12);
+  }, [pinnedHrefs, recentCatalogLinks, userId]);
 
   /* --- Pinned links resolved against all sections --- */
   const pinnedLinks = useMemo(() => {
@@ -2159,10 +2198,10 @@ export default function MorePage() {
                   <button type="button"
                     aria-label="Reset saved shortcuts"
                     onClick={() => {
-                      setPinnedHrefs([]);
-                      setRecentHrefs([]);
-                      persistStoredStringList(PIN_KEY, [], 12);
-                      persistStoredStringList(RECENT_KEY, [], 8);
+                      setPinnedState({ userId, items: [] });
+                      setRecentState({ userId, items: [] });
+                      persistAccountStoredStringList(PIN_KEY, userId, [], 12);
+                      persistAccountStoredStringList(RECENT_KEY, userId, [], 8);
                       toast.success("Shortcuts reset");
                     }}
                     className="shrink-0 rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
@@ -2206,15 +2245,21 @@ export default function MorePage() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            setPinnedHrefs((prev) => {
-                              const next = prev.filter((href) => href !== link.href);
-                              persistStoredStringList(PIN_KEY, next, 12);
-                              return next;
+                            setPinnedState((previous) => {
+                              const current = previous.userId === userId
+                                ? previous.items
+                                : readAccountStoredStringList(PIN_KEY, userId, 12);
+                              const next = current.filter((href) => href !== link.href);
+                              persistAccountStoredStringList(PIN_KEY, userId, next, 12);
+                              return { userId, items: next };
                             });
-                            setRecentHrefs((prev) => {
-                              const next = prev.filter((href) => href !== link.href);
-                              persistStoredStringList(RECENT_KEY, next, 8);
-                              return next;
+                            setRecentState((previous) => {
+                              const current = previous.userId === userId
+                                ? previous.items
+                                : readAccountStoredStringList(RECENT_KEY, userId, 8);
+                              const next = current.filter((href) => href !== link.href);
+                              persistAccountStoredStringList(RECENT_KEY, userId, next, 8);
+                              return { userId, items: next };
                             });
                             toast.success(`${link.label} removed from shortcuts`);
                           }}

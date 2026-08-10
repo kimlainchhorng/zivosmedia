@@ -206,6 +206,10 @@ describe("shop owner workflow", () => {
     expect(autoRepairInvoices).toContain('const inServiceIntakeLabel = isSoftwareDomain ? "In Service" : "In Shop"');
     expect(autoRepairPartSuppliers).toContain('const browseWithoutVehicleLabel = isSoftwareDomain ? "Browse Without Vehicle" : "Shop Without Vehicle"');
     expect(autoRepairPartSuppliers).toContain('supplier.desc.replace("Shop / trade orders", "Business / trade orders")');
+    expect(autoRepairPartSuppliers).toContain('type StoredCred = Omit<Cred, "password">');
+    expect(autoRepairPartSuppliers).toContain('JSON.stringify(safe)');
+    expect(autoRepairPartSuppliers).not.toContain('JSON.stringify(cred)');
+    expect(autoRepairPartSuppliers).toContain('Password is used for this setup session only');
     expect(buildROPartsCatalogDialog).toContain('const browseWithoutVehicleLabel = isSoftwareDomain ? "Browse Without Vehicle" : "Shop Without Vehicle"');
     expect(autoRepairDocPreview).toContain('const shareSenderName = storeName || (isSoftwareDomain ? "Your business" : "Your shop")');
     expect(arQuickSettingsPanel).toContain("isAutoRepairSoftwareHost(window.location.hostname)");
@@ -213,6 +217,10 @@ describe("shop owner workflow", () => {
     expect(arQuickSettingsPanel).toContain('"service@example.com" : "shop@example.com"');
     expect(supplierBrowserModal).toContain('"Account saved for the business"');
     expect(supplierBrowserModal).toContain('"Account removed for the business"');
+    expect(supplierBrowserModal).toContain('type BrowserStoredCreds = Pick<SavedCreds, "email" | "updatedAt">');
+    expect(supplierBrowserModal).toContain('const safe: BrowserStoredCreds');
+    expect(supplierBrowserModal).toContain('localStorage above caches only the');
+    expect(supplierBrowserModal).not.toContain('JSON.stringify(c));');
     expect(financeExpenses).toContain("\"You don't have permission to save expenses for this business.\"");
     expect(financeExpenses).toContain('const diagnosticsStoreIdLabel = isAutoRepairSoftwareDomain ? "Business ID" : "Store ID"');
     expect(buildROStatusDialog).toContain('const statusLabel = isAutoRepairSoftwareDomain ? "Service-Floor Status" : "Shop-Floor Status"');

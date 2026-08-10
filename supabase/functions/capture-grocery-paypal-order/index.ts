@@ -24,6 +24,12 @@ async function token() {
   return (await res.json()).access_token as string;
 }
 
+function dollarsToCents(value: unknown): number | null {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return Math.round(amount * 100);
+}
+
 Deno.serve(withSecurity("capture-grocery-paypal-order", async (req, ctx) => {
   const cors = ctx.corsHeaders;
   if (req.method !== "POST") {
@@ -48,7 +54,7 @@ Deno.serve(withSecurity("capture-grocery-paypal-order", async (req, ctx) => {
     });
     const { data: o } = await admin
       .from("shopping_orders")
-      .select("id, user_id, payment_status, paypal_capture_id")
+      .select("id, user_id, payment_status, paypal_capture_id, final_total, total_amount, delivery_fee")
       .eq("paypal_order_id", order_id)
       .maybeSingle();
     if (!o) return new Response(JSON.stringify({ error: "Order not found" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
@@ -70,6 +76,17 @@ Deno.serve(withSecurity("capture-grocery-paypal-order", async (req, ctx) => {
     }
     const cap = capJson.purchase_units?.[0]?.payments?.captures?.[0];
     const captureId = cap?.id ?? null;
+    const storedFinalTotal = Number((o as any).final_total);
+    const expectedDollars = Number.isFinite(storedFinalTotal) && storedFinalTotal > 0
+      ? storedFinalTotal
+      : Number((o as any).total_amount) + Number((o as any).delivery_fee);
+    const expectedCents = dollarsToCents(expectedDollars);
+    const capturedCents = dollarsToCents(cap?.amount?.value);
+    const currency = String(cap?.amount?.currency_code ?? "").toUpperCase();
+    if (expectedCents == null || capturedCents !== expectedCents || currency !== "USD" || !captureId) {
+      await admin.from("shopping_orders").update({ last_payment_error: "PayPal amount or currency mismatch; payment requires review" } as any).eq("id", (o as any).id);
+      return new Response(JSON.stringify({ error: "PayPal payment amount requires review" }), { status: 409, headers: { ...cors, "Content-Type": "application/json" } });
+    }
     await admin
       .from("shopping_orders")
       .update({ paypal_capture_id: captureId, payment_status: "paid", last_payment_error: null } as any)

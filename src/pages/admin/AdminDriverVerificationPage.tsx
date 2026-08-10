@@ -54,13 +54,13 @@ export default function AdminDriverVerificationPage() {
   const viewFile = async (row: Row) => {
     if (!row.file_path) return;
     if (signed[row.id]) {
-      window.open(signed[row.id], "_blank");
+      window.open(signed[row.id], "_blank", "noopener,noreferrer");
       return;
     }
     const { data } = await supabase.storage.from("driver-documents").createSignedUrl(row.file_path, 300);
     if (data?.signedUrl) {
       setSigned((s) => ({ ...s, [row.id]: data.signedUrl }));
-      window.open(data.signedUrl, "_blank");
+      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     }
   };
 

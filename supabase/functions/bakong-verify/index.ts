@@ -12,12 +12,6 @@ import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
 const BAKONG_API = "https://api-bakong.nbc.gov.kh/v1";
-const DEFAULT_STATIC_KHQR =
-  "00020101021130510016abaakhppxxx@abaa01151260319063643400208ABA Bank5204421553031165802KH5915CHHORNG KIMLAIN6010PHNOM PENH624168370010PAYWAY@ABA0106941478020903218711963040E41";
-const STATIC_MERCHANT_KHQR =
-  Deno.env.get("KHQR_STATIC_MERCHANT_QR")?.trim() ||
-  Deno.env.get("VITE_KHQR_STATIC_MERCHANT_QR")?.trim() ||
-  DEFAULT_STATIC_KHQR;
 const MERCHANT_FIELD_TAGS = ["29", "30", "31", "52", "58", "59", "60"];
 const MAX_KHQR_AGE_SECONDS = 10 * 60;
 const MAX_KHQR_FUTURE_SKEW_SECONDS = 30;
@@ -82,10 +76,15 @@ function validateSinceSec(sinceSec: number): string | null {
   return null;
 }
 
-function validateKhqrPayload(qr: string, reference: string, amountKhr: number): string | null {
+function validateKhqrPayload(
+  qr: string,
+  reference: string,
+  amountKhr: number,
+  staticMerchantKhqr: string,
+): string | null {
   if (!qr || typeof qr !== "string") return "Missing qr";
   const fields = parseTlv(stripCrc(qr));
-  const merchantFields = parseTlv(stripCrc(STATIC_MERCHANT_KHQR));
+  const merchantFields = parseTlv(stripCrc(staticMerchantKhqr));
 
   for (const tag of MERCHANT_FIELD_TAGS) {
     if (merchantFields[tag] && fields[tag] !== merchantFields[tag]) {
@@ -120,6 +119,16 @@ Deno.serve(withSecurity("bakong-verify", async (req, ctx) => {
   try {
     const token = Deno.env.get("BAKONG_TOKEN");
     if (!token) throw new Error("BAKONG_TOKEN not configured");
+    // Merchant identity is a server-side payment boundary. A missing setting
+    // must close the rail; do not fall back to a source-controlled or Vite
+    // value that could point payments at an unintended merchant.
+    const staticMerchantKhqr = Deno.env.get("KHQR_STATIC_MERCHANT_QR")?.trim();
+    if (!staticMerchantKhqr) {
+      return new Response(JSON.stringify({ error: "KHQR payment verification is not configured" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
@@ -175,7 +184,7 @@ Deno.serve(withSecurity("bakong-verify", async (req, ctx) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const qrError = validateKhqrPayload(qrString, reference, amountKhr);
+    const qrError = validateKhqrPayload(qrString, reference, amountKhr, staticMerchantKhqr);
     if (qrError) {
       return new Response(JSON.stringify({ error: qrError }), {
         status: 400,

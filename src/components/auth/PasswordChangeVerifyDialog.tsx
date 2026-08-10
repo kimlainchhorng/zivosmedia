@@ -75,7 +75,7 @@ export default function PasswordChangeVerifyDialog({
     try {
       if (m === "email") {
         const { error } = await supabase.functions.invoke("send-otp-email", {
-          body: { email },
+          body: { email, purpose: "password_change" },
         });
         if (error) throw error;
         toast.success(`Code sent to ${email}`);
@@ -106,7 +106,7 @@ export default function PasswordChangeVerifyDialog({
     try {
       if (method === "email") {
         const { data, error } = await supabase.functions.invoke("verify-otp-code", {
-          body: { email, code },
+          body: { email, code, purpose: "password_change" },
         });
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);

@@ -95,44 +95,75 @@ const HELP_ARTICLES = [
 ];
 
 // Recent search helpers
-const RECENT_KEY = "zivo_recent_searches";
+const RECENT_KEY = "zivo:universal-search:recent";
 interface RecentSearch {
   query: string;
   type?: string;
   timestamp?: number;
 }
 
-function getRecentSearches(): RecentSearch[] {
+type RecentSearchState = { userId: string | null; items: RecentSearch[] };
+
+const recentSearchStorageKey = (userId: string | null): string | null =>
+  userId ? `${RECENT_KEY}:${userId}` : null;
+
+const isRecentSearch = (value: unknown): value is RecentSearch => {
+  if (!value || typeof value !== "object") return false;
+  const query = (value as { query?: unknown }).query;
+  return typeof query === "string" && query.trim().length > 0;
+};
+
+function getRecentSearches(userId: string | null): RecentSearch[] {
+  const key = recentSearchStorageKey(userId);
+  if (!key || typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(RECENT_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return [];
-    return JSON.parse(raw).slice(0, 8);
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isRecentSearch).map((item) => ({
+      ...item,
+      query: item.query.trim(),
+    })).slice(0, 8);
   } catch {
     return [];
   }
 }
 
-function saveRecentSearch(query: string) {
+function saveRecentSearch(query: string, userId: string | null) {
+  const key = recentSearchStorageKey(userId);
+  if (!key || typeof window === "undefined") return;
   try {
-    const existing = getRecentSearches();
+    const existing = getRecentSearches(userId);
     const filtered = existing.filter((s) => s.query.toLowerCase() !== query.toLowerCase());
     filtered.unshift({ query, timestamp: Date.now() });
-    localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, 10)));
+    window.localStorage.setItem(key, JSON.stringify(filtered.slice(0, 10)));
   } catch {}
 }
 
-function clearRecentSearches() {
-  localStorage.removeItem(RECENT_KEY);
+function clearRecentSearches(userId: string | null) {
+  const key = recentSearchStorageKey(userId);
+  if (!key || typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {}
 }
 
 export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSearchOverlayProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("all");
-  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+  const [recentSearchState, setRecentSearchState] = useState<RecentSearchState>(() => ({
+    userId,
+    items: getRecentSearches(userId),
+  }));
+  const recentSearches = recentSearchState.userId === userId
+    ? recentSearchState.items
+    : getRecentSearches(userId);
 
   // Debounce
   useEffect(() => {
@@ -144,7 +175,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      setRecentSearches(getRecentSearches());
+      setRecentSearchState({ userId, items: getRecentSearches(userId) });
       setTimeout(() => inputRef.current?.focus(), 100);
     } else {
       document.body.style.overflow = "";
@@ -153,7 +184,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
       setActiveTab("all");
     }
     return () => { document.body.style.overflow = ""; };
-  }, [isOpen]);
+  }, [isOpen, userId]);
 
   // ESC to close
   useEffect(() => {
@@ -260,16 +291,16 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
     : [];
 
   const handleNavigate = useCallback((path: string) => {
-    if (query.trim()) saveRecentSearch(query.trim());
+    if (query.trim()) saveRecentSearch(query.trim(), userId);
     onClose();
     window.scrollTo(0, 0);
     navigate(path);
-  }, [navigate, onClose, query]);
+  }, [navigate, onClose, query, userId]);
 
   const handleClearHistory = useCallback(() => {
-    clearRecentSearches();
-    setRecentSearches([]);
-  }, []);
+    clearRecentSearches(userId);
+    setRecentSearchState({ userId, items: [] });
+  }, [userId]);
 
   const hasQuery = debouncedQuery.length >= 2;
 

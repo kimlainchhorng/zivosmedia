@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, AlertCircle, ExternalLink, Banknote, Plus, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { isAllowedStripeConnectUrl } from "@/lib/urlSafety";
 
 interface ConnectStatus {
   connected: boolean;
@@ -99,6 +100,7 @@ export default function DriverPayoutsPage() {
       });
       if (error) throw error;
       if (!data?.url) throw new Error("No onboarding URL returned");
+      if (!isAllowedStripeConnectUrl(data.url)) throw new Error("Invalid Stripe onboarding URL");
       window.location.assign(data.url);
     } catch (e: any) {
       toast.error(e?.message || "Could not start onboarding");

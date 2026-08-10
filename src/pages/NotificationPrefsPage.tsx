@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +25,17 @@ interface TemplateRow {
   is_active: boolean | null;
 }
 
-const STORAGE_KEY = "zivo:notif-prefs:v1";
+const STORAGE_KEY_PREFIX = "zivo:notif-prefs:v1";
 
-function loadDisabled(): Set<string> {
+function storageKey(userId: string | null | undefined): string | null {
+  return userId ? `${STORAGE_KEY_PREFIX}:${userId}` : null;
+}
+
+function loadDisabled(userId: string | null | undefined): Set<string> {
+  const key = storageKey(userId);
+  if (!key) return new Set();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return new Set();
     const arr: unknown = JSON.parse(raw);
     if (Array.isArray(arr)) return new Set(arr.filter((v): v is string => typeof v === "string"));
@@ -36,15 +43,19 @@ function loadDisabled(): Set<string> {
   return new Set();
 }
 
-function saveDisabled(s: Set<string>) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(s))); } catch { /* private mode */ }
+function saveDisabled(userId: string | null | undefined, s: Set<string>) {
+  const key = storageKey(userId);
+  if (!key) return;
+  try { localStorage.setItem(key, JSON.stringify(Array.from(s))); } catch { /* private mode */ }
 }
 
 export default function NotificationPrefsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [disabled, setDisabled] = useState<Set<string>>(new Set());
 
-  useEffect(() => { setDisabled(loadDisabled()); }, []);
+  useEffect(() => { setDisabled(loadDisabled(userId)); }, [userId]);
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ["notification-templates"],
@@ -88,7 +99,7 @@ export default function NotificationPrefsPage() {
       else next.add(id);
     });
     setDisabled(next);
-    saveDisabled(next);
+    saveDisabled(userId, next);
     toast.success(enable ? `${cat} enabled` : `${cat} muted`);
   };
 
@@ -101,7 +112,7 @@ export default function NotificationPrefsPage() {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setDisabled(next);
-    saveDisabled(next);
+    saveDisabled(userId, next);
   };
 
   const enabledCount = templates.filter((t) => !disabled.has(t.id)).length;
@@ -157,6 +168,7 @@ export default function NotificationPrefsPage() {
 
         {!isLoading && grouped.length > 0 && grouped.map(([category, list], idx) => {
           const allEnabled = list.every((t) => !disabled.has(t.id));
+          const configurable = list.some((t) => t.can_be_disabled);
           return (
             <motion.section
               key={category}
@@ -167,17 +179,24 @@ export default function NotificationPrefsPage() {
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
                 <p className="text-sm font-bold text-foreground capitalize">{category}</p>
-                <button
-                  type="button"
-                  onClick={() => toggleCategory(category, !allEnabled)}
-                  className={cn(
-                    "text-[11px] font-bold rounded-full px-3 py-1 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    allEnabled ? "bg-secondary text-muted-foreground hover:bg-muted" : "bg-ig-gradient text-white shadow-sm",
-                  )}
-                  aria-label={allEnabled ? "Mute all" : "Enable all"}
-                >
-                  {allEnabled ? "Mute all" : "Enable all"}
-                </button>
+                {configurable ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(category, !allEnabled)}
+                    className={cn(
+                      "text-[11px] font-bold rounded-full px-3 py-1 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      allEnabled ? "bg-secondary text-muted-foreground hover:bg-muted" : "bg-ig-gradient text-white shadow-sm",
+                    )}
+                    aria-label={allEnabled ? "Mute all" : "Enable all"}
+                  >
+                    {allEnabled ? "Mute all" : "Enable all"}
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-[11px] font-bold text-muted-foreground">
+                    <Lock className="h-3 w-3" aria-hidden="true" />
+                    Required
+                  </span>
+                )}
               </div>
               <div className="divide-y divide-border/40">
                 {list.map((t) => {
@@ -189,6 +208,7 @@ export default function NotificationPrefsPage() {
                       type="button"
                       onClick={() => toggleTemplate(t.id, locked)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/40 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                      aria-pressed={locked ? undefined : !isOff}
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground line-clamp-1">{t.name}</p>
@@ -206,7 +226,6 @@ export default function NotificationPrefsPage() {
                             "shrink-0 w-10 h-6 rounded-full p-0.5 transition-colors",
                             isOff ? "bg-secondary" : "bg-ig-gradient",
                           )}
-                          aria-pressed={!isOff}
                         >
                           <span
                             className={cn(

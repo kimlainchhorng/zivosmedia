@@ -12,14 +12,26 @@ Deno.test("verify-otp-code — missing fields returns 400", async () => {
 
 Deno.test("verify-otp-code — non-6-digit code returns 400", async () => {
   const res = await callFn("verify-otp-code", {
-    body: { email: "x@y.com", code: "12" },
+    body: { email: "x@y.com", code: "12", purpose: "signup" },
   });
   assertValidationError(res, "code");
 });
 
 Deno.test("verify-otp-code — invalid email returns 400", async () => {
   const res = await callFn("verify-otp-code", {
-    body: { email: "nope", code: "123456" },
+    body: { email: "nope", code: "123456", purpose: "signup" },
   });
   assertValidationError(res, "email");
+});
+
+Deno.test("verify-otp-code — requires an explicit purpose", async () => {
+  const res = await callFn("verify-otp-code", { body: { email: "x@y.com", code: "123456" } });
+  assertValidationError(res, "purpose");
+});
+
+Deno.test("verify-otp-code — rejects caller-selected account targets", async () => {
+  const res = await callFn("verify-otp-code", {
+    body: { email: "x@y.com", code: "123456", purpose: "signup", userId: "00000000-0000-0000-0000-000000000000" },
+  });
+  assertValidationError(res, "userId");
 });

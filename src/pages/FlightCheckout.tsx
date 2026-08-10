@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FLIGHT_MOR_DISCLAIMERS, FLIGHT_CHECKOUT_CLARITY, ZIVO_SOT_REGISTRATION, FLIGHT_LEGAL_LINKS } from "@/config/flightMoRCompliance";
 import type { DuffelOffer } from "@/hooks/useDuffelFlights";
 import { calculateFlightPricing, type FlightPricingBreakdown } from "@/utils/flightPricing";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const STEPS = [
   { label: "Search", completed: true, active: false },
@@ -187,7 +188,8 @@ const FlightCheckout = () => {
   const showPaymentForm = !!clientSecret;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background relative overflow-hidden">
       <SEOHead title="Secure Checkout – ZIVO Flights" description="Complete your flight booking securely with ZIVO." />
 
       {/* Website header — hidden on mobile for app feel */}
@@ -443,7 +445,8 @@ const FlightCheckout = () => {
       <div className="hidden md:block">
         <Footer />
       </div>
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 };
 

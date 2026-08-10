@@ -112,10 +112,8 @@ serve(withSecurity("notify-dispatch", async (req, ctx) => {
   }
 
   const isServiceCall = authHeader === `Bearer ${serviceKey}`;
-  const isAnonCall = authHeader === `Bearer ${anonKey}`;
-
   let callerUserId: string | null = null;
-  if (!isServiceCall && !isAnonCall) {
+  if (!isServiceCall) {
     try {
       const userClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: authHeader } },
@@ -141,8 +139,10 @@ serve(withSecurity("notify-dispatch", async (req, ctx) => {
     return j(corsHeaders, 400, { error: "Missing required fields: user_id, event_type, title" });
   }
 
-  // Non-service callers can only dispatch to themselves.
-  if (callerUserId && payload.user_id !== callerUserId) {
+  // Non-service callers can only dispatch to themselves. The publishable anon
+  // key is intentionally not treated as an identity; it is available to every
+  // browser and must never unlock cross-user notification fan-out.
+  if (!isServiceCall && (!callerUserId || payload.user_id !== callerUserId)) {
     return j(corsHeaders, 403, { error: "Cannot dispatch notifications for another user" });
   }
 

@@ -10,7 +10,6 @@
  * Idempotent — second call returns the same balance PI.
  */
 import { createClient } from "../_shared/deps.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
@@ -19,9 +18,8 @@ interface Body {
   reservation_id: string;
 }
 
-Deno.serve(withSecurity("capture-car-rental-balance", async (req) => {
-  const cors = getCorsHeaders(req);
-  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+Deno.serve(withSecurity("capture-car-rental-balance", async (req, ctx) => {
+  const cors = ctx.corsHeaders;
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");

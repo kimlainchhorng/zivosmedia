@@ -3,7 +3,7 @@
  * Pulls live follower / following / post counts from Supabase. Targets are
  * persisted to localStorage (no new backend table needed for a v1 of this).
  */
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -20,13 +20,20 @@ interface Goals {
   posts: number;
 }
 
-const GOALS_KEY = "zivo:creator:goals:v1";
+const GOALS_KEY_PREFIX = "zivo:creator:goals:v1";
 const DEFAULT_GOALS: Goals = { followers: 100, following: 50, posts: 25 };
 
-function loadGoals(): Goals {
+function goalsStorageKey(userId: string | null): string | null {
+  return userId ? `${GOALS_KEY_PREFIX}:${userId}` : null;
+}
+
+function loadGoals(userId: string | null): Goals {
+  const key = goalsStorageKey(userId);
+  if (!key || typeof window === "undefined") return { ...DEFAULT_GOALS };
+
   try {
-    const raw = localStorage.getItem(GOALS_KEY);
-    if (!raw) return DEFAULT_GOALS;
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return { ...DEFAULT_GOALS };
     const parsed = JSON.parse(raw);
     return {
       followers: Number(parsed.followers) || DEFAULT_GOALS.followers,
@@ -34,13 +41,16 @@ function loadGoals(): Goals {
       posts: Number(parsed.posts) || DEFAULT_GOALS.posts,
     };
   } catch {
-    return DEFAULT_GOALS;
+    return { ...DEFAULT_GOALS };
   }
 }
 
-function saveGoals(g: Goals) {
+function saveGoals(g: Goals, userId: string | null) {
+  const key = goalsStorageKey(userId);
+  if (!key || typeof window === "undefined") return;
+
   try {
-    localStorage.setItem(GOALS_KEY, JSON.stringify(g));
+    window.localStorage.setItem(key, JSON.stringify(g));
   } catch {
     /* localStorage may be unavailable (private browsing) — silently ignore */
   }
@@ -55,13 +65,14 @@ function formatCount(n: number): string {
 export default function CreatorGoalsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
+  const userId = user?.id ?? null;
+  const [goalState, setGoalState] = useState<{ userId: string | null; goals: Goals }>(() => ({
+    userId,
+    goals: loadGoals(userId),
+  }));
   const [editingKey, setEditingKey] = useState<keyof Goals | null>(null);
   const [draftValue, setDraftValue] = useState("");
-
-  useEffect(() => {
-    setGoals(loadGoals());
-  }, []);
+  const goals = goalState.userId === userId ? goalState.goals : loadGoals(userId);
 
   const { data: counts, isLoading } = useQuery({
     queryKey: ["creator-goals-counts", user?.id],
@@ -97,11 +108,14 @@ export default function CreatorGoalsPage() {
   const commitEdit = useCallback(() => {
     if (!editingKey) return;
     const n = Math.max(1, Math.floor(Number(draftValue) || 0));
-    const next = { ...goals, [editingKey]: n };
-    setGoals(next);
-    saveGoals(next);
+    setGoalState((previous) => {
+      const current = previous.userId === userId ? previous.goals : loadGoals(userId);
+      const next = { ...current, [editingKey]: n };
+      saveGoals(next, userId);
+      return { userId, goals: next };
+    });
     setEditingKey(null);
-  }, [editingKey, draftValue, goals]);
+  }, [editingKey, draftValue, userId]);
 
   const cancelEdit = useCallback(() => {
     setEditingKey(null);

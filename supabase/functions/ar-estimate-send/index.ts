@@ -16,6 +16,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.106.0";
 import { Resend } from "npm:resend@2.0.0";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { escapeHtml } from "../_shared/escapeHtml.ts";
 
 const j = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(body), {
@@ -109,14 +110,28 @@ serve(withSecurity("ar-estimate-send", async (req, ctx) => {
   const storeName: string = store?.name || "Your shop";
   const storePhone: string = store?.phone || "";
 
-  const origin = req.headers.get("Origin") || Deno.env.get("AR_PUBLIC_APP_ORIGIN") || "https://zivosmedia.com";
-  const url = `${origin}/estimate/${token}`;
+  const configuredOrigin = Deno.env.get("AR_PUBLIC_APP_ORIGIN")?.trim() || "https://zivosmedia.com";
+  let publicOrigin = "https://zivosmedia.com";
+  try {
+    const parsedOrigin = new URL(configuredOrigin);
+    if (
+      parsedOrigin.protocol === "https:" &&
+      (parsedOrigin.hostname === "zivosmedia.com" || parsedOrigin.hostname.endsWith(".zivosmedia.com"))
+    ) {
+      publicOrigin = parsedOrigin.origin;
+    }
+  } catch {
+    // Keep the canonical production origin when configuration is malformed.
+  }
+  const url = `${publicOrigin}/estimate/${encodeURIComponent(token)}`;
 
   const customerFirstName = (est.customer_name ?? "").trim().split(" ")[0] || "there";
   const vehicle = est.vehicle_label || "your vehicle";
   const total = fmtDollars(est.total_cents);
 
-  const subject = `Estimate ${est.number} from ${storeName}`;
+  const headerSafe = (value: unknown, fallback: string) =>
+    String(value ?? fallback).replace(/[\r\n]/g, " ").slice(0, 200);
+  const subject = headerSafe(`Estimate ${est.number} from ${storeName}`, "Service estimate");
   const textBody =
     `Hi ${customerFirstName}, ${storeName} has prepared estimate ${est.number} for ${vehicle}` +
     (total ? ` — total ${total}.` : ".") +
@@ -135,17 +150,24 @@ serve(withSecurity("ar-estimate-send", async (req, ctx) => {
       if (!est.customer_email) return j(400, { error: "Estimate has no customer email" }, corsHeaders);
       if (!resend) return j(503, { error: "Email provider not configured" }, corsHeaders);
 
+      const safeCustomerFirstName = escapeHtml(customerFirstName);
+      const safeStoreName = escapeHtml(storeName);
+      const safeEstimateNumber = escapeHtml(est.number);
+      const safeVehicle = escapeHtml(vehicle);
+      const safeTotal = escapeHtml(total);
+      const safeStorePhone = escapeHtml(storePhone);
+      const safeUrl = escapeHtml(url);
       const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;padding:24px;color:#111;line-height:1.55">
-  <p style="margin:0 0 12px">Hi ${customerFirstName},</p>
-  <p style="margin:0 0 16px"><strong>${storeName}</strong> has prepared estimate <strong>${est.number}</strong> for ${vehicle}${total ? ` — total <strong>${total}</strong>` : ""}.</p>
-  <p style="margin:0 0 20px"><a href="${url}" style="display:inline-block;background:#0ea5e9;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600">View &amp; approve estimate</a></p>
-  <p style="margin:0 0 8px;color:#666;font-size:13px">Or open this link: <a href="${url}" style="color:#0ea5e9;word-break:break-all">${url}</a></p>
-  <p style="margin:16px 0 4px;color:#666;font-size:13px">${storePhone ? `Questions? Call <strong>${storePhone}</strong>.` : "Reply to this email with any questions."}</p>
-  <p style="margin:8px 0 0">— ${storeName}</p>
+  <p style="margin:0 0 12px">Hi ${safeCustomerFirstName},</p>
+  <p style="margin:0 0 16px"><strong>${safeStoreName}</strong> has prepared estimate <strong>${safeEstimateNumber}</strong> for ${safeVehicle}${total ? ` — total <strong>${safeTotal}</strong>` : ""}.</p>
+  <p style="margin:0 0 20px"><a href="${safeUrl}" style="display:inline-block;background:#0ea5e9;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600">View &amp; approve estimate</a></p>
+  <p style="margin:0 0 8px;color:#666;font-size:13px">Or open this link: <a href="${safeUrl}" style="color:#0ea5e9;word-break:break-all">${safeUrl}</a></p>
+  <p style="margin:16px 0 4px;color:#666;font-size:13px">${storePhone ? `Questions? Call <strong>${safeStorePhone}</strong>.` : "Reply to this email with any questions."}</p>
+  <p style="margin:8px 0 0">— ${safeStoreName}</p>
 </div>`;
 
       const { error: emailError } = await resend.emails.send({
-        from: `${storeName} <${fromEmail}>`,
+        from: `${headerSafe(storeName, "Your shop")} <${headerSafe(fromEmail, "noreply@zivosmedia.com")}>`,
         to: [est.customer_email],
         subject,
         html,

@@ -59,7 +59,7 @@ export default function ChatSocialBubble({ platform, platformLabel, url, handle,
   const brand = BRANDS[platform] ?? FALLBACK;
   const Icon = brand.icon;
   const cleanHandle = handle.replace(/^@/, "");
-  const open = () => { void openExternalUrl(url).catch(() => { window.open(url, "_blank"); }); };
+  const open = () => { void openExternalUrl(url); };
 
   return (
     <div className={cn("flex", isMe ? "justify-end" : "justify-start")}>

@@ -1,9 +1,9 @@
 /**
  * SwitchAccountSheet — Facebook/Instagram-style multi-account switcher.
  *
- * Reuses the saved-accounts infra (localStorage refresh tokens) and the exact
- * one-tap resume flow from the Login picker: tapping a saved account exchanges
- * its stored refresh_token for a live session via supabase.auth.refreshSession().
+ * Reuses the saved-accounts infra (metadata in localStorage, refresh tokens in
+ * sessionStorage) and the one-tap resume flow from the Login picker: tapping a
+ * saved account exchanges its session-scoped refresh_token for a live session.
  * If the token is missing/expired we fall back to the Login page.
  */
 import { useMemo, useState } from "react";

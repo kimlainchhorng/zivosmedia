@@ -18,6 +18,7 @@ import ServiceDisclaimer from "@/components/shared/ServiceDisclaimer";
 import { CAR_DISCLAIMERS, CAR_TRUST_BADGES } from "@/config/carCompliance";
 import CarFeaturesGrid from "@/components/car/CarFeaturesGrid";
 import CarComplianceFooter from "@/components/car/CarComplianceFooter";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const trustBadges = [
   { icon: ShieldCheck, text: CAR_TRUST_BADGES.secureCheckout },
@@ -42,14 +43,15 @@ export default function CarRentalLanding() {
   const heroImage = heroPhotos.cars;
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEOHead
-        title={pageTitle}
-        description={pageDescription}
-        canonical={formattedLocation ? `/rent-car/${location}` : "/rent-car"}
-        ogImage="/og-cars.jpg"
-        appLink="zivo://cars"
-      />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
+        <SEOHead
+          title={pageTitle}
+          description={pageDescription}
+          canonical={formattedLocation ? `/rent-car/${location}` : "/rent-car"}
+          ogImage="/og-cars.jpg"
+          appLink="zivo://cars"
+        />
       <BreadcrumbSchema
         items={
           formattedLocation
@@ -194,6 +196,7 @@ export default function CarRentalLanding() {
       </main>
       
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

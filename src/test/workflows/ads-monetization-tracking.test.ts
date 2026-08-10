@@ -395,6 +395,8 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     const affiliateRedirectPage = read("src/pages/AffiliateRedirectPage.tsx");
     const affiliateLinksPage = read("src/pages/AffiliateLinksPage.tsx");
     const affiliateLinkSheet = read("src/components/affiliate/AffiliateLinkSheet.tsx");
+    const storeAdsManager = read("src/components/admin/StoreAdsManager.tsx");
+    const chatSocialBubble = read("src/components/chat/ChatSocialBubble.tsx");
     const payoutWorkflow = read("src/test/workflows/payouts-earnings-workflow.test.ts");
 
     expect(tierIntent).toContain("stripe");
@@ -524,10 +526,15 @@ describe("ads, monetization, and conversion tracking workflow", () => {
     expect(affiliateRedirectPage).not.toContain('.from("affiliate_links")');
     expect(affiliateRedirectPage).not.toMatch(/update\(\{\s*click_count/);
     expect(affiliateLinksPage).toContain("affiliate_links");
+    expect(affiliateLinksPage).toContain("openExternalUrl(l.target_url)");
     expect(affiliateLinksPage).not.toMatch(/from\("affiliate_links"\)[\s\S]{0,160}\.update\(\{[\s\S]{0,120}(click_count|conversion_count|earnings_cents)/);
     expect(affiliateLinkSheet).toContain("affiliate_links");
     expect(affiliateLinkSheet).toContain("validateExternalUrl(detail.targetUrl)");
     expect(affiliateLinkSheet).toContain("target_url: safeUrl");
+    expect(affiliateRedirectPage).toContain("validateExternalUrl(data?.target_url)");
+    expect(affiliateRedirectPage).toContain("window.location.href = safeTargetUrl");
+    expect(storeAdsManager).toContain("isAllowedCheckoutUrl(url)");
+    expect(chatSocialBubble).not.toContain('window.open(url, "_blank")');
     expect(affiliateLinkSheet).not.toMatch(/insert\(\{[\s\S]{0,160}(click_count|conversion_count|earnings_cents)/);
 
     expect(payoutWorkflow).toContain("CreatorPayoutsPage");

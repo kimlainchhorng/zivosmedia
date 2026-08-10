@@ -10,6 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 const CACHE_KEY = "zivo-grocery-order-history";
 
+const cacheKeyForUser = (userId: string | null): string | null => (
+  userId ? `${CACHE_KEY}:${userId}` : null
+);
+
 export interface OrderHistoryItem {
   productId: string;
   name: string;
@@ -22,9 +26,13 @@ export interface OrderHistoryItem {
 }
 
 /** Save items to order history after checkout (localStorage + future Supabase sync) */
-export function saveToOrderHistory(items: { productId: string; name: string; price: number; image: string; brand: string; store: string }[]) {
+export async function saveToOrderHistory(items: { productId: string; name: string; price: number; image: string; brand: string; store: string }[]) {
   try {
-    const stored = localStorage.getItem(CACHE_KEY);
+    const { data: { user } } = await supabase.auth.getUser();
+    const cacheKey = cacheKeyForUser(user?.id ?? null);
+    if (!cacheKey) return;
+
+    const stored = localStorage.getItem(cacheKey);
     const history: OrderHistoryItem[] = stored ? JSON.parse(stored) : [];
     const now = new Date().toISOString();
 
@@ -40,7 +48,7 @@ export function saveToOrderHistory(items: { productId: string; name: string; pri
     });
 
     history.sort((a, b) => new Date(b.lastOrdered).getTime() - new Date(a.lastOrdered).getTime());
-    localStorage.setItem(CACHE_KEY, JSON.stringify(history.slice(0, 50)));
+    localStorage.setItem(cacheKey, JSON.stringify(history.slice(0, 50)));
   } catch {
     // Silently fail
   }
@@ -56,55 +64,79 @@ export function GroceryOrderAgain({ store, onAdd, cartProductIds }: GroceryOrder
   const [history, setHistory] = useState<OrderHistoryItem[]>([]);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    let active = true;
+    const syncUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (active) setUserId(user?.id ?? null);
+    };
+
+    void syncUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) setUserId(session?.user?.id ?? null);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
+    setHistory([]);
+    setLoading(true);
 
     async function fetchHistory() {
+      if (userId === undefined) return;
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+
       // 1. Try Supabase first for authenticated users
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: orders } = await supabase
-            .from("shopping_orders")
-            .select("items, placed_at")
-            .eq("user_id", user.id)
-            .eq("order_type", "shopping_delivery")
-            .in("status", ["delivered", "completed", "pending", "confirmed", "shopping"])
-            .order("placed_at", { ascending: false })
-            .limit(10);
+        const { data: orders } = await supabase
+          .from("shopping_orders")
+          .select("items, placed_at")
+          .eq("user_id", userId)
+          .eq("order_type", "shopping_delivery")
+          .in("status", ["delivered", "completed", "pending", "confirmed", "shopping"])
+          .order("placed_at", { ascending: false })
+          .limit(10);
 
-          if (!cancelled && orders && orders.length > 0) {
-            const itemMap = new Map<string, OrderHistoryItem>();
-            for (const order of orders) {
-              const items = Array.isArray(order.items) ? (order.items as any[]) : [];
-              for (const item of items) {
-                if (!item.productId || !item.name) continue;
-                const itemStore = (item.store || "").toLowerCase();
-                if (itemStore !== store.toLowerCase()) continue;
+        if (!cancelled && orders && orders.length > 0) {
+          const itemMap = new Map<string, OrderHistoryItem>();
+          for (const order of orders) {
+            const items = Array.isArray(order.items) ? (order.items as any[]) : [];
+            for (const item of items) {
+              if (!item.productId || !item.name) continue;
+              const itemStore = (item.store || "").toLowerCase();
+              if (itemStore !== store.toLowerCase()) continue;
 
-                if (itemMap.has(item.productId)) {
-                  const existing = itemMap.get(item.productId)!;
-                  existing.orderCount += 1;
-                } else {
-                  itemMap.set(item.productId, {
-                    productId: item.productId,
-                    name: item.name,
-                    price: item.price || 0,
-                    image: item.image || "",
-                    brand: item.brand || "",
-                    store: item.store || store,
-                    lastOrdered: order.placed_at || new Date().toISOString(),
-                    orderCount: 1,
-                  });
-                }
+              if (itemMap.has(item.productId)) {
+                const existing = itemMap.get(item.productId)!;
+                existing.orderCount += 1;
+              } else {
+                itemMap.set(item.productId, {
+                  productId: item.productId,
+                  name: item.name,
+                  price: item.price || 0,
+                  image: item.image || "",
+                  brand: item.brand || "",
+                  store: item.store || store,
+                  lastOrdered: order.placed_at || new Date().toISOString(),
+                  orderCount: 1,
+                });
               }
             }
-            if (!cancelled) {
-              setHistory(Array.from(itemMap.values()).slice(0, 15));
-              setLoading(false);
-              return;
-            }
+          }
+          if (!cancelled) {
+            setHistory(Array.from(itemMap.values()).slice(0, 15));
+            setLoading(false);
+            return;
           }
         }
       } catch {
@@ -114,7 +146,8 @@ export function GroceryOrderAgain({ store, onAdd, cartProductIds }: GroceryOrder
       // 2. Fallback: localStorage cache
       if (!cancelled) {
         try {
-          const stored = localStorage.getItem(CACHE_KEY);
+          const cacheKey = cacheKeyForUser(userId);
+          const stored = cacheKey ? localStorage.getItem(cacheKey) : null;
           if (stored) {
             const all: OrderHistoryItem[] = JSON.parse(stored);
             setHistory(all.filter((h) => h.store.toLowerCase() === store.toLowerCase()));
@@ -126,7 +159,7 @@ export function GroceryOrderAgain({ store, onAdd, cartProductIds }: GroceryOrder
 
     fetchHistory();
     return () => { cancelled = true; };
-  }, [store]);
+  }, [store, userId]);
 
   const handleAdd = useCallback((item: OrderHistoryItem) => {
     onAdd({

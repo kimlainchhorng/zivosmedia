@@ -628,6 +628,7 @@ describe("API, speed, and operations readiness workflow", () => {
     const capi = source("supabase/functions/meta-capi-bridge/index.ts");
     const conversion = source("supabase/functions/meta-conversion-bridge/index.ts");
     const signup = source("supabase/functions/public-signup/index.ts");
+    const verifyOtp = source("supabase/functions/verify-otp-code/index.ts");
     const subscribe = source("supabase/functions/subscribe-salon-membership/index.ts");
     const cancelMembership = source("supabase/functions/cancel-membership/index.ts");
 
@@ -683,8 +684,11 @@ describe("API, speed, and operations readiness workflow", () => {
 
     expect(signup).toContain("withErrorHandling");
     expect(signup).toContain('rateLimit: "auth_register"');
-    expect(signup).toContain("calculateAge");
     expect(signup).toContain("send-otp-email");
+    expect(signup).toContain("email_verification_required");
+    expect(signup).not.toContain("auth.admin.createUser");
+    expect(verifyOtp).toContain("calculateAge");
+    expect(verifyOtp).toContain("hmacEmailOtpCode");
   });
 
   it("keeps account, notification, and email preview routes bounded", () => {

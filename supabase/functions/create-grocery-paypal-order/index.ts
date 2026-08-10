@@ -25,6 +25,12 @@ async function token() {
   return (await res.json()).access_token as string;
 }
 
+function dollarsToCents(value: unknown): number | null {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return Math.round(amount * 100);
+}
+
 Deno.serve(withSecurity("create-grocery-paypal-order", async (req, ctx) => {
   const cors = ctx.corsHeaders;
   if (req.method !== "POST") {
@@ -41,9 +47,9 @@ Deno.serve(withSecurity("create-grocery-paypal-order", async (req, ctx) => {
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "Authentication required" }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
 
-    const { order_id, amount_cents, return_url, cancel_url } = await req.json();
-    if (!order_id || !amount_cents || amount_cents < 50) {
-      return new Response(JSON.stringify({ error: "Invalid order_id or amount" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+    const { order_id, return_url, cancel_url } = await req.json();
+    if (!order_id) {
+      return new Response(JSON.stringify({ error: "Invalid order_id" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
     }
 
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -51,23 +57,31 @@ Deno.serve(withSecurity("create-grocery-paypal-order", async (req, ctx) => {
     });
     const { data: order } = await admin
       .from("shopping_orders")
-      .select("id, user_id, payment_status")
+      .select("id, user_id, payment_status, final_total, total_amount, delivery_fee")
       .eq("id", order_id)
       .maybeSingle();
     if (!order) return new Response(JSON.stringify({ error: "Order not found" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
     if ((order as any).user_id !== user.id) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
     if (["paid", "refunded"].includes((order as any).payment_status)) return new Response(JSON.stringify({ error: "Order already settled" }), { status: 409, headers: { ...cors, "Content-Type": "application/json" } });
+    const storedFinalTotal = Number((order as any).final_total);
+    const payableDollars = Number.isFinite(storedFinalTotal) && storedFinalTotal > 0
+      ? storedFinalTotal
+      : Number((order as any).total_amount) + Number((order as any).delivery_fee);
+    const payableCents = dollarsToCents(payableDollars);
+    if (payableCents == null || payableCents < 50) {
+      return new Response(JSON.stringify({ error: "Order total is unavailable" }), { status: 409, headers: { ...cors, "Content-Type": "application/json" } });
+    }
 
     const accessToken = await token();
     const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "PayPal-Request-Id": `grocery-${order_id}-${amount_cents}` },
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "PayPal-Request-Id": `grocery-${order_id}-${payableCents}` },
       body: JSON.stringify({
         intent: "CAPTURE",
         purchase_units: [{
           reference_id: order_id, custom_id: order_id,
           description: "ZIVO Grocery order",
-          amount: { currency_code: "USD", value: (amount_cents / 100).toFixed(2) },
+          amount: { currency_code: "USD", value: (payableCents / 100).toFixed(2) },
         }],
         application_context: {
           brand_name: "ZIVO",

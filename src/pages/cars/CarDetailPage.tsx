@@ -42,6 +42,7 @@ import { format, addDays, differenceInDays } from "date-fns";
 import { useP2PVehicleDetail, useBookingPricing, useVehicleReviews } from "@/hooks/useP2PBooking";
 import { useAuth } from "@/contexts/AuthContext";
 import { withRedirectParam } from "@/lib/authRedirect";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 export default function CarDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,37 +62,41 @@ export default function CarDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-safe-header pb-16 container mx-auto px-4">
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="aspect-[16/10] rounded-xl" />
-              <Skeleton className="h-8 w-2/3" />
-              <Skeleton className="h-24 w-full" />
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="pt-safe-header pb-16 container mx-auto px-4">
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <Skeleton className="aspect-[16/10] rounded-xl" />
+                <Skeleton className="h-8 w-2/3" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+              <Skeleton className="h-96" />
             </div>
-            <Skeleton className="h-96" />
-          </div>
-        </main>
-        <Footer />
-      </div>
+          </main>
+          <Footer />
+        </div>
+      </TravelPageFrame>
     );
   }
 
   if (!vehicle) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-safe-header pb-16 container mx-auto px-4 text-center">
-          <Car className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Vehicle Not Found</h1>
-          <p className="text-muted-foreground mb-4">This vehicle is no longer available.</p>
-          <Button asChild>
-            <Link to="/cars">Browse Available Cars</Link>
-          </Button>
-        </main>
-        <Footer />
-      </div>
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="pt-safe-header pb-16 container mx-auto px-4 text-center">
+            <Car className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Vehicle Not Found</h1>
+            <p className="text-muted-foreground mb-4">This vehicle is no longer available.</p>
+            <Button asChild>
+              <Link to="/cars">Browse Available Cars</Link>
+            </Button>
+          </main>
+          <Footer />
+        </div>
+      </TravelPageFrame>
     );
   }
 
@@ -106,7 +111,8 @@ export default function CarDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
       <SEOHead
         title={`${vehicle.year} ${vehicle.make} ${vehicle.model} | ZIVO Car Rental`}
         description={`Rent this ${vehicle.year} ${vehicle.make} ${vehicle.model} in ${vehicle.location_city}. $${vehicle.daily_rate}/day.`}
@@ -461,6 +467,7 @@ export default function CarDetailPage() {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

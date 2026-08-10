@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import Ticket from "lucide-react/dist/esm/icons/ticket";
 import Bus from "lucide-react/dist/esm/icons/bus";
 import Star from "lucide-react/dist/esm/icons/star";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 type BookingRow = {
   booking_id: string;
@@ -105,7 +106,7 @@ export default function BusTicketsPage() {
   };
 
   return (
-    <>
+    <TravelPageFrame>
       <SEOHead title="ZIVO Bus – My Tickets" description="Your booked bus trips on ZIVO." canonical="/bus/tickets" noIndex />
       <AppLayout title={t("bus.my_tickets")} showBack onBack={() => navigate("/bus")}>
         <div className="mx-auto w-full max-w-2xl px-4 py-4">
@@ -199,6 +200,6 @@ export default function BusTicketsPage() {
           )}
         </div>
       </AppLayout>
-    </>
+    </TravelPageFrame>
   );
 }

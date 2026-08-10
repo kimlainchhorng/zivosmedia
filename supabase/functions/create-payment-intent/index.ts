@@ -12,6 +12,19 @@ Deno.serve(withSecurity("create-payment-intent", async (req, ctx) => {
     });
   }
 
+  // This job-based checkout belonged to the retired Media Ride flow. The
+  // canonical Rider/Driver checkout owns new ride payment authorizations, so
+  // stale clients and direct requests must fail before auth or Stripe work.
+  if (Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true") {
+    return new Response(JSON.stringify({
+      error: "Legacy Media ride payments are retired. Use the canonical ZIVO Ride checkout.",
+      code: "legacy_media_ride_payments_retired",
+    }), {
+      status: 410,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const authHeader = req.headers.get("authorization") ?? "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

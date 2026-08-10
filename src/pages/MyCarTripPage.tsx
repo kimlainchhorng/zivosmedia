@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ReviewSubmissionSheet } from "@/components/reviews/ReviewSubmissionSheet";
 import { ReviewsList } from "@/components/reviews/ReviewsList";
 import { ReviewsSummary } from "@/components/reviews/ReviewsSummary";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const formatPrice = (amount: number) =>
   amount > 0 ? `$${amount.toFixed(0)}` : "—";
@@ -121,11 +122,12 @@ export default function MyCarTripPage() {
   const image = booking?.vehicle?.images?.[0];
 
   return (
-    <div className="min-h-screen bg-background pb-32">
-      <SEOHead
-        title={loading ? "Car Rental" : `${booking?.vehicle?.year} ${booking?.vehicle?.make} Rental`}
-        description={`View your car rental booking details and information.`}
-      />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background pb-32">
+        <SEOHead
+          title={loading ? "Car Rental" : `${booking?.vehicle?.year} ${booking?.vehicle?.make} Rental`}
+          description={`View your car rental booking details and information.`}
+        />
 
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/40 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
         <button type="button"
@@ -351,6 +353,7 @@ export default function MyCarTripPage() {
       />
 
       <ZivoMobileNav />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

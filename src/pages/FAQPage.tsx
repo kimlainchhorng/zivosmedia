@@ -20,7 +20,7 @@ const faqSections = [
     icon: HelpCircle,
     faqs: [
       {
-        question: "What is ZIVO??",
+        question: "What is ZIVO?",
         answer: "ZIVO is an online platform that helps you search and compare travel options like flights, hotels, and car rentals, and discover mobility services such as rides, food delivery, and moving."
       },
       {
@@ -64,7 +64,7 @@ const faqSections = [
         answer: "ZIVO Rides lets you request a ride anywhere, anytime with upfront pricing. ZIVO Eats lets you order food delivery from local restaurants. Both are available directly on zivosmedia.com."
       },
       {
-        question: "Can I book rides or food directly on ZIVO??",
+        question: "Can I book rides or food directly on ZIVO?",
         answer: "Yes! You can book rides at zivosmedia.com/rides and order food at zivosmedia.com/eats. Payments for rides and deliveries are handled by our driver partners."
       }
     ]
@@ -96,7 +96,7 @@ const faqSections = [
         answer: "It means ZIVO does not process payments or issue tickets. The travel partner you book with is responsible for your reservation."
       },
       {
-        question: "How can I contact ZIVO??",
+        question: "How can I contact ZIVO?",
         answer: "For website or technical issues, contact us at support@zivosmedia.com. For booking issues, please contact your travel partner directly."
       }
     ]

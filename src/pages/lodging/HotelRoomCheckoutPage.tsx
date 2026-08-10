@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import SEOHead from "@/components/SEOHead";
 import { createLodgeGuestReservation } from "@/lib/lodging/createLodgeReservation";
 import { withRedirectParam } from "@/lib/authRedirect";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const parseParamDate = (s: string | null) => {
   if (!s) return null;
@@ -397,7 +398,8 @@ export default function HotelRoomCheckoutPage() {
         : null;
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background pb-32">
       <SEOHead
         title="Hotel Booking – Complete Your Reservation – ZIVO"
         description="Complete your hotel reservation securely. Review pricing, confirm details, and book your stay with flexible payment options."
@@ -813,6 +815,7 @@ export default function HotelRoomCheckoutPage() {
       </div>
 
       <ZivoMobileNav />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

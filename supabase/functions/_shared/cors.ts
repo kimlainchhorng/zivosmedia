@@ -1,8 +1,8 @@
 // Shared CORS helpers for Supabase Edge Functions.
 //
 // Three modes:
-//  1. corsHeaders        — wildcard "*" (backward-compat, kept for public/webhook routes)
-//  2. getCorsHeaders()   — echoes caller Origin (legacy; use strictCorsHeaders on new routes)
+//  1. corsHeaders        — static compatibility headers without an ACAO grant
+//  2. getCorsHeaders()   — per-request allowlist headers for legacy callers
 //  3. strictCorsHeaders() — validates Origin against allowlist; 403 for unknown origins
 
 const ALLOWED_HEADERS =
@@ -105,22 +105,26 @@ export function isOriginAllowed(origin: string | null): boolean {
 
 // ── Legacy / public-route exports (backward-compatible) ────────────────────────
 export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": ALLOWED_HEADERS,
   "Access-Control-Allow-Methods": "POST, GET, PUT, DELETE, PATCH, OPTIONS",
+  "Vary": "Origin",
 };
 
 export const publicCorsHeaders = corsHeaders;
 
-// Per-request variant (legacy): echoes Origin, falls back to "*".
+// Per-request legacy variant. It is deliberately fail-closed: unknown origins
+// receive no ACAO header, and server-to-server requests with no Origin do not
+// need one. This prevents older handlers from reflecting attacker-controlled
+// origins while they migrate to strictCorsHeaders()/withSecurity({ strictCors }).
 export function getCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("origin") ?? "*";
-  return {
-    "Access-Control-Allow-Origin": origin,
+  const origin = req.headers.get("origin");
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": ALLOWED_HEADERS,
     "Access-Control-Allow-Methods": "POST, GET, PUT, DELETE, PATCH, OPTIONS",
     "Vary": "Origin",
   };
+  if (isOriginAllowed(origin)) headers["Access-Control-Allow-Origin"] = origin!;
+  return headers;
 }
 
 // ── Strict origin-validated headers (use on authenticated routes) ──────────────

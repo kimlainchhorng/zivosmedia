@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 const supabase: any = _supabaseTyped;
 import { cn } from "@/lib/utils";
+import { isAllowedStripeConnectUrl } from "@/lib/urlSafety";
 
 interface StylistMeta {
   id: string;
@@ -226,6 +227,7 @@ export default function PublicStylistDayPage() {
       if (err) throw err;
       const url = (data as { url?: string } | null)?.url;
       if (!url) throw new Error("Stripe didn't return an onboarding URL.");
+      if (!isAllowedStripeConnectUrl(url)) throw new Error("Invalid Stripe onboarding URL");
       window.location.href = url;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Rocket, Zap, CreditCard, QrCode, Loader2, Check } from "lucide-react";
 import KHQRPaymentModal from "./KHQRPaymentModal";
 import { cn } from "@/lib/utils";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 
 interface MerchantBoostModalProps {
   open: boolean;
@@ -45,7 +46,8 @@ export default function MerchantBoostModal({
         body: { reel_id: reelId || "", store_id: storeId, amount: tier.amount },
       });
       if (error || !data?.url) throw new Error("Failed to create checkout");
-      window.open(data.url, "_blank");
+      if (!isAllowedCheckoutUrl(data.url)) throw new Error("Invalid boost checkout URL");
+      window.open(data.url, "_blank", "noopener,noreferrer");
       onOpenChange(false);
     } catch (err: any) {
       toast.error(err.message || "Boost failed");

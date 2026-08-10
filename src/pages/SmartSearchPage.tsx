@@ -26,17 +26,58 @@ interface Results {
   marketplace: MarketResult[];
 }
 
+const SMART_SEARCH_HISTORY_KEY = "zivo:smart-search:recent";
+
+type RecentSearchState = { userId: string | null; items: string[] };
+
+const smartSearchStorageKey = (userId: string | null): string | null =>
+  userId ? `${SMART_SEARCH_HISTORY_KEY}:${userId}` : null;
+
+const readSmartSearchHistory = (userId: string | null): string[] => {
+  const key = smartSearchStorageKey(userId);
+  if (!key || typeof window === "undefined") return [];
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set<string>();
+    return parsed.reduce<string[]>((items, value) => {
+      if (typeof value !== "string") return items;
+      const normalized = value.trim();
+      if (!normalized || seen.has(normalized) || items.length >= 5) return items;
+      seen.add(normalized);
+      items.push(normalized);
+      return items;
+    }, []);
+  } catch {
+    return [];
+  }
+};
+
+const writeSmartSearchHistory = (userId: string | null, items: string[]) => {
+  const key = smartSearchStorageKey(userId);
+  if (!key || typeof window === "undefined") return;
+  try {
+    if (items.length === 0) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, JSON.stringify(items.slice(0, 5)));
+  } catch {}
+};
+
 export default function SmartSearchPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [results, setResults] = useState<Results | null>(null);
   const [loading, setLoading] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem("zivo_recent_searches") ?? "[]"); } catch { return []; }
-  });
+  const [recentSearchState, setRecentSearchState] = useState<RecentSearchState>(() => ({
+    userId,
+    items: readSmartSearchHistory(userId),
+  }));
+  const recentSearches = recentSearchState.userId === userId
+    ? recentSearchState.items
+    : readSmartSearchHistory(userId);
 
   const { data: trendingTags = [] } = useQuery({
     queryKey: ["smart-search-trending-tags"],
@@ -119,14 +160,24 @@ export default function SmartSearchPage() {
   useEffect(() => { runSearch(debouncedQuery); }, [debouncedQuery, runSearch]);
 
   const saveSearch = (q: string) => {
-    if (!q.trim()) return;
-    const updated = [q, ...recentSearches.filter(s => s !== q)].slice(0, 5);
-    setRecentSearches(updated);
-    localStorage.setItem("zivo_recent_searches", JSON.stringify(updated));
+    const normalized = q.trim();
+    if (!normalized || !userId) return;
+    setRecentSearchState((previous) => {
+      const current = previous.userId === userId
+        ? previous.items
+        : readSmartSearchHistory(userId);
+      const updated = [normalized, ...current.filter(s => s.toLowerCase() !== normalized.toLowerCase())].slice(0, 5);
+      writeSmartSearchHistory(userId, updated);
+      return { userId, items: updated };
+    });
   };
 
   const handleSelectSearch = (s: string) => { setQuery(s); saveSearch(s); };
-  const clearRecent = () => { setRecentSearches([]); localStorage.removeItem("zivo_recent_searches"); };
+  const clearRecent = () => {
+    if (!userId) return;
+    setRecentSearchState({ userId, items: [] });
+    writeSmartSearchHistory(userId, []);
+  };
 
   const totalResults = results ? Object.values(results).reduce((sum, arr) => sum + arr.length, 0) : 0;
   const hasResults = debouncedQuery.length >= 2;

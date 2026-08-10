@@ -186,6 +186,25 @@
   color: rgba(255, 255, 255, 0.84) !important;
 }
 
+/* Media-backed hero cards keep their dark scrim inside the light Travel skin.
+ * Without this exception, the light-theme remaps above turn the image, scrim,
+ * and translucent chips white while their foreground copy remains white. */
+.zivo-travel-light .zt-on-media [class*="bg-zinc-950"] {
+  background-color: #080d1a !important;
+}
+
+.zivo-travel-light .zt-on-media .bg-gradient-to-br {
+  background-image: linear-gradient(135deg, rgba(8, 13, 26, 0.96) 0%, rgba(15, 23, 42, 0.86) 52%, rgba(15, 23, 42, 0.42) 100%) !important;
+}
+
+.zivo-travel-light .zt-on-media [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.zivo-travel-light .zt-on-media [class*="border-white"] {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
 .zivo-travel-light .zt-launch-loader {
   background:
     radial-gradient(circle at 24% 18%, rgba(14, 165, 233, 0.18), transparent 26rem),

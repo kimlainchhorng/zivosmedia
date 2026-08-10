@@ -1,16 +1,14 @@
 /**
  * SupplierBrowserModal
  *
- * Two modes depending on the supplier:
+ * The supplier tool uses a credential-launcher flow:
  *
- * 1. EMBED mode (default) — loads the portal in an <iframe src={proxyUrl}>.
- *    The proxy injects a script that spoofs window.location / history and rewrites
- *    fetch/XHR so the SPA stays inside the modal. Sends "zivo-proxy-ready" when ready.
- *    Falls back to credential-launcher mode on timeout / error.
+ * - It opens the allow-listed supplier portal in a real
+ *    browser tab and walks the user through copying username then password.
  *
- * 2. CREDENTIAL-LAUNCHER mode (supplier.skipEmbed = true, or after embed fails) —
- *    Shows the portal credentials with one-click copy, opens the real site in a new
- *    tab, and walks the user through pasting username then password.
+ * - Legacy EMBED mode is intentionally disabled. Supplier HTML is untrusted code;
+ *    rendering it as a same-origin blob alongside the Admin app would give a compromised
+ *    supplier page an unnecessary path to the Admin DOM and browser APIs.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { copyText } from "@/lib/native/clipboard";
@@ -39,7 +37,7 @@ import Globe from "lucide-react/dist/esm/icons/globe";
 import PlusCircle from "lucide-react/dist/esm/icons/plus-circle";
 import PartsSupplierLogo from "./PartsSupplierLogo";
 import { type PartsSupplier, getSupplierSearchUrl } from "@/config/partsSuppliers";
-import { SUPABASE_URL, supabase } from "@/integrations/supabase/client";
+import { SUPABASE_URL } from "@/integrations/supabase/client";
 import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
 
 /** A part the user captured from a supplier portal, to drop onto the R.O. as a line. */
@@ -56,55 +54,47 @@ interface Props {
 }
 
 type SavedCreds = { email: string; password: string; updatedAt: string };
+type BrowserStoredCreds = Pick<SavedCreds, "email" | "updatedAt">;
 type LoadState = "loading" | "ready" | "failed";
 type LaunchStep = "idle" | "tab_opened";
 
 const PROXY_BASE = `${SUPABASE_URL}/functions/v1/supplier-proxy?u=`;
 const LOAD_TIMEOUT_MS = 8_000;
+// Do not execute third-party supplier HTML inside the Admin origin. Keep the old
+// embed implementation dormant so the safer external-tab flow is the only active path.
+const SUPPLIER_EMBED_ENABLED = false;
 
 const credKey = (storeId: string, supplierId: string) =>
   `zivo.supplierCreds.${storeId}.${supplierId}`;
 
-function loadCreds(storeId: string, supplierId: string): SavedCreds | null {
-  try { const r = localStorage.getItem(credKey(storeId, supplierId)); return r ? JSON.parse(r) : null; }
-  catch { return null; }
+function loadCreds(storeId: string, supplierId: string): BrowserStoredCreds | null {
+  const key = credKey(storeId, supplierId);
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object" || typeof parsed.email !== "string" || !parsed.email) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    const safe: BrowserStoredCreds = {
+      email: parsed.email,
+      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : "",
+    };
+    // Migrate legacy entries by removing any password previously cached here.
+    try { localStorage.setItem(key, JSON.stringify(safe)); } catch { /* storage may be read-only */ }
+    return safe;
+  } catch {
+    try { localStorage.removeItem(key); } catch { /* ignore malformed storage */ }
+    return null;
+  }
 }
 function saveCreds(storeId: string, supplierId: string, c: SavedCreds) {
-  localStorage.setItem(credKey(storeId, supplierId), JSON.stringify(c));
+  const safe: BrowserStoredCreds = { email: c.email, updatedAt: c.updatedAt };
+  localStorage.setItem(credKey(storeId, supplierId), JSON.stringify(safe));
 }
 function clearCreds(storeId: string, supplierId: string) {
   localStorage.removeItem(credKey(storeId, supplierId));
-}
-
-// ── Backend sync (ar_supplier_credentials) ─────────────────────────────────
-// Credentials live in the DB (RLS-locked to the store) so they're shared across
-// every device/staff member in the shop. localStorage above stays as an offline
-// cache for instant paint; the DB is the source of truth.
-async function fetchCredsRemote(storeId: string, supplierId: string): Promise<SavedCreds | null> {
-  try {
-    const { data, error } = await supabase
-      .from("ar_supplier_credentials" as any)
-      .select("email,password,updated_at")
-      .eq("store_id", storeId)
-      .eq("supplier_id", supplierId)
-      .maybeSingle();
-    if (error || !data) return null;
-    const row = data as unknown as { email: string | null; password: string | null; updated_at: string | null };
-    return { email: row.email ?? "", password: row.password ?? "", updatedAt: row.updated_at ?? "" };
-  } catch { return null; }
-}
-async function saveCredsRemote(storeId: string, supplierId: string, c: SavedCreds): Promise<void> {
-  try {
-    await supabase.from("ar_supplier_credentials" as any).upsert(
-      { store_id: storeId, supplier_id: supplierId, email: c.email, password: c.password, updated_at: c.updatedAt },
-      { onConflict: "store_id,supplier_id" },
-    );
-  } catch { /* offline / RLS — localStorage cache still holds it */ }
-}
-async function clearCredsRemote(storeId: string, supplierId: string): Promise<void> {
-  try {
-    await supabase.from("ar_supplier_credentials" as any).delete().eq("store_id", storeId).eq("supplier_id", supplierId);
-  } catch { /* ignore */ }
 }
 
 /** Fetch the proxied HTML as JSON and create a local blob URL.
@@ -168,7 +158,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
   const [partPrice, setPartPrice] = useState("");
   const [partQty, setPartQty] = useState("1");
 
-  const isSkipEmbed = !!supplier?.skipEmbed;
+  const isSkipEmbed = !SUPPLIER_EMBED_ENABLED || !!supplier?.skipEmbed;
 
   const portalUrl = useMemo(() => {
     if (!supplier) return null;
@@ -190,28 +180,19 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
   useEffect(() => {
     if (!open || !supplier) return;
     const existing = loadCreds(storeId, supplier.id);
-    setSaved(existing);
+    const localSaved = existing ? { ...existing, password: "" } : null;
+    setSaved(localSaved);
     setEmail(existing?.email ?? "");
-    setPassword(existing?.password ?? "");
+    setPassword("");
     setShowPwd(false);
     setShowCreds(!!existing);
-    setEditCreds(!existing);
+     // The localStorage above caches only the account metadata; it never contains
+     // the password. Passwords are entered for
+    // this session only and are never synced to the application database.
+    setEditCreds(true);
     setSearchQ(query ?? "");
     setLaunchStep("idle");
     setLoginBlocked(false);
-
-    // Pull the shared copy from the backend. If present it wins over the local
-    // cache (another device may have updated it) and refreshes the cache.
-    let cancelled = false;
-    fetchCredsRemote(storeId, supplier.id).then((remote) => {
-      if (cancelled || !remote?.email) return;
-      saveCreds(storeId, supplier.id, remote);
-      setSaved(remote);
-      setEmail(remote.email);
-      setPassword(remote.password);
-      setShowCreds(true);
-      setEditCreds(false);
-    });
 
     if (isSkipEmbed) {
       setLoadState("failed");
@@ -226,7 +207,6 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
         setFrameKey(k => k + 1);
       }).catch(() => setLoadState("failed"));
     }
-    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, supplier, storeId]);
 
@@ -245,11 +225,10 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
   useEffect(() => {
     if (!open || isSkipEmbed) return;
     const handler = (ev: MessageEvent) => {
-      // The proxy page is a blob: document rendered same-origin (the iframe sandbox
-      // includes allow-same-origin), so legitimate messages carry our own origin.
-      // Reject anything else — once the frame wanders to a real cross-origin portal
-      // it must not be able to trigger the credential send or re-navigate the proxy.
+      // The legacy embed path is disabled. Keep both source and origin checks in case
+      // an engineer temporarily enables it while debugging a supplier integration.
       if (ev.origin !== window.location.origin) return;
+      if (ev.source !== iframeRef.current?.contentWindow) return;
       const d = ev.data as { type?: string; url?: string; method?: string; body?: string; contentType?: string; filled?: boolean };
       if (d?.type === "zivo-proxy-ready") {
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -322,19 +301,17 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
     if (!email.trim()) { toast.error("Email is required"); return; }
     const c: SavedCreds = { email: email.trim(), password, updatedAt: new Date().toISOString() };
     saveCreds(storeId, supplier.id, c);
-    void saveCredsRemote(storeId, supplier.id, c);
     setSaved(c);
-    setEditCreds(false);
-    toast.success(accountSavedMessage);
     const win = iframeRef.current?.contentWindow;
     if (win && loadState === "ready") {
       setTimeout(() => win.postMessage({ type: "zivo-autofill", username: email, password, autoSubmit: true }, window.location.origin), 200);
     }
+    setEditCreds(false);
+    toast.success(accountSavedMessage);
   };
 
   const handleClearCreds = () => {
     clearCreds(storeId, supplier.id);
-    void clearCredsRemote(storeId, supplier.id);
     setSaved(null); setEmail(""); setPassword("");
     setEditCreds(true);
     toast.success(accountRemovedMessage);
@@ -511,7 +488,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
 
           <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
             <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
-            <p>Stored on this device only. {displayName} blocks embedded sign-in, so open its secure login tab and use the copy buttons here.</p>
+            <p>Only account metadata is cached in this browser. The password stays in memory for this session and is not written to browser storage. {displayName} blocks embedded sign-in, so open its secure login tab and use the copy buttons here.</p>
           </div>
 
           {supplier.loginFlow === "two-step" && (
@@ -726,7 +703,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
           <div className="px-4 py-3 border-b bg-muted/20 shrink-0 space-y-2.5">
             <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
               <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-600" />
-              <p>Credentials stored <strong>on this device only</strong>. Click <strong>Auto-fill login</strong> after the portal loads.</p>
+              <p>Only account metadata is cached in this browser. The password stays in memory for this session and is not written to browser storage. Click <strong>Auto-fill login</strong> after the portal loads.</p>
             </div>
             {supplier.loginFlow === "two-step" && (
               <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-3 py-2">
@@ -863,7 +840,7 @@ export default function SupplierBrowserModal({ storeId, supplier, query, open, o
                 src={iframeSrc}
                 title={supplier.name}
                 className="absolute inset-0 w-full h-full bg-white border-none"
-                sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation allow-downloads"
+                sandbox="allow-forms allow-popups allow-scripts allow-top-navigation-by-user-activation allow-downloads"
                 referrerPolicy="no-referrer"
                 onLoad={() => {
                   if (timeoutRef.current) clearTimeout(timeoutRef.current);

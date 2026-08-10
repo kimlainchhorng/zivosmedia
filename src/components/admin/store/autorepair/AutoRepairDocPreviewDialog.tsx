@@ -170,6 +170,7 @@ export default function AutoRepairDocPreviewDialog({
     }
     if (pdfUrl) {
       const w = window.open(pdfUrl, "_blank");
+      if (w) w.opener = null;
       if (!w) toast.error("Pop-up blocked. Allow pop-ups to print.");
     }
   };

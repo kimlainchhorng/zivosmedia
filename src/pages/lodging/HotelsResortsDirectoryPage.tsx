@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LODGING_STORE_CATEGORIES, normalizeStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 interface DirectoryStore {
   id: string;
@@ -82,7 +83,8 @@ export default function HotelsResortsDirectoryPage() {
   }, [listQuery.data, search, activeFilter]);
 
   return (
-    <div className="min-h-dvh bg-background pb-24">
+    <TravelPageFrame>
+      <div className="min-h-dvh bg-background pb-24">
       <Helmet>
         <title>Hotels & Resorts — ZIVO</title>
         <meta
@@ -172,7 +174,8 @@ export default function HotelsResortsDirectoryPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }
 

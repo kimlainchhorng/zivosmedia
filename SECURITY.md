@@ -3,6 +3,10 @@
 ## Dependency Management
 
 - **Monthly review**: All npm and Deno dependencies are reviewed monthly for security patches.
+- **CI supply chain**: All remote GitHub Actions are pinned to immutable commits, checkout credentials are not persisted, and `npm run security:check-workflow-actions` blocks mutable refs across every workflow.
+- **CORS boundaries**: `npm run security:check-cors-boundaries` blocks Edge Functions from importing legacy origin-reflecting CORS helpers, using wildcard origins, or bypassing the validated headers supplied by `withSecurity()`.
+- **Supplier portal boundary**: third-party supplier HTML is not executed inside the Admin origin; the UI uses an allowlisted HTTPS external-tab flow with explicit credential copy. The dormant proxy is JWT-protected and its message contract remains origin-pinned for any future isolated embed work.
+- **Campaign email HTML**: salon campaign bodies are reduced to an allowlisted formatting set; links are limited to HTTP(S)/mailto protocols, with arbitrary attributes and unsafe unsubscribe URLs removed before rendering.
 - **Edge function pinning**: All edge functions import from `supabase/functions/_shared/deps.ts` with pinned versions.
 - **Stripe API version**: Standardized to `2025-08-27.basil` across all functions.
 - **Supabase JS version**: Pinned to `@2.106.0` for edge functions.
@@ -10,6 +14,7 @@
 ## Security Architecture
 
 - **Authentication**: Supabase Auth with Google OAuth, email OTP, password sign-in, and **TOTP MFA** (post-login challenge enforced via `MfaChallengeDialog` for users with a verified factor).
+- **Saved-account storage**: account cards persist only non-secret metadata in `localStorage`; trusted refresh tokens are session-scoped and kept in `sessionStorage` for the active browser tab. Legacy token-bearing card entries are stripped and migrated on read.
 - **Authorization**: Role-based access via `user_roles` table and `has_role()` RPC (never client-side checks).
 - **CORS**: Sensitive endpoints use origin allowlist via `_shared/cors.ts` (`strictCorsHeaders`); legacy public/webhook endpoints retain wildcard headers.
 - **Rate limiting**: Two-tier server-side limiter in `_shared/rateLimiter.ts`:
@@ -19,13 +24,14 @@
 - **WAF**: `_shared/waf.ts` blocks SQLi, XSS, path traversal, SSTI, command injection, LDAP injection, XXE, NoSQL injection, prototype pollution, and double-encoded bypass attempts. Known scanner User-Agents (sqlmap, nikto, nuclei, Burp, etc.) are blocked at `withSecurity`.
 - **File upload security**: `_shared/fileUpload.ts` enforces MIME allowlist, magic-byte validation, dangerous extension blocklist, per-category size limits, and embedded-script detection.
 - **Fraud detection**: Multi-tier system with GPS spoofing detection, velocity checks, and delivery PIN.
+- **Server-returned payment redirects**: Stripe, PayPal, and Square checkout URLs must be HTTPS and credential-free, and are restricted to their official hosted payment domains before any browser navigation; Stripe Connect/Identity onboarding URLs are restricted to HTTPS Stripe hosts.
 
 ## HTTP Security Headers (2026-04 hardening)
 
 Configured in `public/_headers`. Applied to every response:
 
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
-- `Content-Security-Policy` (**enforced**, no longer report-only) — strict allowlist for Supabase, Stripe, Google Maps, Duffel, Twilio, Meta Pixel, GA. Violations reported to `/functions/v1/csp-report` (logged in `csp_violations`).
+- `Content-Security-Policy` (**enforced**, no longer report-only) — strict allowlist for Supabase, Stripe, Google Maps, Duffel, Twilio, Meta Pixel, GA; production policies explicitly forbid executable `unsafe-inline` and `unsafe-eval` in `script-src`. `style-src 'unsafe-inline'` remains for critical/runtime-generated styles. Violations reported to `/functions/v1/csp-report` (logged in `csp_violations`).
 - `X-Frame-Options: SAMEORIGIN`
 - `X-Content-Type-Options: nosniff`
 - `X-Permitted-Cross-Domain-Policies: none`
@@ -187,6 +193,7 @@ edge layer self-blocks IPs that already have documented hostile behaviour.
 ## Known Open Risks (tracked)
 
 - **Channel-topic migration**: `useChatPresence` and `useGroupCall` are now opaque, but `messages` Realtime subscriptions (postgres_changes) still expose table-level metadata. Switching to per-room channels with opaque names is tracked.
+- **Supplier credential vaulting**: supplier passwords remain encrypted-at-rest only by the platform's database controls and are briefly loaded into the authenticated Admin browser when an operator chooses to copy them. Moving them to a dedicated server-side vault/OAuth integration is still tracked.
 
 ## Incident Response
 

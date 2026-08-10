@@ -50,11 +50,11 @@ export default function Contact() {
       <header className="sticky top-0 safe-area-top z-50 bg-background/95 backdrop-blur-md border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button variant="ghost" size="icon" aria-label="Go back">
+            <Button asChild variant="ghost" size="icon">
+              <Link to="/" aria-label="Go back">
                 <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <div>
               <h1 className="font-display font-bold text-xl">Contact ZIVO</h1>
               <p className="text-sm text-muted-foreground">{COMPANY_INFO.name}</p>

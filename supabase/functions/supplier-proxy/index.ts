@@ -1,19 +1,17 @@
 /**
  * supplier-proxy
  *
- * Reverse-proxies an allow-listed supplier domain so it can be embedded in an
- * <iframe> inside the Zivo admin. Strips X-Frame-Options and CSP frame-ancestors,
- * which is what blocks normal embedding. Rewrites HTML <base> + relative links
- * back through this proxy so navigation stays inside the modal.
+ * Reverse-proxies an allow-listed supplier domain for the legacy embedded flow.
+ * The current Admin UI uses an external tab, but this function remains fail-closed
+ * if the dormant flow is ever re-enabled.
  *
  * Usage: GET /supplier-proxy?u=<absolute-url>
  *
  * Notes:
- * - Public function (verify_jwt = false in config.toml) — read-only, allow-listed.
- * - Cookies are passed through but scoped to the proxy origin, so logged-in
- *   sessions persist within the modal but never leak to Zivo's own cookies.
- * - This is a best-effort embed — some sites still break (CSP script-src,
- *   geolocated bot walls). UI shows a graceful fallback when that happens.
+ * - The function requires a Supabase JWT in config.toml and strict CORS here.
+ * - Supplier cookies are deliberately not accepted, forwarded, or re-scoped.
+ * - Redirects are followed manually and revalidated against the exact supplier
+ *   host allowlist at every hop.
  */
 import { withSecurity } from "../_shared/withSecurity.ts";
 
@@ -63,6 +61,19 @@ const STRIP_HEADERS = new Set([
   "strict-transport-security",
 ]);
 
+const MAX_REDIRECTS = 3;
+
+function isAllowedSupplierUrl(candidate: URL): boolean {
+  return candidate.protocol === "https:" && candidate.port === "" && ALLOWED_HOSTS.has(candidate.hostname.toLowerCase());
+}
+
+function rejectResponse(message: string, corsHeaders: Record<string, string>, status = 403): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+}
+
 Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
   const dynamicCorsHeaders = ctx.corsHeaders;
   const url = new URL(req.url);
@@ -78,15 +89,8 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
     return new Response("Invalid URL", { status: 400, headers: dynamicCorsHeaders });
   }
 
-  if (!/^https?:$/.test(targetUrl.protocol)) {
-    return new Response("Only http(s) supported", { status: 400, headers: dynamicCorsHeaders });
-  }
-
   const host = targetUrl.hostname.toLowerCase();
-  const allowed =
-    ALLOWED_HOSTS.has(host) ||
-    [...ALLOWED_HOSTS].some((h) => host === h || host.endsWith(`.${h}`));
-  if (!allowed) {
+  if (!isAllowedSupplierUrl(targetUrl)) {
     return new Response(JSON.stringify({ error: "HOST_NOT_ALLOWED", host }), {
       status: 403,
       headers: { ...dynamicCorsHeaders, "Content-Type": "application/json" },
@@ -109,17 +113,38 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
   );
   reqHeaders.set("accept", req.headers.get("accept") ?? "text/html,*/*");
   reqHeaders.set("accept-language", req.headers.get("accept-language") ?? "en-US,en;q=0.9");
-  const cookie = req.headers.get("cookie");
-  if (cookie) reqHeaders.set("cookie", cookie);
 
   let upstream: Response;
+  let finalTargetUrl = targetUrl;
+  let requestMethod = req.method;
+  const requestBody = ["GET", "HEAD"].includes(req.method) ? undefined : await req.arrayBuffer();
   try {
-    upstream = await fetch(targetUrl.toString(), {
-      method: req.method,
-      headers: reqHeaders,
-      body: ["GET", "HEAD"].includes(req.method) ? undefined : await req.arrayBuffer(),
-      redirect: "follow",
-    });
+    for (let redirectCount = 0; ; redirectCount += 1) {
+      upstream = await fetch(finalTargetUrl.toString(), {
+        method: requestMethod,
+        headers: reqHeaders,
+        body: ["GET", "HEAD"].includes(requestMethod) ? undefined : requestBody,
+        redirect: "manual",
+      });
+
+      const location = upstream.headers.get("location");
+      if (!location || ![301, 302, 303, 307, 308].includes(upstream.status)) break;
+      if (redirectCount >= MAX_REDIRECTS) {
+        return rejectResponse("TOO_MANY_REDIRECTS", dynamicCorsHeaders, 502);
+      }
+
+      let nextUrl: URL;
+      try {
+        nextUrl = new URL(location, finalTargetUrl);
+      } catch {
+        return rejectResponse("INVALID_REDIRECT", dynamicCorsHeaders, 502);
+      }
+      if (!isAllowedSupplierUrl(nextUrl)) {
+        return rejectResponse("REDIRECT_HOST_NOT_ALLOWED", dynamicCorsHeaders, 502);
+      }
+      finalTargetUrl = nextUrl;
+      if (upstream.status === 303) requestMethod = "GET";
+    }
   } catch (e) {
     return new Response(
       JSON.stringify({ error: "UPSTREAM_FAILED", message: String(e) }),
@@ -131,11 +156,7 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
   const respHeaders = new Headers(dynamicCorsHeaders);
   upstream.headers.forEach((v, k) => {
     if (STRIP_HEADERS.has(k.toLowerCase())) return;
-    if (k.toLowerCase() === "set-cookie") {
-      // Re-scope cookies so they apply to the proxy origin
-      respHeaders.append("set-cookie", v.replace(/;\s*Domain=[^;]+/i, "").replace(/;\s*SameSite=[^;]+/i, "; SameSite=None"));
-      return;
-    }
+    if (k.toLowerCase() === "set-cookie") return;
     respHeaders.set(k, v);
   });
   // Allow embedding from anywhere (the gateway is internal anyway)
@@ -152,9 +173,9 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
     if (!looksLikeHtml) {
       return new Response(html, { status: upstream.status, headers: respHeaders });
     }
-    const baseHref = `${targetUrl.protocol}//${targetUrl.host}`;
-    const fakeOrigin = `${targetUrl.protocol}//${targetUrl.host}`;
-    const fakePath = targetUrl.pathname + targetUrl.search + targetUrl.hash;
+    const baseHref = `${finalTargetUrl.protocol}//${finalTargetUrl.host}`;
+    const fakeOrigin = `${finalTargetUrl.protocol}//${finalTargetUrl.host}`;
+    const fakePath = finalTargetUrl.pathname + finalTargetUrl.search + finalTargetUrl.hash;
 
     // Inject <base> + a script that spoofs window.location via Location.prototype overrides.
     // KEY INSIGHT: window.location itself is non-configurable in all browsers so
@@ -170,15 +191,15 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
   var _realParent = (function(){ try { return window.parent !== window ? window.parent : null; } catch(e){ return null; } })();
 
   // ===== Fake location values for this proxied page =====
-  var _fakeHref = ${JSON.stringify(targetUrl.href)};
+  var _fakeHref = ${JSON.stringify(finalTargetUrl.href)};
   var _fakeOrigin = ${JSON.stringify(fakeOrigin)};
   var _fakePath = ${JSON.stringify(fakePath)};
-  var _fakeHost = ${JSON.stringify(targetUrl.host)};
-  var _fakeHostname = ${JSON.stringify(targetUrl.hostname)};
-  var _fakePort = ${JSON.stringify(targetUrl.port)};
-  var _fakeProtocol = ${JSON.stringify(targetUrl.protocol)};
-  var _fakeSearch = ${JSON.stringify(targetUrl.search)};
-  var _fakeHash = ${JSON.stringify(targetUrl.hash)};
+  var _fakeHost = ${JSON.stringify(finalTargetUrl.host)};
+  var _fakeHostname = ${JSON.stringify(finalTargetUrl.hostname)};
+  var _fakePort = ${JSON.stringify(finalTargetUrl.port)};
+  var _fakeProtocol = ${JSON.stringify(finalTargetUrl.protocol)};
+  var _fakeSearch = ${JSON.stringify(finalTargetUrl.search)};
+  var _fakeHash = ${JSON.stringify(finalTargetUrl.hash)};
 
   function _updateFakeLoc(u) {
     try {
@@ -187,7 +208,8 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
       _fakeSearch = p.search; _fakeHash = p.hash;
     } catch(e) {}
   }
-  function _send(msg) { try { if (_realParent) _realParent.postMessage(msg, '*'); } catch(e){} }
+  var _parentOrigin = window.location.origin;
+  function _send(msg) { try { if (_realParent) _realParent.postMessage(msg, _parentOrigin); } catch(e){} }
 
   // ===== Location.prototype property override =====
   // Override each getter on Location.prototype so that when supplier JS reads
@@ -277,8 +299,8 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
   function abs(u){ try { return new URL(u, document.baseURI).toString(); } catch(e){ return u; } }
   function isAllowed(u){
     try {
-      var h = new URL(u).hostname.toLowerCase();
-      return ${JSON.stringify([...ALLOWED_HOSTS])}.some(function(a){ return h===a || h.endsWith('.'+a); });
+      var parsed = new URL(u);
+      return parsed.protocol === 'https:' && !parsed.port && ${JSON.stringify([...ALLOWED_HOSTS])}.includes(parsed.hostname.toLowerCase());
     } catch(e){ return false; }
   }
   function rewrite(u){
@@ -294,17 +316,17 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
     var href = t.getAttribute('href');
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
     e.preventDefault();
-    _realParent.postMessage({ type: 'zivo-supplier-navigate', url: rewrite(href), method: 'GET' }, '*');
+    _realParent.postMessage({ type: 'zivo-supplier-navigate', url: rewrite(href), method: 'GET' }, _parentOrigin);
   }, true);
   function submitFormThroughProxy(f){
     var method = (f.method || 'GET').toUpperCase();
     var action = rewrite(f.action);
     var params = new URLSearchParams(new FormData(f));
     if (method === 'GET') {
-      _realParent.postMessage({ type: 'zivo-supplier-navigate', url: action + (action.indexOf('?') >= 0 ? '&' : '?') + params.toString(), method: 'GET' }, '*');
+      _realParent.postMessage({ type: 'zivo-supplier-navigate', url: action + (action.indexOf('?') >= 0 ? '&' : '?') + params.toString(), method: 'GET' }, _parentOrigin);
       return;
     }
-    _realParent.postMessage({ type: 'zivo-supplier-navigate', url: action, method: method, body: params.toString(), contentType: 'application/x-www-form-urlencoded' }, '*');
+    _realParent.postMessage({ type: 'zivo-supplier-navigate', url: action, method: method, body: params.toString(), contentType: 'application/x-www-form-urlencoded' }, _parentOrigin);
   }
   // Rewrite form submissions after the supplier app's own handlers have run.
   document.addEventListener('submit', function(e){
@@ -523,6 +545,7 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
     return false;
   }
   window.addEventListener('message', function(e){
+    if (e.origin !== _parentOrigin) return;
     var data = e.data;
     if (!data || data.type !== 'zivo-autofill') return;
     pendingCreds = { username: data.username || '', password: data.password || '' };
@@ -537,7 +560,7 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
         if (did || attempts >= 12) clearInterval(submitter);
       }, 250);
     }
-    _realParent.postMessage({ type: 'zivo-autofill-result', filled: ok }, '*');
+    _realParent.postMessage({ type: 'zivo-autofill-result', filled: ok }, _parentOrigin);
   });
 })();
 </script>`;
@@ -552,11 +575,6 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
     htmlHeaders.set("content-type", "text/html; charset=utf-8");
     htmlHeaders.set("cache-control", upstream.headers.get("cache-control") ?? "no-store");
     htmlHeaders.set("x-zivo-proxy-version", "html-srcdoc-cors-v5-autosubmit-click-events");
-    upstream.headers.forEach((v, k) => {
-      if (k.toLowerCase() === "set-cookie") {
-        htmlHeaders.append("Set-Cookie", v.replace(/;\s*Domain=[^;]+/i, "").replace(/;\s*SameSite=[^;]+/i, "; SameSite=None"));
-      }
-    });
     // ?format=json — return the processed HTML as a JSON payload so the browser
     // doesn't trigger Supabase/Cloudflare's content-type override + sandbox CSP
     // that gets injected onto text/html responses from edge functions.
@@ -565,11 +583,6 @@ Deno.serve(withSecurity("supplier-proxy", async (req, ctx) => {
       const jsonHeaders = new Headers(dynamicCorsHeaders);
       jsonHeaders.set("content-type", "application/json");
       jsonHeaders.set("cache-control", "no-store");
-      upstream.headers.forEach((v, k) => {
-        if (k.toLowerCase() === "set-cookie") {
-          jsonHeaders.append("Set-Cookie", v.replace(/;\s*Domain=[^;]+/i, "").replace(/;\s*SameSite=[^;]+/i, "; SameSite=None"));
-        }
-      });
       return new Response(JSON.stringify({ html, status: upstream.status }), {
         status: 200,
         headers: jsonHeaders,

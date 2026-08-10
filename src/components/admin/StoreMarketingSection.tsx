@@ -1287,7 +1287,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                       <Copy className="w-3.5 h-3.5" /> Copy
                     </Button>
                     {bookingUrl && (
-                      <Button variant="outline" size="sm" onClick={() => window.open(bookingUrl, "_blank")} className="shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => window.open(bookingUrl, "_blank", "noopener,noreferrer")} className="shrink-0">
                         <ExternalLink className="w-3.5 h-3.5" />
                       </Button>
                     )}
@@ -1304,7 +1304,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                     <Copy className="w-3.5 h-3.5" /> Copy
                   </Button>
                   {storeUrl && (
-                    <Button variant="outline" size="sm" onClick={() => window.open(storeUrl, "_blank")} className="shrink-0">
+                    <Button variant="outline" size="sm" onClick={() => window.open(storeUrl, "_blank", "noopener,noreferrer")} className="shrink-0">
                       <ExternalLink className="w-3.5 h-3.5" />
                     </Button>
                   )}
@@ -1348,7 +1348,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                     { label: "WhatsApp", url: `https://wa.me/?text=${encodeURIComponent(shareMessage)}`, bg: "bg-emerald-600 hover:bg-emerald-700 text-white" },
                     { label: "Telegram", url: `https://t.me/share/url?url=${encodeURIComponent(storeUrl)}&text=${encodeURIComponent(name)}`, bg: "bg-sky-500 hover:bg-sky-600 text-white" },
                   ].map(s => (
-                    <Button key={s.label} className={`text-xs h-9 ${s.bg}`} onClick={() => window.open(s.url, "_blank", "width=600,height=400")}>
+                  <Button key={s.label} className={`text-xs h-9 ${s.bg}`} onClick={() => window.open(s.url, "_blank", "noopener,noreferrer,width=600,height=400")}>
                       {s.label}
                     </Button>
                   ))}

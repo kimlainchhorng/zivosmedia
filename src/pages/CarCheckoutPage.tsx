@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RampGlobalDisclaimer } from "@/components/results";
 import { usePromotionValidation } from "@/hooks/usePromotionValidation";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 export default function CarCheckoutPage() {
   const [searchParams] = useSearchParams();
@@ -41,11 +42,12 @@ export default function CarCheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEOHead 
-        title="Secure Checkout | Car Rental | ZIVO"
-        description="Complete your car rental booking securely with our licensed travel partner."
-      />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
+        <SEOHead
+          title="Secure Checkout | Car Rental | ZIVO"
+          description="Complete your car rental booking securely with our licensed travel partner."
+        />
       
       {/* Locked Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border/60 pt-safe">
@@ -198,6 +200,7 @@ export default function CarCheckoutPage() {
           <RampGlobalDisclaimer className="mt-6" />
         </motion.div>
       </main>
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

@@ -30,6 +30,7 @@ import { downloadAuditCsv } from "@/lib/lodging/auditCsv";
 import { supabase } from "@/integrations/supabase/client";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 
 const itemIcons: Record<ItemType, typeof Plane> = {
   flight: Plane,
@@ -390,7 +391,8 @@ function LodgingTimelineBlock({ reservationId }: { reservationId: string }) {
       });
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, "_blank");
+        if (!isAllowedCheckoutUrl(data.url)) throw new Error("Invalid Stripe checkout URL");
+        window.open(data.url, "_blank", "noopener,noreferrer");
         toast.success("Opening secure Stripe checkout…");
       }
     } catch (e: any) {

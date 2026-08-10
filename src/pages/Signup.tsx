@@ -279,7 +279,7 @@ const Signup = () => {
       return;
     }
 
-    toast.success("Account created! Check your email for a 6-digit code.");
+    toast.success("Check your email for a 6-digit code to finish creating your account.");
     navigate(`/verify-otp?mode=signup&email=${encodeURIComponent(email.trim())}${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ""}`);
     return;
   };

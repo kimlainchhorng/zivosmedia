@@ -301,7 +301,7 @@ export default function ServiceBookingPage() {
           {/* Quick action chips */}
           <div className="grid grid-cols-3 gap-2 mb-4">
             <button type="button"
-              onClick={() => window.open(calendarUrl, "_blank")}
+              onClick={() => window.open(calendarUrl, "_blank", "noopener,noreferrer")}
               className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-card hover:bg-accent border border-border transition active:scale-95"
             >
               <CalendarPlus className="w-5 h-5 text-primary" />

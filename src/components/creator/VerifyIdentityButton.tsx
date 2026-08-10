@@ -10,6 +10,7 @@ import { Button, type ButtonProps } from "@/components/ui/button";
 import { ShieldCheck, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isAllowedStripeConnectUrl } from "@/lib/urlSafety";
 
 interface Props extends Omit<ButtonProps, "onClick"> {
   role?: "creator" | "driver" | "host";
@@ -38,6 +39,7 @@ export function VerifyIdentityButton({
       if ((data as any)?.error) throw new Error((data as any).error);
       const url = (data as any)?.url;
       if (!url) throw new Error("Stripe did not return a verification URL");
+      if (!isAllowedStripeConnectUrl(url)) throw new Error("Invalid Stripe verification URL");
       window.location.assign(url);
     } catch (e: any) {
       toast.error(e?.message || "Could not start identity verification");

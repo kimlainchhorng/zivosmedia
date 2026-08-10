@@ -17,6 +17,7 @@ import {
   Rocket, DollarSign, BarChart3, Loader2, ChevronRight, Zap
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 
 interface FunnelData {
   reelViews: number;
@@ -151,7 +152,8 @@ export default function SalesAttributionPage() {
         body: { reel_id: reelId || "", store_id: storeId || "" },
       });
       if (error || !data?.url) throw new Error(error?.message || "Failed to create boost checkout");
-      window.open(data.url, "_blank");
+      if (!isAllowedCheckoutUrl(data.url)) throw new Error("Invalid boost checkout URL");
+      window.open(data.url, "_blank", "noopener,noreferrer");
     } catch (err: any) {
       toast.error(err.message || "Boost failed");
     }

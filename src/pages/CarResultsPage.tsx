@@ -48,6 +48,7 @@ import { useRealCarSearch, type CarResult } from "@/hooks/useRealCarSearch";
 import { getAirportByCode } from "@/components/car/AirportAutocomplete";
 import { trackAffiliateClick } from "@/lib/affiliateTracking";
 import { CAR_DISCLAIMERS } from "@/config/carCompliance";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 // Parse and validate URL parameters
 interface ParsedSearchParams {
@@ -400,9 +401,10 @@ export default function CarResultsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEOHead title={pageTitle} description={pageDescription} />
-      <Header />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
+        <SEOHead title={pageTitle} description={pageDescription} />
+        <Header />
 
       <main className="pt-16">
         {/* Global Disclaimer Banner - TOP */}
@@ -569,6 +571,7 @@ export default function CarResultsPage() {
       </FiltersSheet>
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

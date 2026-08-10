@@ -765,13 +765,13 @@ function ReservationRow({ reservation: r, storeId, customerTags, selected, onTog
   const shareViaWhatsApp = () => {
     const text = encodeURIComponent(buildConfirmationMessage());
     const phone = (r.customer_phone ?? "").replace(/[^\d+]/g, "");
-    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank", "noopener,noreferrer");
   };
   const shareViaEmail = () => {
     const subject = encodeURIComponent(`Your booking ${r.confirmation_code}`);
     const body = encodeURIComponent(buildConfirmationMessage());
     const to = r.customer_email ?? "";
-    window.open(`mailto:${to}?subject=${subject}&body=${body}`, "_blank");
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`, "_blank", "noopener,noreferrer");
   };
   return (
     <li className={cn(

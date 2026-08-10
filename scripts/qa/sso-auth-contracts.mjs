@@ -120,13 +120,15 @@ const contracts = [
       for (const needle of [
         'withSecurity("public-signup"',
         'rateLimit: "auth_register"',
-        "dateOfBirth",
-        "age < 18",
-        "email_confirm: false",
+        "parsePublicSignupBody",
+        'purpose: "signup"',
+        "email_verification_required",
         "send-otp-email",
       ]) {
         requireContains(this.id, signup, needle, signupPath);
       }
+      requireNotContains(this.id, signup, "auth.admin.createUser", signupPath);
+      requireNotContains(this.id, signup, "auth.admin.updateUserById", signupPath);
     },
   },
   {
@@ -204,7 +206,8 @@ const contracts = [
         "getDeviceFingerprint",
         "getDeviceName",
         "zivo_device_otp_email",
-        "zivo_device_otp_userid",
+        'purpose: "new_device"',
+        "supabase.auth.getUser()",
         'supabase.functions.invoke("send-otp-email"',
       ]) {
         requireContains(this.id, verifyDevice, needle, verifyDevicePath);
@@ -218,19 +221,25 @@ const contracts = [
       }
       for (const needle of [
         "recentCount && recentCount >= 5",
-        "expiresAt = new Date(Date.now() + 10 * 60 * 1000)",
+        "OTP_TTL_MS = 10 * 60 * 1000",
+        "code_hmac",
+        "requireOtpHmacSecret",
         "otp_codes",
       ]) {
         requireContains(this.id, sendOtp, needle, sendOtpPath);
       }
       for (const needle of [
         "attempts >= 5",
+        "hmacEmailOtpCode",
+        "bindExistingAccount",
+        'request.purpose === "signup"',
         "auth.admin.updateUserById",
         "email_confirm: true",
         "auth.admin.generateLink",
       ]) {
         requireContains(this.id, verifyOtp, needle, verifyOtpPath);
       }
+      requireNotContains(this.id, verifyOtp, "otpRecord.code ===", verifyOtpPath);
       for (const needle of [
         "CREATE OR REPLACE FUNCTION public.is_device_trusted",
         "CREATE OR REPLACE FUNCTION public.register_trusted_device",

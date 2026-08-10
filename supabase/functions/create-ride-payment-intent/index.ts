@@ -13,6 +13,20 @@ Deno.serve(withSecurity("create-ride-payment-intent", async (req, ctx) => {
     });
   }
 
+  // ZIVO Ride owns the canonical customer checkout and settlement ledger.
+  // This historical Media route accepts legacy request shapes, so keep it
+  // fail-closed for direct or stale-client calls unless an operator enables a
+  // short-lived, server-only compatibility window.
+  if (Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true") {
+    return new Response(JSON.stringify({
+      error: "Legacy Media ride payments are retired. Use the canonical ZIVO Ride checkout.",
+      code: "legacy_media_ride_payments_retired",
+    }), {
+      status: 410,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {

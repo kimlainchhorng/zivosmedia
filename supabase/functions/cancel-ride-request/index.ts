@@ -18,6 +18,19 @@ Deno.serve(withSecurity("cancel-ride-request", async (req, ctx) => {
     });
   }
 
+  // Cancellation/refund settlement for rides is owned by the canonical
+  // Rider/Driver workflow. Do not let stale Media clients cancel a payment
+  // authorization or issue a refund through this historical route by default.
+  if (Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true") {
+    return new Response(JSON.stringify({
+      error: "Legacy Media ride payments are retired. Use the canonical ZIVO Ride checkout.",
+      code: "legacy_media_ride_payments_retired",
+    }), {
+      status: 410,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

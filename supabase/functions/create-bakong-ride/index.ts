@@ -5,12 +5,6 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 
 const BAKONG_API = "https://api-bakong.nbc.gov.kh/v1";
 const USD_TO_KHR = 4062.5;
-const DEFAULT_STATIC_KHQR =
-  "00020101021130510016abaakhppxxx@abaa01151260319063643400208ABA Bank5204421553031165802KH5915CHHORNG KIMLAIN6010PHNOM PENH624168370010PAYWAY@ABA0106941478020903218711963040E41";
-const STATIC_MERCHANT_KHQR =
-  Deno.env.get("KHQR_STATIC_MERCHANT_QR")?.trim() ||
-  Deno.env.get("VITE_KHQR_STATIC_MERCHANT_QR")?.trim() ||
-  DEFAULT_STATIC_KHQR;
 const MERCHANT_FIELD_TAGS = ["29", "30", "31", "52", "58", "59", "60"];
 const MAX_KHQR_AGE_SECONDS = 10 * 60;
 const MAX_KHQR_FUTURE_SKEW_SECONDS = 30;
@@ -62,10 +56,15 @@ function readQrReference(fields: Record<string, string>): string | null {
   return parseTlv(additionalData)["01"] ?? null;
 }
 
-function validateKhqrPayload(qr: string, reference: string, amountKhr: number): string | null {
+function validateKhqrPayload(
+  qr: string,
+  reference: string,
+  amountKhr: number,
+  staticMerchantKhqr: string,
+): string | null {
   if (!qr || typeof qr !== "string") return "Missing KHQR";
   const fields = parseTlv(stripCrc(qr));
-  const merchantFields = parseTlv(stripCrc(STATIC_MERCHANT_KHQR));
+  const merchantFields = parseTlv(stripCrc(staticMerchantKhqr));
 
   for (const tag of MERCHANT_FIELD_TAGS) {
     if (merchantFields[tag] && fields[tag] !== merchantFields[tag]) {
@@ -211,6 +210,14 @@ Deno.serve(withSecurity("create-bakong-ride", async (req, ctx) => {
     return json({ error: "Method not allowed" }, 405, { ...corsHeaders, "Allow": "POST, OPTIONS" });
   }
 
+  // ZIVO Ride is the canonical Rider checkout. Keep this retired legacy route
+  // closed unless an operator deliberately re-enables it on the Edge runtime.
+  // This must be server-side so cached clients and direct function calls cannot
+  // create a separately ledgered, paid ride request.
+  if (Deno.env.get("ENABLE_LEGACY_BAKONG_RIDE") !== "true") {
+    return json({ error: "Legacy Bakong ride checkout is retired", code: "legacy_ride_checkout_retired" }, 410, corsHeaders);
+  }
+
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) {
     return json({ error: "Unauthorized" }, 401, corsHeaders);
@@ -240,6 +247,14 @@ Deno.serve(withSecurity("create-bakong-ride", async (req, ctx) => {
     );
   }
 
+  // This legacy route must use the same explicitly configured, server-owned
+  // merchant identity as its verifier. A browser VITE variable or an embedded
+  // default can never be a safe fallback for a payment destination.
+  const staticMerchantKhqr = Deno.env.get("KHQR_STATIC_MERCHANT_QR")?.trim();
+  if (!staticMerchantKhqr) {
+    return json({ error: "KHQR payment verification is not configured" }, 503, corsHeaders);
+  }
+
   const body = await req.json().catch(() => ({}));
   const pickup = body.pickup ?? {};
   const dropoff = body.dropoff ?? {};
@@ -264,7 +279,7 @@ Deno.serve(withSecurity("create-bakong-ride", async (req, ctx) => {
     return json({ error: "Payment amount does not match ride total" }, 400, corsHeaders);
   }
 
-  const qrError = validateKhqrPayload(qr, reference, amountKhr);
+  const qrError = validateKhqrPayload(qr, reference, amountKhr, staticMerchantKhqr);
   if (qrError) return json({ error: qrError }, 400, corsHeaders);
 
   if (!Deno.env.get("BAKONG_TOKEN") && !Deno.env.get("TELEGRAM_BOT_TOKEN")) {

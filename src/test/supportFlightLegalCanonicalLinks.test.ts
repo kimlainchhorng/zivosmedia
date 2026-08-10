@@ -48,4 +48,10 @@ describe("support and flight legal canonical links", () => {
     expect(traveler).toContain("By continuing, you agree");
     expect(review).toContain("Final price and terms are confirmed at checkout");
   });
+
+  it("keeps public FAQ questions free of doubled question marks", () => {
+    const faq = read("src/pages/FAQPage.tsx");
+
+    expect(faq).not.toMatch(/question:\s*"[^"]*\?\?/);
+  });
 });

@@ -753,7 +753,7 @@ function StreamRowCard({ stream, live }: { stream: StreamRow; live?: boolean }) 
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const openWatcher = () => window.open(`/live/${stream.id}`, "_blank");
+  const openWatcher = () => window.open(`/live/${stream.id}`, "_blank", "noopener,noreferrer");
 
   return (
     <div

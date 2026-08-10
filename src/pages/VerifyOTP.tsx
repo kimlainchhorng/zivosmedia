@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { saveAccount } from "@/hooks/useSavedAccounts";
 import { getSafeRedirectTarget, isExternalRedirectTarget } from "@/lib/authRedirect";
+import { clearPendingSignup, loadPendingSignup } from "@/lib/auth/pendingSignup";
 
 const RESEND_COOLDOWN = 30;
 
@@ -18,17 +19,23 @@ const VerifyOTP = () => {
   const [params] = useSearchParams();
   const email = params.get("email") || "";
   const redirect = getSafeRedirectTarget(params.get("redirect"));
-  const mode = params.get("mode") === "signup" ? "signup" : "login";
+  const modeParam = params.get("mode");
+  const mode = modeParam === "signup"
+    ? "signup"
+    : modeParam === "email_verification"
+      ? "email_verification"
+      : "login";
   const isSignup = mode === "signup";
+  const usesCustomOtp = mode !== "login";
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  // Login emails are magic-link first. Signup emails use the custom 6-digit
-  // verification code, so show code entry immediately for signup only.
-  const [showCodeEntry, setShowCodeEntry] = useState(isSignup);
+  // Login emails are magic-link first. Account verification and signup use
+  // the purpose-bound 6-digit code, so show code entry for both immediately.
+  const [showCodeEntry, setShowCodeEntry] = useState(usesCustomOtp);
 
   const finishAuthRedirect = useCallback((target: string) => {
     if (isExternalRedirectTarget(target)) {
@@ -91,6 +98,10 @@ const VerifyOTP = () => {
   // session), this listener fires here too via Supabase's broadcast and we
   // redirect home. Same effect even if they click the link in this tab.
   useEffect(() => {
+    // An already-signed-in account on the custom email-verification path must
+    // submit its purpose-bound code. A token refresh is not proof that the
+    // current recipient owns the email, so it must not skip this screen.
+    if (mode === "email_verification") return;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
         void persistVerifiedAccount().finally(() => {
@@ -100,15 +111,21 @@ const VerifyOTP = () => {
       }
     });
     return () => sub.subscription.unsubscribe();
-  }, [finishAuthRedirect, persistVerifiedAccount, redirect]);
+  }, [finishAuthRedirect, mode, persistVerifiedAccount, redirect]);
 
   const submit = async (fullCode: string) => {
     if (submitting) return;
     setSubmitting(true);
 
-    if (mode === "signup") {
+    if (usesCustomOtp) {
+      const signupData = isSignup ? loadPendingSignup(email) : null;
       const { data, error } = await supabase.functions.invoke("verify-otp-code", {
-        body: { email, code: fullCode },
+        body: {
+          email,
+          code: fullCode,
+          purpose: isSignup ? "signup" : "email_verification",
+          ...(signupData ? { signup_data: signupData } : {}),
+        },
       });
 
       if (error || !data?.success) {
@@ -118,6 +135,16 @@ const VerifyOTP = () => {
         inputRefs.current[0]?.focus();
         return;
       }
+
+      if (!isSignup) {
+        await persistVerifiedAccount();
+        setSubmitting(false);
+        toast.success("Email verified.");
+        finishAuthRedirect(redirect);
+        return;
+      }
+
+      clearPendingSignup();
 
       // Try to auto-sign-in via the magic link returned by the function
       const actionLink: string | undefined = data?.actionLink;
@@ -193,9 +220,9 @@ const VerifyOTP = () => {
     if (cooldown > 0 || resending) return;
     setResending(true);
 
-    if (mode === "signup") {
+    if (usesCustomOtp) {
       const { error } = await supabase.functions.invoke("send-otp-email", {
-        body: { email },
+        body: { email, purpose: isSignup ? "signup" : "email_verification" },
       });
       setResending(false);
       if (error) {
@@ -223,8 +250,8 @@ const VerifyOTP = () => {
   return (
     <div className="relative min-h-[100dvh] w-full overflow-hidden flex items-center justify-center px-5 py-8 bg-white dark:bg-black">
       <SEOHead
-        title={isSignup ? "Verify your code" : "Check your email"}
-        description={isSignup ? "Enter the 6-digit code we emailed you." : "Tap the secure sign-in link we emailed you."}
+        title={usesCustomOtp ? "Verify your code" : "Check your email"}
+        description={usesCustomOtp ? "Enter the 6-digit code we emailed you." : "Tap the secure sign-in link we emailed you."}
       />
 
       {/* Subtle ZIVO gradient backdrop */}
@@ -244,16 +271,16 @@ const VerifyOTP = () => {
               <Mail className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
-              {isSignup ? "Enter your code" : "Check your email"}
+              {usesCustomOtp ? "Enter your code" : "Check your email"}
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1.5 text-center">
-              {isSignup ? "We sent a 6-digit code to" : "We sent a secure sign-in link to"}<br />
+              {usesCustomOtp ? "We sent a 6-digit code to" : "We sent a secure sign-in link to"}<br />
               <span className="font-semibold text-zinc-900 dark:text-white">{email}</span>
             </p>
           </div>
 
           <div className="space-y-4">
-            {!isSignup && (
+            {!usesCustomOtp && (
               <>
                 {/* Primary CTA — open the user's webmail directly */}
                 {(() => {
@@ -303,12 +330,12 @@ const VerifyOTP = () => {
                 disabled={cooldown > 0 || resending}
                 className="font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {resending ? "Sending…" : cooldown > 0 ? `Resend in ${cooldown}s` : isSignup ? "Resend code" : "Resend link"}
+                {resending ? "Sending…" : cooldown > 0 ? `Resend in ${cooldown}s` : usesCustomOtp ? "Resend code" : "Resend link"}
               </button>
             </div>
 
             {/* OR divider */}
-            {!isSignup && (
+            {!usesCustomOtp && (
               <div className="flex items-center gap-3 py-1">
                 <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
                 <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">OR</span>

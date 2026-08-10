@@ -57,6 +57,9 @@ const ALLOWED_CHECKOUT_DOMAINS: string[] = [
   'billing.stripe.com',
 ];
 
+const ALLOWED_PAYPAL_CHECKOUT_DOMAINS: string[] = ['paypal.com'];
+const ALLOWED_SQUARE_CHECKOUT_DOMAINS: string[] = ['square.link', 'squareup.com', 'squareupsandbox.com'];
+
 /** Domains allowed for social media links from DB */
 const ALLOWED_SOCIAL_DOMAINS: string[] = [
   'instagram.com',
@@ -128,6 +131,10 @@ export function isSafeProtocol(url: string): boolean {
   // Intentional C0-control stripping before scheme validation.
   // eslint-disable-next-line no-control-regex
   const trimmed = url.replace(/[\u0000-\u001F\u007F]/g, '').trim().toLowerCase();
+  const scheme = trimmed.match(/^([a-z][a-z\d+.-]*):/i)?.[1];
+  if (scheme && !['http', 'https', 'mailto', 'tel', 'sms'].includes(scheme)) {
+    return false;
+  }
   if (
     trimmed.startsWith('javascript:') ||
     trimmed.startsWith('data:') ||
@@ -239,7 +246,7 @@ export function hasEmbeddedCredentials(url: string): boolean {
 function isAllowedDomain(url: string, allowedDomains: string[]): boolean {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) {
       return false;
     }
     const hostname = parsed.hostname.toLowerCase();
@@ -263,7 +270,15 @@ export function isAllowedPartnerUrl(url: string): boolean {
  * Used to validate server-returned checkout URLs before redirecting.
  */
 export function isAllowedCheckoutUrl(url: string): boolean {
-  return isAllowedDomain(url, ALLOWED_CHECKOUT_DOMAINS);
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:'
+      && !parsed.username
+      && !parsed.password
+      && isAllowedDomain(url, ALLOWED_CHECKOUT_DOMAINS);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -276,12 +291,34 @@ export function isAllowedCheckoutUrl(url: string): boolean {
 export function isAllowedStripeConnectUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== 'https:') return false;
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return false;
     const hostname = parsed.hostname.toLowerCase();
     return hostname === 'stripe.com' || hostname.endsWith('.stripe.com');
   } catch {
     return false;
   }
+}
+
+function isAllowedHostedPaymentUrl(url: string, allowedDomains: string[]): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:'
+      && !parsed.username
+      && !parsed.password
+      && isAllowedDomain(url, allowedDomains);
+  } catch {
+    return false;
+  }
+}
+
+/** Check a server-returned PayPal approval URL before browser navigation. */
+export function isAllowedPayPalCheckoutUrl(url: string): boolean {
+  return isAllowedHostedPaymentUrl(url, ALLOWED_PAYPAL_CHECKOUT_DOMAINS);
+}
+
+/** Check a server-returned Square hosted payment link before browser navigation. */
+export function isAllowedSquareCheckoutUrl(url: string): boolean {
+  return isAllowedHostedPaymentUrl(url, ALLOWED_SQUARE_CHECKOUT_DOMAINS);
 }
 
 /**
@@ -359,6 +396,15 @@ export function validateExternalUrl(url: string | null | undefined, allowedDomai
   
   if (!isSafeProtocol(trimmed)) {
     console.warn('[urlSafety] Blocked unsafe protocol:', trimmed.slice(0, 30));
+    return null;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || parsed.username || parsed.password) {
+      return null;
+    }
+  } catch {
     return null;
   }
   

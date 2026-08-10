@@ -30,6 +30,7 @@ import { brandedCarModels } from "@/config/photos";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { getAirportByCode } from "@/components/car/AirportAutocomplete";
 import { RampGlobalDisclaimer } from "@/components/results";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 // Get branded car for category
 function getBrandedCarForCategory(category: string, id: string) {
@@ -96,12 +97,13 @@ export default function CarDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEOHead 
-        title={`${category} Car Rental in ${locationName} | ZIVO`}
-        description={`Book a ${category} rental car in ${locationName}. ${days} days from ${dailyFormatted}/day.`}
-      />
-      <Header />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
+        <SEOHead
+          title={`${category} Car Rental in ${locationName} | ZIVO`}
+          description={`Book a ${category} rental car in ${locationName}. ${days} days from ${dailyFormatted}/day.`}
+        />
+        <Header />
 
       <main className="pt-20 pb-16">
         <div className="container mx-auto px-4 max-w-6xl">
@@ -286,6 +288,7 @@ export default function CarDetailPage() {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

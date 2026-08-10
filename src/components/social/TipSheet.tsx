@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
+import { isAllowedPayPalCheckoutUrl, isAllowedSquareCheckoutUrl } from "@/lib/urlSafety";
 
 interface TipSheetProps {
   open: boolean;
@@ -323,6 +324,7 @@ function TipForm({
                   if (error) throw error;
                   if ((data as any)?.error) throw new Error((data as any).error);
                   if (!(data as any)?.approve_url) throw new Error("PayPal did not return approval URL");
+                  if (!isAllowedPayPalCheckoutUrl((data as any).approve_url)) throw new Error("Invalid PayPal approval URL");
                   window.location.assign((data as any).approve_url);
                 } catch (e: any) {
                   toast.error(e?.message || "PayPal could not start");
@@ -349,6 +351,7 @@ function TipForm({
                   if (error) throw error;
                   if ((data as any)?.error) throw new Error((data as any).error);
                   if (!(data as any)?.url) throw new Error("Square did not return URL");
+                  if (!isAllowedSquareCheckoutUrl((data as any).url)) throw new Error("Invalid Square checkout URL");
                   window.location.assign((data as any).url);
                 } catch (e: any) {
                   toast.error(e?.message || "Square could not start");

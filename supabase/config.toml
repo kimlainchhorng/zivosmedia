@@ -12,7 +12,7 @@ project_id = "slirphzzwcogdbkeicff"
   [functions.notifications-weekly-digest]
     verify_jwt = false
   [functions.supplier-proxy]
-    verify_jwt = false
+    verify_jwt = true
   [functions.scan-invoice]
     verify_jwt = true
   [functions.account-export]
@@ -146,8 +146,14 @@ project_id = "slirphzzwcogdbkeicff"
   [functions.send-push-notification]
     verify_jwt = false
   [functions.send-transactional-email]
+    verify_jwt = true
+  # Public only for starting/completing a signup email proof. The handlers
+  # enforce purpose-specific identity checks for every existing-account flow.
+  [functions.public-signup]
     verify_jwt = false
   [functions.send-otp-email]
+    verify_jwt = false
+  [functions.verify-otp-code]
     verify_jwt = false
   [functions.mint-sso-handoff]
     verify_jwt = true

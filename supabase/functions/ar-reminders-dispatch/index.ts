@@ -18,6 +18,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.106.0";
 import { Resend } from "npm:resend@2.0.0";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { escapeHtml } from "../_shared/escapeHtml.ts";
 
 const j = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
   new Response(JSON.stringify(body), {
@@ -130,7 +131,9 @@ serve(withSecurity("ar-reminders-dispatch", async (req, ctx) => {
     const customerName = (r.customer_name ?? "").trim() || "there";
     const vehicle = r.vehicle_label || "your vehicle";
 
-    const subject = `${r.reminder_type} reminder for ${vehicle}`;
+    const headerSafe = (value: unknown, fallback: string) =>
+      String(value ?? fallback).replace(/[\r\n]/g, " ").slice(0, 200);
+    const subject = headerSafe(`${r.reminder_type} reminder for ${vehicle}`, "Service reminder");
     const customBody: string = (r.message ?? "").trim();
     const defaultBody =
       `Hi ${customerName}, it's time for your ${String(r.reminder_type ?? "service").toLowerCase()} on ${vehicle}.` +
@@ -146,9 +149,9 @@ serve(withSecurity("ar-reminders-dispatch", async (req, ctx) => {
           console.warn("RESEND_API_KEY not configured — cannot send email reminder", r.id);
           failed++; continue;
         }
-        const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:480px;padding:24px;color:#111;line-height:1.55">${body.replace(/\n/g, "<br>")}</div>`;
+        const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:480px;padding:24px;color:#111;line-height:1.55">${escapeHtml(body).replace(/\n/g, "<br>")}</div>`;
         const { error: emailError } = await resend.emails.send({
-          from: `${storeName} <${fromEmail}>`,
+          from: `${headerSafe(storeName, "Your shop")} <${headerSafe(fromEmail, "noreply@zivosmedia.com")}>`,
           to: [r.customer_email],
           subject,
           html,

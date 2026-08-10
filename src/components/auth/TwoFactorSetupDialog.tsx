@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Props {
   open: boolean;
@@ -29,6 +30,7 @@ export default function TwoFactorSetupDialog({ open, onOpenChange, onEnrolled }:
   const [step, setStep] = useState<"loading" | "scan" | "verify">("loading");
   const [factorId, setFactorId] = useState<string | null>(null);
   const [qrSvg, setQrSvg] = useState<string>("");
+  const [qrUri, setQrUri] = useState<string>("");
   const [secret, setSecret] = useState<string>("");
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -40,6 +42,7 @@ export default function TwoFactorSetupDialog({ open, onOpenChange, onEnrolled }:
       setStep("loading");
       setFactorId(null);
       setQrSvg("");
+      setQrUri("");
       setSecret("");
       setCode("");
       return;
@@ -63,9 +66,11 @@ export default function TwoFactorSetupDialog({ open, onOpenChange, onEnrolled }:
         friendlyName: `ZIVO ${new Date().toLocaleDateString()}`,
       });
       if (error) throw error;
+      const totp = data.totp as { qr_code?: string; secret: string; uri?: string };
       setFactorId(data.id);
-      setQrSvg(data.totp.qr_code);
-      setSecret(data.totp.secret);
+      setQrSvg(totp.qr_code ?? "");
+      setQrUri(totp.uri ?? "");
+      setSecret(totp.secret);
       setStep("scan");
     } catch (e: any) {
       toast.error(e.message || "Could not start 2FA setup");
@@ -126,20 +131,18 @@ export default function TwoFactorSetupDialog({ open, onOpenChange, onEnrolled }:
         {(step === "scan" || step === "verify") && (
           <div className="space-y-4">
             <div className="flex justify-center bg-card rounded-xl p-3 border border-border">
-              {qrSvg.startsWith("<svg") ? (
-                <div
+              {qrUri ? (
+                <QRCodeSVG value={qrUri} size={176} level="M" includeMargin={false} aria-label="2FA QR code" />
+              ) : qrSvg.startsWith("data:image/") ? (
+                <img
+                  src={qrSvg}
+                  alt="2FA QR code"
                   className="w-44 h-44"
-                  // QR is a Supabase-generated SVG string
-                  dangerouslySetInnerHTML={{ __html: qrSvg }}
+                  loading="lazy"
+                  decoding="async"
                 />
               ) : (
-	                <img
-	                  src={qrSvg}
-	                  alt="2FA QR code"
-	                  className="w-44 h-44"
-	                  loading="lazy"
-	                  decoding="async"
-	                />
+                <p className="w-44 text-center text-xs text-muted-foreground">QR code unavailable. Use the manual key below.</p>
               )}
             </div>
 

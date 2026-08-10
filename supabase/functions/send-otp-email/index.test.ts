@@ -11,6 +11,18 @@ Deno.test("send-otp-email — missing email returns 400", async () => {
 });
 
 Deno.test("send-otp-email — invalid email returns 400", async () => {
-  const res = await callFn("send-otp-email", { body: { email: "nope" } });
+  const res = await callFn("send-otp-email", { body: { email: "nope", purpose: "signup" } });
   assertValidationError(res, "email");
+});
+
+Deno.test("send-otp-email — requires an explicit purpose", async () => {
+  const res = await callFn("send-otp-email", { body: { email: "x@y.com" } });
+  assertValidationError(res, "purpose");
+});
+
+Deno.test("send-otp-email — rejects caller-selected account targets", async () => {
+  const res = await callFn("send-otp-email", {
+    body: { email: "x@y.com", purpose: "signup", userId: "00000000-0000-0000-0000-000000000000" },
+  });
+  assertValidationError(res, "userId");
 });

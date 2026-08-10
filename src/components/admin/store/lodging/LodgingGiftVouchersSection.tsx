@@ -18,6 +18,7 @@ import { Gift, Plus, Search, Printer, XCircle, CreditCard, RefreshCw } from "luc
 import { toast } from "sonner";
 import LodgingQuickJump from "./LodgingQuickJump";
 import LodgingSectionStatusBanner from "./LodgingSectionStatusBanner";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 type VoucherStatus = "active" | "partially_used" | "redeemed" | "expired" | "voided";
 
@@ -162,11 +163,11 @@ export default function LodgingGiftVouchersSection({ storeId }: { storeId: strin
     const html = `<html><body style="font-family:serif;padding:40px;max-width:500px;margin:auto;border:2px solid #ccc;border-radius:8px">
       <h1 style="text-align:center;font-size:2em">🎁 Gift Voucher</h1>
       <hr/>
-      <p style="font-size:2em;text-align:center;font-family:monospace;letter-spacing:4px;font-weight:bold">${v.code}</p>
+      <p style="font-size:2em;text-align:center;font-family:monospace;letter-spacing:4px;font-weight:bold">${escapeHtml(v.code)}</p>
       <p style="text-align:center;font-size:1.5em;color:#2a6">${fmt(v.value_cents)}</p>
-      ${v.recipient_name ? `<p>For: <strong>${v.recipient_name}</strong></p>` : ""}
-      ${v.message ? `<p style="font-style:italic">"${v.message}"</p>` : ""}
-      ${v.expires_at ? `<p>Valid until: ${v.expires_at}</p>` : ""}
+      ${v.recipient_name ? `<p>For: <strong>${escapeHtml(v.recipient_name)}</strong></p>` : ""}
+      ${v.message ? `<p style="font-style:italic">"${escapeHtml(v.message)}"</p>` : ""}
+      ${v.expires_at ? `<p>Valid until: ${escapeHtml(v.expires_at)}</p>` : ""}
       <hr/>
       <p style="font-size:0.8em;color:#888;text-align:center">Redeemable at time of checkout. Not refundable.</p>
     </body></html>`;

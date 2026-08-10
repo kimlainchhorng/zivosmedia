@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import SEOHead from "@/components/SEOHead";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const formatPrice = (amount: number) =>
   amount > 0 ? `$${amount.toFixed(0)}` : "—";
@@ -93,11 +94,12 @@ export default function CarRentalConfirmedPage() {
   const days = booking?.total_days ?? 1;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
-      <SEOHead
-        title={loading ? "Car Booking – ZIVO" : `Car Rental Confirmed – ZIVO`}
-        description="Your car rental booking has been confirmed. View your reservation details and pickup information."
-      />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
+        <SEOHead
+          title={loading ? "Car Booking – ZIVO" : `Car Rental Confirmed – ZIVO`}
+          description="Your car rental booking has been confirmed. View your reservation details and pickup information."
+        />
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-blue-500/10 blur-[80px]" />
@@ -324,6 +326,7 @@ export default function CarRentalConfirmedPage() {
       </div>
 
       <ZivoMobileNav />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

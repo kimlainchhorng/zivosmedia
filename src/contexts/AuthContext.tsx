@@ -7,6 +7,7 @@ import { getDeviceFingerprint } from "@/lib/security/deviceFingerprint";
 import { getMfaChallenge, verifyMfaChallenge, type MfaState } from "@/lib/security/mfa";
 import { clearSignedUrlCache } from "@/lib/security/signedMedia";
 import { perfMeasure, perfNow } from "@/lib/perfTrace";
+import { clearPendingSignup, savePendingSignup } from "@/lib/auth/pendingSignup";
 
 type AuthContextType = {
   user: User | null;
@@ -204,28 +205,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, dateOfBirth?: string, phone?: string, signupSource?: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Keep credentials and profile data in this browser session until the
+    // email recipient proves ownership. The public endpoint accepts email
+    // only, so it cannot pre-create or pre-authorize an account.
+    try {
+      savePendingSignup({
+        email: normalizedEmail,
+        password,
+        fullName,
+        ...(dateOfBirth ? { dateOfBirth } : {}),
+        ...(phone ? { phone } : {}),
+        ...(signupSource ? { signupSource } : {}),
+      });
+    } catch {
+      return { error: new Error("Could not securely start signup in this browser. Please enable session storage and try again.") };
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke("public-signup", {
-        body: {
-          email,
-          password,
-          fullName,
-          ...(dateOfBirth ? { dateOfBirth } : {}),
-          ...(phone ? { phone } : {}),
-          ...(signupSource ? { signupSource } : {}),
-        },
+        body: { email: normalizedEmail },
       });
 
       if (error) {
+        clearPendingSignup();
         return { error: new Error(error.message || "Could not create account") };
       }
 
       if (!data?.success) {
+        clearPendingSignup();
         return { error: new Error(data?.error || "Could not create account") };
       }
 
       return { error: null };
     } catch (err) {
+      clearPendingSignup();
       return { error: err as Error };
     }
   };

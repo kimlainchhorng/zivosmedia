@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 const supabase: any = _supabaseTyped;
 import { cn } from "@/lib/utils";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 
 interface StoreLite {
   id: string;
@@ -131,6 +132,7 @@ export default function PublicSalonMembershipPage() {
         toast.error("Stripe didn't return a checkout URL.");
         return;
       }
+      if (!isAllowedCheckoutUrl(url)) throw new Error("Invalid Stripe checkout URL");
       window.location.href = url;
     } catch (e) {
       toast.error((e as Error).message || "Couldn't start checkout.");

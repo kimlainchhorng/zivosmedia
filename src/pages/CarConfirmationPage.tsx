@@ -12,6 +12,7 @@ import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 export default function CarConfirmationPage() {
   const [searchParams] = useSearchParams();
@@ -22,12 +23,13 @@ export default function CarConfirmationPage() {
   const partner = searchParams.get("partner") || "EconomyBookings";
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEOHead 
-        title="Booking Confirmed | Car Rental | ZIVO"
-        description="Your car rental booking has been confirmed."
-      />
-      <Header />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
+        <SEOHead
+          title="Booking Confirmed | Car Rental | ZIVO"
+          description="Your car rental booking has been confirmed."
+        />
+        <Header />
 
       <main className="pt-20 pb-16">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="container mx-auto px-4 max-w-2xl">
@@ -125,6 +127,7 @@ export default function CarConfirmationPage() {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

@@ -107,7 +107,8 @@ export function requireAal2(claims: Record<string, unknown>): void {
  *
  * Reuse this anywhere a handler has resolved a userId — it short-circuits
  * suspended/compromised accounts before they can do any further work. The
- * lookup is cheap (in-isolate cache, ~60s TTL) and fails open on RPC error.
+ * lookup is cheap (in-isolate cache, ~60s TTL) and fails closed with a
+ * generic temporary error when the blocklist RPC is unavailable.
  */
 export async function requireUserNotBlocked(userId: string): Promise<void> {
   if (await isUserBlocked(userId)) {

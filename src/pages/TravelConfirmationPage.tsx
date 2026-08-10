@@ -19,6 +19,7 @@ import { CHECKOUT_CONFIRMATION } from "@/config/checkoutCompliance";
 import CrossServiceCTAs from "@/components/shared/CrossServiceCTAs";
 import { downloadICS } from "@/lib/buildICS";
 import { CalendarPlus } from "lucide-react";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const TravelConfirmationPage = () => {
   const { orderNumber } = useParams<{ orderNumber: string }>();
@@ -81,29 +82,33 @@ const TravelConfirmationPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading your booking...</p>
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading your booking...</p>
+          </div>
         </div>
-      </div>
+      </TravelPageFrame>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="pt-6 text-center">
-            <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Order Not Found</h2>
-            <p className="text-muted-foreground mb-4">
-              We couldn't find this order. Please check the order number or contact support.
-            </p>
-            <Button onClick={() => navigate("/")}>Go Home</Button>
-          </CardContent>
-        </Card>
-      </div>
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Card className="max-w-md w-full mx-4">
+            <CardContent className="pt-6 text-center">
+              <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Order Not Found</h2>
+              <p className="text-muted-foreground mb-4">
+                We couldn't find this order. Please check the order number or contact support.
+              </p>
+              <Button onClick={() => navigate("/")}>Go Home</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </TravelPageFrame>
     );
   }
 
@@ -111,7 +116,8 @@ const TravelConfirmationPage = () => {
   const items = order.travel_order_items || [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
       <SEOHead title="Booking Confirmed – ZIVO" description="Your travel bookings have been confirmed. Check your confirmation details." />
       {/* Header */}
       <header className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur border-b">
@@ -315,7 +321,8 @@ const TravelConfirmationPage = () => {
         {/* Trust Footer */}
         <CheckoutTrustFooter className="mt-8" />
       </main>
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 };
 

@@ -65,6 +65,7 @@ import CarCategoryTiles from "@/components/car/CarCategoryTiles";
 import type { CarCategory } from "@/config/photos";
 import { searchAirports, type Airport } from "@/data/airports";
 import { CAR_DISCLAIMERS } from "@/config/carCompliance";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const carCategories = [
   { name: "Economy", passengers: 4, bags: 2, priceFrom: 25, transmission: 'Automatic' as const, hasAC: true },
@@ -393,11 +394,12 @@ const CarRentalBooking = () => {
   const timeOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0') + ":00");
 
   return (
-    <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
-      <SEOHead
-        title="ZIVO Car Rentals – Compare & Rent Cars Worldwide"
-        description="Compare car rental prices from top providers worldwide. Find the best deals on economy, SUV, luxury and more. Book with trusted partners."
-      />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
+        <SEOHead
+          title="ZIVO Car Rentals – Compare & Rent Cars Worldwide"
+          description="Compare car rental prices from top providers worldwide. Find the best deals on economy, SUV, luxury and more. Book with trusted partners."
+        />
       <OGImageMeta pageType="cars" />
       <Header />
       <NativeBackButton />
@@ -871,7 +873,8 @@ const CarRentalBooking = () => {
 
       <Footer />
       <MobileBottomNav />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 };
 

@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { type DuffelOffer, type DuffelSegment } from "@/hooks/useDuffelFlights";
 import { AirlineLogo } from "@/components/flight/AirlineLogo";
 import { cn } from "@/lib/utils";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 const FlightDetails = () => {
   const navigate = useNavigate();
@@ -40,7 +41,8 @@ const FlightDetails = () => {
   const segments = offer.segments || [];
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background relative overflow-hidden">
       <SEOHead title={`${offer.departure.code} → ${offer.arrival.code} – ZIVO Flights`} description="Review your selected flight." />
 
       {/* Decorative orbs */}
@@ -319,7 +321,8 @@ const FlightDetails = () => {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 };
 

@@ -207,9 +207,38 @@ const badgeStyles = {
   coming_soon: "bg-amber-500 text-white shadow-amber-500/30",
 };
 
-const FAVORITES_KEY = "zivo_favorite_services";
+const FAVORITES_KEY_PREFIX = "zivo_favorite_services";
 
 const serviceFavoriteKey = (service: ServiceItem) => service.id ?? service.href;
+
+function favoritesStorageKey(userId: string | null): string | null {
+  return userId ? `${FAVORITES_KEY_PREFIX}:${userId}` : null;
+}
+
+function loadFavoriteServices(userId: string | null): string[] {
+  const key = favoritesStorageKey(userId);
+  if (!key || typeof window === "undefined") return [];
+
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) || "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFavoriteServices(favorites: string[], userId: string | null): void {
+  const key = favoritesStorageKey(userId);
+  if (!key || typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(key, JSON.stringify(favorites));
+  } catch {
+    // Local storage is optional for this device-only convenience feature.
+  }
+}
 
 /* ── Page ── */
 export default function ServicesPage() {
@@ -217,6 +246,7 @@ export default function ServicesPage() {
   const { t } = useI18n();
   const { isCambodia } = useCountry();
   const { user } = useAuth();
+  const userId = user?.id ?? null;
   const serviceCategories = getServiceCategories(t, isCambodia);
   const [runningLabel, setRunningLabel] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -224,18 +254,23 @@ export default function ServicesPage() {
   const [waitlistEmail, setWaitlistEmail] = useState(user?.email ?? "");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]"); } catch { return []; }
-  });
+  const [favoriteState, setFavoriteState] = useState<{ userId: string | null; items: string[] }>(() => ({
+    userId,
+    items: loadFavoriteServices(userId),
+  }));
+  const favorites = favoriteState.userId === userId ? favoriteState.items : loadFavoriteServices(userId);
 
   const toggleFavorite = (service: ServiceItem, e: React.MouseEvent) => {
     e.stopPropagation();
     const key = serviceFavoriteKey(service);
-    const next = favorites.includes(key)
-      ? favorites.filter(f => f !== key)
-      : [...favorites, key];
-    setFavorites(next);
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+    setFavoriteState((previous) => {
+      const current = previous.userId === userId ? previous.items : loadFavoriteServices(userId);
+      const next = current.includes(key)
+        ? current.filter(f => f !== key)
+        : [...current, key];
+      saveFavoriteServices(next, userId);
+      return { userId, items: next };
+    });
   };
 
   const allServices = useMemo(

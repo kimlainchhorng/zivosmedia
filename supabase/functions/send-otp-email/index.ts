@@ -1,32 +1,90 @@
 /**
- * send-otp-email — issues a 6-digit OTP and emails it via Resend.
+ * send-otp-email — issues a purpose-bound, HMAC-protected email OTP.
  *
- * Public endpoint (caller is unauthenticated). Uses shared toolkit for CORS,
- * Zod-style validation, and standardized error envelopes. Success response
- * shape preserved: { success: true, message, expiresAt }.
+ * Public callers can request only a signup proof. Existing-account flows must
+ * present an authenticated session whose current email matches the recipient;
+ * callers never select the Auth user ID that an OTP can affect.
  */
-import { serve, createClient } from "../_shared/deps.ts";
+import { createClient, serve } from "../_shared/deps.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { requireUser, requireUserNotBlocked } from "../_shared/auth.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
-import { withErrorHandling, HttpError } from "../_shared/errors.ts";
-import { parseBody, v } from "../_shared/validate.ts";
+import { withErrorHandling, HttpError, ValidationError } from "../_shared/errors.ts";
+import { v } from "../_shared/validate.ts";
 import { ok, preflight } from "../_shared/respond.ts";
 import type { SecurityContext } from "../_shared/withSecurity.ts";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+import {
+  generateEmailOtpCode,
+  hmacEmailOtpCode,
+  isEmailOtpPurpose,
+  normalizeOtpEmail,
+  requireOtpHmacSecret,
+  type EmailOtpPurpose,
+} from "../_shared/otpSecurity.ts";
 
 const Body = v.object({
   email: v.email,
-  userId: v.optionalString,
+  purpose: (value) => isEmailOtpPurpose(value) ? null : "Must be a supported OTP purpose",
 });
 
 const SITE_NAME = "ZIVO";
 const FROM_DOMAIN = "zivosmedia.com";
+const OTP_TTL_MS = 10 * 60 * 1000;
 
-function generateOtpCode(): string {
-  const bytes = new Uint32Array(1);
-  crypto.getRandomValues(bytes);
-  return String(100000 + (bytes[0] % 900000));
+type OtpRequest = {
+  email: string;
+  purpose: EmailOtpPurpose;
+};
+
+type AccountBinding = {
+  userId: string;
+};
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+async function parseOtpRequest(req: Request): Promise<OtpRequest> {
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    throw new ValidationError({ _root: ["Invalid JSON body"] });
+  }
+  if (!isObject(raw)) throw new ValidationError({ _root: ["Expected an object"] });
+
+  // Legacy callers could choose the user record that verification modified.
+  // Fail closed rather than accepting or reinterpreting a caller-owned target.
+  for (const key of ["userId", "user_id", "targetUserId", "target_user_id"]) {
+    if (Object.hasOwn(raw, key)) {
+      throw new ValidationError({ [key]: ["Target user IDs are not accepted for email OTPs"] });
+    }
+  }
+
+  const parsed = Body.safeParse(raw);
+  if (!parsed.success) throw new ValidationError(parsed.error.flatten().fieldErrors);
+  return {
+    email: normalizeOtpEmail(String(parsed.data.email)),
+    purpose: parsed.data.purpose as EmailOtpPurpose,
+  };
+}
+
+async function bindAuthenticatedRecipient(req: Request, email: string): Promise<AccountBinding> {
+  const auth = await requireUser(req);
+  await requireUserNotBlocked(auth.userId);
+  const { data, error } = await auth.supabase.auth.getUser(auth.token);
+  const currentEmail = data.user?.email ? normalizeOtpEmail(data.user.email) : "";
+  if (error || !data.user || currentEmail !== email) {
+    throw new HttpError(403, "Email OTP recipient must match the authenticated account", {
+      code: "otp_recipient_mismatch",
+    });
+  }
+  return { userId: auth.userId };
+}
+
+function scopedOtpQuery(query: any, request: OtpRequest, binding: AccountBinding | null) {
+  const scoped = query.eq("email", request.email).eq("purpose", request.purpose);
+  return binding ? scoped.eq("user_id", binding.userId) : scoped.is("user_id", null);
 }
 
 function renderOtpEmail(code: string, expiresAt: string) {
@@ -89,9 +147,19 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
   const corsHeaders = ctx?.corsHeaders ?? {};
   if (req.method === "OPTIONS") return preflight(ctx?.corsHeaders ?? req);
 
-  const body = await parseBody(req, Body);
-  const email = (body.email as string).trim().toLowerCase();
-  const userId = (body.userId as string | undefined) ?? null;
+  const request = await parseOtpRequest(req);
+  const binding = request.purpose === "signup"
+    ? null
+    : await bindAuthenticatedRecipient(req, request.email);
+
+  let otpSecret: string;
+  try {
+    otpSecret = requireOtpHmacSecret();
+  } catch {
+    throw new HttpError(503, "Email verification is temporarily unavailable", {
+      code: "otp_hmac_not_configured",
+    });
+  }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -99,62 +167,83 @@ const handler = withErrorHandling(async (req: Request, ctx?: SecurityContext): P
   if (!supabaseUrl || !supabaseServiceKey || !resendApiKey) {
     throw new HttpError(500, "Server configuration error");
   }
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
-  // Rate limiting: max 5 OTP requests per email per hour
+  // Rate limiting: max 5 OTP requests per recipient + purpose per hour.
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count: recentCount } = await supabase
-    .from("otp_codes")
-    .select("*", { count: "exact", head: true })
-    .eq("email", email)
-    .gte("created_at", oneHourAgo);
-
+  const { count: recentCount, error: countError } = await scopedOtpQuery(
+    supabase.from("otp_codes").select("id", { count: "exact", head: true }),
+    request,
+    binding,
+  ).gte("created_at", oneHourAgo);
+  if (countError) {
+    console.error("Failed to count OTP requests:", countError);
+    throw new HttpError(503, "Email verification is temporarily unavailable");
+  }
   if (recentCount && recentCount >= 5) {
     throw new HttpError(429, "Too many verification requests. Please wait before trying again.", {
       retryAfter: 3600,
     });
   }
 
-  const code = generateOtpCode();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const code = generateEmailOtpCode();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS).toISOString();
+  const id = crypto.randomUUID();
+  const codeHmac = await hmacEmailOtpCode(otpSecret, {
+    id,
+    email: request.email,
+    purpose: request.purpose,
+    userId: binding?.userId ?? null,
+    code,
+  });
 
-  // Invalidate existing pending codes for this email
-  await supabase
-    .from("otp_codes")
-    .update({ verified_at: new Date().toISOString() })
-    .eq("email", email)
-    .is("verified_at", null);
+  // Invalidate only codes in the same recipient/purpose/account scope. A
+  // public signup request cannot invalidate a password-change or device code.
+  const { error: invalidateError } = await scopedOtpQuery(
+    supabase.from("otp_codes").update({ verified_at: new Date().toISOString() }),
+    request,
+    binding,
+  ).is("verified_at", null);
+  if (invalidateError) {
+    console.error("Failed to invalidate prior OTPs:", invalidateError);
+    throw new HttpError(503, "Email verification is temporarily unavailable");
+  }
 
   const { error: insertError } = await supabase
     .from("otp_codes")
     .insert({
-      email,
-      user_id: userId,
-      code,
+      id,
+      email: request.email,
+      user_id: binding?.userId ?? null,
+      purpose: request.purpose,
+      code: null,
+      code_hmac: codeHmac,
+      attempts: 0,
       expires_at: expiresAt,
     });
-
   if (insertError) {
     console.error("Failed to store OTP:", insertError);
-    throw new HttpError(500, "Failed to generate verification code");
+    throw new HttpError(503, "Email verification is temporarily unavailable");
   }
 
   const { html, text } = renderOtpEmail(code, expiresAt);
-  const emailResponse = await resend.emails.send({
+  const emailResponse = await new Resend(resendApiKey).emails.send({
     from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-    to: [email],
+    to: [request.email],
     subject: "Your ZIVO verification code",
     html,
     text,
   });
-
   if (emailResponse.error) {
+    // Do not leave a usable code behind when delivery was not confirmed.
+    await supabase.from("otp_codes").update({ verified_at: new Date().toISOString() }).eq("id", id);
     console.error("Failed to send OTP email:", emailResponse.error);
     throw new HttpError(502, "Failed to send verification email");
   }
 
-  console.log("OTP email sent successfully", { resendId: emailResponse.data?.id });
-
+  console.log("OTP email sent successfully", { resendId: emailResponse.data?.id, purpose: request.purpose });
   return ok(corsHeaders, { success: true, message: "Verification code sent", expiresAt });
 }, "send-otp-email");
 

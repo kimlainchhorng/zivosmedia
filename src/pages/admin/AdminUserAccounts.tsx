@@ -2019,7 +2019,7 @@ function ProfileCard({
           size="sm"
           onClick={async () => {
             if (acc.userId) {
-              window.open(`/user/${acc.userId}`, "_blank");
+              window.open(`/user/${acc.userId}`, "_blank", "noopener,noreferrer");
             } else {
               try {
                 const { data: uid, error } = await supabase.rpc("admin_lookup_profile_by_email" as any, { _email: acc.email });
@@ -2027,7 +2027,7 @@ function ProfileCard({
                   toast({ title: "User not found", description: "Could not find a profile for this account.", variant: "destructive" });
                   return;
                 }
-                window.open(`/user/${uid}`, "_blank");
+                window.open(`/user/${uid}`, "_blank", "noopener,noreferrer");
               } catch {
                 toast({ title: "Lookup failed", description: "Could not look up user profile.", variant: "destructive" });
               }

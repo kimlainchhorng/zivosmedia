@@ -150,7 +150,7 @@ export default function KHQRPaymentModal(props: KHQRPaymentModalProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(deepLink, "_blank")}
+                  onClick={() => window.open(deepLink, "_blank", "noopener,noreferrer")}
                   className="text-xs"
                 >
                   Open ABA Mobile App

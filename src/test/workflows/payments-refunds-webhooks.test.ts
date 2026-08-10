@@ -111,6 +111,8 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(processRefund).toContain("refunded");
 
     expect(carRefund).toContain('withSecurity("refund-car-rental-deposit"');
+    expect(carRefund).toContain("const cors = ctx.corsHeaders");
+    expect(carRefund).not.toContain('getCorsHeaders(req)');
     expect(carRefund).toContain('rateLimitDb(user.id, "payment")');
     expect(carRefund).toContain("paymentIntents.cancel(");
     expect(carRefund).toContain("stripe.refunds.create(");
@@ -118,6 +120,11 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(carRefund).toContain("idempotencyKey: `car_rental_dep_refund_");
     expect(carRefund).toContain('payment_status: "refunded"');
     expect(carRefund).toContain('payment_status: refund.status === "succeeded" ? "refunded" : "refund_pending"');
+
+    const carCapture = source("supabase/functions/capture-car-rental-balance/index.ts");
+    expect(carCapture).toContain('withSecurity("capture-car-rental-balance"');
+    expect(carCapture).toContain("const cors = ctx.corsHeaders");
+    expect(carCapture).not.toContain('getCorsHeaders(req)');
 
     expect(paymentWebhookIdempotency).toContain("payment webhook and payout idempotency contracts");
   });
@@ -216,6 +223,48 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(existsSync(path.join(root, "src/components/rides/AbaPaymentModal.tsx"))).toBe(false);
   });
 
+  it("requires an explicit server-owned merchant QR for legacy Bakong verification", () => {
+    for (const fn of [
+      source("supabase/functions/bakong-verify/index.ts"),
+      source("supabase/functions/create-bakong-ride/index.ts"),
+    ]) {
+      expect(fn).toContain('Deno.env.get("KHQR_STATIC_MERCHANT_QR")');
+      expect(fn).toContain("KHQR payment verification is not configured");
+      expect(fn).not.toContain("DEFAULT_STATIC_KHQR");
+      expect(fn).not.toContain('Deno.env.get("VITE_KHQR_STATIC_MERCHANT_QR")');
+    }
+  });
+
+  it("retires legacy Bakong ride creation by default at the server boundary", () => {
+    const legacyRide = source("supabase/functions/create-bakong-ride/index.ts");
+    const gate = legacyRide.indexOf('Deno.env.get("ENABLE_LEGACY_BAKONG_RIDE") !== "true"');
+    const auth = legacyRide.indexOf('const authHeader = req.headers.get("Authorization")');
+
+    expect(gate).toBeGreaterThan(-1);
+    expect(legacyRide).toContain('code: "legacy_ride_checkout_retired"');
+    expect(legacyRide).toMatch(/legacy_ride_checkout_retired[\s\S]{0,160}410/);
+    expect(gate).toBeLessThan(auth);
+    expect(legacyRide).not.toContain("VITE_ENABLE_LEGACY_BAKONG_RIDE");
+  });
+
+  it("retires direct legacy Media Ride payment endpoints by default", () => {
+    for (const relativePath of [
+      "supabase/functions/create-ride-payment-intent/index.ts",
+      "supabase/functions/capture-ride-payment/index.ts",
+      "supabase/functions/complete-ride-request/index.ts",
+    ]) {
+      const legacyRoute = source(relativePath);
+      const gate = legacyRoute.indexOf('Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true"');
+      const auth = legacyRoute.indexOf("Authorization");
+
+      expect(gate).toBeGreaterThan(-1);
+      expect(legacyRoute).toContain('code: "legacy_media_ride_payments_retired"');
+      expect(legacyRoute).toMatch(/legacy_media_ride_payments_retired[\s\S]{0,180}410/);
+      expect(gate).toBeLessThan(auth);
+      expect(legacyRoute).not.toContain("VITE_ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS");
+    }
+  });
+
   it("keeps KHQR customer confirmation provider-authoritative", () => {
     const khqrModal = source("src/components/shop/KHQRPaymentModal.tsx");
 
@@ -236,7 +285,7 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(khqrModal).not.toContain("data?.abapay_deeplink || `KHQR:");
 
     // The actual provider deep link remains available alongside a real QR.
-    expect(khqrModal).toContain('window.open(deepLink, "_blank")');
+    expect(khqrModal).toContain('window.open(deepLink, "_blank", "noopener,noreferrer")');
     expect(khqrModal).toContain("Payment will be confirmed only after ABA verifies it.");
   });
 

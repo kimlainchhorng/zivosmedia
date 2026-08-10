@@ -33,6 +33,7 @@ import { useReservationChangeRequests } from "@/hooks/lodging/useReservationChan
 import { useLodgingRefundDisputes } from "@/hooks/lodging/useLodgingRefundDisputes";
 import { reservationDateLabel, reservationTimeLabel, reservationTimeRangeLabel } from "@/lib/lodging/reservationTime";
 import { useLodgeReservationCharges } from "@/hooks/lodging/useLodgeReservationCharges";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 
 const STATUS_LABEL: Record<string, string> = {
   hold: "Hold", confirmed: "Confirmed", checked_in: "Checked-In",
@@ -392,9 +393,11 @@ export default function AdminLodgingReservationDetailPage() {
                     if (error) throw error;
                     if ((data as any)?.already_paid) {
                       toast.info((data as any).message || "Already paid");
-                    } else if ((data as any)?.url) {
-                      window.open((data as any).url, "_blank");
+                    } else if ((data as any)?.url && isAllowedCheckoutUrl((data as any).url)) {
+                      window.open((data as any).url, "_blank", "noopener,noreferrer");
                       toast.success("Opening Stripe checkout…");
+                    } else if ((data as any)?.url) {
+                      throw new Error("Invalid Stripe checkout URL");
                     }
                   } catch (e: any) {
                     toast.error(e.message || "Retry failed");

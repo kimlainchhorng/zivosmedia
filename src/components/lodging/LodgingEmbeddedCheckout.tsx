@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripe } from "@/lib/stripe";
 import { cn } from "@/lib/utils";
+import { isAllowedPayPalCheckoutUrl, isAllowedSquareCheckoutUrl } from "@/lib/urlSafety";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 export type PaymentMethodChoice = "card" | "wallet" | "cash" | "paypal" | "square";
@@ -240,6 +241,7 @@ export function LodgingEmbeddedCheckout({
       if (fnErr) throw fnErr;
       const approveUrl = (data as any)?.approve_url;
       if (!approveUrl) throw new Error("PayPal did not return an approval URL");
+      if (!isAllowedPayPalCheckoutUrl(approveUrl)) throw new Error("Invalid PayPal approval URL");
       window.location.assign(approveUrl);
     } catch (e: any) {
       setRedirectingProvider(null);
@@ -258,6 +260,7 @@ export function LodgingEmbeddedCheckout({
       if (fnErr) throw fnErr;
       const url = (data as any)?.url;
       if (!url) throw new Error("Square did not return a checkout URL");
+      if (!isAllowedSquareCheckoutUrl(url)) throw new Error("Invalid Square checkout URL");
       window.location.assign(url);
     } catch (e: any) {
       setRedirectingProvider(null);

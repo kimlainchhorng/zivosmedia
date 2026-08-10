@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RampGlobalDisclaimer } from "@/components/results";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 export default function CarTravelerInfoPage() {
   const [searchParams] = useSearchParams();
@@ -65,12 +66,13 @@ export default function CarTravelerInfoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <SEOHead 
-        title="Traveler Information | Car Rental | ZIVO"
-        description="Enter your details to complete your car rental booking."
-      />
-      <Header />
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
+        <SEOHead
+          title="Traveler Information | Car Rental | ZIVO"
+          description="Enter your details to complete your car rental booking."
+        />
+        <Header />
 
       <main className="pt-20 pb-16">
         <motion.div
@@ -229,6 +231,7 @@ export default function CarTravelerInfoPage() {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

@@ -2,6 +2,73 @@
 
 Generated: 2026-05-31
 
+## Live verification checkpoint — 2026-08-09
+
+The local four-app preview pass now covers `zivodriver`, `Zivo-Admin`, `ZIVO-ride`, and
+`zivosmedia` together. This is a development verification checkpoint, not a production
+deployment approval.
+
+Verified in the running previews:
+
+- `zivosmedia`: car-rental search → filters → results → detail → traveler-information
+  surfaces render; the Electric Only quick filter becomes active. `/hotels` renders the
+  Hotels & Resorts directory, and direct `/travel/checkout` returns a usable empty-cart
+  recovery state. Travel homepage defaults and popular-search deep links now roll forward
+  from the current day instead of shipping past dates, including the live itinerary card.
+  Final browser QA also covers `/flights`, `/hotels`, `/cars`, and `/bus`; the Bus hero now
+  keeps its dark media scrim and white copy readable inside the light Travel skin, while Cars
+  reaches its truthful empty-results state without an unresolved loading overlay. The
+  Promotions Offers tab no longer shows the expired hardcoded Hotel + Flight Bundle promise
+  (`20% OFF`, `Mar 2026`); browser QA confirmed the remaining cards and copy-code interaction.
+  The `/network/saved` favorites surface now keeps card navigation and removal as valid,
+  independent controls; its empty-state recovery returns to the live partner network route.
+  Notification preferences now keep device-local opt-outs scoped to the authenticated account,
+  expose toggle state on the native control, and avoid presenting a dead category action for
+  required-only templates; server sync remains a future backend/RLS task.
+  The current frontend hardening pass also scopes Rider announcement dismissals, Driver
+  announcement/search/history state, and zivosmedia creator targets, service favorites, and
+  personal More-page shortcuts to the authenticated account. These are intentionally device-local
+  fallbacks; the next platform step is a server-owned preference/history sync with RLS, explicit
+  account fixtures, conflict handling, retention limits, and cross-device recovery.
+- `zivodriver`: first paint, auth/session preparation, onboarding data loading, vehicle
+  selection, and the completed onboarding screen render without console errors. Loading
+  states now use the ZIVO mark, explanatory copy, and responsive skeleton structure.
+- `Zivo-Admin`: sign-in surface renders and password visibility toggles locally.
+- `ZIVO-ride`: booking surface renders after a clean Rider preview restart and the English →
+  Khmer locale switch remains interactive. The app-level crash fallback now stays usable even
+  when the router itself is unavailable. The only current preview warning is the expected
+  Stripe-over-HTTP localhost notice.
+
+Recommended next build order, based on those checks:
+
+1. **Release truth:** reconcile the live Edge Function inventory, finish the Android SDK/native
+   build setup, and keep sandbox payment/refund/webhook replay green before production release.
+2. **Trip truth:** make ride, delivery, and travel booking transitions one authoritative,
+   idempotent state machine with visible recovery states for timeout, cancellation, and supplier
+   handoff failures.
+3. **Operations:** finish the Admin control center for driver/document review, dispatch health,
+   payment/refund reconciliation, support cases, and an auditable event timeline.
+4. **Marketplace quality:** add upfront quote + ETA freshness, scheduled/multi-stop rides,
+   driver earnings/incentive visibility, and rider safety/support flows with real end-to-end tests.
+5. **Travel retention:** complete itinerary storage, booking-change/refund status, supplier
+   callback reconciliation, and a unified My Trips view across flights, hotels, cars, and buses.
+6. **Growth:** add business/fleet accounts, loyalty/membership, referrals, and localized Khmer
+   onboarding only after the reliability and support foundations above are release-ready.
+
+These priorities follow the durable marketplace lessons ZIVO is adopting from leading ride
+platforms: make every state truthful, show the next action, protect both sides of the trip,
+and measure the full request → match → pickup → completion → payout lifecycle. They are product
+patterns, not a request to copy another company's branding or implementation.
+
+Promotion rule for the next build: dated or limited-time offer claims should be Admin/Supabase-
+owned records with server-side expiry filtering and an auditable owner, rather than hardcoded
+marketing cards in the customer bundle.
+
+Retention follow-up: move network favorites from client-only ids to a server-owned, stale-id-aware
+model with last-known partner availability and a recoverable removal path. Until that exists, the
+customer copy must continue to say that favorites are device-only and the UI must not imply synced
+cross-device access.
+
 ## Current State
 
 ZIVO already has broad product coverage across web, mobile shells, backend functions, and legal pages:

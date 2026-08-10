@@ -27,6 +27,7 @@ import { AirlineLogo } from "@/components/flight/AirlineLogo";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import PullToRefresh from "@/components/shared/PullToRefresh";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 type FilterTab = "all" | "upcoming" | "issued" | "processing" | "cancelled";
 
@@ -108,8 +109,9 @@ export default function FlightBookingsPage() {
   }, [bookings, activeTab, searchQuery, sortNewest]);
 
   return (
-    <PullToRefresh onRefresh={handlePullRefresh} className="min-h-screen bg-background relative overflow-hidden">
-      <SEOHead title="My Flight Bookings – ZIVO" description="View and manage your flight bookings." />
+    <TravelPageFrame>
+      <PullToRefresh onRefresh={handlePullRefresh} className="min-h-screen bg-background relative overflow-hidden">
+        <SEOHead title="My Flight Bookings – ZIVO" description="View and manage your flight bookings." />
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-20 right-0 w-72 h-72 rounded-full bg-[hsl(var(--flights))]/6 blur-3xl" />
@@ -379,6 +381,7 @@ export default function FlightBookingsPage() {
       <BookingDetailsModal bookingId={selectedId} onClose={() => setSelectedId(null)} />
       <Footer />
     </PullToRefresh>
+    </TravelPageFrame>
   );
 }
 

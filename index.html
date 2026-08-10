@@ -26,97 +26,7 @@
     </style>
 
     <!-- Analytics/marketing pixels — idle-loaded after first paint to protect LCP/TBT -->
-    <script>
-    (function(){
-      var loaded=false;
-      function readCookiePrefs(){
-        // Never load third-party trackers during local QA/dev.
-        if(location.hostname==='localhost'||location.hostname==='127.0.0.1') return null;
-        try{
-          var raw=localStorage.getItem('zivo_cookie_consent');
-          if(!raw) return null;
-          return JSON.parse(raw);
-        }catch(_e){
-          return null;
-        }
-      }
-      function loadConsentPixels(){
-        if(loaded)return; loaded=true;
-        var prefs=readCookiePrefs();
-        if(!prefs)return;
-        var analyticsAllowed=prefs.analytics===true;
-        var marketingAllowed=prefs.marketing===true;
-        if(!analyticsAllowed&&!marketingAllowed)return;
-        // Skip on native
-        if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())return;
-        function metaContent(name){
-          var m=document.querySelector('meta[name="'+name+'"]');
-          var v=m&&m.getAttribute('content')?m.getAttribute('content').trim():'';
-          return v&&v.charAt(0)!=='%'?v:'';
-        }
-        var gaId=metaContent('zivo-google-analytics-id');
-        var googleAdsId=metaContent('zivo-google-ads-id');
-        var gtagId=analyticsAllowed&&gaId?gaId:(marketingAllowed&&googleAdsId?googleAdsId:'');
-        if(gtagId){
-          var s=document.createElement('script');s.async=true;
-          s.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(gtagId);
-          document.head.appendChild(s);
-          window.dataLayer=window.dataLayer||[];
-          function gtag(){dataLayer.push(arguments);} window.gtag=gtag;
-          gtag('js',new Date());
-          if(analyticsAllowed&&gaId){
-            gtag('config',gaId,{send_page_view:true});
-          }
-          if(marketingAllowed&&googleAdsId){
-            gtag('config',googleAdsId,{send_page_view:false});
-          }
-        }
-        if(marketingAllowed){
-          // Meta Pixel
-          var metaId=metaContent('zivo-meta-pixel');
-          if(metaId){
-            !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init',metaId);fbq('track','PageView');
-          }
-          // TikTok Pixel
-          var ttId=metaContent('zivo-tiktok-pixel');
-          if(ttId){
-            !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var s=document.createElement("script");s.type="text/javascript",s.async=!0,s.src=r+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(s,a)};
-              ttq.load(ttId);ttq.page();
-            }(window,document,'ttq');
-          }
-          // X Pixel
-          var xId=metaContent('zivo-x-pixel');
-          if(xId){
-            !function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);},s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='https://static.ads-twitter.com/uwt.js',a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');
-            twq('config',xId);
-          }
-          // Google AdSense — display ads. Reads publisher id from
-          // <meta name="zivo-adsense-client" content="ca-pub-...">.
-          var adsClient=metaContent('zivo-adsense-client');
-          if(adsClient&&adsClient.indexOf('ca-pub-')===0){
-            var ad=document.createElement('script');ad.async=true;ad.crossOrigin='anonymous';
-            ad.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+adsClient;
-            document.head.appendChild(ad);
-          }
-        }
-      }
-      // Expose for consent flows that enable analytics after initial page load.
-      window.__zivoLoadAnalytics = loadConsentPixels;
-      // Wait for idle time AFTER load to keep LCP/TBT clean
-      function schedule(){
-        if('requestIdleCallback' in window){
-          requestIdleCallback(loadConsentPixels,{timeout:4000});
-        } else {
-          setTimeout(loadConsentPixels,2500);
-        }
-      }
-      if(document.readyState==='complete'){schedule();}
-      else{window.addEventListener('load',schedule,{once:true});}
-    })();
-    </script>
+    <script defer src="/analytics-bootstrap.js"></script>
     
     <!-- Preconnect to critical origins for faster resource loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -127,7 +37,7 @@
     <link rel="preconnect" href="https://maps.gstatic.com" crossorigin />
     
     <!-- Non-blocking font loading — trimmed to essentials (Inter only, 3 weights) for fastest LCP. Other families lazy-loaded by routes that need them. -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" media="print" onload="this.media='all'" />
+    <link data-zivo-font rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" media="print" />
     <noscript>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
     </noscript>

@@ -14,6 +14,19 @@ Deno.serve(withSecurity("notify-aba-payment", async (req, ctx) => {
     });
   }
 
+  // A caller-controlled ABA "confirmation" must not remain a parallel path
+  // around the provider-authoritative Rider checkout. Keep the retired Media
+  // notification route disabled unless an operator enables it server-side.
+  if (Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true") {
+    return new Response(JSON.stringify({
+      error: "Legacy Media ride payments are retired. Use the canonical ZIVO Ride checkout.",
+      code: "legacy_media_ride_payments_retired",
+    }), {
+      status: 410,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     if (!botToken) throw new Error("TELEGRAM_BOT_TOKEN is not configured");

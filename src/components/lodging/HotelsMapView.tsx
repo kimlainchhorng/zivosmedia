@@ -47,6 +47,42 @@ const PILL_IDLE =
 const PILL_ACTIVE =
   "bg-emerald-500 text-white border-emerald-600 scale-110 shadow-lg shadow-emerald-500/30";
 
+function createHotelFallbackIcon(): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
+  const attributes = {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: "12",
+    height: "12",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2.5",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    "aria-hidden": "true",
+  };
+  Object.entries(attributes).forEach(([name, value]) => svg.setAttribute(name, value));
+
+  const elements: Array<[string, Record<string, string>]> = [
+    ["path", { d: "M10 22v-6.57" }],
+    ["path", { d: "M12 11h.01" }],
+    ["path", { d: "M12 7h.01" }],
+    ["path", { d: "M14 15.43V22" }],
+    ["path", { d: "M15 16a5 5 0 0 0-6 0" }],
+    ["path", { d: "M16 11h.01" }],
+    ["path", { d: "M16 7h.01" }],
+    ["path", { d: "M8 11h.01" }],
+    ["path", { d: "M8 7h.01" }],
+    ["rect", { x: "4", y: "2", width: "16", height: "20", rx: "2" }],
+  ];
+  elements.forEach(([tag, attrs]) => {
+    const child = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.entries(attrs).forEach(([name, value]) => child.setAttribute(name, value));
+    svg.appendChild(child);
+  });
+  return svg;
+}
+
 // ---- Component -------------------------------------------------------------
 export default function HotelsMapView({ hotels, onSelect, apiKey }: Props) {
   const { format: fmtCurrency } = useCurrency();
@@ -263,9 +299,8 @@ export default function HotelsMapView({ hotels, onSelect, apiKey }: Props) {
       const el = document.createElement("button");
       el.type = "button";
       el.className = `${PILL_BASE} ${isActive ? PILL_ACTIVE : PILL_IDLE}`;
-      el.innerHTML = priceLabel
-        ? priceLabel
-        : '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 22v-6.57"/><path d="M12 11h.01"/><path d="M12 7h.01"/><path d="M14 15.43V22"/><path d="M15 16a5 5 0 0 0-6 0"/><path d="M16 11h.01"/><path d="M16 7h.01"/><path d="M8 11h.01"/><path d="M8 7h.01"/><rect x="4" y="2" width="16" height="20" rx="2"/></svg>';
+      if (priceLabel) el.textContent = priceLabel;
+      else el.appendChild(createHotelFallbackIcon());
       el.setAttribute("aria-label", `${h.name}${priceLabel ? ` from ${priceLabel} per night` : ""}`);
       el.addEventListener("click", (e) => {
         e.stopPropagation();

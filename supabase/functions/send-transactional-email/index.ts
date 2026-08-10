@@ -31,9 +31,15 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function is deployed with verify_jwt = false so backend
-// functions and selected admin workflows can call it. It relies on strict CORS,
-// rate limiting, suppression checks, and template allowlisting here.
+function isServiceRoleRequest(req: Request, serviceKey: string): boolean {
+  const authorization = req.headers.get("Authorization") || "";
+  const apikey = req.headers.get("apikey") || "";
+  return authorization === `Bearer ${serviceKey}` || apikey === serviceKey;
+}
+
+// Internal-only endpoint. Backend functions and selected admin workflows call
+// it with the service-role key; browser callers must never be able to choose a
+// recipient or template for an outbound email.
 
 Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
@@ -52,6 +58,16 @@ Deno.serve(withSecurity("send-transactional-email", async (req, ctx) => {
       JSON.stringify({ error: 'Server configuration error' }),
       {
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (!isServiceRoleRequest(req, supabaseServiceKey)) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      {
+        status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )

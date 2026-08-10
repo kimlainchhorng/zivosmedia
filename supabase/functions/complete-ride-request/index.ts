@@ -76,6 +76,16 @@ Deno.serve(withSecurity("complete-ride-request", async (req, ctx) => {
     return json({ error: "Method not allowed" }, 405, { ...cors, "Allow": "POST, OPTIONS" });
   }
 
+  // Completion and settlement for customer rides are now owned by the
+  // canonical Rider/Driver workflow. Keep this legacy Media route disabled
+  // unless a deliberate, server-only compatibility window is enabled.
+  if (Deno.env.get("ENABLE_LEGACY_MEDIA_RIDE_PAYMENTS") !== "true") {
+    return json({
+      error: "Legacy Media ride payments are retired. Use the canonical ZIVO Ride checkout.",
+      code: "legacy_media_ride_payments_retired",
+    }, 410, cors);
+  }
+
   try {
     const authHeader = req.headers.get("authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401, cors);

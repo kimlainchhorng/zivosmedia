@@ -27,6 +27,7 @@ import { PriceSummaryCard } from "@/components/flight/review/PriceSummaryCard";
 import { DuffelServicesCard } from "@/components/flight/review/DuffelServicesCard";
 import { FareVariantsCard } from "@/components/flight/review/FareVariantsCard";
 import { cn } from "@/lib/utils";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 /* ── Helpers ─────────────────────────────────────────── */
 function calcLayover(prev: DuffelSegment, next: DuffelSegment): string {
@@ -786,20 +787,22 @@ const FlightReview = () => {
 
   if (!reviewOffer) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-safe-header pb-20">
-          <div className="container mx-auto px-4 max-w-2xl text-center">
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-              <Plane className="w-8 h-8 text-muted-foreground" />
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="pt-safe-header pb-20">
+            <div className="container mx-auto px-4 max-w-2xl text-center">
+              <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                <Plane className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h1 className="text-xl font-bold mb-2">No Flight Selected</h1>
+              <p className="text-sm text-muted-foreground mb-6">Please search and select a flight first.</p>
+              <Button asChild className="bg-[hsl(var(--flights))]"><Link to="/flights">Search Flights</Link></Button>
             </div>
-            <h1 className="text-xl font-bold mb-2">No Flight Selected</h1>
-            <p className="text-sm text-muted-foreground mb-6">Please search and select a flight first.</p>
-            <Button asChild className="bg-[hsl(var(--flights))]"><Link to="/flights">Search Flights</Link></Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
+          </main>
+          <Footer />
+        </div>
+      </TravelPageFrame>
     );
   }
 
@@ -809,7 +812,8 @@ const FlightReview = () => {
   const returnInfo = getSliceInfo(returnSegments);
 
   return (
-    <div className="min-h-[100dvh] bg-background relative overflow-hidden flex flex-col">
+    <TravelPageFrame>
+      <div className="min-h-[100dvh] bg-background relative overflow-hidden flex flex-col">
       <SEOHead
         title={`Review Flight ${reviewOffer.departure.code} → ${reviewOffer.arrival.code} – ZIVO`}
         description={`Review your ${reviewOffer.airline} flight from ${reviewOffer.departure.city} to ${reviewOffer.arrival.city}.`}
@@ -1095,7 +1099,8 @@ const FlightReview = () => {
       </div>
 
       <div className="hidden sm:block"><Footer /></div>
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 };
 

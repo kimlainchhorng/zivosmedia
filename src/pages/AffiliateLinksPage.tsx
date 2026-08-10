@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 interface LinkRow {
   id: string;
@@ -255,7 +256,7 @@ export default function AffiliateLinksPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => window.open(l.target_url, "_blank", "noopener,noreferrer")}
+                      onClick={() => { void openExternalUrl(l.target_url); }}
                       className="flex-1 h-8 rounded-lg bg-ig-gradient text-white text-xs font-bold inline-flex items-center justify-center gap-1 hover:opacity-90 active:scale-95 transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <ExternalLink className="h-3 w-3" /> Open

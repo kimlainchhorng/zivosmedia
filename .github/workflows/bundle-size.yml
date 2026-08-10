@@ -35,10 +35,12 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version-file: ".nvmrc"
           cache: npm
@@ -63,8 +65,9 @@ jobs:
           echo "PR branch totals — total:$TOTAL vendor:$VENDOR main:$MAIN"
 
       - name: Checkout base (main) branch
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          persist-credentials: false
           ref: ${{ github.base_ref }}
           path: base-branch
 
@@ -124,7 +127,7 @@ jobs:
           fi
 
       - name: Post bundle-size PR comment
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
           PR_TOTAL: ${{ steps.pr-size.outputs.total }}
           PR_VENDOR: ${{ steps.pr-size.outputs.vendor }}

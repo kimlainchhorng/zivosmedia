@@ -366,7 +366,7 @@ const Login = () => {
   const [editingAccounts, setEditingAccounts] = useState(false);
 
   // Honor ?email= handoffs (e.g. SwitchAccountSheet falls back here when a
-  // saved refresh token is rejected): preselect the matching saved account in
+  // session-scoped saved refresh token is rejected): preselect the matching saved account in
   // password mode, or prefill the full form for an unknown address. Mount-only
   // — we deliberately skip the one-tap refreshSession retry since the token
   // was just rejected upstream.
@@ -438,7 +438,7 @@ const Login = () => {
     if (submitting) return;
     // Tap-to-sign-in flow:
     //   1) If the live session already matches this account, continue.
-    //   2) Otherwise restore via stored refresh_token.
+    //   2) Otherwise restore via the session-scoped refresh_token.
     //   3) If the trusted token is absent/expired, ask for password.
     //
     // Do not auto-send an email link from an account tap. Saved accounts should
@@ -643,9 +643,9 @@ const Login = () => {
       return;
     }
 
-    // Save account + session tokens for one-tap login next time.
-    // We capture the live session so the next visit can call setSession()
-    // and resume without a password — that's the FB/IG "tap to log in" feel.
+    // Save account metadata in localStorage and keep the trusted refresh token
+    // session-scoped for one-tap login in this browser tab. Persistent storage
+    // never receives access or refresh tokens.
     try {
       const [{ data: profile }, { data: sessionData }] = await Promise.all([
         supabase

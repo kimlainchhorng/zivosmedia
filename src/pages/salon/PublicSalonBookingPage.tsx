@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 const supabase: any = _supabaseTyped;
 import { computeOpenSlots, type ScheduleRow, type BusyRange } from "@/lib/salon/availability";
@@ -241,7 +242,8 @@ export default function PublicSalonBookingPage() {
   // "__any" means we'll compute combined availability across all eligible
   // stylists; that fetch lives in a separate effect below.
   useEffect(() => {
-    if (!stylistId || stylistId === "__any" || !store) { setSchedule([]); setBusy([]); setDayClosed(false); return; }
+    const storeId = store?.id;
+    if (!stylistId || stylistId === "__any" || !storeId) { setSchedule([]); setBusy([]); setDayClosed(false); return; }
     let cancelled = false;
     (async () => {
       setSlotsLoading(true);
@@ -262,7 +264,7 @@ export default function PublicSalonBookingPage() {
           p_stylist_id: stylistId, p_day_start: dayStart, p_day_end: dayEnd,
         }),
         supabase.rpc("salon_public_store_closures", {
-          p_store_id: store.id, p_day_start: dayStart, p_day_end: dayEnd,
+          p_store_id: storeId, p_day_start: dayStart, p_day_end: dayEnd,
         }),
       ]);
       if (cancelled) return;
@@ -307,6 +309,7 @@ export default function PublicSalonBookingPage() {
       setAnyStylistSlotMap(new Map());
       return;
     }
+    const storeId = store?.id;
     let cancelled = false;
     (async () => {
       setSlotsLoading(true);
@@ -328,8 +331,8 @@ export default function PublicSalonBookingPage() {
         supabase.rpc("salon_public_stylists_blockouts" as never, {
           p_stylist_ids: ids, p_day_start: dayStart, p_day_end: dayEnd,
         } as never),
-        store
-          ? supabase.rpc("salon_public_store_closures", { p_store_id: store.id, p_day_start: dayStart, p_day_end: dayEnd })
+        storeId
+          ? supabase.rpc("salon_public_store_closures", { p_store_id: storeId, p_day_start: dayStart, p_day_end: dayEnd })
           : Promise.resolve({ data: [] as Array<{ start_at: string; end_at: string }>, error: null }),
       ]);
       if (cancelled) return;
@@ -378,7 +381,7 @@ export default function PublicSalonBookingPage() {
       setSlotsLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [stylistId, date, selectedService, eligibleStylists]);
+  }, [stylistId, date, selectedService, eligibleStylists, store?.id]);
 
   const slots = useMemo(() => {
     if (!selectedService) return [];
@@ -506,6 +509,7 @@ export default function PublicSalonBookingPage() {
         if (depErr) throw depErr;
         const url = (depositRes as any)?.url as string | undefined;
         if (url) {
+          if (!isAllowedCheckoutUrl(url)) throw new Error("Invalid Stripe checkout URL");
           window.location.href = url;
           return;
         }

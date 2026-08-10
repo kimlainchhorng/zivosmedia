@@ -29,6 +29,7 @@ import { useTripDetails } from "@/hooks/useMyTrips";
 import { useOrderActions } from "@/hooks/useOrderActions";
 import { OrderItemCard } from "@/components/travel/OrderItemCard";
 import { CancelRequestModal } from "@/components/travel/CancelRequestModal";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
 // ReportProblemDialog removed
 
@@ -58,26 +59,30 @@ export default function TravelOrderDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </TravelPageFrame>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="container px-4 py-8 text-center">
-          <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Order Not Found</h1>
-          <p className="text-muted-foreground mb-4">
-            We couldn't find this order. It may have been deleted or you may not have access.
-          </p>
-          <Button asChild>
-            <Link to="/my-trips">Back to My Trips</Link>
-          </Button>
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background pb-20">
+          <div className="container px-4 py-8 text-center">
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h1 className="text-xl font-bold mb-2">Order Not Found</h1>
+            <p className="text-muted-foreground mb-4">
+              We couldn't find this order. It may have been deleted or you may not have access.
+            </p>
+            <Button asChild>
+              <Link to="/my-trips">Back to My Trips</Link>
+            </Button>
+          </div>
         </div>
-      </div>
+      </TravelPageFrame>
     );
   }
 
@@ -90,7 +95,8 @@ export default function TravelOrderDetailPage() {
   const canReport = ["confirmed", "refunded"].includes(order.status);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur-sm border-b">
         <div className="container px-4 py-4">
@@ -269,6 +275,7 @@ export default function TravelOrderDetailPage() {
       {/* ReportProblemDialog removed */}
 
       <MobileBottomNav />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }

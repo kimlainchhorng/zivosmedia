@@ -46,6 +46,7 @@ import { format, addDays } from "date-fns";
 import { useP2PVehicleSearch, type P2PSearchFilters, type P2PVehicleWithOwner } from "@/hooks/useP2PBooking";
 import { useCarRentalSettings } from "@/hooks/useCarRentalSettings";
 import ServiceDisclaimer from "@/components/shared/ServiceDisclaimer";
+import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
 // Vehicle category options
 const categories = [
@@ -152,7 +153,8 @@ export default function CarsSearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <TravelPageFrame>
+      <div className="min-h-screen bg-background">
       <SEOHead
         title="Rent Cars from Local Owners | ZIVO"
         description="Find and book cars from trusted local owners. Book on ZIVO with secure payments and verified vehicles."
@@ -433,7 +435,8 @@ export default function CarsSearchPage() {
       </main>
 
       <Footer />
-    </div>
+      </div>
+    </TravelPageFrame>
   );
 }
 

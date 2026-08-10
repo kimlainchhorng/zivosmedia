@@ -15,7 +15,6 @@ const VerifyNewDevice = () => {
 
   // Get state passed from login
   const navEmail = (location.state as any)?.email as string | undefined;
-  const navUserId = (location.state as any)?.userId as string | undefined;
   const navRedirectTo = (location.state as any)?.redirectTo as string | undefined;
 
   const [email] = useState<string | undefined>(() => {
@@ -24,14 +23,6 @@ const VerifyNewDevice = () => {
       return navEmail;
     }
     return sessionStorage.getItem("zivo_device_otp_email") || undefined;
-  });
-
-  const [userId] = useState<string | undefined>(() => {
-    if (navUserId) {
-      sessionStorage.setItem("zivo_device_otp_userid", navUserId);
-      return navUserId;
-    }
-    return sessionStorage.getItem("zivo_device_otp_userid") || undefined;
   });
 
   const [redirectTo] = useState<string>(navRedirectTo || "/");
@@ -49,12 +40,13 @@ const VerifyNewDevice = () => {
     return () => clearInterval(timer);
   }, [countdown]);
 
-  // Redirect if no email/userId
+  // The OTP endpoint derives the account from the authenticated session; the
+  // route must not carry a caller-controlled user ID.
   useEffect(() => {
-    if (!email || !userId) {
+    if (!email) {
       navigate("/login", { replace: true });
     }
-  }, [email, userId, navigate]);
+  }, [email, navigate]);
 
   // Auto-focus first input
   useEffect(() => {
@@ -95,12 +87,12 @@ const VerifyNewDevice = () => {
   };
 
   const handleVerify = useCallback(async (otp: string) => {
-    if (!email || !userId || isVerifying) return;
+    if (!email || isVerifying) return;
     setIsVerifying(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("verify-otp-code", {
-        body: { email, code: otp },
+        body: { email, code: otp, purpose: "new_device" },
       });
 
       if (error || !data?.success) {
@@ -125,8 +117,12 @@ const VerifyNewDevice = () => {
           ? "mobile"
           : "desktop";
 
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        throw new Error("Your sign-in session has expired. Please sign in again.");
+      }
       const { error: trustErr } = await supabase.rpc("register_trusted_device", {
-        _user_id: userId,
+        _user_id: userData.user.id,
         _device_fingerprint: fingerprint,
         _device_name: deviceName,
         _device_type: deviceType,
@@ -141,7 +137,6 @@ const VerifyNewDevice = () => {
 
       // Clean up session storage
       sessionStorage.removeItem("zivo_device_otp_email");
-      sessionStorage.removeItem("zivo_device_otp_userid");
 
       toast.success("Device verified! You're signed in.", { icon: "🔐" });
       navigate(redirectTo, { replace: true });
@@ -149,14 +144,14 @@ const VerifyNewDevice = () => {
       toast.error("Verification failed. Please try again.");
       setIsVerifying(false);
     }
-  }, [email, userId, isVerifying, navigate, redirectTo]);
+  }, [email, isVerifying, navigate, redirectTo]);
 
   const handleResend = async () => {
-    if (!email || !userId || countdown > 0) return;
+    if (!email || countdown > 0) return;
     setIsResending(true);
     try {
       await supabase.functions.invoke("send-otp-email", {
-        body: { email, userId },
+        body: { email, purpose: "new_device" },
       });
       toast.success("New verification code sent!");
       setCountdown(60);
@@ -171,7 +166,7 @@ const VerifyNewDevice = () => {
     ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + "*".repeat(Math.min(b.length, 5)) + c)
     : "";
 
-  if (!email || !userId) return null;
+  if (!email) return null;
 
   return (
     <div className="relative min-h-[100dvh] w-full overflow-hidden flex items-center justify-center px-5 py-8 bg-white dark:bg-black">

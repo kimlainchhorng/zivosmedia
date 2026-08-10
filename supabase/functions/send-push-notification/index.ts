@@ -96,8 +96,7 @@ serve(withSecurity("send-push-notification", async (req, ctx) => {
     });
   }
   const isServiceCall = !!serviceKey && authHeader === `Bearer ${serviceKey}`;
-  const isAnonCall = !!anonKey && authHeader === `Bearer ${anonKey}`;
-  if (!isServiceCall && !isAnonCall) {
+  if (!isServiceCall) {
     if (!supabaseUrlEarly || !anonKey) {
       return new Response(JSON.stringify({ error: "Server misconfigured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

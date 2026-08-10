@@ -33,7 +33,7 @@ Date: 2026-06-06 · Owner decisions **LOCKED**.
 - `slirphzzwcogdbkeicff` / `zivo`: active healthy. Table listing timed out from the connector because the project is large; migrations and many active Edge Functions confirm it is the current live authority for mixed travel, driver, business, chat, payment, maps, restaurant/order, hotel, salon, car-rental, bot, and platform workflows.
 - `xbllvmpomorawkcrtbcq` / `Zivo Travel`: active healthy. Contains Travel foundation tables: backend links, service catalog, search events, partner workflows, and sync runs. No Travel Edge Functions are active yet.
 - `ydxztoresbdeoeijhxww` / `Zivo software`: active healthy. Contains business/software tables including store, booking, and auto-repair structures. Active functions include `csp-report`, `geo-detect`, `exchange-rates`, and `software-media-handoff`.
-- `yiedlgoxwjmansszdypf` / `Zivo Driver`: active healthy. Driver foundation and compatibility migrations are applied. Active functions include `driver-me`, `driver-go-online`, `driver-go-offline`, `location-heartbeat`, `register-push-token`, `driver-onboard`, `driver-signup`, `verify-otp`, and `generate-otp`.
+- `yiedlgoxwjmansszdypf` / `Zivo Driver`: active healthy. Driver foundation and compatibility migrations are applied. Active functions include `driver-me`, `driver-go-online`, `driver-go-offline`, `location-heartbeat`, `register-push-token`, `driver-onboard`, `verify-otp`, and `generate-otp`; the legacy `driver-signup` route is source-retired as a JWT-gated 410 stub pending redeploy.
 
 ## Centralized identity pattern (the hard part — do this FIRST per domain)
 - **Auth client = always the main project** (`slirph`): login / session / refresh happen there. One account, one `auth.users`.

@@ -3,7 +3,7 @@
  * The booking UUID acts as the unguessable token: anyone with the link can
  * view + cancel. Backed by SECURITY DEFINER RPCs that scope what anon can do.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import {
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
 const supabase: any = _supabaseTyped;
 import { cn } from "@/lib/utils";
+import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface PublicBooking {
@@ -116,7 +117,7 @@ export default function PublicSalonBookingDetailPage() {
   const [submittingTip, setSubmittingTip] = useState(false);
   const [tipChargeError, setTipChargeError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     const { data, error: err } = await supabase.rpc("salon_public_get_booking", { p_id: id });
@@ -134,9 +135,9 @@ export default function PublicSalonBookingDetailPage() {
     }
     setBooking(row);
     setLoading(false);
-  };
+  }, [id]);
 
-  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
+  useEffect(() => { void load(); }, [load]);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -167,6 +168,7 @@ export default function PublicSalonBookingDetailPage() {
       if (err) throw err;
       const url = (data as any)?.url as string | undefined;
       if (url) {
+        if (!isAllowedCheckoutUrl(url)) throw new Error("Invalid Stripe checkout URL");
         window.location.href = url;
       } else {
         toast.error("Stripe didn't return a payment URL.");

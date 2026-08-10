@@ -275,7 +275,7 @@ export default function StoreEmployeesSection({ storeId }: Props) {
           </Select>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => window.open(`/personal/employer?storeId=${storeId}`, "_blank")}>
+          <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => window.open(`/personal/employer?storeId=${storeId}`, "_blank", "noopener,noreferrer")}>
             <Briefcase className="w-3.5 h-3.5" /> Post a Job
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={exportEmployees} disabled={filtered.length === 0}><Download className="w-3.5 h-3.5" /> Export</Button>

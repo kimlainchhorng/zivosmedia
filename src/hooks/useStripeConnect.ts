@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { isAllowedStripeConnectUrl } from "@/lib/urlSafety";
 
 export interface ConnectStatus {
   connected: boolean;
@@ -45,6 +46,9 @@ export function useConnectOnboard() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      if (!data?.url || !isAllowedStripeConnectUrl(data.url)) {
+        throw new Error("Invalid Stripe onboarding URL");
+      }
       return data as { url: string; account_id: string };
     },
     onSuccess: (data) => {

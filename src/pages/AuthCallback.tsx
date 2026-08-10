@@ -147,14 +147,19 @@ const AuthCallback = () => {
         try {
           const { data: otpResponse, error: otpError } = await supabase.functions.invoke(
             "send-otp-email",
-            { body: { email: user.email, userId: user.id } }
+            { body: { email: user.email, purpose: "email_verification" } }
           );
 
           if (!otpError && otpResponse?.success) {
             setStatus("success");
             setTimeout(() => {
-              navigate(withRedirectParam("/verify-otp", redirectTo), {
-                state: { email: user.email, userId: user.id, redirectTo },
+              const verifyParams = new URLSearchParams({
+                email: user.email,
+                mode: "email_verification",
+                ...(redirectTo && redirectTo !== "/" ? { redirect: redirectTo } : {}),
+              });
+              navigate(`/verify-otp?${verifyParams.toString()}`, {
+                state: { email: user.email, redirectTo },
                 replace: true,
               });
             }, 200);
