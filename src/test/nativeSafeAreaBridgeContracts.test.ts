@@ -18,7 +18,15 @@ describe("native safe-area bridge contracts", () => {
       "style: 'DARK'",
       'resize: "native"',
       "resizeOnFullScreen: true",
-      "launchAutoHide: false",
+      // Was "launchAutoHide: false" until 2026-08-11. That pinned the defect
+      // rather than the behaviour: with autoHide off the plugin never hides the
+      // splash on its own (the else-branch in the plugin's Android
+      // SplashScreen.java only fires the listener), so any boot that failed to
+      // reach hide() left a permanent splash. Google removed com.hizovo.app
+      // over exactly that on 2026-07-29 — "Your app does not open or load",
+      // evidenced with a screenshot of the logo on a blank screen. The
+      // dedicated guard is scripts/native/splash-boot-contract.test.mjs.
+      "launchAutoHide: true",
       "SplashScreen.hide({ fadeOutDuration: 200 })",
       "StatusBar.setOverlaysWebView({ overlay: true })",
       "StatusBar.setStyle({ style: getStyle() })",

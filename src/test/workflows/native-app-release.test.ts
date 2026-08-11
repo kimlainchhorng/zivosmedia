@@ -18,7 +18,13 @@ describe("native app release workflow", () => {
     expect(config).toContain("CAPACITOR_DEV_SERVER_URL");
     expect(config).toContain("allowMixedContent: false");
     expect(config).toContain("overlaysWebView: true");
-    expect(config).toContain("launchAutoHide: false");
+    // Was `toContain("launchAutoHide: false")` until 2026-08-11, which pinned
+    // the defect instead of the requirement. With autoHide off, the splash is
+    // only ever hidden by an explicit JS hide() call, so a boot that throws
+    // before that call leaves it up forever — the Broken Functionality removal
+    // of com.hizovo.app on 2026-07-29. Behaviour, not the old literal, is what
+    // this release workflow should hold.
+    expect(config).toContain("launchAutoHide: true");
     expect(config).not.toContain("http://localhost");
 
     for (const dependency of ["@capacitor/core", "@capacitor/ios", "@capacitor/android", "@capgo/capacitor-updater"]) {
