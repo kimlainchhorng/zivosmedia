@@ -15,6 +15,8 @@ import { Link } from "react-router-dom";
 interface LiveRatesGridProps {
   properties: ZivoPropertyExtended[];
   isLoading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   citySlug: string;
   maxItems?: number;
 }
@@ -179,9 +181,29 @@ function EmptyState({ citySlug }: { citySlug: string }) {
   );
 }
 
+function UnavailableState({ error, onRetry }: Pick<LiveRatesGridProps, "error" | "onRetry">) {
+  return (
+    <div className="col-span-full rounded-2xl border border-destructive/30 bg-destructive/5 px-6 py-10 text-center" role="alert">
+      <p className="font-semibold text-foreground">Live hotel rates are unavailable</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {error ?? "Please try again before relying on availability or price information."}
+      </p>
+      <div className="mt-5 flex flex-wrap justify-center gap-3">
+        {onRetry && (
+          <Button type="button" onClick={() => { void onRetry(); }}>
+            Try again
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LiveRatesGrid({
   properties,
   isLoading,
+  error,
+  onRetry,
   citySlug,
   maxItems = 6,
 }: LiveRatesGridProps) {
@@ -208,6 +230,8 @@ export default function LiveRatesGrid({
                 <PropertySkeleton key={i} />
               ))}
             </>
+          ) : error ? (
+            <UnavailableState error={error} onRetry={onRetry} />
           ) : displayProperties.length > 0 ? (
             displayProperties.map((property) => (
               <PropertyCard key={property.id} property={property} />

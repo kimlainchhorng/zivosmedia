@@ -71,17 +71,28 @@ try {
   booted = true;
   window.removeEventListener("error", onBootError);
   window.removeEventListener("unhandledrejection", onBootRejection);
-
-  // Hide the native iOS/Android splash screen after React mounts.
-  // capacitor.config.ts uses launchAutoHide:false so the splash stays up
-  // until this fires — closing the white-blank-gap that appeared on cold
-  // start when the splash auto-hid before the JS bundle was parsed.
+} catch (err) {
+  paintBootError(err);
+} finally {
+  // Hide the native splash whether or not React mounted.
   //
-  // IMPORTANT: do not schedule via requestAnimationFrame here.
-  // On iOS Capacitor, rAF is paused while the native splash occludes the
-  // WebView, so a rAF-scheduled hide() never fires and the splash gets
-  // stuck on screen. setTimeout runs on the JS event loop regardless of
-  // WebView visibility, so it always fires.
+  // This used to sit inside the try, after render(). A synchronous throw from
+  // createRoot().render() therefore jumped straight to catch and never
+  // scheduled the hide, so paintBootError painted its diagnostic panel
+  // UNDERNEATH a native splash that (with the old launchAutoHide:false) never
+  // came down. The user — and Google's reviewer on 2026-07-29 — saw the ZIVO
+  // logo on a blank screen and nothing else, which is how this app got pulled
+  // under the Broken Functionality policy.
+  //
+  // Showing a failure is a far better outcome than showing a frozen logo: the
+  // error panel is diagnosable and the app visibly "opens". So the hide runs in
+  // finally, on every path.
+  //
+  // IMPORTANT: do not schedule via requestAnimationFrame here. On iOS
+  // Capacitor, rAF is paused while the native splash occludes the WebView, so
+  // a rAF-scheduled hide() never fires and the splash gets stuck on screen.
+  // setTimeout runs on the JS event loop regardless of WebView visibility, so
+  // it always fires.
   setTimeout(() => {
     import("@capacitor/core").then(({ Capacitor }) => {
       if (!Capacitor.isNativePlatform()) return;
@@ -90,10 +101,8 @@ try {
           SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {}),
         )
         .catch(() => {});
-    });
+    }).catch(() => {});
   }, 50);
-} catch (err) {
-  paintBootError(err);
 }
 
 // Notify Capgo OTA updater that this version loaded successfully.

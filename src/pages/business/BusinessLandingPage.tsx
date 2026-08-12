@@ -339,7 +339,13 @@ export default function BusinessLandingPage() {
                   return (
                     <article key={entry.group} className="overflow-hidden rounded-[26px] border border-zinc-200 bg-white shadow-sm lg:col-span-1">
                       <div className="relative h-28">
-                        <img src={groupImages[entry.group]} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        <img
+                          src={groupImages[entry.group]}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/65 to-transparent" />
                         <Icon className="absolute bottom-3 left-3 h-6 w-6 text-white" />
                       </div>

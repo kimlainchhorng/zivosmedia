@@ -50,8 +50,7 @@ export function useForYouReels() {
     queryKey: ["user-purchase-categories", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const db = supabase as any;
-      const { data } = await db
+      const { data } = await supabase
         .from("store_orders")
         .select("store_id, store_profiles(category, name)")
         .eq("customer_id", user.id)
@@ -73,15 +72,16 @@ export function useForYouReels() {
     staleTime: 300_000,
   });
 
-  // Get store Reels with location data
+  // Get store Reels with location data.
+  // Store reel content lives in `store_posts` (FK `store_posts_store_id_fkey` →
+  // `store_profiles`), which is what every other reel/explore surface reads. There is
+  // no `posts` table. `store_posts.store_id` is NOT NULL, so no null filter is needed.
   const { data: storeReels = [], isLoading } = useQuery({
     queryKey: ["for-you-reels", userLocation?.lat, userLocation?.lng],
     queryFn: async () => {
-      const db = supabase as any;
-      const { data } = await db
-        .from("posts")
+      const { data } = await supabase
+        .from("store_posts")
         .select("id, store_id, store_profiles(id, name, latitude, longitude, category)")
-        .not("store_id", "is", null)
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(100);

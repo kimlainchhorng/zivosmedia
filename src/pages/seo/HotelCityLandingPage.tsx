@@ -40,7 +40,7 @@ export default function HotelCityLandingPage() {
   const { checkIn, checkOut } = useMemo(() => getDefaultDates(), []);
   
   // Multi-provider search hook
-  const { results, isLoading, search } = useMultiProviderHotelSearch();
+  const { results, isLoading, error, search, retry } = useMultiProviderHotelSearch();
   
   // Trigger search on mount
   useEffect(() => {
@@ -124,7 +124,11 @@ export default function HotelCityLandingPage() {
         <section className="py-6 px-4 bg-hotels/5 border-b border-hotels/10">
           <div className="container mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-muted-foreground text-sm">
-              {isLoading ? "Loading" : results.length} hotels available in {city}
+              {isLoading
+                ? `Loading hotels in ${city}`
+                : error
+                  ? "Live hotel rates are temporarily unavailable"
+                  : `${results.length} hotels available in ${city}`}
             </p>
             <Button asChild className="bg-hotels hover:bg-hotels/90">
               <Link to={`/hotels?destination=${citySlug}`}>
@@ -138,6 +142,8 @@ export default function HotelCityLandingPage() {
         <LiveRatesGrid
           properties={results}
           isLoading={isLoading}
+          error={error}
+          onRetry={retry}
           citySlug={citySlug}
           maxItems={9}
         />

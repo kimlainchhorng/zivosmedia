@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TripadvisorLocation {
@@ -60,19 +60,26 @@ interface SearchResult {
   };
 }
 
+type TripadvisorCategory = "hotels" | "restaurants" | "attractions";
+
+interface TripadvisorSearchOptions {
+  latLong?: string;
+  language?: string;
+  currency?: string;
+}
+
 export const useTripadvisorSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<TripadvisorLocation[]>([]);
+  const searchRequestRef = useRef(0);
 
-  const searchHotels = async (
+  const search = useCallback(async (
     query: string,
-    options?: {
-      latLong?: string;
-      language?: string;
-      currency?: string;
-    }
+    category: TripadvisorCategory,
+    options?: TripadvisorSearchOptions,
   ): Promise<TripadvisorLocation[]> => {
+    const request = ++searchRequestRef.current;
     setIsLoading(true);
     setError(null);
 
@@ -82,7 +89,7 @@ export const useTripadvisorSearch = () => {
         {
           body: {
             query,
-            category: "hotels",
+            category,
             ...options,
           },
         }
@@ -97,110 +104,45 @@ export const useTripadvisorSearch = () => {
       }
 
       const locations = data.data || [];
-      setResults(locations);
+      if (request === searchRequestRef.current) {
+        setResults(locations);
+      }
       return locations;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Search failed";
-      setError(message);
-      setResults([]);
+      if (request === searchRequestRef.current) {
+        setError(message);
+        setResults([]);
+      }
       return [];
     } finally {
-      setIsLoading(false);
+      if (request === searchRequestRef.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, []);
 
-  const searchRestaurants = async (
+  const searchHotels = useCallback((
     query: string,
-    options?: {
-      latLong?: string;
-      language?: string;
-      currency?: string;
-    }
-  ): Promise<TripadvisorLocation[]> => {
-    setIsLoading(true);
-    setError(null);
+    options?: TripadvisorSearchOptions,
+  ) => search(query, "hotels", options), [search]);
 
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke<SearchResult>(
-        "search-hotels",
-        {
-          body: {
-            query,
-            category: "restaurants",
-            ...options,
-          },
-        }
-      );
-
-      if (fnError) {
-        throw new Error(fnError.message);
-      }
-
-      if (!data?.success) {
-        throw new Error(data?.error || "Search failed");
-      }
-
-      const locations = data.data || [];
-      setResults(locations);
-      return locations;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Search failed";
-      setError(message);
-      setResults([]);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const searchAttractions = async (
+  const searchRestaurants = useCallback((
     query: string,
-    options?: {
-      latLong?: string;
-      language?: string;
-      currency?: string;
-    }
-  ): Promise<TripadvisorLocation[]> => {
-    setIsLoading(true);
-    setError(null);
+    options?: TripadvisorSearchOptions,
+  ) => search(query, "restaurants", options), [search]);
 
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke<SearchResult>(
-        "search-hotels",
-        {
-          body: {
-            query,
-            category: "attractions",
-            ...options,
-          },
-        }
-      );
+  const searchAttractions = useCallback((
+    query: string,
+    options?: TripadvisorSearchOptions,
+  ) => search(query, "attractions", options), [search]);
 
-      if (fnError) {
-        throw new Error(fnError.message);
-      }
-
-      if (!data?.success) {
-        throw new Error(data?.error || "Search failed");
-      }
-
-      const locations = data.data || [];
-      setResults(locations);
-      return locations;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Search failed";
-      setError(message);
-      setResults([]);
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const clearResults = () => {
+  const clearResults = useCallback(() => {
+    searchRequestRef.current += 1;
+    setIsLoading(false);
     setResults([]);
     setError(null);
-  };
+  }, []);
 
   return {
     isLoading,

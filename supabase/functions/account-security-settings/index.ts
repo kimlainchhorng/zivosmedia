@@ -8,8 +8,13 @@
 import { createClient, serve } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
-const RESOURCES = new Set(["two_step", "passcode"]);
+const RESOURCES = new Set(["two_step", "passcode", "parental"]);
 const ACTIONS = new Set(["upsert", "update", "delete"]);
+
+// Mirror of the CHECK constraints on parental_safety_settings; refusing here
+// returns a 400 instead of surfacing a 23514 as a generic 500.
+const PARENTAL_SCREEN_TIMES = new Set(["none", "30m", "1h", "2h", "4h"]);
+const PARENTAL_CONTENT_FILTERS = new Set(["relaxed", "standard", "strict"]);
 
 type Body = Record<string, unknown>;
 
@@ -40,6 +45,11 @@ serve(withSecurity("account-security-settings", async (req, ctx) => {
 
   if (resource === "two_step") {
     const result = await writeTwoStep(admin, user.id, action, body);
+    return json(result.body, result.status);
+  }
+
+  if (resource === "parental") {
+    const result = await writeParental(admin, user.id, action, body);
     return json(result.body, result.status);
   }
 
@@ -111,6 +121,94 @@ async function writePasscode(admin: any, userId: string, action: string, body: B
     enabled: body.enabled !== false,
   }, { onConflict: "user_id" });
   return done(error);
+}
+
+/**
+ * Parental-safety settings: toggles / screen time / content filter, plus a
+ * salted PIN verifier with the same client-hashed contract as the passcode
+ * (the raw digits never reach this function).
+ *
+ * - upsert: full write — settings and, when provided together, pin_hash+pin_salt.
+ * - update: partial patch of settings only; a PIN change must come through
+ *   upsert with both hash and salt, or clear_pin to remove it. This keeps the
+ *   hash-and-salt-together invariant out of reach of a partial patch.
+ * - delete: remove the row entirely (all controls off, PIN gone).
+ *
+ * PIN transitions are audited to login_alerts like two-step changes: turning
+ * parental controls off is precisely the event the account owner needs to see.
+ */
+async function writeParental(admin: any, userId: string, action: string, body: Body) {
+  if (action === "delete") {
+    const { error } = await admin.from("parental_safety_settings").delete().eq("user_id", userId);
+    await recordParentalAlert(admin, userId, "removed");
+    return done(error);
+  }
+
+  const toggles = cleanToggleMap(body.toggles);
+  const screenTime = cleanEnum(body.screen_time, PARENTAL_SCREEN_TIMES);
+  const contentFilter = cleanEnum(body.content_filter, PARENTAL_CONTENT_FILTERS);
+
+  if (action === "update") {
+    const patch: Record<string, unknown> = {};
+    if (toggles !== null) patch.toggles = toggles;
+    if (screenTime) patch.screen_time = screenTime;
+    if (contentFilter) patch.content_filter = contentFilter;
+    if (body.clear_pin === true) {
+      patch.pin_hash = null;
+      patch.pin_salt = null;
+    }
+    if (Object.keys(patch).length === 0) return bad();
+    patch.updated_at = new Date().toISOString();
+    const { error } = await admin
+      .from("parental_safety_settings")
+      .update(patch)
+      .eq("user_id", userId);
+    if (body.clear_pin === true) await recordParentalAlert(admin, userId, "pin_cleared");
+    return done(error);
+  }
+
+  const pinHash = cleanText(body.pin_hash, 512);
+  const pinSalt = cleanText(body.pin_salt, 256);
+  // Hash and salt travel together or not at all — half a verifier is a row
+  // that can never verify anything and reads as "PIN active" in the UI.
+  if ((pinHash === null) !== (pinSalt === null)) return bad();
+
+  const row: Record<string, unknown> = {
+    user_id: userId,
+    toggles: toggles ?? {},
+    screen_time: screenTime ?? "none",
+    content_filter: contentFilter ?? "standard",
+    updated_at: new Date().toISOString(),
+  };
+  if (pinHash && pinSalt) {
+    row.pin_hash = pinHash;
+    row.pin_salt = pinSalt;
+  }
+  const { error } = await admin
+    .from("parental_safety_settings")
+    .upsert(row, { onConflict: "user_id" });
+  await recordParentalAlert(admin, userId, pinHash ? "pin_configured" : "configured");
+  return done(error);
+}
+
+/** Toggle map: plain object of boolean values, anything else refused. */
+function cleanToggleMap(value: unknown): Record<string, boolean> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const out: Record<string, boolean> = {};
+  for (const [key, enabled] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof enabled !== "boolean") return null;
+    if (key.length === 0 || key.length > 64) return null;
+    out[key] = enabled;
+  }
+  return out;
+}
+
+async function recordParentalAlert(admin: any, userId: string, action: string) {
+  await admin.from("login_alerts").insert({
+    user_id: userId,
+    event: "parental_safety_changed",
+    metadata: { action },
+  });
 }
 
 async function recordAlert(admin: any, userId: string, action: string) {

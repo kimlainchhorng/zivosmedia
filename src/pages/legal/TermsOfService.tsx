@@ -5,7 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import BusinessIdentity from "@/components/legal/BusinessIdentity";
 import { ADVANCED_LEGAL_CLAUSES, COMPANY_INFO } from "@/config/legalContent";
-import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+import SEOHead from "@/components/SEOHead";
+import { isAutoRepairSoftwareHost, ZIVO_MEDIA_ORIGIN, ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
+
+const LEGAL_TERMS_PATH = "/legal/terms";
 
 function ZivoSoftwareLegalMark() {
   return (
@@ -137,13 +140,29 @@ const TermsOfService = () => {
   const companyName = "ZIVO LLC";
   const isZivoSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const canonicalOrigin = isZivoSoftwareDomain ? ZIVO_SOFTWARE_ORIGIN : ZIVO_MEDIA_ORIGIN;
+  const canonicalUrl = canonicalOrigin + LEGAL_TERMS_PATH;
 
   if (isZivoSoftwareDomain) {
-    return <ZivoSoftwareTerms />;
+    return (
+      <>
+        <SEOHead
+          title="Terms of Service – ZIVO Software"
+          description="Terms for ZIVO Software business workspaces and operations tools."
+          canonical={canonicalUrl}
+        />
+        <ZivoSoftwareTerms />
+      </>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Terms of Service – ZIVO"
+        description="Read the ZIVO terms of service for rides, delivery, travel, and other platform services."
+        canonical={canonicalUrl}
+      />
       {/* Header */}
       <header className="sticky top-0 safe-area-top z-50 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">

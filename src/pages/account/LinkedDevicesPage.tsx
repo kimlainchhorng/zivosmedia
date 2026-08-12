@@ -1,13 +1,13 @@
 /**
- * LinkedDevicesPage — list of devices currently signed in to this account.
- * Groups by last activity, highlights "this device", supports search and
- * sign-out-from-all-other-sessions via Supabase Auth.
+ * LinkedDevicesPage — registered devices linked to this account.
+ *
+ * The registry is separate from the live Supabase Auth session list.
  */
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Smartphone, Monitor, Tablet, QrCode, ScanLine, Trash2, Search, X,
-  Apple, Loader2, ShieldOff, MapPin,
+  Apple, Loader2, ShieldOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -53,10 +53,10 @@ function platformAccent(platform: string | null) {
 
 type GroupKey = "active" | "today" | "week" | "older";
 const GROUP_LABELS: Record<GroupKey, string> = {
-  active: "Active now",
-  today: "Active today",
-  week: "Active this week",
-  older: "Older activity",
+  active: "Seen in the last 5 minutes",
+  today: "Seen today",
+  week: "Seen this week",
+  older: "Older registrations",
 };
 
 function groupDevices(devices: UserDevice[]): Record<GroupKey, UserDevice[]> {
@@ -75,7 +75,16 @@ function groupDevices(devices: UserDevice[]): Record<GroupKey, UserDevice[]> {
 
 export default function LinkedDevicesPage() {
   const navigate = useNavigate();
-  const { devices, loading, removeDevice, refresh } = useLinkedDevices();
+  const {
+    devices,
+    loading,
+    registrationError,
+    loadError,
+    retryRegistration,
+    removeDevice,
+    refresh,
+    currentFingerprint,
+  } = useLinkedDevices();
   const [search, setSearch] = useState("");
   const [signingOutOthers, setSigningOutOthers] = useState(false);
 
@@ -89,13 +98,9 @@ export default function LinkedDevicesPage() {
     });
   }, [devices, search]);
 
-  // The most recently active device is treated as "This device"
   const currentDeviceId = useMemo(() => {
-    if (devices.length === 0) return null;
-    return [...devices].sort(
-      (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime()
-    )[0]?.id;
-  }, [devices]);
+    return devices.find((device) => device.device_fingerprint === currentFingerprint)?.id ?? null;
+  }, [currentFingerprint, devices]);
 
   const grouped = useMemo(() => groupDevices(filtered), [filtered]);
 
@@ -104,8 +109,9 @@ export default function LinkedDevicesPage() {
     try {
       const { error } = await supabase.auth.signOut({ scope: "others" });
       if (error) throw error;
-      toast.success("Signed out from all other devices");
-      // Refresh device list (some entries may be invalidated server-side)
+      toast.success("Other Auth sessions signed out");
+      // The registry is separate from Auth sessions, but refresh in case the
+      // server changed a last-seen value while this action was completing.
       await refresh();
     } catch (e: any) {
       toast.error(e?.message || "Could not sign out other sessions");
@@ -148,7 +154,7 @@ export default function LinkedDevicesPage() {
                 )}
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                <span>Active {formatDistanceToNow(new Date(d.last_seen_at), { addSuffix: true })}</span>
+                <span>Seen {formatDistanceToNow(new Date(d.last_seen_at), { addSuffix: true })}</span>
               </div>
             </div>
             {!isCurrent && (
@@ -169,11 +175,13 @@ export default function LinkedDevicesPage() {
   };
 
   const totalCount = devices.length;
-  const otherCount = totalCount > 0 ? totalCount - 1 : 0;
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead title="Linked Devices · ZIVO" description="Manage devices signed in to your ZIVO account." />
+      <SEOHead
+        title="Registered Devices · ZIVO"
+        description="Manage devices linked to your ZIVO account. This registry is separate from live Auth sessions."
+      />
 
       <header
         className="sticky top-0 z-30 flex items-center gap-3 border-b border-border/40 bg-background/85 px-4 backdrop-blur-xl safe-area-top"
@@ -186,7 +194,7 @@ export default function LinkedDevicesPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-semibold flex-1">Linked Devices</h1>
+        <h1 className="text-base font-semibold flex-1">Registered devices</h1>
         {totalCount > 0 && (
           <span className="text-[11px] text-muted-foreground tabular-nums">
             {totalCount} total
@@ -195,6 +203,51 @@ export default function LinkedDevicesPage() {
       </header>
 
       <main className="mx-auto w-full max-w-xl space-y-4 px-4 py-5 pb-24">
+        <Card>
+          <CardContent className="p-4 text-xs leading-relaxed text-muted-foreground">
+            These are devices registered to this account. “Seen” is registry activity, not proof that an Auth
+            session is currently active.
+          </CardContent>
+        </Card>
+
+        {registrationError && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="flex items-start gap-3 p-4" role="alert">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">This device is not registered yet</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{registrationError}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => void retryRegistration()}
+              >
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {loadError && (
+          <Card className="border-rose-500/30 bg-rose-500/5">
+            <CardContent className="flex items-start gap-3 p-4" role="alert">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Registered devices are temporarily unavailable</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{loadError}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => void refresh()}
+              >
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Action tiles */}
         <div className="grid grid-cols-2 gap-3">
           <Link to="/account/link-device" className="block">
@@ -218,7 +271,7 @@ export default function LinkedDevicesPage() {
         </div>
 
         {/* Search + sign-out-all */}
-        {totalCount > 1 && (
+        {!loading && (
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -245,24 +298,24 @@ export default function LinkedDevicesPage() {
                   variant="outline"
                   size="sm"
                   className="h-9 rounded-full px-3 text-xs gap-1 shrink-0 text-foreground hover:bg-secondary hover:text-foreground border-border"
-                  disabled={signingOutOthers || otherCount === 0}
+                  disabled={signingOutOthers}
                 >
                   {signingOutOthers ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldOff className="h-3 w-3" />}
-                  <span className="hidden sm:inline">Sign out others</span>
+                  <span className="hidden sm:inline">Sign out other sessions</span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Sign out from all other devices?</AlertDialogTitle>
+                  <AlertDialogTitle>Sign out of other Auth sessions?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will end your session on {otherCount} other device{otherCount === 1 ? "" : "s"}. You'll
-                    stay signed in here. Use this if you suspect someone else has access to your account.
+                    This separate Auth action signs you out of other active Supabase Auth sessions. You’ll stay signed in
+                    here. It does not remove registered-device records, which may still contain historical entries.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleSignOutOthers} className="bg-foreground hover:bg-foreground">
-                    Sign out others
+                    Sign out other sessions
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -273,9 +326,15 @@ export default function LinkedDevicesPage() {
         {/* Devices */}
         {loading ? (
           <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Loading…</CardContent></Card>
-        ) : filtered.length === 0 ? (
+        ) : loadError && totalCount === 0 ? null : filtered.length === 0 ? (
           totalCount === 0 ? (
-            <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">No devices recorded yet.</CardContent></Card>
+            <Card>
+              <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                {registrationError
+                  ? "This device could not be registered. Use Retry above to add it to your registered devices."
+                  : "No registered devices yet."}
+              </CardContent>
+            </Card>
           ) : (
             <Card>
               <CardContent className="p-6 text-center">
@@ -308,7 +367,7 @@ export default function LinkedDevicesPage() {
         )}
 
         <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-          Removing a device only forgets it from this list. To force sign-out, use "Sign out others" above
+          Removing a device only removes its registry entry. To end other Auth sessions, use “Sign out other sessions” above
           or change your password from <Link to="/account/security" className="text-primary underline">Account → Security</Link>.
         </p>
       </main>

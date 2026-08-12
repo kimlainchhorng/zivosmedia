@@ -204,6 +204,22 @@ describe("auto repair Build R.O. workflow contracts", () => {
     expect(vehicleDialog).toContain("handleOpenChange(false);");
   });
 
+  it("does not bind stale or placeholder VIN results into a newer vehicle", () => {
+    const vehicleDialog = source("src/components/admin/store/autorepair/BuildROVehicleDialog.tsx");
+
+    expect(vehicleDialog).toContain("const decodeRequestRef = useRef(0);");
+    expect(vehicleDialog).toContain("const setVin = (value: string) =>");
+    expect(vehicleDialog).toContain("decodeRequestRef.current += 1;");
+    expect(vehicleDialog).toContain("onChange={(e) => setVin(e.target.value)}");
+    expect(vehicleDialog).toContain("const requestId = ++decodeRequestRef.current;");
+    expect(vehicleDialog).toContain("if (requestId !== decodeRequestRef.current) return;");
+    expect(vehicleDialog).toContain("if (requestId === decodeRequestRef.current) setDecoding(false);");
+    expect(vehicleDialog).toContain("const decodedYear = (value: unknown)");
+    expect(vehicleDialog).toContain("isMissingVehicleValue(next.model) ? s.model : next.model");
+    expect(vehicleDialog).toContain("isMissingVehicleValue(next.transmission) ? s.transmission : next.transmission");
+    expect(vehicleDialog).toContain("Review partial results before saving");
+  });
+
   it("keeps Build R.O. customer rating visible and included in the vehicle handoff memo", () => {
     const customerDialog = source("src/components/admin/store/autorepair/BuildROCustomerDialog.tsx");
     const buildRO = source("src/components/admin/store/autorepair/AutoRepairBuildROSection.tsx");

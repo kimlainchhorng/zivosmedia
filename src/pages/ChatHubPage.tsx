@@ -1743,7 +1743,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       items: [
         { label: "Privacy", detail: "Locks, visibility", icon: ShieldCheck, action: () => navigate("/chat/settings/privacy-hub") },
         { label: "Passcode", detail: "App lock", icon: Lock, action: () => navigate("/chat/settings/passcode") },
-        { label: "Two-step", detail: "Hacker protection", icon: KeyRound, action: () => navigate("/chat/settings/two-step") },
+        { label: "Two-step", detail: "Sensitive-action confirmation", icon: KeyRound, action: () => navigate("/chat/settings/two-step") },
         { label: "Sessions", detail: "Devices, alerts", icon: Bell, action: () => navigate("/chat/settings/sessions") },
       ],
     },

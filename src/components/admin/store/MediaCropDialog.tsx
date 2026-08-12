@@ -223,6 +223,8 @@ export function MediaCropDialog({
               <img
                 src={srcUrl}
                 alt=""
+                loading="eager"
+                decoding="async"
                 onLoad={onImgLoad}
                 draggable={false}
                 className="absolute top-0 left-0 max-w-none origin-top-left will-change-transform pointer-events-none"

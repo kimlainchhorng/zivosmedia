@@ -15,7 +15,6 @@ import { useI18n } from "@/hooks/useI18n";
 import { useCountry } from "@/hooks/useCountry";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import Search from "lucide-react/dist/esm/icons/search";
 import Plane from "lucide-react/dist/esm/icons/plane";
 import Car from "lucide-react/dist/esm/icons/car";
 import BedDouble from "lucide-react/dist/esm/icons/bed-double";
@@ -34,22 +33,13 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import type { HomeRestaurant } from "@/hooks/usePersonalizedHome";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import zivoRideIcon from "@/assets/zivo-ride-icon.webp";
-import zivoEatsIcon from "@/assets/zivo-eats-icon.webp";
-import zivoFlightsIcon from "@/assets/zivo-flights-icon.webp";
-import zivoHotelsIcon from "@/assets/zivo-hotels-icon.webp";
-import zivoRentalCarIcon from "@/assets/zivo-rental-car.webp";
-import zivoShoppingIcon from "@/assets/zivo-shopping.webp";
 
 // Lazy-load below-fold heavy components
 const LiveTripTracker = lazy(() => import("@/components/home/widgets/LiveTripTracker"));
 const QuickReorderCarousel = lazy(() => import("@/components/home/widgets/QuickReorderCarousel"));
 const PriceAlertsWidget = lazy(() => import("@/components/home/widgets/PriceAlertsWidget"));
 const ZivoMobileNav = lazy(() => import("@/components/app/ZivoMobileNav"));
-const UniversalSearchOverlay = lazy(() => import("@/components/search/UniversalSearchOverlay"));
 const PlanTripBundle = lazy(() => import("@/components/home/PlanTripBundle"));
-const SmartIntentSearch = lazy(() => import("@/components/home/SmartIntentSearch"));
-const StoriesRail = lazy(() => import("@/components/home/StoriesRail"));
 const NetworkPromoStrip = lazy(() => import("@/components/home/NetworkPromoStrip"));
 const ConciergeLauncher = lazy(() => import("@/components/home/ConciergeLauncher"));
 const TodayPlanWidget = lazy(() => import("@/components/home/TodayPlanWidget"));
@@ -59,23 +49,12 @@ const SpendTrackerWidget = lazy(() => import("@/components/home/SpendTrackerWidg
 import Utensils from "lucide-react/dist/esm/icons/utensils";
 import Hotel from "lucide-react/dist/esm/icons/hotel";
 import Gift from "lucide-react/dist/esm/icons/gift";
-import Users from "lucide-react/dist/esm/icons/users";
-import Share2 from "lucide-react/dist/esm/icons/share-2";
-import Copy from "lucide-react/dist/esm/icons/copy";
 import Clock from "lucide-react/dist/esm/icons/clock";
 import Wallet from "lucide-react/dist/esm/icons/wallet";
-import CreditCard from "lucide-react/dist/esm/icons/credit-card";
-import Plus from "lucide-react/dist/esm/icons/plus";
-import Timer from "lucide-react/dist/esm/icons/timer";
-import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
-import TrendingUp from "lucide-react/dist/esm/icons/trending-up";
 import Navigation from "lucide-react/dist/esm/icons/navigation";
-import Shield from "lucide-react/dist/esm/icons/shield";
 import Globe from "lucide-react/dist/esm/icons/globe";
-import Crown from "lucide-react/dist/esm/icons/crown";
 import Calendar from "lucide-react/dist/esm/icons/calendar";
 import Bell from "lucide-react/dist/esm/icons/bell";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import Coffee from "lucide-react/dist/esm/icons/coffee";
 import Target from "lucide-react/dist/esm/icons/target";
 import Trophy from "lucide-react/dist/esm/icons/trophy";
@@ -85,10 +64,8 @@ import Sun from "lucide-react/dist/esm/icons/sun";
 import Sunset from "lucide-react/dist/esm/icons/sunset";
 import Moon from "lucide-react/dist/esm/icons/moon";
 import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
-import Tv from "lucide-react/dist/esm/icons/tv";
-import Rocket from "lucide-react/dist/esm/icons/rocket";
-import Gem from "lucide-react/dist/esm/icons/gem";
-import Dumbbell from "lucide-react/dist/esm/icons/dumbbell";
+import KeyRound from "lucide-react/dist/esm/icons/key-round";
+import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag";
 import { Progress } from "@/components/ui/progress";
 import { useLoyaltyPoints } from "@/hooks/useLoyaltyPoints";
 import { useUserRewards } from "@/hooks/useUserRewards";
@@ -117,30 +94,8 @@ import { useLodgingPhase5Counts } from "@/hooks/lodging/useLodgingPhase5Counts";
 import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
 import { buildHotelsPath } from "@/lib/lodging/hotelRoutes";
 
-import tabFlightsBg from "@/assets/tab-flights-bg.jpg";
-import tabHotelsBg from "@/assets/tab-hotels-bg.jpg";
-import tabCarsBg from "@/assets/tab-cars-bg.jpg";
-import tabRidesBg from "@/assets/tab-rides-bg.jpg";
-import tabEatsBg from "@/assets/tab-eats-bg.jpg";
-
-const tabBgMap: Record<string, string> = {
-  rides: tabRidesBg,
-  eats: tabEatsBg,
-  flights: tabFlightsBg,
-  hotels: tabHotelsBg,
-};
-
-const tabCssVarMap: Record<string, string> = {
-  rides: "var(--rides)",
-  eats: "var(--eats)",
-  flights: "var(--flights)",
-  hotels: "var(--hotels)",
-};
-
 const DEFAULT_HOTELS_PATH = buildHotelsPath();
 // ─── Saved Places Icon Map ───
-// ─── Dynamic search placeholder by tab ───
-// Search placeholder is now handled inside the component with t()
 
 const savedPlaceIconMap: Record<string, LucideIcon> = {
   home: Home,
@@ -149,9 +104,52 @@ const savedPlaceIconMap: Record<string, LucideIcon> = {
   pin: MapPin,
 };
 
-// ─── Top service tabs (Uber-style) ───
-// These are now built inside the component with t() for translation
-// See homeTabs and suggestions inside AppHome component
+type HomeServiceTileConfig = {
+  label: string;
+  href: string;
+  Icon: LucideIcon;
+  accentClassName: string;
+};
+
+function HomeServiceTile({
+  service,
+  index,
+  onNavigate,
+  onPrefetch,
+}: {
+  service: HomeServiceTileConfig;
+  index: number;
+  onNavigate: (href: string) => void;
+  onPrefetch: (href: string) => void;
+}) {
+  const { Icon } = service;
+
+  return (
+    <motion.button
+      type="button"
+      aria-label={service.label}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.12 + index * 0.045 }}
+      whileTap={{ scale: 0.92 }}
+      onPointerDown={() => onPrefetch(service.href)}
+      onClick={() => onNavigate(service.href)}
+      className="group flex min-w-0 flex-col items-center gap-2 rounded-2xl touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <span
+        className={cn(
+          "flex h-16 w-16 items-center justify-center rounded-2xl border shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md",
+          service.accentClassName,
+        )}
+      >
+        <Icon className="h-7 w-7" strokeWidth={1.8} aria-hidden="true" />
+      </span>
+      <span className="max-w-full truncate text-center text-[11px] font-semibold leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
+        {service.label}
+      </span>
+    </motion.button>
+  );
+}
 
 // ─── Restaurant Card (Premium) ───
 const RestaurantCard = ({ restaurant, onNavigate }: { restaurant: HomeRestaurant; onNavigate: () => void }) => (
@@ -576,47 +574,21 @@ const AppHome = () => {
   const { isCambodia: isKH } = useCountry();
   useDeviceIntegrityCheck();
 
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [activeHomeTab, setActiveHomeTab] = useState<"rides" | "eats" | "flights" | "hotels">("rides");
   // Prefetch the route a tab/search-button leads to on touch-down so the
   // chunk is in memory by the time the click fires (~80–150 ms head-start
   // on mobile).
   const { prefetch } = useRoutePrefetch();
   const hotelsPath = useMemo(() => buildHotelsPath(), []);
-  const tabRoutes: Record<"rides" | "eats" | "flights" | "hotels", string> = {
-    rides: "/rides/hub",
-    eats: "/eats",
-    flights: "/flights",
-    hotels: hotelsPath,
-  };
-
-  const homeTabs = [
-    { id: "rides", label: t("home.rides"), icon: null, image: zivoRideIcon },
-    { id: "eats", label: t("home.eats"), icon: null, image: zivoEatsIcon },
-    { id: "flights", label: t("home.flights"), icon: null, image: zivoFlightsIcon },
-    { id: "hotels", label: t("home.hotels"), icon: null, image: zivoHotelsIcon },
-  ] as const;
-
-  const suggestions = [
-    { label: t("home.ride"), icon: null, image: zivoRideIcon, href: "/rides/hub", badge: null, badgeVariant: "promo" as const },
-    { label: t("home.flights"), icon: null, image: zivoFlightsIcon, href: "/flights", badge: null, badgeVariant: "discount" as const },
-    { label: t("home.rental_cars"), icon: null, image: zivoRentalCarIcon, href: "/rent-car", badge: null, badgeVariant: "promo" as const },
-    ...(isKH ? [{ label: t("home.shopping"), icon: null, image: zivoShoppingIcon, href: "/grocery", badge: null, badgeVariant: "promo" as const }] : []),
+  const homeServices: HomeServiceTileConfig[] = [
+    { label: t("home.ride"), href: "/rides/hub", Icon: Navigation, accentClassName: "badge-rides border-[hsl(var(--rides)/0.18)]" },
+    { label: t("home.eats"), href: "/eats", Icon: Utensils, accentClassName: "badge-eats border-[hsl(var(--eats)/0.18)]" },
+    { label: t("home.flights"), href: "/flights", Icon: Plane, accentClassName: "badge-flights border-[hsl(var(--flights)/0.18)]" },
+    { label: t("home.hotels"), href: hotelsPath, Icon: BedDouble, accentClassName: "badge-hotels border-[hsl(var(--hotels)/0.18)]" },
+    { label: t("home.rental_cars"), href: "/rent-car", Icon: KeyRound, accentClassName: "badge-cars border-[hsl(var(--cars)/0.18)]" },
+    { label: t("home.bus"), href: "/bus", Icon: Bus, accentClassName: "badge-flights border-[hsl(var(--flights)/0.18)]" },
+    { label: t("home.shopping"), href: "/grocery", Icon: ShoppingBag, accentClassName: "badge-eats border-[hsl(var(--eats)/0.18)]" },
+    { label: "Delivery", href: "/delivery", Icon: Package, accentClassName: "badge-rides border-[hsl(var(--rides)/0.18)]" },
   ];
-
-  function getSearchPlaceholder(tab: string): string {
-    if (tab === "rides") return t("home.book_ride");
-    if (tab === "eats") {
-      const hour = new Date().getHours();
-      if (hour >= 6 && hour < 11) return t("home.breakfast");
-      if (hour >= 11 && hour < 17) return t("home.lunch");
-      if (hour >= 17 && hour < 22) return t("home.dinner");
-      return t("home.late_night");
-    }
-    if (tab === "flights") return t("home.search_flights");
-    if (tab === "hotels") return t("home.search_hotels");
-    return t("home.where_to");
-  }
   const { data: profile, isError: hasProfileError } = useUserProfile();
   const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
   const lodgingStoreId = ownerStore?.isLodging ? ownerStore.id : "";
@@ -851,77 +823,16 @@ const AppHome = () => {
                 <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
               </button>
             </div>
-            {/* Row 1 */}
-            <div className="grid grid-cols-4 gap-3 px-5 pb-3">
-              {([
-                { label: t("home.ride"), image: zivoRideIcon, href: "/rides/hub", badge: null, badgeVariant: "promo" as const },
-                { label: t("home.eats"), image: zivoEatsIcon, href: "/eats", badge: null, badgeVariant: "promo" as const },
-                { label: t("home.flights"), image: zivoFlightsIcon, href: "/flights", badge: null, badgeVariant: "discount" as const },
-                { label: t("home.hotels"), image: zivoHotelsIcon, href: hotelsPath, badge: null, badgeVariant: "promo" as const },
-              ].filter(Boolean) as Array<{ label: string; image: string; href: string; badge: string | null; badgeVariant: "promo" | "discount" }>).map((s, i) => (
-                <motion.button
-                  key={s.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.12 + i * 0.06 }}
-                  whileTap={{ scale: 0.91 }}
-                  onPointerDown={() => prefetch(s.href)}
-                  onClick={() => navigate(s.href)}
-                  className="flex flex-col items-center gap-2 touch-manipulation relative group"
-                >
-                  {s.badge && (
-                    <div className={cn(
-                      "absolute -top-2.5 -right-2 z-10 text-[8px] font-semibold px-2 py-[2px] rounded-full",
-                      s.badgeVariant === "discount"
-                        ? "bg-pink-500/12 text-pink-600"
-                        : "bg-amber-500/12 text-amber-600"
-                    )}>
-                      {s.badge}
-                    </div>
-                  )}
-                  <div className="w-[64px] h-[64px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center group-active:scale-95 group-hover:border-border/50 transition-all duration-200">
-                    <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-muted-foreground text-center leading-tight group-hover:text-foreground transition-colors">{s.label}</span>
-                </motion.button>
+            <div className="grid grid-cols-4 gap-x-3 gap-y-4 px-5 pb-2">
+              {homeServices.map((service, index) => (
+                <HomeServiceTile
+                  key={service.href}
+                  service={service}
+                  index={index}
+                  onNavigate={navigate}
+                  onPrefetch={prefetch}
+                />
               ))}
-            </div>
-            {/* Row 2 */}
-            <div className="grid grid-cols-4 gap-3 px-5 pb-2">
-              {(([
-                { label: t("home.rental_cars"), image: zivoRentalCarIcon, icon: null, href: "/rent-car", badge: null },
-                { label: "Bus", image: null, icon: Bus, href: "/bus", badge: null },
-                { label: t("home.shopping"), image: zivoShoppingIcon, icon: null, href: "/grocery", badge: null },
-                { label: "Delivery", image: null, icon: Package, href: "/delivery", badge: null },
-              ].filter(Boolean)) as Array<{ label: string; image: string | null; icon: typeof Package | null; href: string; badge: string | null }>).map((s, idx2) => {
-                const SvcIcon = s.icon;
-                return (
-                  <motion.button
-                    key={s.label}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.28 + (idx2 * 0.06) }}
-                    whileTap={{ scale: 0.91 }}
-                    onPointerDown={() => prefetch(s.href)}
-                    onClick={() => navigate(s.href)}
-                    className="flex flex-col items-center gap-2 touch-manipulation relative group"
-                  >
-                    {s.badge && (
-                      <div className="absolute -top-2.5 -right-2 z-10 text-[8px] font-semibold px-2 py-[2px] rounded-full bg-amber-500/12 text-amber-600">
-                        {s.badge}
-                      </div>
-                    )}
-                    <div className="w-[64px] h-[64px] rounded-2xl bg-background/92 border border-border/30 shadow-sm flex items-center justify-center group-active:scale-95 group-hover:border-border/50 transition-all duration-200">
-                      {s.image ? (
-                        <img src={s.image} alt={s.label} width={36} height={36} loading="lazy" decoding="async" className="w-9 h-9 object-contain" />
-                      ) : SvcIcon ? (
-                        <SvcIcon className="w-7 h-7 text-primary" />
-                      ) : null}
-                    </div>
-                    <span className="text-[11px] font-semibold text-muted-foreground text-center leading-tight group-hover:text-foreground transition-colors">{s.label}</span>
-                  </motion.button>
-                );
-              })}
             </div>
           </motion.div>
 
@@ -1088,10 +999,6 @@ const AppHome = () => {
         )}
         </div>
       </div>
-
-      <Suspense fallback={null}>
-        <UniversalSearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      </Suspense>
 
     {/* Bottom Nav */}
     <Suspense fallback={<div className="fixed inset-x-0 bottom-0 h-16 bg-background border-t border-border lg:hidden pb-safe" />}><ZivoMobileNav /></Suspense>

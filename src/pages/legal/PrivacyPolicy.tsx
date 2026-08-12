@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { isAutoRepairSoftwareHost } from "@/config/autoRepairDomain";
+import { isAutoRepairSoftwareHost, ZIVO_MEDIA_ORIGIN, ZIVO_SOFTWARE_ORIGIN } from "@/config/autoRepairDomain";
+
+const LEGAL_PRIVACY_PATH = "/legal/privacy";
 
 function ZivoSoftwarePrivacyMark() {
   return (
@@ -143,9 +145,20 @@ const PrivacyPolicy = () => {
   const companyName = "ZIVO LLC";
   const isZivoSoftwareDomain =
     typeof window !== "undefined" && isAutoRepairSoftwareHost(window.location.hostname);
+  const canonicalOrigin = isZivoSoftwareDomain ? ZIVO_SOFTWARE_ORIGIN : ZIVO_MEDIA_ORIGIN;
+  const canonicalUrl = canonicalOrigin + LEGAL_PRIVACY_PATH;
 
   if (isZivoSoftwareDomain) {
-    return <ZivoSoftwarePrivacy />;
+    return (
+      <>
+        <SEOHead
+          title="Privacy Policy – ZIVO Software"
+          description="Privacy terms for ZIVO Software business workspaces and operations tools."
+          canonical={canonicalUrl}
+        />
+        <ZivoSoftwarePrivacy />
+      </>
+    );
   }
 
   return (
@@ -153,7 +166,7 @@ const PrivacyPolicy = () => {
       <SEOHead
         title="Privacy Policy – ZIVO"
         description="Read ZIVO's privacy policy. Learn how we collect, use, and protect your personal data across our travel, social, and business services."
-        canonical="/legal/privacy"
+        canonical={canonicalUrl}
       />
       {/* Header */}
       <header className="sticky top-0 safe-area-top z-50 bg-background/95 backdrop-blur-md border-b border-border">

@@ -30,8 +30,19 @@ const inp =
   "h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[#1e90ff] focus:outline-none focus:ring-2 focus:ring-[#1e90ff]/20";
 const lbl = "text-[11px] font-semibold uppercase tracking-wide text-slate-500";
 
-const decodedText = (value: unknown) => (typeof value === "string" ? value.trim() : "");
-const isMissingVehicleValue = (value: string) => !value || /^unknown\b/i.test(value) || value === "—" || value === "-";
+const decodedText = (value: unknown) =>
+  typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+const isMissingVehicleValue = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  return !normalized
+    || normalized === "-"
+    || normalized === "—"
+    || /^(unknown|n\/?a|not available|not applicable|null|undefined)(?:\b|$)/.test(normalized);
+};
+const decodedYear = (value: unknown) => {
+  const year = decodedText(value);
+  return /^(19|20)\d{2}$/.test(year) ? year : "";
+};
 
 export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owner, ownerMemo, onSaved }: Props) {
   const [f, setF] = useState(blank);
@@ -40,8 +51,10 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
   const [carfaxOpen, setCarfaxOpen] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const decodeRequestRef = useRef(0);
 
   const resetVehicleDialogState = () => {
+    decodeRequestRef.current += 1;
     setF(blank);
     setDecoding(false);
     setReportCarfax(true);
@@ -60,21 +73,30 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
   };
 
   const set = (p: Partial<typeof blank>) => setF((s) => ({ ...s, ...p }));
+  const setVin = (value: string) => {
+    decodeRequestRef.current += 1;
+    set({ vin: value.toUpperCase() });
+  };
 
   const decodeVin = async () => {
     const v = f.vin.trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
     if (v.length !== 17) { toast.error("VIN must be exactly 17 characters"); return; }
+    const requestId = ++decodeRequestRef.current;
     setDecoding(true);
     try {
       const { data, error } = await supabase.functions.invoke("vin-decode", { body: { vin: v } });
       if (error || !data?.ok) throw new Error(data?.error || "VIN decode failed");
       const next = {
-        year: data.year ? String(data.year) : "",
+        year: decodedYear(data.year),
         make: decodedText(data.make),
         model: decodedText(data.model),
         engine: decodedText(data.engine),
         transmission: decodedText(data.transmission),
       };
+      // The VIN field remains editable while the provider request is in
+      // flight. Never let a slower response for VIN A overwrite a newer VIN B
+      // (or restore stale model/transmission data into the new form).
+      if (requestId !== decodeRequestRef.current) return;
       setF((s) => ({
         ...s,
         vin: v,
@@ -95,9 +117,10 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
         toast.success("VIN decoded — details filled in");
       }
     } catch (e: any) {
+      if (requestId !== decodeRequestRef.current) return;
       toast.error(`VIN decode failed: ${e.message}`);
     } finally {
-      setDecoding(false);
+      if (requestId === decodeRequestRef.current) setDecoding(false);
     }
   };
 
@@ -208,7 +231,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
                   className="h-10 flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
                   placeholder="Enter VIN (17 chars) or scan license plate"
                   value={f.vin}
-                  onChange={(e) => set({ vin: e.target.value.toUpperCase() })}
+                  onChange={(e) => setVin(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") decodeVin(); }}
                 />
                 <span className="shrink-0 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-semibold text-slate-600">{f.plateState}</span>
@@ -220,7 +243,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
                   {decoding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Decode
                 </button>
               </div>
-              <p className="mt-1.5 text-[11px] text-slate-500">A valid 17-character VIN auto-fills year, make &amp; model.</p>
+              <p className="mt-1.5 text-[11px] text-slate-500">A valid 17-character VIN fills available year, make, model, engine, and transmission details. Review partial results before saving.</p>
             </div>
 
             {/* Vehicle fields */}
@@ -247,7 +270,7 @@ export default function BuildROVehicleDialog({ open, onOpenChange, storeId, owne
               </div>
               <div className="space-y-1">
                 <label className={lbl}>VIN</label>
-                <input className={`${inp} font-mono`} value={f.vin} onChange={(e) => set({ vin: e.target.value.toUpperCase() })} />
+                <input className={`${inp} font-mono`} value={f.vin} onChange={(e) => setVin(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className={lbl}>Plate</label>

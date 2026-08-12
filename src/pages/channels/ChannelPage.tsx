@@ -491,7 +491,13 @@ export default function ChannelPage() {
             aria-label="Open channel info"
           >
             {channel.avatar_url ? (
-              <img src={channel.avatar_url} alt="" className="h-full w-full object-cover" />
+              <img
+                src={channel.avatar_url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span className="flex h-full w-full items-center justify-center bg-sky-100">{channel.name.slice(0, 2).toUpperCase()}</span>
             )}
@@ -585,7 +591,13 @@ export default function ChannelPage() {
               </span>
               <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-rose-500 via-fuchsia-500 to-amber-400 text-lg font-black text-white shadow-sm">
                 {channel.avatar_url ? (
-                  <img src={channel.avatar_url} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={channel.avatar_url}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   channel.name.slice(0, 1).toUpperCase()
                 )}

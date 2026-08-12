@@ -872,7 +872,13 @@ function FlightRoutePreview({
   const originLabel = originCode ? getAirportLabel(originCode, originCode) : "Choose origin";
   return (
     <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-950 text-white shadow-sm">
-      <img src={destination.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-55" />
+      <img
+        src={destination.image}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover opacity-55"
+      />
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/70 to-slate-950/25" />
       <div className="relative grid gap-4 p-5 sm:grid-cols-[1fr_0.75fr] sm:items-end">
         <div>

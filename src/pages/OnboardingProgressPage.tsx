@@ -28,7 +28,7 @@ const STEPS: Array<{ id: string; label: string; desc: string; icon: typeof UserI
   { id: "location",       label: "Allow location",            desc: "Better nearby + delivery suggestions",icon: MapPin,     path: "/nearby" },
   { id: "follow",         label: "Follow 5 people",           desc: "Personalize your feed",               icon: Users,      path: "/feed" },
   { id: "first_post",     label: "Share your first post",     desc: "Photo, reel, or text — anything goes",icon: Camera,     path: "/feed" },
-  { id: "two_step",       label: "Set up 2-step",             desc: "Extra security on top of password",   icon: Shield,     path: "/two-step-auth" },
+  { id: "two_step",       label: "Set up 2-step",             desc: "Extra protection for sensitive actions", icon: Shield,     path: "/two-step-auth" },
 ];
 
 export default function OnboardingProgressPage() {

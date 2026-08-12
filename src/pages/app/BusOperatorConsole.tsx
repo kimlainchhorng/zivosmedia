@@ -1127,7 +1127,7 @@ function ProfileTab({ store, onSaved }: { store?: BusStore; onSaved: () => Promi
       <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl ring-1 ring-border">
           {logoUrl ? (
-            <img src={logoUrl} alt="" className="h-full w-full object-cover" />
+            <img src={logoUrl} alt="" loading="eager" decoding="async" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary"><Bus className="h-7 w-7" /></div>
           )}

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRightLeft, TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FALLBACK_RATES } from "@/config/currencies";
 
 const currencies = [
   { code: "USD", name: "US Dollar", symbol: "$", flag: "US" },
@@ -22,12 +23,6 @@ const currencies = [
   { code: "VND", name: "Vietnamese Dong", symbol: "₫", flag: "VN" },
   { code: "KRW", name: "South Korean Won", symbol: "₩", flag: "KR" },
 ];
-
-const FALLBACK_RATES: Record<string, number> = {
-  USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149.50, AUD: 1.53, CAD: 1.36,
-  CHF: 0.88, CNY: 7.24, MXN: 17.15, INR: 83.12, KHR: 4000, SGD: 1.35,
-  THB: 36.1, VND: 25000, KRW: 1340,
-};
 
 export default function CurrencyConverter() {
   const [amount, setAmount] = useState("100");
