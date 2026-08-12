@@ -20,43 +20,61 @@ export const useNetworkStatus = () => {
   const wasOfflineRef = useRef(false);
 
   useEffect(() => {
+    let disposed = false;
+
     const initNetworkStatus = async () => {
-      if (Capacitor.isNativePlatform()) {
-        const status: ConnectionStatus = await Network.getStatus();
-        setIsOnline(status.connected);
-        setConnectionType(status.connectionType);
-      } else {
-        // Web fallback
-        setIsOnline(navigator.onLine);
+      try {
+        if (Capacitor.isNativePlatform()) {
+          const status: ConnectionStatus = await Network.getStatus();
+          if (disposed) return;
+          setIsOnline(status.connected);
+          setConnectionType(status.connectionType);
+        } else {
+          // Web fallback
+          setIsOnline(navigator.onLine);
+        }
+      } catch {
+        // Keep the last known status when the native bridge is unavailable.
       }
     };
 
-    initNetworkStatus();
+    void initNetworkStatus();
 
     // Listen for network changes
     if (Capacitor.isNativePlatform()) {
       let listenerHandle: { remove: () => void } | null = null;
 
       const setupListener = async () => {
-        listenerHandle = await Network.addListener('networkStatusChange', (status) => {
-          setIsOnline(prev => {
-            if (!prev && status.connected) {
-              toast.success('Back online', { description: 'Syncing pending actions...' });
-            } else if (prev && !status.connected) {
-              wasOfflineRef.current = true;
-              toast.warning('No internet connection', { 
-                description: 'Actions will be synced when connection is restored' 
-              });
-            }
-            return status.connected;
+        try {
+          const nextHandle = await Network.addListener('networkStatusChange', (status) => {
+            if (disposed) return;
+            setIsOnline(prev => {
+              if (!prev && status.connected) {
+                toast.success('Back online', { description: 'Syncing pending actions...' });
+              } else if (prev && !status.connected) {
+                wasOfflineRef.current = true;
+                toast.warning('No internet connection', {
+                  description: 'Actions will be synced when connection is restored'
+                });
+              }
+              return status.connected;
+            });
+            setConnectionType(status.connectionType);
           });
-          setConnectionType(status.connectionType);
-        });
+          if (disposed) {
+            nextHandle.remove();
+          } else {
+            listenerHandle = nextHandle;
+          }
+        } catch {
+          // Keep the last known status when the native bridge listener is unavailable.
+        }
       };
 
-      setupListener();
+      void setupListener();
 
       return () => {
+        disposed = true;
         listenerHandle?.remove();
       };
     } else {
@@ -79,11 +97,12 @@ export const useNetworkStatus = () => {
       window.addEventListener('offline', handleOffline);
 
       return () => {
+        disposed = true;
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
       };
     }
-  }, [isOnline]);
+  }, []);
 
   // Process pending actions when coming back online
   useEffect(() => {

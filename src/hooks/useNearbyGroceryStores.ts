@@ -1,7 +1,7 @@
 /**
  * useNearbyGroceryStores - Find real store locations near customer's delivery address
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { StoreName } from "@/config/groceryStores";
 
@@ -31,8 +31,10 @@ export function useNearbyGroceryStores() {
   const [stores, setStores] = useState<NearbyStoreLocation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   const fetchNearbyStores = useCallback(async (lat: number, lng: number) => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
 
@@ -68,15 +70,21 @@ export function useNearbyGroceryStores() {
       // Sort by distance
       allStores.sort((a, b) => (a.distance_miles ?? 99) - (b.distance_miles ?? 99));
 
+      if (requestId !== requestIdRef.current) return [];
+
       setStores(allStores);
       return allStores;
     } catch (err: any) {
+      if (requestId !== requestIdRef.current) return [];
+
       console.error("[useNearbyGroceryStores]", err);
       setError(err.message || "Failed to find stores");
       setStores([]);
       return [];
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 

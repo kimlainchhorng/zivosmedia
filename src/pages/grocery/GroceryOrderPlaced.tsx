@@ -45,8 +45,9 @@ export default function GroceryOrderPlaced() {
 
     const fetchOrder = async () => {
       try {
-        // Cash/ABA orders go into grocery_orders; card/PayPal/Square go into shopping_orders.
-        // Try shopping_orders first, fall back to grocery_orders.
+        // Every grocery order — cash, ABA, card, PayPal and Square — is a
+        // `shopping_orders` row. The old `grocery_orders` fallback read a table that
+        // has never existed, so it could only ever log an error.
         const { data: shoppingData, error: shoppingErr } = await supabase
           .from("shopping_orders")
           .select("store, total_amount, items, delivery_address, customer_name")
@@ -54,19 +55,7 @@ export default function GroceryOrderPlaced() {
           .maybeSingle();
 
         if (shoppingErr) console.error("[grocery] shopping_orders lookup failed:", shoppingErr);
-
-        if (shoppingData) {
-          setOrder(shoppingData as unknown as OrderData);
-        } else {
-          const { data: groceryData, error: groceryErr } = await (supabase as any)
-            .from("grocery_orders")
-            .select("store, total_amount, items, delivery_address, customer_name")
-            .eq("id", orderId)
-            .maybeSingle();
-          // The table may not exist — log and fall through to the generic confirmation UI.
-          if (groceryErr) console.error("[grocery] grocery_orders lookup failed:", groceryErr);
-          if (groceryData) setOrder(groceryData as OrderData);
-        }
+        if (shoppingData) setOrder(shoppingData as unknown as OrderData);
       } catch (err) {
         console.error("Failed to fetch order:", err);
       } finally {

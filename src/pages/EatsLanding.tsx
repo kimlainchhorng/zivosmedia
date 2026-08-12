@@ -53,6 +53,7 @@ import { toast } from "sonner";
 import { useEatsRestaurants, useEatsMenu, type EatsCartItem } from "@/hooks/useEatsData";
 import { supabase } from "@/integrations/supabase/client";
 import { Capacitor } from "@capacitor/core";
+import { KHR_PER_USD } from "@/lib/currency";
 import { useEatsOrder, type PlaceOrderParams } from "@/hooks/useEatsOrder";
 import { getWalletBalance } from "@/hooks/useWalletPayment";
 import { useAuth } from "@/contexts/AuthContext";
@@ -318,7 +319,7 @@ export default function EatsLanding() {
     try { return (localStorage.getItem(CURRENCY_KEY) as "USD" | "KHR") || "USD"; } catch { return "USD"; }
   });
   useEffect(() => { try { localStorage.setItem(CURRENCY_KEY, currency); } catch {} }, [currency]);
-  const KHR_RATE = 4000;
+  const KHR_RATE = KHR_PER_USD;
   const fmtPrice = (usd: number) => currency === "USD"
     ? `$${usd.toFixed(2)}`
     : `៛${Math.round(usd * KHR_RATE).toLocaleString()}`;

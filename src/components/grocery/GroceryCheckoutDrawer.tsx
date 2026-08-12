@@ -477,54 +477,56 @@ export function GroceryCheckoutDrawer({ items, total, onClose, onOrderPlaced, on
         image: i.image, brand: i.brand, quantity: i.quantity, store: i.store,
       }));
       const { data: user } = await supabase.auth.getUser();
-      const { data, error } = await supabase.from("grocery_orders" as any).insert({
-        user_id: user?.user?.id || null,
+      // `shopping_orders` INSERT is RLS-gated on `auth.uid() = user_id` for the
+      // authenticated role, so a signed-out insert cannot succeed. Fail with a clear
+      // message rather than a raw policy error, as the PayPal/Square branch does.
+      if (!user?.user) throw new Error("Please sign in to place an order");
+      // Cash/ABA orders go to `shopping_orders`, the same table the card, PayPal and
+      // Square branches write. `status: "pending"` is the column default and the value
+      // drivers claim on (`useDriverShoppingOrders`); `pending_payment` would hide the
+      // order from every driver and let `auto-cancel-stale-orders` cancel it, because
+      // cash is collected on delivery rather than before it.
+      // `shopping_orders` has no column for the itemized fee breakdown (service fee,
+      // platform markup, tip, priority fee, promo discount) or for the delivery note /
+      // leave-at-door / substitution preference. The card, PayPal and Square branches do
+      // not persist those either; `final_total` carries the amount actually owed.
+      const { data, error } = await supabase.from("shopping_orders").insert({
+        user_id: user.user.id,
         store: items[0]?.store || "Unknown",
+        order_type: "shopping_delivery",
+        status: "pending",
         items: orderItems,
-        subtotal: total,
+        total_amount: total,
+        final_total: grandTotal,
         delivery_fee: deliveryFee,
-        service_fee: serviceFee,
-        platform_markup: platformMarkup,
-        tip,
-        priority_fee: priorityFee,
-        promo_discount: promoDiscount,
-        total_amount: grandTotal,
         delivery_address: address.trim(),
         customer_name: name.trim(),
         customer_phone: phone.trim() || null,
-        delivery_note: deliveryNote || null,
-        leave_at_door: leaveAtDoor,
-        substitution_pref: subPref,
-        payment_method: selectedPayment,
-        status: "pending",
+        customer_email: user.user.email || null,
+        placed_at: new Date().toISOString(),
+        payment_provider: selectedPayment,
+        payment_status: "pending",
       } as any).select("id").single();
-      // The order must still confirm to the user even if the insert fails
-      // (e.g. missing `grocery_orders` table) — log it and surface a
-      // non-blocking toast instead of throwing into the error path.
-      let orderId: string | null = null;
-      if (error) {
-        console.error("[grocery] order insert failed:", error);
-        toast.error("Order placed, but confirmation may be delayed. Check your orders or contact support.");
-      } else {
-        orderId = (data as any)?.id ?? null;
-      }
+      // A failed insert means no order exists, so it must not be confirmed to the
+      // customer as placed — the card/PayPal/Square branches throw here too.
+      if (error || !data) throw new Error(error?.message || "Failed to place order");
+      const orderId = (data as { id: string }).id;
+
       const earnedPoints = addLoyaltyPoints(grandTotal);
       toast.success(
         selectedPayment === "cash"
           ? `Order placed! Pay $${grandTotal.toFixed(2)} cash on delivery`
           : `Order placed! Complete ABA payment`
       );
-      if (orderId) {
-        // Trigger driver dispatch (deployed as `dispatch-order` in the shared
-        // Supabase project; the folder lives in the zivodriver repo).
-        supabase.functions.invoke("dispatch-order", {
-          body: { order_id: orderId, order_type: "shopping_delivery" },
-        }).catch((dispatchErr) => {
-          // Dispatch is best-effort — log and never throw into the UI.
-          console.error("[grocery] dispatch-order failed:", dispatchErr);
-        });
-      }
-      onOrderPlaced(orderId ?? "");
+      // Trigger driver dispatch (deployed as `dispatch-order` in the shared
+      // Supabase project; the folder lives in the zivodriver repo).
+      supabase.functions.invoke("dispatch-order", {
+        body: { order_id: orderId, order_type: "shopping_delivery" },
+      }).catch((dispatchErr) => {
+        // Dispatch is best-effort — log and never throw into the UI.
+        console.error("[grocery] dispatch-order failed:", dispatchErr);
+      });
+      onOrderPlaced(orderId);
     } catch (err: any) {
       console.error("Cash/ABA order error:", err);
       toast.error(err.message || "Failed to place order");

@@ -1,7 +1,8 @@
 /**
  * LoginActivityPage — Historical security event log for your account.
  * Backed by `login_alerts` (orphan). RLS allows owner to view own events.
- * Distinct from DevicesPage (current sessions) — this is the audit trail.
+ * Distinct from registered-device records and live Auth sessions — this is the
+ * historical audit trail.
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -165,14 +166,14 @@ export default function LoginActivityPage() {
                 {stats.suspicious} suspicious sign-in attempt{stats.suspicious === 1 ? "" : "s"}
               </p>
               <p className="text-xs text-rose-600/80 dark:text-rose-400/80 mt-0.5">
-                Review the flagged events below. If anything wasn't you, change your password and sign out other devices.
+                Review the flagged events below. If anything wasn't you, change your password and sign out other Auth sessions.
               </p>
               <button
                 type="button"
                 onClick={() => navigate("/devices")}
                 className="mt-2 h-7 px-3 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-bold inline-flex items-center gap-1 hover:bg-rose-500/30 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <ShieldOff className="h-3 w-3" /> Manage devices
+                <ShieldOff className="h-3 w-3" /> Review registered devices
               </button>
             </div>
           </motion.div>

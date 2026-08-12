@@ -177,7 +177,7 @@ const GROUPS: LibraryGroup[] = [
       { icon: Bell, title: "Notifications", description: "Toggle notification types you receive", path: "/notifications/preferences" },
       { icon: Palette, title: "Chat Themes", description: "Pick chat color theme", path: "/chat-themes" },
       { icon: Palette, title: "Chat Wallpapers", description: "Backgrounds — default + per-chat", path: "/chat-wallpapers" },
-      { icon: Shield, title: "Logins & devices", description: "Where you're signed in", path: "/devices" },
+      { icon: Shield, title: "Registered devices", description: "Devices linked to this account", path: "/devices" },
       { icon: Shield, title: "Login Activity", description: "Security audit log + flagged sign-ins", path: "/login-activity" },
       { icon: ShieldCheck, title: "Trust Score", description: "Your community trust score + factors", path: "/trust-score" },
       { icon: AlertTriangle, title: "Warnings", description: "Active account warnings + acknowledge", path: "/warnings" },

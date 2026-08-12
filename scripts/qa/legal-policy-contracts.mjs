@@ -6,7 +6,7 @@
  * surfaces: legal pages, consent/version tables, RLS/grants, export/delete
  * functions, and account privacy controls.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
@@ -475,7 +475,7 @@ const contracts = [
         "src/components/checkout/PartnerConsentModal.tsx",
         "src/components/legal/LegalPreviewSheet.tsx",
         "src/components/common/CookieConsent.tsx",
-        "src/pages/Terms.tsx",
+        "src/pages/legal/TermsOfService.tsx",
       ];
       const testPath = "src/test/checkoutLegalCanonicalLinks.test.ts";
       const combined = files.map((file) => source(file)).join("\n");
@@ -718,9 +718,9 @@ const contracts = [
     check() {
       const files = [
         "src/pages/security/PrivacyCompliance.tsx",
-        "src/pages/Refunds.tsx",
+        "src/pages/legal/RefundPolicy.tsx",
         "src/pages/TravelCheckoutPage.tsx",
-        "src/pages/Privacy.tsx",
+        "src/pages/legal/PrivacyPolicy.tsx",
         "src/pages/account/PrivacyControls.tsx",
         "src/components/home/NewsletterSection.tsx",
         "src/pages/legal/InsurancePolicy.tsx",
@@ -758,9 +758,12 @@ const contracts = [
     id: "legal-canonical-seo-urls",
     category: "frontend",
     check() {
-      const termsPath = "src/pages/Terms.tsx";
-      const privacyPath = "src/pages/Privacy.tsx";
-      const refundsPath = "src/pages/Refunds.tsx";
+      // src/pages/{Terms,Privacy,Refunds}.tsx were duplicates that contradicted
+      // the canonical /legal pages and were deleted in 0b10e1edc. These are the
+      // surviving originals the short paths now redirect to.
+      const termsPath = "src/pages/legal/TermsOfService.tsx";
+      const privacyPath = "src/pages/legal/PrivacyPolicy.tsx";
+      const refundsPath = "src/pages/legal/RefundPolicy.tsx";
       const cookiesPath = "src/pages/legal/CookiePolicy.tsx";
       const damagePath = "src/pages/legal/DamagePolicy.tsx";
       const storeMarketingPath = "src/components/admin/StoreMarketingSection.tsx";
@@ -774,8 +777,25 @@ const contracts = [
       const combined = [terms, privacy, refunds, cookies, damage, storeMarketing].join("\n");
       const test = source(testPath);
 
-      requireContains(this.id, terms, 'canonical="https://zivosmedia.com/legal/terms"', termsPath);
-      requireContains(this.id, privacy, 'canonical="https://zivosmedia.com/legal/privacy"', privacyPath);
+      // Terms and Privacy render DIFFERENT documents per host: the ZIVO
+      // Software terms on an auto-repair software host, the media terms
+      // everywhere else. A hardcoded zivosmedia.com canonical would tell search
+      // engines the software product's terms are a duplicate of the media
+      // ones -- so these two must derive the origin from the host, the way
+      // AdminStoreEditPage already does. Refunds does not branch, so it keeps
+      // the flat literal.
+      for (const [path, text, slug] of [
+        [termsPath, terms, "terms"],
+        [privacyPath, privacy, "privacy"],
+      ]) {
+        requireContains(this.id, text, "isAutoRepairSoftwareHost", path);
+        requireContains(this.id, text, "ZIVO_SOFTWARE_ORIGIN", path);
+        requireContains(this.id, text, "ZIVO_MEDIA_ORIGIN", path);
+        requireContains(this.id, text, `/legal/${slug}"`, path);
+        // A relative canonical resolves against whatever host served the page,
+        // which is the multi-domain duplicate this contract exists to prevent.
+        requireNotMatch(this.id, text, new RegExp(`canonical="/legal/${slug}"`), path);
+      }
       requireContains(this.id, refunds, 'canonical="https://zivosmedia.com/legal/refunds"', refundsPath);
       requireContains(this.id, cookies, 'canonical="https://zivosmedia.com/legal/cookies"', cookiesPath);
       requireContains(this.id, damage, 'to="/legal/cancellation"', damagePath);
@@ -1000,37 +1020,44 @@ const contracts = [
     id: "ads-marketing-consent-runtime",
     category: "frontend",
     check() {
+      // The consent runtime used to be an inline <script> in index.html. It was
+      // moved to a deferred external file to protect LCP/TBT, so these needles
+      // now read the bootstrap and index.html is checked only for the tag that
+      // loads it -- without that check, deleting the tag would disable every
+      // pixel while this contract still passed.
       const htmlPath = "index.html";
+      const bootstrapPath = "public/analytics-bootstrap.js";
       const prefsPath = "src/hooks/useCookiePrefs.ts";
       const consentPath = "src/components/common/CookieConsent.tsx";
       const cookiePolicyPath = "src/pages/legal/CookiePolicy.tsx";
       const settingsPath = "src/pages/account/AccountSettingsPage.tsx";
       const testPath = "src/test/adsMarketingConsentRuntime.test.ts";
       const html = source(htmlPath);
+      const bootstrap = source(bootstrapPath);
       const prefs = source(prefsPath);
       const consent = source(consentPath);
       const cookiePolicy = source(cookiePolicyPath);
       const settings = source(settingsPath);
       const test = source(testPath);
 
-      requireContains(this.id, html, "function readCookiePrefs()", htmlPath);
-      requireContains(this.id, html, "var analyticsAllowed=prefs.analytics===true", htmlPath);
-      requireContains(this.id, html, "var marketingAllowed=prefs.marketing===true", htmlPath);
+      requireContains(this.id, html, 'src="/analytics-bootstrap.js"', htmlPath);
+      requireContains(this.id, bootstrap, "function readCookiePrefs()", bootstrapPath);
+      requireContains(this.id, bootstrap, "var analyticsAllowed = prefs.analytics === true;", bootstrapPath);
+      requireContains(this.id, bootstrap, "var marketingAllowed = prefs.marketing === true;", bootstrapPath);
       // Hard consent gate: nothing loads without analytics or marketing consent.
-      requireContains(this.id, html, "if(!analyticsAllowed&&!marketingAllowed)return;", htmlPath);
+      requireContains(this.id, bootstrap, "if (!analyticsAllowed && !marketingAllowed) return;", bootstrapPath);
       // GA/Ads ids are read from meta tags (injected at deploy), not hardcoded, and each
       // gtag config call is gated on its matching consent category.
-      requireContains(this.id, html, "metaContent('zivo-google-analytics-id')", htmlPath);
-      requireContains(this.id, html, "metaContent('zivo-google-ads-id')", htmlPath);
-      requireContains(this.id, html, "if(analyticsAllowed&&gaId){", htmlPath);
-      requireContains(this.id, html, "gtag('config',gaId", htmlPath);
-      requireContains(this.id, html, "if(marketingAllowed&&googleAdsId){", htmlPath);
-      requireContains(this.id, html, "gtag('config',googleAdsId", htmlPath);
-      requireContains(this.id, html, "if(marketingAllowed)", htmlPath);
+      requireContains(this.id, bootstrap, 'metaContent("zivo-google-analytics-id")', bootstrapPath);
+      requireContains(this.id, bootstrap, 'metaContent("zivo-google-ads-id")', bootstrapPath);
+      requireContains(this.id, bootstrap, 'if (analyticsAllowed && gaId) gtag("config", gaId', bootstrapPath);
+      requireContains(this.id, bootstrap, 'if (marketingAllowed && googleAdsId) gtag("config", googleAdsId', bootstrapPath);
+      // Marketing pixels below this point are unreachable without marketing consent.
+      requireContains(this.id, bootstrap, "if (!marketingAllowed) return;", bootstrapPath);
       // Tracking ids must not be hardcoded in source (deploy-time meta injection only).
-      requireNotMatch(this.id, html, /gtag\('config','(G-|AW-)/, htmlPath);
-      requireContains(this.id, html, "https://connect.facebook.net/en_US/fbevents.js", htmlPath);
-      requireContains(this.id, html, "https://analytics.tiktok.com/i18n/pixel/events.js", htmlPath);
+      requireNotMatch(this.id, bootstrap, /gtag\(\s*["']config["'],\s*["'](G-|AW-)/, bootstrapPath);
+      requireContains(this.id, bootstrap, "https://connect.facebook.net/en_US/fbevents.js", bootstrapPath);
+      requireContains(this.id, bootstrap, "https://analytics.tiktok.com/i18n/pixel/events.js", bootstrapPath);
 
       requireContains(this.id, prefs, 'COOKIE_CONSENT_STORAGE_KEY = "zivo_cookie_consent"', prefsPath);
       requireContains(this.id, prefs, "if (next.analytics || next.marketing)", prefsPath);
@@ -1468,6 +1495,58 @@ const contracts = [
       requireContains(this.id, lodgeRpc, "p_payload ->> 'policy_consent_version'", lodgeRpcPath);
       requireContains(this.id, noShow, "no_show_fee_consent_at", noShowPath);
       requireMatch(this.id, noShow, /audit trail/i, noShowPath);
+    },
+  },
+  {
+    /**
+     * The business trades in Cambodia and the app offers a Khmer interface
+     * (`km` / ភាសាខ្មែរ in src/hooks/useI18n.ts), so a legal document that
+     * exists only in English is one a Khmer-reading user is asked to accept in
+     * a language they did not choose.
+     *
+     * This does not demand that every legal page be translated — most still
+     * live inline in .tsx and several state United States rules that do not
+     * apply here. It guards the documents that HAVE been moved to
+     * src/content/legal/: each English document must keep its Khmer twin, and
+     * the two must not drift apart in structure. Adding an English-only file
+     * to that directory fails here rather than shipping quietly.
+     */
+    id: "legal-content-bilingual-pairs",
+    category: "content",
+    check() {
+      const dir = "src/content/legal";
+      if (!existsSync(path.join(root, dir))) return;   // directory is optional
+
+      const files = readdirSync(path.join(root, dir)).filter((f) => f.endsWith(".md"));
+      const english = files.filter((f) => !f.endsWith(".kh.md"));
+      if (english.length === 0) return;
+
+      const headings = (text) => (text.match(/^##\s/gm) ?? []).length;
+
+      for (const file of english) {
+        const khmerName = file.replace(/\.md$/, ".kh.md");
+        const englishPath = `${dir}/${file}`;
+        const khmerPath = `${dir}/${khmerName}`;
+        if (!files.includes(khmerName)) {
+          failures.push(`${this.id}: ${englishPath} has no Khmer translation at ${khmerPath}`);
+          continue;
+        }
+
+        const khmer = source(khmerPath);
+        // Khmer script present at all -- an untranslated copy passes a file
+        // existence check but fails the reader it exists for.
+        if (!/[ក-៿]/.test(khmer)) {
+          failures.push(`${this.id}: ${khmerPath} contains no Khmer script`);
+          continue;
+        }
+        const englishSections = headings(source(englishPath));
+        const khmerSections = headings(khmer);
+        if (englishSections !== khmerSections) {
+          failures.push(
+            `${this.id}: ${englishPath} has ${englishSections} sections but ${khmerPath} has ${khmerSections} — a section was added to one language only`,
+          );
+        }
+      }
     },
   },
 ];

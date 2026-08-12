@@ -1,4 +1,10 @@
-// Upsert the calling device into user_devices on app boot / link.
+// Upsert the calling device into linked_devices on app boot / link.
+//
+// linked_devices is the live device registry: useLinkedDevices reads it, the
+// 20260601111500 server gate protects it, and api-operations-readiness pins
+// the chain. (This comment used to say `user_devices` — that is the LEGACY
+// table nothing registers into; only account-delete-self and account-export
+// still touch it for cleanup/export, and the legacy /devices page reads it.)
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 

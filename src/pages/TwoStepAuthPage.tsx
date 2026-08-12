@@ -108,7 +108,7 @@ export default function TwoStepAuthPage() {
           <Sparkles className="absolute top-3 right-3 h-5 w-5 text-white/40" />
           <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Status</p>
           <p className="text-3xl font-bold mt-1">{!configured ? "Not set up" : enabled ? "Enabled" : "Disabled"}</p>
-          <p className="text-sm text-white/80 mt-1">Adds a second password on top of your normal sign-in</p>
+          <p className="text-sm text-white/80 mt-1">Adds a second password for supported sensitive account actions</p>
         </motion.div>
 
         {isLoading && <div className="space-y-2">{Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-2xl" />)}</div>}
@@ -121,7 +121,7 @@ export default function TwoStepAuthPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-foreground">Not yet configured</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Set up a 2-step password so a stolen account password alone isn't enough to sign in.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Set up a 2-step password for supported sensitive actions. The current account sign-in flow still uses your normal password.</p>
               </div>
             </div>
             <Button onClick={() => navigate("/account/security")} className="w-full bg-ig-gradient text-white font-bold rounded-full h-10 hover:opacity-90 border-0">
@@ -183,7 +183,7 @@ export default function TwoStepAuthPage() {
 
         <div className="rounded-2xl p-4 bg-blue-500/10 border border-blue-500/30 flex items-start gap-3">
           <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-foreground/85">2-step adds a memorable password layered on top of your account login. Both must be correct on a new device — your normal password alone won't get someone in if your email or device is compromised.</p>
+          <p className="text-xs text-foreground/85">2-step adds a memorable password before supported sensitive actions. It does not currently run as a second prompt during account sign-in, so keep your normal password and recovery details protected.</p>
         </div>
       </div>
     </SwipeBackContainer>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { completeZivoAiChat } from '@/lib/zivoAiChat';
 import { toast } from 'sonner';
 
@@ -56,8 +56,14 @@ export function useAITripSuggestions() {
   const [destinations, setDestinations] = useState<AIDestination[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestRef = useRef(0);
+
+  useEffect(() => () => {
+    requestRef.current += 1;
+  }, []);
 
   const fetchSuggestions = useCallback(async (preferences: TripPreferences) => {
+    const request = ++requestRef.current;
     setIsLoading(true);
     setError(null);
 
@@ -89,9 +95,17 @@ ${preferences.dislikedDestinations?.length ? `- Previously disliked: ${preferenc
         throw new Error('No usable destination suggestions returned');
       }
 
+      if (request !== requestRef.current) {
+        return null;
+      }
+
       setDestinations(suggestions);
       return suggestions;
     } catch (err) {
+      if (request !== requestRef.current) {
+        return null;
+      }
+
       const message = err instanceof Error ? err.message : 'Failed to fetch suggestions';
       setError(message);
       
@@ -106,7 +120,9 @@ ${preferences.dislikedDestinations?.length ? `- Previously disliked: ${preferenc
       
       return null;
     } finally {
-      setIsLoading(false);
+      if (request === requestRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 

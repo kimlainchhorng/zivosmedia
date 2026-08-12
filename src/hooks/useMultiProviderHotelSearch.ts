@@ -4,7 +4,7 @@
  * Normalizes, merges, and compares prices across suppliers
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ZivoPropertyExtended, ZivoPropertySearchResult } from "@/types/zivoProperty";
 import type { PropertySource } from "@/types/zivoProperty";
@@ -45,11 +45,21 @@ interface SupplierResult {
   error?: string;
 }
 
+interface SearchRequest {
+  params: MultiProviderSearchParams;
+  filters?: MultiProviderFilters;
+}
+
+const LIVE_RATES_UNAVAILABLE = "Live hotel rates are temporarily unavailable. Please try again.";
+
 export function useMultiProviderHotelSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ZivoPropertyExtended[]>([]);
   const [searchResult, setSearchResult] = useState<ZivoPropertySearchResult | null>(null);
   const [searchParams, setSearchParams] = useState<MultiProviderSearchParams | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const searchRequestRef = useRef(0);
+  const lastSearchRef = useRef<SearchRequest | null>(null);
 
   /**
    * Fetch hotels from Hotelbeds
@@ -209,7 +219,10 @@ export function useMultiProviderHotelSearch() {
     params: MultiProviderSearchParams,
     filters?: MultiProviderFilters
   ) => {
+    const request = ++searchRequestRef.current;
+    lastSearchRef.current = { params, filters };
     setIsLoading(true);
+    setError(null);
     setSearchParams(params);
 
     const nights = differenceInDays(new Date(params.checkOut), new Date(params.checkIn));
@@ -220,6 +233,15 @@ export function useMultiProviderHotelSearch() {
         fetchHotelbeds(params, nights),
         fetchRateHawk(params, nights),
       ]);
+
+      if (request !== searchRequestRef.current) return;
+
+      if (hotelbedsResult.error && ratehawkResult.error) {
+        setResults([]);
+        setSearchResult(null);
+        setError(LIVE_RATES_UNAVAILABLE);
+        return;
+      }
 
       // Merge and compare prices
       const mergedProperties = mergeMultiSourceProperties(
@@ -287,12 +309,23 @@ export function useMultiProviderHotelSearch() {
 
     } catch (error) {
       console.error("Multi-provider search error:", error);
+      if (request !== searchRequestRef.current) return;
       setResults([]);
       setSearchResult(null);
+      setError(LIVE_RATES_UNAVAILABLE);
     } finally {
-      setIsLoading(false);
+      if (request === searchRequestRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [applyFilters]);
+
+  const retry = useCallback(() => {
+    const lastSearch = lastSearchRef.current;
+    if (lastSearch) {
+      void search(lastSearch.params, lastSearch.filters);
+    }
+  }, [search]);
 
   /**
    * Re-apply filters without fetching
@@ -307,10 +340,13 @@ export function useMultiProviderHotelSearch() {
 
   return {
     isLoading,
+    isError: error !== null,
+    error,
     results,
     searchResult,
     searchParams,
     search,
+    retry,
     filterResults,
   };
 }

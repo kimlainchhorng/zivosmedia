@@ -87,7 +87,7 @@ const settingsGroups: SettingsGroup[] = [
       { icon: Bell, label: "Notification Settings", description: "Preferences & channels", href: "/account/notifications", color: "bg-sky-500/15", iconColor: "text-sky-500" },
       { icon: Globe, label: "Preferences", description: "Language & settings", href: "/account/preferences", color: "bg-indigo-500/15", iconColor: "text-indigo-500" },
       { icon: Eye, label: "Read Receipts", description: "Show when you read messages", href: "/account/privacy#receipts", color: "bg-rose-500/15", iconColor: "text-rose-500" },
-      { icon: Lock, label: "Two-Step Verification", description: "Extra login security", href: "/chat/settings/two-step", color: "bg-emerald-500/15", iconColor: "text-emerald-500" },
+      { icon: Lock, label: "Two-Step Verification", description: "Extra protection for sensitive actions", href: "/chat/settings/two-step", color: "bg-emerald-500/15", iconColor: "text-emerald-500" },
       { icon: Bell, label: "Login Alerts", description: "New device notifications", href: "/chat/settings/login-alerts", color: "bg-sky-500/15", iconColor: "text-sky-500" },
       { icon: Cookie, label: "Cookie Settings", description: "Tracking preferences", href: "/account/data-rights#cookies", color: "bg-amber-500/15", iconColor: "text-amber-500" },
       { icon: Languages, label: "Auto-Translate", description: "Translate messages & posts", href: "/account/preferences#translation", color: "bg-teal-500/15", iconColor: "text-teal-500" },

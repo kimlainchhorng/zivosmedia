@@ -659,7 +659,15 @@ function ServiceCarousel3D({
               aria-hidden={slot.opacity < 0.5}
               tabIndex={isCenter ? 0 : -1}
             >
-              <img src={service.image} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" draggable={false} />
+              <img
+                src={service.image}
+                alt=""
+                loading={isCenter ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={isCenter ? "high" : "auto"}
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                draggable={false}
+              />
               <div className="absolute inset-0" style={{ background: service.overlay }} />
               <div className="absolute inset-0 flex flex-col justify-between p-6 text-white">
                 <div className="flex items-center justify-between">
@@ -785,7 +793,7 @@ function ServiceLayerShowcase() {
               <ScrollTurn key={item.service} axis={i % 2 === 0 ? "y" : "x"} rotate={i % 2 === 0 ? 13 : -10} className="w-[82vw] max-w-[390px] sm:w-[390px]">
                 <Link to={item.href} className="group block rounded-[2rem] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
                   <TravelTiltCard className="zt-on-media relative h-[520px] overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.055] p-4 shadow-[0_36px_90px_rgba(2,6,23,0.45)] backdrop-blur-xl">
-                    <img src={item.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-700 group-hover:scale-105" loading="lazy" />
+                    <img src={item.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-700 group-hover:scale-105" loading="lazy" decoding="async" />
                     <div className={cn("absolute inset-0 bg-gradient-to-b", item.tone)} />
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/55 to-zinc-950/5" />
                     <div className="relative flex h-full flex-col justify-between">
@@ -935,7 +943,7 @@ function LiveItineraryBoard({ onSelectService }: { onSelectService: (next: numbe
             </div>
 
             <TravelTiltCard className="relative min-h-[31rem] overflow-hidden rounded-[2rem] border border-white/70 bg-white/76 p-5 shadow-[0_34px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl">
-              <img src={current.service.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-28" loading="lazy" />
+              <img src={current.service.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-28" loading="lazy" decoding="async" />
               <div className="absolute inset-0 bg-gradient-to-br from-white via-white/90 to-white/58" aria-hidden />
               <div className="relative flex min-h-[28rem] flex-col justify-between">
                 <div className="flex items-center justify-between gap-3">
@@ -1031,7 +1039,7 @@ function TripStackBuilder({ onSelectService }: { onSelectService: (next: number)
 
         <ScrollTurn className="relative z-10" rotate={9} lift={40}>
           <div className="relative min-h-[34rem] overflow-hidden rounded-[2.2rem] border border-white/12 bg-white/[0.06] p-5 shadow-[0_42px_110px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
-            <img src={current.service.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-28" loading="lazy" />
+            <img src={current.service.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-28" loading="lazy" decoding="async" />
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-950 via-zinc-950/84 to-zinc-950/50" aria-hidden />
             <div className="relative flex h-full min-h-[31rem] flex-col justify-between">
               <div className="flex items-center justify-between">
@@ -2145,6 +2153,7 @@ export default function ZivoTravelHome() {
                   src={destination.image}
                   alt={`${destination.name}, ${destination.country}`}
                   loading="lazy"
+                  decoding="async"
                   className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />

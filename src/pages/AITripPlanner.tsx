@@ -267,7 +267,13 @@ const AITripPlanner = () => {
                     )}
                     aria-pressed={destination === quick.label}
                   >
-                    <img src={quick.image} alt="" className="h-9 w-9 rounded-md object-cover" />
+                    <img
+                      src={quick.image}
+                      alt=""
+                      loading="eager"
+                      decoding="async"
+                      className="h-9 w-9 rounded-md object-cover"
+                    />
                     <span>
                       <span className="block text-sm font-semibold text-slate-950">{quick.label}</span>
                       <span className="block text-xs text-slate-500">{quick.country}</span>
@@ -446,6 +452,9 @@ const AITripPlanner = () => {
           <img
             src={heroRoadTrip}
             alt=""
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
             className="absolute inset-0 h-full w-full object-cover opacity-35"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-white/45" />
@@ -799,7 +808,13 @@ function InsightPanel({
 }) {
   return (
     <div className="relative overflow-hidden rounded-lg border border-teal-100 bg-teal-50 p-5">
-      <img src={image} alt="" className="absolute right-0 top-0 h-full w-1/3 object-cover opacity-20" />
+      <img
+        src={image}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="absolute right-0 top-0 h-full w-1/3 object-cover opacity-20"
+      />
       <div className="relative">
         <div className="flex items-center gap-2 text-sm font-black text-slate-950">
           <Icon className="h-5 w-5 text-teal-700" />
@@ -846,7 +861,13 @@ function DestinationCard({
       className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-900/10"
     >
       <div className="relative h-48 overflow-hidden">
-        <img src={image} alt="" className="h-full w-full object-cover transition duration-500 hover:scale-105" />
+        <img
+          src={image}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition duration-500 hover:scale-105"
+        />
         <Badge className="absolute left-4 top-4 rounded-lg bg-emerald-600 text-white shadow-lg">
           {destination.matchScore}% match
         </Badge>

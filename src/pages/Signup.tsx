@@ -55,8 +55,8 @@ function ZivoSoftwareMiniScene() {
   return (
     <div className="relative mx-auto my-3 h-[5.8rem] w-full max-w-[18rem] [perspective:900px]" aria-hidden="true">
       <div className="absolute inset-x-8 bottom-0 h-8 rounded-full bg-[#101412]/15 blur-2xl" />
-      <img src={serviceCars} alt="" className="absolute right-5 top-5 h-12 w-20 rounded-xl object-cover shadow-[0_16px_30px_rgba(17,20,18,0.22)] [transform:rotateX(42deg)_rotateZ(10deg)]" />
-      <img src={serviceShopping} alt="" className="absolute left-5 bottom-1 h-10 w-16 rounded-xl object-cover shadow-[0_16px_28px_rgba(17,20,18,0.16)] [transform:rotateX(42deg)_rotateZ(-12deg)]" />
+      <img src={serviceCars} alt="" loading="eager" decoding="async" className="absolute right-5 top-5 h-12 w-20 rounded-xl object-cover shadow-[0_16px_30px_rgba(17,20,18,0.22)] [transform:rotateX(42deg)_rotateZ(10deg)]" />
+      <img src={serviceShopping} alt="" loading="eager" decoding="async" className="absolute left-5 bottom-1 h-10 w-16 rounded-xl object-cover shadow-[0_16px_28px_rgba(17,20,18,0.16)] [transform:rotateX(42deg)_rotateZ(-12deg)]" />
       <div className="absolute left-12 top-2 h-16 w-28 rounded-2xl bg-[#101412] p-3 text-white shadow-[0_22px_48px_rgba(17,20,18,0.3)] [transform:rotateX(58deg)_rotateZ(-16deg)]">
         <div className="flex items-center justify-between">
           <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/50">Launch</span>
@@ -120,8 +120,8 @@ function ZivoSoftwareAuthGraphic() {
               </div>
             </div>
           </div>
-          <img src={serviceCars} alt="Auto repair software preview" className="absolute bottom-5 right-0 h-32 w-48 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.3)] [transform:rotate(7deg)]" />
-          <img src={serviceShopping} alt="Retail software preview" className="absolute bottom-0 left-0 h-24 w-36 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.24)] [transform:rotate(-8deg)]" />
+          <img src={serviceCars} alt="Auto repair software preview" loading="lazy" decoding="async" className="absolute bottom-5 right-0 h-32 w-48 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.3)] [transform:rotate(7deg)]" />
+          <img src={serviceShopping} alt="Retail software preview" loading="lazy" decoding="async" className="absolute bottom-0 left-0 h-24 w-36 rounded-xl object-cover shadow-[0_24px_58px_rgba(0,0,0,0.24)] [transform:rotate(-8deg)]" />
         </div>
       </div>
     </section>

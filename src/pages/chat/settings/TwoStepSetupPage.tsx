@@ -63,6 +63,9 @@ export default function TwoStepSetupPage() {
           <p className="text-sm text-muted-foreground">
             Add an extra password required for sensitive actions like changing your username, revoking other devices, or deleting your account.
           </p>
+          <p className="text-xs text-muted-foreground/80">
+            This setting does not currently add a second prompt to the account sign-in flow.
+          </p>
         </div>
 
         {loading ? (

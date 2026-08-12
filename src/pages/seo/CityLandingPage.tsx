@@ -41,7 +41,7 @@ export default function CityLandingPage() {
   const { checkIn, checkOut } = useMemo(() => getDefaultDates(), []);
   
   // Multi-provider search hook
-  const { results, isLoading, search } = useMultiProviderHotelSearch();
+  const { results, isLoading, error, search, retry } = useMultiProviderHotelSearch();
   
   // Trigger search on mount
   useEffect(() => {
@@ -125,6 +125,8 @@ export default function CityLandingPage() {
         <LiveRatesGrid
           properties={results}
           isLoading={isLoading}
+          error={error}
+          onRetry={retry}
           citySlug={citySlug}
           maxItems={6}
         />

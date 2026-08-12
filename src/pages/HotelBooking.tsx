@@ -62,16 +62,21 @@ const HotelBooking = () => {
   const [guests, setGuests] = useState("2");
   const [rooms, setRooms] = useState("1");
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchedDestination, setSearchedDestination] = useState<string | null>(null);
   const [selectedHotel, setSelectedHotel] = useState<TripadvisorLocation | null>(null);
 
   const { isLoading, error, results, searchHotels } = useTripadvisorSearch();
 
-  const handleSearch = async () => {
-    if (!destination.trim()) return;
+  const handleSearch = async (query = destination) => {
+    const requestedDestination = query.trim();
+    if (!requestedDestination) return;
     setHasSearched(true);
     setSelectedHotel(null);
-    await searchHotels(destination);
+    setSearchedDestination(requestedDestination);
+    await searchHotels(requestedDestination);
   };
+
+  const activeDestination = searchedDestination || destination;
 
   const handleSelectHotel = (hotel: TripadvisorLocation) => {
     setSelectedHotel(hotel);
@@ -223,7 +228,7 @@ const HotelBooking = () => {
 
             {/* Search Button - Big & Prominent */}
             <Button 
-              onClick={handleSearch}
+              onClick={() => void handleSearch()}
               disabled={isLoading || !destination.trim()}
               size="lg"
               className={cn(
@@ -248,16 +253,6 @@ const HotelBooking = () => {
           </BigSearchCard>
         </ImageHero>
 
-        {/* Error State */}
-        {error && (
-          <div className="container mx-auto px-4 mb-8">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-
         {/* Search Results */}
         {hasSearched && (
           <motion.section
@@ -270,16 +265,32 @@ const HotelBooking = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-muted-foreground mb-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Searching hotels in {destination}...</span>
+                  <span className="text-sm">Searching hotels in {activeDestination}...</span>
                 </div>
                 <HotelResultsSkeleton count={6} />
+              </div>
+            ) : error ? (
+              <div className="max-w-xl mx-auto py-12 text-center">
+                <Alert variant="destructive" role="alert" className="text-left">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    We couldn&apos;t search hotels in {activeDestination}. {error}
+                  </AlertDescription>
+                </Alert>
+                <Button
+                  type="button"
+                  className="mt-5"
+                  onClick={() => void handleSearch(activeDestination)}
+                >
+                  Try again
+                </Button>
               </div>
             ) : results.length > 0 ? (
               <>
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-xl sm:text-2xl font-bold">
-                      Hotels in {destination}
+                      Hotels in {activeDestination}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {results.length} properties found • Compare prices across booking sites
@@ -292,7 +303,7 @@ const HotelBooking = () => {
 
                 <HotelTopSearchCTA 
                   hotelCount={results.length}
-                  destination={destination}
+                  destination={activeDestination}
                   checkIn={checkIn ? format(checkIn, "yyyy-MM-dd") : undefined}
                   checkOut={checkOut ? format(checkOut, "yyyy-MM-dd") : undefined}
                   guests={parseInt(guests)}
@@ -309,7 +320,7 @@ const HotelBooking = () => {
                         name={hotel.name}
                         image={hotel.photos?.[0]?.images?.medium?.url}
                         address={hotel.address_obj?.address_string || ""}
-                        city={hotel.address_obj?.city || destination}
+                        city={hotel.address_obj?.city || activeDestination}
                         rating={parseFloat(hotel.rating || "0")}
                         reviewCount={parseInt(hotel.num_reviews || "0")}
                         priceLevel={hotel.price_level}
@@ -326,7 +337,7 @@ const HotelBooking = () => {
                       <div id="partner-selector">
                         <HotelPartnerSelector
                           hotelName={selectedHotel.name}
-                          destination={destination}
+                          destination={activeDestination}
                           checkIn={checkIn ? format(checkIn, "yyyy-MM-dd") : undefined}
                           checkOut={checkOut ? format(checkOut, "yyyy-MM-dd") : undefined}
                           guests={parseInt(guests)}
@@ -396,7 +407,7 @@ const HotelBooking = () => {
         {/* Sticky CTA */}
         {hasSearched && results.length > 0 && (
           <HotelStickyBookingCTA
-            destination={destination}
+            destination={activeDestination}
             checkIn={checkIn ? format(checkIn, "yyyy-MM-dd") : undefined}
             checkOut={checkOut ? format(checkOut, "yyyy-MM-dd") : undefined}
             guests={parseInt(guests)}

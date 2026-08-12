@@ -56,7 +56,7 @@ function CampaignLivePreview({ channel, subject, body, storeName, logoUrl }: { c
   // Sender avatar: the store's real logo when set, otherwise its initial.
   const logo = (cls: string, textSize?: string) =>
     logoUrl
-      ? <img src={logoUrl} alt="" className={`${cls} object-cover shrink-0`} />
+      ? <img src={logoUrl} alt="" loading="eager" decoding="async" className={`${cls} object-cover shrink-0`} />
       : <div className={`${cls} bg-primary/20 flex items-center justify-center font-bold text-primary shrink-0 ${textSize ?? ""}`}>{initial}</div>;
   return (
     <div className="w-[210px] h-[420px] rounded-[2.2rem] border-[5px] border-foreground/85 bg-background overflow-hidden flex flex-col shadow-2xl">
