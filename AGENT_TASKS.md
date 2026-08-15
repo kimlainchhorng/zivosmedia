@@ -8,6 +8,23 @@ One agent per file/page. Run `npm run update` before moving anything to **Done**
 
 ---
 
+## In progress (owner session)
+
+- **CODE READY — Dependency alignment: `@zxing/library` peer + 7 in-range bumps.**
+  `@zxing/library` `~0.21.3` → `^0.23.0` (Dependabot #170's `@zxing/browser` 0.2.1
+  requires it; `npm update` was ERESOLVE-ing on the unmet peer, and node_modules had
+  drifted — `@zxing/browser` 0.1.5 installed vs 0.2.1 locked, `web-vitals` and
+  `@mediapipe/tasks-vision` missing), plus in-range `@capacitor/local-notifications`
+  8.3.0, `@capgo/capacitor-updater` 8.51.10, `@hookform/resolvers` 5.9.0,
+  `@supabase/supabase-js` 2.112.3, `globals` 17.11.0, `supabase` 2.114.0, `web-vitals`
+  6.1.1. Deliberately deferred: `electron` 43.4.0 (250 MB download on a full disk),
+  TypeScript 7 (eslint pin), `@mediapipe/tasks-vision` 1.x (major). Gate: `npm run
+  update` **exit 0** (type-check, worker type-check, ride contract, production
+  boundary, schema, linked-devices, native-splash contracts, production-boundary QA,
+  build); `linkedDevicesContract` + `api-operations-readiness` Vitest **34/34**. Files:
+  `package.json`, `package-lock.json`. Branch `zivo/deps-2026-08-15` → PR.
+  — owner session (Claude), 2026-08-15
+
 ## Coordinator handoff — 2026-08-10
 
 - **After the current checks:** build Creator Studio workflows for server-backed scheduling, upload/edit/caption, analytics, moderation, and subscription entitlements.
