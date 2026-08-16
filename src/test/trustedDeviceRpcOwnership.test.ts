@@ -8,7 +8,7 @@ const migration = readFileSync(path.join(root, migrationPath), "utf8").replace(/
 
 function functionBody(name: string) {
   const match = migration.match(
-    new RegExp(`CREATE OR REPLACE FUNCTION public\\.${name}[\\s\\S]*?AS \\\$\\$([\\s\\S]*?)\\$\\$;`),
+    new RegExp(`CREATE OR REPLACE FUNCTION public\\.${name}[\\s\\S]*?AS \\$\\$([\\s\\S]*?)\\$\\$;`),
   );
 
   expect(match, `${name} must be defined by the trusted-device ownership migration`).not.toBeNull();

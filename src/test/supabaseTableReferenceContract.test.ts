@@ -160,7 +160,7 @@ function findReferences(): { references: Reference[]; dynamic: number } {
       // Walk back over the receiver chain (`supabase.storage`, `Array`, …) so
       // a non-Postgres `.from()` can be told apart from a query.
       const before = source.slice(Math.max(0, index - 80), index);
-      const receiver = /([\w$.\]\)]+)\s*$/.exec(before)?.[1] ?? "";
+      const receiver = /([\w$.\])]+)\s*$/.exec(before)?.[1] ?? "";
       if (NON_TABLE_RECEIVER.test(receiver)) continue;
 
       references.push({
