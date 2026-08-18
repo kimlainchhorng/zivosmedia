@@ -25,6 +25,17 @@ One agent per file/page. Run `npm run update` before moving anything to **Done**
   `package.json`, `package-lock.json`. Branch `zivo/deps-2026-08-15` → PR.
   — owner session (Claude), 2026-08-15
 
+  **CI follow-up, 2026-08-17:** the PR's only remaining GitHub-side red was
+  **Bundle Size**, failing at *Install base branch deps* — it `npm ci`s `main` for a
+  baseline, and `main` still carries the very `@zxing` peer conflict this PR removes,
+  so every open PR in the repo goes red there. Fixed in
+  `.github/workflows/bundle-size.yml`: the base install retries with
+  `--legacy-peer-deps` (same lockfile tree, peer validation skipped), and if the
+  baseline still cannot be built the job reports the PR's own sizes and skips the
+  budget gate instead of comparing against a zero-byte base. Not fixable from this
+  repo: **Workers Builds: zivo** fails in 0 s on every PR — a Cloudflare-side build
+  setting, needs the dashboard. — @claude, 2026-08-17
+
 ## Coordinator handoff — 2026-08-10
 
 - **After the current checks:** build Creator Studio workflows for server-backed scheduling, upload/edit/caption, analytics, moderation, and subscription entitlements.
