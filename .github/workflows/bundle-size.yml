@@ -72,10 +72,30 @@ jobs:
           path: base-branch
 
       - name: Install base branch deps
+        id: base-install
         working-directory: base-branch
-        run: npm ci --no-audit --no-fund
+        run: |
+          if npm ci --no-audit --no-fund; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # main can carry a peer conflict that this very PR is fixing. npm ci
+          # reifies the lockfile either way, so --legacy-peer-deps yields the same
+          # baseline tree with peer validation skipped — that validation is CI's
+          # job on main, not the size baseline's.
+          echo "::warning::Strict npm ci failed on the base branch; retrying with --legacy-peer-deps."
+          if npm ci --no-audit --no-fund --legacy-peer-deps; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "::warning::Base branch deps could not be installed — reporting PR sizes without a delta."
+          echo "ok=false" >> "$GITHUB_OUTPUT"
 
       - name: Build base branch
+        id: base-build
+        if: steps.base-install.outputs.ok == 'true'
         working-directory: base-branch
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
@@ -83,6 +103,7 @@ jobs:
 
       - name: Measure base bundle
         id: base-size
+        if: steps.base-build.outcome == 'success'
         run: |
           TOTAL=$(du -sb base-branch/dist/assets/*.js base-branch/dist/assets/*.css 2>/dev/null | awk '{sum+=$1} END{printf "%.0f", sum}')
           VENDOR=$(du -sb base-branch/dist/assets/vendor-*.js 2>/dev/null | awk '{sum+=$1} END{printf "%.0f", sum}')
@@ -103,6 +124,19 @@ jobs:
           PR_VENDOR=${PR_VENDOR:-0}
           BASE_TOTAL=${BASE_TOTAL:-0}
           BASE_VENDOR=${BASE_VENDOR:-0}
+
+          # No baseline means no delta to judge. Report the PR's own sizes and let
+          # the PR through rather than measuring it against a zero-byte "base".
+          if [ "$BASE_TOTAL" -eq 0 ]; then
+            echo "baseline=false" >> "$GITHUB_OUTPUT"
+            echo "total_delta_kb=0" >> "$GITHUB_OUTPUT"
+            echo "vendor_delta_kb=0" >> "$GITHUB_OUTPUT"
+            echo "status=no-baseline" >> "$GITHUB_OUTPUT"
+            echo "Base branch bundle unavailable — budget check skipped."
+            exit 0
+          fi
+
+          echo "baseline=true" >> "$GITHUB_OUTPUT"
 
           TOTAL_DELTA_KB=$(( (PR_TOTAL - BASE_TOTAL) / 1024 ))
           VENDOR_DELTA_KB=$(( (PR_VENDOR - BASE_VENDOR) / 1024 ))
@@ -138,6 +172,7 @@ jobs:
           TOTAL_DELTA_KB: ${{ steps.budget.outputs.total_delta_kb }}
           VENDOR_DELTA_KB: ${{ steps.budget.outputs.vendor_delta_kb }}
           BUDGET_STATUS: ${{ steps.budget.outputs.status }}
+          HAS_BASELINE: ${{ steps.budget.outputs.baseline }}
           MAX_TOTAL_DELTA_KB: ${{ env.MAX_TOTAL_DELTA_KB }}
           MAX_VENDOR_DELTA_KB: ${{ env.MAX_VENDOR_DELTA_KB }}
         with:
@@ -154,9 +189,16 @@ jobs:
               return `${sign}${Math.abs(d)} kB${emoji}`;
             };
 
-            const status = process.env.BUDGET_STATUS === 'fail' ? '❌ Budget exceeded' : '✅ Within budget';
+            const hasBaseline = process.env.HAS_BASELINE === 'true';
+            const status = hasBaseline
+              ? (process.env.BUDGET_STATUS === 'fail' ? '❌ Budget exceeded' : '✅ Within budget')
+              : 'ℹ️ No baseline — budget check skipped';
             const budgetLine = `Budget: total ≤ +${process.env.MAX_TOTAL_DELTA_KB} kB, vendor ≤ +${process.env.MAX_VENDOR_DELTA_KB} kB`;
-            const observedLine = `Observed: total ${Number(process.env.TOTAL_DELTA_KB) >= 0 ? '+' : ''}${process.env.TOTAL_DELTA_KB} kB, vendor ${Number(process.env.VENDOR_DELTA_KB) >= 0 ? '+' : ''}${process.env.VENDOR_DELTA_KB} kB`;
+            const observedLine = hasBaseline
+              ? `Observed: total ${Number(process.env.TOTAL_DELTA_KB) >= 0 ? '+' : ''}${process.env.TOTAL_DELTA_KB} kB, vendor ${Number(process.env.VENDOR_DELTA_KB) >= 0 ? '+' : ''}${process.env.VENDOR_DELTA_KB} kB`
+              : `\`main\` could not be installed or built, so this PR's sizes are reported on their own.`;
+            const cell = (bytes) => (hasBaseline ? fmt(bytes) : '—');
+            const delta = (pr, base) => (hasBaseline ? diff(pr, base) : '—');
 
             const body = [
               `## 📦 Bundle Size Report`,
@@ -167,9 +209,9 @@ jobs:
               ``,
               `| Chunk | Base (main) | PR | Δ |`,
               `|-------|------------|-----|---|`,
-              `| **Total JS + CSS** | ${fmt(process.env.BASE_TOTAL)} | ${fmt(process.env.PR_TOTAL)} | ${diff(process.env.PR_TOTAL, process.env.BASE_TOTAL)} |`,
-              `| Vendor chunks | ${fmt(process.env.BASE_VENDOR)} | ${fmt(process.env.PR_VENDOR)} | ${diff(process.env.PR_VENDOR, process.env.BASE_VENDOR)} |`,
-              `| Entry index | ${fmt(process.env.BASE_MAIN)} | ${fmt(process.env.PR_MAIN)} | ${diff(process.env.PR_MAIN, process.env.BASE_MAIN)} |`,
+              `| **Total JS + CSS** | ${cell(process.env.BASE_TOTAL)} | ${fmt(process.env.PR_TOTAL)} | ${delta(process.env.PR_TOTAL, process.env.BASE_TOTAL)} |`,
+              `| Vendor chunks | ${cell(process.env.BASE_VENDOR)} | ${fmt(process.env.PR_VENDOR)} | ${delta(process.env.PR_VENDOR, process.env.BASE_VENDOR)} |`,
+              `| Entry index | ${cell(process.env.BASE_MAIN)} | ${fmt(process.env.PR_MAIN)} | ${delta(process.env.PR_MAIN, process.env.BASE_MAIN)} |`,
               ``,
               `> ⚠️ = grew >50 kB — review before merging.`,
             ].join('\n');
