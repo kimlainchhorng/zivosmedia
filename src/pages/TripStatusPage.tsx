@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DriverEnRouteTracker from "@/components/rides/DriverEnRouteTracker";
 import { cn } from "@/lib/utils";
+import { displayableDriverRating } from "@/lib/driverRating";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -360,7 +361,9 @@ export default function TripStatusPage() {
   const driverInfo = driverProfile
     ? {
         name: driverProfile.full_name ?? "",
-        rating: driverProfile.rating ?? 4.8,
+        // Was `?? 4.8` — a specific good score for a driver nobody has rated.
+        // `select("*")` above already brings rating_count, so ask it.
+        rating: displayableDriverRating(driverProfile.rating, (driverProfile as { rating_count?: number | null }).rating_count),
         trips: driverProfile.total_trips ?? 0,
         plate: driverProfile.vehicle_plate ?? "",
         vehicle: driverProfile.vehicle_model ?? "",

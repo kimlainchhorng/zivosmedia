@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import { displayableDriverRating } from "@/lib/driverRating";
 import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -50,6 +51,8 @@ interface DriverInfo {
   full_name: string | null;
   avatar_url: string | null;
   rating: number | null;
+  /** 0 means nobody has rated; the column default of 5 is not a rating. */
+  rating_count: number | null;
   vehicle_model: string | null;
   vehicle_type: string | null;
   current_lat: number | null;
@@ -141,7 +144,7 @@ export default function GroceryOrderTracking() {
     async function fetchDriver(driverId: string) {
       const { data } = await supabase
         .from("drivers_public" as any)
-        .select("full_name, avatar_url, rating, vehicle_model, vehicle_type, current_lat, current_lng")
+        .select("full_name, avatar_url, rating, rating_count, vehicle_model, vehicle_type, current_lat, current_lng")
         .eq("id", driverId)
         .single();
 
@@ -320,10 +323,10 @@ export default function GroceryOrderTracking() {
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-bold truncate">{driver.full_name || "ZIVO Driver"}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    {driver.rating && (
+                    {displayableDriverRating(driver.rating, driver.rating_count) && (
                       <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
                         <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                        {driver.rating.toFixed(1)}
+                        {displayableDriverRating(driver.rating, driver.rating_count)}
                       </span>
                     )}
                     {driver.vehicle_model && (

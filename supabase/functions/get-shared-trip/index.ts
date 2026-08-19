@@ -36,7 +36,7 @@ Deno.serve(withSecurity("get-shared-trip", async (req, ctx) => {
     if (ride?.assigned_driver_id) {
       const { data: d } = await admin
         .from("drivers")
-        .select("id, full_name, vehicle_model, vehicle_color, vehicle_plate, current_lat, current_lng, rating")
+        .select("id, full_name, vehicle_model, vehicle_color, vehicle_plate, current_lat, current_lng, rating, rating_count")
         .eq("id", ride.assigned_driver_id)
         .single();
       driver = d;

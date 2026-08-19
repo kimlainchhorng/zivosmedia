@@ -14,7 +14,8 @@ export default function DriverPerformancePage() {
   const performanceStats = [
     {
       label: "Acceptance Rate",
-      value: `${stats.acceptanceRate}%`,
+      // "Not measured" and "100%" are different statements about a driver.
+      value: stats.acceptanceRate === null ? "—" : `${stats.acceptanceRate}%`,
       icon: Target,
       description: "Orders accepted vs total offered",
     },
@@ -32,7 +33,7 @@ export default function DriverPerformancePage() {
     },
     {
       label: "Rating",
-      value: `${stats.rating.toFixed(1)}`,
+      value: stats.rating === null ? "Not rated yet" : `${stats.rating.toFixed(1)}`,
       icon: Target,
       description: "Your average driver rating",
     },
