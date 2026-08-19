@@ -15,7 +15,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface DriverInfo {
   name: string;
-  rating: number;
+  /**
+   * Already formatted for display, and null when nobody has rated this
+   * driver. A number here invited a caller to pass `rating ?? 4.8`, which is
+   * exactly what TripStatusPage did.
+   */
+  rating: string | null;
   trips: number;
   plate: string;
   vehicle: string;
@@ -48,7 +53,9 @@ const statusConfig = {
 
 const defaultDriver: DriverInfo = {
   name: "",
-  rating: 0,
+  // null, not 0 — a placeholder driver has no rating, and 0 would have drawn
+  // a star reading "0" the moment the real one was slow to arrive.
+  rating: null,
   trips: 0,
   plate: "",
   vehicle: "",
@@ -264,10 +271,12 @@ export default function DriverEnRouteTracker({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-foreground">{driver.name}</span>
-              <div className="flex items-center gap-0.5">
-                <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                <span className="text-xs font-bold text-foreground">{driver.rating}</span>
-              </div>
+              {driver.rating ? (
+                <div className="flex items-center gap-0.5">
+                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                  <span className="text-xs font-bold text-foreground">{driver.rating}</span>
+                </div>
+              ) : null}
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-[11px] text-muted-foreground">{driver.vehicleColor} {driver.vehicle}</span>

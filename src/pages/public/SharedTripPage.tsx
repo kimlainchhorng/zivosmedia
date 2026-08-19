@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { displayableDriverRating } from "@/lib/driverRating";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -109,7 +110,9 @@ export default function SharedTripPage() {
                 <Car className="w-4 h-4" />
                 {[driver.vehicle_color, driver.vehicle_make, driver.vehicle_model].filter(Boolean).join(" ")} · {driver.vehicle_plate ?? "—"}
               </div>
-              {driver.rating != null && <div className="text-xs text-muted-foreground">★ {Number(driver.rating).toFixed(1)}</div>}
+              {displayableDriverRating(driver.rating, driver.rating_count) && (
+                <div className="text-xs text-muted-foreground">★ {displayableDriverRating(driver.rating, driver.rating_count)}</div>
+              )}
             </CardContent>
           </Card>
         )}
