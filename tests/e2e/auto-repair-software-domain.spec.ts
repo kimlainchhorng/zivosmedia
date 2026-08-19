@@ -9,6 +9,14 @@ const expectedConsoleNoise = [
   "No 'Access-Control-Allow-Origin' header is present",
   "The 'Access-Control-Allow-Origin' header has a value 'https://zivosoftware.com' that is not equal to the supplied origin",
   "Failed to load resource: net::ERR_FAILED",
+  // Same unreachability as ERR_FAILED above, but reported as a DNS failure
+  // instead of a connect failure. The page under test pulls fonts, images,
+  // maps and Stripe from external origins, and the /chat assertion below
+  // deliberately lands on the real zivoschat.com -- none of which resolve on
+  // a runner without outbound DNS. Which of the two codes Chromium reports
+  // is a property of the environment, not of the app, so both are noise for
+  // a test that is asserting routing and page structure.
+  "Failed to load resource: net::ERR_NAME_NOT_RESOLVED",
   "[remoteConfig] fetch failed",
 ];
 
