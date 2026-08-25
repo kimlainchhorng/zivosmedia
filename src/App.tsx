@@ -1301,7 +1301,6 @@ function RouteAwareGlobalUI() {
   return (
     <Suspense fallback={null}>
       <CookieConsent />
-      <PWAUpdatePrompt />
       <PWAInstallBanner />
       <InAppBrowserInterstitial />
       <RuntimeSecurityGuard />
@@ -1661,6 +1660,9 @@ const App = () => (
                   v7_relativeSplatPath: true,
                 }}
               >
+                {/* Keep the update controller mounted on auth routes so an
+                    already-open login page cannot stay pinned to an old build. */}
+                <Suspense fallback={null}><PWAUpdatePrompt /></Suspense>
 
                 <DeferredPageViewTracker />
                 <DeferredGeoDetector />

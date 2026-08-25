@@ -52,6 +52,7 @@ function requireOnlyAllowedFiles(id, relativeDir, allowedFiles) {
   const allowed = new Set(allowedFiles);
   const extras = readdirSync(absoluteDir)
     .filter((file) => /\.(ts|tsx)$/.test(file))
+    .filter((file) => !/\.(test|spec)\.(ts|tsx)$/.test(file))
     .filter((file) => !allowed.has(file));
   if (extras.length > 0) {
     failures.push(`${id}: ${relativeDir} contains retired local customer Ride components: ${extras.join(", ")}`);
