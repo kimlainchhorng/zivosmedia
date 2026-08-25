@@ -4,6 +4,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TrendingUp, DollarSign, ShoppingBag, Car, Utensils, Hotel, Package } from "lucide-react";
+import { KHR_PER_USD } from "@/lib/currency";
 
 interface VerticalStat {
   label: string;
@@ -12,8 +13,6 @@ interface VerticalStat {
   gmv: number;
   count: number;
 }
-
-const KHR_PER_USD = 4062.5;
 
 function fmtUsd(cents: number) {
   if (cents >= 100_000_00) return `$${(cents / 100_000_00).toFixed(1)}M`;

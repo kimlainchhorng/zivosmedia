@@ -34,7 +34,7 @@ import type { HomeRestaurant } from "@/hooks/usePersonalizedHome";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import zivoRideIcon from "@/assets/zivo-ride-icon.webp";
 import zivoEatsIcon from "@/assets/zivo-eats-icon.webp";
-import zivoFlightsIcon from "@/assets/zivo-flights-icon.webp";
+import zivoFlightsAircraft from "@/assets/zivo-flights-aircraft.webp";
 import zivoHotelsIcon from "@/assets/zivo-hotels-icon.webp";
 import zivoRentalCarIcon from "@/assets/zivo-rental-car.webp";
 import zivoBusIcon from "@/assets/zivo-bus-icon.webp";
@@ -593,7 +593,7 @@ const AppHome = () => {
   const homeServices: HomeServiceTileConfig[] = [
     { label: t("home.ride"), href: "/rides/hub", imageSrc: zivoRideIcon, imageClassName: "w-[70%]" },
     { label: t("home.eats"), href: "/eats", imageSrc: zivoEatsIcon },
-    { label: t("home.flights"), href: "/flights", imageSrc: zivoFlightsIcon },
+    { label: t("home.flights"), href: "/flights", imageSrc: zivoFlightsAircraft, imageClassName: "h-[70%] w-[88%]" },
     { label: t("home.hotels"), href: hotelsPath, imageSrc: zivoHotelsIcon, imageClassName: "h-[68%] w-[68%]" },
     { label: t("home.rental_cars"), href: "/rent-car", imageSrc: zivoRentalCarIcon, imageClassName: "h-[72%] w-[72%]" },
     { label: t("home.bus"), href: "/bus", imageSrc: zivoBusIcon, imageClassName: "h-[68%] w-[86%]" },

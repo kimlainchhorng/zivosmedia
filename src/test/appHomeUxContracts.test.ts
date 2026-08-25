@@ -15,7 +15,7 @@ describe("authenticated home UX contracts", () => {
     expect(home).toContain("min-h-[88px]");
     expect(home).toContain("zivo-ride-icon.webp");
     expect(home).toContain("zivo-eats-icon.webp");
-    expect(home).toContain("zivo-flights-icon.webp");
+    expect(home).toContain("zivo-flights-aircraft.webp");
     expect(home).toContain("zivo-hotels-icon.webp");
     expect(home).toContain("zivo-rental-car.webp");
     expect(home).toContain("zivo-bus-icon.webp");

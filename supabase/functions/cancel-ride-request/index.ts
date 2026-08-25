@@ -2,8 +2,7 @@ import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { cascadeCancellationToDriver } from "../_shared/cancellation-cascade.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
-
-const USD_TO_KHR = 4062.5;
+import { KHR_PER_USD } from "../_shared/rideMoney.ts";
 
 function formatKhr(amount: number): string {
   return `${Math.round(amount).toLocaleString("en-US")} KHR`;
@@ -143,7 +142,7 @@ Deno.serve(withSecurity("cancel-ride-request", async (req, ctx) => {
       }
     } else if (isBakongPaid) {
       const paidKhr = Math.round(Number((ride as any).bakong_amount_khr ?? (ride as any).payment_amount ?? 0));
-      const feeKhr = Math.min(paidKhr, Math.round((feeCents / 100) * USD_TO_KHR));
+      const feeKhr = Math.min(paidKhr, Math.round((feeCents / 100) * KHR_PER_USD));
       const refundKhr = Math.max(0, paidKhr - feeKhr);
       manualRefund = {
         currency: "KHR",

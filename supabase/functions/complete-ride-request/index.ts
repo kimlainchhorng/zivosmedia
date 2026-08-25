@@ -2,8 +2,6 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
-
-const USD_TO_KHR = 4062.5;
 const DEFAULT_COMMISSION_PERCENT = 20;
 
 function json(body: Record<string, unknown>, status = 200, headers: Record<string, string> = {}) {

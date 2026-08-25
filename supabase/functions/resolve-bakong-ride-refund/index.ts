@@ -1,7 +1,6 @@
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
-
-const USD_TO_KHR = 4062.5;
+import { KHR_PER_USD } from "../_shared/rideMoney.ts";
 
 type Decision = "refunded" | "no_refund_due";
 
@@ -86,7 +85,7 @@ Deno.serve(withSecurity("resolve-bakong-ride-refund", async (req, ctx) => {
     }
 
     const paidKhr = Math.max(0, Math.round(Number((ride as any).bakong_amount_khr ?? (ride as any).payment_amount ?? 0)));
-    const feeKhr = Math.min(paidKhr, Math.round((Number((ride as any).cancel_fee_cents || 0) / 100) * USD_TO_KHR));
+    const feeKhr = Math.min(paidKhr, Math.round((Number((ride as any).cancel_fee_cents || 0) / 100) * KHR_PER_USD));
     const refundKhr = Math.max(0, paidKhr - feeKhr);
     const finalDecision = decision as Decision;
 

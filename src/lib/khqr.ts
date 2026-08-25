@@ -6,6 +6,8 @@
  * EMVCo / NBC Bakong KHQR specification.
  */
 
+import { KHR_PER_USD } from "@/lib/currency";
+
 /** Fallback static merchant QR string (no amount). Source of truth for merchant info. */
 const DEFAULT_STATIC_KHQR =
   "00020101021130510016abaakhppxxx@abaa01151260319063643400208ABA Bank5204421553031165802KH5915CHHORNG KIMLAIN6010PHNOM PENH624168370010PAYWAY@ABA0106941478020903218711963040E41";
@@ -19,8 +21,6 @@ const DEFAULT_STATIC_KHQR =
  */
 const STATIC_KHQR =
   import.meta.env.VITE_KHQR_STATIC_MERCHANT_QR?.trim() || DEFAULT_STATIC_KHQR;
-
-const USD_TO_KHR = 4062.5;
 
 /** ISO-4217 numeric currency codes used in KHQR. */
 const CURRENCY = {
@@ -150,7 +150,7 @@ export function buildDynamicKhqr(
 
 /** Format USD amount as KHR string (rounded to nearest riel). */
 export function usdToKhrString(usd: number): string {
-  return Math.round(usd * USD_TO_KHR).toLocaleString();
+  return Math.round(usd * KHR_PER_USD).toLocaleString();
 }
 
 export function getKhqrMerchantName(): string {

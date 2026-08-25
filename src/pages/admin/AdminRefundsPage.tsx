@@ -12,8 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Ban, CheckCircle2, Copy, Loader2, Search } from "lucide-react";
 import { formatBakongBillId } from "@/lib/khqr";
-
-const USD_TO_KHR = 4062.5;
+import { KHR_PER_USD } from "@/lib/currency";
 
 interface RefundReq {
   id: string;
@@ -67,7 +66,7 @@ function formatKhr(amount: number) {
 
 function manualRefundMath(ride: ManualBakongRefund) {
   const paidKhr = Math.max(0, Math.round(Number(ride.bakong_amount_khr ?? ride.payment_amount ?? 0)));
-  const feeKhr = Math.min(paidKhr, Math.round((Number(ride.cancel_fee_cents || 0) / 100) * USD_TO_KHR));
+  const feeKhr = Math.min(paidKhr, Math.round((Number(ride.cancel_fee_cents || 0) / 100) * KHR_PER_USD));
   return {
     paidKhr,
     feeKhr,

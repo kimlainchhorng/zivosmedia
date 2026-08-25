@@ -131,8 +131,8 @@ describe("getKhqrMerchantName", () => {
 
 describe("usdToKhrString", () => {
   it("converts USD to rounded riel (locale-separator agnostic)", () => {
-    expect(usdToKhrString(2).replace(/[^0-9]/g, "")).toBe("8125");
-    expect(usdToKhrString(0.5).replace(/[^0-9]/g, "")).toBe("2031");
+    expect(usdToKhrString(2).replace(/[^0-9]/g, "")).toBe("8200");
+    expect(usdToKhrString(0.5).replace(/[^0-9]/g, "")).toBe("2050");
   });
 });
 

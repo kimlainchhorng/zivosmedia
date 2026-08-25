@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-const USD_TO_KHR = 4062.5;
+import { KHR_PER_USD } from "@/lib/currency";
 
 function isRideRevenueStatus(row: any): boolean {
   const paymentStatus = String(row.payment_status || "").toLowerCase();
@@ -14,7 +13,7 @@ function rideRevenueUsd(row: any): number {
   if (!isRideRevenueStatus(row)) return 0;
   const currency = String(row.payment_currency || (row.payment_status === "bakong_paid" ? "KHR" : "USD")).toUpperCase();
   if (currency === "KHR") {
-    return (Number(row.bakong_amount_khr ?? row.payment_amount ?? 0) || 0) / USD_TO_KHR;
+    return (Number(row.bakong_amount_khr ?? row.payment_amount ?? 0) || 0) / KHR_PER_USD;
   }
   const cents = Number(row.captured_amount_cents ?? 0);
   if (Number.isFinite(cents) && cents > 0) return cents / 100;

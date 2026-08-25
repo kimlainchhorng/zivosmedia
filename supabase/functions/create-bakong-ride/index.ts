@@ -2,9 +2,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { KHR_PER_USD } from "../_shared/rideMoney.ts";
 
 const BAKONG_API = "https://api-bakong.nbc.gov.kh/v1";
-const USD_TO_KHR = 4062.5;
 const MERCHANT_FIELD_TAGS = ["29", "30", "31", "52", "58", "59", "60"];
 const MAX_KHQR_AGE_SECONDS = 10 * 60;
 const MAX_KHQR_FUTURE_SKEW_SECONDS = 30;
@@ -262,7 +262,7 @@ Deno.serve(withSecurity("create-bakong-ride", async (req, ctx) => {
   const qr = String(body.qr ?? "").trim();
   const amountKhr = Math.round(Number(body.amount_khr));
   const quotedTotal = asNumber(body.quoted_total);
-  const expectedKhr = quotedTotal == null ? null : Math.round(quotedTotal * USD_TO_KHR);
+  const expectedKhr = quotedTotal == null ? null : Math.round(quotedTotal * KHR_PER_USD);
   const sinceSec = Number(body.since_sec ?? body.sinceSec ?? 0);
 
   if (!pickup.address || !dropoff.address || !reference || !qr || !Number.isFinite(amountKhr) || amountKhr <= 0 || quotedTotal == null || quotedTotal <= 0) {

@@ -21,10 +21,9 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { FeedIncidentSummaryCard } from "@/components/admin/FeedIncidentSummaryCard";
 import { cn } from "@/lib/utils";
 import { isStorySafetySchemaDriftError } from "@/lib/social/sensitiveContent";
+import { KHR_PER_USD } from "@/lib/currency";
 
 type TimeRange = "7d" | "30d" | "90d" | "1y";
-
-const USD_TO_KHR = 4062.5;
 
 function rangeDays(range: TimeRange): number {
   return range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
@@ -59,7 +58,7 @@ function rideRequestRevenueUsd(row: any): number {
   const currency = String(row.payment_currency || (row.payment_status === "bakong_paid" ? "KHR" : "USD")).toUpperCase();
   if (currency === "KHR") {
     const khr = Number(row.bakong_amount_khr ?? row.payment_amount ?? 0);
-    return Number.isFinite(khr) ? khr / USD_TO_KHR : 0;
+    return Number.isFinite(khr) ? khr / KHR_PER_USD : 0;
   }
   const cents = Number(row.captured_amount_cents ?? 0);
   if (Number.isFinite(cents) && cents > 0) return cents / 100;

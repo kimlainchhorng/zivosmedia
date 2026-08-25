@@ -4,8 +4,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-const USD_TO_KHR = 4062.5;
+import { KHR_PER_USD } from "@/lib/currency";
 
 interface TodayStats {
   todayEarnings: number;
@@ -40,12 +39,12 @@ const DEFAULT_STATS: TodayStats = {
 
 function earningToUsd(row: { net_amount?: number | null; currency?: string | null }) {
   const amount = Number(row.net_amount || 0);
-  return String(row.currency || "USD").toUpperCase() === "KHR" ? amount / USD_TO_KHR : amount;
+  return String(row.currency || "USD").toUpperCase() === "KHR" ? amount / KHR_PER_USD : amount;
 }
 
 function tipToUsd(row: { tip_amount?: number | null; currency?: string | null }) {
   const amount = Number(row.tip_amount || 0);
-  return String(row.currency || "USD").toUpperCase() === "KHR" ? amount / USD_TO_KHR : amount;
+  return String(row.currency || "USD").toUpperCase() === "KHR" ? amount / KHR_PER_USD : amount;
 }
 
 export function useDriverDashboardData() {
