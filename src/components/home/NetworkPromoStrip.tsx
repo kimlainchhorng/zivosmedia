@@ -19,14 +19,15 @@ export default function NetworkPromoStrip() {
   const savedCount = restaurantFavs.favorites.size + hotelFavs.favorites.size;
 
   return (
-    <div className="px-4 pb-3 space-y-2">
+    <div className="space-y-3 px-4 pb-4 sm:px-5">
       <motion.button
+        type="button"
         whileTap={{ scale: 0.98 }}
         onClick={() => navigate("/network")}
-        className="w-full flex items-center gap-3 rounded-2xl border border-border/30 bg-background/92 shadow-sm p-3 text-left active:bg-muted/40 transition-colors touch-manipulation"
+        className="flex w-full items-center gap-3 rounded-[24px] border border-border/40 bg-card p-4 text-left shadow-[0_16px_40px_-30px_rgba(15,23,42,0.4)] transition-colors touch-manipulation active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
-        <div className="relative w-11 h-11 rounded-full bg-muted flex items-center justify-center">
-          <BadgeCheck className="w-5 h-5 text-foreground" strokeWidth={1.8} />
+        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <BadgeCheck className="h-5 w-5" strokeWidth={1.9} aria-hidden="true" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
@@ -36,21 +37,24 @@ export default function NetworkPromoStrip() {
             <UtensilsCrossed className="w-3 h-3 text-muted-foreground" />
             <BedDouble className="w-3 h-3 text-muted-foreground" />
           </div>
-          <div className="text-sm font-semibold text-foreground truncate">
+          <div className="text-sm font-bold leading-snug text-foreground">
             Every place here books in-app
           </div>
-          <div className="text-[11px] text-muted-foreground truncate">
+          <div className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
             Browse partner restaurants & hotels — order, reserve, or stay in one tap.
           </div>
         </div>
-        <ArrowRight className="w-4 h-4 text-foreground shrink-0" />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/60 text-foreground">
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </span>
       </motion.button>
 
       {savedCount > 0 && (
         <motion.button
+          type="button"
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate("/network/saved")}
-          className="w-full flex items-center gap-3 rounded-2xl border border-border/30 bg-background/92 shadow-sm p-2.5 text-left active:bg-muted/40 transition-colors touch-manipulation"
+          className="flex w-full items-center gap-3 rounded-[20px] border border-border/40 bg-card p-3 text-left shadow-sm transition-colors touch-manipulation active:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
             <Heart className="w-4 h-4 text-destructive fill-destructive" />

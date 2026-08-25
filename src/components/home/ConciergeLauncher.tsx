@@ -61,37 +61,44 @@ export default function ConciergeLauncher() {
     navigate(`/concierge${q ? `?q=${encodeURIComponent(q)}` : ""}`);
 
   return (
-    <div className="px-4 pb-3">
+    <div className="px-4 pb-4 sm:px-5">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border/30 bg-background/92 shadow-sm overflow-hidden"
+        className="relative overflow-hidden rounded-[24px] border border-primary/15 bg-gradient-to-br from-violet-500/[0.10] via-background to-fuchsia-500/[0.06] p-4 shadow-[0_16px_40px_-30px_rgba(76,29,149,0.5)]"
       >
         {/* Top row */}
-        <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-            <Sparkles className="w-3 h-3" /> Concierge
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Sparkles className="h-5 w-5" aria-hidden="true" />
           </span>
-          <span className="text-[10px] font-semibold text-muted-foreground/60 border border-border/30 rounded-full px-1.5 py-0.5">
-            Beta
-          </span>
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold tracking-tight text-foreground">Concierge</h2>
+              <span className="rounded-full border border-primary/15 bg-background/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
+                Beta
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Plan dinner, travel, or a ride in one message.</p>
+          </div>
           <button
             type="button"
             onClick={() => open()}
-            className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-[11px] font-semibold touch-manipulation active:opacity-80 transition-opacity"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-primary-foreground shadow-sm transition touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            Start <ArrowRight className="w-3 h-3" />
+            Start <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
 
-        {/* Suggestion pills — horizontal scroll */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide px-3 pb-3 snap-x">
+        {/* Suggestions wrap so every prompt stays visible without a clipped edge. */}
+        <div className="mt-3 flex flex-wrap gap-2 pb-0.5" aria-label="Concierge suggestions">
           {suggestions.map((s) => (
             <motion.button
+              type="button"
               key={s}
               whileTap={{ scale: 0.96 }}
               onClick={() => open(s)}
-              className="shrink-0 snap-start min-h-[34px] rounded-full border border-border/30 bg-muted/20 px-3 py-1.5 text-[11px] font-semibold text-foreground active:bg-muted/40 transition-colors touch-manipulation"
+              className="min-h-11 rounded-full border border-primary/10 bg-background/80 px-3.5 py-2 text-[11px] font-semibold text-foreground shadow-sm transition-colors touch-manipulation active:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               {s}
             </motion.button>

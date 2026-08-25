@@ -1,7 +1,7 @@
 /**
  * ZIVO Mobile Bottom Navigation — 2026 floating pill
- * Dynamic Island–inspired: active tab expands to show icon + label.
- * Frosted-glass capsule floats above safe-area with spring-animated layout.
+ * Dynamic Island–inspired frosted capsule with always-visible labels.
+ * The active tab gets a calm lozenge while every route remains easy to scan.
  */
 import { forwardRef, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -135,8 +135,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe pointer-events-none"
     >
-      {/* Instagram-style floating glass bar — clean frosted capsule, icon-only,
-          with a soft neutral pill behind the active icon. No rainbow accents. */}
+      {/* Floating glass bar with compact labels and a soft active lozenge. */}
       <div className="relative px-3 pb-3">
         <div
           className={cn(
@@ -188,10 +187,10 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                 }
               }}
               className={cn(
-                "group relative flex flex-1 min-h-[52px] min-w-[44px] touch-manipulation items-center justify-center",
+                "group relative flex min-h-[52px] min-w-[44px] flex-1 touch-manipulation flex-col items-center justify-center gap-1 overflow-hidden",
                 "rounded-2xl px-0.5 transition-all duration-200 ease-out active:scale-[0.92]",
                 isActive
-                  ? "text-zinc-900 dark:text-white"
+                  ? "text-primary"
                   : "text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300",
               )}
               aria-label={
@@ -211,7 +210,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                 className={cn(
                   "pointer-events-none absolute inset-x-1.5 inset-y-1.5 rounded-[16px] transition-all duration-300 ease-out",
                   isActive
-                    ? "scale-100 opacity-100 bg-black/[0.08] shadow-[inset_0_0_0_0.5px_rgba(0,0,0,0.04)] dark:bg-white/[0.12] dark:shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.06)]"
+                    ? "scale-100 opacity-100 bg-primary/[0.10] shadow-[inset_0_0_0_0.5px_hsl(var(--primary)/0.16)]"
                     : "scale-90 opacity-0",
                 )}
                 aria-hidden
@@ -240,7 +239,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                 <div className="relative z-10 shrink-0">
                   <Icon
                     className={cn(
-                      "h-[22px] w-[22px] transition-all duration-200",
+                      "h-5 w-5 transition-all duration-200",
                       isActive && "scale-[1.08] drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]",
                     )}
                     strokeWidth={isActive ? 2.4 : 1.6}
@@ -249,6 +248,15 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                   />
                 </div>
               )}
+
+              <span
+                className={cn(
+                  "relative z-10 block w-full truncate text-center text-[9px] font-medium leading-none tracking-[-0.01em] sm:text-[10px]",
+                  isActive && "font-semibold",
+                )}
+              >
+                {label}
+              </span>
 
               {/* Badge */}
               {typeof tab.badge === "number" && tab.badge > 0 && (

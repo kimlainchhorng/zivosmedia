@@ -41,51 +41,60 @@ export default function PlanTripBundle() {
   };
 
   return (
-    <div className="px-4 pb-3">
+    <div className="px-4 pb-4 sm:px-5">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border/30 bg-background/92 shadow-sm overflow-hidden"
+        className="overflow-hidden rounded-[24px] border border-sky-500/15 bg-gradient-to-br from-sky-500/[0.10] via-background to-cyan-500/[0.05] p-4 shadow-[0_16px_40px_-30px_rgba(14,116,144,0.45)]"
       >
         {/* Top row: label + CTA */}
-        <div className="flex items-center gap-2 px-3 pt-3 pb-2">
-          <span className="text-[11px] font-semibold text-primary flex items-center gap-1">
-            <Sparkles className="w-3 h-3" /> Trip Bundle
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700 dark:text-sky-300">
+            <Sparkles className="h-5 w-5" aria-hidden="true" />
           </span>
-          <span className="text-[10px] font-semibold text-muted-foreground/60 border border-border/30 rounded-full px-1.5 py-0.5">
-            New
-          </span>
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold tracking-tight text-foreground">Trip Bundle</h2>
+              <span className="rounded-full border border-sky-500/15 bg-background/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                New
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Flight, hotel, and airport ride in one plan.</p>
+          </div>
           <div className="ml-auto flex items-center gap-1.5">
             <motion.button
+              type="button"
               whileTap={{ scale: 0.95 }}
               onClick={shareTripBundle}
               aria-label="Share trip bundle"
-              className="h-7 w-7 inline-flex items-center justify-center rounded-full border border-border/30 text-muted-foreground active:opacity-70 touch-manipulation"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-sky-500/15 bg-background/75 text-muted-foreground transition-colors touch-manipulation active:bg-sky-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <Share2 className="w-3 h-3" />
+              <Share2 className="h-4 w-4" aria-hidden="true" />
             </motion.button>
             <motion.button
+              type="button"
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate("/flights?bundle=1")}
-              className="inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground px-3 py-1.5 text-[11px] font-semibold touch-manipulation active:opacity-80"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-primary-foreground shadow-sm touch-manipulation active:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              Start <ArrowRight className="w-3 h-3" />
+              Start <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </motion.button>
           </div>
         </div>
 
         {/* Step pills — horizontal row */}
-        <div className="flex gap-2 px-3 pb-3">
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide" aria-label="Trip bundle services">
           {STEPS.map((s) => {
             const Icon = s.icon;
             return (
               <motion.button
+                type="button"
                 key={s.label}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate(s.to)}
-                className="flex items-center gap-1.5 rounded-full border border-border/30 bg-muted/20 px-3 py-1.5 text-[11px] font-semibold text-foreground touch-manipulation active:bg-muted/40 transition-colors"
+                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-sky-500/15 bg-background/80 px-3.5 py-2 text-[11px] font-semibold text-foreground shadow-sm transition-colors touch-manipulation active:bg-sky-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <Icon className="w-3 h-3 text-muted-foreground shrink-0" strokeWidth={1.8} />
+                <Icon className="h-3.5 w-3.5 shrink-0 text-sky-700 dark:text-sky-300" strokeWidth={1.8} aria-hidden="true" />
                 {s.label}
               </motion.button>
             );

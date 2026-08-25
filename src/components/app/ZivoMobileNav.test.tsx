@@ -32,6 +32,7 @@ vi.mock("@/hooks/useI18n", () => ({
         "nav.home": "Home",
         "nav.feed": "Feed",
         "nav.reel": "Reels",
+        "nav.ride": "Ride",
         "nav.chat": "Chat",
         "nav.account": "Account",
       })[key] ?? key,
@@ -110,5 +111,13 @@ describe("ZivoMobileNav", () => {
     expect(screen.getByLabelText("Feed")).toBeInTheDocument();
     expect(screen.getByLabelText("Reels")).toBeInTheDocument();
     expect(screen.getByLabelText("Account")).toBeInTheDocument();
+  });
+
+  it("shows a readable label for every primary destination", () => {
+    renderMobileNav();
+
+    for (const label of ["Home", "Feed", "Reels", "Ride", "Account"]) {
+      expect(screen.getByRole("button", { name: label })).toHaveTextContent(label);
+    }
   });
 });

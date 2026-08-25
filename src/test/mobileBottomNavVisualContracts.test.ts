@@ -20,6 +20,7 @@ describe("mobile bottom nav visual contracts", () => {
     expect(nav).toContain("min-h-[52px] min-w-[44px]");
     expect(nav).toContain('aria-current={isActive ? "page" : undefined}');
     expect(nav).toContain('const label = tab.label ?? (tab.labelKey ? t(tab.labelKey) : "");');
+    expect(nav).toContain("block w-full truncate text-center text-[9px] font-medium");
     // Active pill is a plain CSS-transition lozenge — framer-motion shared-layout
     // layoutId was deliberately removed (loops when the nav mounts twice).
     expect(nav).toContain("no framer-motion layoutId");

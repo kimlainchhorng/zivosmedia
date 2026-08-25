@@ -134,17 +134,17 @@ function HomeServiceTile({
       whileTap={{ scale: 0.92 }}
       onPointerDown={() => onPrefetch(service.href)}
       onClick={() => onNavigate(service.href)}
-      className="group flex min-w-0 flex-col items-center gap-2 rounded-2xl touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="group flex min-h-[92px] min-w-0 flex-col items-center justify-start gap-2.5 rounded-[20px] p-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transform-none"
     >
       <span
         className={cn(
-          "flex h-16 w-16 items-center justify-center rounded-2xl border shadow-sm transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md",
+          "flex h-14 w-14 items-center justify-center rounded-[18px] border shadow-[0_8px_24px_-16px_rgba(15,23,42,0.35)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:transform-none",
           service.accentClassName,
         )}
       >
-        <Icon className="h-7 w-7" strokeWidth={1.8} aria-hidden="true" />
+        <Icon className="h-6 w-6" strokeWidth={1.9} aria-hidden="true" />
       </span>
-      <span className="max-w-full truncate text-center text-[11px] font-semibold leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
+      <span className="max-w-full truncate text-center text-[11px] font-semibold leading-tight text-foreground/70 transition-colors group-hover:text-foreground">
         {service.label}
       </span>
     </motion.button>
@@ -720,7 +720,7 @@ const AppHome = () => {
   return (
     <div>
     <SEOHead title="ZIVO – Your Travel Super-App" description="Book rides, flights, hotels, and grocery delivery — all in one app." />
-    <div className="relative min-h-[100dvh] bg-background font-sans text-foreground selection:bg-primary/30 overflow-x-hidden" role="main">
+    <div className="relative min-h-[100dvh] bg-muted/[0.14] font-sans text-foreground selection:bg-primary/30 overflow-x-hidden" role="main">
       {/* Safe-area top backdrop — Capacitor's `overlaysWebView: true` lets web
           content paint up to the very top of the screen for full-bleed cover
           photos. Without this strip, scrolled content slides BEHIND the Dynamic
@@ -762,7 +762,7 @@ const AppHome = () => {
         )}
         {/* Ambient orbs removed on mobile — they triggered CLS and constant repaints. */}
         {/* ─── HEADER ─── */}
-        <div className="bg-background relative">
+        <div className="relative">
 
           {/* ─── GREETING HEADER ─── */}
           {user ? (
@@ -770,7 +770,7 @@ const AppHome = () => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className={`flex items-center justify-between px-5 pb-4 ${isNativeApp ? "pt-safe" : "pt-3"}`}
+              className={`flex items-center justify-between border-b border-border/30 bg-background px-5 pb-4 ${isNativeApp ? "pt-safe" : "pt-3"}`}
             >
               <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-3 touch-manipulation active:opacity-75 transition-opacity">
                 <div className="shrink-0 p-[2px] rounded-full bg-ig-gradient">
@@ -802,7 +802,7 @@ const AppHome = () => {
                   type="button"
                   aria-label="Activity"
                   onClick={() => navigate("/activity")}
-                  className="relative w-10 h-10 rounded-full bg-muted/20 border border-border/30 flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
+                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/40 bg-card shadow-sm transition-transform touch-manipulation active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   <Bell className="w-[18px] h-[18px] text-foreground" strokeWidth={1.8} />
                 </button>
@@ -815,25 +815,30 @@ const AppHome = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 280, damping: 28, delay: 0.1 }}
-            className={cn("pb-5", user ? "pt-1" : "pt-safe")}
+            className={cn("px-4 pb-4", user ? "pt-4" : "pt-safe")}
           >
-            <div className="flex items-center justify-between mb-3 px-5">
-              <h2 className="text-[17px] font-bold text-foreground">{t("home.more_services")}</h2>
-              <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="h-11 w-11 -mr-2 flex items-center justify-center touch-manipulation rounded-full hover:bg-muted/50 transition-colors">
-                <ArrowRight className="w-4.5 h-4.5 text-muted-foreground" />
-              </button>
-            </div>
-            <div className="grid grid-cols-4 gap-x-3 gap-y-4 px-5 pb-2">
-              {homeServices.map((service, index) => (
-                <HomeServiceTile
-                  key={service.href}
-                  service={service}
-                  index={index}
-                  onNavigate={navigate}
-                  onPrefetch={prefetch}
-                />
-              ))}
-            </div>
+            <section
+              aria-labelledby="home-services-heading"
+              className="rounded-[28px] border border-border/40 bg-card px-3.5 pb-4 pt-3 shadow-[0_16px_48px_-34px_rgba(15,23,42,0.38)]"
+            >
+              <div className="mb-3 flex items-center justify-between px-1">
+                <h2 id="home-services-heading" className="text-[17px] font-bold tracking-tight text-foreground">{t("home.more_services")}</h2>
+                <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="-mr-1 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors touch-manipulation hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  <ArrowRight className="h-[18px] w-[18px]" />
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+                {homeServices.map((service, index) => (
+                  <HomeServiceTile
+                    key={service.href}
+                    service={service}
+                    index={index}
+                    onNavigate={navigate}
+                    onPrefetch={prefetch}
+                  />
+                ))}
+              </div>
+            </section>
           </motion.div>
 
           {/* ─── TODAY'S PLAN ─── */}
