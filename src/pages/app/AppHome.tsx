@@ -33,6 +33,12 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import type { HomeRestaurant } from "@/hooks/usePersonalizedHome";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import zivoRideIcon from "@/assets/zivo-ride-icon.webp";
+import zivoEatsIcon from "@/assets/zivo-eats-icon.webp";
+import zivoFlightsIcon from "@/assets/zivo-flights-icon.webp";
+import zivoHotelsIcon from "@/assets/zivo-hotels-icon.webp";
+import zivoRentalCarIcon from "@/assets/zivo-rental-car.webp";
+import zivoShoppingIcon from "@/assets/zivo-shopping.webp";
 
 // Lazy-load below-fold heavy components
 const LiveTripTracker = lazy(() => import("@/components/home/widgets/LiveTripTracker"));
@@ -46,12 +52,10 @@ const TodayPlanWidget = lazy(() => import("@/components/home/TodayPlanWidget"));
 const SpendTrackerWidget = lazy(() => import("@/components/home/SpendTrackerWidget"));
 
 // Icons used below-fold (still small, but needed)
-import Utensils from "lucide-react/dist/esm/icons/utensils";
 import Hotel from "lucide-react/dist/esm/icons/hotel";
 import Gift from "lucide-react/dist/esm/icons/gift";
 import Clock from "lucide-react/dist/esm/icons/clock";
 import Wallet from "lucide-react/dist/esm/icons/wallet";
-import Navigation from "lucide-react/dist/esm/icons/navigation";
 import Globe from "lucide-react/dist/esm/icons/globe";
 import Calendar from "lucide-react/dist/esm/icons/calendar";
 import Bell from "lucide-react/dist/esm/icons/bell";
@@ -64,8 +68,6 @@ import Sun from "lucide-react/dist/esm/icons/sun";
 import Sunset from "lucide-react/dist/esm/icons/sunset";
 import Moon from "lucide-react/dist/esm/icons/moon";
 import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
-import KeyRound from "lucide-react/dist/esm/icons/key-round";
-import ShoppingBag from "lucide-react/dist/esm/icons/shopping-bag";
 import { Progress } from "@/components/ui/progress";
 import { useLoyaltyPoints } from "@/hooks/useLoyaltyPoints";
 import { useUserRewards } from "@/hooks/useUserRewards";
@@ -107,8 +109,9 @@ const savedPlaceIconMap: Record<string, LucideIcon> = {
 type HomeServiceTileConfig = {
   label: string;
   href: string;
-  Icon: LucideIcon;
-  accentClassName: string;
+  Icon?: LucideIcon;
+  imageSrc?: string;
+  imageClassName?: string;
 };
 
 function HomeServiceTile({
@@ -134,17 +137,25 @@ function HomeServiceTile({
       whileTap={{ scale: 0.92 }}
       onPointerDown={() => onPrefetch(service.href)}
       onClick={() => onNavigate(service.href)}
-      className="group flex min-h-[92px] min-w-0 flex-col items-center justify-start gap-2.5 rounded-[20px] p-1.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transform-none"
+      className="group flex min-h-[88px] min-w-0 flex-col items-center justify-start gap-2 rounded-[20px] p-0.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transform-none"
     >
-      <span
-        className={cn(
-          "flex h-14 w-14 items-center justify-center rounded-[18px] border shadow-[0_8px_24px_-16px_rgba(15,23,42,0.35)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md motion-reduce:transform-none",
-          service.accentClassName,
-        )}
-      >
-        <Icon className="h-6 w-6" strokeWidth={1.9} aria-hidden="true" />
+      <span className="flex h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-[19px] bg-white shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),0_2px_6px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.025] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_28px_-12px_rgba(15,23,42,0.24)] motion-reduce:transform-none">
+        {service.imageSrc ? (
+          <img
+            src={service.imageSrc}
+            alt=""
+            width={64}
+            height={64}
+            className={cn("h-[64%] w-[64%] object-contain", service.imageClassName)}
+            loading="eager"
+            decoding="async"
+            aria-hidden="true"
+          />
+        ) : Icon ? (
+          <Icon className="h-7 w-7 text-zinc-950" strokeWidth={1.9} aria-hidden="true" />
+        ) : null}
       </span>
-      <span className="max-w-full truncate text-center text-[11px] font-semibold leading-tight text-foreground/70 transition-colors group-hover:text-foreground">
+      <span className="max-w-full truncate text-center text-[11px] font-semibold leading-tight text-muted-foreground transition-colors group-hover:text-foreground sm:text-xs">
         {service.label}
       </span>
     </motion.button>
@@ -580,14 +591,14 @@ const AppHome = () => {
   const { prefetch } = useRoutePrefetch();
   const hotelsPath = useMemo(() => buildHotelsPath(), []);
   const homeServices: HomeServiceTileConfig[] = [
-    { label: t("home.ride"), href: "/rides/hub", Icon: Navigation, accentClassName: "badge-rides border-[hsl(var(--rides)/0.18)]" },
-    { label: t("home.eats"), href: "/eats", Icon: Utensils, accentClassName: "badge-eats border-[hsl(var(--eats)/0.18)]" },
-    { label: t("home.flights"), href: "/flights", Icon: Plane, accentClassName: "badge-flights border-[hsl(var(--flights)/0.18)]" },
-    { label: t("home.hotels"), href: hotelsPath, Icon: BedDouble, accentClassName: "badge-hotels border-[hsl(var(--hotels)/0.18)]" },
-    { label: t("home.rental_cars"), href: "/rent-car", Icon: KeyRound, accentClassName: "badge-cars border-[hsl(var(--cars)/0.18)]" },
-    { label: t("home.bus"), href: "/bus", Icon: Bus, accentClassName: "badge-flights border-[hsl(var(--flights)/0.18)]" },
-    { label: t("home.shopping"), href: "/grocery", Icon: ShoppingBag, accentClassName: "badge-eats border-[hsl(var(--eats)/0.18)]" },
-    { label: "Delivery", href: "/delivery", Icon: Package, accentClassName: "badge-rides border-[hsl(var(--rides)/0.18)]" },
+    { label: t("home.ride"), href: "/rides/hub", imageSrc: zivoRideIcon, imageClassName: "w-[70%]" },
+    { label: t("home.eats"), href: "/eats", imageSrc: zivoEatsIcon },
+    { label: t("home.flights"), href: "/flights", imageSrc: zivoFlightsIcon },
+    { label: t("home.hotels"), href: hotelsPath, imageSrc: zivoHotelsIcon, imageClassName: "h-[68%] w-[68%]" },
+    { label: t("home.rental_cars"), href: "/rent-car", imageSrc: zivoRentalCarIcon, imageClassName: "h-[72%] w-[72%]" },
+    { label: t("home.bus"), href: "/bus", Icon: Bus },
+    { label: t("home.shopping"), href: "/grocery", imageSrc: zivoShoppingIcon },
+    { label: "Delivery", href: "/delivery", Icon: Package },
   ];
   const { data: profile, isError: hasProfileError } = useUserProfile();
   const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
@@ -720,7 +731,7 @@ const AppHome = () => {
   return (
     <div>
     <SEOHead title="ZIVO – Your Travel Super-App" description="Book rides, flights, hotels, and grocery delivery — all in one app." />
-    <div className="relative min-h-[100dvh] bg-muted/[0.14] font-sans text-foreground selection:bg-primary/30 overflow-x-hidden" role="main">
+    <div className="relative min-h-[100dvh] bg-background font-sans text-foreground selection:bg-primary/30 overflow-x-hidden" role="main">
       {/* Safe-area top backdrop — Capacitor's `overlaysWebView: true` lets web
           content paint up to the very top of the screen for full-bleed cover
           photos. Without this strip, scrolled content slides BEHIND the Dynamic
@@ -770,14 +781,14 @@ const AppHome = () => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className={`flex items-center justify-between border-b border-border/30 bg-background px-5 pb-4 ${isNativeApp ? "pt-safe" : "pt-3"}`}
+              className={`flex items-center justify-between bg-background px-5 pb-5 ${isNativeApp ? "pt-safe" : "pt-4"}`}
             >
               <button type="button" onClick={() => navigate("/profile")} className="flex items-center gap-3 touch-manipulation active:opacity-75 transition-opacity">
                 <div className="shrink-0 p-[2px] rounded-full bg-ig-gradient">
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt={userName} width={44} height={44} className="w-11 h-11 rounded-full object-cover block" loading="lazy" decoding="async" />
+                    <img src={avatarUrl} alt={userName} width={44} height={44} className="h-11 w-11 rounded-full object-cover block" loading="lazy" decoding="async" />
                   ) : (
-                    <div className="w-11 h-11 rounded-full bg-primary/12 flex items-center justify-center">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/12">
                       <span className="text-base font-semibold text-primary">{initials}</span>
                     </div>
                   )}
@@ -802,7 +813,7 @@ const AppHome = () => {
                   type="button"
                   aria-label="Activity"
                   onClick={() => navigate("/activity")}
-                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/40 bg-card shadow-sm transition-transform touch-manipulation active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/35 bg-background shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition-transform touch-manipulation active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   <Bell className="w-[18px] h-[18px] text-foreground" strokeWidth={1.8} />
                 </button>
@@ -815,19 +826,16 @@ const AppHome = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 280, damping: 28, delay: 0.1 }}
-            className={cn("px-4 pb-4", user ? "pt-4" : "pt-safe")}
+            className={cn("px-4 pb-7", user ? "pt-4" : "pt-safe")}
           >
-            <section
-              aria-labelledby="home-services-heading"
-              className="rounded-[28px] border border-border/40 bg-card px-3.5 pb-4 pt-3 shadow-[0_16px_48px_-34px_rgba(15,23,42,0.38)]"
-            >
-              <div className="mb-3 flex items-center justify-between px-1">
-                <h2 id="home-services-heading" className="text-[17px] font-bold tracking-tight text-foreground">{t("home.more_services")}</h2>
-                <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="-mr-1 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors touch-manipulation hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                  <ArrowRight className="h-[18px] w-[18px]" />
+            <section aria-labelledby="home-services-heading">
+              <div className="mb-5 flex items-center justify-between px-0.5">
+                <h2 id="home-services-heading" className="bg-ig-gradient bg-clip-text text-[18px] font-extrabold tracking-tight text-transparent">{t("home.more_services")}</h2>
+                <button type="button" aria-label="View all services" onClick={() => navigate("/services")} className="-mr-2 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors touch-manipulation hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  <ArrowRight className="h-5 w-5" strokeWidth={1.8} />
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+              <div className="grid grid-cols-4 gap-x-2 gap-y-4">
                 {homeServices.map((service, index) => (
                   <HomeServiceTile
                     key={service.href}

@@ -135,30 +135,17 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-[1401] lg:hidden pb-safe pointer-events-none"
     >
-      {/* Floating glass bar with compact labels and a soft active lozenge. */}
-      <div className="relative px-3 pb-3">
+      {/* Floating white capsule; the active destination carries the brand gradient. */}
+      <div className="relative mx-auto w-[calc(100%-32px)] max-w-[310px] pb-3">
         <div
           className={cn(
             "pointer-events-auto relative flex w-full items-stretch px-1.5 py-2",
             "rounded-[26px]",
-            /* Instagram-style frosted surface — present enough to stay a stable
-               bright bar in light mode (so the active pill always reads), while
-               blur+saturate still let content bleed softly through. */
-            "bg-white/[0.45] backdrop-blur-3xl backdrop-saturate-[2]",
-            /* Rim-light border — bright specular edge */
-            "border border-white/40",
-            /* Specular highlights (bright top, faint bottom) + soft diffuse float */
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),inset_0_-0.5px_0_rgba(255,255,255,0.1),0_8px_40px_rgba(0,0,0,0.1),0_2px_12px_rgba(0,0,0,0.05)]",
-            /* Dark mode glass */
-            "dark:bg-zinc-900/[0.55] dark:border-white/[0.10]",
-            "dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-0.5px_0_rgba(255,255,255,0.02),0_8px_40px_rgba(0,0,0,0.5),0_2px_12px_rgba(0,0,0,0.25)]",
+            "border border-zinc-100 bg-white/95 backdrop-blur-2xl",
+            "shadow-[0_14px_38px_rgba(15,23,42,0.14)]",
+            "dark:border-white/[0.10] dark:bg-zinc-950/95 dark:shadow-[0_14px_38px_rgba(0,0,0,0.48)]",
           )}
         >
-        {/* Glassy sheen — diagonal highlight catch */}
-        <div
-          className="pointer-events-none absolute inset-0 rounded-[26px] bg-gradient-to-br from-white/[0.12] via-transparent to-transparent dark:from-white/[0.04] dark:via-transparent dark:to-transparent"
-          aria-hidden
-        />
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -187,10 +174,11 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                 }
               }}
               className={cn(
-                "group relative flex min-h-[52px] min-w-[44px] flex-1 touch-manipulation flex-col items-center justify-center gap-1 overflow-hidden",
-                "rounded-2xl px-0.5 transition-all duration-200 ease-out active:scale-[0.92]",
+                "group relative flex min-h-[52px] min-w-[44px] touch-manipulation items-center justify-center overflow-hidden",
+                "rounded-full transition-all duration-200 ease-out active:scale-[0.92]",
+                isActive ? "flex-[1.35] flex-row gap-2 px-3 text-white" : "flex-1 flex-col px-0.5",
                 isActive
-                  ? "text-primary"
+                  ? "text-white"
                   : "text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300",
               )}
               aria-label={
@@ -201,16 +189,16 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
               aria-current={isActive ? "page" : undefined}
               title={label}
             >
-              {/* Instagram-style active pill — a soft neutral lozenge behind the
-                  selected icon. Plain CSS transition (no framer-motion layoutId):
+              {/* The selected destination uses the same orange-to-magenta accent
+                  as the supplied reference. Plain CSS transition (no framer-motion layoutId):
                   shared-layout layoutId loops ("Maximum update depth") when
                   ZivoMobileNav is mounted more than once on a page (e.g. MorePage
                   renders its own instance). */}
               <div
                 className={cn(
-                  "pointer-events-none absolute inset-x-1.5 inset-y-1.5 rounded-[16px] transition-all duration-300 ease-out",
+                  "pointer-events-none absolute inset-1 rounded-full transition-all duration-300 ease-out",
                   isActive
-                    ? "scale-100 opacity-100 bg-primary/[0.10] shadow-[inset_0_0_0_0.5px_hsl(var(--primary)/0.16)]"
+                    ? "scale-100 bg-ig-gradient opacity-100 shadow-[0_8px_20px_-10px_rgba(207,11,114,0.75)]"
                     : "scale-90 opacity-0",
                 )}
                 aria-hidden
@@ -228,7 +216,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                     <AvatarFallback className={cn(
                       "text-[10px] font-bold",
                       isActive
-                        ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white"
+                        ? "bg-white/20 text-white"
                         : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
                     )}>
                       {(profile?.full_name?.[0] || user.email?.[0] || "Z").toUpperCase()}
@@ -251,8 +239,9 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
 
               <span
                 className={cn(
-                  "relative z-10 block w-full truncate text-center text-[9px] font-medium leading-none tracking-[-0.01em] sm:text-[10px]",
-                  isActive && "font-semibold",
+                  isActive
+                    ? "relative z-10 block max-w-[70px] truncate text-[11px] font-bold leading-none tracking-[-0.01em]"
+                    : "sr-only",
                 )}
               >
                 {label}
@@ -266,7 +255,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>((_props, re
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 520, damping: 22 }}
                   className={cn(
-                    "absolute right-[16%] top-0 z-20 flex h-[15px] min-w-[15px] items-center justify-center",
+                    "absolute right-[8%] top-0 z-20 flex h-[15px] min-w-[15px] items-center justify-center",
                     "rounded-full px-[4px] text-[8px] font-black leading-none",
                     "bg-rose-500 text-white shadow-[0_2px_6px_rgba(244,63,94,0.35)]",
                   )}

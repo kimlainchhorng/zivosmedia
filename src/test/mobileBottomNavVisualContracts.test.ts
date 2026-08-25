@@ -16,15 +16,19 @@ describe("mobile bottom nav visual contracts", () => {
     expect(nav).toContain("data-zivo-mobile-nav");
     expect(nav).toContain("fixed inset-x-0 bottom-0");
     expect(nav).toContain("lg:hidden pb-safe");
+    expect(nav).toContain("max-w-[310px]");
     expect(nav).toContain("pointer-events-auto relative flex w-full items-stretch px-1.5 py-2");
     expect(nav).toContain("min-h-[52px] min-w-[44px]");
     expect(nav).toContain('aria-current={isActive ? "page" : undefined}');
     expect(nav).toContain('const label = tab.label ?? (tab.labelKey ? t(tab.labelKey) : "");');
-    expect(nav).toContain("block w-full truncate text-center text-[9px] font-medium");
+    expect(nav).toContain('isActive ? "flex-[1.35] flex-row gap-2 px-3 text-white"');
+    expect(nav).toContain('isActive\n                    ? "relative z-10 block max-w-[70px] truncate');
+    expect(nav).toContain(': "sr-only"');
+    expect(nav).toContain("bg-ig-gradient opacity-100");
     // Active pill is a plain CSS-transition lozenge — framer-motion shared-layout
     // layoutId was deliberately removed (loops when the nav mounts twice).
     expect(nav).toContain("no framer-motion layoutId");
-    expect(nav).toContain("pointer-events-none absolute inset-x-1.5 inset-y-1.5 rounded-[16px] transition-all duration-300 ease-out");
+    expect(nav).toContain("pointer-events-none absolute inset-1 rounded-full transition-all duration-300 ease-out");
 
     for (const routeToken of [
       "SOCIAL_ROUTE_PATHS.feed",

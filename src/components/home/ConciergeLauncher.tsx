@@ -8,7 +8,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
 import { useCustomerCity } from "@/contexts/CustomerCityContext";
 
@@ -65,40 +64,34 @@ export default function ConciergeLauncher() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[24px] border border-primary/15 bg-gradient-to-br from-violet-500/[0.10] via-background to-fuchsia-500/[0.06] p-4 shadow-[0_16px_40px_-30px_rgba(76,29,149,0.5)]"
+        className="relative overflow-hidden rounded-[18px] border border-border/70 bg-background"
       >
-        {/* Top row */}
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Sparkles className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div className="min-w-0 flex-1 pt-0.5">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold tracking-tight text-foreground">Concierge</h2>
-              <span className="rounded-full border border-primary/15 bg-background/70 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
-                Beta
-              </span>
-            </div>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Plan dinner, travel, or a ride in one message.</p>
+        <div className="flex h-11 items-center gap-2 px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <h2 className="bg-ig-gradient bg-clip-text text-[10px] font-extrabold uppercase tracking-[0.07em] text-transparent">
+              Concierge
+            </h2>
+            <span className="rounded-full border border-border/70 bg-background px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Beta
+            </span>
           </div>
           <button
             type="button"
             onClick={() => open()}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-xs font-bold text-primary-foreground shadow-sm transition touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="relative inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-ig-gradient px-3.5 text-[11px] font-bold text-white shadow-[0_6px_16px_-8px_rgba(207,11,114,0.7)] transition before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] touch-manipulation active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             Start <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
 
-        {/* Suggestions wrap so every prompt stays visible without a clipped edge. */}
-        <div className="mt-3 flex flex-wrap gap-2 pb-0.5" aria-label="Concierge suggestions">
+        <div className="flex min-h-10 gap-2 overflow-x-auto border-t border-border/60 bg-background px-2 py-0.5 scrollbar-hide" aria-label="Concierge suggestions">
           {suggestions.map((s) => (
             <motion.button
               type="button"
               key={s}
               whileTap={{ scale: 0.96 }}
               onClick={() => open(s)}
-              className="min-h-11 rounded-full border border-primary/10 bg-background/80 px-3.5 py-2 text-[11px] font-semibold text-foreground shadow-sm transition-colors touch-manipulation active:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="relative min-h-9 shrink-0 rounded-full border border-border/70 bg-zinc-50 px-3.5 text-[11px] font-semibold text-foreground transition-colors before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] touch-manipulation active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-zinc-900"
             >
               {s}
             </motion.button>

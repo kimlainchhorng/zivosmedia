@@ -12,7 +12,13 @@ describe("authenticated home UX contracts", () => {
     const home = source("src/pages/app/AppHome.tsx");
 
     expect(home).toContain("grid grid-cols-4");
-    expect(home).toContain("min-h-[92px]");
+    expect(home).toContain("min-h-[88px]");
+    expect(home).toContain("zivo-ride-icon.webp");
+    expect(home).toContain("zivo-eats-icon.webp");
+    expect(home).toContain("zivo-flights-icon.webp");
+    expect(home).toContain("zivo-hotels-icon.webp");
+    expect(home).toContain("zivo-rental-car.webp");
+    expect(home).toContain("zivo-shopping.webp");
 
     for (const route of [
       'href: "/rides/hub"',
@@ -34,11 +40,13 @@ describe("authenticated home UX contracts", () => {
     const bundle = source("src/components/home/PlanTripBundle.tsx");
     const network = source("src/components/home/NetworkPromoStrip.tsx");
 
-    expect(concierge).toContain("min-h-11");
-    expect(concierge).toContain("from-violet-500/[0.10]");
-    expect(bundle).toContain("min-h-11");
-    expect(bundle).toContain("from-sky-500/[0.10]");
-    expect(network).toContain("line-clamp-2");
-    expect(network).not.toContain("text-muted-foreground truncate");
+    expect(concierge).toContain("bg-ig-gradient");
+    expect(concierge).toContain("overflow-x-auto");
+    expect(concierge).not.toContain("from-violet-500/[0.10]");
+    expect(bundle).toContain("bg-ig-gradient");
+    expect(bundle).toContain("overflow-x-auto");
+    expect(bundle).not.toContain("from-sky-500/[0.10]");
+    expect(network).toContain("bg-ig-gradient");
+    expect(network).toContain("truncate text-[10.5px]");
   });
 });
