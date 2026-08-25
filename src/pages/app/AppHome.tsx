@@ -20,7 +20,6 @@ import Car from "lucide-react/dist/esm/icons/car";
 import BedDouble from "lucide-react/dist/esm/icons/bed-double";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Package from "lucide-react/dist/esm/icons/package";
-import Bus from "lucide-react/dist/esm/icons/bus";
 import Star from "lucide-react/dist/esm/icons/star";
 import Heart from "lucide-react/dist/esm/icons/heart";
 import Home from "lucide-react/dist/esm/icons/home";
@@ -38,6 +37,7 @@ import zivoEatsIcon from "@/assets/zivo-eats-icon.webp";
 import zivoFlightsIcon from "@/assets/zivo-flights-icon.webp";
 import zivoHotelsIcon from "@/assets/zivo-hotels-icon.webp";
 import zivoRentalCarIcon from "@/assets/zivo-rental-car.webp";
+import zivoBusIcon from "@/assets/zivo-bus-icon.webp";
 import zivoShoppingIcon from "@/assets/zivo-shopping.webp";
 
 // Lazy-load below-fold heavy components
@@ -596,7 +596,7 @@ const AppHome = () => {
     { label: t("home.flights"), href: "/flights", imageSrc: zivoFlightsIcon },
     { label: t("home.hotels"), href: hotelsPath, imageSrc: zivoHotelsIcon, imageClassName: "h-[68%] w-[68%]" },
     { label: t("home.rental_cars"), href: "/rent-car", imageSrc: zivoRentalCarIcon, imageClassName: "h-[72%] w-[72%]" },
-    { label: t("home.bus"), href: "/bus", Icon: Bus },
+    { label: t("home.bus"), href: "/bus", imageSrc: zivoBusIcon, imageClassName: "h-[68%] w-[86%]" },
     { label: t("home.shopping"), href: "/grocery", imageSrc: zivoShoppingIcon },
     { label: "Delivery", href: "/delivery", Icon: Package },
   ];
