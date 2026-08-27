@@ -19,8 +19,10 @@ describe("native submission commands", () => {
       '"ios:export:store": "node scripts/native/run-ios-store.mjs export"',
       '"ios:upload:app-store": "node scripts/upload-to-app-store.mjs"',
       '"android:sync": "npm run build && npx cap sync android"',
+      '"android:icons:generate": "node scripts/generate-launcher-icons.mjs"',
+      '"android:icons:check": "node scripts/native/check-android-launcher-identity.mjs"',
       '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"',
-      '"android:build:release": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease"',
+      '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease"',
       '"android:upload:play:draft": "node scripts/upload-to-play.mjs"',
     ]) {
       expect(packageJson).toContain(script);
@@ -36,6 +38,8 @@ describe("native submission commands", () => {
     expect(appStore).toContain("App Store Connect");
 
     expect(playStore).toContain("npm run android:sync");
+    expect(playStore).toContain("npm run android:icons:generate");
+    expect(playStore).toContain("npm run android:icons:check");
     expect(playStore).toContain("Generate Signed App Bundle");
     expect(playStore).toContain("Play Console");
     expect(playStore).toContain("upload `.aab`");

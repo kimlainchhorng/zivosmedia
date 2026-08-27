@@ -10,6 +10,7 @@ Run the local release guards before opening Xcode or Android Studio:
 npm run qa:native-app-contracts
 npm run native:doctor
 npm run native:doctor -- --android-only
+npm run android:icons:check
 npm run native:release-secrets:guide
 npm run native:push-secrets:preflight
 npm run native:store-signing:preflight
@@ -122,7 +123,9 @@ npm run android:build:release
 
 Both Android build scripts run `npm run native:doctor -- --android-only`
 before Gradle, so missing Android SDK/platform-tools setup fails with the local
-setup instructions instead of a late Gradle error.
+setup instructions instead of a late Gradle error. The release build also runs
+`npm run android:icons:check` first and stops if any installed launcher artwork
+does not match the canonical Play Store icon.
 
 Run the guarded Play Console helper first as a dry run:
 
@@ -153,6 +156,10 @@ ios/store-listing/sim-profile-now.png
 The App Store listing should include at least 6 current iPhone screenshots.
 The Play Store listing should include 2 to 8 phone screenshots, the 512 icon,
 and the 1024 x 500 feature graphic.
+
+`android/store-listing/icon-512.png` is the canonical Android identity asset.
+After changing it, run `npm run android:icons:generate` and then
+`npm run android:icons:check` before building a release bundle.
 
 ## 6. OTA Safety
 

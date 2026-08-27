@@ -458,6 +458,7 @@ const contracts = [
       const releaseSecretsGuidePath = "scripts/native/release-secrets-guide.mjs";
       const pushSecretsPreflightPath = "scripts/native/push-secrets-preflight.mjs";
       const pushSecretsPreflightTestPath = "scripts/native/push-secrets-preflight.test.mjs";
+      const androidLauncherCheckPath = "scripts/native/check-android-launcher-identity.mjs";
       const appStoreUploadPath = "scripts/upload-to-app-store.mjs";
       const playUploadPath = "scripts/upload-to-play.mjs";
       const mobileWorkflowPath = ".github/workflows/mobile-build.yml";
@@ -475,6 +476,7 @@ const contracts = [
       const releaseSecretsGuide = source(releaseSecretsGuidePath);
       const pushSecretsPreflight = source(pushSecretsPreflightPath);
       const pushSecretsPreflightTest = source(pushSecretsPreflightTestPath);
+      const androidLauncherCheck = source(androidLauncherCheckPath);
       const appStoreUpload = source(appStoreUploadPath);
       const playUpload = source(playUploadPath);
       const mobileWorkflow = source(mobileWorkflowPath);
@@ -501,6 +503,9 @@ const contracts = [
         "ios:build:sim",
         "ios:upload:app-store",
         "android:build:debug",
+        "android:icons:generate",
+        "android:icons:check",
+        "android:build:release",
         "android:upload:play:draft",
       ]) {
         requireContains(this.id, packageJson, `"${scriptName}"`, packagePath);
@@ -509,13 +514,18 @@ const contracts = [
       requireContains(this.id, packageJson, '"platform:audit": "npm run security:scan && npm run qa:platform-readiness', packagePath);
       requireContains(this.id, packageJson, '"ios:build:sim": "npm run native:doctor -- --ios-only && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination', packagePath);
       requireContains(this.id, packageJson, '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"', packagePath);
-      requireContains(this.id, packageJson, '"android:build:release": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease"', packagePath);
+      requireContains(this.id, packageJson, '"android:icons:generate": "node scripts/generate-launcher-icons.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"android:icons:check": "node scripts/native/check-android-launcher-identity.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease"', packagePath);
       requireContains(this.id, packageJson, '"native:store-signing:preflight": "node scripts/native/store-signing-preflight.mjs"', packagePath);
       requireContains(this.id, packageJson, '"native:release-secrets:guide": "node scripts/native/release-secrets-guide.mjs"', packagePath);
       requireContains(this.id, packageJson, '"native:push-secrets:preflight": "node scripts/native/push-secrets-preflight.mjs"', packagePath);
       requireContains(this.id, packageJson, '"native:push-secrets:test": "node --test scripts/native/push-secrets-preflight.test.mjs"', packagePath);
       requireContains(this.id, packageJson, '"ios:upload:app-store": "node scripts/upload-to-app-store.mjs"', packagePath);
       requireContains(this.id, packageJson, '"android:upload:play:draft": "node scripts/upload-to-play.mjs"', packagePath);
+      for (const needle of ["android/store-listing/icon-512.png", "ic_launcher.png", "ic_launcher_round.png", "ic_launcher_foreground.png", "actual.equals(expected)", "npm run android:icons:generate"]) {
+        requireContains(this.id, androidLauncherCheck, needle, androidLauncherCheckPath);
+      }
       requireContains(this.id, packageJson, "npm run qa:platform-readiness && npm run qa:platform-readiness:check", packagePath);
       requireContains(this.id, packageJson, "npm run qa:workflow-coverage && npm run qa:workflow-coverage:check", packagePath);
       requireContains(this.id, packageJson, "npm run qa:workflow-test-plan && npm run qa:workflow-test-plan:check", packagePath);
@@ -736,6 +746,7 @@ const contracts = [
     check() {
       const assetTestPath = "src/test/nativeStoreAssets.test.ts";
       const assetTest = source(assetTestPath);
+      const launcherCheckPath = "scripts/native/check-android-launcher-identity.mjs";
 
       for (const relativePath of [
         "ios/App/App/Assets.xcassets/AppIcon.appiconset/Contents.json",
@@ -747,6 +758,7 @@ const contracts = [
         "android/store-listing/icon-512.png",
         "android/store-listing/feature-graphic.jpg",
         "android/store-listing/from-zip/zivo-icon-512.png",
+        launcherCheckPath,
       ]) {
         requireFile(this.id, relativePath);
       }
@@ -754,6 +766,7 @@ const contracts = [
       for (const density of ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]) {
         requireFile(this.id, `android/app/src/main/res/mipmap-${density}/ic_launcher.png`);
         requireFile(this.id, `android/app/src/main/res/mipmap-${density}/ic_launcher_round.png`);
+        requireFile(this.id, `android/app/src/main/res/mipmap-${density}/ic_launcher_foreground.png`);
         requireFile(this.id, `android/app/src/main/res/drawable-port-${density}/splash.png`);
         requireFile(this.id, `android/app/src/main/res/drawable-land-${density}/splash.png`);
       }
@@ -761,6 +774,8 @@ const contracts = [
       requireContains(this.id, assetTest, "native store release assets", assetTestPath);
       requireContains(this.id, assetTest, "iosScreenshots.length", assetTestPath);
       requireContains(this.id, assetTest, "feature-graphic.jpg", assetTestPath);
+      requireContains(this.id, assetTest, "pixel-aligned with the canonical Play icon", assetTestPath);
+      requireContains(this.id, assetTest, "actual.equals(expected)", assetTestPath);
     },
   },
   {

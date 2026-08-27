@@ -125,21 +125,31 @@ Package name: com.hizovo.app
 Target SDK: 36 (Android 16)
 ```
 
-## 10. Graphic Assets (sizes Google requires — replace files, do NOT change names)
+## 10. Graphic Assets (sizes Google requires)
 
 ```
-Icon:               512 × 512 PNG (32-bit, no alpha background)
+Icon:               512 × 512, 32-bit PNG with alpha, sRGB, max 1024 KB
 Feature graphic:    1024 × 500 PNG/JPG
 Phone screenshots:  min 2, max 8 — at least 1080px on shorter side
 Tablet screenshots: optional but recommended for 7" and 10"
+```
+
+`android/store-listing/icon-512.png` is the canonical ZIVO artwork. Google Play applies the
+final icon mask and drop shadow, so do not add a platform mask or shadow to an upload copy.
+After replacing the canonical icon, regenerate and verify every installed Android launcher:
+
+```bash
+npm run android:icons:generate
+npm run android:icons:check
 ```
 
 ---
 
 ### How to publish
 
-1. Bump `versionCode` and `versionName` in `android/app/build.gradle`
-2. Run `npm run android:sync`
-3. Open Android Studio → **Build → Generate Signed App Bundle**
-4. Play Console → Production → **Create new release** → upload `.aab`
-5. Paste fields above into matching boxes → Save → Review → Roll out
+1. Run `npm run android:icons:check` so the installed launcher matches the listing icon
+2. Bump `versionCode` and `versionName` in `android/app/build.gradle`
+3. Run `npm run android:sync`
+4. Open Android Studio → **Build → Generate Signed App Bundle**
+5. Play Console → Production → **Create new release** → upload `.aab`
+6. Paste fields above into matching boxes → Save → Review → Roll out
