@@ -49,6 +49,7 @@ playwright-report/
 # Native build caches
 ios/DerivedData/
 ios/App/build/
+ios/build/
 /build/
 
 # Auto Repair desktop installer output. Keep generated apps/installers out of
