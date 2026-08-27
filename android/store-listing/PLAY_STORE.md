@@ -116,6 +116,16 @@ Use this in Play Console -> App content -> Data safety -> Account deletion.
 https://zivosmedia.com/delete-account
 ```
 
+Before preparing any Play upload, verify both public policy pages from a real browser:
+
+```bash
+npm run android:policy-pages:check
+```
+
+This check fails if either canonical URL is unavailable, redirects elsewhere, returns a non-HTML
+document, or no longer visibly identifies ZIVO and the required privacy/deletion information. The
+draft upload helper runs the same check automatically before it opens Play Console.
+
 ## 9. Release Metadata
 
 ```
@@ -147,9 +157,10 @@ npm run android:icons:check
 
 ### How to publish
 
-1. Run `npm run android:icons:check` so the installed launcher matches the listing icon
-2. Bump `versionCode` and `versionName` in `android/app/build.gradle`
-3. Run `npm run android:sync`
-4. Open Android Studio → **Build → Generate Signed App Bundle**
-5. Play Console → Production → **Create new release** → upload `.aab`
-6. Paste fields above into matching boxes → Save → Review → Roll out
+1. Run `npm run android:policy-pages:check` so the public privacy and deletion paths are live
+2. Run `npm run android:icons:check` so the installed launcher matches the listing icon
+3. Bump `versionCode` and `versionName` in `android/app/build.gradle`
+4. Run `npm run android:sync`
+5. Open Android Studio → **Build → Generate Signed App Bundle**
+6. Play Console → Production → **Create new release** → upload `.aab`
+7. Paste fields above into matching boxes → Save → Review → Roll out

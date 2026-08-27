@@ -127,6 +127,16 @@ setup instructions instead of a late Gradle error. The release build also runs
 `npm run android:icons:check` first and stops if any installed launcher artwork
 does not match the canonical Play Store icon.
 
+Verify the exact public pages declared to Google Play are live and visibly complete:
+
+```bash
+npm run android:policy-pages:check
+```
+
+The check requires the canonical privacy and account-deletion URLs to return rendered HTML without
+redirecting elsewhere, and confirms the visible ZIVO privacy/deletion content. The draft upload
+helper runs this preflight automatically and stops before Play Console if it fails.
+
 Run the guarded Play Console helper first as a dry run:
 
 ```bash

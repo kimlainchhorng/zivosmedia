@@ -3,7 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
-const read = (relativePath: string) => readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+const read = (relativePath: string) =>
+  readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("native release checklist", () => {
   it("documents the complete iOS and Android release path", () => {
@@ -23,6 +24,7 @@ describe("native release checklist", () => {
       "npm run ios:upload:app-store",
       "npm run android:build:debug",
       "npm run android:build:release",
+      "npm run android:policy-pages:check",
       "npm run android:upload:play:draft",
       "npm run native:store-signing:preflight",
       "npm run deploy:update:dry-run",

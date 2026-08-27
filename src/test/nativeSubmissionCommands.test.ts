@@ -23,6 +23,8 @@ describe("native submission commands", () => {
       '"android:icons:check": "node scripts/native/check-android-launcher-identity.mjs"',
       '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"',
       '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease"',
+      '"android:policy-pages:check": "node scripts/native/check-play-public-policy-pages.mjs"',
+      '"android:policy-pages:test": "node --test scripts/native/check-play-public-policy-pages.test.mjs"',
       '"android:upload:play:draft": "node scripts/upload-to-play.mjs"',
     ]) {
       expect(packageJson).toContain(script);
@@ -40,6 +42,7 @@ describe("native submission commands", () => {
     expect(playStore).toContain("npm run android:sync");
     expect(playStore).toContain("npm run android:icons:generate");
     expect(playStore).toContain("npm run android:icons:check");
+    expect(playStore).toContain("npm run android:policy-pages:check");
     expect(playStore).toContain("Generate Signed App Bundle");
     expect(playStore).toContain("Play Console");
     expect(playStore).toContain("upload `.aab`");
@@ -63,5 +66,21 @@ describe("native submission commands", () => {
     expect(doctor).toContain("Xcode available");
     expect(doctor).toContain("iOS simulator build preflights Xcode");
     expect(nativeContracts).toContain("native-submission-command-alignment");
+  });
+
+  it("fails Play draft uploads closed when public policy pages are not ready", () => {
+    const uploadHelper = read("scripts/upload-to-play.mjs");
+    const policyCheck = read(
+      "scripts/native/check-play-public-policy-pages.mjs",
+    );
+
+    expect(uploadHelper).toContain(
+      'import { checkPlayPublicPolicyPages } from "./native/check-play-public-policy-pages.mjs"',
+    );
+    expect(uploadHelper).toContain("await checkPlayPublicPolicyPages();");
+    expect(policyCheck).toContain("https://zivosmedia.com/legal/privacy");
+    expect(policyCheck).toContain("https://zivosmedia.com/delete-account");
+    expect(policyCheck).toContain("Delete Your ZIVO Account");
+    expect(policyCheck).toContain("What may be retained");
   });
 });

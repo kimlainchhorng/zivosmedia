@@ -35,6 +35,8 @@
     "android:open": "npx cap open android",
     "android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug",
     "android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease",
+    "android:policy-pages:check": "node scripts/native/check-play-public-policy-pages.mjs",
+    "android:policy-pages:test": "node --test scripts/native/check-play-public-policy-pages.test.mjs",
     "android:upload:play:draft": "node scripts/upload-to-play.mjs",
     "lint": "eslint .",
     "type-check": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit --incremental --tsBuildInfoFile .tsbuildinfo.app -p tsconfig.app.json",
