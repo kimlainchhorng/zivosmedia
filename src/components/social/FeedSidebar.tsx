@@ -6,7 +6,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   Car, UtensilsCrossed, MapPin, Plane, Hotel, CarFront,
-  Package, Compass, Heart,
+  Package, Compass,
   Users, Bookmark, Clock, Settings, TrendingUp, Calendar,
   Radio, Film, Bell, Star, Mic2, ShoppingCart,
   BadgeCheck, ChevronRight, ChevronsUpDown, Crown, LogOut, Gift, Building2,
@@ -55,7 +55,6 @@ const SOCIAL_ITEMS = [
   { label: "Groups", icon: Users, path: "/communities" },
   { label: "Events", icon: Calendar, path: "/events" },
   { label: "Spaces", icon: Mic2, path: "/spaces" },
-  { label: "Dating", icon: Heart, path: "/dating" },
 ];
 
 const MORE_ITEMS = [

@@ -36,7 +36,6 @@ const VERIFICATION_KEY_ROOTS = new Set([
   "live-stream-viewers",
   "live-chat",
   "live-streams",
-  "dating-profiles",
   "sound-posts",
   "leaderboard",
   "qr-profile",

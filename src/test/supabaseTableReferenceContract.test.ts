@@ -214,9 +214,6 @@ const KNOWN_MISSING = new Set<string>([
   // 2 sites (EmployerDashboardPage, FindEmployeePage). The real relation is
   // `store_profiles`.
   "stores",
-  // 2 sites (DatingPage). No connection/match relation exists in either
-  // source.
-  "user_connections",
   // 1 site (MyActivityTripPage). Other verticals have `bus_bookings`,
   // `flight_bookings`, `hotel_bookings`; the activities equivalent was never
   // created.

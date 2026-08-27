@@ -137,7 +137,7 @@ describe("Verified badge across surfaces", () => {
   });
 
   // ── New surfaces (post-rollout): chat, notifications, explore, QR,
-  // live (chat + host + viewer + gift), dating. We mirror the real
+  // live (chat + host + viewer + gift). We mirror the real
   // markup so the badge guard logic is exercised end-to-end.
   const ChatSearchRow = ({ p }: { p: any }) => (
     <div>
@@ -200,13 +200,6 @@ describe("Verified badge across surfaces", () => {
       </span>
     </div>
   );
-  const DatingCard = ({ p }: { p: any }) => (
-    <div>
-      <h2>{p.full_name}</h2>
-      {isBlueVerified(p.is_verified) && <VerifiedBadge size={16} interactive={false} />}
-    </div>
-  );
-
   describe("ChatHub search result", () => {
     it("shows badge for verified peer", () => {
       wrap(<ChatSearchRow p={{ full_name: "A", is_verified: true }} />);
@@ -285,14 +278,4 @@ describe("Verified badge across surfaces", () => {
     });
   });
 
-  describe("DatingPage card", () => {
-    it("renders the real VerifiedBadge for verified profile", () => {
-      wrap(<DatingCard p={verifiedUser} />);
-      expect(screen.getByTestId("verified-badge")).toBeInTheDocument();
-    });
-    it("hides badge for unverified profile", () => {
-      wrap(<DatingCard p={unverifiedUser} />);
-      expect(screen.queryByTestId("verified-badge")).toBeNull();
-    });
-  });
 });

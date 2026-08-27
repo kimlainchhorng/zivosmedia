@@ -921,8 +921,6 @@ export default function LiveStreamPage() {
  const [rewardClaimed, setRewardClaimed] = useState(false);
  const [completedMissions, setCompletedMissions] = useState<number[]>([0, 1]);
  const [reminded, setReminded] = useState<string[]>(["maya"]);
- const [wavedNames, setWavedNames] = useState<Set<string>>(new Set());
- const [matchedNames, setMatchedNames] = useState<Set<string>>(new Set());
  const [notifiedOffline, setNotifiedOffline] = useState<Set<string>>(() => {
    try { return new Set(JSON.parse(localStorage.getItem("zivo_live_notify") || "[]")); } catch { return new Set(); }
  });
@@ -1330,7 +1328,7 @@ export default function LiveStreamPage() {
 </div>
 )}
 
-{/* The following sections (Replays, PK Season, Agency, AR Studio, Dating Live,
+{/* The following sections (Replays, PK Season, Agency, AR Studio,
     Become a Host, Auctions, Study Rooms, Daily Missions, Upcoming, Game/Pet/Travel/
     Hot News/Sports/Zodiac/DJ/Comedy/Quiz Live, Creator of Day, Rising Stars,
     Cosplay/ASMR/Crypto/Magic Live, Coin Recharge promo, Categories grid,
@@ -1532,70 +1530,6 @@ export default function LiveStreamPage() {
 <p className="text-[11px] font-semibold text-foreground">{e.label}</p>
 <p className="text-[9px] text-muted-foreground text-center leading-tight">{e.desc}</p>
 </button>
- ))}
-</div>
-</div>
-
- {/* ─── Dating Live ─── */}
-<div className="px-4 pt-4 pb-1">
-<div className="flex items-center justify-between mb-2.5">
-<h2 className="font-bold text-sm text-foreground flex items-center gap-1.5">
-<Heart className="w-4 h-4 text-pink-500 fill-pink-500" />Dating Live
-<Badge className="bg-pink-500 text-white border-0 text-[9px]">18+</Badge>
-</h2>
-<button type="button" onClick={() =>navigate("/dating")} className="text-[11px] text-muted-foreground flex items-center gap-0.5">
- See all<ChevronRight className="w-3 h-3" />
-</button>
-</div>
-<div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
- {[
- { name: "Aria", age: 24, country: "SG", interests: "Music, Travel", img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&q=70&auto=format&fit=crop", online: true },
- { name: "Felix", age: 27, country: "GB", interests: "Gym, Coffee", img: "https://images.unsplash.com/photo-1528741013444-c4e9f3f5beda?w=400&q=70&auto=format&fit=crop", online: true },
- { name: "Emma", age: 23, country: "FR", interests: "Art, Cooking", img: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&q=70&auto=format&fit=crop", online: false },
- { name: "Yui", age: 25, country: "JP", interests: "Anime, Tech", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=70&auto=format&fit=crop", online: true },
- { name: "Marco", age: 28, country: "IT", interests: "Food, Wine", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=70&auto=format&fit=crop", online: false },
- ].map((d) =>(
-<div
- key={d.name}
- className="shrink-0 w-[140px] rounded-2xl overflow-hidden bg-card border border-border/30 shadow-sm text-left"
- >
-<button type="button"
- onClick={() =>navigate("/dating")}
- className="block w-full text-left active:scale-[0.97] transition-transform"
- >
-<div className="relative aspect-[3/4]">
-<img src={d.img} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
-<div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
- {d.online && (
-<div className="absolute top-2 left-2 flex items-center gap-1 bg-emerald-500 rounded-full px-1.5 py-0.5">
-<span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-<span className="text-[8px] text-white font-bold">ONLINE</span>
-</div>
- )}
-<span className="absolute top-2 right-2 text-base">{d.country}</span>
-<div className="absolute bottom-2 left-2 right-2">
-<p className="text-white font-bold text-[13px] leading-tight">{d.name}, {d.age}</p>
-<p className="text-white/80 text-[10px] line-clamp-1">{d.interests}</p>
-</div>
-</div>
-</button>
-<div className="p-2 flex gap-1.5">
-<button type="button"
-  disabled={wavedNames.has(d.name)}
-  onClick={() => { setWavedNames(prev => new Set([...prev, d.name])); toast.success(`Waved at ${d.name}! 👋`); }}
-  className={cn("flex-1 py-1.5 rounded-full text-[10px] font-bold transition-all", wavedNames.has(d.name) ? "bg-pink-500/5 text-pink-400/50 cursor-default" : "bg-pink-500/15 text-pink-600 dark:text-pink-400 active:scale-95")}
->
-  {wavedNames.has(d.name) ? "Waved ✓" : "Wave"}
-</button>
-<button type="button"
-  disabled={matchedNames.has(d.name)}
-  onClick={() => { setMatchedNames(prev => new Set([...prev, d.name])); toast.success(`Match request sent to ${d.name}!`); }}
-  className={cn("flex-1 py-1.5 rounded-full text-[10px] font-bold transition-all", matchedNames.has(d.name) ? "bg-pink-400 text-white/60 cursor-default" : "bg-pink-500 text-white active:scale-95")}
->
-  {matchedNames.has(d.name) ? "Sent ✓" : "Match"}
-</button>
-</div>
-</div>
  ))}
 </div>
 </div>

@@ -40,7 +40,6 @@ export const LIVE_FEATURE_FLAGS = {
   pkSeasonRanking: false,
   agencySpotlight: false,
   arStudio: false,
-  datingLive: false,
   becomeHostPromo: false,
   auctions: false,
   studyRooms: false,

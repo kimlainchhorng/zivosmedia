@@ -329,7 +329,6 @@ const quickLinksSocial: QuickLink[] = [
   { icon: Star, label: "Leaderboard", href: "/leaderboard", description: "Top creators", accent: "hsl(45 93% 58%)" },
   { icon: Clapperboard, label: "Watch Party", href: "/watch-party", description: "Watch together", accent: "hsl(199 89% 48%)" },
   { icon: Bookmark, label: "Bookmarks", href: "/saved", description: "Saved posts", accent: "hsl(25 95% 53%)" },
-  { icon: Heart, label: "Dating", href: "/dating", description: "Find connections", accent: "hsl(340 75% 55%)" },
   { icon: Search, label: "Smart Search", href: "/smart-search", description: "AI search", accent: "hsl(263 70% 58%)", badge: "AI" },
   { icon: Pencil, label: "Whiteboard", href: "/whiteboard", description: "Collaborate", accent: "hsl(199 89% 48%)" },
   { icon: Tv, label: "Live Stream", href: "/live", description: "Watch live", accent: "hsl(0 84% 60%)" },

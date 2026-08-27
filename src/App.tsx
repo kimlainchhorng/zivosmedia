@@ -354,7 +354,6 @@ const ImportProductPage = lazy(() => import("./pages/shop/ImportProductPage"));
 const ImportCartPage = lazy(() => import("./pages/shop/ImportCartPage"));
 const ImportOrdersPage = lazy(() => import("./pages/shop/ImportOrdersPage"));
 const AdminImportShopPage = lazy(() => import("./pages/admin/AdminImportShopPage"));
-const DatingPage = lazy(() => import("./pages/DatingPage"));
 const DraftsPage = lazy(() => import("./pages/DraftsPage"));
 const AudioSpacesPage = lazy(() => import("./pages/AudioSpacesPage"));
 const SmartSearchPage = lazy(() => import("./pages/SmartSearchPage"));
@@ -1894,7 +1893,6 @@ const App = () => (
                 <Route path="/admin" element={<Navigate to="/admin/god-view" replace />} />
                 <Route path="/admin/shop" element={<ProtectedRoute requireAdmin={true}><AdminImportShopPage /></ProtectedRoute>} />
                 <Route path="/content-analytics" element={<ProtectedRoute><ContentAnalyticsPage /></ProtectedRoute>} />
-                <Route path="/dating" element={<ProtectedRoute><DatingPage /></ProtectedRoute>} />
                 <Route path="/spaces" element={<AudioSpacesPage />} />
                 <Route path="/smart-search" element={<SmartSearchPage />} />
                 <Route path="/notification-center" element={<ProtectedRoute><NotificationCenterPage /></ProtectedRoute>} />
