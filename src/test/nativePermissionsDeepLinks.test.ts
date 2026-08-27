@@ -20,10 +20,16 @@ describe("native permissions, deep links, and push contracts", () => {
       "android.permission.RECORD_AUDIO",
       "android.permission.ACCESS_FINE_LOCATION",
       "android.permission.ACCESS_COARSE_LOCATION",
-      "com.google.android.gms.permission.AD_ID",
     ]) {
       expect(manifest).toContain(permission);
     }
+
+    expect(manifest).toContain(
+      '<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />',
+    );
+    expect(manifest).not.toContain(
+      '<uses-permission android:name="com.google.android.gms.permission.AD_ID" />',
+    );
 
     for (const needle of [
       '<uses-feature android:name="android.hardware.camera" android:required="false" />',

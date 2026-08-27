@@ -93,4 +93,20 @@ describe("ads marketing consent runtime", () => {
     );
     expect(adSlots).toContain("/^\\d{5,}$/.test(slot)");
   });
+
+  it("keeps the installed app ad-free and blocks Android advertising ID access", () => {
+    const adUnit = read("src/components/ads/AdSenseUnit.tsx");
+    const manifest = read("android/app/src/main/AndroidManifest.xml");
+    const playListing = read("android/store-listing/PLAY_STORE.md");
+
+    expect(adUnit).toContain("function isNativeApp(): boolean");
+    expect(adUnit).toContain("!isNativeApp()");
+    expect(manifest).toContain(
+      '<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />',
+    );
+    expect(manifest).not.toContain(
+      '<uses-permission android:name="com.google.android.gms.permission.AD_ID" />',
+    );
+    expect(playListing).toContain("Contains ads:    No (UGC + commerce)");
+  });
 });
