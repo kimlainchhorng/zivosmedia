@@ -735,7 +735,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(privacyGate).toContain("trusted server-side ingestion");
 
     for (const surface of [allowMessages, sensitiveMedia, privacyPage]) {
-      expect(surface).toContain('functions.invoke("privacy-settings-update"');
+      expect(surface).toMatch(/functions\.invoke\(\s*["']privacy-settings-update["']/);
       expect(surface).not.toMatch(/from\("privacy_settings"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
     }
   });
@@ -807,7 +807,7 @@ describe("security, anti-abuse, and hacker-protection workflow", () => {
     expect(blockGate).toContain("trusted server-side ingestion");
 
     for (const surface of surfaces) {
-      expect(surface).toContain('functions.invoke("block-user-manage"');
+      expect(surface).toMatch(/functions\.invoke\(\s*["']block-user-manage["']/);
       expect(surface).not.toMatch(/from\("blocked_users"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
       expect(surface).not.toMatch(/dbFrom\("blocked_users"\)[\s\S]{0,220}\.(insert|upsert|update|delete)/);
     }
