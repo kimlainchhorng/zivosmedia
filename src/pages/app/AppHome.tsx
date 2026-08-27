@@ -577,7 +577,7 @@ const AppHome = () => {
   const homeServices: HomeServiceTileConfig[] = [
     { label: t("home.ride"), href: "/rides/hub", imageSrc: zivoRideIcon, imageClassName: "w-[70%]" },
     { label: t("home.eats"), href: "/eats", imageSrc: zivoEatsIcon },
-    { label: t("home.flights"), href: "/flights", imageSrc: zivoFlightsAircraft, imageClassName: "h-[70%] w-[88%]" },
+    { label: t("home.flights"), href: "/flights", imageSrc: zivoFlightsAircraft, imageClassName: "h-[76%] w-[94%]" },
     { label: t("home.hotels"), href: hotelsPath, imageSrc: zivoHotelsIcon, imageClassName: "h-[68%] w-[68%]" },
     { label: t("home.rental_cars"), href: "/rent-car", imageSrc: zivoRentalCarIcon, imageClassName: "h-[72%] w-[72%]" },
     { label: t("home.bus"), href: "/bus", imageSrc: zivoBusIcon, imageClassName: "h-[68%] w-[86%]" },
