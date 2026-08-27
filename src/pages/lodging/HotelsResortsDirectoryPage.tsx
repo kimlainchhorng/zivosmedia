@@ -22,6 +22,11 @@ import { LODGING_STORE_CATEGORIES, normalizeStoreCategory } from "@/hooks/useOwn
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import Footer from "@/components/Footer";
+import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import { TravelFlowHeader } from "@/components/zivo-travel";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
+import { cn } from "@/lib/utils";
 
 interface DirectoryStore {
   id: string;
@@ -46,6 +51,7 @@ export default function HotelsResortsDirectoryPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -86,26 +92,42 @@ export default function HotelsResortsDirectoryPage() {
     <TravelPageFrame>
       <div className="min-h-dvh bg-background pb-24">
       <Helmet>
-        <title>Hotels & Resorts — ZIVO</title>
+        <title>{isTravelHost ? "Hotels & Resorts | Zivo Travel" : "Hotels & Resorts — ZIVO"}</title>
         <meta
           name="description"
-          content="Browse hotels, resorts and guesthouses on ZIVO. Tap any property to view rooms, amenities and contact details."
+          content={isTravelHost
+            ? "Browse hotels, resorts, and guesthouses with Zivo Travel."
+            : "Browse hotels, resorts and guesthouses on ZIVO. Tap any property to view rooms, amenities and contact details."}
         />
-        <link rel="canonical" href="https://zivosmedia.com/hotels-list" />
+        <link rel="canonical" href={isTravelHost ? "https://zivostravel.com/hotels-list" : "https://zivosmedia.com/hotels-list"} />
       </Helmet>
 
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
-        <div className="px-4 py-3 flex items-center gap-2 safe-area-top">
-          <button type="button"
-            onClick={() => navigate(-1)}
-            aria-label="Back"
-            className="min-h-[40px] min-w-[40px] -ml-1 rounded-full flex items-center justify-center active:bg-muted transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-base font-bold text-ig-gradient flex-1 truncate">Hotels & Resorts</h1>
-        </div>
+      <div className={cn(
+        "sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border",
+        isTravelHost && "zivo-safe-top-guard-off",
+      )}>
+        {isTravelHost ? (
+          <TravelFlowHeader
+            title="Hotels & Resorts"
+            subtitle="Find your next stay"
+            onBack={() => navigate(-1)}
+            backLabel="Back"
+            sticky={false}
+            className="border-b-0"
+          />
+        ) : (
+          <div className="px-4 py-3 flex items-center gap-2 safe-area-top">
+            <button type="button"
+              onClick={() => navigate(-1)}
+              aria-label="Back"
+              className="min-h-[40px] min-w-[40px] -ml-1 rounded-full flex items-center justify-center active:bg-muted transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-base font-bold text-ig-gradient flex-1 truncate">Hotels & Resorts</h1>
+          </div>
+        )}
 
         {/* Search */}
         <div className="px-4 pb-3">
@@ -134,7 +156,7 @@ export default function HotelsResortsDirectoryPage() {
                 className={
                   "shrink-0 min-h-[40px] min-w-[40px] rounded-full px-3 py-2 text-xs font-semibold transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
                   (active
-                    ? "bg-ig-gradient text-white"
+                    ? "zt-on-media bg-ig-gradient text-white"
                     : "bg-muted/70 text-muted-foreground active:bg-muted")
                 }
               >
@@ -174,6 +196,8 @@ export default function HotelsResortsDirectoryPage() {
           </div>
         )}
       </div>
+      {isTravelHost && <Footer forceTravelBrand />}
+      {isTravelHost && <ZivoMobileNav />}
       </div>
     </TravelPageFrame>
   );

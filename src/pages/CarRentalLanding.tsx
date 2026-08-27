@@ -1,6 +1,6 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { CarFront, CheckCircle, ShieldCheck, Lock } from "lucide-react";
+import { ArrowLeft, CarFront, CheckCircle, ShieldCheck, Lock } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -19,6 +19,8 @@ import { CAR_DISCLAIMERS, CAR_TRUST_BADGES } from "@/config/carCompliance";
 import CarFeaturesGrid from "@/components/car/CarFeaturesGrid";
 import CarComplianceFooter from "@/components/car/CarComplianceFooter";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import AppLayout from "@/components/app/AppLayout";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 
 const trustBadges = [
   { icon: ShieldCheck, text: CAR_TRUST_BADGES.secureCheckout },
@@ -27,8 +29,22 @@ const trustBadges = [
 ];
 
 export default function CarRentalLanding() {
+  const navigate = useNavigate();
   const { location } = useParams<{ location?: string }>();
   const reduceMotion = useReducedMotion();
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
+
+  const handleBack = () => {
+    const historyIndex =
+      typeof window !== "undefined" ? window.history.state?.idx : null;
+
+    if (typeof historyIndex === "number" && historyIndex > 0) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/", { replace: true });
+  };
 
   const formattedLocation = location?.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   
@@ -41,6 +57,125 @@ export default function CarRentalLanding() {
     : "Compare car rental prices from trusted providers. Find the best rates on rental cars worldwide. No booking fees on ZIVO.";
 
   const heroImage = heroPhotos.cars;
+
+  if (!isTravelHost) {
+    return (
+      <>
+        <SEOHead
+          title={pageTitle}
+          description={pageDescription}
+          canonical={formattedLocation ? `/rent-car/${location}` : "/rent-car"}
+          ogImage="/og-cars.jpg"
+          appLink="zivo://cars"
+        />
+        <BreadcrumbSchema
+          items={
+            formattedLocation
+              ? [
+                  { name: "Home", url: "/" },
+                  { name: "Car Rental", url: "/rent-car" },
+                  { name: formattedLocation, url: `/rent-car/${location}` },
+                ]
+              : [
+                  { name: "Home", url: "/" },
+                  { name: "Car Rental", url: "/rent-car" },
+                ]
+          }
+        />
+
+        <div
+          data-car-rental-app-shell
+          className="lg:[&>div>header]:hidden"
+        >
+          <AppLayout
+            title="Rental Cars"
+            showBack
+            onBack={handleBack}
+            className="bg-muted/20 lg:!pt-[88px]"
+          >
+            <div className="mx-auto w-full max-w-6xl px-4 pb-8 pt-4 sm:px-6 lg:px-8 lg:pt-6">
+              <motion.section
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="relative min-h-[190px] overflow-hidden rounded-[28px] border border-white/15 bg-slate-950 shadow-xl sm:min-h-[230px]"
+              >
+                <img
+                  src={heroImage.src}
+                  alt={heroImage.alt}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-violet-950/70 to-slate-950/25"
+                  aria-hidden
+                />
+                <div className="relative z-10 flex min-h-[190px] max-w-xl flex-col justify-end p-5 text-white sm:min-h-[230px] sm:p-8">
+                  <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-md">
+                    <CarFront className="h-4 w-4" />
+                    Compare trusted providers
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">
+                    {formattedLocation
+                      ? `Rental cars in ${formattedLocation}`
+                      : "Find your rental car"}
+                  </h2>
+                  <p className="mt-2 max-w-lg text-sm text-white/80 sm:text-base">
+                    Pick a location and dates to compare available cars in one place.
+                  </p>
+                </div>
+              </motion.section>
+
+              <section
+                aria-label="Search rental cars"
+                className="relative z-10 mx-auto -mt-4 max-w-4xl sm:-mt-6"
+              >
+                <CarSearchFormPro className="border-border/60 shadow-xl shadow-slate-950/10" />
+              </section>
+
+              <section
+                aria-label="Rental protections"
+                className="mx-auto mt-5 grid max-w-4xl grid-cols-3 gap-2 sm:gap-3"
+              >
+                {trustBadges.map((badge) => (
+                  <div
+                    key={badge.text}
+                    className="flex min-h-24 flex-col items-center justify-center rounded-2xl border border-border/60 bg-card px-2 py-3 text-center shadow-sm sm:min-h-20 sm:flex-row sm:gap-2 sm:px-4"
+                  >
+                    <span className="mb-2 grid h-8 w-8 place-items-center rounded-xl bg-violet-500/10 text-violet-600 sm:mb-0">
+                      <badge.icon className="h-4 w-4" />
+                    </span>
+                    <span className="text-[11px] font-semibold leading-tight text-foreground/80 sm:text-xs">
+                      {badge.text}
+                    </span>
+                  </div>
+                ))}
+              </section>
+
+              <VehicleTypeGallery
+                service="cars"
+                title="Browse by Car Type"
+                subtitle="Choose the right size for your trip"
+                className="mx-auto mt-6 max-w-5xl rounded-[28px] border border-border/60 bg-card py-8 shadow-sm"
+              />
+
+              <section className="mx-auto mt-6 max-w-4xl rounded-2xl border border-border/60 bg-card p-4 text-center shadow-sm">
+                <div className="flex items-center justify-center gap-2 text-sm font-semibold text-foreground">
+                  <ShieldCheck className="h-4 w-4 text-violet-600" />
+                  {CAR_DISCLAIMERS.partnerBooking}
+                </div>
+                <p className="mx-auto mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+                  {CAR_DISCLAIMERS.price} {CAR_DISCLAIMERS.insurance}
+                </p>
+              </section>
+            </div>
+          </AppLayout>
+        </div>
+      </>
+    );
+  }
 
   return (
     <TravelPageFrame>
@@ -88,6 +223,15 @@ export default function CarRentalLanding() {
             {/* Bottom fade */}
             <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background via-background/80 to-transparent" />
           </div>
+
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Go back"
+            className="absolute left-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/35 text-white shadow-lg backdrop-blur-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 sm:left-6 sm:top-6"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
           
           <div className="container mx-auto px-4 relative z-10">
             <motion.div

@@ -5,8 +5,18 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ZivoMobileNav from "./ZivoMobileNav";
 
+const { authState, impactSpy } = vi.hoisted(() => ({
+  authState: {
+    user: null as null | {
+      email?: string;
+      user_metadata?: { avatar_url?: string };
+    },
+  },
+  impactSpy: vi.fn(),
+}));
+
 vi.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({ user: null }),
+  useAuth: () => authState,
 }));
 
 vi.mock("@/hooks/useUserProfile", () => ({
@@ -22,7 +32,7 @@ vi.mock("@/hooks/useLiveActivityCount", () => ({
 }));
 
 vi.mock("@/hooks/useHaptics", () => ({
-  useHaptics: () => ({ impact: vi.fn() }),
+  useHaptics: () => ({ impact: impactSpy }),
 }));
 
 vi.mock("@/hooks/useI18n", () => ({
@@ -41,7 +51,12 @@ vi.mock("@/hooks/useI18n", () => ({
 
 vi.mock("framer-motion", () => ({
   motion: {
-    span: ({ children, layoutId: _layoutId, transition: _transition, ...props }: React.HTMLAttributes<HTMLSpanElement> & {
+    span: ({
+      children,
+      layoutId: _layoutId,
+      transition: _transition,
+      ...props
+    }: React.HTMLAttributes<HTMLSpanElement> & {
       layoutId?: string;
       transition?: unknown;
     }) => <span {...props}>{children}</span>,
@@ -50,7 +65,11 @@ vi.mock("framer-motion", () => ({
 
 function LocationProbe() {
   const location = useLocation();
-  return <output aria-label="current path">{location.pathname + location.search}</output>;
+  return (
+    <output aria-label="current path">
+      {location.pathname + location.search}
+    </output>
+  );
 }
 
 function renderMobileNav(initialPath = "/") {
@@ -77,7 +96,13 @@ function renderMobileNav(initialPath = "/") {
   );
 }
 
-afterEach(() => cleanup());
+afterEach(() => {
+  authState.user = null;
+  impactSpy.mockClear();
+  sessionStorage.clear();
+  window.history.replaceState(null, "", "/");
+  cleanup();
+});
 
 describe("ZivoMobileNav", () => {
   it("lets anonymous users open public feed and reels tabs", () => {
@@ -94,7 +119,47 @@ describe("ZivoMobileNav", () => {
     renderMobileNav();
 
     fireEvent.click(screen.getByLabelText("Account"));
-    expect(screen.getByLabelText("current path")).toHaveTextContent("/login?redirect=%2Fprofile");
+    expect(screen.getByLabelText("current path")).toHaveTextContent(
+      "/login?redirect=%2Fprofile",
+    );
+  });
+
+  it("opens Profile for signed-in users", () => {
+    authState.user = { email: "rider@example.com", user_metadata: {} };
+    renderMobileNav();
+
+    fireEvent.click(screen.getByLabelText("Account"));
+    expect(screen.getByLabelText("current path")).toHaveTextContent("/profile");
+    expect(screen.getByLabelText("Account")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("opens Profile from the account hub without toggling away", () => {
+    authState.user = { email: "rider@example.com", user_metadata: {} };
+    renderMobileNav("/more");
+
+    const account = screen.getByLabelText("Account");
+    fireEvent.click(account);
+    expect(screen.getByLabelText("current path")).toHaveTextContent("/profile");
+
+    fireEvent.click(account);
+    expect(screen.getByLabelText("current path")).toHaveTextContent("/profile");
+    expect(impactSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    "/account/preferences",
+    "/profile/delete-account",
+    "/profile-views",
+  ])("returns to Profile from the Account child route %s", (initialPath) => {
+    authState.user = { email: "rider@example.com", user_metadata: {} };
+    renderMobileNav(initialPath);
+
+    fireEvent.click(screen.getByLabelText("Account"));
+
+    expect(screen.getByLabelText("current path")).toHaveTextContent("/profile");
   });
 
   it("no longer shows a Chat tab (chat moved to the dedicated ZIVO Chat app)", () => {
@@ -117,7 +182,39 @@ describe("ZivoMobileNav", () => {
     renderMobileNav();
 
     for (const label of ["Home", "Feed", "Reels", "Ride", "Account"]) {
-      expect(screen.getByRole("button", { name: label })).toHaveTextContent(label);
+      expect(screen.getByRole("button", { name: label })).toHaveTextContent(
+        label,
+      );
     }
+  });
+
+  it("keeps Travel Home actionable until the actual front door", () => {
+    window.history.replaceState(null, "", "/?zt=1");
+    renderMobileNav("/travel/checkout");
+
+    expect(screen.getByRole("button", { name: "Trips" })).toBeInTheDocument();
+    let home = screen.getByRole("button", { name: "Home" });
+    expect(home).not.toHaveAttribute("aria-current");
+
+    fireEvent.click(home);
+    expect(screen.getByLabelText("current path")).toHaveTextContent(/^\/$/);
+
+    home = screen.getByRole("button", { name: "Home" });
+    expect(home).toHaveAttribute("aria-current", "page");
+    expect(impactSpy).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(home);
+    expect(screen.getByLabelText("current path")).toHaveTextContent(/^\/$/);
+    expect(impactSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the Travel Account tab on the Travel account page", () => {
+    window.history.replaceState(null, "", "/?zt=1");
+    authState.user = { email: "traveler@example.com", user_metadata: {} };
+    renderMobileNav("/travel/checkout");
+
+    fireEvent.click(screen.getByRole("button", { name: "Account" }));
+
+    expect(screen.getByLabelText("current path")).toHaveTextContent("/account");
   });
 });

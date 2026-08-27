@@ -1,4 +1,4 @@
-import { forwardRef, useState, useRef, useEffect } from "react";
+import { forwardRef, useState, useRef, useEffect, type ComponentPropsWithoutRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
@@ -128,20 +128,40 @@ const FlagImg = forwardRef<HTMLImageElement, { src: string; alt: string; size?: 
   );
 });
 
-interface CountryPhoneInputProps {
+type CountryPhoneInputProps = {
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
   name?: string;
-}
+} & Pick<
+  ComponentPropsWithoutRef<"input">,
+  "id" | "required" | "autoComplete" | "aria-label" | "aria-describedby" | "aria-invalid"
+>;
 
-export function CountryPhoneInput({ value, onChange, onBlur, name }: CountryPhoneInputProps) {
+export const CountryPhoneInput = forwardRef<HTMLInputElement, CountryPhoneInputProps>(function CountryPhoneInput(
+  {
+    value,
+    onChange,
+    onBlur,
+    name,
+    id,
+    required,
+    autoComplete = "off",
+    "aria-label": ariaLabel,
+    "aria-describedby": ariaDescribedBy,
+    "aria-invalid": ariaInvalid,
+  },
+  inputRef,
+) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(COUNTRY_CODES[0]);
   const [localNumber, setLocalNumber] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const phoneHintId = id ? `${id}-hint` : undefined;
+  const phoneDescribedBy = [phoneHintId, ariaDescribedBy].filter(Boolean).join(" ") || undefined;
+  const phoneIsInvalid = ariaInvalid === true || ariaInvalid === "true";
 
   // Sync external value prop → internal localNumber (only on external changes)
   const lastEmittedRef = useRef<string>("");
@@ -353,14 +373,20 @@ export function CountryPhoneInput({ value, onChange, onBlur, name }: CountryPhon
         </button>
 
         <input
+          ref={inputRef}
+          id={id}
           type="tel"
           inputMode="numeric"
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
           name={name}
+          required={required}
+          aria-label={ariaLabel}
+          aria-invalid={ariaInvalid}
+          aria-describedby={phoneDescribedBy}
           placeholder={selectedCountry.placeholder}
-          autoComplete="off"
+          autoComplete={autoComplete}
           value={localNumber}
           onChange={(e) => handleNumberChange(e.target.value)}
           onInput={(e) => {
@@ -371,16 +397,19 @@ export function CountryPhoneInput({ value, onChange, onBlur, name }: CountryPhon
             }
           }}
           onBlur={onBlur}
-          className="w-full rounded-r-xl border border-border border-l-0 bg-muted/50 py-2 pl-2 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+          className={cn(
+            "w-full rounded-r-xl border border-border border-l-0 bg-muted/50 py-2 pl-2 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary transition-all",
+            phoneIsInvalid && "border-destructive focus:ring-destructive/30",
+          )}
           style={{ WebkitAppearance: "none" }}
         />
       </div>
 
-      <p className="ml-1 mt-1 text-[11px] text-muted-foreground">
+      <p id={phoneHintId} className="ml-1 mt-1 text-[11px] text-muted-foreground">
         {selectedCountry.name} • {selectedCountry.digits}
       </p>
 
       {typeof document !== "undefined" ? createPortal(dropdownContent, document.body) : null}
     </div>
   );
-}
+});

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
-import type { User, Session } from "@supabase/supabase-js";
+import type { AuthChangeEvent, User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { setupActivityTracking, clearSessionArtifacts } from "@/lib/security/sessionSecurity";
 import { getDeviceFingerprint } from "@/lib/security/deviceFingerprint";
@@ -14,6 +14,10 @@ type AuthContextType = {
   session: Session | null;
   isLoading: boolean;
   isAdmin: boolean;
+  isAdminLoading: boolean;
+  adminRoleError: string | null;
+  authInitializationError: string | null;
+  retryAuthInitialization: () => void;
   /** When true, the user is signed in at AAL1 and must complete the MFA challenge */
   mfaPending: MfaState | null;
   signUp: (email: string, password: string, fullName: string, dateOfBirth?: string, phone?: string, signupSource?: string) => Promise<{ error: Error | null }>;
@@ -30,6 +34,10 @@ const AUTH_FALLBACK: AuthContextType = {
   session: null,
   isLoading: true,
   isAdmin: false,
+  isAdminLoading: false,
+  adminRoleError: null,
+  authInitializationError: null,
+  retryAuthInitialization: () => {},
   mfaPending: null,
   signUp: async () => ({ error: new Error("AuthProvider not mounted") }),
   signIn: async () => ({ error: new Error("AuthProvider not mounted") }),
@@ -37,9 +45,21 @@ const AUTH_FALLBACK: AuthContextType = {
   signOut: async () => {},
 };
 
+const AUTH_SESSION_RESTORE_TIMEOUT_MS = 10_000;
+const AUTH_ADMIN_ROLE_TIMEOUT_MS = 5_000;
+const AUTH_RECOVERY_ATTEMPT_TIMEOUT_MS = 4_000;
+const AUTH_INITIALIZATION_ERROR_MESSAGE =
+  "We couldn't verify your session. Check your connection and try again.";
+const AUTH_ADMIN_ROLE_ERROR_MESSAGE =
+  "We couldn't verify your access. Check your connection and try again.";
+
+type AdminRoleResolution =
+  | { available: true; isAdmin: boolean }
+  | { available: false };
+
 const withAuthTimeout = async <T,>(
   label: string,
-  promise: Promise<T>,
+  promise: PromiseLike<T>,
   timeoutMs = 15_000,
 ): Promise<T> => {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -50,7 +70,7 @@ const withAuthTimeout = async <T,>(
   });
 
   try {
-    return await Promise.race([promise, timeout]);
+    return await Promise.race([Promise.resolve(promise), timeout]);
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
@@ -74,8 +94,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminLoading, setIsAdminLoading] = useState(false);
+  const [adminRoleError, setAdminRoleError] = useState<string | null>(null);
+  const [authInitializationError, setAuthInitializationError] = useState<string | null>(null);
+  const [initializationAttempt, setInitializationAttempt] = useState(0);
   const [mfaPending, setMfaPending] = useState<MfaState | null>(null);
   const initializedRef = useRef(false);
+  const authInitializationUnavailableRef = useRef(false);
+  const currentUserIdRef = useRef<string | null>(null);
+  const authRevisionRef = useRef(0);
   const loginGraceUntilRef = useRef(0);
   const explicitSignOutRef = useRef(false);
   // Cache the last user id whose admin role we resolved. TOKEN_REFRESHED fires
@@ -86,88 +113,204 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAdminRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase.rpc("check_user_role", {
-        _user_id: userId,
-        _role: "admin",
-      });
+      const adminRoleRequest = Promise.resolve(
+        supabase.rpc("check_user_role", {
+          _user_id: userId,
+          _role: "admin",
+        }),
+      );
+      const { data, error } = await withAuthTimeout(
+        "Admin role check",
+        adminRoleRequest,
+        AUTH_ADMIN_ROLE_TIMEOUT_MS,
+      );
       if (error) {
         console.error("Error checking admin role:", error);
-        return false;
+        return { available: false } satisfies AdminRoleResolution;
       }
-      return data ?? false;
+      return {
+        available: true,
+        isAdmin: data ?? false,
+      } satisfies AdminRoleResolution;
     } catch (err) {
       console.error("Error checking admin role:", err);
-      return false;
+      return { available: false } satisfies AdminRoleResolution;
     }
   };
 
-  useEffect(() => {
-    const authStartedAt = perfNow();
-    // 1. Restore session from storage FIRST — this prevents the race condition
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+  const retryAuthInitialization = useCallback(() => {
+    authInitializationUnavailableRef.current = false;
+    setAuthInitializationError(null);
+    setAdminRoleError(null);
+    setIsLoading(true);
+    setInitializationAttempt((attempt) => attempt + 1);
+  }, []);
 
-      if (session?.user) {
-        const adminStatus = await checkAdminRole(session.user.id);
-        setIsAdmin(adminStatus);
-        checkedAdminForRef.current = session.user.id;
+  useEffect(() => {
+    let active = true;
+    let pendingStartupEvent:
+      | {
+          event: AuthChangeEvent;
+          session: Session | null;
+          wasExplicitSignOut: boolean;
+        }
+      | undefined;
+    const deferredAuthTimers = new Set<number>();
+    const authStartedAt = perfNow();
+    initializedRef.current = false;
+
+    const applySessionState = (nextSession: Session | null) => {
+      const nextUserId = nextSession?.user?.id ?? null;
+      const userChanged = currentUserIdRef.current !== nextUserId;
+      const revision = authRevisionRef.current + 1;
+
+      authRevisionRef.current = revision;
+      currentUserIdRef.current = nextUserId;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+
+      if (userChanged) {
+        setIsAdmin(false);
+        setAdminRoleError(null);
+        checkedAdminForRef.current = null;
       }
 
-      // Only mark as ready AFTER getSession completes
-      initializedRef.current = true;
-      setIsLoading(false);
-      perfMeasure("auth ready", authStartedAt, {
-        hasSession: Boolean(session),
-      });
-    });
+      if (nextUserId) {
+        if (checkedAdminForRef.current !== nextUserId) {
+          setIsAdminLoading(true);
+          setAdminRoleError(null);
+        }
+      } else {
+        setIsAdmin(false);
+        setIsAdminLoading(false);
+        setAdminRoleError(null);
+        checkedAdminForRef.current = null;
+      }
 
-    // 2. Listen for subsequent auth changes (sign in, sign out, token refresh)
+      return revision;
+    };
+
+    const resolveAdminRole = async (userId: string, revision: number) => {
+      const adminResolution = await checkAdminRole(userId);
+      if (
+        !active ||
+        authRevisionRef.current !== revision ||
+        currentUserIdRef.current !== userId
+      ) {
+        return;
+      }
+
+      setIsAdminLoading(false);
+      if (!adminResolution.available) {
+        setIsAdmin(false);
+        setAdminRoleError(AUTH_ADMIN_ROLE_ERROR_MESSAGE);
+        return;
+      }
+
+      setIsAdmin(adminResolution.isAdmin);
+      setAdminRoleError(null);
+      checkedAdminForRef.current = userId;
+    };
+
+    const deferAuthWork = (work: () => void | Promise<void>) => {
+      const timerId = window.setTimeout(() => {
+        deferredAuthTimers.delete(timerId);
+        if (active) void work();
+      }, 0);
+      deferredAuthTimers.add(timerId);
+    };
+
+    // Subscribe before restoring so INITIAL_SESSION and account changes cannot
+    // disappear while storage or token refresh work is still pending.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // Ignore events that fire before getSession has finished
-        if (!initializedRef.current) return;
+      (event, nextSession) => {
+        if (!active) return;
+        if (!initializedRef.current) {
+          pendingStartupEvent = {
+            event,
+            session: nextSession,
+            wasExplicitSignOut: explicitSignOutRef.current,
+          };
+          return;
+        }
+
+        if (
+          authInitializationUnavailableRef.current &&
+          event === "INITIAL_SESSION" &&
+          !nextSession
+        ) {
+          return;
+        }
 
         if (import.meta.env.DEV) console.log("[Auth] onAuthStateChange", {
           event,
-          hasSession: !!session,
-          userId: session?.user?.id ?? null,
-          expiresAt: session?.expires_at ?? null,
+          hasSession: !!nextSession,
+          userId: nextSession?.user?.id ?? null,
+          expiresAt: nextSession?.expires_at ?? null,
         });
+
+        authInitializationUnavailableRef.current = false;
+        setAuthInitializationError(null);
 
         // iOS/WebView can emit transient SIGNED_OUT during network churn.
         // Unless this was an explicit user sign-out, rehydrate before accepting logout.
         if (event === "SIGNED_OUT" && !explicitSignOutRef.current) {
           console.warn("[Auth] Received SIGNED_OUT, verifying persisted session before logout");
-          void (async () => {
-            for (let attempt = 0; attempt < 3; attempt += 1) {
-              const { data: { session: recoveredSession } } = await supabase.auth.getSession();
-              if (recoveredSession?.user) {
-                setSession(recoveredSession);
-                setUser(recoveredSession.user);
+          const recoveryRevision = authRevisionRef.current + 1;
+          authRevisionRef.current = recoveryRevision;
+          setIsLoading(true);
+          setIsAdmin(false);
+          setIsAdminLoading(Boolean(currentUserIdRef.current));
+          setAdminRoleError(null);
+          checkedAdminForRef.current = null;
 
-                if (checkedAdminForRef.current !== recoveredSession.user.id) {
-                  try {
-                    const adminStatus = await checkAdminRole(recoveredSession.user.id);
-                    setIsAdmin(adminStatus);
-                    checkedAdminForRef.current = recoveredSession.user.id;
-                  } catch {
-                    setIsAdmin(false);
-                  }
-                }
+          deferAuthWork(async () => {
+            let failedReads = 0;
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+              let recoveredSession: Session | null | undefined;
+              try {
+                const { data, error } = await withAuthTimeout(
+                  "Session recovery",
+                  supabase.auth.getSession(),
+                  AUTH_RECOVERY_ATTEMPT_TIMEOUT_MS,
+                );
+                if (error) throw error;
+                recoveredSession = data.session;
+              } catch {
+                failedReads += 1;
+                recoveredSession = undefined;
+              }
+
+              if (!active || authRevisionRef.current !== recoveryRevision) return;
+
+              if (recoveredSession?.user) {
+                const revision = applySessionState(recoveredSession);
+                setAuthInitializationError(null);
+                setIsLoading(false);
+                void resolveAdminRole(recoveredSession.user.id, revision);
                 return;
               }
 
-              await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+              if (attempt < 2) {
+                await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+              }
             }
 
-            // No recovered session after retries; apply signed-out state.
+            if (!active || authRevisionRef.current !== recoveryRevision) return;
+            if (failedReads > 0) {
+              setIsAdminLoading(false);
+              authInitializationUnavailableRef.current = true;
+              setAuthInitializationError(AUTH_INITIALIZATION_ERROR_MESSAGE);
+              setIsLoading(false);
+              return;
+            }
+
+            // Three successful empty reads confirm the persisted session is gone.
             clearSessionArtifacts();
-            setSession(null);
-            setUser(null);
-            setIsAdmin(false);
-            checkedAdminForRef.current = null;
-          })();
+            applySessionState(null);
+            authInitializationUnavailableRef.current = false;
+            setIsLoading(false);
+          });
           return;
         }
 
@@ -178,31 +321,101 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           clearSessionArtifacts();
         }
 
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
+        setIsLoading(false);
+        const revision = applySessionState(nextSession);
+        if (nextSession?.user) {
           // Only re-resolve admin role when the user actually changed (sign-in
           // / account switch). Skipping this on TOKEN_REFRESHED avoids a
           // bursty RPC + re-render cascade for every consumer of useAuth.
-          if (checkedAdminForRef.current !== session.user.id) {
-            checkAdminRole(session.user.id).then((adminStatus) => {
-              setIsAdmin(adminStatus);
-              checkedAdminForRef.current = session.user.id;
-            }).catch(() => {
-              setIsAdmin(false);
-            });
+          if (checkedAdminForRef.current !== nextSession.user.id) {
+            deferAuthWork(() => resolveAdminRole(nextSession.user.id, revision));
           }
         } else {
           clearSessionArtifacts();
-          setIsAdmin(false);
-          checkedAdminForRef.current = null;
         }
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, []);
+    const finishInitialization = (
+      restoredSession: Session | null,
+      initializationError: string | null,
+    ) => {
+      if (!active) return;
+
+      const revision = applySessionState(restoredSession);
+      initializedRef.current = true;
+      authInitializationUnavailableRef.current = initializationError !== null;
+      setAuthInitializationError(initializationError);
+      setIsLoading(false);
+      perfMeasure("auth ready", authStartedAt, {
+        hasSession: Boolean(restoredSession),
+        available: initializationError === null,
+      });
+
+      if (restoredSession?.user && initializationError === null) {
+        void resolveAdminRole(restoredSession.user.id, revision);
+      } else if (initializationError) {
+        setIsAdminLoading(false);
+      }
+    };
+
+    const initializeAuth = async () => {
+      let restoredSession: Session | null;
+
+      try {
+        const { data, error } = await withAuthTimeout(
+          "Session restore",
+          supabase.auth.getSession(),
+          AUTH_SESSION_RESTORE_TIMEOUT_MS,
+        );
+        if (error) throw error;
+        restoredSession = data.session;
+      } catch (error) {
+        if (!active) return;
+        const eventSession = pendingStartupEvent?.session;
+        if (eventSession?.user) {
+          if (pendingStartupEvent?.event === "SIGNED_IN") {
+            loginGraceUntilRef.current = Date.now() + 15_000;
+            clearSessionArtifacts();
+          }
+          finishInitialization(eventSession, null);
+          return;
+        }
+
+        console.error("[Auth] Session initialization failed:", error);
+        finishInitialization(null, AUTH_INITIALIZATION_ERROR_MESSAGE);
+        return;
+      }
+
+      if (pendingStartupEvent?.event === "SIGNED_OUT") {
+        if (pendingStartupEvent.wasExplicitSignOut || !restoredSession?.user) {
+          clearSessionArtifacts();
+          finishInitialization(null, null);
+        } else {
+          finishInitialization(restoredSession, AUTH_INITIALIZATION_ERROR_MESSAGE);
+        }
+        return;
+      }
+
+      if (pendingStartupEvent?.event === "SIGNED_IN") {
+        loginGraceUntilRef.current = Date.now() + 15_000;
+        clearSessionArtifacts();
+      }
+
+      const effectiveSession = pendingStartupEvent?.session?.user
+        ? pendingStartupEvent.session
+        : restoredSession;
+      finishInitialization(effectiveSession, null);
+    };
+
+    void initializeAuth();
+
+    return () => {
+      active = false;
+      deferredAuthTimers.forEach((timerId) => window.clearTimeout(timerId));
+      subscription.unsubscribe();
+    };
+  }, [initializationAttempt]);
 
   const signUp = async (email: string, password: string, fullName: string, dateOfBirth?: string, phone?: string, signupSource?: string) => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -382,6 +595,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = useCallback(async () => {
     explicitSignOutRef.current = true;
+    authInitializationUnavailableRef.current = false;
     clearSessionArtifacts();
     clearSignedUrlCache();
     setMfaPending(null);
@@ -413,6 +627,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setSession(null);
     setIsAdmin(false);
+    setIsAdminLoading(false);
+    setAdminRoleError(null);
+    currentUserIdRef.current = null;
+    authRevisionRef.current += 1;
     checkedAdminForRef.current = null;
     // Keep a short guard window; next sign-in resets this naturally.
     setTimeout(() => {
@@ -431,8 +649,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [session, signOut]);
 
   const value = useMemo<AuthContextType>(
-    () => ({ user, session, isLoading, isAdmin, mfaPending, signUp, signIn, verifyMfa, signOut }),
-    [user, session, isLoading, isAdmin, mfaPending, verifyMfa, signOut],
+    () => ({
+      user,
+      session,
+      isLoading,
+      isAdmin,
+      isAdminLoading,
+      adminRoleError,
+      authInitializationError,
+      retryAuthInitialization,
+      mfaPending,
+      signUp,
+      signIn,
+      verifyMfa,
+      signOut,
+    }),
+    [
+      user,
+      session,
+      isLoading,
+      isAdmin,
+      isAdminLoading,
+      adminRoleError,
+      authInitializationError,
+      retryAuthInitialization,
+      mfaPending,
+      verifyMfa,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

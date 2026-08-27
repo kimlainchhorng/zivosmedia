@@ -1135,7 +1135,7 @@ const FlightResults = () => {
 
       <div className="mt-4 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
         <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
-        Prices are live and may change. Book within 24h to lock in the best fare.
+        Fares can change until booking is confirmed. Final price and availability are shown before payment.
       </div>
     </div>
   );
@@ -1143,9 +1143,9 @@ const FlightResults = () => {
   const desktopInsights = !isMobile && (
     <aside className="hidden w-[248px] shrink-0 space-y-4 lg:block">
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-black text-slate-950">Why book with ZIVO?</h2>
+        <h2 className="text-base font-black text-slate-950">Why book with {seoBrand}?</h2>
         <div className="mt-4 space-y-3 text-sm text-slate-600">
-          {["24/7 human support", "Secure payments", "Trusted by 50K+ travelers"].map((item) => (
+          {["Fares checked with live providers", "Final price shown before payment", "Partner disclosure included"].map((item) => (
             <p key={item} className="flex items-center gap-2">
               <Check className="h-4 w-4 text-teal-600" />
               {item}
@@ -1607,14 +1607,14 @@ const FlightResults = () => {
                                   <p className="text-sm font-bold text-foreground">ZIVO</p>
                                    {hasLiveAviasalesData && (!bestAviasalesPrice || lowestDuffelPrice <= (bestAviasalesPrice?.price || Infinity)) && 
                            (
-                                     <Badge className="text-[8px] h-4 px-1.5 bg-primary/15 text-primary border-0 font-bold">
-                                       Live Best Price
+                                    <Badge className="text-[8px] h-4 px-1.5 bg-primary/15 text-primary border-0 font-bold">
+                                       Lowest shown
                                     </Badge>
                                   )}
                                 </div>
                                 <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                                   <ShieldCheck className="w-3 h-3" />
-                                  Book directly · Live ZIVO fare
+                                  Book directly · Current ZIVO fare
                                 </p>
                               </div>
                             </div>
@@ -1696,8 +1696,8 @@ const FlightResults = () => {
 
                       {/* Footer */}
                       <div className="px-4 py-2 border-t border-border/20 bg-muted/20">
-                          <p className="text-[9px] text-muted-foreground text-center">
-                           All prices are live from real-time API queries. Final price confirmed at checkout.{' '}
+                          <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
+                           Displayed fares come from live provider searches. Final price and availability are confirmed before payment.{' '}
                            <Link to="/legal/partner-disclosure" className="underline hover:text-foreground transition-colors">Partner Disclosure</Link>
                         </p>
                       </div>

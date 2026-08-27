@@ -202,7 +202,13 @@ export default function ShareToChatSheet() {
         if (error) throw error;
         successCount++;
       } catch {
-        outboxEnqueue({ id: `opt-share-${Date.now()}-${id}`, table: table as "direct_messages" | "group_messages", chatKey: id, payload: insertData, optimistic: insertData });
+        outboxEnqueue(user.id, {
+          id: `opt-share-${Date.now()}-${id}`,
+          table: table as "direct_messages" | "group_messages",
+          chatKey: id,
+          payload: insertData,
+          optimistic: insertData,
+        });
       }
     }
     setSending(false);

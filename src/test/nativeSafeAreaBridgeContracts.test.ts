@@ -40,6 +40,8 @@ describe("native safe-area bridge contracts", () => {
 
   it("keeps shared CSS tokens protecting interactive chrome in native and browser shells", () => {
     const css = source("src/index.css");
+    const main = source("src/main.tsx");
+    const headerSafeArea = source("src/lib/zivoHeaderSafeArea.ts");
     const mobileNav = source("src/components/app/ZivoMobileNav.tsx");
     const sheet = source("src/components/ui/sheet.tsx");
     const responsiveModal = source("src/components/ui/responsive-modal.tsx");
@@ -51,6 +53,8 @@ describe("native safe-area bridge contracts", () => {
       "--zivo-safe-top-overlay: max(calc(var(--zivo-safe-top, 0px) + 1.25rem), 80px);",
       "--zivo-safe-top-sheet: max(var(--zivo-safe-top, 0px), 44px);",
       "--zivo-safe-top-sticky: max(calc(var(--zivo-safe-top, 0px) + 0.125rem), 64px);",
+      ":root.zivo-browser-shell",
+      "--zivo-safe-top-sticky: max(var(--zivo-safe-top, 0px), 0.75rem);",
       ".safe-area-top",
       ".safe-area-bottom",
       ".pb-safe",
@@ -62,6 +66,12 @@ describe("native safe-area bridge contracts", () => {
     ]) {
       expect(css).toContain(needle);
     }
+
+    expect(main).toContain('import { isZivoInstalledShell } from "@/lib/zivoHeaderSafeArea"');
+    expect(main).toContain('"zivo-browser-shell"');
+    expect(main).toContain("!isZivoInstalledShell()");
+    expect(headerSafeArea).toContain("Capacitor.isNativePlatform() || isStandaloneDisplay");
+    expect(headerSafeArea).toContain("window.navigator as IOSStandaloneNavigator");
 
     expect(mobileNav).toContain("data-zivo-mobile-nav");
     expect(mobileNav).toContain("fixed inset-x-0 bottom-0");

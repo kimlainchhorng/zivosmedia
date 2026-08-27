@@ -20,6 +20,63 @@ type BoundaryOptions = {
 };
 
 /**
+ * Maps the exact local Zivosmedia parent to the matching canonical Ride dev
+ * origin. This remains separate from deploy-time configuration so a local
+ * preview can never weaken the production origin allowlist.
+ */
+export function resolveLocalRideAppBaseUrl(
+  parentOrigin: string,
+  options: BoundaryOptions = {},
+): URL | null {
+  if (!options.allowLocalDevelopment) return null;
+
+  try {
+    const parent = new URL(parentOrigin);
+    if (
+      parent.username ||
+      parent.password ||
+      !LOCAL_ZIVOSMEDIA_ORIGINS.has(parent.origin)
+    ) {
+      return null;
+    }
+
+    const candidate = new URL(parent.origin);
+    candidate.port = "5177";
+    return resolveRideAppBaseUrl(candidate.origin, options);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Mirrors the parent/child pairs admitted by the Ride app's frame-ancestors
+ * policy. Known-incompatible pairs must never mount an iframe because browsers
+ * replace it with an opaque error document that still fires `load`.
+ */
+export function canEmbedRideApp(
+  parentOrigin: string,
+  rideAppUrl: string | URL,
+  options: BoundaryOptions = {},
+): boolean {
+  try {
+    const parent = new URL(parentOrigin).origin;
+    const ride = new URL(rideAppUrl).origin;
+
+    if (ride === ZIVO_RIDE_PRODUCTION_ORIGIN) {
+      return ZIVOSMEDIA_AUTHORIZE_ORIGINS.has(parent);
+    }
+
+    return Boolean(
+      options.allowLocalDevelopment &&
+      LOCAL_ZIVOSMEDIA_ORIGINS.has(parent) &&
+      LOCAL_RIDE_ORIGINS.has(ride),
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Resolves the configured Ride iframe base without turning deploy-time config
  * into an arbitrary cross-origin embed. Production accepts only the canonical
  * dedicated Ride origin; the app is not basename-aware for reverse proxies.
@@ -28,7 +85,8 @@ export function resolveRideAppBaseUrl(
   configuredUrl: string | null | undefined,
   options: BoundaryOptions = {},
 ): URL | null {
-  const rawUrl = configuredUrl?.trim() ||
+  const rawUrl =
+    configuredUrl?.trim() ||
     (options.allowLocalDevelopment ? "http://localhost:5177" : "");
 
   if (!rawUrl) return null;
@@ -59,7 +117,10 @@ export function getRideAuthorizeUrl(
   if (!message || typeof message !== "object") return null;
 
   const candidate = message as { type?: unknown; url?: unknown };
-  if (candidate.type !== "zivo-ride:authorize" || typeof candidate.url !== "string") {
+  if (
+    candidate.type !== "zivo-ride:authorize" ||
+    typeof candidate.url !== "string"
+  ) {
     return null;
   }
 
@@ -67,7 +128,8 @@ export function getRideAuthorizeUrl(
     const url = new URL(candidate.url);
     const allowedOrigin =
       ZIVOSMEDIA_AUTHORIZE_ORIGINS.has(url.origin) ||
-      (options.allowLocalDevelopment && LOCAL_ZIVOSMEDIA_ORIGINS.has(url.origin));
+      (options.allowLocalDevelopment &&
+        LOCAL_ZIVOSMEDIA_ORIGINS.has(url.origin));
 
     const appKey = url.searchParams.get("app_key");
     const redirectUri = url.searchParams.get("redirect_uri");
@@ -95,7 +157,8 @@ export function getRideAuthorizeUrl(
     const redirect = new URL(redirectUri);
     const allowedRedirectOrigin =
       redirect.origin === ZIVO_RIDE_PRODUCTION_ORIGIN ||
-      (options.allowLocalDevelopment && LOCAL_RIDE_ORIGINS.has(redirect.origin));
+      (options.allowLocalDevelopment &&
+        LOCAL_RIDE_ORIGINS.has(redirect.origin));
     if (
       !allowedRedirectOrigin ||
       redirect.username ||

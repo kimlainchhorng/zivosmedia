@@ -27,23 +27,24 @@ export interface P2PVehicleWithOwner {
   daily_rate: number;
   images: any;
   rating: number | null;
-  review_count: number | null;
+  review_count?: number | null;
   location_city: string | null;
-  location_address: string | null;
+  location_state: string | null;
+  location_address?: string | null;
   seats: number | null;
   transmission: string | null;
   fuel_type: string | null;
   category: string;
   instant_book: boolean | null;
   is_featured: boolean | null;
-  description: string | null;
-  features: any;
+  description?: string | null;
+  features?: any;
   total_trips: number | null;
-  color: string | null;
-  doors: number | null;
-  mileage: number | null;
-  included_miles_per_day: number | null;
-  owner_id: string;
+  color?: string | null;
+  doors?: number | null;
+  mileage?: number | null;
+  included_miles_per_day?: number | null;
+  owner_id?: string;
   [key: string]: any;
 }
 
@@ -68,12 +69,9 @@ export function useP2PVehicleSearch(filters?: P2PSearchFilters) {
   const query = useQuery({
     queryKey: ["p2p-vehicles", filters],
     queryFn: async (): Promise<P2PVehicleWithOwner[]> => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) return [];
-
       let q = supabase
         .from("p2p_vehicles")
-        .select("*")
+        .select("id, make, model, year, daily_rate, images, rating, location_city, location_state, seats, transmission, fuel_type, category, instant_book, is_featured, total_trips")
         .eq("is_available", true)
         .eq("approval_status", "approved")
         .order("is_featured", { ascending: false })
@@ -120,8 +118,10 @@ export function useP2PVehicleSearch(filters?: P2PSearchFilters) {
     vehicles: query.data || [],
     data: query.data || [],
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     error: query.error,
     isError: query.isError,
+    refetch: query.refetch,
   };
 }
 

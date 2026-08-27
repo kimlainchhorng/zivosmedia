@@ -39,6 +39,14 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = true
   [functions.stripe-lodging-webhook]
     verify_jwt = false
+  [functions.create-lodging-cutluy-payment]
+    verify_jwt = true
+  # CutLuy authenticates this public delivery endpoint with its raw-body HMAC.
+  [functions.lodging-cutluy-webhook]
+    verify_jwt = false
+  # Durable replay is separately protected by CUTLUY_RECONCILE_SECRET.
+  [functions.reconcile-lodging-cutluy-webhooks]
+    verify_jwt = false
   [functions.dispatch-escalate]
     verify_jwt = false
   [functions.ads-studio-generate]

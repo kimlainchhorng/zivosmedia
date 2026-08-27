@@ -11,3 +11,4 @@ export { Coverflow3D } from "./Coverflow3D";
 export { PageTransition } from "./PageTransition";
 export { TravelPullToRefresh } from "./TravelPullToRefresh";
 export { TravelWalletTopupDialog } from "./TravelWalletTopupDialog";
+export { TravelFlowHeader } from "./TravelFlowHeader";

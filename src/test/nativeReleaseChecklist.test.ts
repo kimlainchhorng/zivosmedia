@@ -32,10 +32,11 @@ describe("native release checklist", () => {
 
     for (const releaseValue of [
       "App version: 1.3.0",
-      "iOS build: 3",
+      "iOS build: 4",
       "iOS bundle ID: com.hizovo.app",
-      "Android versionCode: 2026053101",
+      "Android versionCode: 2026082601",
       "Android package: com.hizovo.app",
+      "Android target SDK: 36 (Android 16)",
     ]) {
       expect(checklist).toContain(releaseValue);
     }

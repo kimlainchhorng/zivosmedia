@@ -107,8 +107,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "[-webkit-text-fill-color:hsl(var(--foreground))] [&:-webkit-autofill]:[-webkit-text-fill-color:hsl(var(--foreground))] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_hsl(var(--background))_inset]",
               "ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
               "placeholder:text-muted-foreground placeholder:font-normal placeholder:text-sm",
-              // Focus styles — IG focuses to a solid dark hairline, not a colour glow
-              "focus-visible:outline-none focus-visible:ring-0 focus-visible:border-foreground focus-visible:bg-background",
+              // Match the shared Button/Textarea/Select keyboard-focus contract.
+              // The border still darkens, while the 2px ring keeps focus visible
+              // on cards and other low-contrast surfaces across every host.
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-foreground focus-visible:bg-background",
               // Hover styles
               "hover:border-foreground/30 hover:bg-background",
               // Disabled styles

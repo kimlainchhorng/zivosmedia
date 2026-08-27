@@ -8,13 +8,12 @@ import { withRedirectParam } from "@/lib/authRedirect";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import CarElectricVehicles from "@/components/car/CarElectricVehicles";
 import SEOHead from "@/components/SEOHead";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { useState, useMemo, type ReactNode } from "react";
 import { 
   Search, MapPin, Calendar, Car, Zap, Star, Users, 
-  Fuel, Settings2, X, SlidersHorizontal, ArrowRight, Shield
+  Fuel, Settings2, X, SlidersHorizontal, ArrowRight, RefreshCw
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -148,7 +147,13 @@ export default function Cars() {
     instantBook: searchParams.get("instant_book") === "true",
   }), [searchParams]);
 
-  const { data: vehicles, isLoading } = useP2PVehicleSearch(filters);
+  const {
+    data: vehicles,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useP2PVehicleSearch(filters);
 
   // Local filter state
   const [localFilters, setLocalFilters] = useState({
@@ -234,10 +239,21 @@ export default function Cars() {
     }
   };
 
+  const handleEditSearch = () => {
+    navigate(isTravelHost ? "/zivo-travel#booking" : "/cars/search");
+  };
+
   const pageTitle = filters.city ? `Rent Cars in ${filters.city}` : "Find Your Perfect Ride";
   const dateLabel = filters.pickupDate && filters.returnDate
     ? `${format(parseISO(filters.pickupDate), "MMM d")} - ${format(parseISO(filters.returnDate), "MMM d, yyyy")}`
     : "";
+  const inventoryStatus = isLoading || isFetching
+    ? "Checking current listings"
+    : isError
+      ? "Inventory unavailable"
+      : vehicles.length > 0
+        ? `${vehicles.length} current approved ${vehicles.length === 1 ? "listing" : "listings"}`
+        : "No current approved listings for these filters";
   const activeMake = filters.make?.toLowerCase();
   const makeChips = popularMakes.map((make) => {
     const selected = activeMake === make.toLowerCase();
@@ -264,55 +280,13 @@ export default function Cars() {
     <div className={cn("min-h-screen bg-background", isTravelHost && "zivo-travel-3d zivo-travel-light text-slate-950")}>
       <SEOHead
         title={`Rent Cars from Local Owners${filters.city ? ` in ${filters.city}` : ""} | ${seoBrand}`}
-        description={`Rent cars directly from local owners. Better prices, unique vehicles, flexible terms. Book now on ${seoBrand}'s peer-to-peer car sharing marketplace.`}
+        description={`Search current approved owner-listed cars by city, vehicle type, and price on ${seoBrand}. Pickup and return date availability is confirmed before booking.`}
       />
       <Header />
 
       <MaybePageTransition enabled={isTravelHost}>
         <main className={cn("pt-20 pb-16", isTravelHost && "relative overflow-hidden pb-24 pt-28 sm:pt-32 lg:pt-24")}>
         {isTravelHost && <div className="zt-aurora fixed inset-0 opacity-70" aria-hidden />}
-
-        {/* Cars Stats Bar */}
-        <section className={cn("py-10 border-b border-border/30 mb-8", isTravelHost && "relative z-10 mb-0 border-b-0 py-6")}>
-          <div className="container mx-auto px-4">
-            <p className={cn("text-center text-sm font-medium text-muted-foreground mb-6", isTravelHost && "text-slate-500")}>
-              Your peer-to-peer car marketplace
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-5xl mx-auto">
-              {[
-                {
-                  icon: Car,
-                  value: "10K+",
-                  label: "Vehicles",
-                  borderColor: "border-t-[hsl(var(--cars))]",
-                  iconBg: "bg-[hsl(var(--cars-light))]",
-                  iconColor: "text-[hsl(var(--cars))]",
-                },
-                { icon: Users, value: "50K+", label: "Owners", borderColor: "border-t-primary", iconBg: "bg-primary/10", iconColor: "text-primary" },
-                { icon: Star, value: "4.9", label: "Avg Rating", borderColor: "border-t-amber-500", iconBg: "bg-amber-500/10", iconColor: "text-amber-500" },
-                { icon: Shield, value: "100%", label: "Insured", borderColor: "border-t-emerald-500", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-500" },
-              ].map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <MaybeTiltCard
-                    enabled={isTravelHost}
-                    className={cn(
-                      `border-t-[3px] ${stat.borderColor}`,
-                      isTravelHost
-                        ? "zt-glass h-full rounded-3xl p-5 text-left transition hover:-translate-y-1 sm:p-6"
-                        : "p-6 card-premium",
-                    )}
-                  >
-                    <div className={`w-12 h-12 mx-auto mb-3 rounded-xl flex items-center justify-center ${stat.iconBg}`}>
-                      <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-foreground mb-1">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
-                  </MaybeTiltCard>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         <div className="container mx-auto px-4">
           {/* Hero Section */}
@@ -330,18 +304,22 @@ export default function Cars() {
                   <span className={cn(isTravelHost && "zt-gradient-text")}>{pageTitle}</span>
                 </h1>
                 <p className={cn("text-lg text-muted-foreground max-w-2xl", isTravelHost && "text-slate-600")}>
-                  Skip the rental counter. Book directly from local car owners for better prices and a personal touch.
+                  Search current approved owner listings by location, vehicle type, and price. Pickup and return date availability is confirmed before booking.
                 </p>
 
-                {/* Price Match Guarantee Badge */}
                 <div
+                  aria-live="polite"
+                  role="status"
                   className={cn(
-                    "mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-600 font-medium",
-                    isTravelHost && "bg-white/70 shadow-sm shadow-emerald-500/10",
+                    "mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
+                    isError
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-800"
+                      : "border-sky-500/20 bg-sky-500/10 text-sky-700",
+                    isTravelHost && "shadow-sm shadow-sky-500/10",
                   )}
                 >
-                  <Shield className="w-4 h-4" />
-                  Price Match Guarantee
+                  <Car className="w-4 h-4" />
+                  {inventoryStatus}
                 </div>
 
                 {dateLabel && (
@@ -358,8 +336,8 @@ export default function Cars() {
                       <Search className="h-5 w-5" />
                     </span>
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Search locked in</p>
-                      <p className="text-sm font-bold text-slate-900">Local cars, travel-ready dates</p>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Current search</p>
+                      <p className="text-sm font-bold text-slate-900">Current listings; dates confirmed before booking</p>
                     </div>
                   </div>
                   <div className="mt-5 grid gap-3 text-sm">
@@ -540,7 +518,35 @@ export default function Cars() {
                 </Card>
               ))}
             </div>
-          ) : vehicles && vehicles.length > 0 ? (
+          ) : isError ? (
+            <div
+              className={cn(
+                "text-center py-16",
+                isTravelHost && "zt-glass relative z-10 rounded-[2rem] px-6",
+              )}
+              role="alert"
+            >
+              <RefreshCw className="w-16 h-16 mx-auto text-amber-600/60 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Car inventory unavailable</h3>
+              <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
+                We could not verify current vehicle availability. No alternative or sample offers are shown.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => void refetch()}
+                  disabled={isFetching}
+                  className="min-h-11 gap-2"
+                >
+                  <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
+                  {isFetching ? "Retrying..." : "Retry live inventory"}
+                </Button>
+                <Button variant="ghost" onClick={handleEditSearch} className="min-h-11">
+                  Edit search
+                </Button>
+              </div>
+            </div>
+          ) : vehicles.length > 0 ? (
             <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6", isTravelHost && "relative z-10")}>
               {vehicles.map((vehicle) => {
                 const images = (vehicle.images as string[]) || [];
@@ -643,19 +649,22 @@ export default function Cars() {
           ) : (
             <div className={cn("text-center py-16", isTravelHost && "zt-glass relative z-10 rounded-[2rem] px-6")}>
               <Car className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No vehicles found</h3>
-              <p className="text-muted-foreground mb-6">
-                Try adjusting your filters or search location
+              <h3 className="text-xl font-semibold mb-2">No live vehicles found</h3>
+              <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
+                No current approved owner listings matched these filters. Pickup and return date availability is confirmed before booking.
               </p>
-              <Button variant="outline" onClick={clearFilters}>
-                Clear Filters
-              </Button>
+              <div className="flex flex-wrap justify-center gap-3">
+                {activeFilterCount > 0 && (
+                  <Button variant="outline" onClick={clearFilters} className="min-h-11">
+                    Clear vehicle filters
+                  </Button>
+                )}
+                <Button onClick={handleEditSearch} className="min-h-11">
+                  Search another location
+                </Button>
+              </div>
             </div>
           )}
-        </div>
-        {/* EV Section */}
-        <div className={cn(isTravelHost && "relative z-10")}>
-          <CarElectricVehicles />
         </div>
         </main>
       </MaybePageTransition>

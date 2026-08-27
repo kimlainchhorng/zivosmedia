@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ZivoLogo from "@/components/ZivoLogo";
+import ZivoTravelLogo from "@/components/ZivoTravelLogo";
 import AppSwitcher from "@/components/cross-app/AppSwitcher";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { cn } from "@/lib/utils";
@@ -238,13 +239,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
                 whileTap={{ scale: 0.95 }}
               >
                 {isTravel ? (
-                  <span className="flex items-center gap-1.5">
-                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-base font-black text-white">Z</span>
-                    <span className="text-base font-black tracking-tight">
-                      <span className="text-foreground">ZIVO</span>{" "}
-                      <span className="bg-gradient-to-r from-emerald-400 to-sky-500 bg-clip-text text-transparent">TRAVEL</span>
-                    </span>
-                  </span>
+                  <ZivoTravelLogo size="sm" />
                 ) : (
                   <ZivoLogo size="sm" />
                 )}

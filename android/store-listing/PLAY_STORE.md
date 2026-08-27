@@ -118,8 +118,9 @@ https://zivosmedia.com/delete-account
 
 ```
 Version: 1.3.0
-Version code: 2026053101
+Version code: 2026082601
 Package name: com.hizovo.app
+Target SDK: 36 (Android 16)
 ```
 
 ## 10. Graphic Assets (sizes Google requires — replace files, do NOT change names)

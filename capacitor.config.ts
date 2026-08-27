@@ -63,11 +63,6 @@ const config: CapacitorConfig = {
       resizeOnFullScreen: true,
     },
     SplashScreen: {
-      // Keep the native splash up while the JS bundle parses, so a cold start
-      // does not flash white before React paints. main.tsx calls
-      // SplashScreen.hide() as soon as the root renders (usually ~800-1500 ms),
-      // which is the fast path and the common case.
-      //
       // launchAutoHide MUST stay true. It was false, and that is what got the
       // app pulled from Google Play on 2026-07-29 under the Broken
       // Functionality policy ("Problems loading — Your app does not open or
@@ -92,15 +87,14 @@ const config: CapacitorConfig = {
       // forever -- which is exactly a permanent splash, the thing the comment
       // promised could not happen.
       //
-      // With autoHide true this value is a genuine ceiling: the fast path still
-      // hides earlier via hide(), and a boot that throws now falls through to
-      // the error panel instead of a frozen logo. A brief white frame on a very
-      // slow device is a far better failure than a store removal.
+      // Android 12's Capacitor splash implementation also installs a pre-draw
+      // gate whenever launchShowDuration is non-zero. On a slow first launch,
+      // the timer callback can be starved by WebView work and hold the launch
+      // screen far beyond the configured duration. A zero duration skips that
+      // extra gate; Android still provides its normal system launch screen, and
+      // index.html paints a static ZIVO boot shell before React is ready.
       launchAutoHide: true,
-      // Ceiling, not a delay -- hide() normally fires well before this. Long
-      // enough to cover a slow cold start, short enough that a stalled bundle
-      // does not look frozen.
-      launchShowDuration: 2500,
+      launchShowDuration: 0,
       launchFadeOutDuration: 200,
       backgroundColor: '#0D0D0F',
       androidScaleType: 'CENTER_CROP',

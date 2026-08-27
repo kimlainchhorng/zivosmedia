@@ -8,6 +8,7 @@ const read = (relativePath: string) => readFileSync(path.join(root, relativePath
 describe("native app release workflow", () => {
   it("keeps Capacitor production config aligned with the native shells", () => {
     const config = read("capacitor.config.ts");
+    const index = read("index.html");
     const packageJson = read("package.json");
     const main = read("src/main.tsx");
 
@@ -25,7 +26,25 @@ describe("native app release workflow", () => {
     // of com.hizovo.app on 2026-07-29. Behaviour, not the old literal, is what
     // this release workflow should hold.
     expect(config).toContain("launchAutoHide: true");
+    expect(config).toContain("launchShowDuration: 0");
     expect(config).not.toContain("http://localhost");
+    const bootShellIndex = index.indexOf("<div data-zivo-boot-shell");
+    const reactRootIndex = index.indexOf('<div id="root"></div>');
+    expect(bootShellIndex).toBeGreaterThanOrEqual(0);
+    expect(reactRootIndex).toBeGreaterThan(bootShellIndex);
+    expect(index).toContain("កំពុងបើកកម្មវិធីរបស់អ្នក");
+    expect(index).toContain('aria-atomic="true"');
+    expect(main).toContain("removeBootShellAfterFirstAppPaint(root)");
+    expect(main).toContain("new MutationObserver");
+    expect(main).toContain("root.childElementCount");
+    expect(main).toContain("function finishBoot()");
+    expect(main).toContain("NATIVE_BOOT_SHELL_HANDOFF_MS = 350");
+    expect(main).toContain(
+      "window.setTimeout(removeBootShell, NATIVE_BOOT_SHELL_HANDOFF_MS)",
+    );
+    expect(main).toContain("notifyNativeAppReady();");
+    expect(main).toContain("onUncaughtError: paintBootError");
+    expect(main).not.toContain("root.replaceChildren");
 
     for (const dependency of ["@capacitor/core", "@capacitor/ios", "@capacitor/android", "@capgo/capacitor-updater"]) {
       expect(packageJson).toContain(dependency);
@@ -75,7 +94,7 @@ describe("native app release workflow", () => {
 
     expect(build).toContain('namespace = "com.hizovo.app"');
     expect(build).toContain('applicationId "com.hizovo.app"');
-    expect(build).toContain("versionCode 2026053101");
+    expect(build).toContain("versionCode 2026082601");
     expect(build).toContain('versionName "1.3.0"');
     expect(build).toContain("com.google.android.play:integrity");
     expect(build).toContain("keystore.properties");
@@ -83,9 +102,10 @@ describe("native app release workflow", () => {
 
     expect(variables).toContain("minSdkVersion = 24");
     expect(variables).toContain("compileSdkVersion = 36");
-    expect(variables).toContain("targetSdkVersion = 35");
+    expect(variables).toContain("targetSdkVersion = 36");
 
     expect(listing).toContain("Package name: `com.hizovo.app`");
+    expect(listing).toContain("Target SDK: 36 (Android 16)");
     expect(listing).toContain("Privacy Policy URL");
     expect(listing).toContain("Account Deletion URL");
     expect(listing).toContain("https://zivosmedia.com/legal/privacy");

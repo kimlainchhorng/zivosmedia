@@ -8,7 +8,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { Helmet } from "react-helmet-async";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
@@ -46,7 +46,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { SmartImage } from "@/components/shared/SmartImage";
+import Footer from "@/components/Footer";
+import ZivoTravelLogo from "@/components/ZivoTravelLogo";
 import { isZivoTravelHost, ZIVO_TRAVEL_ORIGIN } from "@/config/zivoTravelDomain";
+import { getZivoHeaderSafeTop } from "@/lib/zivoHeaderSafeArea";
 
 import tabHotelsBg from "@/assets/tab-hotels-bg.jpg";
 import destPhnomPenh from "@/assets/destinations/phnom-penh.jpg";
@@ -899,7 +902,10 @@ export default function HotelsLandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-background" />
         </div>
 
-        <div className="relative px-4 pt-3 pb-4 safe-area-top">
+        <div
+          className={cn("relative px-4 pb-4", isTravelHost ? "pt-0" : "pt-3 safe-area-top")}
+          style={isTravelHost ? { paddingTop: getZivoHeaderSafeTop() } : undefined}
+        >
           <div className="flex items-center gap-2">
             <button type="button"
               onClick={smartBack}
@@ -908,7 +914,20 @@ export default function HotelsLandingPage() {
             >
               <ArrowLeft className="w-5 h-5 text-white" />
             </button>
-            <h1 className="text-base font-bold text-white flex-1 truncate drop-shadow-lg">Hotels & Resorts</h1>
+            {isTravelHost ? (
+              <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                <Link
+                  to="/"
+                  aria-label="Zivo Travel home"
+                  className="rounded-lg bg-white/90 px-2 py-1 shadow-sm backdrop-blur focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <ZivoTravelLogo size="sm" />
+                </Link>
+                <h1 className="truncate text-sm font-bold text-white drop-shadow-lg">Hotels</h1>
+              </div>
+            ) : (
+              <h1 className="text-base font-bold text-white flex-1 truncate drop-shadow-lg">Hotels & Resorts</h1>
+            )}
           </div>
 
           <div className="mt-3 mb-3">
@@ -1801,6 +1820,10 @@ export default function HotelsLandingPage() {
         </div>
         )}
       </section>
+
+      {isTravelHost && (
+        <Footer forceTravelBrand className="mt-10 pb-[calc(6rem+env(safe-area-inset-bottom))]" />
+      )}
 
       {/* Floating "Find with AI" CTA — hidden in Map view so it doesn't
           obscure the property cards / map markers. */}

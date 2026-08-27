@@ -138,6 +138,15 @@ export default function AdminLodgingReservationDetailPage() {
   );
 
   const balanceDue = (reservation?.total_cents || 0) - (reservation?.paid_cents || 0);
+  const reservationPayMethod = typeof reservation?.guest_details?.pay_method === "string"
+    ? reservation.guest_details.pay_method
+    : "";
+  const cardRetryMode = reservationPayMethod === "card_on_arrival" && reservation?.deposit_cents > 0
+    ? "deposit"
+    : "full";
+  const cardRetryGrossCents = cardRetryMode === "deposit"
+    ? reservation?.deposit_cents || 0
+    : reservation?.total_cents || 0;
   const postedChargesTotal = charges.reduce((sum, charge) => sum + (charge.amount_cents || 0) * (charge.quantity || 1), 0);
   const isClosed = ["cancelled", "checked_out", "no_show"].includes(String(reservation?.status || ""));
   const pendingRequests = changeRequests.filter((r) => r.status === "pending");
@@ -377,7 +386,7 @@ export default function AdminLodgingReservationDetailPage() {
               <LodgingPaymentBadge
                 status={reservation.payment_status}
                 reservationStatus={reservation.status}
-                amountCents={reservation.deposit_cents || reservation.total_cents}
+                amountCents={cardRetryGrossCents}
                 onRetry={async () => {
                   if (retrying) return;
                   setRetrying(true);
@@ -386,8 +395,8 @@ export default function AdminLodgingReservationDetailPage() {
                       body: {
                         reservation_id: reservation.id,
                         store_id: reservation.store_id,
-                        deposit_cents: reservation.deposit_cents || reservation.total_cents,
-                        mode: reservation.deposit_cents ? "deposit" : "full",
+                        deposit_cents: cardRetryGrossCents,
+                        mode: cardRetryMode,
                       },
                     });
                     if (error) throw error;

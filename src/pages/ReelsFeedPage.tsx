@@ -5,7 +5,7 @@
  */
 import { lazy, Suspense, useState, useRef, useCallback, useEffect, memo, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -101,6 +101,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import { useHiddenPosts } from "@/hooks/useHiddenPosts";
+import { useFeedCardHydration } from "@/hooks/useFeedCardHydration";
 import { useHaptic } from "@/hooks/useHaptic";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
@@ -805,6 +806,7 @@ export default function ReelsFeedPage() {
   } | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const hiddenPosts = useHiddenPosts(userId);
+  const { hide: hideFeedCardPost } = useHiddenPosts();
   const snoozedAuthorIds = useFeedSnoozedAuthorIds(userId);
   const [authReady, setAuthReady] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string; avatar: string | null } | null>(null);
@@ -1247,6 +1249,7 @@ export default function ReelsFeedPage() {
 
   const { data: items = [], isLoading, isFetching } = useQuery({
     queryKey: ["reels-feed-grid", pageSize],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const feedStartedAt = perfNow();
       const allItems: FeedItem[] = [];
@@ -2657,7 +2660,7 @@ export default function ReelsFeedPage() {
             ) : (
             <div className="space-y-3 pb-4">
               {filteredItems.map((item, idx) => (
-                <div key={item.id} data-testid={`feed-post-card-${item.id}`}>
+                <div key={`${userId ?? "guest"}:${item.id}`} data-testid={`feed-post-card-${item.id}`}>
                   {item.source === "poll" && item.poll ? (
                     <div className="px-3 py-2">
                       <Suspense fallback={<div className="zivo-social-module h-44 rounded-[1.25rem] animate-pulse" />}>
@@ -2676,7 +2679,7 @@ export default function ReelsFeedPage() {
                       </Suspense>
                     </div>
                   ) : (
-                    <FeedCard item={item} currentUserId={userId} onOpenFullscreen={() => {
+                    <FeedCard item={item} currentUserId={userId} onHidePost={hideFeedCardPost} onOpenFullscreen={() => {
                       if (item.media_type === 'video') {
                         navigate(`/reels?post=${encodeURIComponent(getReelsSharePostId(item))}`);
                       } else {
@@ -3041,7 +3044,7 @@ export default function ReelsFeedPage() {
                         ref={fullscreenScrollRef}
                         className="zivo-pb-safe-inset touch-pan-y flex-1 min-h-0 overflow-y-auto"
                       >
-                        <FeedCard key={post.id} item={post} currentUserId={userId} detailMode />
+                        <FeedCard key={`${userId ?? "guest"}:${post.id}`} item={post} currentUserId={userId} onHidePost={hideFeedCardPost} detailMode />
                       </div>
                     </>
                   )}
@@ -4309,10 +4312,10 @@ function FeedPollCard() {
 // Memoized so tab switches / parent state changes don't re-render every visible
 // card. Cards re-render only when their own item identity changes or when
 // currentUserId / autoPlayVideo / detailMode flips.
-const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen, autoPlayVideo, detailMode }: { item: FeedItem; currentUserId: string | null; onOpenFullscreen?: () => void; autoPlayVideo?: boolean; detailMode?: boolean }) {
+const FeedCard = memo(function FeedCard({ item, currentUserId, onHidePost, onOpenFullscreen, autoPlayVideo, detailMode }: { item: FeedItem; currentUserId: string | null; onHidePost: (postId: string) => void; onOpenFullscreen?: () => void; autoPlayVideo?: boolean; detailMode?: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const hiddenPosts = useHiddenPosts();
+  const { hydrationRef, shouldHydrate } = useFeedCardHydration(Boolean(detailMode));
   const haptic = useHaptic();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -4391,6 +4394,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   const isSharedAuthorOwner = Boolean(currentUserId && sharedAuthorId === currentUserId);
   const interactionPostId = getFeedInteractionPostId(item);
   const likesTable = getFeedLikesTable(item);
+  const shouldLoadVideo = item.media_type === "video" && shouldHydrate;
 
   useEffect(() => {
     setLocalLikes(item.likes_count);
@@ -4401,6 +4405,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   }, [item.comments_count]);
 
   useEffect(() => {
+    if (!shouldHydrate) return;
     if (!currentUserId) {
       setLiked(false);
       return;
@@ -4421,11 +4426,12 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     return () => {
       alive = false;
     };
-  }, [currentUserId, interactionPostId, likesTable]);
+  }, [currentUserId, interactionPostId, likesTable, shouldHydrate]);
 
   // Load initial bookmark state from post_bookmarks (matches usePostActions hook).
   // Polls aren't bookmarkable yet — the table's source CHECK only allows store/user.
   useEffect(() => {
+    if (!shouldHydrate) return;
     if (!currentUserId || item.source === "poll") return;
     let alive = true;
     (supabase as any)
@@ -4439,10 +4445,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         if (alive && data) setSaved(true);
       });
     return () => { alive = false; };
-  }, [currentUserId, interactionPostId, item.source]);
+  }, [currentUserId, interactionPostId, item.source, shouldHydrate]);
 
   // Hydrate this user's existing emoji reaction for this post (post_reactions)
   useEffect(() => {
+    if (!shouldHydrate) return;
     if (!POST_REACTIONS_ENABLED) return;
     if (!currentUserId || item.source === "poll") return;
     let alive = true;
@@ -4457,23 +4464,25 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
         if (alive && data?.emoji) setSelectedReaction(data.emoji);
       });
     return () => { alive = false; };
-  }, [currentUserId, interactionPostId, item.source]);
+  }, [currentUserId, interactionPostId, item.source, shouldHydrate]);
 
   // Check follow status
   useEffect(() => {
+    if (!shouldHydrate) return;
     if (!currentUserId || !item.author_id || isOwner) return;
     supabase.rpc("is_following" as any, { target_user_id: item.author_id })
       .then(({ data }: any) => { if (typeof data === "boolean") setIsFollowingAuthor(data); });
-  }, [currentUserId, item.author_id, isOwner]);
+  }, [currentUserId, item.author_id, isOwner, shouldHydrate]);
 
   useEffect(() => {
+    if (!shouldHydrate) return;
     if (!currentUserId || !sharedAuthorId || isSharedAuthorOwner) {
       setIsFollowingSharedAuthor(false);
       return;
     }
     supabase.rpc("is_following" as any, { target_user_id: sharedAuthorId })
       .then(({ data }: any) => { if (typeof data === "boolean") setIsFollowingSharedAuthor(data); });
-  }, [currentUserId, sharedAuthorId, isSharedAuthorOwner]);
+  }, [currentUserId, sharedAuthorId, isSharedAuthorOwner, shouldHydrate]);
 
   const sendFollowNotification = async (targetUserId: string) => {
     try {
@@ -4579,7 +4588,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
 
   // Auto-play videos when visible or when autoPlayVideo is set
   useEffect(() => {
-    if (item.media_type !== "video") return;
+    if (!shouldLoadVideo) return;
     if (autoPlayVideo) {
       setTimeout(() => {
         videoRef.current?.play().catch(() => {});
@@ -4587,6 +4596,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
       }, 100);
       return;
     }
+    if (typeof IntersectionObserver === "undefined") return;
     if (!containerRef.current) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -4602,7 +4612,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
     );
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [item.media_type, autoPlayVideo]);
+  }, [item.media_type, autoPlayVideo, shouldLoadVideo]);
 
   // Record a view after 1.5s of continuous play (matches the SQL function's
   // expected dwell threshold). Per-session dedup via the module-level set so
@@ -4630,6 +4640,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   // there are no likes yet, when the only liker is the viewer themselves, or
   // when an in-flight optimistic update hasn't settled yet.
   useEffect(() => {
+    if (!shouldHydrate) return;
     if (localLikes <= 0) { setTopLikerName(null); return; }
     let cancelled = false;
     (async () => {
@@ -4661,7 +4672,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
       setTopLikerName(display);
     })();
     return () => { cancelled = true; };
-  }, [localLikes, likesTable, interactionPostId, currentUserId]);
+  }, [localLikes, likesTable, interactionPostId, currentUserId, shouldHydrate]);
 
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
@@ -5009,7 +5020,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   const isSharedPost = Boolean(item.shared_from_post_id || item.shared_from_user_id);
 
   return (
-    <div className={cn(
+    <div ref={hydrationRef} className={cn(
       detailMode ? "bg-transparent" : "mx-3 my-2.5 overflow-hidden rounded-2xl border border-border/30 bg-background/92 shadow-sm transition-colors duration-200 hover:border-border/50"
     )}>
       {isSharedPost ? (
@@ -5164,11 +5175,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                   <>
                     <video
                       ref={videoRef}
-                      src={mediaUrl}
+                      src={shouldLoadVideo ? mediaUrl : undefined}
                       muted={muted}
                       loop
                       playsInline
-                      preload="metadata"
+                      preload={shouldLoadVideo ? "metadata" : "none"}
                       onLoadedMetadata={(e) => {
                         const v = e.currentTarget;
                         if (v.videoWidth > 0 && v.videoHeight > 0) {
@@ -5387,11 +5398,11 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
                 <>
                   <video
                     ref={videoRef}
-                    src={mediaUrl}
+                    src={shouldLoadVideo ? mediaUrl : undefined}
                     muted={muted}
                     loop
                     playsInline
-                    preload="metadata"
+                    preload={shouldLoadVideo ? "metadata" : "none"}
                     onLoadedMetadata={(e) => {
                       const v = e.currentTarget;
                       if (v.videoWidth > 0 && v.videoHeight > 0) {
@@ -5963,7 +5974,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
           <button type="button"
             onClick={() => {
               setShowPostMenu(false);
-              hiddenPosts.hide(item.id);
+              onHidePost(item.id);
               toast.success("We'll show fewer like this");
             }}
             className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
@@ -6343,6 +6354,7 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onOpenFullscreen,
   return (
     prev.item === next.item &&
     prev.currentUserId === next.currentUserId &&
+    prev.onHidePost === next.onHidePost &&
     prev.autoPlayVideo === next.autoPlayVideo &&
     prev.detailMode === next.detailMode
   );

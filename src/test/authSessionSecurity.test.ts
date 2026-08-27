@@ -27,7 +27,9 @@ describe("auth session security contracts", () => {
       "for (let attempt = 0; attempt < 3; attempt += 1)",
       "TOKEN_REFRESHED",
       "checkedAdminForRef",
-      "checkAdminRole(session.user.id)",
+      "resolveAdminRole(restoredSession.user.id, revision)",
+      "authRevisionRef.current !== revision",
+      "currentUserIdRef.current !== userId",
       "clearSessionArtifacts()",
     ]);
   });

@@ -121,8 +121,8 @@ export function QuickStatsBar({
       ))}
 
       {/* Subtle inline notice */}
-      <p className="text-center text-[9px] text-muted-foreground/40 pt-0.5">
-        Final prices shown — tickets issued instantly after payment.
+      <p className="pt-0.5 text-center text-[10px] leading-relaxed text-muted-foreground">
+        Current fares shown — final price and availability confirmed before payment.
       </p>
     </div>
   );

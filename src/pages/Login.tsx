@@ -19,6 +19,11 @@ import {
 import { ZIVO_CHAT_HOME_PATH, isZivoChatHost } from "@/config/zivoChatDomain";
 import { useSavedAccounts, saveAccount, type SavedAccount } from "@/hooks/useSavedAccounts";
 import { getSafeRedirectTarget, isExternalRedirectTarget, withProductContext } from "@/lib/authRedirect";
+import { getCurrentZivoApp } from "@/config/zivoApps";
+import {
+  getAuthEntryExitAction,
+  getAuthEntryReturnTarget,
+} from "@/lib/authEntryReturn";
 import {
   buildSoftwareMediaConnectHref,
   createSoftwareMediaConnectState,
@@ -309,6 +314,7 @@ const Login = () => {
   const currentHostname = typeof window !== "undefined" ? window.location.hostname : "";
   const isZivoSoftwareHost = isAutoRepairSoftwareHost(currentHostname);
   const isZivoChatDomain = isZivoChatHost(currentHostname);
+  const currentZivoApp = getCurrentZivoApp(currentHostname);
   const rawRedirect = params.get("redirect");
   const handoffSource = params.get("source");
   const handoffProduct = params.get("product");
@@ -330,6 +336,19 @@ const Login = () => {
   const isZivoSoftwareDomain =
     isZivoSoftwareHost ||
     isZivoSoftwareRedirectTarget(redirect);
+  const authEntryReturnTarget = useMemo(
+    () => getAuthEntryReturnTarget(redirect),
+    [redirect],
+  );
+  const historyIndex =
+    typeof window !== "undefined" && typeof window.history.state?.idx === "number"
+      ? window.history.state.idx
+      : 0;
+  const authEntryExitAction = getAuthEntryExitAction({
+    hostKey: currentZivoApp?.key ?? null,
+    historyIndex,
+    returnTarget: authEntryReturnTarget,
+  });
   const zivoMediaConnectState = useMemo(() => createSoftwareMediaConnectState(), []);
   const zivoMediaConnectHref = useMemo(() => {
     return buildSoftwareMediaConnectHref({ redirect, state: zivoMediaConnectState });
@@ -344,6 +363,19 @@ const Login = () => {
     }
     navigate(target, { replace: true });
   }, [navigate]);
+  const handleAuthEntryReturn = useCallback(() => {
+    if (authEntryExitAction.kind === "history") {
+      navigate(-1);
+      return;
+    }
+
+    if (authEntryExitAction.kind === "external") {
+      window.location.assign(authEntryExitAction.href);
+      return;
+    }
+
+    navigate(authEntryExitAction.href, { replace: true });
+  }, [authEntryExitAction.href, authEntryExitAction.kind, navigate]);
   const { signIn, user, isLoading: authLoading } = useAuth();
   const { accounts, remove, refresh } = useSavedAccounts();
 
@@ -674,13 +706,34 @@ const Login = () => {
   };
 
   return (
-    <div className={`relative min-h-[100dvh] w-full overflow-hidden flex items-center justify-center px-4 py-3 ${
+    <div className={`relative min-h-[100dvh] w-full overflow-x-hidden overflow-y-auto flex items-start justify-center px-4 py-3 sm:items-center ${
       isZivoSoftwareDomain ? "bg-[#f4f8f6] text-[#101412]" : "bg-white dark:bg-black"
     }`}>
       <SEOHead
         title={isZivoSoftwareDomain ? "Sign in to ZIVO Software" : isZivoChatDomain ? "Sign in to ZIVO Chat" : "Sign in to ZIVO"}
         description={isZivoSoftwareDomain ? "Sign in to your ZIVO Software business workspace." : isZivoChatDomain ? "Sign in with your ZIVO Media account for chat." : "Sign in to your ZIVO account"}
       />
+
+      <div
+        className="pointer-events-none fixed inset-x-0 z-30 px-4"
+        style={{ top: "calc(env(safe-area-inset-top) + 0.75rem)" }}
+      >
+        <div className={`mx-auto w-full ${isZivoSoftwareDomain ? "max-w-5xl" : "max-w-sm"}`}>
+          <button
+            type="button"
+            onClick={handleAuthEntryReturn}
+            aria-label={authEntryExitAction.label}
+            className={`pointer-events-auto inline-flex h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold shadow-sm backdrop-blur-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+              isZivoSoftwareDomain
+                ? "border-black/10 bg-white/90 text-[#101412] hover:border-[#138f68]/40 hover:text-[#138f68] focus-visible:ring-[#138f68]"
+                : "border-zinc-200/80 bg-white/90 text-zinc-700 hover:bg-white hover:text-zinc-950 focus-visible:ring-rose-500/50 dark:border-white/10 dark:bg-zinc-900/90 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-white dark:focus-visible:ring-offset-black"
+            }`}
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            <span>{authEntryExitAction.label}</span>
+          </button>
+        </div>
+      </div>
 
       {isZivoSoftwareDomain ? (
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_12%,rgba(72,231,175,0.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(53,168,255,0.2),transparent_30%),linear-gradient(180deg,#f4f8f6_0%,#ffffff_100%)]" />
@@ -691,7 +744,7 @@ const Login = () => {
         </div>
       )}
 
-      <div className={`relative grid w-full items-center gap-6 ${
+      <div className={`relative grid w-full items-center gap-6 pt-[calc(env(safe-area-inset-top)+3.75rem)] ${
         isZivoSoftwareDomain ? "max-w-[23.5rem] lg:max-w-5xl lg:grid-cols-[1.05fr_0.82fr]" : "max-w-sm"
       }`}>
         {isZivoSoftwareDomain && <ZivoSoftwareAuthGraphic mode="login" />}

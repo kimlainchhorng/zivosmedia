@@ -53,6 +53,8 @@ import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
 import Settings from "lucide-react/dist/esm/icons/settings";
 import Users from "lucide-react/dist/esm/icons/users";
+import AlertCircle from "lucide-react/dist/esm/icons/alert-circle";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -180,6 +182,20 @@ const parseParamDate = (s: string | null) => {
   const d = parseISO(s);
   return isValid(d) ? d : null;
 };
+
+const roomGuestLimit = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(1, Math.floor(parsed)) : 1;
+};
+
+const normalizeGuestParam = (value: string | null, fallback: number, min: number) => {
+  if (value === null) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.min(16, Math.max(min, Math.floor(parsed))) : fallback;
+};
+
+const guestCapacityMessage = (limit: number, selected: number) =>
+  `This room fits up to ${limit} guest${limit === 1 ? "" : "s"}, but your stay has ${selected} guest${selected === 1 ? "" : "s"}. Choose a larger room or reduce guests.`;
 
 const compactTime = (value?: string | null) => value?.slice(0, 5) || "";
 
@@ -508,12 +524,15 @@ export default function HotelResortDetailPage() {
   const [searchParams] = useSearchParams();
   const [checkIn, setCheckIn] = useState<Date>(() => parseParamDate(searchParams.get("ci")) ?? todayUTC());
   const [checkOut, setCheckOut] = useState<Date>(() => parseParamDate(searchParams.get("co")) ?? addDays(todayUTC(), 1));
-  const [adults, setAdults] = useState<number>(() => Number(searchParams.get("adults")) || 2);
-  const [children, setChildren] = useState<number>(() => Number(searchParams.get("children")) || 0);
+  const [adults, setAdults] = useState<number>(() => normalizeGuestParam(searchParams.get("adults"), 2, 1));
+  const [children, setChildren] = useState<number>(() => normalizeGuestParam(searchParams.get("children"), 0, 0));
   const [datesOpen, setDatesOpen] = useState(false);
   const [guestsOpen, setGuestsOpen] = useState(false);
   const [allRoomsOpen, setAllRoomsOpen] = useState(false);
   const [detailsRoom, setDetailsRoom] = useState<any | null>(null);
+  const selectedGuestCount = Math.max(1, adults + children);
+  const detailsRoomGuestLimit = roomGuestLimit(detailsRoom?.max_guests);
+  const detailsRoomCapacityExceeded = !!detailsRoom && selectedGuestCount > detailsRoomGuestLimit;
 
   const openRoomDetails = useCallback((room: any) => {
     setDetailsRoom(room);
@@ -618,6 +637,12 @@ export default function HotelResortDetailPage() {
       return;
     }
 
+    const maxGuests = roomGuestLimit(room.max_guests);
+    if (selectedGuestCount > maxGuests) {
+      toast.error(guestCapacityMessage(maxGuests, selectedGuestCount));
+      return;
+    }
+
     const availability = roomAvailability.get(room.id);
     if (availability?.soldOut) {
       toast.error(
@@ -631,7 +656,7 @@ export default function HotelResortDetailPage() {
     setDetailsRoom(null);
     setAllRoomsOpen(false);
     navigate(buildRoomBookingUrl(room.id));
-  }, [buildRoomBookingUrl, navigate, roomAvailability]);
+  }, [buildRoomBookingUrl, navigate, roomAvailability, selectedGuestCount]);
 
   const reserveCurrentDetailsRoom = useCallback(() => {
     if (!detailsRoom) return;
@@ -746,6 +771,56 @@ export default function HotelResortDetailPage() {
       <TravelPageFrame>
         <div className="min-h-dvh flex items-center justify-center p-6 text-center">
           <p className="text-sm text-muted-foreground">No property selected.</p>
+        </div>
+      </TravelPageFrame>
+    );
+  }
+
+  if (!isLoading && detailQuery.isError && detailQuery.data === undefined) {
+    return (
+      <TravelPageFrame>
+        <div
+          className="min-h-dvh flex flex-col items-center justify-center p-6 text-center"
+          role="alert"
+        >
+          <div className="h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center ring-4 ring-amber-500/10">
+            <AlertCircle
+              className="h-8 w-8 text-amber-600 dark:text-amber-400"
+              aria-hidden="true"
+            />
+          </div>
+          <h1 className="mt-5 text-xl font-extrabold tracking-tight">
+            Hotel details unavailable
+          </h1>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            We couldn’t verify this property’s current rooms, rates, or availability. This does
+            not mean the property was removed.
+          </p>
+          <div className="mt-6 flex w-full max-w-sm flex-col gap-2.5">
+            <Button
+              type="button"
+              onClick={() => {
+                void detailQuery.refetch();
+              }}
+              disabled={detailQuery.isFetching}
+              aria-busy={detailQuery.isFetching}
+              className="h-11 w-full rounded-xl gap-2"
+            >
+              <RefreshCw
+                className={cn("h-4 w-4", detailQuery.isFetching && "animate-spin")}
+                aria-hidden="true"
+              />
+              {detailQuery.isFetching ? "Retrying hotel details…" : "Retry hotel details"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/hotels")}
+              className="h-11 w-full rounded-xl"
+            >
+              Back to hotels
+            </Button>
+          </div>
         </div>
       </TravelPageFrame>
     );
@@ -1268,8 +1343,8 @@ export default function HotelResortDetailPage() {
           </PopoverTrigger>
           <PopoverContent className="w-64 p-3" align="end">
             <div className="space-y-3">
-              <DetailStepper label="Adults" value={adults} min={1} max={20} onChange={setAdults} />
-              <DetailStepper label="Children" value={children} min={0} max={10} onChange={setChildren} />
+              <DetailStepper label="Adults" value={adults} min={1} max={16} onChange={setAdults} />
+              <DetailStepper label="Children" value={children} min={0} max={16} onChange={setChildren} />
               <Button className="w-full h-9" onClick={() => setGuestsOpen(false)}>Done</Button>
             </div>
           </PopoverContent>
@@ -1296,12 +1371,15 @@ export default function HotelResortDetailPage() {
                 const isTopPick = room.id === topPickRoomId;
                 const avail = roomAvailability.get(room.id);
                 const soldOut = !!avail?.soldOut;
+                const maxGuests = roomGuestLimit(room.max_guests);
+                const capacityExceeded = selectedGuestCount > maxGuests;
                 return (
                   <div
                     key={room.id}
                     className={cn(
                       "rounded-xl border border-border bg-card overflow-hidden text-left hover:border-emerald-500/60 hover:shadow-md transition",
                       soldOut && "opacity-80",
+                      capacityExceeded && !soldOut && "border-amber-400/60",
                     )}
                   >
                     <button
@@ -1342,7 +1420,7 @@ export default function HotelResortDetailPage() {
                         )}
                       </div>
                       <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
-                        {room.beds || room.room_type || "Room"} · {room.max_guests} guests
+                        {room.beds || room.room_type || "Room"} · {maxGuests} guest{maxGuests === 1 ? "" : "s"}
                       </p>
                       <div className="mt-1.5 mb-2">
                         {hasDiscount ? (
@@ -1370,6 +1448,13 @@ export default function HotelResortDetailPage() {
                           {avail?.nextAvailable
                             ? `Available from ${format(parseISO(avail.nextAvailable), "MMM d")}`
                             : "Sold out for these dates"}
+                        </div>
+                      ) : capacityExceeded ? (
+                        <div
+                          role="status"
+                          className="w-full rounded-lg bg-amber-500/10 text-amber-800 dark:text-amber-200 text-[10px] font-semibold py-1.5 px-2 text-center"
+                        >
+                          Fits {maxGuests} guest{maxGuests === 1 ? "" : "s"} · {selectedGuestCount} selected
                         </div>
                       ) : (
                         <Button
@@ -1901,6 +1986,11 @@ export default function HotelResortDetailPage() {
         cancellationPolicy={detailsRoom?.cancellation_policy ?? null}
         checkInTime={detailsRoom?.check_in_time ?? null}
         checkOutTime={detailsRoom?.check_out_time ?? null}
+        reserveDisabledReason={
+          detailsRoomCapacityExceeded
+            ? guestCapacityMessage(detailsRoomGuestLimit, selectedGuestCount)
+            : undefined
+        }
         onReserve={reserveCurrentDetailsRoom}
       />
 
@@ -1928,12 +2018,15 @@ export default function HotelResortDetailPage() {
                 const isTopPick = room.id === topPickRoomId;
                 const avail = roomAvailability.get(room.id);
                 const soldOut = !!avail?.soldOut;
+                const maxGuests = roomGuestLimit(room.max_guests);
+                const capacityExceeded = selectedGuestCount > maxGuests;
                 return (
                   <div
                     key={room.id}
                     className={cn(
                       "rounded-xl border border-border bg-card overflow-hidden text-left hover:border-emerald-500/60 hover:shadow-md transition",
                       soldOut && "opacity-80",
+                      capacityExceeded && !soldOut && "border-amber-400/60",
                     )}
                   >
                     <button
@@ -1969,7 +2062,7 @@ export default function HotelResortDetailPage() {
                         )}
                       </div>
                       <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
-                        {room.beds || room.room_type || "Room"} · {room.max_guests} guests
+                        {room.beds || room.room_type || "Room"} · {maxGuests} guest{maxGuests === 1 ? "" : "s"}
                       </p>
                       <div className="mt-1.5 mb-2">
                         {hasDiscount ? (
@@ -1997,6 +2090,13 @@ export default function HotelResortDetailPage() {
                           {avail?.nextAvailable
                             ? `Available from ${format(parseISO(avail.nextAvailable), "MMM d")}`
                             : "Sold out for these dates"}
+                        </div>
+                      ) : capacityExceeded ? (
+                        <div
+                          role="status"
+                          className="w-full rounded-lg bg-amber-500/10 text-amber-800 dark:text-amber-200 text-[10px] font-semibold py-1.5 px-2 text-center"
+                        >
+                          Fits {maxGuests} guest{maxGuests === 1 ? "" : "s"} · {selectedGuestCount} selected
                         </div>
                       ) : (
                         <Button

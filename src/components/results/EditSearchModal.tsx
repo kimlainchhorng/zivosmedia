@@ -6,7 +6,7 @@
  * Pre-filled with current search values, updates URL on submit.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Pencil, Loader2 } from "lucide-react";
@@ -63,6 +63,11 @@ export function EditSearchModal({
 }: EditSearchModalProps) {
   const isMobile = useIsMobile();
   const config = serviceConfig[service];
+  const initialFocusRef = useRef<HTMLHeadingElement>(null);
+  const handleOpenAutoFocus = useCallback((event: Event) => {
+    event.preventDefault();
+    initialFocusRef.current?.focus({ preventScroll: true });
+  }, []);
 
   // Mobile: Use bottom sheet
   if (isMobile) {
@@ -71,9 +76,16 @@ export function EditSearchModal({
         <SheetContent 
           side="bottom" 
           className="h-auto max-h-[90vh] overflow-y-auto rounded-t-2xl"
+          onOpenAutoFocus={handleOpenAutoFocus}
         >
           <SheetHeader className="text-left mb-4">
-            <SheetTitle className="text-xl">{config.title}</SheetTitle>
+            <SheetTitle
+              ref={initialFocusRef}
+              tabIndex={-1}
+              className="text-xl focus-visible:!outline-none"
+            >
+              {config.title}
+            </SheetTitle>
             <SheetDescription>{config.description}</SheetDescription>
           </SheetHeader>
           <div className="pb-safe">
@@ -87,9 +99,18 @@ export function EditSearchModal({
   // Desktop: Use dialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={handleOpenAutoFocus}
+      >
         <DialogHeader>
-          <DialogTitle className="text-xl">{config.title}</DialogTitle>
+          <DialogTitle
+            ref={initialFocusRef}
+            tabIndex={-1}
+            className="text-xl focus-visible:!outline-none"
+          >
+            {config.title}
+          </DialogTitle>
           <DialogDescription>{config.description}</DialogDescription>
         </DialogHeader>
         <div className="mt-4">

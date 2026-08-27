@@ -415,15 +415,7 @@ export default function IncomingCallListener() {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-
-    if (!incoming) {
-      if (titleFlashTimerRef.current) {
-        clearInterval(titleFlashTimerRef.current);
-        titleFlashTimerRef.current = null;
-      }
-      document.title = originalTitleRef.current;
-      return;
-    }
+    if (!incoming) return;
 
     originalTitleRef.current = document.title;
     let toggle = false;

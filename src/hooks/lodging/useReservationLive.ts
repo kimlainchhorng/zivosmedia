@@ -18,6 +18,9 @@ export interface LiveReservation {
   store_id: string;
   room_id: string | null;
   guest_name: string | null;
+  guest_details: Record<string, unknown> | null;
+  cutluy_manual_review_required: boolean;
+  cutluy_manual_refund_required: boolean;
 }
 
 export function useReservationLive(reservationId: string | undefined) {
@@ -28,7 +31,7 @@ export function useReservationLive(reservationId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lodge_reservations" as any)
-        .select("id, status, payment_status, total_cents, paid_cents, deposit_cents, stripe_payment_intent_id, stripe_session_id, store_id, room_id, guest_name")
+        .select("id, status, payment_status, total_cents, paid_cents, deposit_cents, stripe_payment_intent_id, stripe_session_id, store_id, room_id, guest_name, guest_details, cutluy_manual_review_required, cutluy_manual_refund_required")
         .eq("id", reservationId!)
         .maybeSingle();
       if (error) throw error;

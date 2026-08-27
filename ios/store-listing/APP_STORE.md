@@ -125,7 +125,7 @@ Secondary:  Travel
 
 ```
 Version: 1.3.0
-Build: 3
+Build: 4
 Bundle ID: com.hizovo.app
 ```
 

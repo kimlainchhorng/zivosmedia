@@ -65,7 +65,15 @@ type ProtectedRouteProps = {
 };
 
 const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = false, allowSupport = false }: ProtectedRouteProps) => {
-  const { user, isLoading, isAdmin } = useAuth();
+  const {
+    user,
+    isLoading,
+    isAdmin,
+    isAdminLoading,
+    adminRoleError,
+    authInitializationError,
+    retryAuthInitialization,
+  } = useAuth();
   const location = useLocation();
   const { storeId } = useParams<{ storeId?: string }>();
   const isAutoRepairSoftwareDomain =
@@ -133,6 +141,10 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
   });
   const ownerAccessResolved = ownerQuery.isSuccess || ownerQuery.isError;
   const ownerAccessAllowed = ownerQuery.data === true;
+  const alternateRoleAccessAllowed = supportAccessAllowed || ownerAccessAllowed;
+  const alternateRoleAccessPending =
+    (needsSupportCheck && !supportAccessResolved) ||
+    (shouldCheckStoreOwner && !ownerAccessResolved);
   const softwareStoreScopeQuery = useQuery({
     queryKey: ["protected-route-software-store-scope", user?.id, storeId],
     queryFn: async () => {
@@ -215,6 +227,24 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     );
   }
 
+  if (authInitializationError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
+          <h1 className="text-lg font-semibold text-foreground">Session unavailable</h1>
+          <p className="text-sm text-muted-foreground">{authInitializationError}</p>
+          <button
+            type="button"
+            onClick={retryAuthInitialization}
+            className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     const redirectTarget = `${location.pathname}${location.search ?? ""}${location.hash ?? ""}`;
     const loginUrl = withRedirectParam("/login", redirectTarget);
@@ -237,6 +267,40 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowStoreOwner = fals
     }
 
     return <Navigate to={loginUrl} state={{ from: location }} replace />;
+  }
+
+  if (
+    requireAdmin &&
+    adminRoleError &&
+    !alternateRoleAccessAllowed &&
+    !alternateRoleAccessPending
+  ) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
+          <h1 className="text-lg font-semibold text-foreground">Access check unavailable</h1>
+          <p className="text-sm text-muted-foreground">{adminRoleError}</p>
+          <button
+            type="button"
+            onClick={retryAuthInitialization}
+            className="min-h-11 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (requireAdmin && isAdminLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking access...</p>
+        </div>
+      </div>
+    );
   }
 
   if (isZivoSoftwareWorkspaceRoute) {

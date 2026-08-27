@@ -54,10 +54,11 @@ import destLondon from "@/assets/hero-city-london.jpg";
 import destBarcelona from "@/assets/hero-city-barcelona.jpg";
 import destCancun from "@/assets/hero-city-cancun.jpg";
 import { recordZivoTravelSearchEvent } from "@/integrations/supabase/travelClient";
-import { goCrossDomain } from "@/lib/crossDomainSSO";
-import { ZIVO_MEDIA_ORIGIN } from "@/config/autoRepairDomain";
 import CrossAppReturnBar from "@/components/cross-app/CrossAppReturnBar";
+import Footer from "@/components/Footer";
+import ZivoTravelLogo from "@/components/ZivoTravelLogo";
 import { cn } from "@/lib/utils";
+import { getZivoHeaderSafeTop } from "@/lib/zivoHeaderSafeArea";
 import {
   HorizontalRail,
   ScrollTurn,
@@ -1845,20 +1846,13 @@ export default function ZivoTravelHome() {
       </Helmet>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link to="/" className="group flex items-center gap-3 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Zivo Travel home">
-            <span className="relative grid h-12 w-12 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-3xl font-black leading-none text-white shadow-[0_18px_45px_rgba(16,185,129,0.35)]">
-              <span className="relative z-10">Z</span>
-              <span className="absolute -right-1 -top-1 h-4 w-4 rounded-md bg-white/80" />
-              <span className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-[1.15rem] border border-white/40 transition group-hover:rotate-[18deg]" />
-            </span>
-            <span>
-              <span className="block text-xl font-black leading-none tracking-[0.18em]">ZIVO</span>
-              <span className="block bg-gradient-to-r from-emerald-300 to-sky-300 bg-clip-text text-sm font-black leading-none tracking-[0.38em] text-transparent">
-                TRAVEL
-              </span>
-            </span>
+      <header
+        className="zivo-safe-top-guard-off sticky top-0 z-50 border-b border-white/10 bg-zinc-950/70 backdrop-blur-xl"
+        style={{ paddingTop: getZivoHeaderSafeTop() }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
+          <Link to="/" className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Zivo Travel home">
+            <ZivoTravelLogo size="sm" />
           </Link>
 
           <nav className="hidden items-center gap-7 text-sm font-bold text-zinc-300 lg:flex">
@@ -1883,27 +1877,31 @@ export default function ZivoTravelHome() {
             </Link>
           </nav>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <button type="button" className="flex h-11 items-center gap-2 rounded-full border border-white/15 px-4 text-sm font-bold text-zinc-200">
-              <Globe2 className="h-4 w-4" />
-              USD
-            </button>
-            <Link to="/login" className="h-11 rounded-full border border-white/15 px-6 py-3 text-sm font-black text-white transition hover:border-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              Log in
-            </Link>
-            <a href="#booking" className="h-11 whitespace-nowrap rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_16px_32px_rgba(16,185,129,0.32)] transition hover:bg-emerald-400 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              Start booking
-            </a>
-          </div>
+          <div className="flex items-center gap-2">
+            <CrossAppReturnBar adminHref="#travel-ops" compact />
 
-          <button
-            type="button"
-            onClick={() => setMobileOpen((value) => !value)}
-            aria-expanded={mobileOpen}
-            className="rounded-full border border-white/15 px-4 py-2 text-sm font-black md:hidden transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            Menu
-          </button>
+            <div className="hidden items-center gap-3 md:flex">
+              <button type="button" className="flex h-11 items-center gap-2 rounded-full border border-white/15 px-4 text-sm font-bold text-zinc-200">
+                <Globe2 className="h-4 w-4" />
+                USD
+              </button>
+              <Link to="/login" className="h-11 rounded-full border border-white/15 px-6 py-3 text-sm font-black text-white transition hover:border-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Log in
+              </Link>
+              <a href="#booking" className="h-11 whitespace-nowrap rounded-full bg-emerald-500 px-6 py-3 text-sm font-black text-zinc-950 shadow-[0_16px_32px_rgba(16,185,129,0.32)] transition hover:bg-emerald-400 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Start booking
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setMobileOpen((value) => !value)}
+              aria-expanded={mobileOpen}
+              className="rounded-full border border-white/15 px-4 py-2 text-sm font-black md:hidden transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Menu
+            </button>
+          </div>
         </div>
         {mobileOpen && (
           <div className="border-t border-white/10 bg-zinc-950 px-4 py-4 md:hidden">
@@ -2279,33 +2277,7 @@ export default function ZivoTravelHome() {
           <CrossAppReturnBar adminHref="#travel-ops" />
         </div>
       </div>
-      {/* Footer */}
-      <footer className="border-t border-white/10 bg-zinc-950 px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 text-center sm:flex-row sm:text-left">
-          <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-2xl font-black">Z</span>
-            <span className="text-sm font-black tracking-[0.3em]">ZIVO TRAVEL</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-bold text-zinc-400">
-            {services.map((service) => (
-              <button key={service.id} type="button" onClick={() => navigate(service.href)} className="transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {service.label}
-              </button>
-            ))}
-            <Link to="/terms-of-service" className="transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Terms</Link>
-            <Link to="/privacy-policy" className="transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Privacy</Link>
-            <button
-              type="button"
-              onClick={() => { void goCrossDomain(ZIVO_MEDIA_ORIGIN, "/"); }}
-              className="transition hover:text-white rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              title="Continue to Zivos Media with your session"
-            >
-              Zivos Media ↗
-            </button>
-          </div>
-          <p className="text-xs text-zinc-500">© {new Date().getFullYear()} Zivo Travel · A Zivos Media company</p>
-        </div>
-      </footer>
+      <Footer forceTravelBrand />
       </PageTransition>
       </TravelPullToRefresh>
     </main>

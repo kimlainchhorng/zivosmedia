@@ -26,6 +26,8 @@ describe("native permissions, deep links, and push contracts", () => {
     }
 
     for (const needle of [
+      '<uses-feature android:name="android.hardware.camera" android:required="false" />',
+      '<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />',
       'android:allowBackup="false"',
       'android:fullBackupContent="false"',
       'android:dataExtractionRules="@xml/data_extraction_rules"',

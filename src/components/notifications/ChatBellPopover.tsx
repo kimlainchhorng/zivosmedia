@@ -14,13 +14,14 @@ import CornerUpLeft from "lucide-react/dist/esm/icons/corner-up-left";
 import UserCircle from "lucide-react/dist/esm/icons/user-circle-2";
 import Send from "lucide-react/dist/esm/icons/send";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import AlertCircle from "lucide-react/dist/esm/icons/circle-alert";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 
 const ProfilePreviewSheet = lazy(() => import("@/components/profile/ProfilePreviewSheet"));
 import { useNotifications } from "@/hooks/useNotifications";
 import { useMutedThreads, MUTE_DURATIONS, formatMuteLabel, type MuteDurationId } from "@/hooks/useMutedThreads";
-import { useAllowMessageRequests } from "@/hooks/useAllowMessageRequests";
+import { useMessageRequestNotificationPrivacy } from "@/hooks/useAllowMessageRequests";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -64,24 +65,14 @@ export function ChatBellPopover({
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } =
     useNotifications(20);
   const { mutedSet, isMuted, mute, unmute, getMuteEntry } = useMutedThreads();
-  const { allow: allowMessageRequests } = useAllowMessageRequests();
-
-  // When the user has turned off "Allow message requests", chat-type
-  // notifications from senders not in their contacts shouldn't surface in
-  // the bell either — otherwise the toggle is half-enforced (chat list
-  // hides them, bell still rings). We only fetch the contact set when the
-  // toggle is off so the common-case bell stays a single query.
-  const { data: contactSet } = useQuery({
-    queryKey: ["bell-contact-set", user?.id],
-    enabled: !!user && allowMessageRequests === false,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("user_contacts")
-        .select("contact_user_id")
-        .eq("owner_id", user!.id);
-      return new Set<string>(((data || []) as any[]).map((c) => c.contact_user_id));
-    },
-  });
+  const {
+    allow: allowMessageRequests,
+    shouldHideNotification,
+    isPrivacyLoading,
+    isPrivacyUnavailable,
+    isPrivacyFetching,
+    retry: retryPrivacy,
+  } = useMessageRequestNotificationPrivacy();
 
   // Per-row mute menu — `muteOpenFor` is the chat thread id whose dropdown
   // is currently expanded (only one at a time, like the reply panel).
@@ -91,21 +82,16 @@ export function ChatBellPopover({
   // out of the chat thread URL when the user taps the peek button.
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
-  // Predicate: should this notification be hidden from the user entirely?
-  // True when the user has "Allow message requests" off AND the notification
-  // is a chat from someone who isn't in their contacts. Used by both the
-  // visible list and the bell badge so the toggle stays in sync.
+  // Predicate: non-chat notifications always pass. Chat notifications only
+  // pass when alerts are confirmed on or the sender is a confirmed contact.
+  // Loading and failed preference/contact reads therefore fail closed.
   // NOTE: must be declared BEFORE effectiveUnreadCount — that memo reads
   // it during initial render, and a `const` declared later trips a TDZ
   // ReferenceError that crashes the chat hub.
   const isHidden = useMemo(() => {
-    if (allowMessageRequests !== false || !contactSet) return (_n: any) => false;
-    return (n: any) => {
-      const tid = chatThreadIdFromUrl(n.action_url);
-      if (!tid) return false; // non-chat notifs always visible
-      return !contactSet.has(tid);
-    };
-  }, [allowMessageRequests, contactSet]);
+    return (notification: any) =>
+      shouldHideNotification(chatThreadIdFromUrl(notification.action_url));
+  }, [shouldHideNotification]);
 
   // The bell badge reflects *active, allowed* unread:
   //   - Muted threads → excluded (so muting feels instant)
@@ -115,7 +101,7 @@ export function ChatBellPopover({
   // `unreadCount` so toggling either control feels immediate.
   const effectiveUnreadCount = useMemo(() => {
     const noMutes = mutedSet.size === 0;
-    const noPrivacyFilter = allowMessageRequests !== false || !contactSet;
+    const noPrivacyFilter = allowMessageRequests === true;
     if (noMutes && noPrivacyFilter) return unreadCount;
     let n = 0;
     for (const x of notifications) {
@@ -126,7 +112,26 @@ export function ChatBellPopover({
       n += 1;
     }
     return n;
-  }, [notifications, unreadCount, mutedSet, allowMessageRequests, contactSet, isHidden]);
+  }, [notifications, unreadCount, mutedSet, allowMessageRequests, isHidden]);
+
+  const visibleUnreadIds = useMemo(
+    () =>
+      notifications
+        .filter(
+          (notification) =>
+            !notification.is_read && !isHidden(notification),
+        )
+        .map((notification) => notification.id),
+    [isHidden, notifications],
+  );
+
+  const markVisibleAsRead = () => {
+    if (allowMessageRequests === true && mutedSet.size === 0) {
+      markAllAsRead();
+      return;
+    }
+    if (visibleUnreadIds.length > 0) markAsRead(visibleUnreadIds);
+  };
 
   // Collapse multiple notifications from the same chat thread into a single
   // row showing the latest message + a "+N" pill (Messenger-style). The
@@ -157,7 +162,7 @@ export function ChatBellPopover({
       }
     }
     return Array.from(groups.values());
-  }, [notifications, tab]);
+  }, [isHidden, notifications, tab]);
 
   // Outside click + ESC
   useEffect(() => {
@@ -298,13 +303,17 @@ export function ChatBellPopover({
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Chat pulse</p>
                 <h3 className="text-base font-black text-foreground">Notifications</h3>
               </div>
-              {unreadCount > 0 && (
+              {(allowMessageRequests === true && mutedSet.size === 0
+                ? unreadCount > 0
+                : visibleUnreadIds.length > 0) && (
                 <button type="button"
-                  onClick={() => markAllAsRead()}
+                  onClick={markVisibleAsRead}
                   className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1"
                 >
                   <CheckCheck className="w-3 h-3" />
-                  Mark all read
+                  {allowMessageRequests === true && mutedSet.size === 0
+                    ? "Mark all read"
+                    : "Mark visible read"}
                 </button>
               )}
             </div>
@@ -327,6 +336,44 @@ export function ChatBellPopover({
               ))}
             </div>
 
+              {isPrivacyUnavailable ? (
+                <div
+                  role="alert"
+                  className="mx-4 mb-2 flex shrink-0 items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold text-foreground">
+                      Some chat alerts are hidden
+                    </p>
+                    <p className="text-[10px] leading-snug text-muted-foreground">
+                      Privacy preferences couldn't be confirmed.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void retryPrivacy()}
+                    disabled={isPrivacyFetching}
+                    className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full px-2 text-[10px] font-semibold text-primary disabled:opacity-60"
+                  >
+                    {isPrivacyFetching ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                    Retry
+                  </button>
+                </div>
+              ) : isPrivacyLoading ? (
+                <div
+                  role="status"
+                  className="mx-4 mb-2 flex shrink-0 items-center gap-2 rounded-xl bg-muted/50 px-3 py-2 text-[11px] font-medium text-muted-foreground"
+                >
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Checking chat privacy…
+                </div>
+              ) : null}
+
             {/* List */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {isLoading ? (
@@ -337,17 +384,25 @@ export function ChatBellPopover({
                   </div>
                 </div>
               ) : list.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
-                  <div className="zivo-chat-card w-12 h-12 rounded-2xl flex items-center justify-center mb-3">
-                    <Bell className="w-5 h-5 text-muted-foreground" />
+                isPrivacyLoading || isPrivacyUnavailable ? (
+                  <div className="px-6 py-8 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Chat alerts stay hidden until privacy can be confirmed.
+                    </p>
                   </div>
-                  <p className="text-sm font-semibold text-foreground">
-                    You're all caught up
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    New notifications will appear here.
-                  </p>
-                </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 px-6 text-center">
+                    <div className="zivo-chat-card w-12 h-12 rounded-2xl flex items-center justify-center mb-3">
+                      <Bell className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">
+                      You're all caught up
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      New notifications will appear here.
+                    </p>
+                  </div>
+                )
               ) : (
                 <ul className="py-1">
                   {list.map((g) => {

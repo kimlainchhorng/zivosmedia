@@ -298,7 +298,7 @@ export default function UnifiedDashboard() {
               { to: "/my-trips", icon: Clock, label: "My Trips" },
               { to: "/wallet", icon: Wallet, label: "Wallet" },
               { to: "/support", icon: HelpCircle, label: "Support" },
-              { to: "/profile/settings", icon: Settings, label: "Settings" },
+              { to: "/account/settings", icon: Settings, label: "Settings" },
             ].map((link) => (
               <Button key={link.to} variant="outline" asChild className="justify-start rounded-xl border-border/40 hover:border-primary/15 font-bold">
                 <Link to={link.to}><link.icon className="w-4 h-4 mr-2" />{link.label}</Link>

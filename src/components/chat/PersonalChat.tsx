@@ -1744,7 +1744,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       // of dropping the message. Also persist to the durable outbox so the
       // message survives a refresh / app kill and auto-retries on reconnect.
       failedSendsRef.current.set(optimisticId, insertData);
-      outboxEnqueue({
+      outboxEnqueue(user.id, {
         id: optimisticId,
         table: "direct_messages",
         chatKey: recipientId,
@@ -1765,9 +1765,17 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   }, [handleSend]);
 
   const retryFailedSend = useCallback(async (optimisticId: string) => {
+    if (!user?.id) return;
     const payload = failedSendsRef.current.get(optimisticId);
     if (!payload) return;
-    if (!outboxBeginSend(optimisticId)) {
+    if (payload.sender_id !== user.id) {
+      failedSendsRef.current.delete(optimisticId);
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      return;
+    }
+    const { data: activeAuth } = await supabase.auth.getUser();
+    if (activeAuth.user?.id !== user.id) return;
+    if (!outboxBeginSend(user.id, optimisticId)) {
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "uploading" } : m)),
       );
@@ -1780,7 +1788,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       const { error } = await dbFrom("direct_messages").insert(payload);
       if (error) throw error;
       failedSendsRef.current.delete(optimisticId);
-      outboxRemove(optimisticId);
+      outboxRemove(user.id, optimisticId);
       // Realtime echo will replace the optimistic row; if not, mark as sent
       // so the failure UI clears.
       setMessages((prev) =>
@@ -1792,23 +1800,24 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       );
       toast.error(navigator.onLine ? "Still couldn't send — try again" : "You're offline");
     } finally {
-      outboxFinishSend(optimisticId);
+      outboxFinishSend(user.id, optimisticId);
     }
-  }, []);
+  }, [user?.id]);
 
   const discardFailedSend = useCallback((optimisticId: string) => {
+    if (!user?.id) return;
     failedSendsRef.current.delete(optimisticId);
-    outboxRemove(optimisticId);
+    outboxRemove(user.id, optimisticId);
     setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-  }, []);
+  }, [user?.id]);
 
   // Restore persisted failed sends for this chat on mount, and stay in sync
   // with the durable outbox (the app-level flusher may clear items in the
   // background — drop their bubbles when that happens).
   useEffect(() => {
-    if (!recipientId) return;
+    if (!recipientId || !user?.id) return;
     const sync = () => {
-      const items = outboxList({ table: "direct_messages", chatKey: recipientId });
+      const items = outboxList(user.id, { table: "direct_messages", chatKey: recipientId });
       const queuedIds = new Set(items.map((i) => i.id));
       setOutboxIds(queuedIds);
       // Add any persisted-failed bubbles we don't yet have in state.
@@ -1835,9 +1844,9 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       });
     };
     sync();
-    const unsub = outboxSubscribe(sync);
+    const unsub = outboxSubscribe(user.id, sync);
     return unsub;
-  }, [recipientId]);
+  }, [recipientId, user?.id]);
 
   // ─── Voice send pipeline ──────────────────────────────────────────────
   // Each send becomes a cancellable "job" tracked in voiceJobsRef so the
@@ -3435,7 +3444,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
 
           {/* Action buttons */}
           <div className="flex items-center gap-0.5">
-            <OutboxPendingBadge chatKey={recipientId} />
+            {user?.id && <OutboxPendingBadge ownerId={user.id} chatKey={recipientId} />}
             {!isSelfChat && (
               <motion.button
                 whileTap={{ scale: 0.85 }}
@@ -3800,6 +3809,12 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                 }
 
                 const msg = item as Message;
+                // Failed optimistic messages are browser-local. Hide a prior
+                // account's bubble immediately while the owner-scoped outbox
+                // effect removes it from the timeline after an auth switch.
+                if (msg._upload_status === "failed" && msg.sender_id !== user?.id) {
+                  return null;
+                }
                 const isMe = msg.sender_id === user?.id;
                 const repliedMsg = msg.reply_to_id ? messageMap.get(msg.reply_to_id) ?? null : null;
                 const isHighlighted = highlightedMsgId === msg.id;

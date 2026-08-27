@@ -1306,7 +1306,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       // Keep the bubble + persist to durable outbox so the message survives
       // a refresh and auto-retries on reconnect.
       failedSendsRef.current.set(optimisticId, insertData);
-      outboxEnqueue({
+      outboxEnqueue(user.id, {
         id: optimisticId,
         table: "group_messages",
         chatKey: groupId,
@@ -1377,7 +1377,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       return true;
     } catch {
       failedSendsRef.current.set(optimisticId, insertData);
-      outboxEnqueue({
+      outboxEnqueue(user.id, {
         id: optimisticId,
         table: "group_messages",
         chatKey: groupId,
@@ -1502,7 +1502,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       if (error) throw error;
     } catch {
       failedSendsRef.current.set(optimisticId, insertData);
-      outboxEnqueue({
+      outboxEnqueue(user.id, {
         id: optimisticId,
         table: "group_messages",
         chatKey: groupId,
@@ -1517,9 +1517,17 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   }, [groupId, replyTo, scrollToBottom, user?.id]);
 
   const retryFailedGroupSend = useCallback(async (optimisticId: string) => {
+    if (!user?.id) return;
     const payload = failedSendsRef.current.get(optimisticId);
     if (!payload) return;
-    if (!outboxBeginSend(optimisticId)) {
+    if (payload.sender_id !== user.id) {
+      failedSendsRef.current.delete(optimisticId);
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      return;
+    }
+    const { data: activeAuth } = await supabase.auth.getUser();
+    if (activeAuth.user?.id !== user.id) return;
+    if (!outboxBeginSend(user.id, optimisticId)) {
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "uploading" } : m)),
       );
@@ -1532,7 +1540,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       const { error } = await dbFrom("group_messages").insert(payload);
       if (error) throw error;
       failedSendsRef.current.delete(optimisticId);
-      outboxRemove(optimisticId);
+      outboxRemove(user.id, optimisticId);
       setMessages((prev) =>
         prev.map((m) => (m.id === optimisticId ? { ...m, _upload_status: "sent" } : m)),
       );
@@ -1542,21 +1550,22 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       );
       toast.error(navigator.onLine ? "Still couldn't send — try again" : "You're offline");
     } finally {
-      outboxFinishSend(optimisticId);
+      outboxFinishSend(user.id, optimisticId);
     }
-  }, []);
+  }, [user?.id]);
 
   const discardFailedGroupSend = useCallback((optimisticId: string) => {
+    if (!user?.id) return;
     failedSendsRef.current.delete(optimisticId);
-    outboxRemove(optimisticId);
+    outboxRemove(user.id, optimisticId);
     setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-  }, []);
+  }, [user?.id]);
 
   // Restore persisted failed group sends and stay in sync with the app-level outbox flusher.
   useEffect(() => {
-    if (!groupId) return;
+    if (!groupId || !user?.id) return;
     const sync = () => {
-      const items = outboxList({ table: "group_messages", chatKey: groupId });
+      const items = outboxList(user.id, { table: "group_messages", chatKey: groupId });
       const queuedIds = new Set(items.map((i) => i.id));
       setOutboxIds(queuedIds);
       setMessages((prev) => {
@@ -1579,9 +1588,9 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       });
     };
     sync();
-    const unsub = outboxSubscribe(sync);
+    const unsub = outboxSubscribe(user.id, sync);
     return unsub;
-  }, [groupId]);
+  }, [groupId, user?.id]);
 
   // ─── Voice send pipeline (cancellable + retriable) ────────────────────
   const handledVoiceBlobsRef = useRef<WeakSet<Blob>>(new WeakSet());
@@ -2464,7 +2473,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             </p>
           </button>
           <div className="flex items-center gap-0.5">
-            <OutboxPendingBadge chatKey={groupId} />
+            {user?.id && <OutboxPendingBadge ownerId={user.id} chatKey={groupId} />}
             <button type="button"
               onClick={() => { void primeCallAudio(); setGroupCall("video"); }}
               className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center rounded-full transition-colors active:scale-90"
@@ -2603,6 +2612,12 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <AnimatePresence initial={false}>
           {/* eslint-disable-next-line react-hooks/refs -- voice resend/discard callbacks read refs only after user actions */}
           {visibleMessages.map((msg, idx) => {
+            // Failed optimistic messages are browser-local. Hide a prior
+            // account's bubble immediately while the owner-scoped outbox
+            // effect removes it from the timeline after an auth switch.
+            if (msg._upload_status === "failed" && msg.sender_id !== user?.id) {
+              return null;
+            }
             const isMe = msg.sender_id === user?.id;
             const senderName = getSenderName(msg.sender_id);
             const senderAvatar = getSenderAvatar(msg.sender_id);

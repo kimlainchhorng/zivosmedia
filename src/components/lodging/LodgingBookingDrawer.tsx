@@ -21,7 +21,7 @@ import { LodgingStaySelector } from "@/components/lodging/LodgingStaySelector";
 import { ReservationStatusTimeline } from "@/components/lodging/ReservationStatusTimeline";
 import { LodgingPaymentBadge } from "@/components/lodging/LodgingPaymentBadge";
 import { LodgingEmbeddedCheckout } from "@/components/lodging/LodgingEmbeddedCheckout";
-import KHQRPaymentModal from "@/components/shop/KHQRPaymentModal";
+import { LodgingCutluyCheckout } from "@/components/lodging/LodgingCutluyCheckout";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { AddonIcon } from "@/components/lodging/addonIcons";
 import { IcsPreviewPanel } from "@/components/lodging/IcsPreviewPanel";
@@ -38,6 +38,7 @@ import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 import { cancellationLabel, cancellationDescription } from "@/lib/lodging/cancellationCopy";
 import { validateGuest } from "@/lib/lodging/guestSchema";
 import { createLodgeGuestReservation } from "@/lib/lodging/createLodgeReservation";
+import { isCutluyLodgingStoreEnabled } from "@/config/cutluyLodging";
 import type { LodgeAddon, RoomFees, ChildPolicy } from "@/hooks/lodging/useLodgeRooms";
 
 interface Props {
@@ -114,7 +115,10 @@ export function LodgingBookingDrawer({
   const [submitting, setSubmitting] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
   const [reservationId, setReservationId] = useState<string | null>(null);
-  const [khqrOpen, setKhqrOpen] = useState(false);
+  const [serverPaymentTerms, setServerPaymentTerms] = useState<{
+    totalCents: number;
+    depositCents: number;
+  } | null>(null);
   const [reservationStatus] = useState<"hold" | "confirmed" | "checked_in" | "checked_out" | "cancelled" | "no_show">("hold");
   const [guestTouched, setGuestTouched] = useState<Record<string, boolean>>({});
   const [policyScrolled, setPolicyScrolled] = useState(false);
@@ -229,6 +233,16 @@ export function LodgingBookingDrawer({
 
   const hasAddons = (addons || []).length > 0;
   const securityDeposit = (childPolicy as any)?.security_deposit_cents || 0;
+  const persistedTotalCents = liveReservation?.total_cents
+    ?? serverPaymentTerms?.totalCents
+    ?? breakdown.total;
+  const persistedDepositCents = liveReservation?.deposit_cents
+    ?? serverPaymentTerms?.depositCents
+    ?? securityDeposit;
+  const persistedCardMode = persistedDepositCents > 0 ? "deposit" : "full";
+  const persistedCardGrossCents = persistedCardMode === "deposit"
+    ? persistedDepositCents
+    : persistedTotalCents;
 
   const goNext = () => {
     if (step === "stay") setStep(hasAddons ? "addons" : "guest");
@@ -265,13 +279,12 @@ export function LodgingBookingDrawer({
     // payment badge. The primary card-on-arrival flow uses the inline Embedded Checkout
     // rendered in the success step (LodgingEmbeddedCheckout) so the user stays in the booking sheet.
     try {
-      const depositCents = securityDeposit > 0 ? securityDeposit : breakdown.total;
       const { data: sessionData, error: fnErr } = await supabase.functions.invoke("create-lodging-deposit", {
         body: {
           reservation_id: resId,
           store_id: storeId,
-          deposit_cents: depositCents,
-          mode: securityDeposit > 0 ? "deposit" : "full",
+          deposit_cents: persistedCardGrossCents,
+          mode: persistedCardMode,
           ui_mode: "hosted",
         },
       });
@@ -348,10 +361,15 @@ export function LodgingBookingDrawer({
       setReference(inserted.number);
       const newId = inserted.id || null;
       setReservationId(newId);
+      setServerPaymentTerms({
+        totalCents: inserted.total_cents,
+        depositCents: inserted.deposit_cents,
+      });
       setStep("success");
       onBooked?.();
-      if (payMethod === "khqr" && newId) setKhqrOpen(true);
-      if (payMethod !== "card_on_arrival" && newId) {
+      // KHQR completion and its booking notification are webhook-owned. A QR
+      // being shown or scanned is never confirmation that money moved.
+      if (payMethod !== "card_on_arrival" && payMethod !== "khqr" && newId) {
         supabase.functions.invoke("notify-lodging-booking-confirmed", {
           body: { reservationId: newId, paymentMethod: payMethod },
         }).catch(() => {});
@@ -391,11 +409,12 @@ export function LodgingBookingDrawer({
     // Reset for next open
     if (step === "success") {
       setStep("stay"); setSelected({}); setReference(null); setReservationId(null);
+      setServerPaymentTerms(null);
       setName(""); setPhone(""); setEmail(""); setCountry(""); setEta(""); setNotes("");
       setAgreeRules(false); setAgreeCancel(false); setPayMethod("pay_at_property");
       setGuestTouched({}); setPolicyScrolled(false); setPolicyOverflows(false);
       setViewedRulesSource(false); setViewedCancelSource(false);
-      setRulesViewedAt(null); setCancelViewedAt(null); setKhqrOpen(false);
+      setRulesViewedAt(null); setCancelViewedAt(null);
     }
     onClose();
   };
@@ -669,7 +688,7 @@ export function LodgingBookingDrawer({
             {/* Payment method */}
             <div className="space-y-2">
               <Label className="text-sm font-bold">Payment method</Label>
-              {PAY_METHODS.map(m => {
+              {PAY_METHODS.filter((method) => method.id !== "khqr" || isCutluyLodgingStoreEnabled(storeId)).map(m => {
                 const Icon = m.icon;
                 const active = payMethod === m.id;
                 return (
@@ -893,8 +912,8 @@ export function LodgingBookingDrawer({
               <LodgingEmbeddedCheckout
                 reservationId={reservationId}
                 storeId={storeId}
-                amountCents={securityDeposit > 0 ? securityDeposit : breakdown.total}
-                mode={securityDeposit > 0 ? "deposit" : "full"}
+                amountCents={persistedCardGrossCents}
+                mode={persistedCardMode}
                 method={inlineMethod}
                 onMethodChange={setInlineMethod}
                 paymentStatus={liveReservation?.payment_status}
@@ -907,20 +926,18 @@ export function LodgingBookingDrawer({
             )}
 
             {payMethod === "khqr" && reservationId && (
-              <KHQRPaymentModal
-                open={khqrOpen}
-                onOpenChange={setKhqrOpen}
-                amount={breakdown.total / 100}
-                currency="USD"
-                description={`Booking ${reference} · ${storeName}`}
-                reference={reference || undefined}
-                sourceTable="lodge_reservations"
-                sourceId={reservationId}
-                onSuccess={async () => {
-                  await (supabase as any).from("lodge_reservations")
-                    .update({ payment_status: "paid" })
-                    .eq("id", reservationId);
-                }}
+              <LodgingCutluyCheckout
+                reservationId={reservationId}
+                reservationRef={reference}
+                amountCents={serverPaymentTerms?.totalCents ?? breakdown.total}
+                paymentStatus={liveReservation?.payment_status}
+                reservationStatus={liveReservation?.status}
+                manualReviewRequired={
+                  liveReservation?.cutluy_manual_review_required
+                }
+                manualRefundRequired={
+                  liveReservation?.cutluy_manual_refund_required
+                }
               />
             )}
 

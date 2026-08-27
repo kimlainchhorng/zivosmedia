@@ -22,6 +22,7 @@ export const PREFETCH_ROUTE_MODULES = {
   [SOCIAL_ROUTE_PATHS.reels]: "@/pages/FeedPage",
   [SOCIAL_ROUTE_PATHS.chat]: "@/pages/ChatHubPage",
   [SOCIAL_ROUTE_PATHS.profile]: "@/pages/Profile",
+  "/more": "@/pages/MorePage",
   "/rent-car": "@/pages/CarRentalBooking",
   "/grocery": "@/pages/GroceryMarketplace",
   "/delivery": "@/pages/DeliveryPage",
@@ -51,6 +52,7 @@ const PREFETCH_ROUTES: Record<string, () => Promise<unknown>> = {
   [SOCIAL_ROUTE_PATHS.reels]: () => import("@/pages/FeedPage"),
   [SOCIAL_ROUTE_PATHS.chat]: () => import("@/pages/ChatHubPage"),
   [SOCIAL_ROUTE_PATHS.profile]: () => import("@/pages/Profile"),
+  "/more": () => import("@/pages/MorePage"),
   // Home "More Services" tiles — same touch-down prefetch pattern.
   "/rent-car": () => import("@/pages/CarRentalBooking"),
   "/grocery": () => import("@/pages/GroceryMarketplace"),

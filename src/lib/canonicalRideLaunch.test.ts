@@ -50,12 +50,43 @@ describe("canonical Ride launch contract", () => {
 
   it("accepts only allowlisted refresh paths and removes unrelated query data", () => {
     const id = "550e8400-e29b-41d4-a716-446655440000";
+    expect(sanitizeCanonicalRidePath("/delivery?token=secret#private")).toBe("/delivery");
+    expect(sanitizeCanonicalRidePath("/tracking?token=secret#private")).toBe("/tracking");
     expect(sanitizeCanonicalRidePath(`/tracking/${id}?multi=Market%7CAirport&token=secret`))
       .toBe(`/tracking/${id}?multi=Market%7CAirport`);
     expect(sanitizeCanonicalRidePath(`/receipt/${id}?token=secret`))
       .toBe(`/receipt/${id}`);
     expect(sanitizeCanonicalRidePath("//evil.example/tracking/x")).toBeNull();
     expect(sanitizeCanonicalRidePath("/admin")).toBeNull();
+  });
+
+  it("mirrors canonical Ride UUIDv7 and confirmed-coordinate routes", () => {
+    const v7Id = "018f0c7e-7000-7000-8000-000000000001";
+
+    expect(sanitizeCanonicalRidePath(
+      `/tracking/${v7Id}?multi=Market%7CAirport&multiCoords=11.56%2C104.92&token=secret`,
+    )).toBe(
+      `/tracking/${v7Id}?multi=Market%7CAirport&multiCoords=11.56%2C104.92`,
+    );
+    expect(sanitizeCanonicalRidePath(`/receipt/${v7Id}`)).toBe(`/receipt/${v7Id}`);
+    expect(sanitizeCanonicalRidePath(`/rate/${v7Id}`)).toBe(`/rate/${v7Id}`);
+    expect(sanitizeCanonicalRidePath(`/rate-restaurant/${v7Id}`))
+      .toBe(`/rate-restaurant/${v7Id}`);
+    expect(sanitizeCanonicalRidePath(
+      "/multi-stop?from=Home&fromLat=11.56&fromLng=104.92&stops=Office&stopCoords=11.57%2C104.93",
+    )).toBe(
+      "/multi-stop?from=Home&fromLat=11.56&fromLng=104.92&stops=Office&stopCoords=11.57%2C104.93",
+    );
+    expect(sanitizeCanonicalRidePath(
+      "/?pickup=Home&multi=Office&multiCoords=11.57%2C104.93&token=secret",
+    )).toBe("/?pickup=Home&multi=Office&multiCoords=11.57%2C104.93");
+
+    expect(sanitizeCanonicalRidePath(
+      "/tracking/018f0c7e-7000-6000-8000-000000000001",
+    )).toBeNull();
+    expect(sanitizeCanonicalRidePath(
+      "/tracking/018f0c7e-7000-7000-c000-000000000001",
+    )).toBeNull();
   });
 
   it("requires the exact child navigation message type", () => {
@@ -106,6 +137,20 @@ describe("canonical Ride launch contract", () => {
     const refreshed = new URL(hostPath!, "https://zivosmedia.com");
     expect(deriveCanonicalRideFramePath(refreshed.pathname, refreshed.search))
       .toBe(`/receipt/${tripId}`);
+  });
+
+  it("preserves primary Ride dock routes across an embedded refresh", () => {
+    for (const childPath of ["/delivery", "/tracking"]) {
+      const hostPath = updateCanonicalRideHostPath(
+        "https://zivosmedia.com/rides/hub?token=secret#private",
+        childPath,
+      );
+
+      expect(hostPath).toBe(`/rides/hub?ride_path=${encodeURIComponent(childPath)}`);
+      const refreshed = new URL(hostPath!, "https://zivosmedia.com");
+      expect(deriveCanonicalRideFramePath(refreshed.pathname, refreshed.search))
+        .toBe(childPath);
+    }
   });
 
   it("preserves a multi-stop to root-booking transition across refresh", () => {

@@ -67,9 +67,11 @@ const CHECKLIST: ChecklistItem[] = [
   },
   {
     id: "target_api",
-    title: "Target API Level 35+ (Android 15)",
-    description: "All apps submitted after August 2026 must target API level 35 or higher. Update your build.gradle and test on Android 15 devices.",
+    title: "Target API Level 36+ (Android 16)",
+    description: "Starting August 31, 2026, new apps and app updates must target API level 36 or higher. Update the Android release configuration and test on Android 16 devices.",
     icon: Shield,
+    link: "https://developer.android.com/google/play/requirements/target-sdk",
+    linkLabel: "Target API requirements",
     critical: false,
   },
   {

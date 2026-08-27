@@ -2,12 +2,15 @@
  * App Header Component
  * Mobile-first header with logo, city selector, and notifications
  */
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Bell, ChevronLeft } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import ZivoTravelLogo from "@/components/ZivoTravelLogo";
 // CitySelector removed
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
+import { getZivoHeaderSafeTop } from "@/lib/zivoHeaderSafeArea";
 
 interface AppHeaderProps {
   title?: string;
@@ -28,6 +31,7 @@ const AppHeader = ({
 }: AppHeaderProps) => {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications(20);
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
 
   const handleBack = () => {
     if (onBack) {
@@ -39,8 +43,9 @@ const AppHeader = ({
 
   return (
     <header
+      style={{ paddingTop: getZivoHeaderSafeTop("0.4375rem") }}
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 safe-area-top transition-all duration-200 tap-highlight-none no-select",
+        "zivo-safe-top-guard-off fixed top-0 left-0 right-0 z-50 transition-all duration-200 tap-highlight-none no-select",
         transparent ? "bg-transparent" : "bg-card/95 backdrop-blur-md border-b border-border/50"
       )}
     >
@@ -55,12 +60,13 @@ const AppHeader = ({
             <ChevronLeft className="w-6 h-6" />
           </button>
         ) : (
-          <div 
-            onClick={() => navigate("/")}
-            className="cursor-pointer active:scale-95 transition-transform touch-manipulation"
+          <Link
+            to="/"
+            aria-label={isTravel ? "Zivo Travel home" : "ZIVO home"}
+            className="rounded-lg active:scale-95 transition-transform touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
-            <BrandLogo size="sm" />
-          </div>
+            {isTravel ? <ZivoTravelLogo size="sm" /> : <BrandLogo size="sm" />}
+          </Link>
         )}
 
         {/* Center - Title or City Selector */}
@@ -73,7 +79,15 @@ const AppHeader = ({
         )}
 
         {/* Right - Notifications Bell */}
-        {rightAction || (
+        {rightAction || (isTravel && showBack ? (
+          <Link
+            to="/"
+            aria-label="Zivo Travel home"
+            className="grid h-10 w-10 -mr-2 place-items-center rounded-xl transition-all active:scale-90 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <ZivoTravelLogo size="sm" showWordmark={false} />
+          </Link>
+        ) : (
           <button type="button"
             onClick={() => navigate("/notifications")}
             className="relative w-10 h-10 -mr-2 rounded-xl flex items-center justify-center hover:bg-muted transition-all active:scale-90 touch-manipulation min-w-[44px] min-h-[44px]"
@@ -86,7 +100,7 @@ const AppHeader = ({
               </span>
             )}
           </button>
-        )}
+        ))}
       </div>
     </header>
   );

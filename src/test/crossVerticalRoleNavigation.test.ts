@@ -65,9 +65,60 @@ describe("cross-vertical role navigation", () => {
       expect(appMore + morePage).toContain(shortcut);
     }
 
-    expect(appMore).not.toContain('href: "/driver", color: "from-blue-500 to-blue-600"');
+    expect(appMore).not.toContain(
+      'href: "/driver", color: "from-blue-500 to-blue-600"',
+    );
     expect(driverMap).toContain('navigate("/drive")');
     expect(driverMap).not.toContain('navigate("/driver")');
+  });
+
+  it("keeps dashboard quick links on registered pages with a Settings return control", () => {
+    const app = source("src/App.tsx");
+    const dashboard = source("src/pages/app/UnifiedDashboard.tsx");
+    const settings = source("src/pages/account/AccountSettingsPage.tsx");
+
+    for (const route of [
+      'path="/my-trips"',
+      'path="/wallet"',
+      'path="/support"',
+      'path="/account/settings"',
+    ]) {
+      expect(app).toContain(route);
+    }
+
+    for (const shortcut of [
+      '{ to: "/my-trips", icon: Clock, label: "My Trips" }',
+      '{ to: "/wallet", icon: Wallet, label: "Wallet" }',
+      '{ to: "/support", icon: HelpCircle, label: "Support" }',
+      '{ to: "/account/settings", icon: Settings, label: "Settings" }',
+    ]) {
+      expect(dashboard).toContain(shortcut);
+    }
+
+    expect(dashboard).not.toContain('to: "/profile/settings"');
+    expect(settings).toContain('aria-label="Back"');
+  });
+
+  it("keeps Car Rental app-native on ZIVO while preserving the Travel surface", () => {
+    const rental = source("src/pages/CarRentalLanding.tsx");
+
+    expect(rental).toContain(
+      'import AppLayout from "@/components/app/AppLayout"',
+    );
+    expect(rental).toContain("const isTravelHost =");
+    expect(rental).toContain("if (!isTravelHost)");
+    expect(rental).toContain("data-car-rental-app-shell");
+    expect(rental).toContain('title="Rental Cars"');
+    expect(rental).toContain("showBack");
+    expect(rental).toContain('aria-label="Search rental cars"');
+    expect(rental).toContain("<TravelPageFrame>");
+    expect(rental).toContain("<Header />");
+    expect(rental).toContain("<Footer />");
+    expect(rental).toContain('aria-label="Go back"');
+    expect(rental).toContain("window.history.state?.idx");
+    expect(rental).toContain("navigate(-1)");
+    expect(rental).toContain('navigate("/", { replace: true })');
+    expect(rental).toContain('className="absolute left-4 top-4 z-20');
   });
 
   it("tracks this cross-vertical regression in the platform readiness matrix", () => {

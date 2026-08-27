@@ -3,6 +3,7 @@
  * Registers the service worker via vite-plugin-pwa and detects updates.
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 interface PWAUpdateState {
   needRefresh: boolean;
@@ -14,6 +15,11 @@ export function usePWAUpdate(): PWAUpdateState {
   const updateSWRef = useRef<((reloadPage?: boolean) => Promise<void>) | null>(null);
 
   useEffect(() => {
+    // Capacitor owns native updates and push delivery. Registering the web PWA
+    // worker inside its local HTTPS shell adds startup/cache work and cannot
+    // precache /favicon.ico because Capacitor intentionally returns it empty.
+    if (Capacitor.isNativePlatform()) return;
+
     let cancelled = false;
     let updateInterval: number | null = null;
     let visibilityHandler: (() => void) | null = null;

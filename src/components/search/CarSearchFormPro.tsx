@@ -9,7 +9,7 @@
  * - Mobile-first responsive design
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useId, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, 
@@ -71,6 +71,13 @@ export default function CarSearchFormPro({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { search: searchAirports, getPopular, getByCode, allOptions } = useAirportSearch();
+  const formId = useId();
+  const pickupDateId = `${formId}-pickup-date`;
+  const pickupTimeId = `${formId}-pickup-time`;
+  const dropoffDateId = `${formId}-dropoff-date`;
+  const dropoffTimeId = `${formId}-dropoff-time`;
+  const driverAgeId = `${formId}-driver-age`;
+  const driverAgeDescriptionId = `${formId}-driver-age-description`;
 
   // Location state
   const [pickupOption, setPickupOption] = useState<LocationOption | null>(null);
@@ -223,13 +230,17 @@ export default function CarSearchFormPro({
         {/* Row 2: Pickup Date & Time */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">
+            <Label htmlFor={pickupDateId} className="text-xs text-muted-foreground mb-1.5 block">
               Pickup Date <span className="text-destructive">*</span>
             </Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
+                  id={pickupDateId}
                   variant="outline"
+                  aria-label={`Pickup date, ${pickupDate ? format(pickupDate, "MMMM d, yyyy") : "not selected"}`}
+                  aria-required="true"
+                  aria-invalid={!!errors.pickupDate}
                   className={cn(
                     "w-full h-11 sm:h-12 justify-start text-left font-normal rounded-xl",
                     !pickupDate && "text-muted-foreground",
@@ -266,9 +277,9 @@ export default function CarSearchFormPro({
           </div>
 
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Pickup Time</Label>
+            <Label htmlFor={pickupTimeId} className="text-xs text-muted-foreground mb-1.5 block">Pickup Time</Label>
             <Select value={pickupTime} onValueChange={setPickupTime}>
-              <SelectTrigger className="h-11 sm:h-12 rounded-xl">
+              <SelectTrigger id={pickupTimeId} aria-label="Pickup time" className="h-11 sm:h-12 rounded-xl">
                 <Clock className="w-4 h-4 mr-2 text-foreground" />
                 <SelectValue />
               </SelectTrigger>
@@ -286,13 +297,17 @@ export default function CarSearchFormPro({
         {/* Row 3: Dropoff Date & Time */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">
+            <Label htmlFor={dropoffDateId} className="text-xs text-muted-foreground mb-1.5 block">
               Return Date <span className="text-destructive">*</span>
             </Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
+                  id={dropoffDateId}
                   variant="outline"
+                  aria-label={`Return date, ${dropoffDate ? format(dropoffDate, "MMMM d, yyyy") : "not selected"}`}
+                  aria-required="true"
+                  aria-invalid={!!errors.dropoffDate}
                   className={cn(
                     "w-full h-11 sm:h-12 justify-start text-left font-normal rounded-xl",
                     !dropoffDate && "text-muted-foreground",
@@ -323,9 +338,9 @@ export default function CarSearchFormPro({
           </div>
 
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Return Time</Label>
+            <Label htmlFor={dropoffTimeId} className="text-xs text-muted-foreground mb-1.5 block">Return Time</Label>
             <Select value={dropoffTime} onValueChange={setDropoffTime}>
-              <SelectTrigger className="h-11 sm:h-12 rounded-xl">
+              <SelectTrigger id={dropoffTimeId} aria-label="Return time" className="h-11 sm:h-12 rounded-xl">
                 <Clock className="w-4 h-4 mr-2 text-foreground" />
                 <SelectValue />
               </SelectTrigger>
@@ -351,9 +366,14 @@ export default function CarSearchFormPro({
 
         {/* Row 4: Driver Age */}
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Driver Age</Label>
+          <Label htmlFor={driverAgeId} className="text-xs text-muted-foreground mb-1.5 block">Driver Age</Label>
           <Select value={driverAge} onValueChange={setDriverAge}>
-            <SelectTrigger className="h-11 sm:h-12 rounded-xl">
+            <SelectTrigger
+              id={driverAgeId}
+              aria-label="Driver age"
+              aria-describedby={driverAgeDescriptionId}
+              className="h-11 sm:h-12 rounded-xl"
+            >
               <User className="w-4 h-4 mr-2 text-foreground" />
               <SelectValue />
             </SelectTrigger>
@@ -365,7 +385,7 @@ export default function CarSearchFormPro({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p id={driverAgeDescriptionId} className="text-[10px] text-muted-foreground mt-1">
             Young driver fees may apply for ages 21-24
           </p>
         </div>

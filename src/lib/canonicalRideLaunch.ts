@@ -1,14 +1,16 @@
 const VEHICLE_TYPES = new Set(["economy", "comfort", "premium", "xl"]);
 const EMBED_SESSION_RE = /^[A-Za-z0-9_-]{32,128}$/;
-const UUID_PATH = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
+const UUID_PATH = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-57][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
 const UUID_RE = new RegExp(`^${UUID_PATH}$`);
 const HOST_TRACKING_PATH_RE = new RegExp(`^/rides/track/(${UUID_PATH})$`);
 const TRIP_ID_QUERY_KEYS = ["trip_id", "tripId", "job_id", "jobId", "order_id", "orderId", "ride_request_id"];
 const HOME_QUERY_KEYS = new Set([
   "pickup", "pickupLat", "pickupLng", "destination", "destLat", "destLng",
-  "multi", "vehicle", "from", "stops",
+  "multi", "multiCoords", "vehicle", "from", "stops",
 ]);
-const MULTI_STOP_QUERY_KEYS = new Set(["from", "stops"]);
+const MULTI_STOP_QUERY_KEYS = new Set([
+  "from", "fromLat", "fromLng", "stops", "stopCoords",
+]);
 
 function cleanText(value: unknown, maxLength = 240): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -68,18 +70,21 @@ export function applyRideLaunchState(
 
 function isAllowedRidePath(pathname: string): boolean {
   return pathname === "/" ||
+    pathname === "/delivery" ||
+    pathname === "/tracking" ||
     pathname === "/history" ||
     pathname === "/account" ||
     pathname === "/multi-stop" ||
     new RegExp(`^/tracking/${UUID_PATH}$`).test(pathname) ||
     new RegExp(`^/receipt/${UUID_PATH}$`).test(pathname) ||
-    new RegExp(`^/rate/${UUID_PATH}$`).test(pathname);
+    new RegExp(`^/rate/${UUID_PATH}$`).test(pathname) ||
+    new RegExp(`^/rate-restaurant/${UUID_PATH}$`).test(pathname);
 }
 
 function queryKeysFor(pathname: string): Set<string> {
   if (pathname === "/") return HOME_QUERY_KEYS;
   if (pathname === "/multi-stop") return MULTI_STOP_QUERY_KEYS;
-  if (pathname.startsWith("/tracking/")) return new Set(["multi"]);
+  if (pathname.startsWith("/tracking/")) return new Set(["multi", "multiCoords"]);
   return new Set();
 }
 

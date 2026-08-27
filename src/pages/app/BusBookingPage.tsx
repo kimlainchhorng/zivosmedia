@@ -40,6 +40,8 @@ import Toilet from "lucide-react/dist/esm/icons/toilet";
 import Layers from "lucide-react/dist/esm/icons/layers";
 import Tv from "lucide-react/dist/esm/icons/tv";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
+import WifiOff from "lucide-react/dist/esm/icons/wifi-off";
 import { BUS_AMENITIES, type BusVehicleAmenity } from "@/config/busVehicleTypes";
 import BusInlinePaymentForm from "@/components/bus/BusInlinePaymentForm";
 import KHQRPaymentModal from "@/components/shop/KHQRPaymentModal";
@@ -49,6 +51,7 @@ import { PageTransition } from "@/components/zivo-travel/PageTransition";
 
 type Step = "search" | "results" | "seats" | "summary" | "pay" | "confirmed";
 type PayMethod = "card" | "khqr";
+type BusSearchStatus = "idle" | "loading" | "ready" | "empty" | "error";
 
 interface BusTrip {
   id: string;
@@ -65,7 +68,7 @@ interface BusTrip {
   amenities: BusVehicleAmenity[];
   seatsLeft: number;
   totalSeats: number;
-  real: boolean;
+  real: true;
 }
 
 type StoreProfileLite = { id: string; name: string | null; logo_url: string | null };
@@ -117,12 +120,6 @@ const normalizeAmenities = (raw: unknown): BusVehicleAmenity[] => {
     .filter((a): a is BusVehicleAmenity => (AMENITY_KEYS as string[]).includes(a));
 };
 
-const addMinutes = (time: string, mins: number) => {
-  const [h, m] = time.split(":").map(Number);
-  const total = (h * 60 + m + mins) % (24 * 60);
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-};
-
 const formatDuration = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -172,49 +169,6 @@ const formatRoutePrice = (route: PopularBusRoute) =>
   route.minPriceCents == null ? null : `from $${Math.round((route.minPriceCents / 100) * 100) / 100}`;
 
 // ─── Data builders ───────────────────────────────────────────────
-
-const buildTrips = (from: string, to: string, date: string): BusTrip[] => {
-  const operators = [
-    { name: "Giant Ibis Transport",  type: "VIP Bus",       base: 18, rating: 4.8, logoUrl: "https://www.google.com/s2/favicons?domain=giantibis.com&sz=128",        amenities: ["wifi", "ac", "charging"] as const },
-    { name: "Mekong Express",        type: "AC Bus",        base: 15, rating: 4.6, logoUrl: "https://www.google.com/s2/favicons?domain=catmekongexpress.com&sz=128", amenities: ["wifi", "ac"] as const },
-    { name: "Vireak Buntham",        type: "Sleeper Bus",   base: 12, rating: 4.3, logoUrl: "https://vireakbuntham.com/favicon.ico",                                 amenities: ["ac", "charging", "sleeper", "blanket"] as const },
-    { name: "Larryta Express",       type: "Standard Bus",  base: 14, rating: 4.5, logoUrl: "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/49/05/dc/4905dc4f-c0c1-790e-59cc-c94eb60989fc/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/100x100bb.jpg", amenities: ["wifi", "ac"] as const },
-    { name: "Vireak Buntham Night",  type: "Night Sleeper", base: 16, rating: 4.4, logoUrl: "https://vireakbuntham.com/favicon.ico",                                 amenities: ["wifi", "ac", "charging", "sleeper", "blanket", "meals"] as const },
-  ];
-  const departBase = ["06:30", "08:00", "11:45", "14:15", "22:30"];
-  const baseSeed = hashString(`${from}-${to}-${date}`);
-  const baseDuration = 180 + (baseSeed % 150);
-
-  return operators.map((op, i) => {
-    const seed = hashString(`${op.name}-${from}-${to}-${date}`);
-    const durationMins = baseDuration + (seed % 60) - 20;
-    return {
-      id: `${date}-${i}`,
-      storeId: "",
-      operator: op.name,
-      logoUrl: op.logoUrl,
-      rating: op.rating,
-      reviewCount: 0,
-      departTime: departBase[i],
-      arriveTime: addMinutes(departBase[i], durationMins),
-      durationMins,
-      priceUsd: op.base + (seed % 7),
-      busType: op.type,
-      amenities: [...op.amenities],
-      seatsLeft: 4 + (seed % 28),
-      totalSeats: SEAT_ROWS * SEATS_PER_ROW,
-      real: false,
-    };
-  }).sort((a, b) => a.departTime.localeCompare(b.departTime));
-};
-
-const occupiedSeats = (tripId: string, totalSeats: number): Set<number> => {
-  const seed = hashString(tripId);
-  const taken = new Set<number>();
-  const count = 6 + (seed % 14);
-  for (let i = 0; i < count; i++) taken.add((seed * (i + 7)) % totalSeats);
-  return taken;
-};
 
 // ─── RPC mappers ─────────────────────────────────────────────────
 
@@ -435,6 +389,7 @@ export default function BusBookingPage() {
   const [popularRoutes, setPopularRoutes]       = useState<PopularBusRoute[]>(FALLBACK_POPULAR_ROUTES);
   const [popularRoutesLoading, setPopRoutesLoading] = useState(true);
   const [searching, setSearching]   = useState(false);
+  const [searchStatus, setSearchStatus] = useState<BusSearchStatus>("idle");
 
   // Booking flow state
   const [selectedTrip, setSelectedTrip]   = useState<BusTrip | null>(null);
@@ -444,7 +399,6 @@ export default function BusBookingPage() {
   const [contactPhone, setContactPhone]   = useState("");
   const [bookingRef, setBookingRef]       = useState("");
   const [submitting, setSubmitting]       = useState(false);
-  const [realBooking, setRealBooking]     = useState(false);
 
   // Payment state
   const [payMethod, setPayMethod]         = useState<PayMethod>("card");
@@ -525,35 +479,61 @@ export default function BusBookingPage() {
     if (!from.trim() || !to.trim()) { toast.error(t("bus.err_from_to")); return; }
     if (from.trim().toLowerCase() === to.trim().toLowerCase()) { toast.error(t("bus.err_same")); return; }
     setSearching(true);
+    setSearchStatus("loading");
+    setTrips([]);
+    setSelectedTrip(null);
+    setSelectedSeats([]);
+    setTaken(new Set());
+    setBookingRef("");
+    setClientSecret(null);
+    setCreatedBookingId("");
     try {
       const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: RpcTripRow[] | null; error: unknown }> })
         .rpc("search_bus_trips", { p_from: from.trim(), p_to: to.trim(), p_date: date });
-      const real = !error && Array.isArray(data) && data.length > 0;
-      const nextTrips = real ? await enrichTripsWithStoreLogos((data as RpcTripRow[]).map(mapRpcTrip)) : buildTrips(from.trim(), to.trim(), date);
-      setTrips(nextTrips);
+      if (error || !Array.isArray(data)) {
+        setSearchStatus("error");
+      } else if (data.length === 0) {
+        setSearchStatus("empty");
+      } else {
+        const nextTrips = await enrichTripsWithStoreLogos(data.map(mapRpcTrip));
+        setTrips(nextTrips);
+        setSearchStatus("ready");
+      }
     } catch {
-      setTrips(buildTrips(from.trim(), to.trim(), date));
+      setSearchStatus("error");
     } finally {
       setSearching(false);
-      setSelectedTrip(null);
-      setSelectedSeats([]);
       goStep("results");
     }
   };
 
   const chooseTrip = async (trip: BusTrip) => {
-    setSelectedTrip(trip);
+    const serverTrip = trips.find((candidate) => candidate.real && candidate.id === trip.id);
+    if (!serverTrip) {
+      toast.error(t("bus.err_trip_unavailable"));
+      return;
+    }
+
+    setSelectedTrip(serverTrip);
     setSelectedSeats([]);
-    if (trip.real) {
-      const set = new Set<number>();
-      try {
-        const { data } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ seat: string }> | null }> })
-          .rpc("get_bus_trip_seats", { p_trip_id: trip.id });
-        (data || []).forEach((row) => { const i = labelToIndex(row.seat); if (i >= 0) set.add(i); });
-      } catch { /* treat as all available */ }
-      setTaken(set);
-    } else {
-      setTaken(occupiedSeats(trip.id, trip.totalSeats));
+    const unavailable = () => {
+      setSelectedTrip(null);
+      setTaken(new Set());
+      toast.error(t("bus.err_generic"));
+    };
+    try {
+      const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ seat: string }> | null; error: unknown }> })
+        .rpc("get_bus_trip_seats", { p_trip_id: serverTrip.id });
+      if (error) {
+        unavailable();
+        return;
+      }
+      const occupied = new Set<number>();
+      (data || []).forEach((row) => { const i = labelToIndex(row.seat); if (i >= 0) occupied.add(i); });
+      setTaken(occupied);
+    } catch {
+      unavailable();
+      return;
     }
     goStep("seats");
   };
@@ -588,6 +568,14 @@ export default function BusBookingPage() {
   };
 
   const confirmBooking = async () => {
+    const isCurrentServerTrip = Boolean(
+      selectedTrip?.real && trips.some((trip) => trip.real && trip.id === selectedTrip.id),
+    );
+    if (!isCurrentServerTrip) {
+      toast.error(t("bus.err_trip_unavailable"));
+      goStep("results");
+      return;
+    }
     if (!contactName.trim() || !contactPhone.trim()) { toast.error(t("bus.err_contact")); return; }
 
     if (selectedTrip?.real) {
@@ -608,10 +596,13 @@ export default function BusBookingPage() {
           return;
         }
         const row = Array.isArray(data) ? data[0] : data;
-        const bookingId = row?.booking_id || "";
+        if (!row?.booking_id || !row.booking_ref) {
+          toast.error(t("bus.err_generic"));
+          return;
+        }
+        const bookingId = row.booking_id;
         const amtCents  = row?.amount_cents ?? Math.round(totalUsd * 100);
-        setBookingRef(row?.booking_ref || "");
-        setRealBooking(true);
+        setBookingRef(row.booking_ref);
         setCreatedBookingId(bookingId);
 
         if (payMethod === "khqr") { setPayAmountCents(amtCents); setKhqrOpen(true); return; }
@@ -638,17 +629,23 @@ export default function BusBookingPage() {
       }
       return;
     }
+  };
 
-    // Sample-catalog demo confirmation
-    const ref = `ZB${hashString(`${selectedTrip?.id}-${selectedSeats.join("")}-${contactPhone}`).toString().slice(0, 6).padStart(6, "0")}`;
-    setBookingRef(ref);
-    setRealBooking(false);
+  const finishServerBooking = () => {
+    const canConfirm = Boolean(
+      bookingRef && selectedTrip?.real && trips.some((trip) => trip.real && trip.id === selectedTrip.id),
+    );
+    if (!canConfirm) {
+      toast.error(t("bus.err_trip_unavailable"));
+      goStep("results");
+      return;
+    }
     goStep("confirmed");
     toast.success(t("bus.booked_toast"));
   };
 
-  const onCardAuthorized = () => { goStep("confirmed"); toast.success(t("bus.booked_toast")); };
-  const onKhqrPaid = () => { setKhqrOpen(false); goStep("confirmed"); toast.success(t("bus.booked_toast")); };
+  const onCardAuthorized = () => { finishServerBooking(); };
+  const onKhqrPaid = () => { setKhqrOpen(false); finishServerBooking(); };
 
   const handleBack = () => {
     if (step === "results")   goStep("search");
@@ -667,6 +664,7 @@ export default function BusBookingPage() {
     pay:       t("bus.review_pay"),
     confirmed: t("bus.booked"),
   };
+  const focusedTransactionStep = step === "summary" || step === "pay";
 
   // Direction-aware slide variants
   const slideVariants = reduce ? {
@@ -699,11 +697,16 @@ export default function BusBookingPage() {
         title={stepTitle[step]}
         showBack
         onBack={handleBack}
+        hideNav={focusedTransactionStep}
+        showTravelFooter={isTravelHost && (step === "search" || step === "confirmed")}
         className={cn("relative", isTravelHost && "zivo-travel-3d zivo-travel-light overflow-hidden")}
       >
         {isTravelHost && <div className="zt-aurora fixed inset-0 z-0" aria-hidden />}
         <PageTransition className={cn(
-          "relative z-10 mx-auto w-full max-w-6xl px-3 pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] pt-3 sm:px-4 sm:pb-28 sm:pt-5 lg:pb-8",
+          "relative z-10 mx-auto w-full max-w-6xl px-3 pt-3 sm:px-4 sm:pt-5 lg:pb-8",
+          focusedTransactionStep
+            ? "pb-[calc(var(--zivo-safe-bottom,0px)+1.5rem)] sm:pb-8"
+            : "pb-[calc(var(--zivo-safe-bottom,0px)+7rem)] sm:pb-28",
           isTravelHost && "zivo-travel-3d zivo-travel-light",
         )}>
 
@@ -794,7 +797,7 @@ export default function BusBookingPage() {
                     </div>
 
                     {/* Date + Passengers */}
-                    <div className="grid grid-cols-2 gap-3 pt-24 sm:pt-0">
+                    <div className="grid grid-cols-2 gap-3">
                       <label className={cn("flex cursor-pointer items-center gap-3 rounded-2xl px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] sm:px-5", softCardClass)}>
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                           <Calendar className="h-4 w-4 text-primary" aria-hidden />
@@ -852,7 +855,7 @@ export default function BusBookingPage() {
                     </div>
 
                     {/* Popular routes */}
-                    <div className="md:pt-36 lg:pt-0">
+                    <div>
                       <p className="mb-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">{t("bus.popular_routes")}</p>
                       <div className="flex flex-wrap gap-2">
                         {popularRoutes.slice(0, 4).map((route) => (
@@ -961,8 +964,72 @@ export default function BusBookingPage() {
                     </button>
                   </div>
 
+                  {searchStatus === "loading" && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className={cn("flex min-h-56 flex-col items-center justify-center rounded-3xl px-6 py-10 text-center", surfaceCardClass)}
+                    >
+                      <RefreshCw className="h-9 w-9 animate-spin text-primary" aria-hidden />
+                      <h3 className="mt-4 text-lg font-black text-foreground">Checking live schedules…</h3>
+                      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                        We’re asking the bus service for current trips, prices, and seat availability.
+                      </p>
+                    </div>
+                  )}
+
+                  {searchStatus === "error" && (
+                    <div
+                      role="alert"
+                      className={cn("flex min-h-64 flex-col items-center justify-center rounded-3xl px-6 py-10 text-center", surfaceCardClass)}
+                    >
+                      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10">
+                        <WifiOff className="h-7 w-7 text-rose-500" aria-hidden />
+                      </span>
+                      <h3 className="mt-4 text-xl font-black text-foreground">Bus schedules unavailable</h3>
+                      <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                        We couldn’t load live schedules. No trips or prices are shown until the service responds.
+                      </p>
+                      <div className="mt-5 flex w-full max-w-sm flex-col gap-2 sm:flex-row">
+                        <Button onClick={runSearch} disabled={searching} className="flex-1 gap-2 rounded-xl font-bold">
+                          <RefreshCw className={cn("h-4 w-4", searching && "animate-spin")} aria-hidden />
+                          Retry
+                        </Button>
+                        <Button variant="outline" onClick={() => goStep("search")} className="flex-1 rounded-xl font-bold">
+                          {t("bus.edit_search")}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {searchStatus === "empty" && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className={cn("flex min-h-64 flex-col items-center justify-center rounded-3xl px-6 py-10 text-center", surfaceCardClass)}
+                    >
+                      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                        <Bus className="h-7 w-7 text-primary" aria-hidden />
+                      </span>
+                      <h3 className="mt-4 text-xl font-black text-foreground">No buses found</h3>
+                      <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                        The live service returned no scheduled buses for this route and date. Try another date or route.
+                      </p>
+                      <div className="mt-5 flex w-full max-w-sm flex-col gap-2 sm:flex-row">
+                        <Button onClick={runSearch} disabled={searching} className="flex-1 gap-2 rounded-xl font-bold">
+                          <RefreshCw className={cn("h-4 w-4", searching && "animate-spin")} aria-hidden />
+                          Retry
+                        </Button>
+                        <Button variant="outline" onClick={() => goStep("search")} className="flex-1 rounded-xl font-bold">
+                          {t("bus.edit_search")}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Trip cards */}
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
+                  {searchStatus === "ready" && (
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
                     {trips.map((trip, i) => (
                       <motion.button
                         key={trip.id}
@@ -1044,7 +1111,8 @@ export default function BusBookingPage() {
                         </div>
                       </motion.button>
                     ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1333,13 +1401,13 @@ export default function BusBookingPage() {
                           className="block h-4 w-4 rounded-full border-2 border-primary-foreground/40 border-t-primary-foreground" aria-hidden />
                         {t("bus.confirm")}…
                       </span>
-                    ) : selectedTrip.real && payMethod === "card"
+                    ) : payMethod === "card"
                         ? `Continue to payment · $${totalUsd.toFixed(2)}`
                         : `${t("bus.confirm")} · $${totalUsd.toFixed(2)}`}
                   </Button>
 
                   <p className="text-center text-[11px] text-muted-foreground">
-                    {selectedTrip.real ? t("bus.reserved_notice") : t("bus.sample_notice")}
+                    {t("bus.reserved_notice")}
                   </p>
                 </div>
               )}
@@ -1366,7 +1434,7 @@ export default function BusBookingPage() {
               {/* ═══════════════════════════════════════════════
                   CONFIRMED
               ═══════════════════════════════════════════════ */}
-              {step === "confirmed" && selectedTrip && (
+              {step === "confirmed" && selectedTrip?.real && bookingRef && (
                 <div className="mx-auto max-w-sm space-y-6 py-4 text-center">
                   {/* Success icon */}
                   <motion.div
@@ -1437,7 +1505,7 @@ export default function BusBookingPage() {
                         <span className="font-bold text-foreground">{selectedSeats.map(seatLabel).sort().join(", ")}</span>
                       </div>
                       <div className="flex items-center justify-between py-2.5">
-                        <span className="text-muted-foreground">{realBooking ? t("bus.amount_due") : t("bus.total_paid")}</span>
+                        <span className="text-muted-foreground">{t("bus.amount_due")}</span>
                         <span className="text-base font-black text-foreground">${totalUsd}</span>
                       </div>
                     </div>
@@ -1450,12 +1518,10 @@ export default function BusBookingPage() {
                     transition={{ delay: 0.4, duration: 0.3 }}
                     className="flex flex-col gap-2.5"
                   >
-                    {realBooking && (
-                      <Button onClick={() => navigate("/bus/tickets")} className="h-13 rounded-2xl font-black">
-                        {t("bus.view_tickets")}
-                      </Button>
-                    )}
-                    <Button onClick={() => navigate("/")} variant={realBooking ? "outline" : "default"} className={cn("rounded-2xl", realBooking ? "h-12 font-bold" : "h-13 font-black")}>
+                    <Button onClick={() => navigate("/bus/tickets")} className="h-13 rounded-2xl font-black">
+                      {t("bus.view_tickets")}
+                    </Button>
+                    <Button onClick={() => navigate("/")} variant="outline" className="h-12 rounded-2xl font-bold">
                       {t("bus.done")}
                     </Button>
                     <Button variant="outline"

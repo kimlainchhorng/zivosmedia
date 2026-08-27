@@ -4,7 +4,7 @@
  * quick actions, service navigation, and personalized content.
  * @module AppHome
  */
-import { useState, useEffect, useMemo, lazy, Suspense, useCallback } from "react";
+import { useState, useMemo, lazy, Suspense, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import SEOHead from "@/components/SEOHead";
 import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
@@ -49,7 +49,6 @@ const PlanTripBundle = lazy(() => import("@/components/home/PlanTripBundle"));
 const NetworkPromoStrip = lazy(() => import("@/components/home/NetworkPromoStrip"));
 const ConciergeLauncher = lazy(() => import("@/components/home/ConciergeLauncher"));
 const TodayPlanWidget = lazy(() => import("@/components/home/TodayPlanWidget"));
-const SpendTrackerWidget = lazy(() => import("@/components/home/SpendTrackerWidget"));
 
 // Icons used below-fold (still small, but needed)
 import Hotel from "lucide-react/dist/esm/icons/hotel";
@@ -68,15 +67,8 @@ import Sun from "lucide-react/dist/esm/icons/sun";
 import Sunset from "lucide-react/dist/esm/icons/sunset";
 import Moon from "lucide-react/dist/esm/icons/moon";
 import UtensilsCrossed from "lucide-react/dist/esm/icons/utensils-crossed";
-import { Progress } from "@/components/ui/progress";
-import { useLoyaltyPoints } from "@/hooks/useLoyaltyPoints";
-import { useUserRewards } from "@/hooks/useUserRewards";
-import { ZIVO_TIERS, getTierFromPoints, getPointsToNextTier, type ZivoTier } from "@/config/zivoPoints";
-import { useReferrals } from "@/hooks/useReferrals";
-import { REFERRAL_REWARDS } from "@/config/referralProgram";
 import { useScheduledBookingsQuery } from "@/hooks/useScheduledBookings";
 import { useCustomerWallet } from "@/hooks/useCustomerWallet";
-import { useLocalPaymentMethods } from "@/hooks/useLocalPaymentMethods";
 import { useRecommendedDeals } from "@/hooks/useRecommendedDeals";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useSavedLocations } from "@/hooks/useSavedLocations";
@@ -88,12 +80,6 @@ import { formatDistanceToNow, format } from "date-fns";
 import AdSenseUnit from "@/components/ads/AdSenseUnit";
 import { AD_SLOTS } from "@/config/adSlots";
 import { useDeviceIntegrityCheck } from "@/hooks/useDeviceIntegrityCheck";
-import { useOwnerStoreProfile } from "@/hooks/useOwnerStoreProfile";
-import { useLodgeRooms } from "@/hooks/lodging/useLodgeRooms";
-import { useLodgePropertyProfile } from "@/hooks/lodging/useLodgePropertyProfile";
-import { useLodgeReservations } from "@/hooks/lodging/useLodgeReservations";
-import { useLodgingPhase5Counts } from "@/hooks/lodging/useLodgingPhase5Counts";
-import { getLodgingCompletion } from "@/lib/lodging/lodgingCompletion";
 import { buildHotelsPath } from "@/lib/lodging/hotelRoutes";
 
 const DEFAULT_HOTELS_PATH = buildHotelsPath();
@@ -413,7 +399,6 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100];
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"]; // Sun → Sat to match getDay()
 
 type StreakState = { count: number; lastVisitISO: string };
-type LodgingRoomWithAddons = { addons?: unknown[] };
 type ScheduledBookingCard = {
   id: string;
   status?: string | null;
@@ -437,7 +422,6 @@ type RecentItemCard = {
   image_url?: string | null;
   thumbnail_url?: string | null;
 };
-type LoyaltySummary = { tier?: string | null; points_balance?: number | null };
 
 const readStreak = (): StreakState => {
   try {
@@ -601,43 +585,9 @@ const AppHome = () => {
     { label: "Delivery", href: "/delivery", Icon: Package },
   ];
   const { data: profile, isError: hasProfileError } = useUserProfile();
-  const { data: ownerStore, isLoading: ownerStoreLoading } = useOwnerStoreProfile();
-  const lodgingStoreId = ownerStore?.isLodging ? ownerStore.id : "";
-  const lodgingRooms = useLodgeRooms(lodgingStoreId);
-  const lodgingProfile = useLodgePropertyProfile(lodgingStoreId);
-  const lodgingReservations = useLodgeReservations(lodgingStoreId, "all");
-  const lodgingPhase5 = useLodgingPhase5Counts(lodgingStoreId);
-  const lodgingCompletion = ownerStore?.isLodging ? getLodgingCompletion({
-    rooms: lodgingRooms.data || [],
-    profile: lodgingProfile.data,
-    addons: ((lodgingRooms.data || []) as LodgingRoomWithAddons[]).flatMap((room) => room.addons || []),
-    housekeepingCount: lodgingPhase5.housekeepingCount,
-    maintenanceReady: true,
-    reportsReady: Boolean((lodgingRooms.data || []).length) || (lodgingReservations.data?.length ?? 0) > 0,
-    mealPlansCount: lodgingPhase5.mealPlansCount,
-    staffCount: lodgingPhase5.staffCount,
-    channelConnectionsCount: lodgingPhase5.channelConnectionsCount,
-    promotionsCount: lodgingPhase5.promotionsCount,
-    reviewsAwaitingReply: lodgingPhase5.reviewsAwaitingReply,
-    reservationsCount: lodgingReservations.data?.length ?? 0,
-  }) : null;
-  const lodgingProgress = lodgingCompletion ? { complete: lodgingCompletion.complete, total: lodgingCompletion.total, percent: lodgingCompletion.percent } : null;
   const { data: deals = [], isError: hasDealsError } = useRecommendedDeals("all", 6);
   const { items: recentItems } = useRecentlyViewed();
   const { data: savedLocations, isError: hasSavedLocationsError } = useSavedLocations(user?.id);
-  const { points, getNextTierProgress } = useLoyaltyPoints();
-  const loyaltySummary = points as LoyaltySummary | null;
-  const { active: activeRewards } = useUserRewards();
-  const {
-    referralCode,
-    referrals = [],
-    isLoading: referralsLoading,
-    getCurrentTier,
-    getNextTier,
-    getShareUrl,
-    copyReferralLink,
-    shareReferral,
-  } = useReferrals();
   const destKeys = isKH ? [...cambodiaDestKeysKH] : [...popularDestKeysUS];
   const { data: destPrices = {}, isLoading: destPricesLoading } = useDestinationPrices(destKeys, isKH);
   const { data: allBookings = [] } = useScheduledBookingsQuery();
@@ -656,19 +606,6 @@ const AppHome = () => {
     return new Date(`${ad}T${at2}`).getTime() - new Date(`${bd}T${bt}`).getTime();
   });
   const { balanceDollars } = useCustomerWallet();
-  const { getDefault } = useLocalPaymentMethods();
-  const defaultCard = getDefault();
-  const completedReferralCount = referrals.filter((referral) => referral.status === "qualified" || referral.status === "credited").length;
-  const pendingReferralCount = referrals.filter((referral) => referral.status === "pending").length;
-  const totalReferralCount = referralCode?.total_referrals ?? referrals.length;
-  const referralPointsEarned = totalReferralCount * REFERRAL_REWARDS.referrer.pointsPerReferral;
-  const currentReferralTier = getCurrentTier();
-  const nextReferralTier = getNextTier();
-  const referralsToNextTier = nextReferralTier ? Math.max(nextReferralTier.min_referrals - totalReferralCount, 0) : 0;
-  const referralTierProgress = nextReferralTier
-    ? Math.min((totalReferralCount / Math.max(nextReferralTier.min_referrals, 1)) * 100, 100)
-    : 100;
-  const referralShareUrl = referralCode?.code ? getShareUrl() : "";
 
   const hasAnyHomeData =
     Boolean(profile) ||
@@ -750,7 +687,7 @@ const AppHome = () => {
       {/* 3D Ambient orbs — contained within scrollable area only */}
 
       {/* Scrollable content */}
-      <div className="scroll-momentum relative z-10 [padding-bottom:calc(56px+var(--zivo-safe-bottom,0px))]">
+      <div className="scroll-momentum relative z-10 mx-auto w-full max-w-5xl lg:pt-[83px] [padding-bottom:calc(56px+var(--zivo-safe-bottom,0px))]">
         {shouldShowHomeRecovery ? (
           <LoadFailureCard
             className="px-4 pt-safe pb-6"
@@ -835,7 +772,7 @@ const AppHome = () => {
                   <ArrowRight className="h-5 w-5" strokeWidth={1.8} />
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+              <div className="grid grid-cols-4 gap-x-2 gap-y-4 md:grid-cols-8">
                 {homeServices.map((service, index) => (
                   <HomeServiceTile
                     key={service.href}
@@ -938,11 +875,6 @@ const AppHome = () => {
           {/* ─── ZIVO NETWORK PROMO ─── */}
           <Suspense fallback={<div className="h-[68px] mx-4 my-2 rounded-xl bg-muted/40 animate-pulse" />}>
             <NetworkPromoStrip />
-          </Suspense>
-
-          {/* ─── SPEND TRACKER (this month) ─── */}
-          <Suspense fallback={null}>
-            <SpendTrackerWidget />
           </Suspense>
 
           {/* ─── SPONSORED (Google AdSense) — renders nothing until AD_SLOTS.homeFeed + publisher id are set ─── */}

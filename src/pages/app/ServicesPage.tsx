@@ -1,55 +1,127 @@
 ﻿/**
- * ServicesPage - Full directory of all ZIVO services
- * Premium super-app style with glassmorphism, layered banners, staggered animations
+ * ServicesPage - Compact directory of all ZIVO services
+ * Matches the Home quick launch, then reveals one service category at a time.
  */
 import { useNavigate } from "react-router-dom";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import {
-  ArrowLeft, Car, Shield, MapPin, Sparkles, Package, Gift, Crown,
-  Wine, ShoppingCart, Pill, Ship, FileCheck, ChevronRight,
-  Search, X, Heart, Tv, Briefcase, Dumbbell, Mail, CheckCircle,
+  ArrowLeft, Briefcase, CalendarClock, Car, CarFront, CheckCircle,
+  Crown, Dumbbell, FileCheck, Gift, Heart, Hotel,
+  Mail, MapPin, Package, Pill, Plane, Search, Shield, Ship,
+  ShoppingCart, Sparkles, Tv, UsersRound, UtensilsCrossed, Wine,
+  X, type LucideIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import { useRoutePrefetch } from "@/components/shared/RoutePrefetcher";
 import { useI18n } from "@/hooks/useI18n";
-import { useCountry } from "@/hooks/useCountry";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildHotelsPath } from "@/lib/lodging/hotelRoutes";
+import {
+  beginWaitlistRequest,
+  completeWaitlistRequest,
+  createWaitlistRequestGate,
+  invalidateWaitlistRequest,
+} from "@/pages/app/servicesWaitlistRequest";
 import zivoRideIcon from "@/assets/zivo-ride-icon.webp";
 import zivoEatsIcon from "@/assets/zivo-eats-icon.webp";
-import zivoFlightsIcon from "@/assets/zivo-flights-icon.webp";
+import zivoFlightsAircraft from "@/assets/zivo-flights-aircraft.webp";
 import zivoHotelsIcon from "@/assets/zivo-hotels-icon.webp";
 import zivoRentalCarIcon from "@/assets/zivo-rental-car.webp";
-import zivoReserveIcon from "@/assets/zivo-reserve-car.webp";
+import zivoBusIcon from "@/assets/zivo-bus-icon.webp";
 import zivoShoppingIcon from "@/assets/zivo-shopping.webp";
-import zivoDeliveryBanner from "@/assets/zivo-delivery-banner.webp";
-import zivoPackageIcon from "@/assets/service-package.png";
-import zivoTravelBanner from "@/assets/zivo-travel-banner.webp";
+import zivoAeroplanePackage from "@/assets/zivo-aeroplane-package.png";
+import zivoReserveCar from "@/assets/zivo-reserve-car.webp";
 import zivoGroupRideIcon from "@/assets/service-group-ride.png";
-import zivoAlcoholIcon from "@/assets/service-alcohol.png";
-import zivoPharmacyIcon from "@/assets/service-pharmacy.png";
+import zivoAlcoholIcon from "@/assets/zivo-alcohol-icon.webp";
+import zivoPharmacyIcon from "@/assets/zivo-pharmacy-icon.webp";
+import zivoThingsToDo from "@/assets/zivo-things-to-do.webp";
+import zivoAiPlanner from "@/assets/zivo-ai-planner.webp";
+import zivoLogo from "@/assets/zivo-logo.png";
 
 /* ── Types ── */
 interface ServiceItem {
-  id?: string;
+  id: string;
   label: string;
   href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  image?: string;
+  icon: LucideIcon;
   badge?: string;
   badgeVariant?: "discount" | "promo" | "new" | "coming_soon";
   animClass?: string;
   comingSoon?: boolean;
+  imageSrc?: string;
+  imageClassName?: string;
 }
 
 interface ServiceCategory {
+  id: "ride" | "food" | "travel" | "more";
   title: string;
   subtitle?: string;
   services: ServiceItem[];
+}
+
+type ServiceTabId = ServiceCategory["id"] | "favorites";
+
+interface PrimaryServiceItem {
+  label: string;
+  href: string;
+  icon?: LucideIcon;
+  imageSrc?: string;
+  imageClassName?: string;
+}
+
+function HomeParityServiceTile({
+  service,
+  index,
+  onNavigate,
+  onPrefetch,
+}: {
+  service: PrimaryServiceItem;
+  index: number;
+  onNavigate: (href: string) => void;
+  onPrefetch: (href: string) => void;
+}) {
+  const Icon = service.icon;
+
+  return (
+    <motion.button
+      type="button"
+      aria-label={service.label}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 320, damping: 28, delay: 0.08 + index * 0.035 }}
+      whileTap={{ scale: 0.92 }}
+      onPointerDown={() => onPrefetch(service.href)}
+      onClick={() => onNavigate(service.href)}
+      className="group flex min-h-[88px] min-w-0 flex-col items-center justify-start gap-2 rounded-[20px] p-0.5 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transform-none"
+    >
+      <span className="flex h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-[19px] bg-white shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),0_2px_6px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.025] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_28px_-12px_rgba(15,23,42,0.24)] motion-reduce:transform-none">
+        {service.imageSrc ? (
+          <img
+            src={service.imageSrc}
+            alt=""
+            width={64}
+            height={64}
+            className={cn("h-[64%] w-[64%] object-contain", service.imageClassName)}
+            loading="eager"
+            decoding="async"
+            aria-hidden="true"
+          />
+        ) : Icon ? (
+          <Icon className="h-7 w-7 text-zinc-950" strokeWidth={1.9} aria-hidden="true" />
+        ) : null}
+      </span>
+      <span className="max-w-full truncate text-center text-[11px] font-semibold leading-tight text-muted-foreground transition-colors group-hover:text-foreground sm:text-xs">
+        {service.label}
+      </span>
+    </motion.button>
+  );
 }
 
 /* Per-service accent colours (static literal classes so Tailwind JIT keeps them).
@@ -57,13 +129,13 @@ interface ServiceCategory {
    A soft 10% tint on the icon tile + a coloured icon turns the monochrome grid into
    a vibrant, organised super-app hub without touching layout or interaction. */
 const ACCENT_BY_HREF: Record<string, { bg: string; icon: string }> = {
-  "/rides/hub": { bg: "bg-blue-500/10 dark:bg-blue-400/15", icon: "text-blue-500 dark:text-blue-400" },
+  "/rides/hub": { bg: "bg-[hsl(var(--rides)/0.12)]", icon: "text-[hsl(var(--rides))]" },
   "/delivery": { bg: "bg-violet-500/10 dark:bg-violet-400/15", icon: "text-violet-500 dark:text-violet-400" },
-  "/flights": { bg: "bg-sky-500/10 dark:bg-sky-400/15", icon: "text-sky-500 dark:text-sky-400" },
-  "/rent-car": { bg: "bg-amber-500/10 dark:bg-amber-400/15", icon: "text-amber-600 dark:text-amber-400" },
-  "/eats": { bg: "bg-orange-500/10 dark:bg-orange-400/15", icon: "text-orange-500 dark:text-orange-400" },
+  "/flights": { bg: "bg-[hsl(var(--flights)/0.12)]", icon: "text-[hsl(var(--flights))]" },
+  "/rent-car": { bg: "bg-[hsl(var(--cars)/0.12)]", icon: "text-[hsl(var(--cars))]" },
+  "/eats": { bg: "bg-[hsl(var(--eats)/0.12)]", icon: "text-[hsl(var(--eats))]" },
   "/grocery": { bg: "bg-emerald-500/10 dark:bg-emerald-400/15", icon: "text-emerald-500 dark:text-emerald-400" },
-  "/hotels": { bg: "bg-indigo-500/10 dark:bg-indigo-400/15", icon: "text-indigo-500 dark:text-indigo-400" },
+  "/hotels": { bg: "bg-[hsl(var(--hotels)/0.12)]", icon: "text-[hsl(var(--hotels))]" },
   "/travel-insurance": { bg: "bg-teal-500/10 dark:bg-teal-400/15", icon: "text-teal-500 dark:text-teal-400" },
   "/explore": { bg: "bg-pink-500/10 dark:bg-pink-400/15", icon: "text-pink-500 dark:text-pink-400" },
   "/wellness": { bg: "bg-green-500/10 dark:bg-green-400/15", icon: "text-green-500 dark:text-green-400" },
@@ -77,127 +149,121 @@ const ACCENT_BY_HREF: Record<string, { bg: string; icon: string }> = {
   "/creator-dashboard": { bg: "bg-cyan-500/10 dark:bg-cyan-400/15", icon: "text-cyan-500 dark:text-cyan-400" },
 };
 
+function ServiceGlyph({
+  service,
+  className,
+  isRunning = false,
+}: {
+  service: ServiceItem;
+  className?: string;
+  isRunning?: boolean;
+}) {
+  const Icon = service.icon;
+
+  if (service.imageSrc) {
+    return (
+      <img
+        src={service.imageSrc}
+        alt=""
+        width={64}
+        height={64}
+        loading="eager"
+        decoding="async"
+        aria-hidden="true"
+        className={cn(
+          "h-[72%] w-[76%] object-contain transition-transform duration-200 motion-reduce:animate-none motion-reduce:transform-none",
+          service.imageClassName,
+          isRunning && service.animClass,
+          className
+        )}
+      />
+    );
+  }
+
+  return (
+    <Icon
+      aria-hidden="true"
+      strokeWidth={1.9}
+      className={cn(
+        "h-7 w-7 transition-transform duration-200 group-hover:scale-110 motion-reduce:animate-none motion-reduce:transform-none",
+        ACCENT_BY_HREF[service.href]?.icon ?? "text-muted-foreground",
+        isRunning && service.animClass,
+        className
+      )}
+    />
+  );
+}
+
 /* ── Data ── */
-const getServiceCategories = (t: (key: string) => string, isCambodia = false): ServiceCategory[] => [
+const getServiceCategories = (t: (key: string) => string): ServiceCategory[] => [
   {
+    id: "ride",
     title: t("services.category.ride"),
     subtitle: t("services.category.ride_sub"),
     services: [
-      { label: t("services.ride"), href: "/rides/hub", image: zivoRideIcon, badge: t("services.badge.off_10"), badgeVariant: "discount", animClass: "animate-car-run" },
-      { label: t("services.package"), href: "/delivery", image: zivoPackageIcon, badge: "Live", badgeVariant: "new", animClass: "animate-pkg-bounce" },
-      { label: t("services.travel"), href: "/flights", image: zivoFlightsIcon, badge: "Hot", badgeVariant: "promo", animClass: "animate-plane-fly" },
-      { id: "ride-reserve", label: t("services.reserve"), href: "/rides/hub", image: zivoReserveIcon, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
-      { label: t("services.rental_cars"), href: "/rent-car", image: zivoRentalCarIcon, badge: "Book", badgeVariant: "promo", animClass: "animate-car-run" },
-      { label: t("services.group_ride"), href: "/rides/hub", image: zivoGroupRideIcon, animClass: "animate-car-run" },
+      { id: "ride", label: t("services.ride"), href: "/rides/hub", icon: Car, imageSrc: zivoRideIcon, imageClassName: "h-[70%] w-[76%]", badge: t("services.badge.off_10"), badgeVariant: "discount", animClass: "animate-car-run" },
+      { id: "package-delivery", label: t("services.package"), href: "/delivery", icon: Package, imageSrc: zivoAeroplanePackage, imageClassName: "h-[92%] w-[92%]", badge: t("services.badge.live"), badgeVariant: "new", animClass: "animate-pkg-bounce" },
+      { id: "ride-travel", label: t("services.travel"), href: "/flights", icon: Plane, imageSrc: zivoFlightsAircraft, imageClassName: "h-[70%] w-[88%]", badge: t("services.badge.hot"), badgeVariant: "promo", animClass: "animate-plane-fly" },
+      { id: "ride-reserve", label: t("services.reserve"), href: "/rides/hub", icon: CalendarClock, imageSrc: zivoReserveCar, imageClassName: "h-[86%] w-[86%]", badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
+      { id: "ride-rental-cars", label: t("services.rental_cars"), href: "/rent-car", icon: CarFront, imageSrc: zivoRentalCarIcon, imageClassName: "h-[76%] w-[76%]", badge: t("services.badge.book"), badgeVariant: "promo", animClass: "animate-car-run" },
+      { id: "group-ride", label: t("services.group_ride"), href: "/rides/hub", icon: UsersRound, imageSrc: zivoGroupRideIcon, imageClassName: "h-[82%] w-[82%]", animClass: "animate-car-run" },
     ],
   },
   {
+    id: "food",
     title: t("services.category.food"),
     subtitle: t("services.category.food_sub"),
     services: [
-      { label: t("services.food"), href: "/eats", image: zivoEatsIcon, badge: "Order", badgeVariant: "promo", animClass: "animate-food-wiggle" },
-      { label: t("services.grocery"), href: "/grocery", image: zivoShoppingIcon, animClass: "animate-food-wiggle", badge: "Shop", badgeVariant: "promo" as const },
-      { label: t("services.alcohol"), href: "/grocery", image: zivoAlcoholIcon, badge: "New", badgeVariant: "new", animClass: "animate-food-wiggle" },
-      { label: t("services.pharmacy"), href: "/grocery", image: zivoPharmacyIcon, badge: "New", badgeVariant: "new", animClass: "animate-pkg-bounce" },
+      { id: "food", label: t("services.food"), href: "/eats", icon: UtensilsCrossed, imageSrc: zivoEatsIcon, badge: t("services.badge.order"), badgeVariant: "promo", animClass: "animate-food-wiggle" },
+      { id: "grocery", label: t("services.grocery"), href: "/grocery", icon: ShoppingCart, imageSrc: zivoShoppingIcon, animClass: "animate-food-wiggle", badge: t("services.badge.shop"), badgeVariant: "promo" as const },
+      { id: "alcohol", label: t("services.alcohol"), href: "/grocery", icon: Wine, imageSrc: zivoAlcoholIcon, imageClassName: "h-[84%] w-[84%]", badge: t("services.badge.new"), badgeVariant: "new", animClass: "animate-food-wiggle" },
+      { id: "pharmacy", label: t("services.pharmacy"), href: "/grocery", icon: Pill, imageSrc: zivoPharmacyIcon, imageClassName: "h-[82%] w-[86%]", badge: t("services.badge.new"), badgeVariant: "new", animClass: "animate-pkg-bounce" },
     ],
   },
   {
+    id: "travel",
     title: t("services.category.trip"),
     subtitle: t("services.category.trip_sub"),
     services: [
-      { label: t("services.flights"), href: "/flights", image: zivoFlightsIcon, badge: "Hot", badgeVariant: "promo", animClass: "animate-plane-fly" },
-      { label: t("services.hotels"), href: "/hotels", image: zivoHotelsIcon, badge: "Book", badgeVariant: "promo", animClass: "animate-pkg-bounce" },
-      { label: t("services.car_rental"), href: "/rent-car", image: zivoRentalCarIcon, badge: "Rent", badgeVariant: "promo", animClass: "animate-car-run" },
-      { label: t("services.insurance"), href: "/travel-insurance", icon: Shield, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
-      { label: t("services.things_to_do"), href: "/explore", icon: MapPin, badge: "New", badgeVariant: "new" },
-      { label: t("services.ai_planner"), href: "/ai-trip-planner", icon: Sparkles, badge: "AI", badgeVariant: "new" },
-      { label: t("services.visa_help"), href: "/support", icon: FileCheck, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
-      { label: t("services.cruise"), href: "/flights", icon: Ship, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
+      { id: "flights", label: t("services.flights"), href: "/flights", icon: Plane, imageSrc: zivoFlightsAircraft, imageClassName: "h-[70%] w-[88%]", badge: t("services.badge.hot"), badgeVariant: "promo", animClass: "animate-plane-fly" },
+      { id: "hotels", label: t("services.hotels"), href: "/hotels", icon: Hotel, imageSrc: zivoHotelsIcon, imageClassName: "h-[70%] w-[70%]", badge: t("services.badge.book"), badgeVariant: "promo", animClass: "animate-pkg-bounce" },
+      { id: "car-rental", label: t("services.car_rental"), href: "/rent-car", icon: CarFront, imageSrc: zivoRentalCarIcon, imageClassName: "h-[76%] w-[76%]", badge: t("services.badge.rent"), badgeVariant: "promo", animClass: "animate-car-run" },
+      { id: "travel-insurance", label: t("services.insurance"), href: "/travel-insurance", icon: Shield, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
+      { id: "things-to-do", label: t("services.things_to_do"), href: "/explore", icon: MapPin, imageSrc: zivoThingsToDo, imageClassName: "h-[86%] w-[86%] rounded-[14px] !object-cover", badge: t("services.badge.new"), badgeVariant: "new" },
+      { id: "ai-trip-planner", label: t("services.ai_planner"), href: "/ai-trip-planner", icon: Sparkles, imageSrc: zivoAiPlanner, imageClassName: "h-[84%] w-[84%]", badge: t("services.badge.ai"), badgeVariant: "new" },
+      { id: "visa-help", label: t("services.visa_help"), href: "/support", icon: FileCheck, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
+      { id: "cruise", label: t("services.cruise"), href: "/flights", icon: Ship, badge: t("services.badge.coming_soon"), badgeVariant: "coming_soon", comingSoon: true },
     ],
   },
   {
+    id: "more",
     title: t("services.category.more"),
     subtitle: t("services.category.more_sub"),
     services: [
-      { label: t("services.drive"), href: "/drive", icon: Car },
-      { label: "ZIVO+", href: "/zivo-plus", icon: Crown, badge: "Premium", badgeVariant: "new" },
-      { label: t("services.rewards"), href: "/rewards", icon: Gift, badge: "Earn", badgeVariant: "promo" },
-      { label: t("services.deals"), href: "/deals", icon: Sparkles, badge: "Hot", badgeVariant: "promo" },
-      { label: t("services.live"), href: "/live", icon: Tv, badge: "Live", badgeVariant: "new" },
-      { label: t("services.wellness"), href: "/wellness", icon: Dumbbell, badge: "New", badgeVariant: "new" },
-      { label: t("services.creator"), href: "/creator-dashboard", icon: Briefcase },
+      { id: "drive", label: t("services.drive"), href: "/drive", icon: Car, imageSrc: zivoRideIcon, imageClassName: "h-[70%] w-[76%]" },
+      { id: "zivo-plus", label: "ZIVO+", href: "/zivo-plus", icon: Crown, badge: t("services.badge.premium"), badgeVariant: "new" },
+      { id: "rewards", label: t("services.rewards"), href: "/rewards", icon: Gift, badge: t("services.badge.earn"), badgeVariant: "promo" },
+      { id: "deals", label: t("services.deals"), href: "/deals", icon: Sparkles, badge: t("services.badge.hot"), badgeVariant: "promo" },
+      { id: "zivo-live", label: t("services.live"), href: "/live", icon: Tv, badge: t("services.badge.live"), badgeVariant: "new" },
+      { id: "wellness", label: t("services.wellness"), href: "/wellness", icon: Dumbbell, badge: t("services.badge.new"), badgeVariant: "new" },
+      { id: "creator-hub", label: t("services.creator"), href: "/creator-dashboard", icon: Briefcase },
     ],
   },
 ];
 
-/* ── Promo Banner Component ── */
-function PromoBanner({
-  image,
-  alt,
-  label,
-  title,
-  subtitle,
-  href,
-  delay = 0.15,
-  navigate,
-  objectPosition = "center",
-}: {
-  image: string;
-  alt: string;
-  label?: string;
-  title: string;
-  subtitle: string;
-  href: string;
-  delay?: number;
-  navigate: (path: string) => void;
-  objectPosition?: string;
-}) {
-  return (
-    <motion.button
-      onClick={() => navigate(href)}
-      whileTap={{ scale: 0.97 }}
-      whileHover={{ scale: 1.01 }}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, type: "spring", stiffness: 300, damping: 30 }}
-      className="w-full rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 touch-manipulation mt-5 relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <div className="relative h-[150px]">
-        <img
-          src={image}
-          alt={alt}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          decoding="async"
-          style={{ objectPosition }}
-        />
-        {/* Multi-layer gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-foreground/80 via-foreground/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
-        
-        {/* Content */}
-        <div className="absolute inset-0 flex flex-col justify-center px-5">
-          {label && (
-            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] mb-1">
-              {label}
-            </span>
-          )}
-          <span className="text-[15px] font-black text-background leading-tight drop-shadow-md">
-            {title}
-          </span>
-          <span className="text-[11px] text-background/80 mt-1 font-medium">
-            {subtitle}
-          </span>
-        </div>
-
-        {/* Arrow indicator */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <ChevronRight className="w-4 h-4 text-background" />
-        </div>
-      </div>
-    </motion.button>
-  );
-}
+const getPrimaryServices = (
+  t: (key: string) => string,
+  hotelsPath: string
+): PrimaryServiceItem[] => [
+  { label: t("home.ride"), href: "/rides/hub", imageSrc: zivoRideIcon, imageClassName: "w-[70%]" },
+  { label: t("home.eats"), href: "/eats", imageSrc: zivoEatsIcon },
+  { label: t("home.flights"), href: "/flights", imageSrc: zivoFlightsAircraft, imageClassName: "h-[70%] w-[88%]" },
+  { label: t("home.hotels"), href: hotelsPath, imageSrc: zivoHotelsIcon, imageClassName: "h-[68%] w-[68%]" },
+  { label: t("home.rental_cars"), href: "/rent-car", imageSrc: zivoRentalCarIcon, imageClassName: "h-[72%] w-[72%]" },
+  { label: t("home.bus"), href: "/bus", imageSrc: zivoBusIcon, imageClassName: "h-[68%] w-[86%]" },
+  { label: t("home.shopping"), href: "/grocery", imageSrc: zivoShoppingIcon },
+  { label: t("home.delivery"), href: "/delivery", imageSrc: zivoAeroplanePackage, imageClassName: "h-[88%] w-[92%]" },
+];
 
 /* ── Badge Variant Styles ── */
 const badgeStyles = {
@@ -209,7 +275,14 @@ const badgeStyles = {
 
 const FAVORITES_KEY_PREFIX = "zivo_favorite_services";
 
-const serviceFavoriteKey = (service: ServiceItem) => service.id ?? service.href;
+const serviceFavoriteKey = (service: ServiceItem) => service.id;
+
+function normalizeFavoriteServices(favorites: string[], services: ServiceItem[]): string[] {
+  return [...new Set(favorites.map(value => {
+    if (!value.startsWith("/")) return value;
+    return services.find(service => service.href === value)?.id ?? value;
+  }))];
+}
 
 function favoritesStorageKey(userId: string | null): string | null {
   return userId ? `${FAVORITES_KEY_PREFIX}:${userId}` : null;
@@ -244,27 +317,45 @@ function saveFavoriteServices(favorites: string[], userId: string | null): void 
 export default function ServicesPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const { isCambodia } = useCountry();
+  const { prefetch } = useRoutePrefetch();
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  const serviceCategories = getServiceCategories(t, isCambodia);
+  const hotelsPath = useMemo(() => buildHotelsPath(), []);
+  const isStandaloneDisplay = typeof window !== "undefined"
+    && (window.matchMedia?.("(display-mode: standalone)").matches ?? false);
+  const servicesHeaderSafeTop = Capacitor.isNativePlatform() || isStandaloneDisplay
+    ? "var(--zivo-safe-top-sticky)"
+    : "max(var(--zivo-safe-top, 0px), 1rem)";
+  const serviceCategories = useMemo(() => getServiceCategories(t), [t]);
+  const primaryServices = useMemo(() => getPrimaryServices(t, hotelsPath), [hotelsPath, t]);
+  const allServices = useMemo(
+    () => serviceCategories.flatMap(category => category.services),
+    [serviceCategories]
+  );
   const [runningLabel, setRunningLabel] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [activeTab, setActiveTab] = useState<ServiceTabId>("ride");
   const [waitlistService, setWaitlistService] = useState<string | null>(null);
   const [waitlistEmail, setWaitlistEmail] = useState(user?.email ?? "");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const waitlistRequestGateRef = useRef(createWaitlistRequestGate());
   const [favoriteState, setFavoriteState] = useState<{ userId: string | null; items: string[] }>(() => ({
     userId,
-    items: loadFavoriteServices(userId),
+    items: normalizeFavoriteServices(loadFavoriteServices(userId), allServices),
   }));
-  const favorites = favoriteState.userId === userId ? favoriteState.items : loadFavoriteServices(userId);
+  const favorites = favoriteState.userId === userId
+    ? normalizeFavoriteServices(favoriteState.items, allServices)
+    : normalizeFavoriteServices(loadFavoriteServices(userId), allServices);
 
   const toggleFavorite = (service: ServiceItem, e: React.MouseEvent) => {
     e.stopPropagation();
     const key = serviceFavoriteKey(service);
     setFavoriteState((previous) => {
-      const current = previous.userId === userId ? previous.items : loadFavoriteServices(userId);
+      const stored = previous.userId === userId ? previous.items : loadFavoriteServices(userId);
+      const current = normalizeFavoriteServices(stored, allServices);
       const next = current.includes(key)
         ? current.filter(f => f !== key)
         : [...current, key];
@@ -273,30 +364,75 @@ export default function ServicesPage() {
     });
   };
 
-  const allServices = useMemo(
-    () => serviceCategories.flatMap(c => c.services),
-    [serviceCategories]
-  );
   const favoriteServices = useMemo(
     () => allServices.filter(s => favorites.includes(serviceFavoriteKey(s))),
     [allServices, favorites]
   );
+  const searchResults = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return [];
+    return allServices.filter(service => service.label.toLocaleLowerCase().includes(query));
+  }, [allServices, searchQuery]);
+  const activeCategory = serviceCategories.find(category => category.id === activeTab);
+  const visibleServices = searchQuery.trim()
+    ? searchResults
+    : activeTab === "favorites"
+      ? favoriteServices
+      : activeCategory?.services ?? [];
+  const panelTitle = searchQuery.trim()
+    ? t("services.search_results")
+    : activeTab === "favorites"
+      ? t("services.tab.favorites")
+      : activeCategory?.title ?? "";
+  const panelSubtitle = !searchQuery.trim() && activeTab !== "favorites"
+    ? activeCategory?.subtitle
+    : undefined;
+  const tabs: Array<{ id: ServiceTabId; label: string }> = [
+    { id: "ride", label: t("services.tab.ride") },
+    { id: "food", label: t("services.tab.food") },
+    { id: "travel", label: t("services.tab.travel") },
+    { id: "more", label: t("services.tab.more") },
+    { id: "favorites", label: t("services.tab.favorites") },
+  ];
 
-  const filteredCategories = useMemo(() => {
-    if (!searchQuery.trim()) return serviceCategories;
-    const q = searchQuery.toLowerCase();
-    return serviceCategories
-      .map(cat => ({
-        ...cat,
-        services: cat.services.filter(s => s.label.toLowerCase().includes(q)),
-      }))
-      .filter(cat => cat.services.length > 0);
-  }, [serviceCategories, searchQuery]);
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = tabs.length - 1;
+    }
+
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    setActiveTab(tabs[nextIndex].id);
+    tabRefs.current[nextIndex]?.focus();
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    searchInputRef.current?.focus();
+  };
+
+  const closeWaitlist = () => {
+    invalidateWaitlistRequest(waitlistRequestGateRef.current);
+    setWaitlistService(null);
+    setWaitlistSubmitted(false);
+    setWaitlistLoading(false);
+  };
 
   const handleServiceClick = (service: ServiceItem) => {
     if (service.comingSoon) {
+      invalidateWaitlistRequest(waitlistRequestGateRef.current);
       setWaitlistService(service.label);
       setWaitlistSubmitted(false);
+      setWaitlistLoading(false);
       setWaitlistEmail(user?.email ?? "");
       return;
     }
@@ -311,282 +447,318 @@ export default function ServicesPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background pb-28 relative overflow-x-hidden">
-      {/* Decorative background orbs */}
-      <div className="absolute top-20 -left-20 w-60 h-60 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-[400px] -right-20 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+  const submitWaitlist = async () => {
+    const email = waitlistEmail.trim();
+    const service = waitlistService;
+    if (!email || !service) return;
 
-      {/* Header */}
-      <div className="px-5 pb-2 relative z-10 safe-area-top">
+    const requestId = beginWaitlistRequest(waitlistRequestGateRef.current);
+    if (requestId === null) return;
+    setWaitlistLoading(true);
+
+    try {
+      const { error } = await supabase.functions.invoke("service-waitlist-submit", { body: {
+        email,
+        service,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      } });
+      if (error) throw error;
+    } catch {
+      if (!completeWaitlistRequest(waitlistRequestGateRef.current, requestId)) return;
+      setWaitlistLoading(false);
+      toast.error(t("services.waitlist.error"));
+      return;
+    }
+
+    if (!completeWaitlistRequest(waitlistRequestGateRef.current, requestId)) return;
+    setWaitlistLoading(false);
+    setWaitlistSubmitted(true);
+  };
+
+  return (
+    <div className="relative min-h-[100dvh] overflow-x-hidden bg-background pb-[6.5rem]">
+      {/* Decorative background orbs */}
+      <div className="pointer-events-none absolute -left-20 top-20 h-60 w-60 rounded-full bg-primary/5 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 top-[400px] h-48 w-48 rounded-full bg-primary/5 blur-3xl" />
+
+      {/* Compact branded header */}
+      <header
+        className="safe-area-top relative z-10 overflow-hidden border-b border-border/35 bg-gradient-to-br from-primary/[0.07] via-background to-fuchsia-500/[0.06] px-5 pb-2"
+        style={{ "--_safe-top": servicesHeaderSafeTop } as CSSProperties}
+      >
+        <div className="pointer-events-none absolute -right-8 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex items-center gap-3 mb-1"
+          className="relative flex items-center gap-3"
         >
-          <button type="button"
-            aria-label="Back"
+          <button
+            type="button"
+            aria-label={t("services.a11y.back")}
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-muted/60 backdrop-blur-md border border-border/40 flex items-center justify-center active:scale-95 transition-all duration-200 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/45 bg-card/85 shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-card active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <ArrowLeft className="w-[18px] h-[18px] text-foreground" />
+            <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="line-clamp-2 text-[24px] font-black leading-tight tracking-[-0.035em] text-foreground">
+              {t("services.title")}
+            </h1>
+            <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">{t("services.subtitle")}</p>
+          </div>
+          <img
+            src={zivoLogo}
+            alt=""
+            width={44}
+            height={44}
+            aria-hidden="true"
+            className="h-11 w-11 shrink-0 rounded-[14px] shadow-[0_10px_24px_-12px_rgba(219,39,119,0.65)]"
+          />
         </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, duration: 0.4 }}
-        >
-          <h1 className="text-[28px] font-black text-foreground mt-3 tracking-tight">
-            {t("services.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{t("services.subtitle")}</p>
-        </motion.div>
-      </div>
+      </header>
 
       {/* Search bar */}
-      <div className="px-5 pt-4 pb-1 relative z-10">
+      <div className="relative z-10 px-5 pb-1 pt-2">
         <motion.div
+          role="search"
+          aria-label={t("services.search_placeholder")}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.3 }}
           className="relative"
         >
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            ref={searchInputRef}
+            role="searchbox"
+            aria-label={t("services.search_placeholder")}
+            aria-controls="services-category-panel"
+            aria-describedby="services-search-status"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder={t("services.search_placeholder")}
-            className="pl-9 pr-9 h-10 rounded-full bg-muted/60 border-border/40 text-sm focus-visible:ring-primary/40"
+            className="h-11 rounded-full border-border/45 bg-card/90 pl-9 pr-14 text-sm shadow-sm focus-visible:ring-primary/40"
           />
           {searchQuery && (
-            <button type="button"
-              aria-label="Clear search"
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/30 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <button
+              type="button"
+              aria-label={t("services.a11y.clear_search")}
+              onClick={clearSearch}
+              className="group/clear absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 touch-manipulation items-center justify-center rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <X className="w-3 h-3 text-muted-foreground" />
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/20 transition-colors group-hover/clear:bg-muted-foreground/30">
+                <X aria-hidden="true" className="h-3 w-3 text-muted-foreground" />
+              </span>
             </button>
           )}
         </motion.div>
+        <p
+          id="services-search-status"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {searchQuery.trim()
+            ? searchResults.length === 0
+              ? t("services.search_no_results")
+              : `${t("services.search_results")}: ${searchResults.length}`
+            : ""}
+        </p>
       </div>
 
-      {/* Quick Launch — horizontal scroll of popular services */}
-      {!searchQuery && (
-        <div className="px-5 pt-4 relative z-10">
-          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3">Popular</p>
-          <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
-            {[
-              { label: t("services.ride"), href: "/rides/hub", image: zivoRideIcon, color: "from-blue-500 to-blue-600" },
-              { label: t("services.food"), href: "/eats", image: zivoEatsIcon, color: "from-orange-500 to-amber-500" },
-              { label: t("services.flights"), href: "/flights", image: zivoFlightsIcon, color: "from-sky-500 to-cyan-500" },
-              { label: t("services.hotels"), href: "/hotels", image: zivoHotelsIcon, color: "from-purple-500 to-violet-600" },
-              { label: t("services.grocery"), href: "/grocery", image: zivoShoppingIcon, color: "from-emerald-500 to-green-600" },
-            ].map((s) => (
-              <motion.button
-                key={s.label}
-                type="button"
-                onClick={() => navigate(s.href)}
-                whileTap={{ scale: 0.94 }}
-                className="flex-shrink-0 flex flex-col items-center gap-2 touch-manipulation rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center shadow-md`}>
-                  <img src={s.image} alt={s.label} className="w-9 h-9 object-contain" loading="lazy" decoding="async" />
-                </div>
-                <span className="text-[10px] font-semibold text-foreground text-center leading-tight w-16">{s.label}</span>
-              </motion.button>
+      {/* Same eight launchers and artwork as Home. */}
+      {!searchQuery.trim() && (
+        <section aria-labelledby="services-primary-heading" className="relative z-10 px-5 pt-3">
+          <h2 id="services-primary-heading" className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            {t("services.section.popular")}
+          </h2>
+          <div className="grid grid-cols-4 gap-x-2 gap-y-2">
+            {primaryServices.map((service, index) => (
+              <HomeParityServiceTile
+                key={service.href}
+                service={service}
+                index={index}
+                onNavigate={navigate}
+                onPrefetch={prefetch}
+              />
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Favorites strip */}
-      {!searchQuery && favoriteServices.length > 0 && (
-        <div className="px-5 pt-4 relative z-10">
-          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-3">Favorites</p>
-          <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
-            {favoriteServices.map(s => (
-              <motion.button
-                key={serviceFavoriteKey(s) + "-fav"}
-                type="button"
-                onClick={() => handleServiceClick(s)}
-                whileTap={{ scale: 0.94 }}
-                className="flex-shrink-0 flex flex-col items-center gap-2 touch-manipulation relative rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-card border border-primary/20 flex items-center justify-center shadow-sm relative">
-                  {s.image ? (
-                    <img src={s.image} alt={s.label} className="w-9 h-9 object-contain" loading="lazy" decoding="async" />
-                  ) : s.icon ? (
-                    <s.icon className="w-6 h-6 text-primary" />
-                  ) : null}
-                  <button
-                    type="button"
-                    aria-label="Remove from favorites"
-                    onClick={(e) => toggleFavorite(s, e)}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-card border border-border/40 shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
-                  </button>
-                </div>
-                <span className="text-[10px] font-semibold text-foreground text-center leading-tight w-16">{s.label}</span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Service Categories */}
-      <div className="px-5 space-y-7 pt-7 relative z-10">
-        {filteredCategories.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-16 text-center"
-          >
-            <Search className="w-10 h-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-semibold text-foreground">{t("services.search_no_results")}</p>
-            <p className="text-xs text-muted-foreground mt-1">{t("services.search_no_results_sub")}</p>
-          </motion.div>
-        )}
-        {filteredCategories.map((category, catIdx) => (
-          <div key={category.title}>
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 + catIdx * 0.08, type: "spring", stiffness: 300, damping: 30 }}
-            >
-              {/* Section header */}
-              <div className="mb-4">
-                <h2 className="text-[17px] font-extrabold text-foreground tracking-tight">
-                  {category.title}
+      {/* One compact category panel replaces the former four-section long page. */}
+      <section
+        aria-labelledby={searchQuery.trim() ? "services-panel-heading" : "services-explore-heading"}
+        className="relative z-10 px-5 pt-4"
+      >
+        {!searchQuery.trim() && (
+          <>
+            <div className="mb-2 flex items-end justify-between gap-3">
+              <div>
+                <h2 id="services-explore-heading" className="text-[16px] font-extrabold tracking-tight text-foreground">
+                  {t("services.explore.title")}
                 </h2>
-                {category.subtitle && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5 font-medium">
-                    {category.subtitle}
-                  </p>
-                )}
+                <p className="text-[11px] font-medium text-muted-foreground">
+                  {t("services.explore.subtitle")}
+                </p>
               </div>
+            </div>
+            <div
+              role="tablist"
+              aria-label={t("services.explore.title")}
+              aria-orientation="horizontal"
+              className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1 pb-2"
+            >
+              {tabs.map((tab, index) => (
+                <button
+                  key={tab.id}
+                  ref={(element) => { tabRefs.current[index] = element; }}
+                  id={`services-tab-${tab.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls="services-category-panel"
+                  tabIndex={activeTab === tab.id ? 0 : -1}
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={(event) => handleTabKeyDown(event, index)}
+                  className={cn(
+                    "h-11 shrink-0 rounded-full px-3 text-[11px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    activeTab === tab.id
+                      ? "bg-foreground text-background shadow-sm"
+                      : "border border-border/45 bg-card/70 text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
-              {/* Service grid */}
-              <div className="grid grid-cols-3 gap-x-3 gap-y-4">
-                {category.services.map((service, idx) => (
-                  <motion.button
-                    key={service.label}
-                    onClick={() => handleServiceClick(service)}
-                    whileTap={{ scale: 0.92 }}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{
-                      delay: 0.12 + catIdx * 0.08 + idx * 0.035,
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 25,
-                    }}
-                    className={cn(
-                      "flex flex-col items-center gap-2 touch-manipulation relative group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      service.comingSoon && "opacity-60"
-                    )}
+        <motion.div
+          key={searchQuery.trim() ? "search" : activeTab}
+          id="services-category-panel"
+          role={searchQuery.trim() ? undefined : "tabpanel"}
+          aria-labelledby={searchQuery.trim() ? undefined : `services-tab-${activeTab}`}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 30 }}
+          className="pt-1"
+        >
+          <div className="mb-3">
+            <h2 id="services-panel-heading" className="text-[15px] font-extrabold tracking-tight text-foreground">{panelTitle}</h2>
+            {panelSubtitle && (
+              <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">{panelSubtitle}</p>
+            )}
+          </div>
+
+          {visibleServices.length === 0 ? (
+            <div className="flex min-h-24 flex-col items-center justify-center rounded-2xl border border-dashed border-border/60 bg-card/40 px-4 text-center">
+              {activeTab === "favorites" && !searchQuery.trim() ? (
+                <>
+                  <Heart className="mb-2 h-6 w-6 text-muted-foreground/45" aria-hidden="true" />
+                  <p className="text-xs font-semibold text-foreground">{t("services.tab.favorites")}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{t("services.favorites.empty")}</p>
+                </>
+              ) : (
+                <>
+                  <Search className="mb-2 h-6 w-6 text-muted-foreground/45" aria-hidden="true" />
+                  <p className="text-xs font-semibold text-foreground">{t("services.search_no_results")}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{t("services.search_no_results_sub")}</p>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+              {visibleServices.map((service, index) => {
+                const isFavorite = favorites.includes(serviceFavoriteKey(service));
+
+                return (
+                  <motion.div
+                    key={`${serviceFavoriteKey(service)}-${service.label}`}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.025, type: "spring", stiffness: 400, damping: 26 }}
+                    className={cn("group relative min-w-0", service.comingSoon && "opacity-65")}
                   >
-                    {/* Favorite heart */}
-                    <button
+                    <motion.button
                       type="button"
-                      aria-label={favorites.includes(serviceFavoriteKey(service)) ? "Remove from favorites" : "Save to favorites"}
-                      onClick={(e) => toggleFavorite(service, e)}
-                      className={cn(
-                        "absolute -top-1 -right-1 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-card/80 backdrop-blur-sm border border-border/30 shadow-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        favorites.includes(serviceFavoriteKey(service))
-                          ? "opacity-100"
-                          : "opacity-0 group-hover:opacity-100 focus:opacity-100"
-                      )}
+                      onClick={() => handleServiceClick(service)}
+                      whileTap={{ scale: 0.92 }}
+                      className="flex w-full touch-manipulation flex-col items-center gap-1.5 rounded-2xl py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <Heart className={cn(
-                        "w-3 h-3 transition-colors",
-                        favorites.includes(serviceFavoriteKey(service)) ? "fill-rose-500 text-rose-500" : "text-muted-foreground/60"
-                      )} />
-                    </button>
-
-                    {/* Badge */}
-                    {service.badge && (
-                      <div
+                      <span
                         className={cn(
-                          "absolute -top-2 left-1/2 -translate-x-1/2 z-10 text-[8px] font-bold px-2.5 py-[3px] rounded-full whitespace-nowrap shadow-md",
-                          badgeStyles[service.badgeVariant || "promo"]
+                          "relative flex h-[60px] w-[60px] items-center justify-center overflow-visible rounded-[19px] bg-white shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),0_2px_6px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.025] transition-all duration-200",
+                          "group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_28px_-12px_rgba(15,23,42,0.24)]",
+                          "group-active:translate-y-0 group-active:shadow-sm"
                         )}
                       >
-                        {service.badge}
-                      </div>
-                    )}
+                        {service.badge && (
+                          <span
+                            className={cn(
+                              "absolute -top-2 left-1/2 z-10 max-w-[92px] -translate-x-1/2 truncate whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-bold shadow-sm",
+                              badgeStyles[service.badgeVariant || "promo"]
+                            )}
+                          >
+                            {service.badge}
+                          </span>
+                        )}
+                        <ServiceGlyph
+                          service={service}
+                          isRunning={runningLabel === service.label}
+                        />
+                      </span>
+                      <span className="line-clamp-2 min-h-6 max-w-full text-center text-[11px] font-semibold leading-3 text-foreground">
+                        {service.label}
+                      </span>
+                    </motion.button>
 
-                    {/* Icon container */}
-                    <div
+                    <button
+                      type="button"
+                      aria-label={isFavorite
+                        ? t("services.a11y.remove_favorite")
+                        : t("services.a11y.save_favorite")}
+                      aria-pressed={isFavorite}
+                      onClick={(event) => toggleFavorite(service, event)}
                       className={cn(
-                        "w-[68px] h-[68px] rounded-2xl flex items-center justify-center transition-all duration-200 overflow-visible",
-                        ACCENT_BY_HREF[service.href]?.bg ?? "bg-card",
-                        "border border-border/40 shadow-sm",
-                        "group-hover:shadow-md group-hover:border-primary/20 group-hover:-translate-y-0.5",
-                        "group-active:bg-muted/60 group-active:shadow-none group-active:translate-y-0"
+                        "group/favorite absolute left-1/2 -top-2 z-20 ml-2 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100",
+                        isFavorite && "sm:opacity-100"
                       )}
                     >
-                      {service.image ? (
-                        <img
-                          src={service.image}
-                          alt={service.label}
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-card/90 shadow-sm ring-1 ring-border/30 backdrop-blur-sm transition-colors group-hover/favorite:bg-card">
+                        <Heart
+                          aria-hidden="true"
                           className={cn(
-                            "w-9 h-9 object-contain transition-transform duration-200 group-hover:scale-110",
-                            runningLabel === service.label && service.animClass
+                            "h-3.5 w-3.5 transition-colors",
+                            isFavorite ? "fill-rose-500 text-rose-500" : "text-muted-foreground/45"
                           )}
-                          loading="lazy"
-                          decoding="async"
                         />
-                      ) : service.icon ? (
-                        <service.icon className={cn("w-6 h-6 transition-colors duration-200", ACCENT_BY_HREF[service.href]?.icon ?? "text-muted-foreground")} />
-                      ) : null}
-                    </div>
+                      </span>
+                    </button>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
+      </section>
 
-                    {/* Label */}
-                    <span className="text-[11px] font-semibold text-foreground text-center leading-tight">
-                      {service.label}
-                    </span>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Promo banner after "Your ride, your way" */}
-            {catIdx === 0 && !searchQuery && (
-              <PromoBanner
-                image={zivoDeliveryBanner}
-                alt={t("services.banner.deliver_alt")}
-                title={t("services.banner.deliver_title")}
-                subtitle={t("services.banner.deliver_subtitle")}
-                href="/drive"
-                delay={0.2}
-                navigate={navigate}
-              />
-            )}
-
-            {/* Travel banner after "Food & more, fast" */}
-            {catIdx === 1 && !searchQuery && (
-              <PromoBanner
-                image={zivoTravelBanner}
-                alt={t("services.banner.trip_alt")}
-                label={t("services.banner.trip_label")}
-                title={t("services.banner.trip_title")}
-                subtitle={t("services.banner.trip_subtitle")}
-                href="/flights"
-                delay={0.25}
-                navigate={navigate}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      <Sheet open={!!waitlistService} onOpenChange={(open) => { if (!open) setWaitlistService(null); }}>
-        <SheetContent side="bottom" className="rounded-t-3xl pb-10 max-h-[80dvh]">
+      <Sheet open={!!waitlistService} onOpenChange={(open) => { if (!open) closeWaitlist(); }}>
+        <SheetContent side="bottom" hideClose className="rounded-t-3xl pb-10 max-h-[80dvh]">
+          <SheetClose
+            aria-label={t("services.waitlist.close")}
+            className="group/sheet-close absolute right-2.5 top-1.5 z-50 flex h-11 w-11 touch-manipulation items-center justify-center rounded-full transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-1 ring-black/10 transition-opacity group-hover/sheet-close:opacity-90">
+              <X aria-hidden="true" className="h-4 w-4" />
+            </span>
+            <span className="sr-only">{t("services.waitlist.close")}</span>
+          </SheetClose>
           <SheetHeader className="pb-4">
-            <SheetTitle className="text-lg font-bold">Get early access</SheetTitle>
+            <SheetTitle className="text-lg font-bold">{t("services.waitlist.title")}</SheetTitle>
           </SheetHeader>
           {waitlistSubmitted ? (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
@@ -594,54 +766,51 @@ export default function ServicesPage() {
                 <CheckCircle className="w-8 h-8 text-emerald-500" />
               </div>
               <div>
-                <p className="font-bold text-base">{waitlistService} — you're on the list!</p>
-                <p className="text-sm text-muted-foreground mt-1">We'll email you when it launches.</p>
+                <p className="font-bold text-base">{waitlistService} — {t("services.waitlist.success")}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t("services.waitlist.launch_email")}</p>
               </div>
-              <button type="button" onClick={() => setWaitlistService(null)}
-                className="text-sm text-primary font-semibold rounded-md transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Close</button>
+              <button type="button" onClick={closeWaitlist}
+                className="inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-semibold text-primary transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t("services.waitlist.close")}</button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <form
+              aria-busy={waitlistLoading}
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitWaitlist();
+              }}
+            >
               <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{waitlistService}</span> is coming soon.
-                Drop your email and we'll notify you first.
+                <span className="font-semibold text-foreground">{waitlistService}</span> {t("services.waitlist.coming_soon")}{" "}
+                {t("services.waitlist.prompt")}
               </p>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <label className="sr-only" htmlFor="service-waitlist-email">
+                  {t("services.waitlist.email_label")}
+                </label>
                 <input
+                  id="service-waitlist-email"
                   type="email"
-                  placeholder="your@email.com"
+                  inputMode="email"
+                  autoComplete="email"
+                  required
+                  disabled={waitlistLoading}
+                  placeholder={t("services.waitlist.email_placeholder")}
                   value={waitlistEmail}
                   onChange={(e) => setWaitlistEmail(e.target.value)}
                   className="w-full h-12 pl-10 pr-4 rounded-xl bg-muted/40 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40"
                 />
               </div>
               <button
-                type="button"
+                type="submit"
                 disabled={!waitlistEmail.trim() || waitlistLoading}
-                onClick={async () => {
-                  if (!waitlistEmail.trim()) return;
-                  setWaitlistLoading(true);
-                  try {
-                    const { error } = await supabase.functions.invoke("service-waitlist-submit", { body: {
-                      email: waitlistEmail,
-                      service: waitlistService,
-                      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-                    } });
-                    if (error) throw error;
-                  } catch {
-                    toast.error("Couldn't join waitlist. Please try again.");
-                    setWaitlistLoading(false);
-                    return;
-                  }
-                  setWaitlistLoading(false);
-                  setWaitlistSubmitted(true);
-                }}
                 className="w-full h-12 rounded-2xl bg-foreground text-background font-bold text-sm disabled:opacity-50 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {waitlistLoading ? "Joining…" : "Notify me when it launches"}
+                {waitlistLoading ? t("services.waitlist.joining") : t("services.waitlist.submit")}
               </button>
-            </div>
+            </form>
           )}
         </SheetContent>
       </Sheet>

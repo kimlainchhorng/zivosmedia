@@ -60,9 +60,11 @@ const contracts = [
     category: "capacitor",
     check() {
       const configPath = "capacitor.config.ts";
+      const indexPath = "index.html";
       const packagePath = "package.json";
       const mainPath = "src/main.tsx";
       const config = source(configPath);
+      const index = source(indexPath);
       const packageJson = source(packagePath);
       const main = source(mainPath);
 
@@ -75,7 +77,8 @@ const contracts = [
         "allowMixedContent: false",
         "overlaysWebView: true",
         "resize: \"native\"",
-        "launchAutoHide: false",
+        "launchAutoHide: true",
+        "launchShowDuration: 0",
       ]) {
         requireContains(this.id, config, needle, configPath);
       }
@@ -84,6 +87,19 @@ const contracts = [
         requireContains(this.id, packageJson, dep, packagePath);
       }
       requireContains(this.id, main, "SplashScreen.hide", mainPath);
+      requireContains(this.id, index, "<div data-zivo-boot-shell", indexPath);
+      requireContains(this.id, index, '<div id="root"></div>', indexPath);
+      requireContains(this.id, index, "កំពុងបើកកម្មវិធីរបស់អ្នក", indexPath);
+      requireContains(this.id, index, 'aria-atomic="true"', indexPath);
+      requireContains(this.id, main, "removeBootShellAfterFirstAppPaint(root)", mainPath);
+      requireContains(this.id, main, "new MutationObserver", mainPath);
+      requireContains(this.id, main, "root.childElementCount", mainPath);
+      requireContains(this.id, main, "function finishBoot()", mainPath);
+      requireContains(this.id, main, "NATIVE_BOOT_SHELL_HANDOFF_MS = 350", mainPath);
+      requireContains(this.id, main, "window.setTimeout(removeBootShell, NATIVE_BOOT_SHELL_HANDOFF_MS)", mainPath);
+      requireContains(this.id, main, "notifyNativeAppReady();", mainPath);
+      requireContains(this.id, main, "onUncaughtError: paintBootError", mainPath);
+      requireNotContains(this.id, main, "root.replaceChildren", mainPath);
     },
   },
   {
@@ -169,7 +185,7 @@ const contracts = [
       for (const needle of [
         'namespace = "com.hizovo.app"',
         'applicationId "com.hizovo.app"',
-        "versionCode 2026053101",
+        "versionCode 2026082601",
         'versionName "1.3.0"',
         "com.google.android.play:integrity",
         "keystore.properties",
@@ -186,11 +202,12 @@ const contracts = [
       for (const needle of [
         "minSdkVersion = 24",
         "compileSdkVersion = 36",
-        "targetSdkVersion = 35",
+        "targetSdkVersion = 36",
       ]) {
         requireContains(this.id, variables, needle, variablesPath);
       }
       requireContains(this.id, listing, "Package name: `com.hizovo.app`", listingPath);
+      requireContains(this.id, listing, "Target SDK: 36 (Android 16)", listingPath);
       requireContains(this.id, listing, "Privacy Policy URL", listingPath);
       requireContains(this.id, listing, "Account Deletion URL", listingPath);
       requireContains(this.id, listing, "https://zivosmedia.com/legal/privacy", listingPath);
@@ -246,6 +263,8 @@ const contracts = [
         requireContains(this.id, androidManifest, permission, androidManifestPath);
       }
       for (const needle of [
+        '<uses-feature android:name="android.hardware.camera" android:required="false" />',
+        '<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />',
         'android:allowBackup="false"',
         'android:fullBackupContent="false"',
         'android:dataExtractionRules="@xml/data_extraction_rules"',
@@ -775,16 +794,16 @@ const contracts = [
 
       requireContains(this.id, packageJson, '"version": "1.3.0"', packagePath);
       requireContains(this.id, iosProject, "MARKETING_VERSION = 1.3.0", iosProjectPath);
-      requireContains(this.id, iosProject, "CURRENT_PROJECT_VERSION = 3", iosProjectPath);
+      requireContains(this.id, iosProject, "CURRENT_PROJECT_VERSION = 4", iosProjectPath);
       requireContains(this.id, androidBuild, 'versionName "1.3.0"', androidBuildPath);
-      requireContains(this.id, androidBuild, "versionCode 2026053101", androidBuildPath);
+      requireContains(this.id, androidBuild, "versionCode 2026082601", androidBuildPath);
       for (const listingPath of [appStorePath, playStorePath]) {
         const listing = listingPath === appStorePath ? appStore : playStore;
         requireContains(this.id, listing, "Release Metadata", listingPath);
         requireContains(this.id, listing, "Version: 1.3.0", listingPath);
       }
-      requireContains(this.id, appStore, "Build: 3", appStorePath);
-      requireContains(this.id, playStore, "Version code: 2026053101", playStorePath);
+      requireContains(this.id, appStore, "Build: 4", appStorePath);
+      requireContains(this.id, playStore, "Version code: 2026082601", playStorePath);
       requireContains(this.id, test, "native version release alignment", testPath);
       requireContains(this.id, test, "MARKETING_VERSION", testPath);
       requireContains(this.id, test, "versionCode", testPath);
@@ -826,9 +845,9 @@ const contracts = [
       }
       for (const releaseValue of [
         "App version: 1.3.0",
-        "iOS build: 3",
+        "iOS build: 4",
         "iOS bundle ID: com.hizovo.app",
-        "Android versionCode: 2026053101",
+        "Android versionCode: 2026082601",
         "Android package: com.hizovo.app",
       ]) {
         requireContains(this.id, checklist, releaseValue, checklistPath);

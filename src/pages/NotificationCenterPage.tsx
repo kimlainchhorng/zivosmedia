@@ -5,6 +5,7 @@ import {
   ArrowLeft, Heart, MessageCircle, UserPlus, ShoppingBag, Bell, BellOff, Check, Trash2,
   Briefcase, Tv, Activity, Rocket, Plane, AlertTriangle, Tag, DollarSign, AtSign,
   ChevronDown, CornerUpLeft, UserCircle2, Send, Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,10 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow, isToday, isYesterday, isThisWeek } from "date-fns";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useMutedThreads, MUTE_DURATIONS, formatMuteLabel, type MuteDurationId } from "@/hooks/useMutedThreads";
-import { useAllowMessageRequests } from "@/hooks/useAllowMessageRequests";
+import { useMessageRequestNotificationPrivacy } from "@/hooks/useAllowMessageRequests";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import {
@@ -181,23 +181,14 @@ export default function NotificationCenterPage() {
   // Mute integration — same hooks the bell uses, so muting from this page
   // also drops the bell badge and chat-list state instantly.
   const { isMuted, mute, unmute, getMuteEntry } = useMutedThreads();
-  const { allow: allowMessageRequests } = useAllowMessageRequests();
-
-  // Same privacy filter the bell uses: when "Allow message requests" is off,
-  // chat notifications from people not in the user's contacts are hidden
-  // from the list (and the visible unread count). Contact set is fetched
-  // only when the toggle is off so the common case stays one query.
-  const { data: contactSet } = useQuery({
-    queryKey: ["notif-page-contact-set", user?.id],
-    enabled: !!user && allowMessageRequests === false,
-    queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("user_contacts")
-        .select("contact_user_id")
-        .eq("owner_id", user!.id);
-      return new Set<string>(((data || []) as any[]).map((c) => c.contact_user_id));
-    },
-  });
+  const {
+    allow: allowMessageRequests,
+    shouldHideNotification,
+    isPrivacyLoading,
+    isPrivacyUnavailable,
+    isPrivacyFetching,
+    retry: retryPrivacy,
+  } = useMessageRequestNotificationPrivacy();
   const [muteOpenFor, setMuteOpenFor] = useState<string | null>(null);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
@@ -282,23 +273,38 @@ export default function NotificationCenterPage() {
 
   // Privacy gate — applied before any other filtering so muted/non-contact
   // chats vanish from every count and tab consistently.
-  const privacyFiltered = (() => {
-    if (allowMessageRequests !== false || !contactSet) return notifications;
-    return notifications.filter((n) => {
-      const tid = chatThreadIdFromUrl(n.action_url);
-      if (!tid) return true; // non-chat notifs always pass
-      return contactSet.has(tid);
-    });
-  })();
+  const privacyFiltered = notifications.filter(
+    (notification) =>
+      !shouldHideNotification(chatThreadIdFromUrl(notification.action_url)),
+  );
 
   const unreadCount = privacyFiltered.filter(n => !n.isRead).length;
 
   const markAllRead = async () => {
     if (!user) return;
+    const visibleUnreadIds = privacyFiltered
+      .filter((notification) => !notification.isRead)
+      .map((notification) => notification.id);
+    if (visibleUnreadIds.length === 0) return;
+
     try {
-      await markAllNotificationsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      toast.success("All notifications marked as read");
+      if (allowMessageRequests === true) {
+        await markAllNotificationsRead();
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+        toast.success("All notifications marked as read");
+        return;
+      }
+
+      await markNotificationsRead(visibleUnreadIds);
+      const visibleIds = new Set(visibleUnreadIds);
+      setNotifications((previous) =>
+        previous.map((notification) =>
+          visibleIds.has(notification.id)
+            ? { ...notification, isRead: true }
+            : notification,
+        ),
+      );
+      toast.success("Visible notifications marked as read");
     } catch {
       toast.error("Notification updates are temporarily unavailable");
     }
@@ -400,7 +406,10 @@ export default function NotificationCenterPage() {
           </div>
           {unreadCount > 0 && (
             <Button variant="ghost" size="sm" className="text-xs gap-1 rounded-full" onClick={markAllRead}>
-              <Check className="h-3.5 w-3.5" /> Mark all read
+              <Check className="h-3.5 w-3.5" />
+              {allowMessageRequests === true
+                ? "Mark all read"
+                : "Mark visible read"}
             </Button>
           )}
         </div>
@@ -435,6 +444,47 @@ export default function NotificationCenterPage() {
         </div>
       </div>
 
+      {isPrivacyUnavailable ? (
+        <div
+          role="alert"
+          className="mx-4 mt-3 flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              Some chat alerts are hidden
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              We couldn't confirm your non-contact chat-alert preference. Other
+              notifications remain available.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0 rounded-full gap-1.5"
+            onClick={() => void retryPrivacy()}
+            disabled={isPrivacyFetching}
+          >
+            {isPrivacyFetching ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            Retry
+          </Button>
+        </div>
+      ) : isPrivacyLoading ? (
+        <div
+          role="status"
+          className="mx-4 mt-3 flex items-center gap-2 rounded-xl bg-muted/50 p-3 text-xs font-medium text-muted-foreground"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Checking chat privacy…
+        </div>
+      ) : null}
+
       {/* List */}
       <div className="divide-y divide-border/30">
         {loading && (
@@ -466,10 +516,19 @@ export default function NotificationCenterPage() {
                   Retry
                 </Button>
               </>
+            ) : isPrivacyLoading || isPrivacyUnavailable ? (
+              <>
+                <BellOff className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">
+                  Chat alerts stay hidden until privacy can be confirmed.
+                </p>
+              </>
             ) : (
               <>
                 <Bell className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">No notifications</p>
+                <p className="text-muted-foreground text-sm">
+                  No visible notifications
+                </p>
               </>
             )}
           </div>

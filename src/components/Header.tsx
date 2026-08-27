@@ -13,6 +13,7 @@ import {
 import MobileNavMenu from "./navigation/MobileNavMenu";
 import { cn } from "@/lib/utils";
 import ZivoLogo from "./ZivoLogo";
+import ZivoTravelLogo from "./ZivoTravelLogo";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import CurrencySelector from "./shared/CurrencySelector";
 import BetaBadge from "./shared/BetaBadge";
@@ -22,6 +23,7 @@ import { PremiumSearchOverlay } from "@/components/search";
 import { Capacitor } from "@capacitor/core";
 import { useI18n } from "@/hooks/useI18n";
 import { useSupportedLanguages } from "@/hooks/useGlobalExpansion";
+import { getZivoHeaderSafeTop } from "@/lib/zivoHeaderSafeArea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -64,32 +66,31 @@ const Header = () => {
   const activeLanguages = (supportedLanguages || []).filter(l => l.is_active);
   const currentLangData = activeLanguages.find(l => l.code === currentLanguage);
   const isTravel = typeof window !== "undefined" && isZivoTravelHost();
+  const headerSafeTop = getZivoHeaderSafeTop();
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border safe-area-top">
+      <header
+        className="zivo-safe-top-guard-off fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border"
+        style={{ paddingTop: headerSafeTop }}
+      >
         {/* IG gradient accent — hairline beneath the header */}
         <div aria-hidden className="bg-ig-gradient absolute left-0 right-0 bottom-0 h-px opacity-80" />
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex items-center gap-3 h-11 sm:h-12">
             {/* Logo */}
             <div className="flex items-center gap-2">
-              <div 
-                className="cursor-pointer transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]" 
-                onClick={() => navigate("/")}
+              <Link
+                to="/"
+                aria-label={isTravel ? "Zivo Travel home" : "ZIVO home"}
+                className="rounded-lg transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {isTravel ? (
-                  <span className="flex items-center gap-1.5">
-                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-base font-black text-white">Z</span>
-                    <span className="text-base font-black tracking-tight">
-                      <span className="text-foreground">ZIVO</span>{" "}
-                      <span className="bg-gradient-to-r from-emerald-400 to-sky-500 bg-clip-text text-transparent">TRAVEL</span>
-                    </span>
-                  </span>
+                  <ZivoTravelLogo size="sm" />
                 ) : (
                   <ZivoLogo size="sm" />
                 )}
-              </div>
+              </Link>
               <BetaBadge variant="compact" className="hidden sm:flex" />
             </div>
 

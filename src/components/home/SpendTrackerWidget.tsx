@@ -4,6 +4,10 @@
  * compact summary with a 4-color stacked bar.
  *
  * Hidden when the total is $0 (no noise on a fresh account).
+ *
+ * @deprecated Not mounted on Home: these legacy sources do not share a
+ * currency, settlement-state, or settlement-date contract. Re-enable only
+ * after a server-owned spend ledger can produce one authoritative total.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";

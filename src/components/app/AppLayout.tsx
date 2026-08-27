@@ -8,9 +8,12 @@ import AppHeader from "./AppHeader";
 import SystemStatusBanner from "@/components/shared/SystemStatusBanner";
 import OfflineBanner from "@/components/shared/OfflineBanner";
 import SafeAreaDebugOverlay from "@/components/dev/SafeAreaDebugOverlay";
+import Footer from "@/components/Footer";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { cn } from "@/lib/utils";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
+import { getZivoHeaderSafeTop } from "@/lib/zivoHeaderSafeArea";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -23,6 +26,7 @@ interface AppLayoutProps {
   headerRightAction?: ReactNode;
   className?: string;
   fixedHeight?: boolean;
+  showTravelFooter?: boolean;
 }
 
 const AppLayout = ({
@@ -36,8 +40,11 @@ const AppLayout = ({
   headerRightAction,
   className,
   fixedHeight = false,
+  showTravelFooter = false,
 }: AppLayoutProps) => {
   const { isOnline } = useNetworkStatus();
+  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
+  const headerSafeTop = getZivoHeaderSafeTop("0.4375rem");
 
   return (
     <SwipeBackContainer
@@ -73,12 +80,16 @@ const AppLayout = ({
         )}
         style={
           !hideHeader
-            ? { paddingTop: "calc(56px + var(--zivo-safe-top-sticky))" }
+            ? { paddingTop: `calc(57px + ${headerSafeTop})` }
             : { paddingTop: "var(--zivo-safe-top,0px)" }
         }
       >
         {children}
       </main>
+
+      {showTravelFooter && isTravel && (
+        <Footer forceTravelBrand className="pb-[calc(6rem+env(safe-area-inset-bottom))]" />
+      )}
 
       {!hideNav && <ZivoMobileNav />}
 

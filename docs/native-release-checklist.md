@@ -54,11 +54,18 @@ Confirm these values match before upload:
 
 ```text
 App version: 1.3.0
-iOS build: 3
+iOS build: 4
 iOS bundle ID: com.hizovo.app
-Android versionCode: 2026053101
+Android versionCode: 2026082601
 Android package: com.hizovo.app
+Android target SDK: 36 (Android 16)
 ```
+
+Google Play requires normal mobile app updates submitted on or after August 31,
+2026 to target Android 16 (API level 36) or higher. The supported Android build
+runner fails before rebuilding if `android/variables.gradle` falls below that
+minimum. Treat a Play Console extension as active only after it is visibly
+approved for this app.
 
 The matching store text lives in:
 

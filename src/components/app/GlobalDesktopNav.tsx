@@ -11,6 +11,7 @@
 import { Suspense, lazy } from "react";
 import { useLocation } from "react-router-dom";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
+import { isHotelCheckoutRoute } from "@/lib/lodging/hotelCheckoutRoute";
 
 const NavBar = lazy(() => import("@/components/home/NavBar"));
 
@@ -37,20 +38,20 @@ const EXCLUDE_PREFIXES = [
   "/embedded",
   "/dev/",
   // Pages whose components ALREADY render <NavBar /> themselves
-  "/feed",          // SocialFeedPage adds NavBar
-  "/flights",       // FlightLanding adds NavBar
-  "/hotels",        // hotel landing adds NavBar
-  "/cars",          // car landing adds NavBar
-  "/zivo-plus",     // ZivoPlus adds NavBar
-  "/membership",    // MembershipPage adds NavBar
-  "/auto-repair",   // AutoRepairPage adds NavBar
-  "/business",      // Business landing uses its own ZIVO Software website header
-  "/vision",        // Vision adds NavBar
-  "/referral",      // ReferralProgram adds NavBar
-  "/profile",       // Profile adds NavBar
-  "/user/",         // PublicProfilePage adds NavBar
-  "/stores-list",   // StoresListPage adds NavBar
-  "/saved-searches",// SavedSearchesPage adds NavBar
+  "/feed", // SocialFeedPage adds NavBar
+  "/flights", // FlightLanding adds NavBar
+  "/hotels", // hotel landing adds NavBar
+  "/cars", // car landing adds NavBar
+  "/zivo-plus", // ZivoPlus adds NavBar
+  "/membership", // MembershipPage adds NavBar
+  "/auto-repair", // AutoRepairPage adds NavBar
+  "/business", // Business landing uses its own ZIVO Software website header
+  "/vision", // Vision adds NavBar
+  "/referral", // ReferralProgram adds NavBar
+  "/profile", // Profile adds NavBar
+  "/user/", // PublicProfilePage adds NavBar
+  "/stores-list", // StoresListPage adds NavBar
+  "/saved-searches", // SavedSearchesPage adds NavBar
 ];
 
 const EXCLUDE_EXACT = new Set<string>([
@@ -59,6 +60,7 @@ const EXCLUDE_EXACT = new Set<string>([
 
 function shouldHide(pathname: string): boolean {
   if (EXCLUDE_EXACT.has(pathname)) return true;
+  if (isHotelCheckoutRoute(pathname)) return true;
   return EXCLUDE_PREFIXES.some((p) => pathname === p || pathname.startsWith(p));
 }
 

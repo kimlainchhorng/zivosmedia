@@ -91,7 +91,7 @@ if (includeAndroid) {
   if (exists("android/app/build.gradle")) {
     const gradle = read("android/app/build.gradle");
     mark(Boolean(gradle.match(/versionName\s+"1\.3\.0"/)), "Android versionName aligned", gradle.match(/versionName\s+"([^"]+)"/)?.[1] || "missing");
-    mark(Boolean(gradle.match(/versionCode\s+2026053101/)), "Android versionCode updated", gradle.match(/versionCode\s+(\d+)/)?.[1] || "missing");
+    mark(Boolean(gradle.match(/versionCode\s+2026082601/)), "Android versionCode updated", gradle.match(/versionCode\s+(\d+)/)?.[1] || "missing");
   }
 }
 

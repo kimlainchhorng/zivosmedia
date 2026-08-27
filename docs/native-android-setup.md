@@ -62,6 +62,15 @@ For a compile-only local release bundle:
 npm run android:build:release
 ```
 
+This command now rebuilds the web app, runs the Android Capacitor sync, and
+verifies that the generated native config still has splash auto-hide enabled,
+does not add an Android 12 pre-draw splash timer, and contains the static ZIVO
+boot shell outside the React root before Gradle can package the bundle. Keeping
+that shell outside `#root` prevents React from clearing it into a white WebView
+before the first route paints; native shells retain it for a short 350 ms
+handoff after React commits so the WebView cannot expose an unpainted frame. Do
+not bypass this check with a direct Gradle command for a Google Play build.
+
 For a Google Play-ready signed release, add the real upload key outside Git:
 
 ```text

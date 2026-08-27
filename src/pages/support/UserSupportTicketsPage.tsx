@@ -4,15 +4,15 @@
  */
 
 import { useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { withRedirectParam } from "@/lib/authRedirect";
-import { ArrowLeft, MessageSquare, Plus, Loader2, Inbox } from "lucide-react";
+import { AlertCircle, ArrowLeft, MessageSquare, Plus, Loader2, Inbox, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyTickets, type SupportTicket } from "@/hooks/useSupportTickets";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import TicketStatusBadge from "@/components/support/TicketStatusBadge";
 import TicketPriorityBadge from "@/components/support/TicketPriorityBadge";
@@ -23,10 +23,11 @@ type TicketFilter = 'active' | 'resolved' | 'all';
 
 export default function UserSupportTicketsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const [filter, setFilter] = useState<TicketFilter>('active');
   
-  const { data: tickets, isLoading } = useMyTickets();
+  const { data: tickets, isLoading, isError, isFetching, refetch } = useMyTickets();
 
   // Redirect to login if not authenticated
   if (!authLoading && !user) {
@@ -47,6 +48,18 @@ export default function UserSupportTicketsPage() {
   const activeCount = tickets?.filter(t => !['resolved', 'closed'].includes(t.status || '')).length || 0;
   const resolvedCount = tickets?.filter(t => ['resolved', 'closed'].includes(t.status || '')).length || 0;
 
+  const handleBack = () => {
+    const historyIndex =
+      typeof window !== "undefined" ? window.history.state?.idx : null;
+
+    if (typeof historyIndex === "number" && historyIndex > 0) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/app", { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -54,10 +67,14 @@ export default function UserSupportTicketsPage() {
         <div className="container px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" asChild aria-label="Go back">
-                <Link to="/app">
-                  <ArrowLeft className="w-5 h-5" />
-                </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={handleBack}
+                aria-label="Go back"
+              >
+                <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
                 <h1 className="text-xl font-bold">Support Tickets</h1>
@@ -96,6 +113,29 @@ export default function UserSupportTicketsPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
+            ) : isError ? (
+              <Card role="alert">
+                <CardContent className="p-8 text-center">
+                  <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2">Tickets unavailable</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    We couldn&apos;t load your tickets. Check your connection and try again.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void refetch()}
+                    disabled={isFetching}
+                  >
+                    {isFetching ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    {isFetching ? "Retrying..." : "Retry"}
+                  </Button>
+                </CardContent>
+              </Card>
             ) : filteredTickets.length > 0 ? (
               <div className="space-y-3">
                 {filteredTickets.map((ticket) => (
@@ -130,11 +170,13 @@ export default function UserSupportTicketsPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Response Time Expectation */}
+        {/* Support status guidance */}
         <div className="mt-6 p-4 rounded-xl bg-primary/5 border border-primary/20 text-center">
           <p className="text-sm text-muted-foreground">
-            We typically respond within <strong className="text-foreground">24 hours</strong>. 
-            Urgent payment issues are prioritized.
+            Ticket updates appear here after support reviews your request. For immediate safety concerns, visit the{" "}
+            <Link className="font-semibold text-foreground underline underline-offset-4" to="/safety">
+              Safety Center
+            </Link>.
           </p>
         </div>
       </div>

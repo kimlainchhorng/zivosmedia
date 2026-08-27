@@ -129,7 +129,7 @@ export function LodgingEmbeddedCheckout({
   }, [method, paymentStatus, stripeCompleted, error, clientSecret, secretMintedAt]);
 
   // ---------- Fetch / refresh client secret ----------
-  const fetchClientSecret = useCallback(async (forceNew = false) => {
+  const fetchClientSecret = useCallback(async (forceNew = false, refreshGeneration = 0) => {
     setLoadingSecret(true);
     setError(null);
     try {
@@ -145,7 +145,7 @@ export function LodgingEmbeddedCheckout({
             return_url: typeof window !== "undefined"
               ? `${window.location.origin}/hotel/${storeId}/booking-confirmed?reservation_id=${reservationId}&payment=1&session_id={CHECKOUT_SESSION_ID}`
               : undefined,
-            client_attempt_id: `embedded_card_v3_${reservationId}${forceNew ? `_${Date.now()}` : ""}`,
+            client_attempt_id: `embedded_card_v4_${reservationId}_${forceNew ? `refresh_${refreshGeneration}` : "initial"}`,
             force_new: forceNew,
           },
         }
@@ -166,7 +166,7 @@ export function LodgingEmbeddedCheckout({
   // Initial + reload-key triggered fetches. Skip when method !== card/wallet.
   useEffect(() => {
     if (method === "cash" || method === "paypal" || method === "square") return;
-    fetchClientSecret(reloadKey > 0);
+    fetchClientSecret(reloadKey > 0, reloadKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey, method]);
 

@@ -130,14 +130,16 @@ function saveCachedRates(rates: ExchangeRates) {
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedCurrency = searchParams.get("currency")?.toUpperCase();
+  const routeCurrency = requestedCurrency
+    && SUPPORTED_CURRENCIES.some((candidate) => candidate.code === requestedCurrency)
+    ? requestedCurrency
+    : null;
   
   // Initialize currency from URL > localStorage > browser locale > default
   const [currency, setCurrencyState] = useState<string>(() => {
     // 1. Check URL param
-    const urlCurrency = searchParams.get("currency")?.toUpperCase();
-    if (urlCurrency && SUPPORTED_CURRENCIES.some(c => c.code === urlCurrency)) {
-      return urlCurrency;
-    }
+    if (routeCurrency) return routeCurrency;
     
     // 2. Check localStorage
     try {
@@ -159,6 +161,14 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   });
   
   const [ratesLoading, setRatesLoading] = useState(false);
+
+  // Native launch URLs arrive after the provider's first render. Adopt a valid
+  // route currency for this session, but do not persist it: only an explicit
+  // picker choice writes the user's saved preference through setCurrency.
+  useEffect(() => {
+    if (!routeCurrency) return;
+    setCurrencyState((current) => current === routeCurrency ? current : routeCurrency);
+  }, [routeCurrency]);
   
   // Fetch exchange rates
   useEffect(() => {

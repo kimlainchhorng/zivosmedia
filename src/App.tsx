@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState, forwardRef } from "react";
+import { Suspense, lazy, useEffect, useRef, useState, forwardRef } from "react";
 import type { ReactNode } from "react";
 // Admin nav configs are resolved inside AdminShellRoute (a lazy chunk) so
 // their lucide icons aren't pulled into the root bundle.
@@ -54,7 +54,6 @@ import { TravelCartProvider } from "@/contexts/TravelCartContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import GuestOrUser from "@/components/auth/GuestOrUser";
 import PhoneRequiredGate from "@/components/auth/PhoneRequiredGate";
-import CheckoutAuthGate from "@/components/auth/CheckoutAuthGate";
 import CambodiaOnlyGate from "@/components/auth/CambodiaOnlyGate";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { RouteErrorBoundary } from "./components/shared/RouteErrorBoundary";
@@ -1196,14 +1195,19 @@ function TabSwipeNavigator() {
 
 function NativeDeepLinkHandler() {
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
 
   useEffect(() => {
     let cancelled = false;
     let listener: { remove: () => Promise<void> | void } | null = null;
 
-    const openUrl = (rawUrl?: string | null) => {
+    const openUrl = (rawUrl?: string | null, replace = false) => {
       const path = pathFromNativeOpenUrl(rawUrl ?? "");
-      if (path) navigate(path);
+      if (path) navigateRef.current(path, { replace });
     };
 
     void import("@capacitor/core")
@@ -1213,7 +1217,7 @@ function NativeDeepLinkHandler() {
         return import("@capacitor/app").then(({ App: CapacitorApp }) => {
           void CapacitorApp.getLaunchUrl()
             .then((launchUrl) => {
-              if (!cancelled) openUrl(launchUrl?.url);
+              if (!cancelled) openUrl(launchUrl?.url, true);
             })
             .catch(() => {});
 
@@ -1238,7 +1242,7 @@ function NativeDeepLinkHandler() {
       cancelled = true;
       if (listener) void listener.remove();
     };
-  }, [navigate]);
+  }, []);
 
   return null;
 }
@@ -1653,7 +1657,6 @@ const App = () => (
               <Sonner />
               <Suspense fallback={null}><GlobalAutoTranslator /></Suspense>
               {SHOW_REQUEST_HEALTH_BADGE && <RequestHealthBadge />}
-              <DeferredPassiveChatOverlays />
               <BrowserRouter
                 future={{
                   v7_startTransition: true,
@@ -1684,6 +1687,7 @@ const App = () => (
                 <DeferredRoutePrefetcher />
                 <PaymentReturnBootstrap />
                 <AuthProvider>
+                  <DeferredPassiveChatOverlays />
                   <AuthBackgroundServices />
                   <Suspense fallback={null}><ShareToChatSheet /></Suspense>
                   <LazyP2PTransferSheetHost />
@@ -2113,8 +2117,8 @@ const App = () => (
                 <Route path="/how-to-rent" element={<RouteErrorBoundary section="Cars"><HowToRent /></RouteErrorBoundary>} />
 
                 {/* Travel Checkout */}
-                <Route path="/travel/checkout" element={<RouteErrorBoundary section="Checkout"><TravelCartProvider><CheckoutAuthGate><PhoneRequiredGate><TravelCheckoutPage /></PhoneRequiredGate></CheckoutAuthGate></TravelCartProvider></RouteErrorBoundary>} />
-                <Route path="/confirmation/:orderNumber" element={<RouteErrorBoundary section="Checkout"><TravelCartProvider><TravelConfirmationPage /></TravelCartProvider></RouteErrorBoundary>} />
+                <Route path="/travel/checkout" element={<RouteErrorBoundary section="Checkout"><TravelCartProvider><TravelCheckoutPage /></TravelCartProvider></RouteErrorBoundary>} />
+                <Route path="/confirmation/:orderNumber" element={<RouteErrorBoundary section="Checkout"><TravelConfirmationPage /></RouteErrorBoundary>} />
                 <Route path="/my-trips/lodging/:reservationId" element={<ProtectedRoute><RouteErrorBoundary section="Lodging"><MyLodgingTripPage /></RouteErrorBoundary></ProtectedRoute>} />
                 <Route path="/my-trips/cars/:bookingId" element={<ProtectedRoute><RouteErrorBoundary section="Cars"><MyCarTripPage /></RouteErrorBoundary></ProtectedRoute>} />
                 <Route path="/my-trips/flights/:bookingId" element={<ProtectedRoute><RouteErrorBoundary section="Flights"><MyFlightTripPage /></RouteErrorBoundary></ProtectedRoute>} />

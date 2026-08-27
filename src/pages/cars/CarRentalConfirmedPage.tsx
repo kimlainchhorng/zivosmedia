@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns";
 import {
   CheckCircle, Car, CalendarRange, Users, MapPin, Copy,
   ChevronRight, Share2, Sparkles, DollarSign, ShoppingBag,
+  AlertTriangle, Loader2, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,10 +47,19 @@ export default function CarRentalConfirmedPage() {
   const bookingId = params.get("booking_id") || "";
 
   const [booking, setBooking] = useState<BookingSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "unavailable">("loading");
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
-    if (!bookingId) { setLoading(false); return; }
+    let active = true;
+    setBooking(null);
+
+    if (!bookingId) {
+      setLoadState("unavailable");
+      return () => { active = false; };
+    }
+
+    setLoadState("loading");
     (async () => {
       try {
         const { data, error } = await (supabase as any)
@@ -61,15 +71,24 @@ export default function CarRentalConfirmedPage() {
             vehicle:p2p_vehicles(year, make, model, images)
           `)
           .eq("id", bookingId)
+          .eq("vehicle_id", id)
           .single();
-        if (!error && data) setBooking(data as unknown as BookingSummary);
+
+        if (!active) return;
+        if (error || !data) {
+          setLoadState("unavailable");
+          return;
+        }
+
+        setBooking(data as unknown as BookingSummary);
+        setLoadState("ready");
       } catch {
-        // best-effort
-      } finally {
-        setLoading(false);
+        if (active) setLoadState("unavailable");
       }
     })();
-  }, [bookingId]);
+
+    return () => { active = false; };
+  }, [bookingId, id, retryNonce]);
 
   const copyRef = () => {
     const ref = bookingId.slice(0, 8).toUpperCase();
@@ -90,15 +109,113 @@ export default function CarRentalConfirmedPage() {
     });
   };
 
-  const isCash = booking?.payment_status === "pending";
+  const bookingStatus = (booking?.status || "pending").toLowerCase();
+  const paymentStatus = (booking?.payment_status || "pending").toLowerCase();
   const days = booking?.total_days ?? 1;
+
+  const bookingPresentation = (() => {
+    switch (bookingStatus) {
+      case "confirmed":
+        return { title: "Booking confirmed", description: "Your car reservation is confirmed.", label: "Confirmed", positive: true };
+      case "active":
+        return { title: "Rental active", description: "Your verified rental is currently in progress.", label: "Active", positive: true };
+      case "completed":
+        return { title: "Rental completed", description: "This verified rental has been completed.", label: "Completed", positive: true };
+      case "cancelled":
+        return { title: "Booking cancelled", description: "This booking is no longer active.", label: "Cancelled", positive: false };
+      case "disputed":
+        return { title: "Booking under review", description: "This booking has a dispute under review.", label: "Disputed", positive: false };
+      case "pending":
+        return { title: "Booking pending", description: "Your booking request is waiting for confirmation.", label: "Pending", positive: false };
+      default:
+        return { title: "Booking status unavailable", description: "Open My Trips for the latest verified status.", label: "Unknown", positive: false };
+    }
+  })();
+
+  const paymentMessage = (() => {
+    switch (paymentStatus) {
+      case "captured": return "Payment received.";
+      case "authorized": return "Payment authorized. It has not been captured yet.";
+      case "refunded": return "Payment refunded.";
+      case "failed": return "Payment was not completed.";
+      case "pending": return "Payment is pending. No completed payment is shown.";
+      default: return "Payment status is unavailable.";
+    }
+  })();
+
+  if (loadState === "loading") {
+    return (
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background pb-28 safe-area-top">
+          <SEOHead
+            title="Checking Car Booking – ZIVO"
+            description="Checking the latest verified status for your car rental booking."
+          />
+          <div className="mx-auto flex max-w-md flex-col items-center px-5 pt-16 text-center" role="status" aria-live="polite">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-blue-500/15 bg-blue-500/5">
+              <Loader2 className="h-9 w-9 animate-spin text-blue-500" />
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight">Checking booking</h1>
+            <p className="mt-2 max-w-xs text-sm text-muted-foreground">
+              We’re verifying the booking and payment status before showing a confirmation.
+            </p>
+            <Skeleton className="mt-7 h-28 w-full rounded-2xl" />
+          </div>
+          <ZivoMobileNav />
+        </div>
+      </TravelPageFrame>
+    );
+  }
+
+  if (loadState === "unavailable" || !booking) {
+    return (
+      <TravelPageFrame>
+        <div className="min-h-screen bg-background pb-28 safe-area-top">
+          <SEOHead
+            title="Car Booking Unavailable – ZIVO"
+            description="This car rental booking could not be verified. Open My Trips or try again."
+          />
+          <div className="mx-auto flex max-w-md flex-col items-center px-5 pt-16 text-center" role="alert">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10">
+              <AlertTriangle className="h-9 w-9 text-amber-600" />
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight">Booking unavailable</h1>
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              We couldn’t verify this booking. It may be private, missing, or temporarily unavailable. No booking or payment status is being claimed.
+            </p>
+            <div className="mt-7 flex w-full flex-col gap-2.5">
+              {bookingId && (
+                <Button onClick={() => setRetryNonce((value) => value + 1)} className="h-12 w-full rounded-2xl gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Try Again
+                </Button>
+              )}
+              <Button variant={bookingId ? "outline" : "default"} onClick={() => navigate("/my-trips")} className="h-12 w-full rounded-2xl">
+                Check My Trips
+              </Button>
+              <Button variant="ghost" onClick={() => navigate("/cars")} className="h-11 w-full rounded-2xl">
+                Browse Cars
+              </Button>
+            </div>
+          </div>
+          <ZivoMobileNav />
+        </div>
+      </TravelPageFrame>
+    );
+  }
+
+  const StatusIcon = bookingPresentation.positive
+    ? CheckCircle
+    : bookingStatus === "cancelled" || bookingStatus === "disputed"
+      ? AlertTriangle
+      : Car;
 
   return (
     <TravelPageFrame>
       <div className="min-h-screen bg-background relative overflow-hidden pb-28 safe-area-top">
         <SEOHead
-          title={loading ? "Car Booking – ZIVO" : `Car Rental Confirmed – ZIVO`}
-          description="Your car rental booking has been confirmed. View your reservation details and pickup information."
+          title={`${bookingPresentation.title} – ZIVO`}
+          description={`${bookingPresentation.description} ${paymentMessage}`}
         />
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0">
@@ -112,14 +229,18 @@ export default function CarRentalConfirmedPage() {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", damping: 12, stiffness: 150, delay: 0.1 }}
-          className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-500/25 to-blue-400/10 flex items-center justify-center mb-5 ring-4 ring-blue-500/10 shadow-2xl shadow-blue-500/20"
+          className={`h-24 w-24 rounded-full flex items-center justify-center mb-5 ring-4 shadow-2xl ${
+            bookingPresentation.positive
+              ? "bg-gradient-to-br from-blue-500/25 to-blue-400/10 ring-blue-500/10 shadow-blue-500/20"
+              : "bg-gradient-to-br from-amber-500/20 to-amber-400/5 ring-amber-500/10 shadow-amber-500/10"
+          }`}
         >
           <motion.div
             initial={{ scale: 0, rotate: -90 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
           >
-            <CheckCircle className="h-12 w-12 text-blue-500" />
+            <StatusIcon className={`h-12 w-12 ${bookingPresentation.positive ? "text-blue-500" : "text-amber-600"}`} />
           </motion.div>
         </motion.div>
 
@@ -129,7 +250,7 @@ export default function CarRentalConfirmedPage() {
           transition={{ delay: 0.3 }}
           className="text-2xl font-extrabold mb-1 tracking-tight"
         >
-          Booking Confirmed!
+          {bookingPresentation.title}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 10 }}
@@ -137,45 +258,43 @@ export default function CarRentalConfirmedPage() {
           transition={{ delay: 0.4 }}
           className="text-[13px] text-muted-foreground text-center max-w-xs mb-6"
         >
-          {isCash
-            ? "Your car is reserved. Complete payment at pickup."
-            : "Your payment was received. Your car is ready to go!"}
+          {bookingPresentation.description}
         </motion.p>
 
         {/* Booking reference */}
-        {loading ? (
-          <Skeleton className="h-16 w-full rounded-2xl mb-5" />
-        ) : booking ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.45 }}
-            className="rounded-2xl bg-muted/20 border border-border/20 px-5 py-4 mb-5 w-full"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Booking</p>
-                <button type="button" onClick={copyRef} className="flex items-center gap-1.5 mt-0.5 group">
-                  <p className="text-[15px] font-mono font-bold text-foreground">
-                    {bookingId.slice(0, 8).toUpperCase()}
-                  </p>
-                  <Copy className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-                </button>
-                {booking.pickup_location && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{booking.pickup_location}</p>
-                )}
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <div className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/15">
-                  <span className="text-[10px] font-bold text-blue-600">
-                    {booking.status === "confirmed" ? "Confirmed" : "Pending"}
-                  </span>
-                </div>
-                <span className="text-[13px] font-bold text-foreground">{formatPrice(booking.total_amount)}</span>
-              </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.45 }}
+          className="rounded-2xl bg-muted/20 border border-border/20 px-5 py-4 mb-5 w-full"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Booking</p>
+              <button type="button" onClick={copyRef} className="flex items-center gap-1.5 mt-0.5 group">
+                <p className="text-[15px] font-mono font-bold text-foreground">
+                  {bookingId.slice(0, 8).toUpperCase()}
+                </p>
+                <Copy className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+              </button>
+              {booking.pickup_location && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">{booking.pickup_location}</p>
+              )}
             </div>
-          </motion.div>
-        ) : null}
+            <div className="flex flex-col items-end gap-1">
+              <div className={`px-3 py-1.5 rounded-full border ${
+                bookingPresentation.positive
+                  ? "bg-blue-500/10 border-blue-500/15"
+                  : "bg-amber-500/10 border-amber-500/15"
+              }`}>
+                <span className={`text-[10px] font-bold ${bookingPresentation.positive ? "text-blue-600" : "text-amber-700"}`}>
+                  {bookingPresentation.label}
+                </span>
+              </div>
+              <span className="text-[13px] font-bold text-foreground">{formatPrice(booking.total_amount)}</span>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Rental details */}
         {booking && (
@@ -221,14 +340,24 @@ export default function CarRentalConfirmedPage() {
               </div>
             </div>
 
-            {isCash && (
-              <div className="flex items-center gap-2.5 rounded-xl bg-amber-500/5 border border-amber-500/15 px-3 py-2">
-                <DollarSign className="w-4 h-4 text-amber-600 shrink-0" />
-                <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-                  Pay {formatPrice(booking.total_amount)} at pickup
-                </p>
-              </div>
-            )}
+            <div className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 ${
+              paymentStatus === "captured"
+                ? "bg-emerald-500/5 border-emerald-500/15"
+                : paymentStatus === "failed"
+                  ? "bg-destructive/5 border-destructive/15"
+                  : "bg-amber-500/5 border-amber-500/15"
+            }`}>
+              <DollarSign className={`w-4 h-4 shrink-0 ${
+                paymentStatus === "captured"
+                  ? "text-emerald-600"
+                  : paymentStatus === "failed"
+                    ? "text-destructive"
+                    : "text-amber-600"
+              }`} />
+              <p className="text-[11px] text-foreground font-medium" role="status">
+                {paymentMessage}
+              </p>
+            </div>
           </motion.div>
         )}
 
@@ -276,8 +405,8 @@ export default function CarRentalConfirmedPage() {
             <p className="text-[8px] text-muted-foreground">Days</p>
           </div>
           <div className="p-3 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-center">
-            <CheckCircle className="h-4 w-4 text-blue-500 mx-auto mb-1" />
-            <p className="text-[11px] font-bold">Ready</p>
+            <StatusIcon className={`h-4 w-4 mx-auto mb-1 ${bookingPresentation.positive ? "text-blue-500" : "text-amber-600"}`} />
+            <p className="text-[11px] font-bold">{bookingPresentation.label}</p>
             <p className="text-[8px] text-muted-foreground">Status</p>
           </div>
           <div className="p-3 rounded-2xl bg-muted/20 border border-border/15 text-center">

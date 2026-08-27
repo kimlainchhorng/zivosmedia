@@ -985,6 +985,7 @@ function TravelTipBar() {
 /* ─── Mobile / Tablet Flight Search ─── */
 function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkInitial }) {
   const navigate = useNavigate();
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
   const [showBackToTop, setShowBackToTop] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -1211,8 +1212,9 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
         <ArrowRight className="w-4 h-4 text-primary shrink-0" />
       </motion.button>
 
-      {/* Mobile footer — legal & info links */}
-      <footer className="pt-2 -mt-1">
+      {/* The Travel host gets the full shared footer from AppLayout. Keep this
+          compact legacy footer only on the broader ZIVO surface. */}
+      {!isTravelHost && <footer className="pt-2 -mt-1">
         <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
           {[
             { href: "/legal/partner-disclosure", label: "About these prices" },
@@ -1234,7 +1236,7 @@ function MobileFlightSearch({ flightInitial }: { flightInitial: FlightDeepLinkIn
         <p className="mt-3 text-[10px] text-muted-foreground/70">
           © {new Date().getFullYear()} ZIVO. Flight prices powered by our partners (Duffel, Travelpayouts). Final price confirmed at checkout.
         </p>
-      </footer>
+      </footer>}
 
       {/* Floating "Back to search" button */}
       <button
@@ -1301,6 +1303,7 @@ const FlightLanding = () => {
         <AppLayout
           title="Flights"
           headerRightAction={undefined}
+          showTravelFooter={isTravelHost}
           className={cn("zivo-travel-3d", isTravelHost && "zivo-travel-light")}
         >
           <BundleProgressBanner step="flight" />

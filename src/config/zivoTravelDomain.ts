@@ -1,3 +1,5 @@
+import { ZIVO_MEDIA_ORIGIN } from "@/config/autoRepairDomain";
+
 export const ZIVO_TRAVEL_HOSTS = new Set([
   "zivostravel.com",
   "www.zivostravel.com",
@@ -93,14 +95,17 @@ const hasTravelPreviewFlag = (): boolean => {
 };
 
 export const isZivoTravelHost = (hostname?: string | null) =>
-  ZIVO_TRAVEL_HOSTS.has((hostname || "").toLowerCase()) || hasTravelPreviewFlag();
+  ZIVO_TRAVEL_HOSTS.has((hostname || "").toLowerCase()) ||
+  hasTravelPreviewFlag();
 
 export const isZivoTravelPath = (pathname?: string | null) => {
   const path = pathname || "";
   return (
     path === "/" ||
     ZIVO_TRAVEL_ALLOWED_FILES.has(path) ||
-    ZIVO_TRAVEL_ALLOWED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+    ZIVO_TRAVEL_ALLOWED_PREFIXES.some(
+      (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+    )
   );
 };
 
@@ -113,4 +118,21 @@ export const getZivoTravelUrl = (
   url.search = search || "";
   url.hash = hash || "";
   return url.toString();
+};
+
+/**
+ * Destination for the explicit parent-app return control.
+ *
+ * A real Travel host returns through the production Zivosmedia origin. Local
+ * and preview hosts reload their own root with `zt=0`, which clears the
+ * session-persisted Travel preview before the main app renders.
+ */
+export const getZivoMediaHomeHref = (hostname?: string | null) => {
+  const currentHostname = (
+    hostname ?? (typeof window !== "undefined" ? window.location.hostname : "")
+  ).toLowerCase();
+
+  return ZIVO_TRAVEL_HOSTS.has(currentHostname)
+    ? `${ZIVO_MEDIA_ORIGIN}/`
+    : "/?zt=0";
 };

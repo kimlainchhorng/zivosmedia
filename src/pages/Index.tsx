@@ -9,6 +9,34 @@ import { lazyRetry } from "@/lib/lazyRetry";
 // Mobile app home
 const AppHome = lazy(() => lazyRetry(() => import("@/pages/app/AppHome")));
 
+export function AppHomeLoadingState() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="flex min-h-[100dvh] items-center justify-center bg-background px-6"
+    >
+      <div className="flex flex-col items-center gap-4 text-center">
+        <div
+          aria-hidden="true"
+          className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ig-gradient shadow-lg shadow-black/10"
+        >
+          <span className="h-7 w-7 animate-spin rounded-full border-[3px] border-white/35 border-t-white motion-reduce:animate-none" />
+        </div>
+        <div>
+          <p className="bg-ig-gradient bg-clip-text text-sm font-extrabold tracking-[0.2em] text-transparent">
+            ZIVO
+          </p>
+          <p className="mt-1 text-sm font-medium text-muted-foreground">
+            Opening your home…
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const Index = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -49,14 +77,14 @@ const Index = () => {
     if (user) {
       return (
         <SetupRequiredRoute>
-          <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <Suspense fallback={<AppHomeLoadingState />}>
             <AppHome />
           </Suspense>
         </SetupRequiredRoute>
       );
     }
     return (
-      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <Suspense fallback={<AppHomeLoadingState />}>
         <AppHome />
       </Suspense>
     );

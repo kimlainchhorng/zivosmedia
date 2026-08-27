@@ -8,10 +8,16 @@ const source = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("authenticated home UX contracts", () => {
-  it("keeps the complete four-by-two service launcher with comfortable targets", () => {
+  it("keeps the complete four-by-two phone launcher and one-row tablet launcher", () => {
     const home = source("src/pages/app/AppHome.tsx");
+    const gridTag =
+      home.match(/<div className="[^"]*grid-cols-4[^"]*">/)?.[0] ?? "";
+    const gridClasses =
+      gridTag.match(/className="([^"]+)"/)?.[1].split(/\s+/) ?? [];
 
-    expect(home).toContain("grid grid-cols-4");
+    expect(gridClasses).toEqual(
+      expect.arrayContaining(["grid", "grid-cols-4", "md:grid-cols-8"]),
+    );
     expect(home).toContain("min-h-[88px]");
     expect(home).toContain("zivo-ride-icon.webp");
     expect(home).toContain("zivo-eats-icon.webp");
@@ -34,6 +40,65 @@ describe("authenticated home UX contracts", () => {
     }
 
     expect(home).toContain("href: hotelsPath");
+  });
+
+  it("centers wide-screen content below the fixed desktop navigation", () => {
+    const home = source("src/pages/app/AppHome.tsx");
+    const shellTag =
+      home.match(/<div className="[^"]*scroll-momentum[^"]*">/)?.[0] ?? "";
+    const shellClasses =
+      shellTag.match(/className="([^"]+)"/)?.[1].split(/\s+/) ?? [];
+
+    expect(shellClasses).toEqual(
+      expect.arrayContaining([
+        "mx-auto",
+        "w-full",
+        "max-w-5xl",
+        "lg:pt-[83px]",
+      ]),
+    );
+  });
+
+  it("does not preload hidden account and lodging data from Home", () => {
+    const home = source("src/pages/app/AppHome.tsx");
+    const referralsPage = source("src/pages/app/ReferAFriendPage.tsx");
+
+    for (const orphanedHook of [
+      "useOwnerStoreProfile",
+      "useLodgeRooms",
+      "useLodgePropertyProfile",
+      "useLodgeReservations",
+      "useLodgingPhase5Counts",
+      "useLoyaltyPoints",
+      "useUserRewards",
+      "useReferrals",
+      "useLocalPaymentMethods",
+    ]) {
+      expect(home).not.toContain(orphanedHook);
+    }
+
+    for (const visibleHomeHook of [
+      "useUserProfile",
+      "useRecentlyViewed",
+      "useScheduledBookingsQuery",
+      "useCustomerWallet",
+      "useDeviceIntegrityCheck",
+    ]) {
+      expect(home).toContain(visibleHomeHook);
+    }
+
+    expect(referralsPage).toContain("useReferrals()");
+  });
+
+  it("does not preload the unsupported cross-service spend estimate", () => {
+    const home = source("src/pages/app/AppHome.tsx");
+    const legacySpendWidget = source(
+      "src/components/home/SpendTrackerWidget.tsx",
+    );
+
+    expect(home).not.toContain("SpendTrackerWidget");
+    expect(legacySpendWidget).toContain("@deprecated Not mounted on Home");
+    expect(legacySpendWidget).toContain("server-owned spend ledger");
   });
 
   it("keeps home action cards readable, distinct, and touch friendly", () => {

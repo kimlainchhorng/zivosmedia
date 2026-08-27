@@ -3,7 +3,7 @@
  *
  * Lists chats from senders who aren't in the user's contacts AND whom the
  * user has never replied to. Each row offers Accept (add to contacts +
- * open chat), Delete (dismiss locally — neither accept nor block), and
+ * open chat), Dismiss (device-local recovery — neither accept nor block), and
  * Block (drops the sender into blocked_users). Tapping the avatar opens
  * the sender's public profile; tapping the body opens the chat read-only.
  */
@@ -18,6 +18,9 @@ import X from "lucide-react/dist/esm/icons/x";
 import CheckCheck from "lucide-react/dist/esm/icons/check-check";
 import RotateCcw from "lucide-react/dist/esm/icons/rotate-ccw";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
+import AlertCircle from "lucide-react/dist/esm/icons/circle-alert";
+import Loader2 from "lucide-react/dist/esm/icons/loader-2";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +33,9 @@ import { toast } from "sonner";
 import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
 
 const LONG_PRESS_MS = 450;
+const MESSAGE_REQUEST_HISTORY_LIMIT = 200;
+
+class MessageRequestHistoryIncompleteError extends Error {}
 
 // Dismissed (soft-deleted) requests are tracked per-user in localStorage so
 // the request list doesn't permanently drop messages — if the sender writes
@@ -60,13 +66,31 @@ interface MessageRequest {
   unread: number;
 }
 
+const EMPTY_MESSAGE_REQUESTS: MessageRequest[] = [];
+
 export default function MessageRequestsPage() {
+  const { user } = useAuth();
+
+  // A keyed owner boundary synchronously drops account-local recovery,
+  // selection, preview, and request-query state during A → B → A switches.
+  return <MessageRequestsPageContent key={user?.id ?? "signed-out"} />;
+}
+
+function MessageRequestsPageContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const goBack = useSmartBack("/chat");
   const queryClient = useQueryClient();
   const { add: addContact } = useContacts();
-  const { allow: allowMessageRequests, setValue: setAllowMessageRequests } = useAllowMessageRequests();
+  const {
+    allow: allowMessageRequests,
+    isLoading: isPreferenceLoading,
+    isFetching: isPreferenceFetching,
+    isError: isPreferenceError,
+    isUpdating: isPreferenceUpdating,
+    refetch: refetchPreference,
+    setValue: setAllowMessageRequests,
+  } = useAllowMessageRequests();
 
   // `dismissed` is kept as state so toggling it re-renders the list without
   // refetching. The Set is also persisted to localStorage on every write.
@@ -134,37 +158,105 @@ export default function MessageRequestsPage() {
     }
   }, []);
 
-  const { data: requests = [], isLoading } = useQuery<MessageRequest[]>({
+  const requestQuery = useQuery<MessageRequest[]>({
     queryKey: ["message-requests", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data: msgs } = await (supabase as any)
-        .from("direct_messages")
-        .select("*")
-        .or(`sender_id.eq.${user!.id},receiver_id.eq.${user!.id}`)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (!msgs?.length) return [];
+    enabled: !!user?.id,
+    queryFn: async ({ queryKey, signal }) => {
+      const ownerId = queryKey[1];
+      if (typeof ownerId !== "string") throw new Error("Not signed in");
 
-      const grouped = new Map<string, { lastMsg: any; unread: number; iHaveSent: boolean }>();
+      const requireActiveOwner = async () => {
+        const { data, error } = await supabase.auth.getUser();
+        if (error || data.user?.id !== ownerId || signal.aborted) {
+          throw new Error("Message request owner changed");
+        }
+      };
+
+      await requireActiveOwner();
+
+      const { data: msgs, error: messagesError, count } = await (supabase as any)
+        .from("direct_messages")
+        .select(
+          "id,sender_id,receiver_id,message,message_type,image_url,video_url,is_read,created_at,hidden_at,expires_at",
+          { count: "exact" },
+        )
+        .or(`sender_id.eq.${ownerId},receiver_id.eq.${ownerId}`)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(MESSAGE_REQUEST_HISTORY_LIMIT + 1)
+        .abortSignal(signal);
+      if (messagesError) throw messagesError;
+      if (
+        count === null ||
+        count > MESSAGE_REQUEST_HISTORY_LIMIT ||
+        (msgs?.length ?? 0) !== count
+      ) {
+        throw new MessageRequestHistoryIncompleteError(
+          "Message request history exceeds the supported window",
+        );
+      }
+      if (!msgs?.length) {
+        await requireActiveOwner();
+        return [];
+      }
+
+      const repliedTo = new Set<string>();
+      const grouped = new Map<string, { lastMsg: any; unread: number }>();
+      const loadedAt = Date.now();
       for (const msg of msgs as any[]) {
-        const otherId = msg.sender_id === user!.id ? msg.receiver_id : msg.sender_id;
+        if (msg.sender_id === ownerId) {
+          repliedTo.add(msg.receiver_id);
+          continue;
+        }
+        if (msg.receiver_id !== ownerId) continue;
+        if (msg.hidden_at) continue;
+        if (
+          msg.expires_at &&
+          new Date(msg.expires_at).getTime() <= loadedAt
+        ) {
+          continue;
+        }
+
+        const otherId = msg.sender_id;
         if (!grouped.has(otherId)) {
-          grouped.set(otherId, { lastMsg: msg, unread: 0, iHaveSent: false });
+          grouped.set(otherId, { lastMsg: msg, unread: 0 });
         }
         const entry = grouped.get(otherId)!;
-        if (msg.sender_id === user!.id) entry.iHaveSent = true;
-        if (msg.receiver_id === user!.id && !msg.is_read) entry.unread += 1;
+        if (!msg.is_read) entry.unread += 1;
       }
 
       const otherIds = Array.from(grouped.keys());
-      if (!otherIds.length) return [];
+      if (!otherIds.length) {
+        await requireActiveOwner();
+        return [];
+      }
 
-      const [{ data: contactsRows }, { data: profiles }, { data: blocks }] = await Promise.all([
-        (supabase as any).from("user_contacts").select("contact_user_id").eq("owner_id", user!.id),
-        supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", otherIds),
-        (supabase as any).from("blocked_users").select("blocked_id").eq("blocker_id", user!.id),
+      const [contactsResult, profilesResult, blocksResult] = await Promise.all([
+        (supabase as any)
+          .from("user_contacts")
+          .select("contact_user_id")
+          .eq("owner_id", ownerId)
+          .in("contact_user_id", otherIds)
+          .abortSignal(signal),
+        (supabase as any)
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", otherIds)
+          .abortSignal(signal),
+        (supabase as any)
+          .from("blocked_users")
+          .select("blocked_id")
+          .eq("blocker_id", ownerId)
+          .in("blocked_id", otherIds)
+          .abortSignal(signal),
       ]);
+      if (contactsResult.error) throw contactsResult.error;
+      if (profilesResult.error) throw profilesResult.error;
+      if (blocksResult.error) throw blocksResult.error;
+
+      const contactsRows = contactsResult.data;
+      const profiles = profilesResult.data;
+      const blocks = blocksResult.data;
       const contactSet = new Set<string>(((contactsRows || []) as any[]).map((c) => c.contact_user_id));
       const blockedSet = new Set<string>(((blocks || []) as any[]).map((b) => b.blocked_id));
       const profMap = new Map<string, any>();
@@ -173,11 +265,11 @@ export default function MessageRequestsPage() {
       const out: MessageRequest[] = [];
       for (const otherId of otherIds) {
         const e = grouped.get(otherId)!;
-        if (contactSet.has(otherId) || e.iHaveSent || blockedSet.has(otherId)) continue;
+        if (contactSet.has(otherId) || repliedTo.has(otherId) || blockedSet.has(otherId)) continue;
         const p = profMap.get(otherId);
         out.push({
           otherUserId: otherId,
-          name: p?.full_name || "User",
+          name: p?.full_name || "Profile unavailable",
           avatar: p?.avatar_url || null,
           lastMessage:
             e.lastMsg.message_type === "voice"
@@ -191,14 +283,25 @@ export default function MessageRequestsPage() {
         });
       }
       out.sort((a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime());
+      await requireActiveOwner();
       return out;
     },
   });
 
+  // React Query can retain previous data after a failed refetch. Request rows,
+  // counts, and actions are privacy-sensitive, so an error hides that cache
+  // until every dependency is confirmed again.
+  const isInboxUnavailable = requestQuery.isError;
+  const isInboxLoading = !user?.id || requestQuery.isPending;
+  const isHistoryWindowIncomplete =
+    requestQuery.error instanceof MessageRequestHistoryIncompleteError;
+  const requests = isInboxUnavailable
+    ? EMPTY_MESSAGE_REQUESTS
+    : (requestQuery.data ?? EMPTY_MESSAGE_REQUESTS);
+
   // Active = senders not in the dismissed Set. Dismissed = the recovery view
-  // showing exactly the senders the user soft-deleted, so they can restore.
-  // A new message from a dismissed sender refetches and re-enters the list —
-  // that's intentional: dismissing isn't permanent like blocking.
+  // showing exactly the senders the user dismissed until they restore them.
+  // Dismiss is device-local and reversible; it is not delete or block.
   const activeRequests = useMemo(
     () => requests.filter((r) => !dismissed.has(r.otherUserId)),
     [requests, dismissed]
@@ -209,20 +312,29 @@ export default function MessageRequestsPage() {
   );
   const visibleRequests = view === "active" ? activeRequests : dismissedRequests;
 
+  useEffect(() => {
+    if (!isInboxUnavailable) return;
+    cancelLongPress();
+    exitSelectMode();
+    setPreviewUserId(null);
+  }, [cancelLongPress, exitSelectMode, isInboxUnavailable]);
+
+  const isSelecting = selectMode && !isInboxUnavailable;
+
   // If all dismissed entries get restored (or expire from data), flip back to
   // the active view so the user isn't stuck staring at an empty Dismissed tab.
   useEffect(() => {
     if (view === "dismissed" && dismissedRequests.length === 0) setView("active");
   }, [view, dismissedRequests.length]);
-  const totalUnread = useMemo(
-    () => activeRequests.reduce((s, r) => s + r.unread, 0),
-    [activeRequests]
+  const visibleUnread = useMemo(
+    () => visibleRequests.reduce((sum, request) => sum + request.unread, 0),
+    [visibleRequests]
   );
 
-  const invalidate = () => {
+  const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["message-requests", user?.id] });
     queryClient.invalidateQueries({ queryKey: ["chat-hub-personal", user?.id] });
-  };
+  }, [queryClient, user?.id]);
 
   const handleDismiss = useCallback(
     (r: MessageRequest) => {
@@ -265,11 +377,10 @@ export default function MessageRequestsPage() {
       () => invalidate(),
     );
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [invalidate, user?.id]);
 
-  const handleMarkAllRead = useCallback(async () => {
-    if (!user || totalUnread === 0) return;
+  const handleMarkVisibleRead = useCallback(async () => {
+    if (!user || isInboxUnavailable || visibleUnread === 0) return;
     const senderIds = visibleRequests.filter((r) => r.unread > 0).map((r) => r.otherUserId);
     if (!senderIds.length) return;
     const { error } = await (supabase as any)
@@ -283,7 +394,7 @@ export default function MessageRequestsPage() {
       return;
     }
     invalidate();
-  }, [user, totalUnread, visibleRequests]);
+  }, [user, isInboxUnavailable, visibleUnread, visibleRequests, invalidate]);
 
   const handleAccept = async (r: MessageRequest) => {
     const res = await addContact(r.otherUserId, { via: "message-request" as any });
@@ -309,7 +420,7 @@ export default function MessageRequestsPage() {
     invalidate();
   };
 
-  // Bulk actions — Block all selected, Delete (dismiss) all selected. Both
+  // Bulk actions — Block all selected, Dismiss all selected. Both
   // exit select mode after running so the UI returns to normal state.
   const handleBulkBlock = useCallback(async () => {
     if (!user || selectedIds.size === 0) return;
@@ -374,12 +485,29 @@ export default function MessageRequestsPage() {
     setView("active");
   }, [user, dismissed]);
 
+  const handlePreferenceChange = useCallback(async () => {
+    if (allowMessageRequests === null || isPreferenceUpdating) return;
+    const next = !allowMessageRequests;
+
+    try {
+      const confirmed = await setAllowMessageRequests(next);
+      if (!confirmed) return;
+      toast.success(
+        next
+          ? "Non-contact chat alerts shown"
+          : "Non-contact chat alerts hidden",
+      );
+    } catch {
+      toast.error("Couldn't update non-contact chat alerts");
+    }
+  }, [allowMessageRequests, isPreferenceUpdating, setAllowMessageRequests]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header
         className="zivo-pt-safe-sticky flex items-center gap-3 px-4 h-14 border-b border-border/30 sticky top-0 bg-background/95 backdrop-blur z-10"
       >
-        {selectMode ? (
+        {isSelecting ? (
           <>
             <button type="button"
               onClick={exitSelectMode}
@@ -411,17 +539,19 @@ export default function MessageRequestsPage() {
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="font-semibold text-lg leading-tight">Message Requests</h1>
-              {totalUnread > 0 && (
-                <p className="text-[11px] text-muted-foreground">{totalUnread} unread</p>
+              {visibleUnread > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  {visibleUnread} unread in this view
+                </p>
               )}
             </div>
-            {totalUnread > 0 && (
+            {visibleUnread > 0 && !isInboxUnavailable && (
               <button type="button"
-                onClick={handleMarkAllRead}
-                className="text-[12px] font-semibold text-primary flex items-center gap-1 px-2 py-1 rounded-full hover:bg-muted/50"
+                onClick={handleMarkVisibleRead}
+                className="min-h-11 text-[12px] font-semibold text-primary flex items-center gap-1 px-2 rounded-full hover:bg-muted/50"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
-                Mark all read
+                Mark visible read
               </button>
             )}
           </>
@@ -430,7 +560,7 @@ export default function MessageRequestsPage() {
 
       {/* Active / Dismissed tabs — only visible when not in select mode and
           there's at least one dismissed entry to recover. */}
-      {!selectMode && dismissedRequests.length > 0 && (
+      {!isSelecting && dismissedRequests.length > 0 && (
         <div className="px-4 pt-3 flex items-center gap-2">
           {(["active", "dismissed"] as const).map((v) => {
             const count = v === "active" ? activeRequests.length : dismissedRequests.length;
@@ -473,56 +603,151 @@ export default function MessageRequestsPage() {
       )}
 
       <div className="px-4 py-3 text-[12px] text-muted-foreground">
-        {selectMode
-          ? "Tap rows to select. Block all stops them; Delete all just dismisses."
+        {isInboxUnavailable
+          ? "Requests and actions are hidden until the inbox can be confirmed safely."
+          : isSelecting
+          ? "Tap rows to select. Block stops them; Dismiss only hides them here."
           : view === "dismissed"
             ? "Requests you dismissed. Restore to bring them back to the active list."
             : "These messages are from people who aren't in your contacts. Long-press a row to select multiple."}
       </div>
 
-      {/* Privacy quick-toggle — when off, the chat hub hides this row entirely
-          and incoming non-contact DMs no longer surface as requests. Mirrors
-          Privacy Settings → "Message requests" but right where the user is. */}
-      {!selectMode && (
-        <div className="mx-4 mb-3 flex items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card px-3 py-2.5">
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-foreground">Allow message requests</p>
-            <p className="text-[11px] text-muted-foreground leading-snug">
-              {allowMessageRequests
-                ? "People not in your contacts can reach you here."
-                : "Off — the requests row is hidden from your inbox."}
-            </p>
-          </div>
-          <button type="button"
-            aria-label="Allow message requests"
-            title="Allow message requests"
-            onClick={() => {
-              const next = !allowMessageRequests;
-              void setAllowMessageRequests(next);
-              toast.success(
-                next ? "Message requests allowed" : "Message requests blocked"
-              );
-            }}
-            className={cn(
-              "shrink-0 relative h-7 w-12 rounded-full transition-colors",
-              allowMessageRequests ? "bg-primary" : "bg-muted"
-            )}
+      {/* Privacy quick-toggle — this controls non-contact chat alerts only.
+          Messages remain visible on this requests page and are not blocked. */}
+      {!isSelecting &&
+        (isPreferenceLoading ? (
+          <div
+            role="status"
+            className="mx-4 mb-3 flex items-center gap-2 rounded-2xl border border-border/50 bg-card px-3 py-3 text-xs font-medium text-muted-foreground"
           >
-            <span
-              className={cn(
-                "absolute top-0.5 h-6 w-6 rounded-full bg-background shadow transition-transform",
-                allowMessageRequests ? "translate-x-5" : "translate-x-0.5"
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Checking non-contact chat alerts…
+          </div>
+        ) : isPreferenceError || allowMessageRequests === null ? (
+          <div
+            role="alert"
+            className="mx-4 mb-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3 py-3"
+          >
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold text-foreground">
+                  Chat alert preference unavailable
+                </p>
+                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                  We couldn't confirm whether non-contact chat alerts are shown.
+                  Nothing has been assumed.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void refetchPreference()}
+                  disabled={isPreferenceFetching}
+                  className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="Retry chat alert preference"
+                >
+                  {isPreferenceFetching ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="mx-4 mb-3 flex items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card px-3 py-2.5"
+            aria-busy={isPreferenceUpdating}
+          >
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-foreground">
+                Show non-contact chat alerts
+              </p>
+              <p
+                id="message-request-alert-description"
+                className="text-[11px] leading-snug text-muted-foreground"
+              >
+                Hide or show their notifications. This does not block messages
+                or remove them from this requests page.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {isPreferenceUpdating && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               )}
-            />
-          </button>
-        </div>
-      )}
+              <button
+                type="button"
+                role="switch"
+                aria-label="Show non-contact chat alerts"
+                aria-describedby="message-request-alert-description"
+                aria-checked={allowMessageRequests}
+                disabled={isPreferenceUpdating}
+                onClick={() => void handlePreferenceChange()}
+                className="flex h-11 w-14 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "relative h-7 w-12 rounded-full transition-colors",
+                    allowMessageRequests ? "bg-primary" : "bg-muted",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 h-6 w-6 rounded-full bg-background shadow transition-transform",
+                      allowMessageRequests
+                        ? "translate-x-5"
+                        : "translate-x-0.5",
+                    )}
+                  />
+                </span>
+              </button>
+            </div>
+          </div>
+        ))}
 
-      <div className={cn("flex-1 overflow-y-auto px-3 space-y-2", selectMode ? "pb-28" : "pb-8")}>
-        {isLoading && (
-          <p className="text-center text-sm text-muted-foreground py-12">Loading…</p>
+      <div className={cn("flex-1 overflow-y-auto px-3 space-y-2", isSelecting ? "pb-28" : "pb-8")}>
+        {isInboxLoading && (
+          <p role="status" className="text-center text-sm text-muted-foreground py-12">
+            Loading message requests…
+          </p>
         )}
-        {!isLoading && visibleRequests.length === 0 && (
+        {!isInboxLoading && isInboxUnavailable && (
+          <div
+            role="alert"
+            className="mx-1 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  Message requests unavailable
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {isHistoryWindowIncomplete
+                    ? "Your message history is larger than this page can classify safely. Nothing is shown as a complete request list."
+                    : "We couldn't confirm messages, contacts, blocked senders, and profiles safely. No request, unread count, or action has been assumed."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void requestQuery.refetch()}
+                  disabled={requestQuery.isFetching}
+                  className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-background px-4 text-xs font-semibold text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="Retry message requests"
+                >
+                  {requestQuery.isFetching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {!isInboxLoading && !isInboxUnavailable && visibleRequests.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
             <MessageCircle className="h-10 w-10 mx-auto opacity-30 mb-2" />
             <p className="text-sm">
@@ -530,12 +755,12 @@ export default function MessageRequestsPage() {
             </p>
           </div>
         )}
-        {visibleRequests.map((r) => {
+        {!isInboxUnavailable && visibleRequests.map((r) => {
           const isSelected = selectedIds.has(r.otherUserId);
           return (
             <div
               key={r.otherUserId}
-              tabIndex={selectMode ? 0 : undefined}
+              tabIndex={isSelecting ? 0 : undefined}
               onPointerDown={() => startLongPress(r.otherUserId)}
               onPointerUp={cancelLongPress}
               onPointerLeave={cancelLongPress}
@@ -547,7 +772,7 @@ export default function MessageRequestsPage() {
                   longPressFiredRef.current = false;
                   return;
                 }
-                if (selectMode) toggleSelected(r.otherUserId);
+                if (isSelecting) toggleSelected(r.otherUserId);
               }}
               className={cn(
                 "flex items-center gap-3 p-3 rounded-2xl border transition-colors",
@@ -556,7 +781,7 @@ export default function MessageRequestsPage() {
                   : "bg-card border-border/30"
               )}
             >
-              {selectMode ? (
+              {isSelecting ? (
                 <div
                   aria-hidden
                   className={cn(
@@ -586,7 +811,7 @@ export default function MessageRequestsPage() {
               <button type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (selectMode) {
+                  if (isSelecting) {
                     toggleSelected(r.otherUserId);
                     return;
                   }
@@ -607,7 +832,7 @@ export default function MessageRequestsPage() {
                   {formatDistanceToNow(new Date(r.lastTime), { addSuffix: true })}
                 </p>
               </button>
-              {!selectMode && view === "active" && (
+              {!isSelecting && view === "active" && (
                 <div className="flex flex-col gap-1.5 shrink-0">
                   <button type="button"
                     onClick={(e) => { e.stopPropagation(); handleAccept(r); }}
@@ -618,7 +843,7 @@ export default function MessageRequestsPage() {
                   </button>
                   <button type="button"
                     onClick={(e) => { e.stopPropagation(); handleDismiss(r); }}
-                    aria-label={`Delete ${r.name}'s request`}
+                    aria-label={`Dismiss ${r.name}'s request`}
                     className="h-8 w-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center active:scale-90 transition-transform"
                   >
                     <X className="h-4 w-4" />
@@ -632,7 +857,7 @@ export default function MessageRequestsPage() {
                   </button>
                 </div>
               )}
-              {!selectMode && view === "dismissed" && (
+              {!isSelecting && view === "dismissed" && (
                 <button type="button"
                   onClick={(e) => { e.stopPropagation(); handleRestore(r); }}
                   className="shrink-0 h-9 px-3 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-transform"
@@ -649,7 +874,7 @@ export default function MessageRequestsPage() {
       {/* Bulk action bar — fixed at bottom of the viewport when in select mode
           with at least one row selected. Sits above the safe-area inset so
           the buttons clear the iOS home indicator. */}
-      {selectMode && selectedIds.size > 0 && (
+      {isSelecting && selectedIds.size > 0 && (
         <div
           className="zivo-pb-safe-action fixed inset-x-0 bottom-0 z-20 bg-background/95 backdrop-blur border-t border-border/40 px-4 py-3 flex items-center gap-2"
         >
@@ -658,7 +883,7 @@ export default function MessageRequestsPage() {
             className="flex-1 h-11 rounded-full bg-muted text-foreground font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <X className="h-4 w-4" />
-            Delete {selectedIds.size}
+            Dismiss {selectedIds.size}
           </button>
           <button type="button"
             onClick={handleBulkBlock}

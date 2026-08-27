@@ -40,6 +40,7 @@ interface Props {
   cancellationPolicy?: string | null;
   checkInTime?: string | null;
   checkOutTime?: string | null;
+  reserveDisabledReason?: string;
   onReserve: () => void;
 }
 
@@ -106,7 +107,7 @@ const HINTS_KEY = "lodging.gallery.hintsSeen";
 export function LodgingRoomDetailsModal({
   open, onOpenChange, name, type, beds, maxGuests, sizeSqm, baseRateCents,
   originalRateCents, description, amenities = [], breakfastIncluded, photos = [], coverIndex = 0,
-  addons = [], cancellationPolicy, checkInTime, checkOutTime, onReserve,
+  addons = [], cancellationPolicy, checkInTime, checkOutTime, reserveDisabledReason, onReserve,
 }: Props) {
   const { format } = useCurrency();
   // Strip Postgres seconds suffix from time strings e.g. "14:00:00" → "14:00"
@@ -246,6 +247,14 @@ export function LodgingRoomDetailsModal({
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Taxes calculated at booking</p>
               </>
             )}
+            {reserveDisabledReason && (
+              <p
+                id="room-reserve-disabled-reason"
+                className="mt-1 max-w-xs text-[10px] font-semibold leading-snug text-amber-700 dark:text-amber-300"
+              >
+                {reserveDisabledReason}
+              </p>
+            )}
           </div>
             {originalRate && discountPct > 0 && (
               <span className="rounded-full bg-rose-500 text-white text-[11px] font-extrabold px-2.5 py-1 shrink-0">-{discountPct}%</span>
@@ -253,11 +262,13 @@ export function LodgingRoomDetailsModal({
           <Button
             onClick={handleReserve}
             size="lg"
+            disabled={!!reserveDisabledReason}
             className="font-bold rounded-full px-6 sm:px-8 h-12 sm:h-12 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/25 shrink-0"
-            aria-label={`Reserve ${name}`}
+            aria-label={reserveDisabledReason ? `${name} cannot fit the selected guests` : `Reserve ${name}`}
+            aria-describedby={reserveDisabledReason ? "room-reserve-disabled-reason" : undefined}
             data-testid="reserve-from-details"
           >
-            Reserve
+            {reserveDisabledReason ? "Too many guests" : "Reserve"}
           </Button>
         </div>
       }
@@ -412,7 +423,9 @@ export function LodgingRoomDetailsModal({
           <div className="flex flex-col items-start gap-1 p-2.5 rounded-xl border border-border bg-secondary">
             <Users className="h-4 w-4 text-foreground dark:text-foreground" />
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Sleeps</span>
-            <span className="text-xs font-bold text-foreground leading-tight">{maxGuests} guests</span>
+            <span className="text-xs font-bold text-foreground leading-tight">
+              {maxGuests} guest{maxGuests === 1 ? "" : "s"}
+            </span>
           </div>
           {sizeSqm != null && (
             <div className="flex flex-col items-start gap-1 p-2.5 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200/60 dark:from-amber-950/40 dark:to-amber-900/20 dark:border-amber-800/40">

@@ -523,6 +523,15 @@
     --zivo-safe-top-sticky: max(calc(var(--zivo-safe-top, 0px) + 0.125rem), 64px);
   }
 
+  /* main.tsx marks only ordinary browser sessions. They still honor a real
+     browser safe-area inset, but do not reserve the native Dynamic Island
+     fallback that created oversized blank bands above mobile web headers. */
+  @media (max-width: 1023px) {
+    :root.zivo-browser-shell {
+      --zivo-safe-top-sticky: max(var(--zivo-safe-top, 0px), 0.75rem);
+    }
+  }
+
   /* Desktop has no notch — drop the 48px mobile floor so the fixed NavBar
      stays at its intended ~60px height. The sidebars expect lg:pt-[60px] of
      navbar clearance; with the mobile floor we end up ~108px tall and content

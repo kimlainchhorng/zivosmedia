@@ -23,6 +23,54 @@
     <style>
       html,body{margin:0;padding:0;background:hsl(var(--background,0 0% 100%));color:hsl(var(--foreground,0 0% 0%));font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;-webkit-font-smoothing:antialiased}
       #root{min-height:100vh;min-height:100dvh}
+
+      [data-zivo-boot-shell] {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        background: #0d0d0f;
+        color: #ffffff;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        opacity: 1;
+        transition: opacity 160ms ease-out;
+      }
+
+      [data-zivo-boot-shell][data-zivo-boot-shell-hidden] {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      [data-zivo-boot-shell] > div {
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+        padding: 24px;
+        text-align: center;
+      }
+
+      [data-zivo-boot-shell] img {
+        width: 72px;
+        height: 72px;
+        border-radius: 18px;
+        box-shadow: 0 18px 48px rgba(255, 39, 115, 0.28);
+      }
+
+      [data-zivo-boot-shell] strong {
+        font-size: 22px;
+        letter-spacing: 0.12em;
+      }
+
+      [data-zivo-boot-shell] span {
+        color: #c7c7cf;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        [data-zivo-boot-shell] { transition: none; }
+      }
     </style>
 
     <!-- Analytics/marketing pixels — idle-loaded after first paint to protect LCP/TBT -->
@@ -334,6 +382,15 @@
 </head>
 
   <body>
+    <!-- Keep this outside #root: React replaces root's children before its
+         first route commits, which otherwise exposes a blank WebView. -->
+    <div data-zivo-boot-shell role="status" aria-live="polite" aria-atomic="true">
+      <div>
+        <img src="/pwa-icons/icon-192x192.png" alt="" width="72" height="72" />
+        <strong>ZIVO</strong>
+        <span>Opening your app…<br />កំពុងបើកកម្មវិធីរបស់អ្នក…</span>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

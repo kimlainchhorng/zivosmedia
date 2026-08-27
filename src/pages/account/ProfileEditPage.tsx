@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useI18n } from "@/hooks/useI18n";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -25,6 +25,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getSafeRedirectTarget } from "@/lib/authRedirect";
+import { normalizePhoneDigits } from "@/lib/phone";
 import onlyfansLogo from "@/assets/brand-logos/onlyfans.png";
 
 const profileSchema = z.object({
@@ -34,6 +36,38 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
+
+const getProfileEditReturnTarget = (search: string, state: unknown) => {
+  const queryTarget = new URLSearchParams(search).get("redirect");
+  const stateTarget =
+    state && typeof state === "object" && "redirectTo" in state
+      ? (state as { redirectTo?: unknown }).redirectTo
+      : null;
+  const rawTarget = (
+    queryTarget ?? (typeof stateTarget === "string" ? stateTarget : null)
+  )?.trim();
+
+  if (!rawTarget) return null;
+
+  const authorityProbe = rawTarget.replace(/\\/g, "/");
+  if (!authorityProbe.startsWith("/") || authorityProbe.startsWith("//")) {
+    return null;
+  }
+
+  return getSafeRedirectTarget(rawTarget);
+};
+
+const requiresPhoneForProfileReturn = (target: string | null) =>
+  Boolean(
+    target &&
+      (/^\/rides(?:[/?#]|$)/.test(target) ||
+        /^\/trip-status(?:[/?#]|$)/.test(target) ||
+        /^\/eats(?:[/?#]|$)/.test(target) ||
+        /^\/flights\/checkout(?:[/?#]|$)/.test(target)),
+  );
+
+const hasReturnablePhone = (phone?: string | null) =>
+  normalizePhoneDigits(phone ?? "").length >= 7;
 
 // ─── Sidebar nav items ───
 const sidebarSections = [
@@ -191,9 +225,16 @@ export default function ProfileEditPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const phoneRequired = (location.state as any)?.phoneRequired === true;
+  const returnTarget = getProfileEditReturnTarget(location.search, location.state);
+  const returnsToRide = returnTarget?.startsWith("/rides/") === true;
+  const returnNeedsPhone = requiresPhoneForProfileReturn(returnTarget);
   const { t } = useI18n();
   const { user } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useUserProfile();
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    refetch: refetchProfile,
+  } = useUserProfile();
   const updateProfile = useUpdateUserProfile();
   const uploadAvatar = useUploadAvatar();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -239,6 +280,10 @@ export default function ProfileEditPage() {
     defaultValues: { first_name: "", last_name: "", phone: "" },
     values: { first_name: parsedFirst, last_name: parsedLast, phone: profile?.phone || "" },
   });
+  const watchedPhone = useWatch({ control: form.control, name: "phone" })?.trim() ?? "";
+  const canReturnNow = !returnNeedsPhone || hasReturnablePhone(profile?.phone);
+  const willReturnAfterSave =
+    Boolean(returnTarget) && (!returnNeedsPhone || hasReturnablePhone(watchedPhone));
 
   const handleAvatarClick = () => fileInputRef.current?.click();
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -265,6 +310,28 @@ export default function ProfileEditPage() {
     // in the account settings if/when it becomes a hard requirement.
     const fullName = [data.first_name, data.last_name].filter(Boolean).join(" ") || null;
     await updateProfile.mutateAsync({ full_name: fullName, phone: data.phone || null });
+    if (returnTarget) {
+      if (returnNeedsPhone) {
+        if (!hasReturnablePhone(data.phone)) return;
+
+        const refreshed = await refetchProfile();
+        if (!hasReturnablePhone(refreshed.data?.phone)) {
+          toast.error("Profile saved, but your phone could not be verified yet. Please try again.");
+          return;
+        }
+      }
+
+      navigate(returnTarget, { replace: true });
+    }
+  };
+
+  const handleBack = () => {
+    if (returnTarget && canReturnNow) {
+      navigate(returnTarget, { replace: true });
+      return;
+    }
+
+    navigate(-1);
   };
 
   const handlePhoneVerified = async () => {
@@ -345,7 +412,13 @@ export default function ProfileEditPage() {
       {/* Mobile: simple back header */}
       <div className="lg:hidden sticky top-0 pt-safe z-40 bg-background/95 text-foreground backdrop-blur-md border-b border-border/50">
         <div className="flex h-12 items-center gap-3 px-4 max-w-5xl mx-auto">
-          <Button variant="ghost" size="icon" aria-label="Back" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={returnsToRide && canReturnNow ? "Back to ZIVO Ride" : "Back"}
+            className="h-10 w-10 rounded-full"
+            onClick={handleBack}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Profile Information</h1>
@@ -479,7 +552,7 @@ export default function ProfileEditPage() {
                   </div>
 
                   {/* Phone Required Banner */}
-                  {phoneRequired && !form.watch("phone")?.trim() && (
+                  {phoneRequired && !watchedPhone && (
                     <div className="rounded-2xl bg-destructive/10 border border-destructive/20 p-3 flex items-start gap-2.5">
                       <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                       <div>
@@ -500,7 +573,18 @@ export default function ProfileEditPage() {
 
                   {/* Save */}
                   <Button type="submit" className="w-full h-13 text-base font-bold rounded-2xl bg-gradient-to-r from-primary to-primary/85 text-primary-foreground shadow-xl shadow-primary/30" disabled={updateProfile.isPending || !form.formState.isDirty}>
-                    {updateProfile.isPending ? <><Loader2 className="h-5 w-5 animate-spin mr-2" />{t("profile.saving")}</> : <><Save className="h-5 w-5 mr-2" />{t("profile.save")}</>}
+                    {updateProfile.isPending ? (
+                      <><Loader2 className="h-5 w-5 animate-spin mr-2" />{t("profile.saving")}</>
+                    ) : (
+                      <>
+                        <Save className="h-5 w-5 mr-2" />
+                        {willReturnAfterSave && returnsToRide
+                          ? "Save & return to Ride"
+                          : willReturnAfterSave
+                            ? "Save & continue"
+                            : t("profile.save")}
+                      </>
+                    )}
                   </Button>
                 </form>
               </Form>

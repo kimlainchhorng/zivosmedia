@@ -1,103 +1,68 @@
-﻿/**
+/**
  * Travel Checkout Page
- * Unified checkout for hotels, activities, and transfers
+ *
+ * This surface intentionally fails closed until travel pricing, order creation,
+ * and payment-session creation are backed by one server-owned contract.
  */
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Hotel, MapPin, Car, Loader2, CreditCard, AlertCircle, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useTravelCart } from "@/contexts/TravelCartContext";
-import { useCreateOrder, type HolderInfo } from "@/hooks/useCreateOrder";
-import { useTravelCheckout } from "@/hooks/useTravelCheckout";
-import { useServiceMaintenance } from "@/hooks/useServiceMaintenance";
-import { MaintenanceScreen } from "@/components/shared/MaintenanceScreen";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Car,
+  Clock3,
+  Hotel,
+  MapPin,
+  ShieldCheck,
+} from "lucide-react";
 import { format } from "date-fns";
-import { usePromotionValidation } from "@/hooks/usePromotionValidation";
-import { Tag, X, CheckCircle2, Loader2 as PromoLoader } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { useTravelCart } from "@/contexts/TravelCartContext";
 import SEOHead from "@/components/SEOHead";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
+const formatCartDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Date to be confirmed" : format(date, "MMM d, yyyy");
+};
+
+const formatCartAmount = (amount: number, currency: string) => {
+  const normalizedCurrency = currency.trim().toUpperCase();
+
+  if (/^[A-Z]{3}$/.test(normalizedCurrency)) {
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: normalizedCurrency,
+      }).format(amount);
+    } catch {
+      // Fall through to a safe plain-text amount for an unknown currency code.
+    }
+  }
+
+  return `${normalizedCurrency ? `${normalizedCurrency} ` : ""}${amount.toFixed(2)}`;
+};
+
 const TravelCheckoutPage = () => {
   const navigate = useNavigate();
-  const { items, getTotal, clearCart } = useTravelCart();
-  const { createOrder, isLoading: isCreatingOrder, error: orderError } = useCreateOrder();
-  const { startCheckout, isLoading: isStartingCheckout, error: checkoutError } = useTravelCheckout();
-  const { isInMaintenance, isLoading: maintenanceLoading } = useServiceMaintenance("hotels");
+  const { items, getTotal } = useTravelCart();
 
-  const [step, setStep] = useState(1);
-  const [holder, setHolder] = useState<HolderInfo>({
-    name: "",
-    email: "",
-    phone: "",
-  });
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [promoCode, setPromoCode] = useState("");
-  const { isValidating: promoValidating, appliedPromo, error: promoError, validateCode: validatePromo, removePromo } = usePromotionValidation({ serviceType: 'hotels' });
-
-  const isLoading = isCreatingOrder || isStartingCheckout;
-  const error = orderError || checkoutError;
-
-  const subtotal = getTotal();
-  const serviceFee = Math.round(subtotal * 0.05 * 100) / 100;
-  const promoDiscount = appliedPromo?.valid ? (appliedPromo.discount_amount || 0) : 0;
-  const total = Math.max(0, subtotal + serviceFee - promoDiscount);
-
-  const handleApplyPromo = async () => {
-    if (!promoCode.trim() || promoValidating) return;
-    await validatePromo(promoCode.trim(), subtotal + serviceFee);
-  };
-
-  const handleRemovePromo = () => {
-    setPromoCode("");
-    removePromo();
-  };
-
-  // Show maintenance screen if travel service is paused
-  if (maintenanceLoading) {
-    return (
-      <TravelPageFrame>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </TravelPageFrame>
-    );
-  }
-
-  if (isInMaintenance) {
-    return (
-      <TravelPageFrame>
-        <MaintenanceScreen
-          serviceName="ZIVO Travel"
-          browseUrl="/hotels"
-          browseLabel="Browse Hotels"
-          ordersUrl="/account/bookings"
-          ordersLabel="View Past Bookings"
-          showBrowse
-          showOrders
-        />
-      </TravelPageFrame>
-    );
-  }
-
-  // Redirect if cart is empty
   if (items.length === 0) {
     return (
       <TravelPageFrame>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Card className="max-w-md w-full mx-4">
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <SEOHead
+            title="Travel Cart | Zivo Travel"
+            description="Review your saved Zivo Travel selections before checkout."
+          />
+          <Card className="w-full max-w-md border-sky-200/70 bg-white/90 shadow-xl shadow-sky-950/5 backdrop-blur-xl">
             <CardContent className="pt-6 text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
-              <p className="text-muted-foreground mb-4">
-                Add hotels, activities, or transfers to your cart to checkout.
+              <AlertCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" aria-hidden />
+              <h1 className="mb-2 text-xl font-semibold">Your cart is empty</h1>
+              <p className="mb-5 text-muted-foreground">
+                Add a hotel, activity, or transfer before returning to checkout.
               </p>
               <Button onClick={() => navigate("/hotels")}>Browse Hotels</Button>
             </CardContent>
@@ -107,346 +72,166 @@ const TravelCheckoutPage = () => {
     );
   }
 
-  const validateForm = () => {
-    const errors: Record<string, string> = {};
-    
-    if (!holder.name.trim()) {
-      errors.name = "Full name is required";
-    }
-    if (!holder.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(holder.email)) {
-      errors.email = "Invalid email format";
-    }
-    if (holder.phone && !/^[+\d\s()-]{7,20}$/.test(holder.phone)) {
-      errors.phone = "Invalid phone format";
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleContinueToPayment = () => {
-    if (validateForm()) {
-      setStep(2);
-    }
-  };
-
-  const handleCheckout = async () => {
-    if (!acceptTerms) {
-      setFormErrors({ terms: "You must accept the terms and conditions" });
-      return;
-    }
-
-    // Create order
-    const orderResult = await createOrder(items, holder);
-    if (!orderResult) return;
-
-    // Start Stripe checkout
-    await startCheckout(orderResult.orderId);
-
-    // Cart will be cleared after successful payment (on confirmation page)
-  };
+  const currencies = new Set(items.map((item) => item.currency.trim().toUpperCase()));
+  const singleCurrency = currencies.size === 1 ? items[0].currency : null;
+  const estimatedSubtotal = getTotal();
 
   const getItemIcon = (type: string) => {
     switch (type) {
-      case "hotel": return <Hotel className="h-5 w-5" />;
-      case "activity": return <MapPin className="h-5 w-5" />;
-      case "transfer": return <Car className="h-5 w-5" />;
-      default: return null;
+      case "hotel":
+        return <Hotel className="h-5 w-5" aria-hidden />;
+      case "activity":
+        return <MapPin className="h-5 w-5" aria-hidden />;
+      case "transfer":
+        return <Car className="h-5 w-5" aria-hidden />;
+      default:
+        return null;
     }
   };
 
-
   return (
     <TravelPageFrame>
-      <div className="min-h-screen bg-background">
-      <SEOHead
-        title="Travel Checkout – Secure Booking – ZIVO"
-        description="Complete your travel booking securely. Review hotel accommodations, activities, and transfers with flexible payment options and instant confirmation."
-      />
-      {/* Header */}
-      <header className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-lg font-semibold">Checkout</h1>
-            <p className="text-sm text-muted-foreground">
-              {items.length} item{items.length > 1 ? "s" : ""} in your cart
-            </p>
-          </div>
-        </div>
-      </header>
+      <div className="min-h-screen bg-background/85">
+        <SEOHead
+          title="Travel Checkout Temporarily Unavailable | Zivo Travel"
+          description="Your Zivo Travel cart remains saved while checkout is temporarily unavailable. No booking or payment is created from this page."
+        />
 
-      <motion.main
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="container mx-auto px-4 py-6 max-w-4xl"
-      >
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Step Indicator */}
-            <div className="flex items-center gap-4">
-              <div className={`flex items-center gap-2 ${step >= 1 ? "text-primary" : "text-muted-foreground"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? "bg-ig-gradient text-white" : "bg-muted"}`}>
-                  {step > 1 ? <Check className="h-4 w-4" /> : "1"}
-                </div>
-                <span className="text-sm font-medium">Details</span>
-              </div>
-              <div className="flex-1 h-0.5 bg-muted" />
-              <div className={`flex items-center gap-2 ${step >= 2 ? "text-primary" : "text-muted-foreground"}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? "bg-ig-gradient text-white" : "bg-muted"}`}>
-                  2
-                </div>
-                <span className="text-sm font-medium">Payment</span>
-              </div>
+        <header className="sticky top-0 z-40 border-b border-sky-100 bg-white/85 backdrop-blur-xl safe-area-top">
+          <div className="container mx-auto flex items-center gap-4 px-4 py-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
+              <ArrowLeft className="h-5 w-5" aria-hidden />
+            </Button>
+            <div>
+              <h1 className="text-lg font-semibold">Travel checkout</h1>
+              <p className="text-sm text-muted-foreground">
+                {items.length} saved item{items.length === 1 ? "" : "s"}
+              </p>
             </div>
-
-            {/* Error Alert */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Step 1: Traveler Details */}
-            {step === 1 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Traveler Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      value={holder.name}
-                      onChange={(e) => setHolder({ ...holder, name: e.target.value })}
-                      placeholder="As shown on ID"
-                      className={formErrors.name ? "border-destructive" : ""}
-                    />
-                    {formErrors.name && (
-                      <p className="text-sm text-destructive mt-1">{formErrors.name}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={holder.email}
-                      onChange={(e) => setHolder({ ...holder, email: e.target.value })}
-                      placeholder="booking@email.com"
-                      className={formErrors.email ? "border-destructive" : ""}
-                    />
-                    {formErrors.email && (
-                      <p className="text-sm text-destructive mt-1">{formErrors.email}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="phone">Phone Number (optional)</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={holder.phone}
-                      onChange={(e) => setHolder({ ...holder, phone: e.target.value })}
-                      placeholder="+1 (555) 123-4567"
-                      className={formErrors.phone ? "border-destructive" : ""}
-                    />
-                    {formErrors.phone && (
-                      <p className="text-sm text-destructive mt-1">{formErrors.phone}</p>
-                    )}
-                  </div>
-
-                  <Button onClick={handleContinueToPayment} className="w-full mt-4">
-                    Continue to Payment
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Step 2: Payment */}
-            {step === 2 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Payment
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-muted/50 rounded-xl p-4">
-                    <p className="text-sm text-muted-foreground mb-2">Booking for:</p>
-                    <p className="font-medium">{holder.name}</p>
-                    <p className="text-sm text-muted-foreground">{holder.email}</p>
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto text-sm" 
-                      onClick={() => setStep(1)}
-                    >
-                      Edit details
-                    </Button>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-start gap-2">
-                    <Checkbox
-                      id="terms"
-                      checked={acceptTerms}
-                      onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-                    />
-                    <Label htmlFor="terms" className="text-sm leading-normal">
-                      I agree to the{" "}
-                      <Link to="/legal/terms" className="text-primary hover:underline">
-                        Terms of Service
-                      </Link>{" "}
-                      and{" "}
-                      <Link to="/legal/privacy" className="text-primary hover:underline">
-                        Privacy Policy
-                      </Link>
-                      , and understand that cancellation policies apply.
-                    </Label>
-                  </div>
-                  {formErrors.terms && (
-                    <p className="text-sm text-destructive">{formErrors.terms}</p>
-                  )}
-
-                  <Button
-                    onClick={handleCheckout}
-                    className="w-full"
-                    disabled={isLoading || !acceptTerms}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Pay ${total.toFixed(2)}
-                      </>
-                    )}
-                  </Button>
-
-                  <p className="text-xs text-center text-muted-foreground">
-                    You will be redirected to Stripe for secure payment
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </div>
+        </header>
 
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-24">
+        <motion.main
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="container mx-auto max-w-4xl px-4 py-6 sm:py-10"
+        >
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+            <Card
+              className="overflow-hidden border-amber-200/80 bg-white/95 shadow-2xl shadow-sky-950/10"
+              role="alert"
+              aria-labelledby="checkout-unavailable-title"
+            >
+              <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500" aria-hidden />
+              <CardContent className="space-y-6 p-6 sm:p-8">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                  <Clock3 className="h-7 w-7" aria-hidden />
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
+                    Checkout paused
+                  </p>
+                  <h2 id="checkout-unavailable-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
+                    Travel checkout is temporarily unavailable
+                  </h2>
+                  <p className="max-w-xl text-base leading-7 text-muted-foreground">
+                    We cannot securely create a travel booking or start payment right now. Your selections remain
+                    saved so you can return when checkout is available.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-emerald-950">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-emerald-700" aria-hidden />
+                    <div>
+                      <p className="font-semibold">No booking was created and no payment was taken.</p>
+                      <p className="mt-1 text-sm leading-6 text-emerald-900/75">
+                        We will only enable payment after availability, pricing, and the booking total can be
+                        verified by the travel service.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button onClick={() => navigate("/")} className="sm:min-w-44">
+                    Back to Zivo Travel
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate(-1)} className="sm:min-w-36">
+                    Go back
+                  </Button>
+                </div>
+
+                <p className="text-xs leading-5 text-muted-foreground">
+                  When checkout returns, our{" "}
+                  <Link to="/legal/terms" className="font-medium text-sky-700 underline-offset-4 hover:underline">
+                    Terms of Service
+                  </Link>
+                  ,{" "}
+                  <Link to="/legal/privacy" className="font-medium text-sky-700 underline-offset-4 hover:underline">
+                    Privacy Policy
+                  </Link>
+                  , and cancellation policies apply.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="h-fit border-sky-200/70 bg-white/90 shadow-xl shadow-sky-950/5 backdrop-blur-xl lg:sticky lg:top-24">
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle>Saved cart</CardTitle>
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                    Not booked
+                  </span>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-3">
-                    <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-muted-foreground">
+                    <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-sky-50 text-sky-700">
                       {getItemIcon(item.type)}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{item.title}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{item.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(item.startDate), "MMM d, yyyy")}
+                        {formatCartDate(item.startDate)}
                         {item.endDate && item.endDate !== item.startDate && (
-                          <> - {format(new Date(item.endDate), "MMM d, yyyy")}</>
+                          <> – {formatCartDate(item.endDate)}</>
                         )}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {item.adults} adult{item.adults > 1 ? "s" : ""}
-                        {item.children > 0 && `, ${item.children} child${item.children > 1 ? "ren" : ""}`}
+                        {item.adults} adult{item.adults === 1 ? "" : "s"}
+                        {item.children > 0 && `, ${item.children} ${item.children === 1 ? "child" : "children"}`}
+                        {item.quantity > 1 && ` · Qty ${item.quantity}`}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-sm">${item.price.toFixed(2)}</p>
-                    </div>
+                    <p className="text-right text-sm font-medium">
+                      {formatCartAmount(item.price * item.quantity, item.currency)}
+                    </p>
                   </div>
                 ))}
 
                 <Separator />
 
-                {/* Promo Code */}
-                {appliedPromo?.valid ? (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                    <div className="w-7 h-7 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-xs">{appliedPromo.code}</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 text-xs">−${promoDiscount.toFixed(2)}</span>
-                      </div>
-                      {appliedPromo.description && <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 truncate">{appliedPromo.description}</p>}
-                    </div>
-                    <button type="button" onClick={handleRemovePromo} className="p-1 rounded-xl hover:bg-emerald-500/10" aria-label="Remove promo">
-                      <X className="w-3.5 h-3.5 text-emerald-500" />
-                    </button>
+                <div className="flex items-start justify-between gap-4 text-sm">
+                  <div>
+                    <p className="font-medium">Estimated cart subtotal</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      Fees and final pricing are not calculated while checkout is unavailable.
+                    </p>
                   </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-muted-foreground font-medium">Promo Code</label>
-                    <div className="flex gap-1.5">
-                      <div className="relative flex-1">
-                        <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                        <Input
-                          value={promoCode}
-                          onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
-                          placeholder="Enter code"
-                          disabled={promoValidating}
-                          className="pl-8 h-9 uppercase text-sm"
-                          style={{ fontSize: "16px" }}
-                        />
-                      </div>
-                      <Button size="sm" onClick={handleApplyPromo} disabled={!promoCode.trim() || promoValidating} className="h-9 px-3">
-                        {promoValidating ? <PromoLoader className="w-3.5 h-3.5 animate-spin" /> : "Apply"}
-                      </Button>
-                    </div>
-                    {promoError && <p className="text-xs text-destructive">{promoError}</p>}
-                  </div>
-                )}
-
-                <Separator />
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Service Fee</span>
-                    <span>${serviceFee.toFixed(2)}</span>
-                  </div>
-                  {promoDiscount > 0 && (
-                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
-                      <span>Promo Discount</span>
-                      <span>−${promoDiscount.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <Separator />
-                  <div className="flex justify-between font-semibold text-base">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
+                  <p className="whitespace-nowrap font-semibold">
+                    {singleCurrency
+                      ? formatCartAmount(estimatedSubtotal, singleCurrency)
+                      : "Multiple currencies"}
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </div>
-        </div>
-      </motion.main>
+        </motion.main>
       </div>
     </TravelPageFrame>
   );

@@ -28,4 +28,13 @@ describe("PWA update coverage on authentication routes", () => {
     expect(hookCall).toBeGreaterThan(-1);
     expect(authRouteReturn).toBeGreaterThan(hookCall);
   });
+
+  it("stops before web service-worker registration in Capacitor native shells", () => {
+    const hook = read("src/hooks/usePWAUpdate.ts");
+    const nativeGuard = hook.indexOf("if (Capacitor.isNativePlatform()) return;");
+    const registrationImport = hook.indexOf("await import('virtual:pwa-register')");
+
+    expect(nativeGuard).toBeGreaterThan(-1);
+    expect(registrationImport).toBeGreaterThan(nativeGuard);
+  });
 });

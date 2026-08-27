@@ -381,12 +381,19 @@ function LodgingTimelineBlock({ reservationId }: { reservationId: string }) {
   const handleRetryPayment = async () => {
     if (!live) return;
     try {
+      const payMethod = typeof live.guest_details?.pay_method === "string"
+        ? live.guest_details.pay_method
+        : "";
+      const mode = payMethod === "card_on_arrival" && (live.deposit_cents || 0) > 0
+        ? "deposit"
+        : "full";
+      const grossCents = mode === "deposit" ? live.deposit_cents : live.total_cents;
       const { data, error } = await supabase.functions.invoke("create-lodging-deposit", {
         body: {
           reservation_id: live.id,
           store_id: live.store_id,
-          deposit_cents: (live as any).deposit_cents || live.total_cents || 0,
-          mode: "deposit",
+          deposit_cents: grossCents || 0,
+          mode,
         },
       });
       if (error) throw error;

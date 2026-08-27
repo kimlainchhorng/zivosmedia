@@ -13,6 +13,7 @@ import {
   MapPin,
 } from "lucide-react";
 import ZivoLogo from "./ZivoLogo";
+import ZivoTravelLogo from "./ZivoTravelLogo";
 import { COMPANY_INFO, formatPostalAddress } from "@/config/legalContent";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { toast } from "sonner";
@@ -67,6 +68,47 @@ const footerSections = [
   },
 ];
 
+const travelFooterSections = [
+  {
+    title: "Flights",
+    icon: Plane,
+    links: [
+      { name: "Search Flights", href: "/flights" },
+      { name: "My Trips", href: "/my-trips" },
+      { name: "Wallet", href: "/wallet" },
+      { name: "Payment Methods", href: "/payment-methods" },
+    ],
+  },
+  {
+    title: "Hotels",
+    icon: Building2,
+    links: [
+      { name: "Find Hotels", href: "/hotels" },
+      { name: "Hotel Deals", href: "/hotels" },
+      { name: "Destinations", href: "/destinations" },
+    ],
+  },
+  {
+    title: "Cars & Bus",
+    icon: Car,
+    links: [
+      { name: "Rental Cars", href: "/cars" },
+      { name: "Bus Tickets", href: "/bus" },
+      { name: "My Trips", href: "/my-trips" },
+    ],
+  },
+  {
+    title: "Support",
+    icon: MapPin,
+    links: [
+      { name: "Travel Support", href: "/support/travel-bookings" },
+      { name: "Account", href: "/account" },
+      { name: "Terms", href: "/legal/terms" },
+      { name: "Privacy", href: "/legal/privacy" },
+    ],
+  },
+];
+
 const legalLinks = [
   { name: "Contact", href: "/contact" },
   { name: "Terms", href: "/legal/terms" },
@@ -101,7 +143,13 @@ const socialLinks = [
   { label: "LinkedIn", href: "https://linkedin.com/company/hizovo", icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> },
 ];
 
-const Footer = ({ className }: { className?: string }) => {
+const Footer = ({
+  className,
+  forceTravelBrand = false,
+}: {
+  className?: string;
+  forceTravelBrand?: boolean;
+}) => {
   // Hooks must run before any early return (rules of hooks).
   const reduceMotion = useReducedMotion();
 
@@ -112,16 +160,21 @@ const Footer = ({ className }: { className?: string }) => {
   if (Capacitor.isNativePlatform()) return null;
 
   // On the Zivo Travel host, rebrand the footer and drop non-travel sub-brands.
-  const isTravel = typeof window !== "undefined" && isZivoTravelHost();
+  const isTravel = forceTravelBrand || (typeof window !== "undefined" && isZivoTravelHost());
   const brand = isTravel ? "Zivo Travel" : "ZIVO";
-  const sections = isTravel
-    ? footerSections.map((s) => ({
-        ...s,
-        links: s.links
-          .filter((l) => !["ZIVO Rides", "ZIVO Eats", "Become a Driver"].includes(l.name))
-          .map((l) => (l.name === "About ZIVO" ? { ...l, name: "About Zivo Travel" } : l)),
-      }))
-    : footerSections;
+  const mutedCopy = isTravel ? "text-primary-foreground/75" : "text-primary-foreground/40";
+  const navCopy = isTravel ? "text-primary-foreground/75" : "text-primary-foreground/45";
+  const legalCopy = isTravel ? "text-primary-foreground/65" : "text-primary-foreground/30";
+  const disclosureCopy = isTravel ? "text-primary-foreground/60" : "text-primary-foreground/25";
+  const secondaryDisclosureCopy = isTravel ? "text-primary-foreground/55" : "text-primary-foreground/20";
+  const sections = isTravel ? travelFooterSections : footerSections;
+  const visibleLegalLinks = isTravel
+    ? legalLinks.map((link) => (
+        link.name === "Contact"
+          ? { name: "Support", href: "/support/travel-bookings" }
+          : link
+      ))
+    : legalLinks;
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -142,7 +195,13 @@ const Footer = ({ className }: { className?: string }) => {
         };
 
   return (
-    <footer className={cn("relative z-30 bg-[#0f1629] text-primary-foreground overflow-hidden", className)}>
+    <footer
+      className={cn(
+        "relative z-30 text-primary-foreground overflow-hidden",
+        isTravel ? "bg-slate-950" : "bg-[#0f1629]",
+        className,
+      )}
+    >
       {/* Decorative orbs */}
       <div className="absolute -top-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-secondary rounded-full blur-[120px] pointer-events-none" />
@@ -157,18 +216,12 @@ const Footer = ({ className }: { className?: string }) => {
           <motion.div {...rise(0)} className="lg:col-span-4 flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
             <Link to="/" className="inline-flex min-h-[40px] items-center touch-manipulation rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1629]">
               {isTravel ? (
-                <span className="flex items-center gap-2">
-                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-xl font-black text-white">Z</span>
-                  <span className="text-xl font-black tracking-tight">
-                    <span className="text-primary-foreground">ZIVO </span>
-                    <span className="bg-gradient-to-r from-emerald-300 to-sky-300 bg-clip-text text-transparent">TRAVEL</span>
-                  </span>
-                </span>
+                <ZivoTravelLogo size="md" tone="inverse" />
               ) : (
                 <ZivoLogo size="md" />
               )}
             </Link>
-            <p className="text-sm text-primary-foreground/40 max-w-xs leading-relaxed">
+            <p className={cn("text-sm max-w-xs leading-relaxed", mutedCopy)}>
               Book flights, hotels, and car rentals with transparent pricing and secure checkout. Your next adventure starts here.
             </p>
 
@@ -178,7 +231,7 @@ const Footer = ({ className }: { className?: string }) => {
                 which a reviewer has no reason to open. Values come from
                 COMPANY_INFO so this cannot drift from /contact or the Terms,
                 and unfilled ones are omitted rather than shown blank. */}
-            <div className="text-sm text-primary-foreground/40 max-w-xs space-y-1 text-center lg:text-left">
+            <div className={cn("text-sm max-w-xs space-y-1 text-center lg:text-left", mutedCopy)}>
               <p className="font-medium text-primary-foreground/70">{COMPANY_INFO.name}</p>
               {footerAddressLines.map((line) => (
                 <p key={line}>{line}</p>
@@ -212,7 +265,7 @@ const Footer = ({ className }: { className?: string }) => {
               >
                 <svg className="w-6 h-6 text-primary-foreground/90 transition-transform group-hover:scale-105" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
                 <span className="flex flex-col items-start leading-none">
-                  <span className="text-[9px] uppercase tracking-[0.12em] text-primary-foreground/45">Download on the</span>
+                  <span className={cn("text-[9px] uppercase tracking-[0.12em]", isTravel ? "text-primary-foreground/70" : "text-primary-foreground/45")}>Download on the</span>
                   <span className="mt-0.5 text-sm font-semibold text-primary-foreground/90">App Store</span>
                 </span>
               </button>
@@ -223,7 +276,7 @@ const Footer = ({ className }: { className?: string }) => {
               >
                 <svg className="w-6 h-6 text-primary-foreground/90 transition-transform group-hover:scale-105" fill="currentColor" viewBox="0 0 24 24"><path d="M3.609 1.814L13.792 12 3.609 22.186a.996.996 0 01-.299-.71V2.524a1 1 0 01.299-.71zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.39 12l2.308-2.491zM5.864 2.658L16.802 8.99l-2.302 2.302-8.636-8.634z"/></svg>
                 <span className="flex flex-col items-start leading-none">
-                  <span className="text-[9px] uppercase tracking-[0.12em] text-primary-foreground/45">Get it on</span>
+                  <span className={cn("text-[9px] uppercase tracking-[0.12em]", isTravel ? "text-primary-foreground/70" : "text-primary-foreground/45")}>Get it on</span>
                   <span className="mt-0.5 text-sm font-semibold text-primary-foreground/90">Google Play</span>
                 </span>
               </button>
@@ -240,8 +293,14 @@ const Footer = ({ className }: { className?: string }) => {
                     className={cn(
                       "w-10 h-10 min-w-[40px] min-h-[40px] rounded-lg flex items-center justify-center active:scale-90 transition-all touch-manipulation",
                       isInstagram
-                        ? "bg-ig-gradient text-white hover:opacity-90 shadow-[0_0_12px_rgba(220,39,67,0.35)]"
-                        : "bg-primary-foreground/10 text-primary-foreground/50 hover:text-primary-foreground hover:bg-primary/20 hover:shadow-[0_0_12px_hsl(var(--primary)/0.3)]"
+                        ? cn(
+                            "bg-ig-gradient hover:opacity-90 shadow-[0_0_12px_rgba(220,39,67,0.35)]",
+                            isTravel ? "text-primary-foreground" : "text-white",
+                          )
+                        : cn(
+                            "bg-primary-foreground/10 hover:text-primary-foreground hover:bg-primary/20 hover:shadow-[0_0_12px_hsl(var(--primary)/0.3)]",
+                            isTravel ? "text-primary-foreground/75" : "text-primary-foreground/50",
+                          )
                     )}
                     aria-label={social.label}
                   >
@@ -267,7 +326,10 @@ const Footer = ({ className }: { className?: string }) => {
                     <li key={link.name}>
                       <Link
                         to={link.href}
-                        className="group/link inline-flex min-h-[36px] items-center gap-1.5 text-sm text-primary-foreground/45 hover:text-primary-foreground transition-colors touch-manipulation rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1629]"
+                        className={cn(
+                          "group/link inline-flex min-h-[36px] items-center gap-1.5 text-sm hover:text-primary-foreground transition-colors touch-manipulation rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1629]",
+                          navCopy,
+                        )}
                       >
                         <span className="h-1 w-0 rounded-full bg-ig-gradient transition-all duration-300 group-hover/link:w-3" aria-hidden />
                         {link.name}
@@ -283,11 +345,14 @@ const Footer = ({ className }: { className?: string }) => {
         {/* Legal links bar */}
         <div className="py-6 border-t border-primary-foreground/10">
           <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
-            {legalLinks.map((link) => (
+            {visibleLegalLinks.map((link) => (
               <Link
                 key={link.name}
                 to={link.href}
-                className="inline-flex min-h-[40px] items-center text-xs text-primary-foreground/30 hover:text-primary-foreground/60 transition-colors touch-manipulation rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1629]"
+                className={cn(
+                  "inline-flex min-h-[40px] items-center text-xs hover:text-primary-foreground transition-colors touch-manipulation rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1629]",
+                  legalCopy,
+                )}
               >
                 {link.name}
               </Link>
@@ -298,14 +363,17 @@ const Footer = ({ className }: { className?: string }) => {
         {/* Bottom bar */}
         <div className="pt-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] border-t border-primary-foreground/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-primary-foreground/40 flex items-center gap-1.5">
+            <p className={cn("text-sm flex items-center gap-1.5", mutedCopy)}>
               © {new Date().getFullYear()} {isTravel ? "Zivo Travel — a ZIVO LLC company" : "ZIVO LLC"}. Made with{" "}
               <Heart className="w-3.5 h-3.5 text-primary fill-primary" /> for travelers.
             </p>
 
             <button type="button"
               onClick={scrollToTop}
-              className="group/top inline-flex items-center gap-1.5 text-xs text-primary-foreground/40 hover:text-primary px-3 py-2 rounded-full border border-primary-foreground/10 hover:border-primary/30 active:scale-95 transition-all touch-manipulation min-h-[40px]"
+              className={cn(
+                "group/top inline-flex items-center gap-1.5 text-xs hover:text-primary px-3 py-2 rounded-full border border-primary-foreground/10 hover:border-primary/30 active:scale-95 transition-all touch-manipulation min-h-[40px]",
+                mutedCopy,
+              )}
             >
               <ChevronUp className="w-4 h-4 group-hover/top:-translate-y-0.5 transition-transform" />{" "}
               Back to Top
@@ -314,10 +382,10 @@ const Footer = ({ className }: { className?: string }) => {
 
           {/* OTA Disclosure */}
           <div className="mt-6 pt-6 border-t border-primary-foreground/5 text-center space-y-2">
-            <p className="text-xs text-primary-foreground/25 max-w-2xl mx-auto">
+            <p className={cn("text-xs max-w-2xl mx-auto", disclosureCopy)}>
               {brand} is an online travel agency. {brand} processes payments and issues travel services using authorized suppliers.
             </p>
-            <p className="text-xs text-primary-foreground/20 max-w-2xl mx-auto flex items-center justify-center gap-1.5">
+            <p className={cn("text-xs max-w-2xl mx-auto flex items-center justify-center gap-1.5", secondaryDisclosureCopy)}>
               <CheckCircle2 className="w-3 h-3 text-primary/60" /> Registered Seller of Travel where required. CA SOT: pending · FL SOT: pending
             </p>
           </div>

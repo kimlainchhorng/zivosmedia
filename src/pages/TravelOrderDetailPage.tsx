@@ -31,6 +31,8 @@ import { OrderItemCard } from "@/components/travel/OrderItemCard";
 import { CancelRequestModal } from "@/components/travel/CancelRequestModal";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
+import { TravelFlowHeader } from "@/components/zivo-travel";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 // ReportProblemDialog removed
 
 const statusConfig: Record<string, { icon: React.ElementType; label: string; color: string }> = {
@@ -50,6 +52,7 @@ export default function TravelOrderDetailPage() {
   const { resendConfirmation, isResending } = useOrderActions();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
 
   // Redirect to login if not authenticated
   if (!authLoading && !user) {
@@ -60,6 +63,9 @@ export default function TravelOrderDetailPage() {
   if (isLoading) {
     return (
       <TravelPageFrame>
+        {isTravelHost && (
+          <TravelFlowHeader title="Trip details" backHref="/my-trips" backLabel="Back to trips" />
+        )}
         <div className="min-h-screen bg-background flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
@@ -70,6 +76,9 @@ export default function TravelOrderDetailPage() {
   if (error || !order) {
     return (
       <TravelPageFrame>
+        {isTravelHost && (
+          <TravelFlowHeader title="Trip details" backHref="/my-trips" backLabel="Back to trips" />
+        )}
         <div className="min-h-screen bg-background pb-20">
           <div className="container px-4 py-8 text-center">
             <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
@@ -98,27 +107,46 @@ export default function TravelOrderDetailPage() {
     <TravelPageFrame>
       <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur-sm border-b">
-        <div className="container px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild aria-label="Back to trips">
-              <Link to="/my-trips">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-lg font-bold font-mono">{order.order_number}</h1>
-              <div className="flex items-center gap-2">
-                <StatusIcon className={`w-4 h-4 ${statusInfo.color}`} />
-                <span className={`text-sm ${statusInfo.color}`}>{statusInfo.label}</span>
-              </div>
-            </div>
-            <Badge variant="outline" className="text-lg px-3 py-1">
+      {isTravelHost ? (
+        <TravelFlowHeader
+          title={<span className="font-mono">{order.order_number}</span>}
+          subtitle={(
+            <span className={`inline-flex items-center gap-1.5 ${statusInfo.color}`}>
+              <StatusIcon className="h-3.5 w-3.5" aria-hidden />
+              {statusInfo.label}
+            </span>
+          )}
+          backHref="/my-trips"
+          backLabel="Back to trips"
+          rightAdornment={(
+            <Badge variant="outline" className="px-2 py-1 text-sm text-slate-700">
               ${order.total.toFixed(2)}
             </Badge>
+          )}
+        />
+      ) : (
+        <div className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur-sm border-b">
+          <div className="container px-4 py-4">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" asChild aria-label="Back to trips">
+                <Link to="/my-trips">
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+              </Button>
+              <div className="flex-1">
+                <h1 className="text-lg font-bold font-mono">{order.order_number}</h1>
+                <div className="flex items-center gap-2">
+                  <StatusIcon className={`w-4 h-4 ${statusInfo.color}`} />
+                  <span className={`text-sm ${statusInfo.color}`}>{statusInfo.label}</span>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-lg px-3 py-1">
+                ${order.total.toFixed(2)}
+              </Badge>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="container px-4 py-4 space-y-4">
         {/* Cancellation Status Banner */}

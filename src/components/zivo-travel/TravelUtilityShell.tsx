@@ -4,6 +4,9 @@ import { Helmet } from "react-helmet-async";
 import { ArrowLeft, Compass, Luggage, Wallet, CreditCard, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Footer from "@/components/Footer";
+import ZivoTravelLogo from "@/components/ZivoTravelLogo";
+import { getZivoHeaderSafeTop } from "@/lib/zivoHeaderSafeArea";
 import { PageTransition } from "./PageTransition";
 
 /**
@@ -54,8 +57,11 @@ export function TravelUtilityShell({
       </Helmet>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-slate-900/10 bg-white/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
+      <header
+        className="zivo-safe-top-guard-off sticky top-0 z-40 border-b border-slate-900/10 bg-white/70 backdrop-blur-xl"
+        style={{ paddingTop: getZivoHeaderSafeTop() }}
+      >
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2">
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -64,9 +70,12 @@ export function TravelUtilityShell({
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <Link to={hrefFor("/")} className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-sky-500 to-violet-600 text-base font-black text-white">Z</span>
-            <span className="text-sm font-black tracking-[0.25em] text-slate-900">ZIVO TRAVEL</span>
+          <Link
+            to={hrefFor("/")}
+            aria-label="Zivo Travel home"
+            className="flex items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40"
+          >
+            <ZivoTravelLogo size="sm" />
           </Link>
         </div>
       </header>
@@ -97,10 +106,8 @@ export function TravelUtilityShell({
         </section>
       </PageTransition>
 
-      {/* Footer (extra bottom space so it clears the floating nav) */}
-      <footer className="border-t border-slate-900/10 px-4 pt-8 pb-[calc(7rem+env(safe-area-inset-bottom))] text-center">
-        <p className="text-xs text-slate-500">© {new Date().getFullYear()} Zivo Travel · A Zivos Media company</p>
-      </footer>
+      {/* Full Travel footer, with extra space so the floating nav never covers its final row. */}
+      <Footer forceTravelBrand className="pb-[calc(6rem+env(safe-area-inset-bottom))]" />
 
       {/* Floating bottom nav */}
       <nav

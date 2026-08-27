@@ -3,7 +3,7 @@
  * Allows users to create support tickets from My Trips
  */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,11 @@ export function SupportRequestForm({
   triggerButton,
   className 
 }: SupportRequestFormProps) {
+  const fieldId = useId();
+  const categoryId = `${fieldId}-category`;
+  const subjectId = `${fieldId}-subject`;
+  const descriptionId = `${fieldId}-description`;
+  const descriptionHelpId = `${fieldId}-description-help`;
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState(defaultCategory || '');
   const [subject, setSubject] = useState(orderRef ? `Help with booking ${orderRef}` : '');
@@ -92,7 +97,7 @@ export function SupportRequestForm({
             </div>
             <h3 className="text-lg font-semibold mb-2">Request Submitted</h3>
             <p className="text-muted-foreground">
-              We've received your support request. Our team will respond within 24 hours.
+              We&apos;ve received your support request. You can track updates in Support Tickets.
             </p>
           </div>
         ) : (
@@ -103,15 +108,15 @@ export function SupportRequestForm({
                 Contact Support
               </DialogTitle>
               <DialogDescription>
-                Tell us how we can help. We typically respond within 24 hours.
+                Tell us how we can help. All fields are required. You can track replies from Support Tickets.
               </DialogDescription>
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>What do you need help with?</Label>
+                <Label htmlFor={categoryId}>What do you need help with?</Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
+                  <SelectTrigger id={categoryId} aria-required="true">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -128,22 +133,33 @@ export function SupportRequestForm({
               </div>
 
               <div className="space-y-2">
-                <Label>Subject</Label>
+                <Label htmlFor={subjectId}>Subject</Label>
                 <Input
+                  id={subjectId}
+                  name="subject"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Brief summary of your issue"
+                  autoComplete="off"
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Description</Label>
+                <Label htmlFor={descriptionId}>Description</Label>
                 <Textarea
+                  id={descriptionId}
+                  name="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Please describe your issue in detail. Include any relevant booking references, dates, or error messages."
                   rows={4}
+                  aria-describedby={descriptionHelpId}
+                  required
                 />
+                <p id={descriptionHelpId} className="text-xs text-muted-foreground">
+                  Do not include passwords, one-time codes, or full card numbers.
+                </p>
               </div>
 
               {/* Partner routing notice */}

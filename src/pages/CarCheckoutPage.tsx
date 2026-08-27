@@ -7,17 +7,19 @@ import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Shield, Lock, CheckCircle, ExternalLink, Tag, X, CheckCircle2, Loader2 } from "lucide-react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RampGlobalDisclaimer } from "@/components/results";
 import { usePromotionValidation } from "@/hooks/usePromotionValidation";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import { TravelFlowHeader } from "@/components/zivo-travel";
+import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 
 export default function CarCheckoutPage() {
   const [searchParams] = useSearchParams();
+  const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
+  const travelerInfoHref = `/rent-car/traveler-info?${searchParams.toString()}`;
 
   const category = searchParams.get("category") || "Economy";
   const name = searchParams.get("name") || "";
@@ -45,26 +47,41 @@ export default function CarCheckoutPage() {
     <TravelPageFrame>
       <div className="min-h-screen bg-background">
         <SEOHead
-          title="Secure Checkout | Car Rental | ZIVO"
+          title={isTravelHost ? "Secure Car Checkout | Zivo Travel" : "Secure Checkout | Car Rental | ZIVO"}
           description="Complete your car rental booking securely with our licensed travel partner."
         />
       
       {/* Locked Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border/60 pt-safe">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="font-bold text-xl text-primary rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ZIVO</Link>
-            <span className="text-muted-foreground">|</span>
-            <span className="text-sm text-muted-foreground">Secure Checkout</span>
+      {isTravelHost ? (
+        <TravelFlowHeader
+          title="Secure Checkout"
+          subtitle={name || category}
+          backHref={travelerInfoHref}
+          backLabel="Back to traveler information"
+          rightAdornment={(
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">
+              <Lock className="h-3.5 w-3.5" aria-hidden />
+              SSL
+            </span>
+          )}
+        />
+      ) : (
+        <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border/60 pt-safe">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link to="/" className="font-bold text-xl text-primary rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">ZIVO</Link>
+              <span className="text-muted-foreground">|</span>
+              <span className="text-sm text-muted-foreground">Secure Checkout</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Lock className="w-4 h-4 text-emerald-500" />
+              <span>SSL Encrypted</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Lock className="w-4 h-4 text-emerald-500" />
-            <span>SSL Encrypted</span>
-          </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <main className="pt-24 pb-16">
+      <main className={isTravelHost ? "pt-6 pb-16" : "pt-24 pb-16"}>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -72,13 +89,15 @@ export default function CarCheckoutPage() {
           className="container mx-auto px-4 max-w-3xl"
         >
           {/* Back Link */}
-          <Link 
-            to={`/rent-car/traveler-info?${searchParams.toString()}`}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 rounded-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to traveler info
-          </Link>
+          {!isTravelHost && (
+            <Link
+              to={travelerInfoHref}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 rounded-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to traveler info
+            </Link>
+          )}
 
           {/* Progress indicator */}
           <div className="flex items-center gap-2 mb-8">

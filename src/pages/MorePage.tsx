@@ -2,14 +2,13 @@
  * MorePage — ZIVO Signature Design (2026)
  * Full hub with real user profile, quick actions, 70+ links, and organic design.
  */
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUsername } from "@/hooks/useUsername";
 import { useCoinBalance } from "@/hooks/useCoinBalance";
 import { formatCount } from "@/lib/social/formatCount";
-import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronRight, LogOut, Settings, ShoppingBag, Wallet, MapPin, Handshake,
@@ -22,7 +21,7 @@ import {
   Gem, Rocket, Layers, CircleDot, User, CreditCard, Map as MapIcon, Package,
   Clock, Receipt, Ticket, ShieldCheck, Flame, AlertCircle, Inbox,
   Search, Vote, Clapperboard, GraduationCap, Trophy, Banknote, ArrowLeft,
-  Sun, Moon, Trash2, X, Hash, Tv, Mic, Activity, Dumbbell, Brain,
+  Trash2, X, Hash, Tv, Mic, Activity, Dumbbell, Brain,
   Languages, Database, UserPlus, Film, MessageSquare, Hotel,
   Hammer, Sliders, FileSignature, Cookie, BookMarked, Stethoscope,
   ClipboardList, Building, Tag, ScrollText, History, ArrowDownToLine,
@@ -54,6 +53,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useZivoPlus } from "@/contexts/ZivoPlusContext";
 import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { toast } from "sonner";
@@ -392,7 +392,7 @@ const quickLinksAccount: QuickLink[] = [
   { icon: Download, label: "Get App", href: "/install", description: "Download", accent: "hsl(var(--primary))" },
   { icon: Lightbulb, label: "Feedback", href: "/feedback", description: "Ideas", accent: "hsl(45 93% 58%)" },
   { icon: Shield, label: "Safety Center", href: "/safety", description: "Reporting", accent: "hsl(0 84% 60%)" },
-  { icon: Palette, label: "Appearance", href: "#theme-toggle", description: "Light / Dark theme", accent: "hsl(263 70% 58%)" },
+  { icon: Palette, label: "Appearance", href: "/account/preferences#accessibility", description: "Text size, motion, and accessibility", accent: "hsl(263 70% 58%)" },
   { icon: AlertCircle, label: "Report a Problem", href: "/feedback", description: "Bug report", accent: "hsl(0 84% 60%)" },
   { icon: ShieldCheck, label: "Security Report", href: "/security/report", description: "Status", accent: "hsl(142 71% 45%)" },
   { icon: Smartphone, label: "Login & Devices", href: "/account/security", description: "Active sessions", accent: "hsl(221 83% 53%)" },
@@ -585,7 +585,6 @@ export default function MorePage() {
   const queryClient = useQueryClient();
   const { user, signOut, isAdmin } = useAuth();
   const userId = user?.id ?? null;
-  const { theme, resolvedTheme } = useTheme();
   const [showPartnerSheet, setShowPartnerSheet] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -770,6 +769,17 @@ export default function MorePage() {
       return { userId, items: next };
     });
   };
+
+  const focusDirectorySearch = useCallback(() => {
+    const searchInput = directorySearchRef.current;
+    if (!searchInput) return;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    searchInput.focus({ preventScroll: true });
+    searchInput.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "center",
+    });
+  }, []);
 
   const clearDirectorySearch = useCallback(() => {
     setSearch("");
@@ -1288,14 +1298,6 @@ export default function MorePage() {
     { label: "Friends", value: formatCount(friendCount) ?? "0" },
   ];
 
-  const toggleThemePreference = () => {
-    // Dark mode is force-disabled app-wide (App.tsx forcedTheme="light") until
-    // the design-system tokens are reauthored. setTheme is a no-op here, so we
-    // don't call it or claim a theme switched — we tell the truth instead.
-    void logAccountHubActivity("more_preference_theme", `${location.pathname}${location.search}#theme-soon`);
-    toast.message("Dark mode is coming soon");
-  };
-
   const formatActivityTime = (createdAt: string) => {
     const timestamp = new Date(createdAt).getTime();
     if (!Number.isFinite(timestamp)) return "Recently";
@@ -1369,7 +1371,7 @@ export default function MorePage() {
       animate={{ opacity: 1, y: 0 }}
       role="region"
       aria-labelledby="more-profile-card-title"
-      className="mb-4 overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-sm"
+      className="mb-4 overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/95 shadow-sm"
     >
       <div className="bg-secondary/45 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
@@ -1384,7 +1386,7 @@ export default function MorePage() {
           <Link
             to="/account/settings"
             onClick={() => trackRecent("/account/settings")}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm active:scale-95 transition-transform"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Open account settings"
           >
             <Settings className="h-4 w-4" />
@@ -1439,24 +1441,26 @@ export default function MorePage() {
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <Link
-            to="/profile"
-            aria-label={`View ${displayName}'s profile`}
-            onClick={() => trackRecent("/profile")}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-foreground px-3 py-3 text-[13px] font-bold text-background active:scale-[0.98] transition-transform"
-          >
-            <User className="h-4 w-4" />
-            View profile
-          </Link>
-          <Link
-            to="/account/profile-edit"
-            aria-label={`Edit ${displayName}'s profile`}
-            onClick={() => trackRecent("/account/profile-edit")}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-border/70 bg-background px-3 py-3 text-[13px] font-bold text-foreground active:scale-[0.98] transition-transform"
-          >
-            <Pencil className="h-4 w-4" />
-            Edit
-          </Link>
+          <Button asChild variant="hero" className="h-12 rounded-2xl px-3 text-[13px]">
+            <Link
+              to="/profile"
+              aria-label={`View ${displayName}'s profile`}
+              onClick={() => trackRecent("/profile")}
+            >
+              <User className="h-4 w-4" />
+              View profile
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="h-12 rounded-2xl bg-background px-3 text-[13px] font-bold">
+            <Link
+              to="/account/profile-edit"
+              aria-label={`Edit ${displayName}'s profile`}
+              onClick={() => trackRecent("/account/profile-edit")}
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Link>
+          </Button>
         </div>
 
         {!isEmailVerified && (
@@ -1502,7 +1506,7 @@ export default function MorePage() {
         transition={{ delay: 0.05 }}
         role="region"
         aria-labelledby="more-quick-actions-title"
-        className="mb-4 rounded-2xl border border-border/50 bg-card/70 p-2.5"
+        className="mb-4 rounded-[1.5rem] border border-border/55 bg-card/80 p-2.5 shadow-sm"
       >
         <div className="mb-2 flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5">
@@ -1519,7 +1523,7 @@ export default function MorePage() {
                 to={action.href}
                 aria-label={badge ? `Open ${action.label}, ${badge}` : `Open ${action.label}`}
                 onClick={() => trackRecent(action.href)}
-                className="group relative rounded-xl bg-muted/35 p-2 active:scale-[0.97] transition-transform"
+                className="group relative flex min-h-[4.75rem] flex-col items-center justify-center rounded-2xl border border-border/45 bg-background/80 p-2.5 text-center shadow-[var(--shadow-xs)] transition hover:border-border/70 hover:bg-card hover:shadow-sm active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {badge && (
                   <span className="absolute right-1.5 top-1.5 max-w-[54px] truncate rounded-full bg-foreground px-1.5 py-0.5 text-center text-[9px] font-bold leading-none text-background">
@@ -1530,12 +1534,12 @@ export default function MorePage() {
                   initial={{ scale: 0.86, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: i * 0.03, type: "spring", stiffness: 300, damping: 22 }}
-                  className="mb-1.5 flex h-8 w-8 items-center justify-center rounded-lg"
+                  className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-xl"
                   style={{ background: `${action.accent}14`, color: action.accent }}
                 >
-                  <action.icon className="h-4 w-4" />
+                  <action.icon className="h-[18px] w-[18px]" />
                 </motion.div>
-                <span className="block truncate text-[10px] font-extrabold leading-tight">{action.label}</span>
+                <span className="block w-full truncate text-[11px] font-extrabold leading-tight">{action.label}</span>
               </Link>
             );
           })}
@@ -1548,8 +1552,7 @@ export default function MorePage() {
   const renderLink = (link: QuickLink, i: number) => {
     const isPartner = link.href === "#partner";
     const isSwitch = link.href === "#switch-account";
-    const isTheme = link.href === "#theme-toggle";
-    const isAction = isPartner || isSwitch || isTheme;
+    const isAction = isPartner || isSwitch;
     const canPin = !isAction && !link.href.startsWith("#");
     const isPinned = canPin && pinnedHrefs.includes(link.href);
     const accent = getAccentClasses(link.accent);
@@ -1558,28 +1561,10 @@ export default function MorePage() {
     const handleAction = () => {
       if (isPartner) setShowPartnerSheet(true);
       else if (isSwitch) setConfirmAction("switch");
-      else if (isTheme) toggleThemePreference();
     };
 
-    // Dynamic right-side content: theme row shows current theme label
-    const rightSlot = isTheme ? (
-      <span className="text-[11px] font-semibold text-muted-foreground capitalize mr-1">
-        {resolvedTheme ?? theme ?? "system"}
-      </span>
-    ) : null;
-
-    const inner = (
-      <motion.div
-        initial={{ opacity: 0, x: -8 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: i * 0.02, duration: 0.2 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={isAction ? handleAction : undefined}
-        className={cn(
-          "group relative flex cursor-pointer items-center overflow-hidden border border-border/45 bg-background/70 shadow-sm transition hover:border-border/80 hover:bg-card hover:shadow-md",
-          density === "compact" ? "gap-2 rounded-2xl p-2" : "gap-3 rounded-[1.15rem] p-3",
-        )}
-      >
+    const rowContent = (
+      <>
         <span
           className={cn(
             "absolute bottom-3 left-0 top-3 w-0.5 rounded-r-full opacity-70",
@@ -1593,13 +1578,7 @@ export default function MorePage() {
           isDestructive ? "bg-rose-500/10 text-rose-600 dark:text-rose-400" : accent.text,
           isDestructive ? "" : accent.bg,
         )}>
-          {isTheme ? (
-            (resolvedTheme ?? theme) === "dark"
-              ? <Moon className={cn("h-[18px] w-[18px]", isDestructive ? "text-rose-500" : accent.text)} />
-              : <Sun className={cn("h-[18px] w-[18px]", isDestructive ? "text-rose-500" : accent.text)} />
-          ) : (
-            <link.icon className={cn("h-[18px] w-[18px]", isDestructive ? "text-rose-500" : accent.text)} />
-          )}
+          <link.icon className={cn("h-[18px] w-[18px]", isDestructive ? "text-rose-500" : accent.text)} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
@@ -1625,45 +1604,79 @@ export default function MorePage() {
             <p className="mt-0.5 truncate text-[11px] font-medium text-muted-foreground">{link.description}</p>
           )}
         </div>
-        {rightSlot}
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/25 transition-transform group-hover:translate-x-0.5" />
+      </>
+    );
+
+    if (isAction) {
+      return (
+        <motion.button
+          key={link.label}
+          type="button"
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.02, duration: 0.2 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={handleAction}
+          className={cn(
+            "group relative flex w-full cursor-pointer items-center overflow-hidden border border-border/45 bg-background/70 text-left shadow-sm transition hover:border-border/80 hover:bg-card hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            density === "compact" ? "gap-2 rounded-2xl p-2" : "gap-3 rounded-[1.15rem] p-3",
+          )}
+        >
+          {rowContent}
+        </motion.button>
+      );
+    }
+
+    return (
+      <motion.div
+        key={link.label}
+        initial={{ opacity: 0, x: -8 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: i * 0.02, duration: 0.2 }}
+        whileTap={{ scale: 0.97 }}
+        className="group relative overflow-hidden rounded-[1.15rem] border border-border/45 bg-background/70 shadow-sm transition hover:border-border/80 hover:bg-card hover:shadow-md"
+      >
+        <Link
+          to={link.href}
+          aria-label={`Open ${link.label}: ${link.description}`}
+          onClick={() => trackRecent(link.href)}
+          className={cn(
+            "flex min-w-0 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            density === "compact" ? "gap-2 rounded-2xl p-2" : "gap-3 rounded-[1.15rem] p-3",
+            canPin && "pr-14",
+          )}
+        >
+          {rowContent}
+        </Link>
         {canPin && (
           <button
             type="button"
             aria-label={isPinned ? `Unpin ${link.label}` : `Pin ${link.label} to shortcuts`}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
+            onClick={() => {
               if (!normalizeInternalHref(link.href)) return;
               togglePin(link.href);
               toast.success(isPinned ? `${link.label} removed from shortcuts` : `${link.label} pinned`);
             }}
             className={cn(
-              "rounded-full p-1.5 active:scale-90 transition",
-              isPinned ? "bg-amber-400/15" : "opacity-50 hover:bg-muted/70 group-hover:opacity-100",
+              "absolute right-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-2xl text-muted-foreground transition active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isPinned ? "text-amber-500" : "opacity-70 hover:text-foreground sm:opacity-50 sm:group-hover:opacity-100 sm:focus-visible:opacity-100",
             )}
           >
-            <Star
-              className={cn(
-                "h-3.5 w-3.5",
-                isPinned ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30",
-              )}
-            />
+            <span className={cn(
+              "flex h-7 w-7 items-center justify-center rounded-full shadow-sm ring-1 ring-border/50",
+              isPinned ? "bg-amber-400/15" : "bg-background/95",
+            )}>
+              <Star
+                className={cn(
+                  "h-3.5 w-3.5",
+                  isPinned ? "fill-amber-400 text-amber-400" : "text-muted-foreground/45",
+                )}
+              />
+            </span>
           </button>
         )}
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/25 transition-transform group-hover:translate-x-0.5" />
       </motion.div>
-    );
-
-    if (isAction) return <Fragment key={link.label}>{inner}</Fragment>;
-    return (
-      <Link
-        key={link.label}
-        to={link.href}
-        className="contents"
-        onClick={() => canPin && trackRecent(link.href)}
-      >
-        {inner}
-      </Link>
     );
   };
 
@@ -1684,7 +1697,7 @@ export default function MorePage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: si * 0.04, duration: 0.3 }}
-        className="mb-3 overflow-hidden rounded-[1.5rem] border border-border/55 bg-card/70 shadow-sm [scroll-margin-top:88px]"
+        className="overflow-hidden rounded-[1.5rem] border border-border/55 bg-card/70 shadow-sm [scroll-margin-top:88px]"
       >
         <button type="button"
           onClick={() => setExpandedSection(isOpen ? null : section.title)}
@@ -1726,7 +1739,7 @@ export default function MorePage() {
             </motion.div>
           </div>
           {!isOpen && (
-            <div className="mt-2 flex gap-1.5 overflow-hidden pl-11">
+            <div className="mt-2 hidden gap-1.5 overflow-hidden pl-11 sm:flex">
               {previewLinks.map((link) => (
                 <span
                   key={link.href}
@@ -1865,7 +1878,7 @@ export default function MorePage() {
   const searchResults = useMemo<MoreSearchResult[] | null>(() => {
     const q = search.trim().toLowerCase();
     if (!q) return null;
-    return sections.flatMap((section) =>
+    const matches = sections.flatMap((section) =>
       section.links
         .filter(
           (link) =>
@@ -1879,6 +1892,13 @@ export default function MorePage() {
           sectionIcon: section.icon,
         })),
     );
+    const seenResultKeys = new Set<string>();
+    return matches.filter(({ link }) => {
+      const resultKey = `${link.href}::${link.label.toLowerCase()}`;
+      if (seenResultKeys.has(resultKey)) return false;
+      seenResultKeys.add(resultKey);
+      return true;
+    });
   }, [search]);
 
   const searchResultGroups = useMemo(() => {
@@ -1904,10 +1924,6 @@ export default function MorePage() {
     }
     if (link.href === "#switch-account") {
       setConfirmAction("switch");
-      return;
-    }
-    if (link.href === "#theme-toggle") {
-      toggleThemePreference();
       return;
     }
     trackRecent(link.href);
@@ -1941,16 +1957,19 @@ export default function MorePage() {
     }
     setConfirmAction(null);
   };
-  const rawReturnTarget = new URLSearchParams(location.search).get("from") || "profile";
+  const rawReturnTarget = new URLSearchParams(location.search).get("from") || "";
   const returnTarget = rawReturnTarget
     .replace(/^\/+/, "")
     .replace(/[^a-z0-9/_-]/gi, "")
     .split("/")
     .filter(Boolean)
-    .join("/") || "profile";
-  const returnLabel = returnTarget.split("/").pop()!
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .join("/");
+  const returnPath = returnTarget ? `/${returnTarget}` : "/";
+  const returnLabel = returnTarget
+    ? returnTarget.split("/").pop()!
+      .replace(/[-_]+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+    : "Home";
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background safe-area-bottom">
@@ -1960,14 +1979,14 @@ export default function MorePage() {
 
       {/* Mobile sticky header */}
       <header
-        className="zivo-pt-safe-sticky sticky top-0 z-30 flex items-center gap-3 border-b border-border/40 bg-background/90 px-3 pb-2 pt-safe backdrop-blur-xl lg:hidden"
+        className="zivo-pt-safe-sticky sticky top-0 z-30 flex items-center gap-1 border-b border-border/40 bg-background/90 px-3 pb-2 pt-safe backdrop-blur-xl min-[360px]:gap-2 sm:gap-3 lg:hidden"
       >
         <button type="button"
           onClick={() => {
-            navigate(`/${returnTarget}`);
+            navigate(returnPath);
           }}
           aria-label={`Back to ${returnLabel}`}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/55 text-foreground transition-transform hover:bg-muted active:scale-90"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted/55 text-foreground transition-transform hover:bg-muted active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -1980,14 +1999,22 @@ export default function MorePage() {
         <button type="button"
           onClick={() => user ? setShowShareProfile(true) : shareApp()}
           aria-label={user ? "Share your profile" : "Share ZIVO"}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/55 text-foreground transition-transform hover:bg-muted active:scale-90"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted/55 text-foreground transition-transform hover:bg-muted active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Share2 className="h-[18px] w-[18px]" />
+        </button>
+        <button
+          type="button"
+          onClick={focusDirectorySearch}
+          aria-label="Search account tools"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted/55 text-foreground transition-transform hover:bg-muted active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Search className="h-[18px] w-[18px]" />
         </button>
         <button type="button"
           onClick={() => setShowHelpSheet(true)}
           aria-label="Open More help"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-transform active:scale-90"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <HelpCircle className="h-5 w-5" />
         </button>
@@ -1998,7 +2025,7 @@ export default function MorePage() {
 
         <main
           className={cn(
-            "flex-1 flex flex-col px-5 pb-28 pt-4 lg:pt-6 lg:pb-8 lg:max-w-3xl lg:mx-auto zivo-aurora",
+            "flex-1 flex flex-col px-5 pb-[calc(var(--zivo-safe-bottom,0px)+8.5rem)] pt-4 lg:pt-6 lg:pb-8 lg:max-w-3xl lg:mx-auto zivo-aurora",
           )}
         >
           {hasMoreRefreshError && (
@@ -2072,17 +2099,107 @@ export default function MorePage() {
             </motion.div>
           )}
 
+          {/* Account tool search */}
+          <section
+            role="search"
+            aria-label="Search account tools"
+            className="mb-4 rounded-[1.5rem] border border-border/55 bg-card/70 p-2.5 shadow-sm"
+          >
+            <div className="flex items-center gap-1 rounded-[1.15rem] bg-muted/45 px-2 focus-within:ring-2 focus-within:ring-ring/70">
+              <Search aria-hidden="true" className="ml-1 h-4 w-4 shrink-0 text-muted-foreground" />
+              <label htmlFor="more-directory-search" className="sr-only">
+                Search account tools
+              </label>
+              <Input
+                id="more-directory-search"
+                ref={directorySearchRef}
+                type="search"
+                inputMode="search"
+                autoComplete="off"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape" && search) {
+                    event.preventDefault();
+                    clearDirectorySearch();
+                    return;
+                  }
+                  if (event.key !== "Enter" || !search.trim()) return;
+                  event.preventDefault();
+                  recordSearch(search);
+                  if (searchResults?.length === 1) openDirectoryResult(searchResults[0].link);
+                }}
+                placeholder={`Search ${totalLinks} tools`}
+                aria-controls="more-directory-results"
+                aria-expanded={Boolean(searchResults)}
+                className="h-11 min-w-0 flex-1 appearance-none border-0 bg-transparent px-2 text-[13px] font-semibold shadow-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={clearDirectorySearch}
+                  aria-label={`Clear search for ${search}`}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-background/80 hover:text-foreground active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              {speechRef && (
+                <button
+                  type="button"
+                  onClick={startVoiceSearch}
+                  aria-label={isListening ? "Listening for an account tool" : "Search account tools by voice"}
+                  aria-pressed={isListening}
+                  className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isListening
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
+                  )}
+                >
+                  <Mic className={cn("h-4 w-4", isListening && "animate-pulse")} />
+                </button>
+              )}
+            </div>
+
+            {!search && searchHistory.length > 0 && (
+              <div
+                aria-label="Recent account tool searches"
+                className="mt-2 flex items-center gap-1.5 overflow-x-auto scrollbar-hide"
+              >
+                <span className="shrink-0 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Recent
+                </span>
+                {searchHistory.map((term) => (
+                  <button
+                    key={term}
+                    type="button"
+                    onClick={() => {
+                      setSearch(term);
+                      recordSearch(term);
+                      requestAnimationFrame(() => directorySearchRef.current?.focus());
+                    }}
+                    aria-label={`Search account tools for ${term}`}
+                    className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-background px-3 text-[11px] font-bold text-foreground shadow-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
           {/* Quick Actions */}
-          {user && renderQuickActions()}
+          {user && !searchResults && renderQuickActions()}
 
           {/* Preferences panel */}
-          {user && (
+          {user && !searchResults && (
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               role="region"
               aria-labelledby="more-preferences-title"
-              className="mb-5 rounded-[1.75rem] border border-border/60 bg-card p-3 shadow-sm"
+              className="mb-5 rounded-[1.5rem] border border-border/60 bg-card/95 p-3 shadow-sm"
             >
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -2094,43 +2211,48 @@ export default function MorePage() {
                 <Link
                   to="/account/preferences"
                   aria-label="Manage account preferences"
-                  className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-foreground active:scale-95 transition-transform"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-muted/60 px-3 text-[11px] font-bold text-foreground transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Manage
                 </Link>
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                <button type="button"
-                  onClick={toggleThemePreference}
-                  aria-label={`Theme is ${resolvedTheme ?? theme ?? "auto"}. Switch to ${(resolvedTheme ?? theme) === "dark" ? "light" : "dark"} theme`}
-                  className="rounded-2xl bg-muted/45 px-3 py-3 text-left active:scale-[0.97] transition-transform"
+                <Link
+                  to="/account/preferences#accessibility"
+                  onClick={() => trackRecent("/account/preferences#accessibility")}
+                  aria-label="Open display and accessibility preferences"
+                  className="flex min-h-[4.75rem] flex-col justify-between rounded-2xl border border-border/45 bg-background/80 px-3 py-3 text-left shadow-[var(--shadow-xs)] transition hover:border-border/70 hover:bg-card active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  {(resolvedTheme ?? theme) === "dark"
-                    ? <Moon className="mb-2 h-4 w-4 text-amber-400" />
-                    : <Sun className="mb-2 h-4 w-4 text-amber-500" />}
-                  <p className="truncate text-[11px] font-extrabold capitalize">{resolvedTheme ?? theme ?? "auto"}</p>
-                  <p className="truncate text-[9px] font-medium text-muted-foreground">Theme</p>
-                </button>
+                  <Sliders className="h-4 w-4 text-violet-500" />
+                  <div>
+                    <p className="truncate text-[11px] font-extrabold">Display</p>
+                    <p className="truncate text-[9px] font-medium text-muted-foreground">Text & motion</p>
+                  </div>
+                </Link>
                 <button type="button"
                   onClick={toggleDnd}
                   aria-pressed={dndOn}
                   aria-label={dndOn ? "Turn do not disturb off" : "Turn do not disturb on"}
-                  className="rounded-2xl bg-muted/45 px-3 py-3 text-left active:scale-[0.97] transition-transform"
+                  className="flex min-h-[4.75rem] flex-col justify-between rounded-2xl border border-border/45 bg-background/80 px-3 py-3 text-left shadow-[var(--shadow-xs)] transition hover:border-border/70 hover:bg-card active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <Bell className={cn("mb-2 h-4 w-4", dndOn ? "text-rose-500" : "text-emerald-500")} />
-                  <p className="truncate text-[11px] font-extrabold">{dndOn ? "DnD on" : "DnD off"}</p>
-                  <p className="truncate text-[9px] font-medium text-muted-foreground">Alerts</p>
+                  <Bell className={cn("h-4 w-4", dndOn ? "text-rose-500" : "text-emerald-500")} />
+                  <div>
+                    <p className="truncate text-[11px] font-extrabold">{dndOn ? "DnD on" : "DnD off"}</p>
+                    <p className="truncate text-[9px] font-medium text-muted-foreground">Alerts</p>
+                  </div>
                 </button>
                 <button type="button"
                   onClick={toggleSound}
                   aria-pressed={soundOn}
                   aria-label={soundOn ? "Mute app sounds" : "Turn app sounds on"}
-                  className="rounded-2xl bg-muted/45 px-3 py-3 text-left active:scale-[0.97] transition-transform"
+                  className="flex min-h-[4.75rem] flex-col justify-between rounded-2xl border border-border/45 bg-background/80 px-3 py-3 text-left shadow-[var(--shadow-xs)] transition hover:border-border/70 hover:bg-card active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <Volume2 className={cn("mb-2 h-4 w-4", soundOn ? "text-sky-500" : "text-muted-foreground")} />
-                  <p className="truncate text-[11px] font-extrabold">{soundOn ? "Sound on" : "Muted"}</p>
-                  <p className="truncate text-[9px] font-medium text-muted-foreground">Audio</p>
+                  <Volume2 className={cn("h-4 w-4", soundOn ? "text-sky-500" : "text-muted-foreground")} />
+                  <div>
+                    <p className="truncate text-[11px] font-extrabold">{soundOn ? "Sound on" : "Muted"}</p>
+                    <p className="truncate text-[9px] font-medium text-muted-foreground">Audio</p>
+                  </div>
                 </button>
               </div>
 
@@ -2143,7 +2265,7 @@ export default function MorePage() {
                     aria-current={region === r.code ? "true" : undefined}
                     aria-label={region === r.code ? `Current region ${r.label}` : `Switch to ${r.label}`}
                     className={cn(
-                      "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold transition active:scale-95",
+                      "inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full px-2.5 text-[11px] font-bold transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       region === r.code
                         ? "bg-foreground text-background"
                         : "bg-muted/60 text-muted-foreground",
@@ -2204,47 +2326,54 @@ export default function MorePage() {
                       persistAccountStoredStringList(RECENT_KEY, userId, [], 8);
                       toast.success("Shortcuts reset");
                     }}
-                    className="shrink-0 rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
+                    className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-muted/60 px-3 text-[11px] font-bold text-muted-foreground transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Reset
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div
+                className={cn(
+                  "grid gap-2",
+                  hasSavedShortcuts ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-3",
+                )}
+              >
                 {shortcutLinks.map((link) => {
                   const Icon = link.icon;
                   const isPinnedShortcut = pinnedHrefs.includes(link.href);
                   const sourceLabel = shortcutSourceLabel(link.href);
                   return (
-                    <Link
+                    <div
                       key={link.href}
-                      to={link.href}
-                      onClick={() => trackRecent(link.href)}
-                      aria-label={`Open ${link.label} shortcut, ${sourceLabel}`}
-                      className="group relative rounded-2xl bg-muted/35 px-3 py-3 active:scale-[0.97] transition-transform hover:bg-muted/55"
+                      className="group relative rounded-2xl bg-muted/35 transition-colors hover:bg-muted/55"
                     >
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl", getAccentClasses(link.accent).bg)}>
-                          <Icon className={cn("h-4 w-4", getAccentClasses(link.accent).text)} />
+                      <Link
+                        to={link.href}
+                        onClick={() => trackRecent(link.href)}
+                        aria-label={`Open ${link.label} shortcut, ${sourceLabel}`}
+                        className="block rounded-2xl px-3 py-3 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <div className={cn("mb-2 flex items-center gap-2", hasSavedShortcuts ? "pr-10" : "justify-between")}>
+                          <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", getAccentClasses(link.accent).bg)}>
+                            <Icon className={cn("h-4 w-4", getAccentClasses(link.accent).text)} />
+                          </div>
+                          <span className={cn(
+                            "ml-auto rounded-full px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wide",
+                            isPinnedShortcut
+                              ? "bg-amber-400/15 text-amber-600 dark:text-amber-400"
+                              : "bg-background/75 text-muted-foreground",
+                          )}>
+                            {sourceLabel}
+                          </span>
                         </div>
-                        <span className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wide",
-                          isPinnedShortcut
-                            ? "bg-amber-400/15 text-amber-600 dark:text-amber-400"
-                            : "bg-background/75 text-muted-foreground",
-                        )}>
-                          {sourceLabel}
-                        </span>
-                      </div>
-                      <p className="truncate text-[11px] font-extrabold leading-tight">{link.label}</p>
-                      <p className="mt-0.5 truncate text-[9px] font-medium text-muted-foreground">{link.description}</p>
+                        <p className="truncate text-[11px] font-extrabold leading-tight">{link.label}</p>
+                        <p className="mt-0.5 truncate text-[9px] font-medium text-muted-foreground">{link.description}</p>
+                      </Link>
                       {hasSavedShortcuts && (
                         <button
                           type="button"
                           aria-label={`Remove ${link.label} from shortcuts`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
+                          onClick={() => {
                             setPinnedState((previous) => {
                               const current = previous.userId === userId
                                 ? previous.items
@@ -2263,12 +2392,14 @@ export default function MorePage() {
                             });
                             toast.success(`${link.label} removed from shortcuts`);
                           }}
-                          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-background/95 text-muted-foreground shadow-sm ring-1 ring-border/50 transition hover:text-foreground active:scale-90 sm:opacity-0 sm:group-hover:opacity-100"
+                          className="absolute right-0.5 top-0.5 z-10 flex h-11 w-11 items-center justify-center rounded-2xl text-muted-foreground transition hover:text-foreground active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                         >
-                          <X className="h-3.5 w-3.5" />
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/95 shadow-sm ring-1 ring-border/50">
+                            <X className="h-3.5 w-3.5" />
+                          </span>
                         </button>
                       )}
-                    </Link>
+                    </div>
                   );
                 })}
               </div>
@@ -2277,7 +2408,7 @@ export default function MorePage() {
 
           {/* All Sections OR categorized search results */}
           {searchResults ? (
-            <div className="rounded-[1.5rem] border border-border/55 bg-card/70 p-2">
+            <div id="more-directory-results" className="rounded-[1.5rem] border border-border/55 bg-card/70 p-2">
               <div className="flex items-center justify-between px-2 pb-2 pt-1">
                 <div>
                   <h2 className="text-[14px] font-extrabold">Search results</h2>
@@ -2295,7 +2426,7 @@ export default function MorePage() {
                     type="button"
                     onClick={clearDirectorySearch}
                     aria-label={`Clear search for ${search}`}
-                    className="rounded-full bg-muted/60 px-3 py-1.5 text-[11px] font-bold text-muted-foreground active:scale-95 transition-transform"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-muted/60 px-3 text-[11px] font-bold text-muted-foreground transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     Clear
                   </button>
@@ -2319,7 +2450,7 @@ export default function MorePage() {
                           recordSearch(suggestion);
                           requestAnimationFrame(() => directorySearchRef.current?.focus());
                         }}
-                        className="rounded-full bg-background px-3 py-1.5 text-[11px] font-bold text-foreground shadow-sm active:scale-95 transition-transform"
+                        className="inline-flex min-h-11 items-center justify-center rounded-full bg-background px-3 text-[11px] font-bold text-foreground shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {suggestion}
                       </button>
@@ -2358,7 +2489,14 @@ export default function MorePage() {
               )}
             </div>
           ) : (
-            sections.map((section, si) => renderSection(section, si))
+            <div
+              className={cn(
+                "grid gap-2.5",
+                expandedSection ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2",
+              )}
+            >
+              {sections.map((section, si) => renderSection(section, si))}
+            </div>
           )}
 
           {/* Account access */}
@@ -2524,7 +2662,7 @@ export default function MorePage() {
                   <button type="button"
                     onClick={() => setConfirmAction("switch")}
                     aria-label="Switch account"
-                    className="flex items-center justify-center gap-2 rounded-2xl border border-border/55 bg-background px-3 py-3 text-[12px] font-bold active:scale-[0.98] transition-transform"
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-border/55 bg-background px-3 py-3 text-[12px] font-bold transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <RefreshCw className="h-4 w-4" />
                     Switch
@@ -2532,7 +2670,7 @@ export default function MorePage() {
                   <button type="button"
                     onClick={() => setConfirmAction("signout")}
                     aria-label="Sign out of this account"
-                    className="flex items-center justify-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3 py-3 text-[12px] font-bold text-rose-600 dark:text-rose-400 active:scale-[0.98] transition-transform"
+                    className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3 py-3 text-[12px] font-bold text-rose-600 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-rose-400"
                   >
                     <LogOut className="h-4 w-4" />
                     Sign out
@@ -2557,7 +2695,7 @@ export default function MorePage() {
                 to="/support"
                 aria-label="Open ZIVO support"
                 onClick={() => trackRecent("/support")}
-                className="rounded-full bg-foreground px-3 py-1.5 text-[11px] font-bold text-background active:scale-95 transition-transform"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-foreground px-3 text-[11px] font-bold text-background transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 Support
               </Link>
@@ -2574,14 +2712,14 @@ export default function MorePage() {
                 <button type="button"
                   onClick={triggerInstall}
                   aria-label="Install ZIVO app"
-                  className="shrink-0 rounded-full bg-foreground px-3 py-1.5 text-[11px] font-bold text-background active:scale-95 transition-transform"
+                  className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-foreground px-3 text-[11px] font-bold text-background transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Install
                 </button>
                 <button type="button"
                   onClick={dismissInstall}
                   aria-label="Dismiss install prompt"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted active:scale-90 transition-transform"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-transform hover:bg-muted active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -2602,7 +2740,7 @@ export default function MorePage() {
                   to={l.href}
                   aria-label={`Open ${l.label}`}
                   onClick={() => trackRecent(l.href)}
-                  className="text-[11px] font-bold text-muted-foreground/80 hover:text-foreground transition-colors"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[11px] font-bold text-muted-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {l.label}
                 </Link>
@@ -2715,7 +2853,7 @@ export default function MorePage() {
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label="Back to top"
-            className="fixed bottom-[calc(var(--zivo-safe-bottom,0px)+10rem)] lg:bottom-24 right-5 z-30 w-10 h-10 rounded-full bg-card border border-border/60 shadow-md flex items-center justify-center active:scale-90 transition-transform"
+            className="fixed bottom-[calc(var(--zivo-safe-bottom,0px)+10rem)] right-5 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-card shadow-md transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:bottom-24"
           >
             <ArrowLeft className="w-4 h-4 text-foreground rotate-90" />
           </motion.button>

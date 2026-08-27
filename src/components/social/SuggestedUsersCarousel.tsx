@@ -229,23 +229,27 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="zivo-social-module-tile group flex min-w-[200px] flex-shrink-0 items-center gap-2.5 rounded-2xl px-3 py-2.5 transition-all hover:-translate-y-0.5"
               >
-                <div onClick={() => navigate(`/user/${profile.id}`)} className="cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/user/${profile.id}`)}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
                   <Avatar className="zivo-social-avatar-ring h-11 w-11 transition-transform group-hover:scale-105">
                     <AvatarImage src={optimizeAvatar(profile.avatar_url, 40)} loading="lazy" />
                     <AvatarFallback className="bg-transparent text-primary font-bold text-sm">
                       {profile.full_name?.[0]?.toUpperCase() || "?"}
                     </AvatarFallback>
                   </Avatar>
-                </div>
-                <div className="flex-1 min-w-0" onClick={() => navigate(`/user/${profile.id}`)}>
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs font-semibold text-foreground truncate">
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1">
+                    <span className="truncate text-xs font-semibold text-foreground">
                       {profile.full_name || "User"}
-                    </p>
+                    </span>
                     {isBlueVerified(profile.is_verified) && <VerifiedBadge size={12} interactive={false} />}
-                  </div>
-                  <MutualFollowsBadge mutual={mutualMap?.get(profile.id)} className="mt-0.5" />
-                </div>
+                    </span>
+                    <MutualFollowsBadge mutual={mutualMap?.get(profile.id)} className="mt-0.5" />
+                  </span>
+                </button>
                 <button type="button"
                   onClick={() => handleFollow(profile.id)}
                   disabled={following.has(profile.id)}
@@ -254,7 +258,7 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                       ? `Already following ${profile.full_name || "this user"}`
                       : `Follow ${profile.full_name || "this user"}`
                   }
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black transition-all active:scale-95 ${
+                  className={`min-h-11 shrink-0 rounded-full px-3 py-2 text-[11px] font-black transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     following.has(profile.id)
                       ? "zivo-social-chip text-muted-foreground"
                       : "zivo-social-chip-active"
@@ -290,52 +294,56 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
             </p>
           </div>
         </div>
-        <button type="button" className="zivo-social-chip flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold text-primary active:scale-95">
+        <button
+          type="button"
+          onClick={() => navigate("/explore")}
+          className="zivo-social-chip flex min-h-11 shrink-0 items-center gap-1 rounded-full px-3 text-[12px] font-semibold text-primary transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           See all
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
       <div className="mb-2.5 grid grid-cols-4 gap-2">
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+        <div className="zivo-social-module-tile flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Users className="h-3.5 w-3.5" />
           </span>
-          <div className="min-w-0">
+          <div className="w-full min-w-0">
             <p className="text-xs font-black leading-none text-foreground">{visible.length}</p>
-            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Matches</p>
+            <p className="mt-0.5 text-[10px] font-semibold leading-tight text-muted-foreground">Matches</p>
           </div>
         </div>
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+        <div className="zivo-social-module-tile flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
             <UserCheck className="h-3.5 w-3.5" />
           </span>
-          <div className="min-w-0">
+          <div className="w-full min-w-0">
             <p className="text-xs font-black leading-none text-foreground">{followCount}</p>
-            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Added</p>
+            <p className="mt-0.5 text-[10px] font-semibold leading-tight text-muted-foreground">Added</p>
           </div>
         </div>
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+        <div className="zivo-social-module-tile flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/10 text-fuchsia-500">
             <Sparkles className="h-3.5 w-3.5" />
           </span>
-          <div className="min-w-0">
+          <div className="w-full min-w-0">
             <p className="text-xs font-black leading-none text-foreground">{verifiedCount}</p>
-            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Verified</p>
+            <p className="mt-0.5 text-[10px] font-semibold leading-tight text-muted-foreground">Verified</p>
           </div>
         </div>
-        <div className="zivo-social-module-tile flex items-center gap-2 rounded-2xl px-3 py-2">
+        <div className="zivo-social-module-tile flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
             <X className="h-3.5 w-3.5" />
           </span>
-          <div className="min-w-0">
+          <div className="w-full min-w-0">
             <p className="text-xs font-black leading-none text-foreground">{dismissedCount}</p>
-            <p className="mt-1 truncate text-[10px] font-semibold text-muted-foreground">Skipped</p>
+            <p className="mt-0.5 text-[10px] font-semibold leading-tight text-muted-foreground">Skipped</p>
           </div>
         </div>
       </div>
 
-      <div className="zivo-social-module-tile mb-2.5 flex items-center justify-between gap-3 rounded-2xl px-3 py-2">
+      <div className="zivo-social-module-tile mb-2.5 hidden items-center justify-between gap-3 rounded-2xl px-3 py-2 sm:flex">
         <span className="flex min-w-0 items-center gap-2">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-500">
             <SignalIcon className="h-4 w-4" aria-hidden="true" />
@@ -366,9 +374,9 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
               <button type="button"
                 onClick={() => setDismissed((prev) => new Set([...prev, profile.id]))}
                 aria-label={`Dismiss ${profile.full_name || "this suggestion"}`}
-                className="zivo-social-icon-button absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+                className="zivo-social-icon-button absolute right-0 top-0 flex min-h-11 min-w-11 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
-                <X className="h-2.5 w-2.5 text-muted-foreground" />
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
               {isBlueVerified(profile.is_verified) && (
                 <span className="zivo-social-chip absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] text-primary">
@@ -377,9 +385,10 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
               )}
 
               {/* Avatar */}
-              <div
+              <button
+                type="button"
                 onClick={() => navigate(`/user/${profile.id}`)}
-                className="cursor-pointer"
+                className="block w-full cursor-pointer rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Avatar className="zivo-social-avatar-ring mx-auto mb-2 h-16 w-16 transition-transform group-hover:scale-105">
                   <AvatarImage src={optimizeAvatar(profile.avatar_url, 48)} loading="lazy" />
@@ -394,21 +403,21 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                   </p>
                   {isBlueVerified(profile.is_verified) && <VerifiedBadge size={11} interactive={false} />}
                 </div>
+              </button>
 
-                {profile.bio && (
-                  <p className="text-[9px] text-muted-foreground line-clamp-2 mb-1.5 leading-tight">
-                    <SafeCaption text={profile.bio} />
-                  </p>
-                )}
-
-                {/* Follower / posts hint */}
-                <p className="zivo-social-chip mx-auto mb-1 mt-1 w-fit rounded-full px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
-                  {profile.follower_count > 0
-                    ? `${formatFollowerCount(profile.follower_count)} followers`
-                    : "New member"}
+              {profile.bio && (
+                <p className="text-[9px] text-muted-foreground line-clamp-2 mb-1.5 leading-tight">
+                  <SafeCaption text={profile.bio} />
                 </p>
-                <MutualFollowsBadge mutual={mutualMap?.get(profile.id)} className="mb-1.5 text-center text-[9px]" />
-              </div>
+              )}
+
+              {/* Follower / posts hint */}
+              <p className="zivo-social-chip mx-auto mb-1 mt-1 w-fit rounded-full px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
+                {profile.follower_count > 0
+                  ? `${formatFollowerCount(profile.follower_count)} followers`
+                  : "New member"}
+              </p>
+              <MutualFollowsBadge mutual={mutualMap?.get(profile.id)} className="mb-1.5 text-center text-[9px]" />
 
               {/* Follow button */}
               <button type="button"
@@ -419,7 +428,7 @@ const SuggestedUsersCarousel = memo(forwardRef<HTMLDivElement, SuggestedUsersCar
                     ? `Already following ${profile.full_name || "this user"}`
                     : `Follow ${profile.full_name || "this user"}`
                 }
-                className={`w-full rounded-full py-1.5 text-[10px] font-black transition-all active:scale-95 ${
+                className={`min-h-11 w-full rounded-full px-3 py-2 text-[11px] font-black transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   following.has(profile.id)
                     ? "zivo-social-chip text-muted-foreground"
                     : "zivo-social-chip-active"
