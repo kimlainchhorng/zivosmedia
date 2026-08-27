@@ -11,6 +11,7 @@ npm run qa:native-app-contracts
 npm run native:doctor
 npm run native:doctor -- --android-only
 npm run android:icons:check
+npm run android:optimization:test
 npm run native:release-secrets:guide
 npm run native:push-secrets:preflight
 npm run native:store-signing:preflight
@@ -125,7 +126,19 @@ Both Android build scripts run `npm run native:doctor -- --android-only`
 before Gradle, so missing Android SDK/platform-tools setup fails with the local
 setup instructions instead of a late Gradle error. The release build also runs
 `npm run android:icons:check` first and stops if any installed launcher artwork
-does not match the canonical Play Store icon.
+does not match the canonical Play Store icon. It enables R8 optimization,
+shrinking, and obfuscation plus resource shrinking, then automatically runs:
+
+```bash
+npm run android:optimization:check
+```
+
+The check requires the release AAB and non-empty R8 mapping, removed-code,
+merged-configuration, and preserved-plugin reports. It also verifies that the
+deobfuscation mapping and R8 metadata are embedded in the AAB. The Play draft
+helper repeats it before opening Play Console. Google Play Console Bundle
+Explorer remains authoritative for the exact optimization percentages reported
+after upload; a local green check does not claim Google's percentage result.
 
 Verify the exact public pages declared to Google Play are live and visibly complete:
 

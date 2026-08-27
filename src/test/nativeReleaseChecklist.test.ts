@@ -24,6 +24,7 @@ describe("native release checklist", () => {
       "npm run ios:upload:app-store",
       "npm run android:build:debug",
       "npm run android:build:release",
+      "npm run android:optimization:check",
       "npm run android:policy-pages:check",
       "npm run android:upload:play:draft",
       "npm run native:store-signing:preflight",
@@ -61,6 +62,7 @@ describe("native release checklist", () => {
     }
 
     expect(checklist).toContain("OTA updates must not add native plugins");
+    expect(checklist).toContain("Explorer remains authoritative");
     expect(nativeContracts).toContain("native-release-checklist");
     expect(matrix).toContain("src/test/nativeReleaseChecklist.test.ts");
   });

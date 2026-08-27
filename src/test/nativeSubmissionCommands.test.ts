@@ -22,7 +22,9 @@ describe("native submission commands", () => {
       '"android:icons:generate": "node scripts/generate-launcher-icons.mjs"',
       '"android:icons:check": "node scripts/native/check-android-launcher-identity.mjs"',
       '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"',
-      '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease"',
+      '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease && npm run android:optimization:check"',
+      '"android:optimization:check": "node scripts/native/check-android-release-optimization.mjs"',
+      '"android:optimization:test": "node --test scripts/native/check-android-release-optimization.test.mjs"',
       '"android:policy-pages:check": "node scripts/native/check-play-public-policy-pages.mjs"',
       '"android:policy-pages:test": "node --test scripts/native/check-play-public-policy-pages.test.mjs"',
       '"android:upload:play:draft": "node scripts/upload-to-play.mjs"',
@@ -42,6 +44,7 @@ describe("native submission commands", () => {
     expect(playStore).toContain("npm run android:sync");
     expect(playStore).toContain("npm run android:icons:generate");
     expect(playStore).toContain("npm run android:icons:check");
+    expect(playStore).toContain("npm run android:optimization:check");
     expect(playStore).toContain("npm run android:policy-pages:check");
     expect(playStore).toContain("Generate Signed App Bundle");
     expect(playStore).toContain("Play Console");
@@ -82,5 +85,30 @@ describe("native submission commands", () => {
     expect(policyCheck).toContain("https://zivosmedia.com/delete-account");
     expect(policyCheck).toContain("Delete Your ZIVO Account");
     expect(policyCheck).toContain("What may be retained");
+  });
+
+  it("fails Android releases and Play uploads closed without R8 evidence", () => {
+    const buildGradle = read("android/app/build.gradle");
+    const optimizationCheck = read(
+      "scripts/native/check-android-release-optimization.mjs",
+    );
+    const uploadHelper = read("scripts/upload-to-play.mjs");
+
+    expect(buildGradle).toContain("minifyEnabled true");
+    expect(buildGradle).toContain("shrinkResources true");
+    expect(buildGradle).toContain("proguard-android-optimize.txt");
+    expect(optimizationCheck).toContain("mapping.txt");
+    expect(optimizationCheck).toContain("usage.txt");
+    expect(optimizationCheck).toContain("configuration.txt");
+    expect(optimizationCheck).toContain("seeds.txt");
+    expect(optimizationCheck).toContain(
+      "BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map",
+    );
+    expect(uploadHelper).toContain(
+      'import { checkAndroidReleaseOptimization } from "./native/check-android-release-optimization.mjs"',
+    );
+    expect(uploadHelper).toContain(
+      "checkAndroidReleaseOptimization({ rootDir: root });",
+    );
   });
 });

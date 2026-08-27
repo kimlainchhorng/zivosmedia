@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { checkAndroidReleaseOptimization } from "./native/check-android-release-optimization.mjs";
 import { checkPlayPublicPolicyPages } from "./native/check-play-public-policy-pages.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -111,6 +112,7 @@ async function waitForGoogleSignInIfRequested(page, text) {
 }
 
 async function main() {
+  checkAndroidReleaseOptimization({ rootDir: root });
   await checkPlayPublicPolicyPages();
   assertReady();
   const { versionName, versionCode } = readGradleVersion();

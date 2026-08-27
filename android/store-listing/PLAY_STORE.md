@@ -126,6 +126,23 @@ This check fails if either canonical URL is unavailable, redirects elsewhere, re
 document, or no longer visibly identifies ZIVO and the required privacy/deletion information. The
 draft upload helper runs the same check automatically before it opens Play Console.
 
+Verify that the release bundle was built with R8 and resource shrinking:
+
+```bash
+npm run android:optimization:check
+```
+
+The normal release build runs this automatically, and the draft upload helper
+repeats it. It requires non-empty R8 mapping, removed-code, and preserved-plugin
+reports and verifies that deobfuscation metadata is embedded in the bundle. Use
+Play Console Bundle Explorer as the authority for Google's exact optimization
+percentages after upload.
+
+`npm run android:sync` remains available for a manual Android Studio preview;
+the supported release command rebuilds and syncs again before packaging.
+If Android Studio's **Build → Generate Signed App Bundle** flow is used, rerun
+the optimization check against that newly generated bundle before upload.
+
 ## 9. Release Metadata
 
 ```
@@ -160,7 +177,8 @@ npm run android:icons:check
 1. Run `npm run android:policy-pages:check` so the public privacy and deletion paths are live
 2. Run `npm run android:icons:check` so the installed launcher matches the listing icon
 3. Bump `versionCode` and `versionName` in `android/app/build.gradle`
-4. Run `npm run android:sync`
-5. Open Android Studio → **Build → Generate Signed App Bundle**
+4. Run `npm run android:build:release` to sync, build, and verify R8/resource shrinking
+5. Run `npm run android:optimization:check` again after any Android Studio rebuild
 6. Play Console → Production → **Create new release** → upload `.aab`
-7. Paste fields above into matching boxes → Save → Review → Roll out
+7. Confirm the uploaded bundle's optimization results in Bundle Explorer
+8. Paste fields above into matching boxes → Save → Review → Roll out

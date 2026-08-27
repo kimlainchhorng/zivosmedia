@@ -71,6 +71,21 @@ before the first route paints; native shells retain it for a short 350 ms
 handoff after React commits so the WebView cannot expose an unpainted frame. Do
 not bypass this check with a direct Gradle command for a Google Play build.
 
+Release builds also enable R8 code optimization, shrinking, and obfuscation,
+plus Android resource shrinking. After Gradle finishes, the command runs:
+
+```bash
+npm run android:optimization:check
+```
+
+That guard requires the release AAB plus non-empty R8 mapping, removed-code,
+merged-configuration, and preserved-plugin reports. It also verifies that the
+deobfuscation mapping and R8 metadata are embedded in the AAB. The Play draft
+helper repeats the same local guard before opening Play Console. These files
+prove the release pipeline ran; Google Play Console Bundle Explorer remains
+authoritative for the exact optimization percentages Google calculates after
+upload.
+
 For a Google Play-ready signed release, add the real upload key outside Git:
 
 ```text
