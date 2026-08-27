@@ -4,6 +4,7 @@ import { createClient } from "../_shared/deps.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 import {
   adultCreatorPaymentBlockedResponse,
   isAdultCreatorAccount,
@@ -23,6 +24,8 @@ serve(withSecurity("subscribe-to-tier", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
 
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   const sb = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_ANON_KEY") ?? "");
 

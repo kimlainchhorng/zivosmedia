@@ -3,6 +3,7 @@ import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 const PACKAGES: Record<string, { coins: number; bonus: number; price_cents: number; label: string }> = {
   starter: { coins: 60, bonus: 0, price_cents: 99, label: "60 Z Coins" },
@@ -21,6 +22,8 @@ serve(withSecurity("create-coin-checkout", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
     });
   }
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   try {
     const supabase = createClient(

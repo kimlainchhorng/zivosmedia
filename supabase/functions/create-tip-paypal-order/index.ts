@@ -6,6 +6,7 @@
  */
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "sandbox") === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
@@ -32,6 +33,7 @@ Deno.serve(withSecurity("create-tip-paypal-order", async (req, ctx) => {
       headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
     });
   }
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(cors);
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;

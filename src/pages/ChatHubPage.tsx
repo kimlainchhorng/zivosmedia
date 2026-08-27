@@ -8,7 +8,6 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import MessageCircleIcon from "lucide-react/dist/esm/icons/message-circle";
 import StoreIcon from "lucide-react/dist/esm/icons/store";
-import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
 import Headphones from "lucide-react/dist/esm/icons/headphones";
 import Car from "lucide-react/dist/esm/icons/car";
 import Search from "lucide-react/dist/esm/icons/search";
@@ -77,7 +76,6 @@ import MyChannelsStrip from "@/components/chat/MyChannelsStrip";
 import GlobalChatSearch from "@/components/chat/GlobalChatSearch";
 import SuggestedContactsRow from "@/components/chat/SuggestedContactsRow";
 import { useChatPrefs } from "@/hooks/useChatPrefs";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { useBulkPresence } from "@/hooks/useBulkPresence";
 import { useTypingBus } from "@/hooks/useTypingBus";
 import { useLocalChatHide } from "@/hooks/useLocalChatHide";
@@ -298,7 +296,6 @@ type OpenChatState = {
   recipientName?: string;
   recipientAvatar?: string | null;
   prefillInput?: string;
-  openGiftOnMount?: boolean;
   userId?: string;
   userName?: string;
   name?: string;
@@ -331,7 +328,6 @@ function normalizeOpenChatState(openChat?: OpenChatState | null) {
     name,
     avatar,
     prefillInput: openChat.prefillInput,
-    openGiftOnMount: openChat.openGiftOnMount,
   };
 }
 
@@ -611,7 +607,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const [rideLastSeen, setRideLastSeen] = useState<Record<string, string>>({});
   const [supportLastSeen, setSupportLastSeen] = useState<Record<string, string>>({});
   const [openShopChat, setOpenShopChat] = useState<{ storeId: string; name: string; logo?: string | null } | null>(null);
-  const [openPersonalChat, _setOpenPersonalChat] = useState<{ id: string; name: string; avatar?: string | null; isVerified?: boolean; prefillInput?: string; openGiftOnMount?: boolean; initialJumpMessageId?: string | null } | null>(null);
+  const [openPersonalChat, _setOpenPersonalChat] = useState<{ id: string; name: string; avatar?: string | null; isVerified?: boolean; prefillInput?: string; initialJumpMessageId?: string | null } | null>(null);
   // Wrap the raw setter so every call site automatically picks up a pending
   // forward prefill (set by ChannelPostCard.forwardToDm). Keeps the per-row
   // click handlers untouched.
@@ -783,49 +779,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   // Share mode state
   const [sharePayload, setSharePayload] = useState<{ shareUrl: string; shareText: string } | null>(null);
 
-  // Handle post-payment unlock redirect: /chat?unlocked=MESSAGE_ID
-  useEffect(() => {
-    const unlockedMsgId = searchParams.get("unlocked");
-    if (!unlockedMsgId || !user) return;
-    // Remove param from URL immediately (build a fresh URLSearchParams so
-    // React Router detects the change — mutating the existing object can
-    // leave the underlying URL stale and reschedule this effect every render)
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("unlocked");
-    setSearchParams(nextParams, { replace: true });
-    // Auto-verify the unlock with Stripe
-    const verify = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("verify-media-unlock", {
-          body: { message_id: unlockedMsgId },
-        });
-        if (error) throw error;
-        if (data?.unlocked) {
-          toast.success("Media unlocked! 🔓");
-        } else {
-          toast.info("Payment is still processing. The media will unlock shortly.");
-        }
-      } catch {
-        toast.error("Failed to verify unlock");
-      }
-    };
-    verify();
-  }, [searchParams, setSearchParams, user]);
-
-  // Handle premium gift checkout return: /chat?gift=success|canceled
-  useEffect(() => {
-    const giftStatus = searchParams.get("gift");
-    if (giftStatus !== "success" && giftStatus !== "canceled") return;
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.delete("gift");
-    setSearchParams(nextParams, { replace: true });
-    if (giftStatus === "success") {
-      toast.success("Premium gift sent. It may take a moment to appear in chat.");
-    } else {
-      toast.info("Premium gift checkout was canceled.");
-    }
-  }, [searchParams, setSearchParams]);
-
   // Handle ?with=<userId> deep-link from push notification tap
   useEffect(() => {
     let withId = searchParams.get("with");
@@ -842,11 +795,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     }
 
     if (!withId || !user) return;
-    const openGiftOnMount = searchParams.get("gift") === "1";
     const initialJumpMessageId = searchParams.get("msg");
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("with");
-    nextParams.delete("gift");
     nextParams.delete("msg");
     setSearchParams(nextParams, { replace: true });
     setActive("personal");
@@ -872,7 +823,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
         avatar: data?.avatar_url || null,
         isVerified: (data as any)?.is_verified === true,
         prefillInput,
-        openGiftOnMount,
         initialJumpMessageId,
       });
     })();
@@ -917,7 +867,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     searchParams.get("with") ||
     searchParams.get("group") ||
     searchParams.get("msg") ||
-    searchParams.get("unlocked") ||
     normalizedRouteOpenChat ||
     routeState?.shareUrl ||
     routeState?.shareMessage ||
@@ -1508,19 +1457,9 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     }
   }, [announceChatStatus, handleRefreshChatLists, navigate, scrollToConversationList, showUnreadChats]);
 
-  const { isOFMode: zivoOFMode } = useZivoOFMode();
-
-  // When OF mode is on, force folder out of hidden categories (groups, shop, support, ride, custom).
-  useEffect(() => {
-    if (!zivoOFMode) return;
-    if (folder === "all" || folder === "unread" || folder === "personal") return;
-    setFolder("personal");
-    // setFolder is a stable closure over setFolderState; folder is intentionally read.
-  }, [zivoOFMode, folder]);
-
   const folderTabs = useMemo(
-    () => buildChatHubFolderTabs({ builtInFolders, customFolders, zivoOFMode }),
-    [customFolders, zivoOFMode],
+    () => buildChatHubFolderTabs({ builtInFolders, customFolders, zivoOFMode: false }),
+    [customFolders],
   );
 
   // Row actions sheet state — declared before actionsFolderMembership useMemo
@@ -1648,7 +1587,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const { folderFiltered, archivedList, visibleList } = filterChatHubRows({
     rows: rawChatList as any[],
     folder,
-    zivoOFMode,
+    zivoOFMode: false,
     customFolderMemberMap,
     isMarkedUnread,
     isArchived,
@@ -1824,7 +1763,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const chatComposerStudioItems = [
     { label: "Pictures", detail: "Shared gallery", icon: ImageIcon, action: () => navigate("/chat-media") },
     { label: "Videos", detail: "Clips and albums", icon: Film, action: () => navigate("/chat-media") },
-    { label: "Locked", detail: "Paid unlocks", icon: Lock, action: () => navigate("/my-unlocks") },
     { label: "Scan", detail: "QR connect", icon: ScanLine, action: () => navigate("/qr-profile") },
     { label: "Stickers", detail: "Packs and reactions", icon: ImageIcon, action: () => navigate("/stickers") },
     { label: "Voice", detail: "Voice notes", icon: Mic, action: () => navigate("/voice-notes") },
@@ -1862,7 +1800,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   ];
 
   const trustVaultItems = [
-    { label: "Unlocks", detail: "Locked media history", icon: Lock, action: () => navigate("/my-unlocks") },
     { label: "Trust score", detail: "Account reputation", icon: ShieldCheck, action: () => navigate("/trust-score") },
     { label: "Warnings", detail: "Safety notices", icon: Bell, action: () => navigate("/warnings") },
     { label: "Spam", detail: "Detection center", icon: Radar, action: () => navigate("/spam-detections") },
@@ -1900,7 +1837,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
       ],
     },
     {
-      title: "Creator channel",
+      title: "Community channel",
       detail: "Create a channel, post updates, and broadcast links.",
       icon: Hash,
       actions: [
@@ -1931,9 +1868,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
   const inboxIntelligenceItems = [
     { label: "Unread", detail: `${commandCenterStats.totalUnread} waiting`, icon: Bell, action: () => setFolder("unread") },
     { label: "Groups", detail: `${groupChats.length} spaces`, icon: Users, action: () => setFolder("groups") },
-    { label: "Channels", detail: "Subscriptions", icon: Hash, action: () => navigate("/channels") },
+    { label: "Channels", detail: "Followed channels", icon: Hash, action: () => navigate("/channels") },
     { label: "Media", detail: "Photos and files", icon: ImageIcon, action: () => navigate("/chat-media") },
-    { label: "Locked", detail: "Unlock history", icon: Lock, action: () => navigate("/my-unlocks") },
     { label: "Requests", detail: `${pendingRequests.length} contact`, icon: UserPlus, action: () => navigate("/chat/contacts/requests") },
   ];
 
@@ -1962,15 +1898,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     { label: "Login activity", detail: "Recent access", icon: Activity, action: () => navigate("/login-activity") },
     { label: "Devices", detail: "Linked devices", icon: ScreenShare, action: () => navigate("/account/linked-devices") },
     { label: "Legal", detail: "Policies and terms", icon: CheckSquare, action: () => navigate("/account/legal") },
-  ];
-
-  const monetizationItems = [
-    { label: "Locked media", detail: "Paid unlock flow", icon: Lock, action: () => navigate("/my-unlocks") },
-    { label: "Tips", detail: "Creator support", icon: DollarSign, action: () => navigate("/account/tips") },
-    { label: "Wallet", detail: "Payments and balance", icon: HardDrive, action: () => navigate("/account/wallet") },
-    { label: "Earnings", detail: "Creator payouts", icon: Activity, action: () => navigate("/creator/earnings") },
-    { label: "Gift history", detail: "Premium sends", icon: Share2, action: () => navigate("/gift-history") },
-    { label: "Subscriptions", detail: "Account plans", icon: CheckSquare, action: () => navigate("/account/subscriptions") },
   ];
 
   const securityOpsItems = [
@@ -2014,7 +1941,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
     { label: "Pictures", detail: "Image gallery", icon: ImageIcon, action: () => navigate("/chat-media") },
     { label: "Videos", detail: "Shared clips", icon: Film, action: () => navigate("/chat-media") },
     { label: "Voice", detail: "Audio notes", icon: Mic, action: () => navigate("/voice-notes") },
-    { label: "Locked", detail: "Unlock media", icon: Lock, action: () => navigate("/my-unlocks") },
     { label: "Location", detail: "Places and maps", icon: MapPin, action: () => navigate("/places") },
     { label: "Stickers", detail: "Reaction packs", icon: ImageIcon, action: () => navigate("/stickers") },
     { label: "Saved", detail: "Private stash", icon: Bookmark, action: () => setOpenPersonalChat({ id: user.id, name: "Saved Messages", avatar: null, isVerified: false }) },
@@ -2587,7 +2513,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 		                            <span className="min-w-0 flex-1 truncate">Add Account</span>
 		                          </button>
 		                          <div className="h-px bg-slate-300/60 dark:bg-white/10" />
-		                          {active === "personal" && user && !zivoOFMode && (
+		                          {active === "personal" && user && (
 		                            <button
 		                              type="button"
 	                              onClick={() => {
@@ -2600,7 +2526,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 		                              <span className="min-w-0 flex-1 truncate">Saved Messages</span>
 		                            </button>
 		                          )}
-	                          {active === "personal" && !zivoOFMode && (
+	                          {active === "personal" && (
 	                            <button
 	                              type="button"
 	                              onClick={() => {
@@ -2739,7 +2665,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                    </span>
 	                  )}
 	                </div>
-	                {active === "personal" && !selectionMode && !zivoOFMode && (
+	                {active === "personal" && !selectionMode && (
 	                  <button
 	                    type="button"
 	                    onClick={() => {
@@ -2771,7 +2697,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <SquarePen className="w-5 h-5 text-muted-foreground" />
                     </button>
                   )}
-                  {active === "personal" && !selectionMode && !search && !zivoOFMode && (
+                  {active === "personal" && !selectionMode && !search && (
                     <button type="button"
                       onClick={() => setSelectionMode(true)}
                       className="zivo-chat-icon-button relative hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all sm:flex"
@@ -2781,7 +2707,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <CheckSquare className="w-5 h-5 text-muted-foreground" />
                     </button>
                   )}
-                  {active === "personal" && !selectionMode && !zivoOFMode && (
+                  {active === "personal" && !selectionMode && (
                     <button type="button"
                       onClick={() => void handleMarkAllPersonalRead()}
                       className="zivo-chat-icon-button relative hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all sm:flex"
@@ -2791,7 +2717,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <CheckCheck className="w-5 h-5 text-muted-foreground" />
                     </button>
                   )}
-                  {active === "personal" && !selectionMode && !zivoOFMode && (
+                  {active === "personal" && !selectionMode && (
                     <button type="button"
                       onClick={() => navigate('/chat/contacts')}
                       className="zivo-chat-icon-button relative hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all sm:flex"
@@ -2801,7 +2727,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       <UserPlus className="w-5 h-5 text-muted-foreground" />
                     </button>
                   )}
-                  {active === "personal" && !selectionMode && !zivoOFMode && (
+                  {active === "personal" && !selectionMode && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button type="button"
@@ -2836,7 +2762,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
-                  {active === "personal" && !selectionMode && !zivoOFMode && (
+                  {active === "personal" && !selectionMode && (
                     <button type="button"
                       onClick={() => setShowCreateGroup(true)}
                       className="zivo-chat-icon-button relative hidden h-9 w-9 items-center justify-center rounded-full active:scale-90 transition-all sm:flex"
@@ -2875,7 +2801,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	          )}
 
 	          {/* Start a group call entry — shown only on the Groups folder */}
-          {folder === "groups" && active === "personal" && !zivoOFMode && !selectionMode && (
+          {folder === "groups" && active === "personal" && !selectionMode && (
             <div className={cn("px-5 pt-3 pb-3 border-b border-border/20", embedded && "px-3 pt-2 pb-2", collapsedRail && "lg:hidden")}>
               <div className="zivo-chat-card flex items-center gap-3 rounded-2xl p-3">
                 <div className="zivo-chat-icon-button flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl">
@@ -3294,38 +3220,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
               <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-foreground">Monetization vault</p>
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Locked media, tips, wallet, earnings, gifts, and subscriptions for paid chat workflows.</p>
-                  </div>
-                  <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
-                    <DollarSign className="h-3 w-3" />
-                    Paid
-                  </span>
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {monetizationItems.map((item) => (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={item.action}
-                      className="group flex min-h-[66px] items-center gap-2 rounded-2xl border border-white/45 bg-white/45 px-3 py-2.5 text-left transition-all hover:bg-white/75 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                    >
-                      <span className="zivo-chat-icon-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105">
-                        <item.icon className="h-4 w-4 text-primary" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-[12px] font-black leading-tight text-foreground">{item.label}</span>
-                        <span className="mt-0.5 block truncate text-[10px] font-medium leading-tight text-muted-foreground">{item.detail}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="zivo-chat-card mt-3 overflow-hidden rounded-3xl border border-white/45 bg-white/55 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/40">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
                     <p className="text-sm font-black text-foreground">Security ops center</p>
                     <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Security status, realtime monitoring, scam defense, reporting, scale protection, and recovery.</p>
                   </div>
@@ -3455,7 +3349,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-black text-foreground">Message formats</p>
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Text, pictures, videos, voice, locked media, location, stickers, and saved notes.</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Text, pictures, videos, voice, locations, stickers, and saved notes.</p>
                   </div>
                   <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
                     <Mic className="h-3 w-3" />
@@ -3702,7 +3596,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-black text-foreground">Media composer studio</p>
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Send pictures, videos, locked unlocks, scans, stickers, voice, locations, and saved notes.</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Send pictures, videos, scans, stickers, voice, locations, and saved notes.</p>
                   </div>
                   <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-primary">
                     <ImageIcon className="h-3 w-3" />
@@ -3828,7 +3722,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-black text-foreground">Trust vault</p>
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Locked unlocks, trust score, warnings, spam, appeals, and private account controls.</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">Trust score, warnings, spam, appeals, and private account controls.</p>
                   </div>
                   <span className="zivo-chat-chip inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[10px] font-black text-emerald-700">
                     <Lock className="h-3 w-3" />
@@ -4031,7 +3925,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   )}
                 </div>
 
-		                {!embedded && !search && !archivedScreenOpen && active === "personal" && !selectionMode && !zivoOFMode && !desktopTwoColumn && (
+		                {!embedded && !search && !archivedScreenOpen && active === "personal" && !selectionMode && !desktopTwoColumn && (
 		                  <div className="-mx-4 bg-white px-3 pb-3 pt-3 dark:bg-slate-950">
 		                    <AnimatePresence initial={false}>
 		                      {showBirthdayBanner && (
@@ -4109,12 +4003,12 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
 	                  </div>
 	                )}
 
-		                {!embedded && !search && !archivedScreenOpen && !showBirthdayBanner && active === "personal" && !selectionMode && !zivoOFMode && !desktopTwoColumn && (
+		                {!embedded && !search && !archivedScreenOpen && !showBirthdayBanner && active === "personal" && !selectionMode && !desktopTwoColumn && (
 		                  <ChatStories />
 		                )}
 
 	                {/* Active Now strip — online contacts */}
-	                {!embedded && !search && !archivedScreenOpen && active === "personal" && onlineIds.size > 0 && !zivoOFMode && (
+	                {!embedded && !search && !archivedScreenOpen && active === "personal" && onlineIds.size > 0 && (
                   <div className="zivo-chat-card mb-3 rounded-3xl p-3">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -4151,7 +4045,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 )}
 
 	                {!archivedScreenOpen && (
-	                <div className={cn("flex gap-2 pb-3 pr-2 overflow-x-auto overscroll-x-contain scrollbar-hide", embedded && "gap-1.5 pb-2 pr-1", collapsedRail && "lg:hidden", showBirthdayBanner && !embedded && active === "personal" && !search && !selectionMode && !zivoOFMode && !desktopTwoColumn && (folder === "all" || folder === "personal") && "hidden md:flex")}>
+	                <div className={cn("flex gap-2 pb-3 pr-2 overflow-x-auto overscroll-x-contain scrollbar-hide", embedded && "gap-1.5 pb-2 pr-1", collapsedRail && "lg:hidden", showBirthdayBanner && !embedded && active === "personal" && !search && !selectionMode && !desktopTwoColumn && (folder === "all" || folder === "personal") && "hidden md:flex")}>
                   <button type="button"
                     onClick={() => navigate('/chat/folders')}
                     className={cn(
@@ -4356,7 +4250,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                       </button>
                     )}
                     {active === "personal" && search.trim().length < 2 && (
-                      <div className={cn("grid gap-2.5 w-full max-w-[360px] mt-1", zivoOFMode ? "grid-cols-1" : "grid-cols-3")}>
+                      <div className="grid w-full max-w-[360px] grid-cols-3 gap-2.5 mt-1">
                         <button type="button"
                           onClick={async () => {
                             if (isInviteSharing) return;
@@ -4378,9 +4272,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                           </div>
                           <span className="text-[11px] font-semibold text-foreground leading-tight">{isInviteSharing ? "Sharing..." : "Invite friends"}</span>
                         </button>
-                        {!zivoOFMode && (
-                          <>
-                            <button type="button"
+                        <button type="button"
                               onClick={() => navigate("/chat/nearby")}
                               aria-label="Find people nearby"
                               className="zivo-chat-card flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 transition-transform active:scale-95"
@@ -4389,8 +4281,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                 <MapPinned className="w-4 h-4 text-primary" />
                               </div>
                               <span className="text-[11px] font-semibold text-foreground leading-tight">People nearby</span>
-                            </button>
-                            <button type="button"
+                        </button>
+                        <button type="button"
                               onClick={() => setShowCreateGroup(true)}
                               aria-label="Create new group from empty chat list"
                               className="zivo-chat-card flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 transition-transform active:scale-95"
@@ -4399,9 +4291,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                 <Users className="w-4 h-4 text-primary" />
                               </div>
                               <span className="text-[11px] font-semibold text-foreground leading-tight">New group</span>
-                            </button>
-                          </>
-                        )}
+                        </button>
                       </div>
 	                    )}
 	                    </div>
@@ -4437,7 +4327,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     {archivedSummaryRow}
 
                     {/* Channels strip — subscribed channels with quick access */}
-                    {!search && active === "personal" && (folder === "all" || folder === "personal") && !zivoOFMode && !desktopTwoColumn && (
+                    {!search && active === "personal" && (folder === "all" || folder === "personal") && !desktopTwoColumn && (
                       <div className={cn(collapsedRail && "lg:hidden")}>
                         <MyChannelsStrip />
                       </div>
@@ -4602,27 +4492,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                                       </span>
                                       {!selectionMode && (
                                         <>
-                                          {isPersonalChat && !chat.isGroup && zivoOFMode && (
-                                            <button
-                                              type="button"
-                                              aria-label="Send a tip request"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                e.preventDefault();
-                                                setOpenPersonalChat({
-                                                  id: chat.id,
-                                                  name: chat.name,
-                                                  avatar: chat.avatar,
-                                                  isVerified: (chat as any).isVerified === true,
-                                                  prefillInput: "💰 Send me a tip — link: /monetization/program/tips-donations",
-                                                });
-                                              }}
-                                              className="ml-0.5 w-6 h-6 rounded-full bg-[#00AEEF]/10 hover:bg-[#00AEEF]/20 flex items-center justify-center cursor-pointer"
-                                            >
-                                              <DollarSign className="w-3.5 h-3.5 text-[#00AEEF]" />
-                                            </button>
-                                          )}
-                                          {isPersonalChat && !chat.isGroup && !isSelfChat && !zivoOFMode && (
+                                          {isPersonalChat && !chat.isGroup && !isSelfChat && (
                                             <button
                                               type="button"
                                               aria-label="Voice call"
@@ -4767,7 +4637,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                     })}
 
                     {/* People you may know — Suggested Contacts */}
-                    {!search && active === "personal" && !selectionMode && !zivoOFMode && (
+                    {!search && active === "personal" && !selectionMode && (
                       <div className={cn("pt-2", collapsedRail && "lg:hidden")}>
                         <SuggestedContactsRow />
                       </div>
@@ -5011,8 +4881,8 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 {[
                   { label: "Home", icon: ArrowLeft, action: () => navigate("/") },
                   ...(active === "personal" && !search ? [{ label: "New message", icon: SquarePen, action: () => setShowAddContact(true) }] : []),
-                  ...(active === "personal" && !search && !zivoOFMode ? [{ label: "Select chats", icon: CheckSquare, action: () => setSelectionMode(true) }] : []),
-                  ...(active === "personal" && !zivoOFMode ? [
+                  ...(active === "personal" && !search ? [{ label: "Select chats", icon: CheckSquare, action: () => setSelectionMode(true) }] : []),
+                  ...(active === "personal" ? [
                     { label: "Mark all as read", icon: CheckCheck, action: () => void handleMarkAllPersonalRead() },
                     { label: "Contacts", icon: UserPlus, action: () => navigate("/chat/contacts") },
                     { label: "New group", icon: Users, action: () => setShowCreateGroup(true) },
@@ -5032,7 +4902,7 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                   </button>
                 ))}
 
-                {active === "personal" && !zivoOFMode && (
+                {active === "personal" && (
                   <>
                     <div className="my-2 h-px bg-border/25" />
                     {personalHubMenu.map((item) => (
@@ -5288,7 +5158,6 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
                 recipientAvatar={openPersonalChat.avatar}
                 recipientIsVerified={openPersonalChat.isVerified === true}
                 prefillInput={openPersonalChat.prefillInput}
-                openGiftOnMount={openPersonalChat.openGiftOnMount}
                 initialJumpMessageId={openPersonalChat.initialJumpMessageId}
                 onClose={() => { setOpenPersonalChat(null); setPendingCall(null); queryClient.invalidateQueries({ queryKey: ["chat-hub-personal"] }); }}
                 autoStartCall={pendingCall}

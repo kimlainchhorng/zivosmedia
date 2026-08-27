@@ -2,6 +2,10 @@ import { serve, createClient } from "../_shared/deps.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { getIdempotencyKey, withIdempotency } from "../_shared/idempotency.ts";
+import {
+  creatorMonetizationBlockedResponse,
+  isCreatorMonetizationAccount,
+} from "../_shared/creatorMonetizationCompliance.ts";
 
 const PAYPAL_MODE = Deno.env.get("PAYPAL_MODE") ?? "sandbox"; // "live" | "sandbox"
 const PAYPAL_BASE = PAYPAL_MODE === "sandbox"
@@ -56,6 +60,10 @@ serve(withSecurity("paypal-payout", async (req, ctx) => {
     const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
     if (!user) throw new Error("Invalid auth");
+
+    if (await isCreatorMonetizationAccount(supabase, user.id)) {
+      return creatorMonetizationBlockedResponse(corsHeaders);
+    }
 
     const { amount_cents, paypal_email } = await req.json();
     if (!amount_cents || typeof amount_cents !== "number" || amount_cents < 100) {

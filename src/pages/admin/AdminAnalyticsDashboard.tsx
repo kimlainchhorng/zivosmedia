@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   TrendingUp, Users, ShoppingBag, DollarSign, ArrowUpRight, ArrowDownRight,
   Eye, Package, Car, UserPlus, Plane, Store, Activity, Wallet, Zap,
-  Megaphone, Bell, UserCheck, Utensils, Radio, Film, Heart,
+  Megaphone, Bell, UserCheck, Utensils, Film, Heart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -538,21 +538,6 @@ export default function AdminAnalyticsDashboard() {
     enabled: isAdmin,
   });
 
-  // Live streams in period
-  const { data: liveStreamsRaw } = useQuery({
-    queryKey: ["admin-live-streams", timeRange],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("live_streams")
-        .select("status, ended_at, viewer_count, like_count, created_at")
-        .gte("created_at", since)
-        .limit(5000);
-      if (error) return [];
-      return data || [];
-    },
-    enabled: isAdmin,
-  });
-
   // Stories in period
   const { data: storiesRaw } = useQuery({
     queryKey: ["admin-stories", timeRange],
@@ -850,19 +835,6 @@ export default function AdminAnalyticsDashboard() {
 
   // --- Social & content metrics ---
   const socialMetrics = useMemo(() => {
-    const streams = liveStreamsRaw || [];
-    const liveNow = streams.filter(
-      (s: any) => s.status === "live" && !s.ended_at,
-    ).length;
-    const totalStreamViewers = streams.reduce(
-      (s, x: any) => s + (Number(x.viewer_count) || 0),
-      0,
-    );
-    const totalStreamLikes = streams.reduce(
-      (s, x: any) => s + (Number(x.like_count) || 0),
-      0,
-    );
-
     const stories = storiesRaw || [];
     const storyViews = stories.reduce(
       (s, x: any) => s + (Number(x.view_count) || 0),
@@ -870,15 +842,11 @@ export default function AdminAnalyticsDashboard() {
     );
 
     return {
-      streamsCount: streams.length,
-      liveNow,
-      totalStreamViewers,
-      totalStreamLikes,
       storiesCount: stories.length,
       storyViews,
       storePostsCount: storePostsCount ?? 0,
     };
-  }, [liveStreamsRaw, storiesRaw, storePostsCount]);
+  }, [storiesRaw, storePostsCount]);
 
   // --- Flight subset of travel bookings ---
   const flightStats = useMemo(() => {
@@ -2007,24 +1975,6 @@ export default function AdminAnalyticsDashboard() {
             <Film className="w-3.5 h-3.5" /> Social & Content
           </h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Live Streams"
-              value={socialMetrics.streamsCount.toLocaleString()}
-              icon={Radio}
-              subtitle={
-                socialMetrics.liveNow > 0
-                  ? `${socialMetrics.liveNow} live now`
-                  : "In selected period"
-              }
-              color={socialMetrics.liveNow > 0 ? "red" : "purple"}
-            />
-            <StatCard
-              title="Stream Engagement"
-              value={socialMetrics.totalStreamViewers.toLocaleString()}
-              icon={Eye}
-              subtitle={`${socialMetrics.totalStreamLikes.toLocaleString()} likes`}
-              color="blue"
-            />
             <StatCard
               title="Stories Posted"
               value={socialMetrics.storiesCount.toLocaleString()}

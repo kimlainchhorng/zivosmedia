@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Heart, MessageCircle, UserPlus, ShoppingBag, Bell, BellOff, Check, Trash2,
-  Briefcase, Tv, Activity, Rocket, Plane, AlertTriangle, Tag, DollarSign, AtSign,
+  Briefcase, Activity, Plane, AlertTriangle, Tag, DollarSign, AtSign,
   ChevronDown, CornerUpLeft, UserCircle2, Send, Loader2,
   RefreshCw,
 } from "lucide-react";
@@ -39,7 +39,7 @@ function chatThreadIdFromUrl(url: string | null | undefined): string | null {
 type NotifType =
   | "like" | "comment" | "follow" | "mention"
   | "order" | "payment" | "deal"
-  | "job" | "live" | "wellness" | "creator" | "travel"
+  | "job" | "wellness" | "travel"
   | "alert" | "system";
 
 interface Notification {
@@ -55,7 +55,7 @@ interface Notification {
 const ICON_MAP: Record<NotifType, any> = {
   like: Heart, comment: MessageCircle, follow: UserPlus, mention: AtSign,
   order: ShoppingBag, payment: DollarSign, deal: Tag,
-  job: Briefcase, live: Tv, wellness: Activity, creator: Rocket, travel: Plane,
+  job: Briefcase, wellness: Activity, travel: Plane,
   alert: AlertTriangle, system: Bell,
 };
 
@@ -68,9 +68,7 @@ const COLOR_MAP: Record<NotifType, string> = {
   payment: "text-emerald-500 bg-emerald-500/10",
   deal: "text-orange-500 bg-orange-500/10",
   job: "text-sky-500 bg-sky-500/10",
-  live: "text-rose-500 bg-rose-500/10",
   wellness: "text-teal-500 bg-teal-500/10",
-  creator: "text-violet-500 bg-violet-500/10",
   travel: "text-indigo-500 bg-indigo-500/10",
   alert: "text-amber-500 bg-amber-500/10",
   system: "text-muted-foreground bg-muted",
@@ -86,9 +84,7 @@ function categoryToType(category: string): NotifType {
   if (c.includes("order") || c.includes("purchase") || c.includes("delivery") || c.includes("shipping")) return "order";
   if (c.includes("deal") || c.includes("promo") || c.includes("discount") || c.includes("coupon")) return "deal";
   if (c.includes("job") || c.includes("application") || c.includes("hiring") || c.includes("career")) return "job";
-  if (c.includes("live") || c.includes("stream") || c.includes("broadcast") || c.includes("space")) return "live";
   if (c.includes("wellness") || c.includes("workout") || c.includes("fitness") || c.includes("health")) return "wellness";
-  if (c.includes("creator") || c.includes("monetization") || c.includes("earning")) return "creator";
   if (c.includes("trip") || c.includes("flight") || c.includes("hotel") || c.includes("ride") || c.includes("travel") || c.includes("booking")) return "travel";
   if (c.includes("alert") || c.includes("warning") || c.includes("security")) return "alert";
   return "system";
@@ -146,8 +142,6 @@ const TAB_TYPES: Record<string, NotifType[]> = {
   orders: ["order", "payment", "deal"],
   travel: ["travel"],
   jobs: ["job"],
-  live: ["live"],
-  creator: ["creator"],
   wellness: ["wellness"],
   alerts: ["alert"],
   system: ["system"],
@@ -160,8 +154,6 @@ const TABS: { key: string; label: string; icon?: any }[] = [
   { key: "orders", label: "Orders", icon: ShoppingBag },
   { key: "travel", label: "Travel", icon: Plane },
   { key: "jobs", label: "Jobs", icon: Briefcase },
-  { key: "live", label: "Live", icon: Tv },
-  { key: "creator", label: "Creator", icon: Rocket },
   { key: "wellness", label: "Wellness", icon: Activity },
   { key: "alerts", label: "Alerts", icon: AlertTriangle },
   { key: "system", label: "System", icon: Bell },

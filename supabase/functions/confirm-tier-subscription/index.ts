@@ -24,6 +24,7 @@ import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 import {
   adultCreatorPaymentBlockedResponse,
   isAdultCreatorAccount,
@@ -36,6 +37,8 @@ serve(withSecurity("confirm-tier-subscription", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
 
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   const sb = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",

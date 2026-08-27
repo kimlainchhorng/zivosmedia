@@ -8,10 +8,10 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Capacitor } from "@capacitor/core";
 import {
-  ArrowLeft, Briefcase, CalendarClock, Car, CarFront, CheckCircle,
+  ArrowLeft, CalendarClock, Car, CarFront, CheckCircle,
   Crown, Dumbbell, FileCheck, Gift, Heart, Hotel,
   Mail, MapPin, Package, Pill, Plane, Search, Shield, Ship,
-  ShoppingCart, Sparkles, Tv, UsersRound, UtensilsCrossed, Wine,
+  ShoppingCart, Sparkles, UsersRound, UtensilsCrossed, Wine,
   X, type LucideIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -145,8 +145,6 @@ const ACCENT_BY_HREF: Record<string, { bg: string; icon: string }> = {
   "/zivo-plus": { bg: "bg-yellow-500/10 dark:bg-yellow-400/15", icon: "text-yellow-600 dark:text-yellow-400" },
   "/rewards": { bg: "bg-amber-500/10 dark:bg-amber-400/15", icon: "text-amber-600 dark:text-amber-400" },
   "/deals": { bg: "bg-red-500/10 dark:bg-red-400/15", icon: "text-red-500 dark:text-red-400" },
-  "/live": { bg: "bg-rose-500/10 dark:bg-rose-400/15", icon: "text-rose-500 dark:text-rose-400" },
-  "/creator-dashboard": { bg: "bg-cyan-500/10 dark:bg-cyan-400/15", icon: "text-cyan-500 dark:text-cyan-400" },
 };
 
 function ServiceGlyph({
@@ -244,9 +242,7 @@ const getServiceCategories = (t: (key: string) => string): ServiceCategory[] => 
       { id: "zivo-plus", label: "ZIVO+", href: "/zivo-plus", icon: Crown, badge: t("services.badge.premium"), badgeVariant: "new" },
       { id: "rewards", label: t("services.rewards"), href: "/rewards", icon: Gift, badge: t("services.badge.earn"), badgeVariant: "promo" },
       { id: "deals", label: t("services.deals"), href: "/deals", icon: Sparkles, badge: t("services.badge.hot"), badgeVariant: "promo" },
-      { id: "zivo-live", label: t("services.live"), href: "/live", icon: Tv, badge: t("services.badge.live"), badgeVariant: "new" },
       { id: "wellness", label: t("services.wellness"), href: "/wellness", icon: Dumbbell, badge: t("services.badge.new"), badgeVariant: "new" },
-      { id: "creator-hub", label: t("services.creator"), href: "/creator-dashboard", icon: Briefcase },
     ],
   },
 ];

@@ -3,6 +3,10 @@ import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import {
+  creatorMonetizationBlockedResponse,
+  isCreatorMonetizationAccount,
+} from "../_shared/creatorMonetizationCompliance.ts";
+import {
   adultCreatorPaymentBlockedResponse,
   isAdultCreatorAccount,
 } from "../_shared/adultCreatorPaymentBoundary.ts";
@@ -27,6 +31,10 @@ serve(withSecurity("connect-onboard", async (req, ctx) => {
     const { data: userData, error: uErr } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     if (uErr || !userData.user) throw new Error("Invalid auth");
     const user = userData.user;
+
+    if (await isCreatorMonetizationAccount(supabase, user.id)) {
+      return creatorMonetizationBlockedResponse(corsHeaders);
+    }
 
     const { country: rawCountry = "US", return_url } = await req.json().catch(() => ({}));
     const country = String(rawCountry || "US").trim().toUpperCase();

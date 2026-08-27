@@ -8,7 +8,7 @@ const source = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("role workflow matrix", () => {
-  it("keeps every major role reachable from protected app routes and hub links", () => {
+  it("keeps supported roles reachable while retired creator routes stay absent", () => {
     const app = source("src/App.tsx");
     const morePage = source("src/pages/MorePage.tsx");
     const appMore = source("src/pages/app/AppMore.tsx");
@@ -20,7 +20,6 @@ describe("role workflow matrix", () => {
       'path="/shop-dashboard"',
       'path="/shop-dashboard/orders"',
       'path="/shop-dashboard/employees"',
-      'path="/creator-dashboard"',
       'path="/eats/driver-deliveries"',
       'path="/driver/payouts"',
       'path="/admin/analytics"',
@@ -31,7 +30,6 @@ describe("role workflow matrix", () => {
     }
 
     for (const link of [
-      'label: "Creator Dashboard", href: "/creator-dashboard"',
       'label: "Eats Driver", href: "/eats/driver-deliveries"',
       'label: "Workplace", href: "/personal-dashboard"',
       'label: "Shop Dashboard"',
@@ -56,6 +54,9 @@ describe("role workflow matrix", () => {
     expect(access).toContain('.from("drivers")');
     expect(access).toContain('.from("store_profiles")');
     expect(access).toContain('roles.includes("support")');
+    expect(app).not.toContain('path="/creator-dashboard"');
+    expect(app).not.toContain('path="/creator-payouts"');
+    expect(morePage + appMore).not.toContain('href: "/creator-dashboard"');
   });
 
   it("keeps customer, owner, and staff workflow contract gates in platform audit", () => {
@@ -89,28 +90,22 @@ describe("role workflow matrix", () => {
     }
   });
 
-  it("keeps creator and driver money workflows server-gated by role and identity", () => {
-    const creatorDashboard = source("src/pages/CreatorDashboardPage.tsx");
-    const liveEarnings = source("src/hooks/useLiveEarnings.ts");
+  it("keeps driver money workflows gated and creator money workflows disabled", () => {
+    const app = source("src/App.tsx");
     const creatorPayout = source("supabase/functions/creator-payout-request/index.ts");
+    const creatorBoundary = source("supabase/functions/_shared/creatorMonetizationCompliance.ts");
+    const creatorMigration = source("supabase/migrations/20260827234500_disable_creator_monetization_and_p2p.sql");
     const driverPayouts = source("src/pages/driver/DriverPayoutsPage.tsx");
     const adminDriverPayouts = source("src/pages/admin/AdminDriverPayoutsPage.tsx");
     const resolveDriverPayout = source("supabase/functions/resolve-driver-earning-payout/index.ts");
 
-    for (const table of [
-      "creator_profiles",
-      "creator_tips",
-      "creator_subscriptions",
-      "ppv_posts",
-      "direct_message_unlocks",
-    ]) {
-      expect(creatorDashboard).toContain(`from("${table}")`);
-    }
-    expect(liveEarnings).toContain('supabase.functions.invoke("creator-payout-request"');
+    expect(app).not.toContain('path="/creator-dashboard"');
+    expect(app).not.toContain('path="/creator-payouts"');
     expect(creatorPayout).toContain('withSecurity("creator-payout-request"');
-    expect(creatorPayout).toContain("enforceAal2(auth, corsHeaders)");
-    expect(creatorPayout).toContain("request_live_earnings_payout");
-    expect(creatorPayout).toContain("withIdempotency(req, \"creator-payout-request\", user.id");
+    expect(creatorPayout).toContain("isCreatorMonetizationDisabled()");
+    expect(creatorPayout).toContain("creatorMonetizationBlockedResponse(corsHeaders)");
+    expect(creatorBoundary).toContain("return true;");
+    expect(creatorMigration).toContain("REVOKE EXECUTE ON FUNCTION public.request_live_earnings_payout");
 
     for (const fn of [
       "driver-connect-status",
@@ -188,8 +183,8 @@ describe("role workflow matrix", () => {
     expect(matrix).toContain("npm run qa:client-staff-contracts");
     expect(matrix).toContain("npm run test -- src/test/roleWorkflowMatrix.test.ts src/test/crossVerticalRoleNavigation.test.ts src/test/staffDriverCreatorRoleAccess.test.ts src/test/merchantPayoutOwnerOpsAccess.test.ts src/test/adminModerationRoleAccess.test.ts src/test/adminSupportAccountRoleAccess.test.ts");
     expect(matrix).toContain("npx playwright test tests/e2e/customer-booking-payment.spec.ts tests/e2e/shop-owner-dashboard-permissions.spec.ts tests/e2e/staff-driver-creator-role-access.spec.ts");
-    expect(matrix).toContain("Keep customer booking, shop owner, staff, driver, creator, support, and admin role workflows green.");
-    expect(staffDriverCreator).toContain("staff driver creator role access");
+    expect(matrix).toContain("Keep customer booking, shop owner, staff, driver, support, and admin workflows green while creator monetization remains retired.");
+    expect(staffDriverCreator).toContain("retired creator monetization");
     expect(merchantPayoutOwnerOps).toContain("merchant payout owner ops access");
     expect(adminModeration).toContain("admin moderation role access");
     expect(adminSupportAccounts).toContain("admin support account role access");

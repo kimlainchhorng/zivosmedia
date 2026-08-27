@@ -14,6 +14,7 @@ import { createClient } from "../_shared/deps.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 serve(withSecurity("creator-payout-request", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
@@ -23,6 +24,8 @@ serve(withSecurity("creator-payout-request", async (req, ctx) => {
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
   }
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";

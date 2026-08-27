@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGroupAdmin, type GroupMemberRow, type GroupRole } from "@/hooks/useGroupAdmin";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
-import { formatStarsPrice, getGroupMediaGalleryPath, getLockedMediaItems, isLockedMediaMessage } from "@/lib/chat/lockedMedia";
+import { getGroupMediaGalleryPath, getLockedMediaItems, isLockedMediaMessage } from "@/lib/chat/lockedMedia";
 
 interface ProfileLite {
   user_id: string;
@@ -187,11 +187,6 @@ function messageHasVideo(message: GroupInfoMessage) {
     return lockedItemsFor(message).some((item) => item.kind === "video");
   }
   return false;
-}
-
-function lockedPriceFor(message: GroupInfoMessage) {
-  const value = message.locked_price_coins ?? message.file_payload?.locked_price_coins;
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function formatDuration(ms?: number | null) {
@@ -1016,18 +1011,9 @@ function GroupMediaTile({
   const duration = formatDuration(message.file_payload?.duration_ms);
   const lockedItems = lockedItemsFor(message);
   const lockedCount = lockedItems.length;
-  const lockedPrice = lockedPriceFor(message);
-  const tileBadge = badge || (lockedForViewer ? (lockedCount > 1 ? `${lockedCount} items` : "Locked") : duration || (isVideoTile ? "Video" : ""));
-  const unlockLabel = lockedPrice ? `Unlock for ${formatStarsPrice(lockedPrice)}` : "Locked";
-
-  return (
-    <a
-      href={resolvedSrc || undefined}
-      target="_blank"
-      rel="noreferrer"
-      className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-muted/50 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
-      aria-label={lockedForViewer ? `${unlockLabel} preview` : isVideoTile ? "Open shared video" : "Open shared photo"}
-    >
+  const tileBadge = badge || (lockedForViewer ? (lockedCount > 1 ? `${lockedCount} items` : "Unavailable") : duration || (isVideoTile ? "Video" : ""));
+  const tileContent = (
+    <>
       {isVideoTile && !lockedForViewer && resolvedSrc ? (
         <video src={resolvedSrc} className="h-full w-full object-cover" muted playsInline preload="metadata" />
       ) : resolvedSrc ? (
@@ -1046,7 +1032,7 @@ function GroupMediaTile({
       {lockedForViewer && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/25 px-2 backdrop-blur-[1px]">
           <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-black leading-none text-white shadow-lg backdrop-blur-md">
-            {unlockLabel}
+            Legacy attachment unavailable
           </span>
         </div>
       )}
@@ -1055,6 +1041,29 @@ function GroupMediaTile({
           {tileBadge}
         </span>
       )}
+    </>
+  );
+
+  if (lockedForViewer) {
+    return (
+      <div
+        className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-muted/50 shadow-sm"
+        aria-label="Legacy attachment unavailable"
+      >
+        {tileContent}
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={resolvedSrc || undefined}
+      target="_blank"
+      rel="noreferrer"
+      className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-muted/50 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      aria-label={isVideoTile ? "Open shared video" : "Open shared photo"}
+    >
+      {tileContent}
     </a>
   );
 }

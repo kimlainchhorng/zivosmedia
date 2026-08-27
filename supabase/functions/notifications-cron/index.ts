@@ -21,6 +21,7 @@
  * Auth: cron-secret OR service-role; refuses everything else.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 import { sendSalonReminder, firstNameOf } from "../_shared/salon-notifications.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
@@ -153,7 +154,7 @@ serve(withSecurity("notifications-cron", async (req, ctx) => {
   }
 
   // -- 3+4+5. Creator subscriptions ------------------------------------------
-  try {
+  if (!isCreatorMonetizationDisabled()) try {
     // 3 days out
     const win3aStart = new Date(now + 3 * 24 * 3600_000).toISOString();
     const win3aEnd = new Date(now + 3 * 24 * 3600_000 + 3600_000).toISOString();

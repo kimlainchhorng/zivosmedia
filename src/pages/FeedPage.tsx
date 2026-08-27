@@ -61,8 +61,6 @@ import PictureInPicture from "lucide-react/dist/esm/icons/picture-in-picture-2";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import UserPlus from "lucide-react/dist/esm/icons/user-plus";
 import UserCheck from "lucide-react/dist/esm/icons/user-check";
-import Radio from "lucide-react/dist/esm/icons/radio";
-import Gift from "lucide-react/dist/esm/icons/gift";
 import Film from "lucide-react/dist/esm/icons/film";
 import Scissors from "lucide-react/dist/esm/icons/scissors";
 import Download from "lucide-react/dist/esm/icons/download";
@@ -425,7 +423,6 @@ function ReelCard({
   onStartDuet,
   onStartStitch,
   onShareToStory,
-  onGiftCreator,
   currentReaction,
   onSetReaction,
   onOpenRepost,
@@ -434,7 +431,6 @@ function ReelCard({
   onAutoSkip,
   initialSaved = false,
   initialIsFollowing = false,
-  initialAuthorIsLive = false,
 }: {
   post: FeedPost;
   isActive: boolean;
@@ -451,7 +447,6 @@ function ReelCard({
   onStartDuet?: (post: FeedPost) => void;
   onStartStitch?: (post: FeedPost) => void;
   onShareToStory?: (post: FeedPost) => void;
-  onGiftCreator?: (post: FeedPost) => void;
   currentReaction?: ReactionEmoji | null;
   onSetReaction?: (emoji: ReactionEmoji) => void;
   onOpenRepost?: () => void;
@@ -467,8 +462,6 @@ function ReelCard({
   initialSaved?: boolean;
   /** Pre-fetched follow state — avoids a per-card RPC call on mount. */
   initialIsFollowing?: boolean;
-  /** Pre-fetched live status — avoids a per-card live_streams query on activation. */
-  initialAuthorIsLive?: boolean;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -595,8 +588,6 @@ function ReelCard({
   // the active one, retry play() so users don't have to manually tap to
   // un-stall the video. Browsers may naturally resume buffering, but the
   // play() call ensures we don't sit on a frozen frame.
-  const [authorIsLive, setAuthorIsLive] = useState(initialAuthorIsLive);
-  const [liveAlertDismissed, setLiveAlertDismissed] = useState(false);
   const [isHoldingFastForward, setIsHoldingFastForward] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(() => {
     // Persist user's chosen speed across reels/sessions. Bound to the four
@@ -1275,39 +1266,6 @@ function ReelCard({
       onContextMenu={(e) => e.preventDefault()}
       translate="no"
     >
-
-      {/* Live creator alert banner */}
-      <AnimatePresence>
-        {authorIsLive && isActive && !liveAlertDismissed && (
-          <motion.div
-            key="live-banner"
-            initial={{ y: -60, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -60, opacity: 0 }}
-            transition={{ type: "spring", damping: 22, stiffness: 280 }}
-            className="zivo-feed-glass absolute left-3 right-3 z-50 flex items-center gap-2.5 rounded-2xl px-3 py-2.5"
-            style={{ top: "calc(var(--zivo-safe-top,0px) + 56px)" }}
-          >
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
-            <p className="flex-1 text-white text-[13px] font-semibold truncate">
-              {post.source === "user" ? post.author_name : post.store_name} is LIVE now
-            </p>
-            <button type="button"
-              onClick={(e) => { e.stopPropagation(); navigate(`/live/${post.author_id}`); }}
-              className="shrink-0 px-3 py-1 rounded-full bg-red-500 text-white text-[11px] font-bold active:scale-95 transition-transform"
-            >
-              Join
-            </button>
-            <button type="button"
-              onClick={(e) => { e.stopPropagation(); setLiveAlertDismissed(true); }}
-              className="shrink-0 p-1"
-              aria-label="Dismiss"
-            >
-              <XIcon className="h-3.5 w-3.5 text-white/60" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Media */}
       <SensitiveMediaGate
@@ -2170,25 +2128,8 @@ function ReelCard({
           </button>
         )}
 
-        {/* Gift / Tip creator — non-own posts only */}
-        {!isSelf && post.source === "user" && post.author_id && onGiftCreator && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onGiftCreator?.(post);
-            }}
-            className="hidden sm:flex flex-col items-center gap-0.5 min-w-[44px] min-h-[44px]"
-            aria-label="Send a gift to this creator"
-            title="Gift creator"
-          >
-            <Gift className="w-7 h-7 text-amber-400 drop-shadow-lg" />
-            <span className="text-white text-xs font-semibold drop-shadow">Gift</span>
-          </button>
-        )}
-
         {/* More options (3-dot) opens the reel action sheet.
-            Visible on phones because Duet, Stitch, Gift, and Report live here.
+            Visible on phones because Duet, Stitch, and Report are available here.
             Most actions are also reachable from the Share sheet. */}
         <button
           type="button"
@@ -2469,18 +2410,6 @@ function ReelCard({
                     <span className="text-sm font-medium text-foreground">{showCaptions ? "Hide captions" : "Show captions"}</span>
                   </button>
                 )}
-                {!isSelf && post.source === "user" && post.author_id && onGiftCreator && (
-                  <button type="button"
-                    onClick={() => {
-                      setShowMoreMenu(false);
-                      onGiftCreator(post);
-                    }}
-                    className="flex items-center gap-4 w-full px-4 py-3.5 hover:bg-muted/50 rounded-xl"
-                  >
-                    <Gift className="h-5 w-5 text-amber-500" />
-                    <span className="text-sm font-medium text-foreground">Send gift</span>
-                  </button>
-                )}
                 {!isSelf && isVideoPost && onStartDuet && (
                   <button type="button"
                     onClick={() => {
@@ -2665,7 +2594,6 @@ const MemoReelCard = memo(ReelCard, (prev, next) => {
   if (prev.userId !== next.userId) return false;
   if (prev.initialSaved !== next.initialSaved) return false;
   if (prev.initialIsFollowing !== next.initialIsFollowing) return false;
-  if (prev.initialAuthorIsLive !== next.initialAuthorIsLive) return false;
   // Only re-render when our own like state changes, not when any user's does.
   const prevLiked = prev.userLikedPostIds.has(prev.post.id);
   const nextLiked = next.userLikedPostIds.has(next.post.id);
@@ -3373,14 +3301,6 @@ const FEED_QUICK_LAUNCHES: FeedQuickLaunch[] = [
     icon: ShoppingBag,
     tone: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
     keywords: ["delivery", "package", "courier", "send"],
-  },
-  {
-    label: "Creators",
-    description: "Subscriptions",
-    href: "/creator-dashboard",
-    icon: Briefcase,
-    tone: "bg-pink-500/10 text-pink-600 dark:text-pink-300",
-    keywords: ["onlyfans", "creator", "subscription", "fans", "tips"],
   },
   {
     label: "Services",
@@ -4203,7 +4123,6 @@ export default function FeedPage() {
   const [userLikedPostIds, setUserLikedPostIds] = useState<Set<string>>(new Set());
   const [likePendingPostIds, setLikePendingPostIds] = useState<Set<string>>(new Set());
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
-  const [liveAuthorIds, setLiveAuthorIds] = useState<Set<string>>(new Set());
   const [feedMode, setFeedMode] = useState<"foryou" | "following" | "trending">(() => {
     // Persist tab preference — TikTok remembers For You vs Following, so
     // users who actively curate their following feed don't have to re-pick
@@ -4352,26 +4271,6 @@ export default function FeedPage() {
       successMessage: "Story shared!",
     });
   }, [openReelComposer]);
-
-  const giftReelCreator = useCallback((post: FeedPost) => {
-    if (!userId) {
-      toast.error("Please sign in to send gifts");
-      return;
-    }
-    if (post.source === "user" && post.author_id) {
-      if (post.author_id === userId) {
-        toast.info("You cannot gift your own reel");
-        return;
-      }
-      navigate(`/chat?with=${encodeURIComponent(post.author_id)}&gift=1`);
-      return;
-    }
-    if (post.store_slug) {
-      navigate(`/grocery/shop/${post.store_slug}`);
-      return;
-    }
-    toast.info("Open this creator's profile to support them");
-  }, [navigate, userId]);
 
   const reelComposerModal = (
     <AnimatePresence>
@@ -4825,21 +4724,6 @@ export default function FeedPage() {
       setSavedPostIds(saved);
     });
   }, [userId, posts]);
-
-  // Batch live-stream check — one query for all unique author IDs in the feed
-  useEffect(() => {
-    if (posts.length === 0) return;
-    const authorIds = [...new Set(posts.map((p) => p.author_id).filter(Boolean))] as string[];
-    if (!authorIds.length) return;
-    (supabase as any)
-      .from("live_streams")
-      .select("user_id")
-      .in("user_id", authorIds)
-      .eq("status", "live")
-      .then(({ data }: any) => {
-        setLiveAuthorIds(new Set((data || []).map((r: any) => r.user_id)));
-      });
-  }, [posts]);
 
   // ── Realtime: count new posts that arrive while user is mid-feed ────────────
   // Channel name is opaque (per security guidance) — uses topicForUserSync so
@@ -5566,7 +5450,7 @@ export default function FeedPage() {
         </button>
       </div>
 
-      {/* Discover + Search + Live buttons — hide on desktop.
+      {/* Discover and search buttons — hide on desktop.
           Wrapped in a centered container so on iPad (md+), where the reel
           sits in a 420-px-wide phone frame, the buttons hug the right edge
           of the frame instead of floating in the black gutter outside it. */}
@@ -5576,17 +5460,6 @@ export default function FeedPage() {
       >
       <div data-testid="feed-floating-actions" className="flex justify-end px-3 sm:px-4">
         <div className="pointer-events-auto flex items-center gap-2 rounded-[28px] border border-white/14 bg-black/42 px-2.5 py-2 shadow-[0_20px_45px_-28px_rgba(0,0,0,0.9)] backdrop-blur-2xl sm:gap-2.5 sm:px-3">
-        {/* Live entry — also reachable via the bottom nav, so hide on the
-            smallest phones (<sm) where the row would collide with center tabs. */}
-        <button
-          type="button"
-          onClick={() => navigate("/live")}
-          aria-label="Watch live"
-          title="Live"
-          className="zivo-feed-action-orb hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full items-center justify-center"
-        >
-          <Radio className="w-5 h-5 text-red-400" />
-        </button>
         {/* Discover people — hidden on smallest phones to keep clearance for
             the centered tabs; reachable from the search overlay anyway. */}
         <button
@@ -5801,7 +5674,6 @@ export default function FeedPage() {
                       shouldPreload={index === activeIndex + 1 || index === activeIndex - 1}
                       initialSaved={savedPostIds.has(post.id) || savedPostIds.has(getFeedPostBookmarkKey(post))}
                       initialIsFollowing={post.author_id ? followingIds.has(post.author_id) : false}
-                      initialAuthorIsLive={post.author_id ? liveAuthorIds.has(post.author_id) : false}
                     globalMuted={globalMuted}
                     onToggleMute={() => setGlobalMuted((m) => !m)}
                     onNavigate={(slug) => slug.startsWith("__user__") ? navigate(`/user/${slug.replace("__user__", "")}`) : navigate(`/grocery/shop/${slug}`)}
@@ -5814,7 +5686,6 @@ export default function FeedPage() {
                     onStartDuet={startReelDuet}
                     onStartStitch={startReelStitch}
                     onShareToStory={shareReelToStory}
-                    onGiftCreator={giftReelCreator}
                     currentReaction={(() => {
                       const rawId = post.id.startsWith("u-") ? post.id.slice(2) : post.id;
                       return reactions.reactionFor(rawId, post.source ?? "store");

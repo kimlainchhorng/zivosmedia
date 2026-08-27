@@ -124,8 +124,8 @@ import { perfLog, perfMeasure, perfNow } from "@/lib/perfTrace";
 import { withSupabaseAbortSignal } from "@/utils/withSupabaseAbortSignal";
 import type { FeedPreferenceSource } from "@/hooks/useHiddenPosts";
 
-type FeedWorkflowAction = "story" | "reel" | "shop" | "photo" | "jobs" | "live";
-const FEED_CREATOR_WORKFLOWS: ReadonlyArray<{
+type FeedWorkflowAction = "story" | "reel" | "shop" | "photo" | "jobs";
+const FEED_WORKFLOWS: ReadonlyArray<{
   action: FeedWorkflowAction;
   label: string;
   description: string;
@@ -137,7 +137,6 @@ const FEED_CREATOR_WORKFLOWS: ReadonlyArray<{
   { action: "reel", label: "Reel", description: "Post a video", icon: Film, tone: "bg-purple-500/12 text-purple-600", tileCn: "border-purple-500/22 bg-purple-500/[0.06] hover:bg-purple-500/[0.1] hover:border-purple-500/35" },
   { action: "photo", label: "Photo", description: "Upload a photo", icon: ImageIcon, tone: "bg-sky-500/12 text-sky-600", tileCn: "border-sky-500/22 bg-sky-500/[0.06] hover:bg-sky-500/[0.1] hover:border-sky-500/35" },
   { action: "shop", label: "Shop", description: "Tag products", icon: ShoppingBag, tone: "bg-emerald-500/12 text-emerald-600", tileCn: "border-emerald-500/22 bg-emerald-500/[0.06] hover:bg-emerald-500/[0.1] hover:border-emerald-500/35" },
-  { action: "live", label: "Live", description: "Go live now", icon: Radio, tone: "bg-orange-500/12 text-orange-600", tileCn: "border-orange-500/22 bg-orange-500/[0.06] hover:bg-orange-500/[0.1] hover:border-orange-500/35" },
   { action: "jobs", label: "Jobs", description: "Post a job", icon: Briefcase, tone: "bg-slate-500/12 text-slate-600", tileCn: "border-slate-400/22 bg-slate-500/[0.06] hover:bg-slate-500/[0.08] hover:border-slate-400/35" },
 ];
 
@@ -162,7 +161,6 @@ let reelsFirstMediaMetadataLogged = false;
 const UnifiedShareSheet = lazy(() => import("@/components/shared/ShareSheet"));
 const ZivoMobileNav = lazy(() => import("@/components/app/ZivoMobileNav"));
 const NavBar = lazy(() => import("@/components/home/NavBar"));
-const TipSheet = lazy(() => import("@/components/social/TipSheet"));
 const AlertDialog = lazy(() => import("@/components/ui/alert-dialog").then(m => ({ default: m.AlertDialog })));
 const AlertDialogAction = lazy(() => import("@/components/ui/alert-dialog").then(m => ({ default: m.AlertDialogAction })));
 const AlertDialogCancel = lazy(() => import("@/components/ui/alert-dialog").then(m => ({ default: m.AlertDialogCancel })));
@@ -176,7 +174,6 @@ const FeedGreeting = lazy(() => import("@/components/social/FeedGreeting"));
 const ReelsPreviewRow = lazy(() => import("@/components/social/ReelsPreviewRow"));
 const FeaturedCreatorsRow = lazy(() => import("@/components/social/FeaturedCreatorsRow"));
 const FollowSuggestions = lazy(() => import("@/components/social/FollowSuggestions"));
-const LiveNowStrip = lazy(() => import("@/components/social/LiveNowStrip"));
 const FriendActivity = lazy(() => import("@/components/social/FriendActivity"));
 const TrendingCreators = lazy(() => import("@/components/social/TrendingCreators"));
 const FloatingProductCard = lazy(() => import("@/components/reels/FloatingProductCard"));
@@ -272,14 +269,6 @@ const FEED_SUPER_APP_TARGETS: FeedSuperAppTarget[] = [
     icon: Package,
     tone: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
     keywords: ["delivery", "package", "courier", "send"],
-  },
-  {
-    label: "Creators",
-    description: "Subscriptions and fans",
-    href: "/creator-dashboard",
-    icon: Briefcase,
-    tone: "bg-pink-500/10 text-pink-600 dark:text-pink-300",
-    keywords: ["onlyfans", "creator", "subscription", "fans", "tips"],
   },
   {
     label: "Services",
@@ -459,7 +448,7 @@ function FeedWorkflowRail({
   isSignedIn: boolean;
   onRequireAuth: (returnTo: string) => void;
   onCreate: () => void;
-  onCreateMode: (mode: "photo" | "reel" | "poll" | "story" | "shop" | "live" | undefined) => void;
+  onCreateMode: (mode: "photo" | "reel" | "poll" | "story" | "shop" | undefined) => void;
   onNavigate: (path: string) => void;
 }) {
   const startCreate = (mode: Parameters<typeof onCreateMode>[0]) => {
@@ -477,15 +466,6 @@ function FeedWorkflowRail({
       return;
     }
 
-    if (action === "live") {
-      if (!isSignedIn) {
-        onRequireAuth("/live");
-        return;
-      }
-      onNavigate("/live");
-      return;
-    }
-
     if (!isSignedIn) {
       onRequireAuth(`/feed?compose=${action}`);
       return;
@@ -499,7 +479,7 @@ function FeedWorkflowRail({
 
   return (
     <div className="flex items-center px-1 py-1" role="toolbar" aria-label="Create">
-      {FEED_CREATOR_WORKFLOWS.map(({ action, label, icon: Icon, tone }) => (
+      {FEED_WORKFLOWS.map(({ action, label, icon: Icon, tone }) => (
         <button
           key={action}
           type="button"
@@ -792,7 +772,7 @@ export default function ReelsFeedPage() {
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [newPostsCount, setNewPostsCount] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
-  const [createMode, setCreateMode] = useState<"photo" | "reel" | "poll" | "story" | "shop" | "live" | undefined>(undefined);
+  const [createMode, setCreateMode] = useState<"photo" | "reel" | "poll" | "story" | "shop" | undefined>(undefined);
   const [shareForPost, setShareForPost] = useState<{ shareUrl: string; shareText: string; shareMediaUrl?: string; shareMediaType?: "image" | "video"; sharePostId?: string; sharePostAuthorId?: string; sharePostAuthorName?: string } | null>(null);
   const [commerceDraft, setCommerceDraft] = useState<{
     linkType: "store_product" | "truck_sale";
@@ -1204,22 +1184,6 @@ export default function ReelsFeedPage() {
     queryClient.invalidateQueries({ queryKey: ["reels-feed-grid"] });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [queryClient]);
-
-  // Active live-stream count — drives the visibility + label of the Live Now
-  // banner so we don't promote a discovery surface that has nothing to show.
-  const { data: liveStreamsCount = 0 } = useQuery({
-    queryKey: ["feed-live-count"],
-    queryFn: async () => {
-      const { count } = await (supabase as any)
-        .from("live_streams")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "live");
-      return count || 0;
-    },
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: false,
-    enabled: sidebarDataReady,
-  });
 
   // User search with debounce
   const handleSearchChange = (q: string) => {
@@ -1860,8 +1824,8 @@ export default function ReelsFeedPage() {
   return (
     <>
       <SEOHead
-        title={isFeedRoute ? "ZIVO Feed – Social Posts, Reels & Creator Updates" : "ZIVO Reels – Trending Short Videos & Creator Posts"}
-        description={isFeedRoute ? "Catch up on posts, reels, creators, stories, and community updates on ZIVO." : "Discover trending reels, follow your favorite creators, support them with tips, and shop products straight from videos on ZIVO."}
+        title={isFeedRoute ? "ZIVO Feed – Social Posts, Reels & Community Updates" : "ZIVO Reels – Trending Short Videos & Community Posts"}
+        description={isFeedRoute ? "Catch up on posts, reels, stories, friends, and community updates on ZIVO." : "Discover trending reels, follow people you enjoy, and shop products straight from videos on ZIVO."}
         canonical={isFeedRoute ? "/feed" : "/reels"}
       />
       {/* Desktop NavBar */}
@@ -2050,7 +2014,6 @@ export default function ReelsFeedPage() {
                                 { label: "Event", desc: "Bring people together", icon: Calendar, color: "text-amber-500", route: "/explore" },
                                 { label: "Reel", desc: "Short video", icon: Film, color: "text-fuchsia-500", route: "/reels" },
                                 { label: "Story", desc: "Share for 24h", icon: Camera, color: "text-pink-500", route: "/feed?compose=story" },
-                                { label: "Live", desc: "Go live now", icon: Radio, color: "text-red-500", route: "/go-live" },
                                 { label: "Job", desc: "Post a hiring", icon: Briefcase, color: "text-sky-500", route: "/personal/employer" },
                                 { label: "Spaces", desc: "Audio room", icon: Mic2, color: "text-violet-500", route: "/spaces" },
                                 { label: "Post", desc: "Photo, text, poll", icon: Plus, color: "text-foreground", action: "compose" as const },
@@ -2420,31 +2383,6 @@ export default function ReelsFeedPage() {
             )}
           </AnimatePresence>
 
-          {/* Live Now Banner — only when there's actually something to watch */}
-          {liveStreamsCount > 0 && (
-            <button type="button"
-              onClick={() => navigate("/live")}
-              className="mx-3 mt-3 mb-0.5 flex items-center gap-2 rounded-2xl border border-border/30 bg-background/92 px-3 py-2 shadow-sm transition-colors"
-            >
-              <div className="relative">
-                <Radio className="h-4 w-4 text-red-500" />
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-              </div>
-              <div className="flex-1 text-left min-w-0">
-                <p className="text-[11px] font-bold text-foreground leading-tight flex items-center gap-1.5">
-                  Live Now
-                  <span className="px-1.5 py-px rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
-                    {liveStreamsCount}
-                  </span>
-                </p>
-                <p className="text-[9px] text-muted-foreground leading-tight">
-                  {liveStreamsCount === 1 ? "1 creator is live right now" : `${liveStreamsCount} creators are live right now`}
-                </p>
-              </div>
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          )}
-
           {/* Personalized greeting removed — duplicated the AppHome greeting
               and pushed real feed posts further down the screen. The Feed page
               should land users in content, not in another greeting. */}
@@ -2732,8 +2670,6 @@ export default function ReelsFeedPage() {
                       </div>
                     </div>
                   )}
-                  {/* Live Now strip — real DB-backed creators, self-hides if nobody is live. */}
-                  {sidebarDataReady && idx === 6 && <Suspense fallback={null}><LiveNowStrip /></Suspense>}
                   {/* Interactive community poll after 9th post */}
                   {idx === 8 && <FeedPollCard />}
                   {/* Trending reels strip — TikTok cross-promotion within feed */}
@@ -3187,7 +3123,7 @@ export default function ReelsFeedPage() {
                 </span>
                 <p className="text-[15px] font-semibold text-foreground">ZIVO+</p>
               </div>
-              <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">Unlock exclusive features, locked content, chat tools, and more.</p>
+              <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">Get enhanced app features, travel benefits, and more.</p>
               <button type="button"
                 onClick={() => navigate("/zivo-plus")}
                 className="w-full rounded-xl bg-foreground py-2 text-[13px] font-semibold text-background transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -3314,7 +3250,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [tipTarget, setTipTarget] = useState<{ id: string; name: string } | null>(null);
   const interactionPostId = getFeedInteractionPostId(item);
   const likesTable = getFeedLikesTable(item);
   const speedOptions = [0.75, 1, 1.25, 1.5, 2];
@@ -3641,19 +3576,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
     navigator.clipboard?.writeText(shareUrl).catch(() => {});
     onClose();
     navigate(duetUrl);
-  };
-
-  const handleGiftReel = () => {
-    if (!currentUserId) {
-      toast.error("Please sign in to send a gift");
-      return;
-    }
-    const targetId = item.shared_from_user_id || item.author_id;
-    if (!targetId || targetId === currentUserId) {
-      toast.info("Gifts are available for other creators");
-      return;
-    }
-    setTipTarget({ id: targetId, name: item.shared_from_user_name || item.author_name });
   };
 
   const handleBuyNow = async () => {
@@ -4141,14 +4063,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
           <div className="mt-3 divide-y divide-white/10 rounded-xl bg-white/10">
             <button
               type="button"
-              onClick={handleGiftReel}
-              className="flex min-h-[52px] w-full items-center gap-3 px-3 text-left"
-            >
-              <Gift className="h-5 w-5 text-rose-300" />
-              <span className="text-sm font-semibold">Send gift</span>
-            </button>
-            <button
-              type="button"
               onClick={() => {
                 handleCopyLink();
                 setShowMoreOptions(false);
@@ -4176,17 +4090,6 @@ function ReelSlide({ item, currentUserId, onClose }: { item: FeedItem; currentUs
             commentsCount={localComments}
             onCommentsCountChange={setLocalComments}
             dark
-          />
-        </Suspense>
-      )}
-
-      {tipTarget && (
-        <Suspense fallback={null}>
-          <TipSheet
-            open
-            onClose={() => setTipTarget(null)}
-            creatorId={tipTarget.id}
-            creatorName={tipTarget.name}
           />
         </Suspense>
       )}
@@ -4346,7 +4249,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onHidePost, onOpe
   const [showEditCaption, setShowEditCaption] = useState(false);
   const [editCaptionText, setEditCaptionText] = useState(item.caption || "");
   const [editSaving, setEditSaving] = useState(false);
-  const [tipTarget, setTipTarget] = useState<{ id: string; name: string } | null>(null);
   const [translatedCaption, setTranslatedCaption] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
@@ -6076,17 +5978,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onHidePost, onOpe
             <span className="text-sm font-semibold text-foreground">QR code</span>
           </button>
 
-          {/* Tip creator */}
-          {!isOwner && item.author_id && (
-            <button type="button"
-              onClick={() => { setShowPostMenu(false); setTipTarget({ id: item.author_id!, name: item.author_name }); }}
-              className="zivo-social-sheet-row flex items-center gap-3.5 w-full rounded-2xl px-3.5 py-3 min-h-[48px] transition-all active:scale-[0.99]"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400"><Gift className="h-[18px] w-[18px]" /></span>
-              <span className="text-sm font-semibold text-foreground">Send Tip</span>
-            </button>
-          )}
-
         </div>
       </SwipeableSheet>
 
@@ -6299,18 +6190,6 @@ const FeedCard = memo(function FeedCard({ item, currentUserId, onHidePost, onOpe
           </div>
         </div>
       </SwipeableSheet>
-      {/* Tip Sheet — only mount when needed to avoid loading Stripe.js */}
-      {tipTarget && (
-        <Suspense fallback={null}>
-          <TipSheet
-            open
-            onClose={() => setTipTarget(null)}
-            creatorId={tipTarget.id}
-            creatorName={tipTarget.name}
-          />
-        </Suspense>
-      )}
-
       {/* Unfollow confirm dialog */}
       {showUnfollowConfirm && (
         <Suspense fallback={null}>

@@ -55,11 +55,10 @@ vi.mock("framer-motion", () => ({
 
 const defaultProps = {
   id: "message-1",
-  message: "Locked Bundle · ⭐1,999",
+  message: "Legacy paid attachment",
   time: "1:12 PM",
   isMe: false,
   messageType: "locked_album",
-  lockedPriceCoins: 1999,
   initiallyLocked: true,
   initialReactions: [],
   senderId: "sender-1",
@@ -103,31 +102,39 @@ describe("ChatMessageBubble locked albums", () => {
     openMediaMock.mockClear();
   });
 
-  it("renders a blurred paid bundle with a Stars unlock button", () => {
+  it("renders a retired legacy bundle without an unlock action", () => {
     renderBubble(<ChatMessageBubble {...defaultProps} />);
 
     expect(screen.getByTestId("locked-album-grid")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /unlock locked media bundle for ⭐1,999/i })).toBeInTheDocument();
-    expect(screen.getByText("Locked media bundle")).toBeInTheDocument();
+    expect(screen.getByText("Legacy paid attachment unavailable")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /unlock/i })).not.toBeInTheDocument();
   });
 
-  it("reveals album items after the unlock callback succeeds", async () => {
-    const onUnlockLockedMedia = vi.fn().mockResolvedValue(true);
-    const onLockedMediaUnlocked = vi.fn();
-
+  it("keeps legacy album content readable when it is already available", () => {
     renderBubble(
       <ChatMessageBubble
         {...defaultProps}
-        onUnlockLockedMedia={onUnlockLockedMedia}
-        onLockedMediaUnlocked={onLockedMediaUnlocked}
+        initiallyLocked={false}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /unlock locked media bundle for ⭐1,999/i }));
+    expect(screen.getByText("2 items")).toBeInTheDocument();
+    expect(screen.queryByText("Legacy paid attachment unavailable")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /unlock/i })).not.toBeInTheDocument();
+  });
 
-    await waitFor(() => expect(onUnlockLockedMedia).toHaveBeenCalledWith("message-1"));
-    await waitFor(() => expect(onLockedMediaUnlocked).toHaveBeenCalledWith("message-1"));
-    await waitFor(() => expect(screen.getByText("2 items")).toBeInTheDocument());
+  it("renders an unavailable state for a legacy paid text without a stored preview", () => {
+    renderBubble(
+      <ChatMessageBubble
+        {...defaultProps}
+        message=""
+        messageType="locked_text"
+        filePayload={undefined}
+      />,
+    );
+
+    expect(screen.getByText("Legacy paid attachment unavailable")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /unlock/i })).not.toBeInTheDocument();
   });
 
   it("renders a regular media album with caption and footer metadata", () => {
@@ -138,7 +145,6 @@ describe("ChatMessageBubble locked albums", () => {
         message="Weekend market photos"
         messageType="media_album"
         initiallyLocked={false}
-        lockedPriceCoins={undefined}
         filePayload={{
           album_items: [
             { id: "one", type: "image", url: "one.jpg" },
@@ -169,7 +175,6 @@ describe("ChatMessageBubble locked albums", () => {
         message="chhing new"
         messageType="media_album"
         initiallyLocked={false}
-        lockedPriceCoins={undefined}
         filePayload={{
           album_items: [
             { id: "one", type: "video", url: "one.mp4", duration_ms: 3000 },
@@ -218,7 +223,6 @@ describe("ChatMessageBubble locked albums", () => {
         message="Marked album"
         messageType="media_album"
         initiallyLocked={false}
-        lockedPriceCoins={undefined}
         filePayload={{
           album_items: [
             { id: "one", type: "image", url: "one.jpg" },

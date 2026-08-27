@@ -721,9 +721,7 @@ const PrivacyPolicy = () => {
               <p>
                 ZIVO is not intended for children under 13 years of age, or under 16 where local law requires
                 a higher digital consent age. Limited personal accounts may be available to teens where
-                permitted by law, but travel booking, rides, delivery ordering, car rental, payments, gifts,
-                subscriptions, live streaming, paid content, business tools, and payout features require users
-                to be at least 18 or the age of legal majority.
+                permitted by law, but travel booking, rides, delivery ordering, car rental, payments, business tools, and marketplace payout features require users to be at least 18 or the age of legal majority.
               </p>
               <p className="mt-4">
                 If we learn that we have collected information from a child under the permitted age, we will

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   ArrowLeft, Settings, Globe, Bell, BellOff, Eye,
   Lock, Palette, Type, Volume2, VolumeX, Smartphone, Shield, Trash2, LogOut,
-  Briefcase, Tv, Activity, Rocket, Pill, Calendar, DollarSign, Tag, Heart,
+  Briefcase, Activity, Pill, Calendar, Tag, Heart,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -34,12 +34,9 @@ export default function AppSettingsPage() {
     { id: "2fa", label: "Two-Factor Auth", description: "Extra security for your account", icon: Shield, enabled: false },
     { id: "deals", label: "Deals & Promotions", description: "Hot offers, flash sales & coupons", icon: Tag, enabled: true },
     { id: "jobs", label: "Job Alerts", description: "Matches & application updates", icon: Briefcase, enabled: true },
-    { id: "live", label: "Live & Streams", description: "When followed creators go live", icon: Tv, enabled: true },
-    { id: "creator", label: "Creator Updates", description: "Payouts, milestones & analytics", icon: Rocket, enabled: true },
     { id: "wellness", label: "Wellness Reminders", description: "Activity, hydration & sleep nudges", icon: Activity, enabled: false },
     { id: "meds", label: "Medication Reminders", description: "Take & refill reminders", icon: Pill, enabled: false },
     { id: "appointments", label: "Appointment Reminders", description: "Telehealth & bookings", icon: Calendar, enabled: true },
-    { id: "earnings", label: "Earnings & Payouts", description: "Driver, shop & creator payments", icon: DollarSign, enabled: true },
     { id: "favorites", label: "Favorites Activity", description: "Updates from places you follow", icon: Heart, enabled: false },
   ]);
 

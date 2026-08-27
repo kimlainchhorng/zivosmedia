@@ -20,6 +20,7 @@
  * Auth: cron-secret OR service-role.
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 
 const j = (status: number, body: unknown, corsHeaders: Record<string, string>) =>
@@ -70,6 +71,7 @@ serve(withSecurity("notifications-weekly-digest", async (req, ctx) => {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 3600_000).toISOString();
   const weekStamp = isoWeekStamp(now);
+  const creatorMonetizationDisabled = isCreatorMonetizationDisabled();
 
   // 1. Identify "active" users — anyone who had activity in the last 7d.
   // We union from a few high-signal tables; fall back to recent profile
@@ -98,8 +100,12 @@ serve(withSecurity("notifications-weekly-digest", async (req, ctx) => {
     collect("user_followers", "following_id"),
     collect("food_orders", "customer_id"),
     collect("marketplace_orders", "buyer_id"),
-    collect("creator_tips", "creator_id"),
-    collect("creator_tips", "tipper_id"),
+    ...(!creatorMonetizationDisabled
+      ? [
+        collect("creator_tips", "creator_id"),
+        collect("creator_tips", "tipper_id"),
+      ]
+      : []),
     collect("post_likes", "user_id"),
     collect("post_comments", "user_id"),
   ]);
@@ -135,11 +141,13 @@ serve(withSecurity("notifications-weekly-digest", async (req, ctx) => {
           .select("total_cents")
           .eq("buyer_id", uid)
           .gte("created_at", weekAgo),
-        supabase
-          .from("creator_tips")
-          .select("amount_cents")
-          .eq("creator_id", uid)
-          .gte("created_at", weekAgo),
+        creatorMonetizationDisabled
+          ? Promise.resolve({ data: [] as Array<{ amount_cents: number }> })
+          : supabase
+            .from("creator_tips")
+            .select("amount_cents")
+            .eq("creator_id", uid)
+            .gte("created_at", weekAgo),
         supabase
           .from("notifications")
           .select("*", { count: "exact", head: true })

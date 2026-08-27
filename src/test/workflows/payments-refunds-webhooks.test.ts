@@ -315,10 +315,10 @@ describe("payments, refunds, and webhook workflow", () => {
       "capture-eats-paypal-order",
       "capture-grocery-paypal-order",
       "capture-lodging-paypal-order",
-      "capture-tip-paypal-order",
     ]) {
       expect(paymentReturn).toContain(`supabase.functions.invoke("${route}"`);
     }
+    expect(paymentReturn).not.toContain('supabase.functions.invoke("capture-tip-paypal-order"');
     expect(canonicalRideFrame).toContain("resolveRideAppBaseUrl");
     expect(canonicalRideFrame).not.toContain("capture-ride-tip");
     expect(existsSync(path.join(root, "src/pages/app/RideHubPage.tsx"))).toBe(false);
@@ -397,7 +397,7 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(source("src/hooks/useEatsOrder.ts")).toContain('supabase.functions.invoke("create-eats-payment"');
   });
 
-  it("keeps payment verification and wallet/media verification routes POST-gated", () => {
+  it("keeps payment verification routes POST-gated while chat media unlock remains retired", () => {
     const routes = [
       { route: "payment-verification", rateLimit: "auth_otp" },
       { route: "verify-coin-purchase", rateLimit: "payment" },
@@ -419,10 +419,14 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(source("src/components/admin/PaymentVerificationDialog.tsx")).toContain('supabase.functions.invoke("payment-verification"');
     expect(source("src/components/live/CoinRechargeSheet.tsx")).toContain('supabase.functions.invoke("verify-coin-purchase"');
     expect(source("src/components/admin/AdsStudioWalletGuard.tsx")).toContain('supabase.functions.invoke("verify-ads-wallet-topup"');
-    expect(source("src/components/chat/ChatMessageBubble.tsx")).toContain('supabase.functions.invoke("verify-media-unlock"');
+    const chatBubble = source("src/components/chat/ChatMessageBubble.tsx");
+    expect(chatBubble).not.toContain('supabase.functions.invoke("verify-media-unlock"');
+    expect(chatBubble).not.toContain('supabase.functions.invoke("unlock-media-checkout"');
+    expect(chatBubble).not.toContain("handleUnlockPayment");
+    expect(chatBubble).toContain("Legacy paid attachment unavailable");
   });
 
-  it("keeps chat coin, gift, premium gift, and group media unlock mutations POST-gated", () => {
+  it("keeps retired chat monetization endpoints POST-gated while active group chat no longer invokes unlocks", () => {
     for (const route of [
       "chat-transfer-coins",
       "chat-send-gift",
@@ -442,7 +446,7 @@ describe("payments, refunds, and webhook workflow", () => {
     expect(source("src/hooks/useCoinTransfer.ts")).toContain('supabase.functions.invoke("chat-transfer-coins"');
     expect(source("src/hooks/useChatGifts.ts")).toContain('supabase.functions.invoke("chat-send-gift"');
     expect(source("src/components/chat/ChatGiftPanel.tsx")).toContain('supabase.functions.invoke("chat-send-premium-gift"');
-    expect(source("src/components/chat/GroupChat.tsx")).toContain('supabase.functions.invoke("chat-unlock-group-media"');
+    expect(source("src/components/chat/GroupChat.tsx")).not.toContain('supabase.functions.invoke("chat-unlock-group-media"');
   });
 
   it("keeps salon payment settings writes behind server-side ownership checks", () => {

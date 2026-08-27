@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Heart, Crown, Loader2, Sparkles, Calendar, AlertCircle } from "lucide-react";
+import { ArrowLeft, Heart, Loader2, Sparkles, Calendar, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import SEOHead from "@/components/SEOHead";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -132,7 +131,7 @@ export default function AccountSubscriptionsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <SEOHead title="My Subscriptions – ZIVO" description="View and manage your creator subscriptions. See active subscriptions, renewal dates, and tier details for the creators you support." />
+      <SEOHead title="My Subscriptions – ZIVO" description="Review and cancel legacy subscriptions associated with your account." noIndex />
       <header
         className="sticky top-0 z-30 bg-background/85 backdrop-blur border-b border-border/40"
         style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}
@@ -188,14 +187,9 @@ export default function AccountSubscriptionsPage() {
             </h3>
             <p className="text-sm text-muted-foreground text-center max-w-[260px] mb-5">
               {tab === "active"
-                ? "Discover creators you love and unlock exclusive content."
+                ? "You do not have any active legacy subscriptions."
                 : "Cancelled and expired subscriptions appear here."}
             </p>
-            {tab === "active" && (
-              <Button onClick={() => navigate("/feed?tab=foryou")} className="rounded-full">
-                Discover creators
-              </Button>
-            )}
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -279,14 +273,9 @@ export default function AccountSubscriptionsPage() {
                       </button>
                     )}
                     {!isActive && (
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/user/${s.creator_id}`)}
-                        className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 rounded transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <Crown className="h-3 w-3" />
-                        Resubscribe
-                      </button>
+                      <span className="text-[11px] font-semibold text-muted-foreground">
+                        Ended
+                      </span>
                     )}
                   </div>
                 </motion.div>

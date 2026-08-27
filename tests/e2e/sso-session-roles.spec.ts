@@ -36,7 +36,6 @@ test.describe("SSO, sessions, and role routing contract", () => {
     for (const route of [
       'path="/app"',
       'path="/shop-dashboard"',
-      'path="/creator-dashboard"',
       'path="/eats/driver-deliveries"',
       'path="/account/sessions"',
       'path="/admin/analytics"',
@@ -45,6 +44,9 @@ test.describe("SSO, sessions, and role routing contract", () => {
     ]) {
       expect(app).toContain(route);
     }
+
+    expect(app).not.toContain('path="/creator-dashboard"');
+    expect(app).not.toContain('path="/creator-payouts"');
 
     expect(guard).toContain("withRedirectParam(\"/login\", redirectTarget)");
     expect(guard).toContain("requireAdmin && !isAdmin");

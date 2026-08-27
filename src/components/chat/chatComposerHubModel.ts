@@ -2,7 +2,7 @@ export type ChatComposerSource =
   | { type: "dm"; chatId: string; title: string; canSchedule: true }
   | { type: "group"; chatId: string; title: string; canSchedule: false };
 
-export type ComposerActionSection = "media" | "tools" | "money" | "privacy" | "schedule";
+export type ComposerActionSection = "media" | "tools" | "privacy" | "schedule";
 
 export type ComposerActionId =
   | "photo"
@@ -17,12 +17,8 @@ export type ComposerActionId =
   | "miniapp"
   | "social"
   | "zivo"
-  | "gift"
-  | "wallet"
   | "sensitive"
   | "protected"
-  | "locked"
-  | "locked-text"
   | "disappearing"
   | "schedule"
   | "scheduled";
@@ -40,8 +36,6 @@ export type ComposerIconKey =
   | "miniapp"
   | "social"
   | "zivo"
-  | "gift"
-  | "wallet"
   | "sensitive"
   | "lock"
   | "timer"
@@ -61,7 +55,6 @@ export interface ComposerAction {
 export interface BuildComposerActionsOptions {
   source: ChatComposerSource;
   hasDraftText: boolean;
-  canUseLocked?: boolean;
   enabledActionIds?: Partial<Record<ComposerActionId, boolean>>;
   disappearingEnabled?: boolean;
   disappearingLabel?: string;
@@ -82,12 +75,8 @@ const ACTION_CATALOG: Array<Omit<ComposerAction, "enabled" | "disabledReason">> 
   { id: "miniapp", label: "Mini apps", hint: "Open tools", icon: "miniapp", section: "tools" },
   { id: "social", label: "Social", hint: "Share links", icon: "social", section: "tools" },
   { id: "zivo", label: "ZIVO", hint: "App card", icon: "zivo", section: "tools" },
-  { id: "gift", label: "Gift", hint: "Send a gift", icon: "gift", section: "money" },
-  { id: "wallet", label: "Wallet", hint: "Fast transfer", icon: "wallet", section: "money" },
-  { id: "sensitive", label: "18+", hint: "Blur next media", icon: "sensitive", section: "privacy" },
+  { id: "sensitive", label: "Content warning", hint: "Blur sensitive media", icon: "sensitive", section: "privacy" },
   { id: "protected", label: "Protected", hint: "No save/share", icon: "lock", section: "privacy" },
-  { id: "locked", label: "Locked", hint: "Paid unlock", icon: "lock", section: "privacy" },
-  { id: "locked-text", label: "Paid DM", hint: "Locked message", icon: "lock", section: "privacy" },
   { id: "disappearing", label: "Auto delete", hint: "Disappearing messages", icon: "timer", section: "privacy" },
   { id: "schedule", label: "Schedule", hint: "Send later", icon: "calendar", section: "schedule" },
   { id: "scheduled", label: "Scheduled", hint: "Pending sends", icon: "list", section: "schedule" },
@@ -96,7 +85,6 @@ const ACTION_CATALOG: Array<Omit<ComposerAction, "enabled" | "disabledReason">> 
 export const COMPOSER_ACTION_SECTIONS: ComposerActionSection[] = [
   "media",
   "tools",
-  "money",
   "privacy",
   "schedule",
 ];
@@ -104,7 +92,6 @@ export const COMPOSER_ACTION_SECTIONS: ComposerActionSection[] = [
 export const COMPOSER_SECTION_LABELS: Record<ComposerActionSection, string> = {
   media: "Media",
   tools: "Tools",
-  money: "Money",
   privacy: "Privacy",
   schedule: "Schedule",
 };
@@ -116,7 +103,6 @@ export function getComposerDraftPartnerId(source: ChatComposerSource): string {
 export function buildComposerActions({
   source,
   hasDraftText,
-  canUseLocked = true,
   enabledActionIds = {},
   disappearingEnabled = false,
   disappearingLabel,
@@ -137,11 +123,6 @@ export function buildComposerActions({
         enabled = false;
         disabledReason = "Write a message first";
       }
-    }
-
-    if ((action.id === "locked" || action.id === "locked-text") && !canUseLocked) {
-      enabled = false;
-      disabledReason = "Requires Chat+ or Pro";
     }
 
     if (enabledActionIds[action.id] === false && !disabledReason) {

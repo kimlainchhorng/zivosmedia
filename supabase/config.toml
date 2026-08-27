@@ -25,6 +25,12 @@ project_id = "slirphzzwcogdbkeicff"
     verify_jwt = false
   [functions.stripe-webhook]
     verify_jwt = false
+  # Provider callbacks authenticate with their signed webhook payloads inside
+  # each handler; Supabase JWT verification would reject the providers first.
+  [functions.paypal-tip-webhook]
+    verify_jwt = false
+  [functions.square-tip-webhook]
+    verify_jwt = false
   [functions.create-zivo-plus-checkout]
     verify_jwt = true
   [functions.zivo-plus-portal]

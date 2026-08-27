@@ -10,7 +10,7 @@ import {
   Search, X, Clock, Car, Utensils, Package, Plane, BedDouble,
   ChevronRight, Sparkles, MapPin, Trash2, ShoppingBag, HelpCircle,
   RotateCcw, Navigation, History, BookOpen,
-  Briefcase, Tv, Activity, Rocket, Heart, Crown, Gem, Hash,
+  Briefcase, Heart, Crown, Gem, Hash,
   Mic, Video, Dumbbell, Stethoscope, Pill, Brain, MessageCircle, Film,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -46,8 +46,6 @@ const POPULAR_SERVICES = [
   { label: "Eats", icon: Package, href: "/eats", color: "bg-orange-500/10 text-orange-500 border-orange-500/20" },
   { label: "Delivery", icon: Package, href: "/delivery", color: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
   { label: "Workplace", icon: Briefcase, href: "/personal-dashboard", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
-  { label: "Live", icon: Tv, href: "/live", color: "bg-rose-500/10 text-rose-500 border-rose-500/20" },
-  { label: "Creator", icon: Rocket, href: "/creator-dashboard", color: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
   { label: "Wellness", icon: Heart, href: "/wellness", color: "bg-teal-500/10 text-teal-500 border-teal-500/20" },
   { label: "ZIVO Plus", icon: Crown, href: "/zivo-plus", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
   { label: "Rewards", icon: Gem, href: "/rewards", color: "bg-pink-500/10 text-pink-500 border-pink-500/20" },
@@ -55,7 +53,7 @@ const POPULAR_SERVICES = [
 
 // Quick-jump shortcuts that match by keyword (renders in flat results when query matches)
 const FEATURE_SHORTCUTS: { keywords: string[]; label: string; sub: string; icon: any; href: string; accent: string }[] = [
-  { keywords: ["facebook", "social", "feed", "post", "friends"], label: "Social Feed", sub: "Posts, stories, friends, and creators", icon: MessageCircle, href: "/feed", accent: "text-sky-500" },
+  { keywords: ["facebook", "social", "feed", "post", "friends"], label: "Social Feed", sub: "Posts, stories, friends, and community updates", icon: MessageCircle, href: "/feed", accent: "text-sky-500" },
   { keywords: ["tiktok", "reel", "reels", "shorts", "video"], label: "Reels", sub: "Full-screen short videos", icon: Film, href: "/reels", accent: "text-rose-500" },
   { keywords: ["telegram", "chat", "message", "dm", "group"], label: "Chat", sub: "Messages, groups, stickers, and calls", icon: MessageCircle, href: "/chat", accent: "text-blue-500" },
   { keywords: ["meet", "google meet", "video call", "call", "room"], label: "Meet", sub: "Start a video call or room", icon: Video, href: "/chat/contacts", accent: "text-violet-500" },
@@ -63,15 +61,10 @@ const FEATURE_SHORTCUTS: { keywords: string[]; label: string; sub: string; icon:
   { keywords: ["uber eat", "ubereats", "food", "restaurant", "delivery", "eat"], label: "ZIVO Eats", sub: "Order food and track delivery", icon: Utensils, href: "/eats", accent: "text-orange-500" },
   { keywords: ["booking", "booking.com", "hotel", "stay", "room"], label: "Hotels", sub: "Search places to stay", icon: BedDouble, href: "/hotels", accent: "text-amber-500" },
   { keywords: ["package", "courier", "delivery", "send"], label: "Delivery", sub: "Send packages and manage courier runs", icon: Package, href: "/delivery", accent: "text-violet-500" },
-  { keywords: ["onlyfans", "fans", "subscription", "subscriber"], label: "Creator Hub", sub: "Subscriptions, tips, and creator earnings", icon: Rocket, href: "/creator-dashboard", accent: "text-violet-500" },
   { keywords: ["job", "career", "work", "hire", "apply", "workplace", "clock", "employee"], label: "Workplace", sub: "Clock in, jobs & schedule", icon: Briefcase, href: "/personal-dashboard", accent: "text-blue-500" },
   { keywords: ["resume", "cv"], label: "Build CV", sub: "Create your resume", icon: Briefcase, href: "/personal/create-cv", accent: "text-blue-500" },
-  { keywords: ["live", "stream", "broadcast"], label: "Live Streams", sub: "Watch creators broadcasting now", icon: Tv, href: "/live", accent: "text-rose-500" },
-  { keywords: ["go live", "broadcast"], label: "Go Live", sub: "Start streaming", icon: Video, href: "/go-live", accent: "text-rose-500" },
   { keywords: ["space", "audio", "voice room"], label: "Audio Spaces", sub: "Voice rooms & live talks", icon: Mic, href: "/spaces", accent: "text-purple-500" },
   { keywords: ["channel"], label: "Channels", sub: "Discover & follow channels", icon: Hash, href: "/channels", accent: "text-blue-500" },
-  { keywords: ["creator", "monetize", "earn"], label: "Creator Hub", sub: "Earnings, analytics, growth", icon: Rocket, href: "/creator-dashboard", accent: "text-violet-500" },
-  { keywords: ["payout", "earning", "tips"], label: "Live Earnings", sub: "Tips & gifts in real time", icon: Activity, href: "/creator/live-earnings", accent: "text-violet-500" },
   { keywords: ["wellness", "health"], label: "Wellness Hub", sub: "Activity, vitals, goals & meditation", icon: Heart, href: "/wellness", accent: "text-teal-500" },
   { keywords: ["workout", "fitness", "exercise", "gym"], label: "Workouts", sub: "Plans & guided sessions", icon: Dumbbell, href: "/wellness/workouts", accent: "text-rose-500" },
   { keywords: ["meditate", "meditation", "calm", "mindful"], label: "Mindfulness", sub: "Guided meditations & breathing", icon: Brain, href: "/wellness/mindfulness", accent: "text-purple-500" },
@@ -492,7 +485,7 @@ export default function UniversalSearchOverlay({ isOpen, onClose }: UniversalSea
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search apps, rides, food, hotels, creators..."
+                placeholder="Search apps, rides, food, hotels, and help..."
                 className="w-full bg-muted border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
               />
               {query && (

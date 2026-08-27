@@ -32,7 +32,6 @@ export const PREFETCH_ROUTE_MODULES = {
   "/trending":        "@/pages/TrendingPage",
   "/friend-requests": "@/pages/FriendRequestsPage",
   "/streaks":         "@/pages/StreaksPage",
-  "/coins":           "@/pages/CoinWalletPage",
 } as const;
 
 const PREFETCH_ROUTES: Record<string, () => Promise<unknown>> = {
@@ -64,7 +63,6 @@ const PREFETCH_ROUTES: Record<string, () => Promise<unknown>> = {
   "/trending":        () => import("@/pages/TrendingTopicsPage"),
   "/friend-requests": () => import("@/pages/FriendRequestsPage"),
   "/streaks":         () => import("@/pages/StreaksPage"),
-  "/coins":           () => import("@/pages/CoinWalletPage"),
 };
 
 // Routes to opportunistically warm when the user lands on /feed.

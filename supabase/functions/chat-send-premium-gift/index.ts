@@ -1,6 +1,7 @@
 // chat-send-premium-gift - debit Z-Coins and grant fixed-duration ZIVO Premium to a chat recipient.
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 const PREMIUM_GIFT_DURATIONS: Record<string, { label: string; months: number; coins: number }> = {
   "three-months": { label: "3 months", months: 3, coins: 1000 },
@@ -13,6 +14,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 Deno.serve(withSecurity("chat-send-premium-gift", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, corsHeaders);
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   try {
     const authHeader = req.headers.get("Authorization") || "";

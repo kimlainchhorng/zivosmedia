@@ -3,6 +3,7 @@ import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 import {
   adultCreatorPaymentBlockedResponse,
   isAdultCreatorAccount,
@@ -21,6 +22,8 @@ serve(withSecurity("unlock-media-checkout", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
     });
   }
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",

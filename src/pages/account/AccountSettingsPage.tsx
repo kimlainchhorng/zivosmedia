@@ -6,8 +6,8 @@ import {
   UserPen, Scale, BarChart3, ShieldCheck, Download, Clock, Search, X,
   Smartphone, Heart, Users, Palette, MapPin, Plane, Star, Tag, Crown, UserPlus,
   FileText, HelpCircle, MessageSquare, AlertTriangle, Send, Info, Sparkles, StarIcon, LogOut, Database,
-  Briefcase, Tv, Video, Mic, DollarSign, ClipboardList, Stethoscope, Dumbbell, Activity,
-  Rocket, Hash, BookOpen, PenTool, KeyRound, Languages, Eye, Lock, Fingerprint,
+  Briefcase, ClipboardList, Stethoscope, Dumbbell, Activity,
+  Hash, KeyRound, Languages, Eye, Lock, Fingerprint,
   Cookie, Wallet, Receipt, ShoppingBag, Bookmark, Target, Trophy,
   Sun, BellOff, Zap, Camera, Check, Upload, RefreshCw, ExternalLink, Share2, Copy,
 } from "lucide-react";
@@ -25,7 +25,6 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useRecentSettings } from "@/hooks/useRecentSettings";
 import { usePinnedSettings } from "@/hooks/usePinnedSettings";
 import { useLinkedDevices } from "@/hooks/useLinkedDevices";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import ProfileShareDialog from "@/components/account/ProfileShareDialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,8 +79,8 @@ const settingsGroups: SettingsGroup[] = [
   {
     title: "Privacy & Notifications",
     items: [
-      { icon: Shield, label: "Privacy & Safety", description: "Blocks, mutes, 18+ blur", href: "/account/privacy", color: "bg-rose-500/15", iconColor: "text-rose-500" },
-      { icon: Eye, label: "Sensitive Media", description: "Blur 18+ pictures & videos", href: "/account/privacy#sensitive", color: "bg-fuchsia-500/15", iconColor: "text-fuchsia-500" },
+      { icon: Shield, label: "Privacy & Safety", description: "Blocks, mutes & content controls", href: "/account/privacy", color: "bg-rose-500/15", iconColor: "text-rose-500" },
+      { icon: Eye, label: "Sensitive Media", description: "Blur content marked sensitive", href: "/account/privacy#sensitive", color: "bg-fuchsia-500/15", iconColor: "text-fuchsia-500" },
       { icon: Database, label: "Data Rights", description: "GDPR/CCPA — access, delete, consents", href: "/account/data-rights", color: "bg-zinc-500/15", iconColor: "text-zinc-500" },
       { icon: Bell, label: "Inbox", description: "Past notifications & alerts", href: "/notifications", color: "bg-sky-500/15", iconColor: "text-sky-500" },
       { icon: Bell, label: "Notification Settings", description: "Preferences & channels", href: "/account/notifications", color: "bg-sky-500/15", iconColor: "text-sky-500" },
@@ -107,18 +106,6 @@ const settingsGroups: SettingsGroup[] = [
     ],
   },
   {
-    title: "Creator & Monetization",
-    items: [
-      { icon: Rocket, label: "Creator Dashboard", description: "Earnings, stats & analytics", href: "/creator-dashboard", color: "bg-violet-500/15", iconColor: "text-violet-500" },
-      { icon: DollarSign, label: "Monetization", description: "Revenue programs & payouts", href: "/monetization", color: "bg-emerald-500/15", iconColor: "text-emerald-500" },
-      { icon: Activity, label: "Live Earnings", description: "Real-time tips & gifts", href: "/creator/live-earnings", color: "bg-pink-500/15", iconColor: "text-pink-500" },
-      { icon: Hash, label: "My Channels", description: "Manage your channels", href: "/channels", color: "bg-blue-500/15", iconColor: "text-blue-500" },
-      { icon: BarChart3, label: "Content Analytics", description: "Performance insights", href: "/content-analytics", color: "bg-cyan-500/15", iconColor: "text-cyan-500" },
-      { icon: PenTool, label: "Digital Products", description: "Sell courses & files", href: "/digital-products", color: "bg-fuchsia-500/15", iconColor: "text-fuchsia-500" },
-      { icon: BookOpen, label: "Creator Academy", description: "Guides & tutorials", href: "/monetization/articles", color: "bg-orange-500/15", iconColor: "text-orange-500" },
-    ],
-  },
-  {
     title: "Workplace & Jobs",
     items: [
       { icon: Briefcase, label: "Workplace", description: "Clock in, jobs & schedule", href: "/personal-dashboard", color: "bg-blue-500/15", iconColor: "text-blue-500" },
@@ -128,17 +115,6 @@ const settingsGroups: SettingsGroup[] = [
       { icon: UserPlus, label: "Find Employees", description: "Hire talent", href: "/personal/find-employee", color: "bg-violet-500/15", iconColor: "text-violet-500" },
       { icon: Bell, label: "Job Alerts", description: "Match notifications", href: "/personal/notifications", color: "bg-yellow-500/15", iconColor: "text-yellow-500" },
       { icon: Wallet, label: "Pay Stubs", description: "Payment history", href: "/personal/pay-stubs", color: "bg-green-500/15", iconColor: "text-green-500" },
-    ],
-  },
-  {
-    title: "Live & Streaming",
-    items: [
-      { icon: Tv, label: "Live Streams", description: "Watch live broadcasts", href: "/live", color: "bg-rose-500/15", iconColor: "text-rose-500" },
-      { icon: Video, label: "Go Live", description: "Start broadcasting", href: "/go-live", color: "bg-red-500/15", iconColor: "text-red-500" },
-      { icon: Mic, label: "Audio Spaces", description: "Voice rooms", href: "/spaces", color: "bg-purple-500/15", iconColor: "text-purple-500" },
-      { icon: Hash, label: "Channels Directory", description: "Discover channels", href: "/channels", color: "bg-blue-500/15", iconColor: "text-blue-500" },
-      { icon: Sparkles, label: "AR Filters", description: "Effects & filters", href: "/filters", color: "bg-fuchsia-500/15", iconColor: "text-fuchsia-500" },
-      { icon: Bell, label: "Live Notifications", description: "Alerts when followed creators go live", href: "/account/notifications#live", color: "bg-amber-500/15", iconColor: "text-amber-500" },
     ],
   },
   {
@@ -193,7 +169,6 @@ const settingsGroups: SettingsGroup[] = [
 export default function AccountSettingsPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { isOFMode: zivoOFMode, setOFMode: setZivoOFMode } = useZivoOFMode();
   const { data: profile } = useUserProfile();
   const { username } = useUsername();
   const { points } = useLoyaltyPoints();
@@ -419,25 +394,15 @@ export default function AccountSettingsPage() {
   // ── Profile share / preview / copy ID ─────────────
   const profileUrl = useMemo(() => {
     if (!user?.id || typeof window === "undefined") return "";
-    const suffix = zivoOFMode ? "?from=account&as=visitor" : "?from=account";
-    return `${window.location.origin}/user/${user.id}${suffix}`;
-  }, [user?.id, zivoOFMode]);
+    return `${window.location.origin}/user/${user.id}?from=account`;
+  }, [user?.id]);
 
   const handlePreviewProfile = () => {
     if (!profileUrl) return;
     window.open(profileUrl, "_blank", "noopener,noreferrer");
   };
 
-  const visibleSettingsGroups = useMemo(() => {
-    if (!zivoOFMode) return settingsGroups;
-    const ofTitles = new Set([
-      "Account",
-      "Creator & Monetization",
-      "Payments & Rewards",
-      "Data & Activity",
-    ]);
-    return settingsGroups.filter((group) => ofTitles.has(group.title));
-  }, [zivoOFMode]);
+  const visibleSettingsGroups = settingsGroups;
 
   const visibleItems = useMemo(() => visibleSettingsGroups.flatMap((g) => g.items), [visibleSettingsGroups]);
 
@@ -1024,52 +989,6 @@ export default function AccountSettingsPage() {
             </div>
           </button>
         </div>
-      )}
-
-      {/* ZIVO OF workflow quick panel */}
-      {user && zivoOFMode && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.12 }}
-          className="mt-3 px-3"
-        >
-          <div className="rounded-2xl border border-rose-500/25 bg-rose-500/5 p-3.5">
-            <div className="flex items-center justify-between gap-3 mb-2.5">
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-foreground">ZIVO OF workflow</p>
-                <p className="text-[11px] text-muted-foreground">Account and creator shortcuts optimized for subscription workflow.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setZivoOFMode(false);
-                  toast.success("ZIVO OF Mode turned off");
-                }}
-                className="inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full bg-rose-500/15 text-rose-500 border border-rose-500/25 hover:bg-rose-500/20 transition-colors"
-              >
-                OF mode on · Turn off
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: "Public preview", href: "/profile" },
-                { label: "Monetization", href: "/monetization" },
-                { label: "Subscribers", href: "/creator/subscribers" },
-                { label: "Subscriptions", href: "/account/subscriptions" },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => navigate(item.href)}
-                  className="text-left rounded-xl border border-border/40 bg-card/70 px-3 py-2 hover:bg-accent/50 transition-colors"
-                >
-                  <p className="text-[12px] font-semibold text-foreground leading-tight">{item.label}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        </motion.div>
       )}
 
       {/* Account Setup checklist */}

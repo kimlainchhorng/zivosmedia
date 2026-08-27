@@ -540,13 +540,13 @@ export default function PrivacySettingsPage() {
           </h3>
           <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/40">
             <div>
-              <p className="text-sm font-medium">Blur 18+ media</p>
+              <p className="text-sm font-medium">Blur sensitive media</p>
               <p className="text-xs text-muted-foreground">
                 Hide sexual or adult media until you tap View
               </p>
             </div>
             <Switch
-              aria-label="Blur 18+ media"
+              aria-label="Blur sensitive media"
               checked={blurSensitiveMedia}
               disabled={updatingSensitiveMedia}
               onCheckedChange={(value) =>

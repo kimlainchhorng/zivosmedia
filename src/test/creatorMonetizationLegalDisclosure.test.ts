@@ -7,53 +7,39 @@ const root = process.cwd();
 const read = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
-describe("creator monetization legal disclosure", () => {
-  it("keeps full Terms coverage for creator earnings, payouts, tax, refunds, and chargebacks", () => {
+describe("retired creator monetization legal disclosure", () => {
+  it("describes only approved business and service-partner settlements", () => {
     const terms = read("src/pages/legal/TermsOfService.tsx");
 
-    expect(terms).toContain("Creator Monetization & Payouts");
-    expect(terms).toContain("tips, gifts, locked media, subscriptions, ad revenue");
+    expect(terms).toContain("Business and Service-Partner Settlements");
+    expect(terms).toContain("drivers, restaurants, merchants");
+    expect(terms).toContain("completed rides, deliveries, orders");
     expect(terms).toContain("platform fees");
     expect(terms).toContain("identity and tax verification");
-    expect(terms).toContain("minimum payout thresholds");
-    expect(terms).toContain("refund clawbacks");
+    expect(terms).toContain("minimum thresholds");
+    expect(terms).toContain("refund adjustments");
     expect(terms).toContain("chargebacks");
     expect(terms).toContain("payment reversals");
     expect(terms).toContain("Fraudulent, artificial, self-funded");
-    expect(terms).toContain("sponsored-content compliance");
+    expect(terms).not.toContain("Creator Monetization & Payouts");
+    expect(terms).not.toContain("tips, gifts, locked media, subscriptions, ad revenue");
   });
 
-  it("keeps creator subscription checkout copy linked to canonical legal pages", () => {
-    const subscribeSheet = read("src/components/creator/CreatorSubscribeSheet.tsx");
-
-    expect(subscribeSheet).toContain("Monthly subscription · cancel anytime.");
-    expect(subscribeSheet).toContain('href="/legal/terms"');
-    expect(subscribeSheet).toContain('href="/legal/refunds"');
-    expect(subscribeSheet).toContain("payout, tax, chargeback, and refund rules");
-  });
-
-  it("keeps the in-app legal preview aligned with monetization risk language", () => {
+  it("keeps the in-app legal preview aligned with the retired product", () => {
     const preview = read("src/components/legal/LegalPreviewSheet.tsx");
 
-    expect(preview).toContain("Monetization & Creator Earnings");
-    expect(preview).toContain("gifts (Z Coins), tips, locked media, and ZIVO+ revenue share");
-    expect(preview).toContain("identity and tax verification");
-    expect(preview).toContain("minimum payout thresholds");
-    expect(preview).toContain("refund clawbacks");
-    expect(preview).toContain("chargeback liability");
+    expect(preview).toContain("Business and Service-Partner Settlements");
+    expect(preview).toContain("completed rides, deliveries, orders");
+    expect(preview).toContain("Pornography, sexually explicit content, sexual services");
+    expect(preview).not.toContain("Monetization & Creator Earnings");
+    expect(preview).not.toContain("gifts (Z Coins), tips, locked media");
   });
 
-  it("keeps the creator academy aware of legal, privacy, tax, and advertising disclosure topics", () => {
-    const academy = read("src/pages/MonetizationArticlesPage.tsx");
+  it("does not mount creator checkout or monetization routes", () => {
+    const app = read("src/App.tsx");
 
-    for (const topic of [
-      "Tax information for ZIVO creators",
-      "FTC disclosure requirements for creators",
-      "GDPR and data privacy for creators",
-      "Creator legal essentials",
-      "How to verify your identity for payouts",
-    ]) {
-      expect(academy).toContain(topic);
-    }
+    expect(app).not.toContain("CreatorSubscribeSheet");
+    expect(app).not.toContain("MonetizationPage");
+    expect(app).not.toContain('path="/monetization"');
   });
 });

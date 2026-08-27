@@ -14,7 +14,6 @@ import Music from "lucide-react/dist/esm/icons/music";
 import Disc from "lucide-react/dist/esm/icons/disc";
 import Headphones from "lucide-react/dist/esm/icons/headphones";
 import Send from "lucide-react/dist/esm/icons/send";
-import Heart from "lucide-react/dist/esm/icons/heart";
 import Hash from "lucide-react/dist/esm/icons/hash";
 import LinkIcon from "lucide-react/dist/esm/icons/link";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
@@ -50,7 +49,6 @@ const BRANDS: Record<string, Brand> = {
   applemusic: { icon: Headphones, bg: "bg-[#FA243C]", iconClass: "text-white" },
   soundcloud: { icon: Music,      bg: "bg-[#FF5500]", iconClass: "text-white" },
   ytmusic:    { icon: Music2,     bg: "bg-[#FF0000]", iconClass: "text-white" },
-  onlyfans:   { icon: Heart,      bg: "bg-[#00AFF0]", iconClass: "text-white" },
 };
 
 const FALLBACK: Brand = { icon: LinkIcon, bg: "bg-muted", iconClass: "text-foreground" };

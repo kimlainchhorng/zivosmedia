@@ -160,7 +160,6 @@ const CafeShiftsSection = React.lazy(() => import("@/components/admin/store/cafe
 const StorePaymentSection = React.lazy(() => import("@/components/admin/StorePaymentSection"));
 const StoreCustomersSection = React.lazy(() => import("@/components/admin/StoreCustomersSection"));
 const StoreMarketingSection = React.lazy(() => import("@/components/admin/StoreMarketingSection"));
-const StoreLiveStreamSection = React.lazy(() => import("@/components/admin/StoreLiveStreamSection"));
 const StoreEmployeesSection = React.lazy(() => import("@/components/admin/store/StoreEmployeesSection"));
 const StorePayrollSection = React.lazy(() => import("@/components/admin/store/StorePayrollSection"));
 const StoreScheduleSection = React.lazy(() => import("@/components/admin/store/StoreScheduleSection"));
@@ -2582,7 +2581,7 @@ export default function AdminStoreEditPage() {
   const cafeTitle = CAFE_TAB_META[activeTab]?.title;
   const carRentalTitle = CAR_RENTAL_TAB_META[activeTab]?.title;
   const carDealershipTitle = CAR_DEALERSHIP_TAB_META[activeTab]?.title;
-  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || salonTitle || cafeTitle || carRentalTitle || carDealershipTitle || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "livestream" ? "Live Stream" : activeTab === "software" ? "Software & Apps" : activeTab === "subscriptions" ? "Subscriptions" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
+  const storeOwnerTitle = autoRepairTitles[activeTab] || lodgingTitles[activeTab] || employeeTitles[activeTab] || salonTitle || cafeTitle || carRentalTitle || carDealershipTitle || (activeTab === "orders" ? "Orders" : activeTab === "products" ? productsLabelTitle : activeTab === "payment" ? paymentLabelTitle : activeTab === "customers" ? "Customers" : activeTab === "marketing" ? "Marketing & Ads" : activeTab === "software" ? "Software & Apps" : activeTab === "subscriptions" ? "Subscriptions" : activeTab === "settings" ? "Settings" : `Edit: ${store?.name || "Store"}`);
   // IMPORTANT: Do NOT define a component inside render — it creates a new component
   // type on every render, which forces React to unmount + remount the entire subtree
   // (including the Add Product dialog inputs) on every keystroke. Use a render helper instead.
@@ -5155,11 +5154,6 @@ export default function AdminStoreEditPage() {
           {/* Marketing Tab */}
           <TabsContent value="marketing">
             <StoreMarketingSection storeId={storeId!} storeSlug={form.slug} storeName={form.name} storeCategory={form.category} />
-          </TabsContent>
-
-          {/* Live Stream Tab */}
-          <TabsContent value="livestream">
-            <StoreLiveStreamSection storeId={storeId!} storeName={form.name} />
           </TabsContent>
 
           <TabsContent value="employees">

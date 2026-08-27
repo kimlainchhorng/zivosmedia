@@ -1,6 +1,7 @@
 // chat-send-gift - debit coins, insert gift message, log gift_transactions
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_TOTAL_GIFT_COINS = 5_000_000;
@@ -8,6 +9,8 @@ const MAX_TOTAL_GIFT_COINS = 5_000_000;
 Deno.serve(withSecurity("chat-send-gift", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, corsHeaders);
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   try {
     const authHeader = req.headers.get("Authorization") || "";

@@ -9,6 +9,10 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 import { notifyEatsOrderConfirmed, notifyEatsRefundIssued } from "../_shared/eats-notifications.ts";
 import { notifyGroceryOrderConfirmed } from "../_shared/grocery-notifications.ts";
 import { creditCreatorTipToWallet } from "../_shared/tipWalletCredit.ts";
+import {
+  creatorMonetizationWebhookAcknowledgement,
+  isCreatorMonetizationDisabled,
+} from "../_shared/creatorMonetizationCompliance.ts";
 import { isAdultCreatorAccount } from "../_shared/adultCreatorPaymentBoundary.ts";
 
 // Audit logging helper
@@ -387,12 +391,17 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
           ? session.payment_intent 
           : session.payment_intent?.id;
 
+        if (isCreatorMonetizationDisabled() && metadata.type === "zivo_plus_gift") {
+          return creatorMonetizationWebhookAcknowledgement(corsHeaders);
+        }
+
         console.log("[Webhook] Checkout completed:", session.id, "Type:", metadata.type);
 
         // Creator one-time / lifetime tier purchase — recurring tiers go through
         // customer.subscription.created instead. Identify by metadata.tier_id +
         // creator_id + subscriber_id and a non-subscription session mode.
         if (metadata.tier_id && metadata.creator_id && metadata.subscriber_id && session.mode === "payment") {
+          if (isCreatorMonetizationDisabled()) return creatorMonetizationWebhookAcknowledgement(corsHeaders);
           const row = {
             creator_id: metadata.creator_id,
             subscriber_id: metadata.subscriber_id,
@@ -427,122 +436,6 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             } catch {}
           }
           break;
-        }
-
-        if (metadata.type === "zivo_plus_gift") {
-          const recipientId = metadata.gift_recipient_id || metadata.user_id;
-          const planId = metadata.plan_id;
-          const giftMonths = Number.parseInt(metadata.gift_months || "0", 10);
-          const giftLabel = metadata.gift_duration_label || metadata.gift_duration || "premium";
-
-          if (session.payment_status !== "paid") {
-            console.log("[Webhook] ZIVO+ gift checkout not paid yet:", session.id);
-          } else if (!recipientId || !planId || !Number.isFinite(giftMonths) || giftMonths <= 0) {
-            console.error("[Webhook] ZIVO+ gift metadata missing", { session: session.id, recipientId, planId, giftMonths });
-          } else {
-            const now = new Date().toISOString();
-            try {
-              const localSubscriptionId = await syncZivoPlusSubscription(supabase, {
-                userId: recipientId,
-                planId,
-                status: "active",
-                billingCycle: metadata.billing_cycle || (giftMonths >= 12 ? "yearly" : "monthly"),
-                currentPeriodStart: now,
-                extendByMonths: giftMonths,
-              });
-              console.log("[Webhook] ZIVO+ gift activated", { recipientId, session: session.id, localSubscriptionId });
-
-              if (metadata.gift_sender_id) {
-                try {
-                  const giftCoins = giftMonths >= 12 ? 2500 : giftMonths >= 6 ? 1500 : 1000;
-                  const giftPayload = {
-                    kind: "premium_gift",
-                    gift_key: `zivo_premium_${metadata.gift_duration || `${giftMonths}_months`}`,
-                    name: `ZIVO Premium ${giftLabel}`,
-                    icon: "Premium",
-                    coins: giftCoins,
-                    total_coins: giftCoins,
-                    premium_months: giftMonths,
-                    subscription_id: localSubscriptionId,
-                    stripe_session_id: session.id,
-                  };
-                  const { data: existingGiftMessage, error: existingGiftError } = await supabase
-                    .from("direct_messages")
-                    .select("id")
-                    .eq("sender_id", metadata.gift_sender_id)
-                    .eq("receiver_id", recipientId)
-                    .eq("message_type", "gift")
-                    .contains("gift_payload", { stripe_session_id: session.id })
-                    .maybeSingle();
-
-                  if (existingGiftError) {
-                    console.warn("[Webhook] Premium gift message lookup failed", existingGiftError);
-                  } else if (!existingGiftMessage) {
-                    const { data: giftMessage, error: giftMessageError } = await supabase
-                      .from("direct_messages")
-                      .insert({
-                        sender_id: metadata.gift_sender_id,
-                        receiver_id: recipientId,
-                        message: `Gifted ${metadata.gift_recipient_name || "this chat"} ${giftLabel} of ZIVO Premium`,
-                        message_type: "gift",
-                        gift_payload: giftPayload,
-                      })
-                      .select("id")
-                      .single();
-
-                    if (giftMessageError) {
-                      console.error("[Webhook] Premium gift chat message insert failed", giftMessageError);
-                    } else {
-                      await supabase.rpc("fn_record_gift_transaction", {
-                        p_sender: metadata.gift_sender_id,
-                        p_receiver: recipientId,
-                        p_gift_key: giftPayload.gift_key,
-                        p_gift_name: giftPayload.name,
-                        p_coins: giftCoins,
-                        p_combo: 1,
-                        p_note: null,
-                        p_message_id: giftMessage.id,
-                      });
-                    }
-                  }
-                } catch (messageErr) {
-                  console.error("[Webhook] Premium gift chat message failed", messageErr);
-                }
-              }
-
-              try {
-                await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
-                  body: JSON.stringify({
-                    user_id: recipientId,
-                    notification_type: "membership_gift_received",
-                    title: "ZIVO Premium gift received",
-                    body: `You received ${giftLabel} of ZIVO Premium.`,
-                    data: { type: "membership_gift_received", action_url: "/zivo-plus", subscription_id: localSubscriptionId },
-                  }),
-                });
-              } catch {}
-
-              if (metadata.gift_sender_id) {
-                try {
-                  await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
-                    body: JSON.stringify({
-                      user_id: metadata.gift_sender_id,
-                      notification_type: "membership_gift_sent",
-                      title: "Premium gift sent",
-                      body: `Your ${giftLabel} ZIVO Premium gift was delivered.`,
-                      data: { type: "membership_gift_sent", recipient_id: recipientId, action_url: "/chat" },
-                    }),
-                  });
-                } catch {}
-              }
-            } catch (giftErr) {
-              console.error("[Webhook] ZIVO+ gift activation failed", giftErr);
-            }
-          }
         }
 
         if (metadata.type === "ride") {
@@ -791,6 +684,7 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             });
           }
         } else if (metadata.type === "creator_tip") {
+          if (isCreatorMonetizationDisabled()) return creatorMonetizationWebhookAcknowledgement(corsHeaders);
           // Tip via create-tip-checkout. The function inserts creator_tips with
           // status='pending' + payment_intent_id = session.payment_intent OR
           // session.id (depending on availability at session-create time).
@@ -1300,6 +1194,31 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log("[Webhook] Payment succeeded:", paymentIntent.id);
 
+        if (
+          isCreatorMonetizationDisabled() &&
+          paymentIntent.metadata?.type === "zivo_plus_gift"
+        ) {
+          return creatorMonetizationWebhookAcknowledgement(corsHeaders);
+        }
+
+        const coinUserId = paymentIntent.metadata?.user_id;
+        const coinPackageId = paymentIntent.metadata?.package_id;
+        const coinAmount = parseInt(paymentIntent.metadata?.coins || "0", 10);
+        if (
+          isCreatorMonetizationDisabled() &&
+          coinUserId &&
+          coinPackageId &&
+          coinAmount > 0
+        ) {
+          return creatorMonetizationWebhookAcknowledgement(corsHeaders);
+        }
+        if (
+          isCreatorMonetizationDisabled() &&
+          paymentIntent.metadata?.type === "creator_tip"
+        ) {
+          return creatorMonetizationWebhookAcknowledgement(corsHeaders);
+        }
+
         // Update any orders with this payment intent ID
         await supabase
           .from("ride_requests")
@@ -1348,9 +1267,6 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
         // after Stripe confirms but before that call, coins never credited.
         // The credit_coin_purchase RPC is idempotent (keyed on session_id /
         // payment_intent_id) so calling it from both paths is safe.
-        const coinUserId = paymentIntent.metadata?.user_id;
-        const coinPackageId = paymentIntent.metadata?.package_id;
-        const coinAmount = parseInt(paymentIntent.metadata?.coins || "0", 10);
         if (coinUserId && coinPackageId && coinAmount > 0) {
           try {
             const { error: coinErr } = await supabase.rpc("credit_coin_purchase", {
@@ -2007,6 +1923,7 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
         // Metadata is set by stripe.checkout.sessions.create({ metadata: { tier_id, creator_id, subscriber_id } })
         // and propagates to the resulting Subscription via session settings.
         if (metadata.tier_id && metadata.creator_id && metadata.subscriber_id) {
+          if (isCreatorMonetizationDisabled()) return creatorMonetizationWebhookAcknowledgement(corsHeaders);
           // Wind down adult-creator subscriptions that predate the payment
           // boundary (see _shared/adultCreatorPaymentBoundary.ts). The create
           // paths refuse new ones, but a subscription opened before that guard

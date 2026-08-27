@@ -5,6 +5,10 @@ import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { getIdempotencyKey, withIdempotency } from "../_shared/idempotency.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import {
+  creatorMonetizationBlockedResponse,
+  isCreatorMonetizationAccount,
+} from "../_shared/creatorMonetizationCompliance.ts";
+import {
   adultCreatorPaymentBlockedResponse,
   isAdultCreatorAccount,
 } from "../_shared/adultCreatorPaymentBoundary.ts";
@@ -38,6 +42,10 @@ serve(withSecurity("connect-instant-payout", async (req, ctx) => {
     const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
     if (!user) throw new Error("Invalid auth");
+
+    if (await isCreatorMonetizationAccount(supabase, user.id)) {
+      return creatorMonetizationBlockedResponse(corsHeaders);
+    }
 
     const { amount_cents, method = "instant" } = await req.json();
     if (!amount_cents || typeof amount_cents !== "number" || amount_cents < 100) {

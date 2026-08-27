@@ -2,6 +2,7 @@
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 const MIN_AMOUNT_CENTS = 100;
 const MAX_AMOUNT_CENTS = 100_000_00;
@@ -10,6 +11,8 @@ type Mode = "send" | "request";
 
 Deno.serve(withSecurity("create-p2p-transfer", async (req, ctx) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405, ctx.corsHeaders);
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(ctx.corsHeaders);
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";

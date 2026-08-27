@@ -7,6 +7,7 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 import Stripe from "../_shared/stripe.ts";
 import { scanContentForLinks, logBlockedAttempt, isAbuseThresholdExceeded, isIpAbuseThresholdExceeded, getRequestIpHash } from "../_shared/contentLinkValidation.ts";
 import { isLikelyMaliciousBot } from "../_shared/botDetection.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 import {
   adultCreatorPaymentBlockedResponse,
   isAdultCreatorAccount,
@@ -20,6 +21,8 @@ Deno.serve(withSecurity("create-tip-checkout", async (req, ctx) => {
       headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
     });
   }
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(cors);
 
   try {
     if (isLikelyMaliciousBot(req.headers)) {

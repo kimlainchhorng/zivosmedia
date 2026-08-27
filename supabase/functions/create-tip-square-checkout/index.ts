@@ -6,6 +6,7 @@
  */
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 const SQUARE_BASE = (Deno.env.get("SQUARE_MODE") ?? "sandbox") === "sandbox"
   ? "https://connect.squareupsandbox.com"
@@ -19,6 +20,7 @@ Deno.serve(withSecurity("create-tip-square-checkout", async (req, ctx) => {
       headers: { ...cors, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
     });
   }
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(cors);
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;

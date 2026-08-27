@@ -235,8 +235,8 @@ const TermsOfService = () => {
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Are at least 13 years old to create a limited personal account, and at least 16 where local law requires a higher digital consent age</li>
-                <li>Are at least 18 years old, or the age of legal majority in your jurisdiction, to book travel, request rides, order delivery, rent vehicles, make payments, send or receive gifts, go live, subscribe, unlock paid content, receive payouts, or use business/partner tools</li>
-                <li>If you are 13-17, use ZIVO only with parent or guardian permission and do not access age-restricted, paid, travel, payout, or live-streaming features</li>
+                <li>Are at least 18 years old, or the age of legal majority in your jurisdiction, to book travel, request rides, order delivery, rent vehicles, make payments, receive marketplace payouts, or use business/partner tools</li>
+                <li>If you are 13-17, use ZIVO only with parent or guardian permission and do not access travel, payment, payout, or business features</li>
                 <li>Have the legal capacity to enter into a binding agreement</li>
                 <li>Are not prohibited from using our services under applicable laws</li>
                 <li>Will provide accurate, current, and complete information during registration</li>
@@ -597,18 +597,19 @@ const TermsOfService = () => {
                 transaction details for review.
               </p>
 
-              <h4 id="monetization" className="font-semibold text-foreground mt-6">8.5 Creator Monetization & Payouts</h4>
+              <h4 id="partner-settlements" className="font-semibold text-foreground mt-6">8.5 Business and Service-Partner Settlements</h4>
               <p>
-                Eligible creators may earn from tips, gifts, locked media, subscriptions, ad revenue, affiliate
-                programs, live monetization, and other creator tools made available by ZIVO. Earnings are subject
-                to platform fees, identity and tax verification, minimum payout thresholds, refund clawbacks,
-                chargebacks, payment reversals, and fraud review.
+                Eligible drivers, restaurants, merchants, and other approved service partners may receive
+                settlements for completed rides, deliveries, orders, or separately approved affiliate services.
+                Settlements are subject to the applicable partner agreement, platform fees,
+                identity and tax verification, minimum thresholds, refund adjustments, chargebacks, payment reversals, and fraud
+                review.
               </p>
               <p>
-                Creator earnings are not guaranteed. Fraudulent, artificial, self-funded, or policy-violating
-                engagement may result in withheld earnings, payout delays, account restrictions, and forfeiture.
-                Creators are responsible for taxes, required disclosures, sponsored-content compliance, and
-                accurate payout information.
+                Partner earnings are not guaranteed. Fraudulent, artificial, self-funded, or policy-violating
+                transactions may result in withheld settlements, payout delays, account restrictions, and
+                forfeiture. Partners are responsible for taxes, required disclosures, fulfillment obligations,
+                and accurate payout information.
               </p>
             </AccordionContent>
           </AccordionItem>

@@ -1,8 +1,8 @@
 # ZIVO
 
-> ZIVO is a free all-in-one super-app combining travel booking (flights, hotels, car rentals), rides and food delivery, social feed and short-form video (reels), creator subscriptions and live streaming, online shop and POS, jobs board for hiring and applying, plus chat with voice and video calls — one account for everything. Available on iOS, Android, and the web at zivosmedia.com.
+> ZIVO is a free all-in-one super-app combining travel booking (flights, hotels, car rentals), rides and food delivery, a community feed and short-form video (reels), online shop and POS, a jobs board for hiring and applying, plus chat with voice and video calls — one account for everything. Available on iOS, Android, and the web at zivosmedia.com.
 
-ZIVO is operated by ZIVO LLC and is a booking agent (not the merchant of record) for airline tickets. Core features are free; some premium features and creator subscriptions are paid. Languages supported: English, Khmer, Arabic, French. ZIVO partners with 500+ travel providers including Booking.com, Expedia, Hotels.com, Hertz, Enterprise, and Avis, and offers direct NDC pricing from 300+ airlines.
+ZIVO is operated by ZIVO LLC and is a booking agent (not the merchant of record) for airline tickets. Core features are free, while eligible travel and commerce purchases may be paid. Languages supported: English, Khmer, Arabic, French. ZIVO partners with 500+ travel providers including Booking.com, Expedia, Hotels.com, Hertz, Enterprise, and Avis, and offers direct NDC pricing from 300+ airlines.
 
 ## Core services
 
@@ -14,16 +14,15 @@ ZIVO is operated by ZIVO LLC and is a booking agent (not the merchant of record)
 - [Grocery](https://zivosmedia.com/grocery): Order groceries for delivery.
 - [Travel insurance](https://zivosmedia.com/travel-insurance): Coverage for trips booked on ZIVO.
 
-## Social & creators
+## Social & community
 
 - [Feed](https://zivosmedia.com/feed): Personalized social feed of posts and updates.
-- [Reels](https://zivosmedia.com/reels): Short-form video reels from creators worldwide.
-- [Creators](https://zivosmedia.com/creators): Discover creators and subscribe to fan content.
+- [Reels](https://zivosmedia.com/reels): Short-form video shared by the community.
 - [Channels](https://zivosmedia.com/channels): Themed channels across topics.
 - [Communities](https://zivosmedia.com/communities): Group discussions and shared interests.
-- [Trending](https://zivosmedia.com/trending): Currently trending posts, topics, and creators.
+- [Trending](https://zivosmedia.com/trending): Currently trending posts and topics.
 - [Explore](https://zivosmedia.com/explore): Discovery hub for content, places, and people.
-- [Leaderboard](https://zivosmedia.com/leaderboard): Top creators and contributors.
+- [Leaderboard](https://zivosmedia.com/leaderboard): Active community contributors.
 
 ## Commerce & business
 
@@ -37,7 +36,7 @@ ZIVO is operated by ZIVO LLC and is a booking agent (not the merchant of record)
 ## About ZIVO
 
 - [About](https://zivosmedia.com/about): Company background and mission.
-- [How it works](https://zivosmedia.com/how-it-works): How ZIVO works for travelers, creators, and merchants.
+- [How it works](https://zivosmedia.com/how-it-works): How ZIVO works for travelers, community members, and merchants.
 - [FAQ](https://zivosmedia.com/faq): Frequently asked questions.
 - [Help](https://zivosmedia.com/help): Help center.
 - [Contact](https://zivosmedia.com/contact): Contact ZIVO support — support@zivosmedia.com / info@zivosmedia.com.

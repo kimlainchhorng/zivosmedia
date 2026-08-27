@@ -2,7 +2,6 @@ import type { ComponentType } from "react";
 import CalendarClock from "lucide-react/dist/esm/icons/calendar-clock";
 import Contact from "lucide-react/dist/esm/icons/contact";
 import FileUp from "lucide-react/dist/esm/icons/file-up";
-import Gift from "lucide-react/dist/esm/icons/gift";
 import ImagePlay from "lucide-react/dist/esm/icons/image-play";
 import ImagePlus from "lucide-react/dist/esm/icons/image-plus";
 import ListChecks from "lucide-react/dist/esm/icons/list-checks";
@@ -17,9 +16,6 @@ import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
 import Timer from "lucide-react/dist/esm/icons/timer";
 import Video from "lucide-react/dist/esm/icons/video";
 import Vote from "lucide-react/dist/esm/icons/vote";
-import WalletCards from "lucide-react/dist/esm/icons/wallet-cards";
-import { useZivoPlus } from "@/contexts/ZivoPlusContext";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -76,19 +72,6 @@ export interface ChatComposerHubProps {
   highlightedActionId?: ComposerActionId | null;
 }
 
-const LOCK_UNLOCK_PLANS = new Set(["chat", "pro"]);
-const OF_MODE_ACTIONS = new Set<ComposerActionId>([
-  "photo",
-  "video",
-  "gif",
-  "sensitive",
-  "protected",
-  "locked",
-  "locked-text",
-  "wallet",
-  "gift",
-]);
-
 const ICONS: Record<ComposerIconKey, ComponentType<{ className?: string }>> = {
   image: ImagePlus,
   video: Video,
@@ -102,8 +85,6 @@ const ICONS: Record<ComposerIconKey, ComponentType<{ className?: string }>> = {
   miniapp: PanelsTopLeft,
   social: Share2,
   zivo: LocateFixed,
-  gift: Gift,
-  wallet: WalletCards,
   sensitive: ShieldAlert,
   lock: Lock,
   timer: Timer,
@@ -124,12 +105,8 @@ const ACTION_COLORS: Record<ComposerActionId, string> = {
   miniapp: "text-purple-500 bg-purple-500/10 border-purple-500/20",
   social: "text-[#1877F2] bg-blue-500/10 border-blue-500/20",
   zivo: "text-rose-500 bg-rose-500/10 border-rose-500/20",
-  gift: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-  wallet: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
   sensitive: "text-fuchsia-500 bg-fuchsia-500/10 border-fuchsia-500/20",
   protected: "text-sky-500 bg-sky-500/10 border-sky-500/20",
-  locked: "text-rose-500 bg-rose-500/10 border-rose-500/20",
-  "locked-text": "text-rose-500 bg-rose-500/10 border-rose-500/20",
   disappearing: "text-amber-500 bg-amber-500/10 border-amber-500/20",
   schedule: "text-blue-500 bg-blue-500/10 border-blue-500/20",
   scheduled: "text-slate-500 bg-slate-500/10 border-slate-500/20",
@@ -153,14 +130,10 @@ export default function ChatComposerHub({
   onCreatePoll,
   onOpenMiniApps,
   onShareSocial,
-  onSendGift,
-  onOpenWallet,
   onShareZivoCard,
   onToggleSensitiveMedia,
   onToggleProtectedMedia,
   onToggleViewOnce,
-  onLockedImageSelect,
-  onLockedTextSelect,
   onToggleDisappearing,
   onSchedule,
   onOpenScheduled,
@@ -171,9 +144,6 @@ export default function ChatComposerHub({
   viewOnceMarked = false,
   highlightedActionId = null,
 }: ChatComposerHubProps) {
-  const { isPlus, plan } = useZivoPlus();
-  const { isOFMode } = useZivoOFMode();
-  const canUseLocked = Boolean(isPlus && plan && LOCK_UNLOCK_PLANS.has(plan));
   const hasDraftText = draftText.trim().length > 0;
 
   const callbacks: Partial<Record<ComposerActionId, (() => void) | undefined>> = {
@@ -189,12 +159,8 @@ export default function ChatComposerHub({
     miniapp: onOpenMiniApps,
     social: onShareSocial,
     zivo: onShareZivoCard,
-    gift: onSendGift,
-    wallet: onOpenWallet,
     sensitive: onToggleSensitiveMedia,
     protected: onToggleProtectedMedia,
-    locked: onLockedImageSelect,
-    "locked-text": onLockedTextSelect,
     disappearing: onToggleDisappearing,
     schedule: onSchedule,
     scheduled: onOpenScheduled,
@@ -203,7 +169,6 @@ export default function ChatComposerHub({
   const actions = buildComposerActions({
     source,
     hasDraftText,
-    canUseLocked,
     disappearingEnabled,
     disappearingLabel,
     sensitiveMediaMarked,
@@ -211,7 +176,7 @@ export default function ChatComposerHub({
     enabledActionIds: Object.fromEntries(
       (Object.keys(callbacks) as ComposerActionId[]).map((id) => [id, Boolean(callbacks[id])]),
     ) as Partial<Record<ComposerActionId, boolean>>,
-  }).filter((action) => !isOFMode || OF_MODE_ACTIONS.has(action.id));
+  });
 
   const runAction = (action: ComposerAction) => {
     if (!action.enabled) {

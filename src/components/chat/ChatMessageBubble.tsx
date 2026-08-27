@@ -24,7 +24,6 @@ import ExternalLink from "lucide-react/dist/esm/icons/external-link";
 import Pause from "lucide-react/dist/esm/icons/pause";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import Lock from "lucide-react/dist/esm/icons/lock";
-import DollarSign from "lucide-react/dist/esm/icons/dollar-sign";
 import Eye from "lucide-react/dist/esm/icons/eye";
 import Pencil from "lucide-react/dist/esm/icons/pencil";
 import Languages from "lucide-react/dist/esm/icons/languages";
@@ -36,9 +35,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSignedMedia } from "@/hooks/useSignedMedia";
 import { toast } from "sonner";
-import { Capacitor } from "@capacitor/core";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
 import { findZivoTrackBySlug } from "@/lib/zivoSessions";
 import ExternalLinkWarning from "@/components/security/ExternalLinkWarning";
 import { assessLinkSync } from "@/hooks/useLinkRisk";
@@ -46,7 +43,7 @@ import { assessChatMessageRisk, assessIncomingChatRisk } from "@/lib/security/ch
 import SensitiveMediaGate from "@/components/social/SensitiveMediaGate";
 import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
 import { detectSensitiveContent } from "@/lib/social/sensitiveContent";
-import { formatStarsPrice, getLockedMediaItems, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
+import { getLockedMediaItems, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
 import { recordChatMediaCacheEntry, type ChatMediaCacheBucket } from "@/lib/chat/mediaCache";
 import { useChatMediaGate } from "@/lib/chat/useChatMediaGate";
 import { ChatMediaDownloadOverlay } from "./ChatMediaDownloadOverlay";
@@ -75,7 +72,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Lazy-load TransparentStickerVideo â€” heavy chroma-key/WebGL component
 const TransparentStickerVideo = lazy(() => import("./TransparentStickerVideo").then(m => ({ default: m.TransparentStickerVideo })));
-const ReportSheet = lazy(() => import("@/components/safety/ReportSheet"));
 const HEART_REACTION = "\u2764\uFE0F";
 const REACTION_EMOJIS = [
   HEART_REACTION,   // \u2764\uFE0F
@@ -418,12 +414,8 @@ interface ChatMessageBubbleProps {
   expiresAt?: string | null;
   messageType?: string;
   senderId?: string;
-  lockedPriceCents?: number | null;
-  lockedPriceCoins?: number | null;
   lockedPreviewUrl?: string | null;
   initiallyLocked?: boolean;
-  onUnlockLockedMedia?: (id: string) => Promise<boolean | { unlocked?: boolean }>;
-  onLockedMediaUnlocked?: (id: string) => void;
   /** ISO timestamp of last edit, if any */
   editedAt?: string | null;
   /** ISO timestamp of message creation â€” used to enforce 48h edit window */
@@ -989,8 +981,8 @@ function MediaAlbumGrid({
 }
 
 const ChatMessageBubble = memo(function ChatMessageBubble({
-  id, message, time, isMe, isRead, isDelivered, imageUrl, videoUrl, filePayload, isPinned, expiresAt, messageType, senderId, lockedPriceCents,
-  lockedPriceCoins, lockedPreviewUrl, initiallyLocked, onUnlockLockedMedia, onLockedMediaUnlocked,
+  id, message, time, isMe, isRead, isDelivered, imageUrl, videoUrl, filePayload, isPinned, expiresAt, messageType, senderId,
+  lockedPreviewUrl, initiallyLocked,
   editedAt, createdAt,
   initialReactions,
   onReply, onDelete, onDeleteForMe, onForward, onCopyLink, selectionMode, selected, onToggleSelect, onEnterSelect, onPin, onEdit, onSave, hideSave, forwardedFromName, forwardedFromUserId,
@@ -1008,7 +1000,6 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const [showDeleteSub, setShowDeleteSub] = useState(false);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const reelFeed = useReelFeed();
-  const [reportPaidOpen, setReportPaidOpen] = useState(false);
   const messageRisk = useMemo(() => isMe ? { warnings: [] } : assessChatMessageRisk(message || ""), [message, isMe]);
   // Inbound auto-translate. Only fires for messages we received and only when
   // the parent has the per-conversation toggle on (kebab menu in PersonalChat).
@@ -1021,13 +1012,12 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   const isLockedTextType = messageType === "locked_text";
   const isLockedType = isLockedMediaType || isLockedTextType;
   const isProtectedMedia = isProtectedFilePayload(filePayload);
-  const defaultLockedState = initiallyLocked ?? (isLockedType && !isMe);
-  const [isLocked, setIsLocked] = useState(defaultLockedState);
+  const isLocked = initiallyLocked ?? (isLockedType && !isMe);
 
   // For locked_text, the plaintext lives in direct_message_locked_payloads â€”
   // RLS-gated on (sender OR an entry in direct_message_unlocks). Recipients
   // who haven't paid get zero rows. The query runs only when this bubble
-  // will actually render the text (sender, or recipient post-unlock).
+  // will actually render the text (sender, or an already-available legacy message).
   const needsLockedTextPayload = isLockedTextType && (isMe || !isLocked);
   const { data: lockedTextPayload } = useQuery({
     queryKey: ["dm-locked-payload", id],
@@ -1048,11 +1038,6 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   // side-table fetched above). Action handlers like copy / reply / translate
   // should operate on the resolved payload, not the empty placeholder.
   const displayMessage = isLockedTextType ? (lockedTextPayload ?? "") : message;
-  const [unlockLoading, setUnlockLoading] = useState(false);
-  const isStarsLocked = typeof lockedPriceCoins === "number" && lockedPriceCoins > 0;
-  const unlockPrice = lockedPriceCents && lockedPriceCents > 0 ? lockedPriceCents : 99;
-  const unlockPriceLabel = isStarsLocked ? formatStarsPrice(lockedPriceCoins) : `$${(unlockPrice / 100).toFixed(2)}`;
-  const unlockButtonLabel = isStarsLocked ? `Unlock for ${unlockPriceLabel}` : `Unlock \u00B7 ${unlockPriceLabel}`;
   const filePayloadSizeBytes = coerceByteSize((filePayload as {
     size?: unknown;
     file_size?: unknown;
@@ -1201,10 +1186,6 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   }, [imageFrameUrl]);
 
   useEffect(() => {
-    setIsLocked(defaultLockedState);
-  }, [defaultLockedState, id]);
-
-  useEffect(() => {
     if (!parsedSticker || parsedSticker.animatedSrc) {
       setShowStickerBurst(false);
       return;
@@ -1213,82 +1194,6 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
     const timer = setTimeout(() => setShowStickerBurst(false), 420);
     return () => clearTimeout(timer);
   }, [id, parsedSticker]);
-
-  // Check if already unlocked
-  useEffect(() => {
-    if (!isLockedType || isMe || !id || id.startsWith("opt-") || onUnlockLockedMedia) return;
-    const checkUnlock = async () => {
-      try {
-        const { data } = await supabase.functions.invoke("verify-media-unlock", {
-          body: { message_id: id },
-        });
-        if (data?.unlocked) setIsLocked(false);
-      } catch {
-        // Ignore unlock probe failures; user can still manually unlock.
-      }
-    };
-    checkUnlock();
-  }, [id, isLockedType, isMe, onUnlockLockedMedia]);
-
-  // Unlock payment handler â€” uses in-app browser on native, redirect on web
-  const handleUnlockPayment = useCallback(async () => {
-    if (unlockLoading) return;
-    setUnlockLoading(true);
-    try {
-      if (onUnlockLockedMedia) {
-        const result = await onUnlockLockedMedia(id);
-        const unlocked = result === true || Boolean(result && typeof result === "object" && result.unlocked);
-        if (unlocked) {
-          setIsLocked(false);
-          onLockedMediaUnlocked?.(id);
-          toast.success("Media unlocked");
-        }
-        setUnlockLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke("unlock-media-checkout", {
-        body: { message_id: id, seller_id: senderId || "", amount_cents: unlockPrice },
-      });
-      if (error) throw error;
-      if (!data?.url) throw new Error("No checkout URL");
-      if (!isAllowedCheckoutUrl(data.url)) throw new Error("Invalid checkout URL");
-
-      if (Capacitor.isNativePlatform()) {
-        // Native: open in-app browser, then verify on close
-        const { Browser } = await import("@capacitor/browser");
-        const verifyOnClose = async () => {
-          // Small delay to let Stripe process
-          await new Promise((r) => setTimeout(r, 1500));
-          try {
-            const { data: vData } = await supabase.functions.invoke("verify-media-unlock", {
-              body: { message_id: id },
-            });
-            if (vData?.unlocked) {
-              setIsLocked(false);
-              toast.success("Media unlocked! \u{1F513}");
-            } else {
-              toast.info("Payment processing \u2014 media will unlock shortly");
-            }
-          } catch {
-            // Ignore transient verification errors after checkout close.
-          }
-          setUnlockLoading(false);
-        };
-        await Browser.addListener("browserFinished", () => {
-          verifyOnClose();
-          Browser.removeAllListeners();
-        });
-        await Browser.open({ url: data.url });
-      } else {
-        // Web: redirect in same tab â€” auto-verify happens on /chat?unlocked= redirect
-        window.location.href = data.url;
-      }
-    } catch {
-      toast.error(isStarsLocked ? "Unlock failed" : "Payment failed to start");
-      setUnlockLoading(false);
-    }
-  }, [id, isStarsLocked, onLockedMediaUnlocked, onUnlockLockedMedia, senderId, unlockPrice, unlockLoading]);
 
   // Load reactions only if not pre-loaded from parent
   useEffect(() => {
@@ -1439,10 +1344,12 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
   }, [showActions, id, toggleReaction]);
 
   const isProtectedMessage = isViewOnceMedia || isProtectedMedia;
-  const actionText = displayMessage?.trim()
-    || (isLockedType
-      ? `${messageType === "locked_video" ? "Locked Video" : messageType === "locked_album" ? "Locked Album" : "Locked Photo"} · ${unlockPriceLabel}`
-      : messageType === "video" ? "Video" : messageType === "image" ? "Photo" : "Media");
+  const actionText = isLockedType && isLocked && !isMe
+    ? "Legacy paid attachment unavailable"
+    : displayMessage?.trim()
+      || (isLockedType
+        ? "Legacy paid attachment"
+        : messageType === "video" ? "Video" : messageType === "image" ? "Photo" : "Media");
   const shareUrl = !isProtectedMessage ? (displayImageUrl || displayVideoUrl || imageUrl || videoUrl || undefined) : undefined;
 
   const handleCopy = () => {
@@ -1535,21 +1442,6 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           </span>
         </>
       )}
-      {/* Paid-content report sheet â€” opens from the "Report paid content"
-          action on locked_* messages and writes to content_reports
-          (different table from the legacy chat_message_reports used by
-          regular text/media). */}
-      {reportPaidOpen && id && !id.startsWith("opt-") && (
-        <Suspense fallback={null}>
-          <ReportSheet
-            open={reportPaidOpen}
-            onClose={() => setReportPaidOpen(false)}
-            contentType="paid_dm"
-            contentId={id}
-            reportedUserId={senderId ?? null}
-          />
-        </Suspense>
-      )}
       {/* Sender Avatar for Group Chat */}
       {!isMe && (senderName || senderAvatar) && (
         <div className="mr-2 mt-1 shrink-0">
@@ -1611,7 +1503,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
           </button>
         )}
 
-        {/* Paid media bundle: Telegram-style collage with one Stars unlock. */}
+        {/* Legacy paid media is retained for history, but checkout is retired. */}
         {isLockedAlbum && (
           <div className={`${CHAT_MEDIA_FRAME_CLASS} mb-1 overflow-hidden rounded-2xl border border-border/10 bg-muted shadow-sm relative ${isMe ? "ml-auto rounded-br-[6px]" : "rounded-bl-[6px]"}`}>
             <SensitiveMediaGate active={shouldGateSensitiveMedia} reason={chatSensitiveMediaMatch.label} className="h-full w-full">
@@ -1621,30 +1513,15 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-background/90 shadow-lg">
                     <Lock className="h-6 w-6 text-foreground" />
                   </div>
-                  <p className="mb-2 text-xs font-semibold text-white drop-shadow">Locked media bundle</p>
-                  <button
-                    type="button"
-                    disabled={unlockLoading}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnlockPayment();
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground shadow-lg transition-transform active:scale-95 disabled:opacity-70"
-                    aria-label={`Unlock locked media bundle for ${unlockPriceLabel}`}
-                  >
-                    {unlockLoading ? (
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                    ) : (
-                      <span className="text-[13px] leading-none">{"\u2b50"}</span>
-                    )}
-                    {unlockButtonLabel}
-                  </button>
+                  <p className="max-w-[15rem] px-3 text-center text-xs font-semibold text-white drop-shadow">
+                    Legacy paid attachment unavailable
+                  </p>
                 </div>
               )}
               {isLockedType && isMe && (
                 <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5">
                   <Lock className="h-3 w-3 text-white" />
-                  <span className="text-[10px] font-medium text-white">Locked {"\u00B7"} {unlockPriceLabel}</span>
+                  <span className="text-[10px] font-medium text-white">Legacy paid attachment</span>
                 </div>
               )}
               {!isLocked && (
@@ -1744,34 +1621,19 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   decoding="async"
                 />
               )}
-              {/* Locked overlay for video */}
-              {isLocked && (
+              {/* Retired legacy paid-video state. */}
+              {isLocked && !isMe && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-2xl">
                   <div className="h-14 w-14 rounded-full bg-background/90 flex items-center justify-center shadow-lg mb-2">
                     <Lock className="h-6 w-6 text-foreground" />
                   </div>
-                  <p className="text-white text-xs font-semibold mb-2 drop-shadow">Locked Video</p>
-                  <button type="button"
-                    disabled={unlockLoading}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnlockPayment();
-                    }}
-                    className="px-4 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-1.5"
-                  >
-                    {unlockLoading ? (
-                      <span className="animate-spin h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full" />
-                    ) : isStarsLocked ? (
-                      <span className="text-[13px] leading-none">{"\u2b50"}</span>
-                    ) : (
-                      <DollarSign className="h-3.5 w-3.5" />
-                    )}
-                    {unlockButtonLabel}
-                  </button>
+                  <p className="max-w-[15rem] px-3 text-center text-xs font-semibold text-white drop-shadow">
+                    Legacy paid attachment unavailable
+                  </p>
                 </div>
               )}
               {/* Normal video overlay */}
-              {!isLocked && (
+              {(!isLocked || isMe) && (
                 <>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -1795,7 +1657,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
               {isLockedType && isMe && (
                 <div className="absolute top-2 right-2 bg-black/50 rounded-full px-2 py-0.5 flex items-center gap-1">
                   <Lock className="h-3 w-3 text-white" />
-                 <span className="text-[10px] text-white font-medium">Locked {"\u00B7"} {unlockPriceLabel}</span>
+                 <span className="text-[10px] text-white font-medium">Legacy paid attachment</span>
                 </div>
               )}
               </SensitiveMediaGate>
@@ -1836,40 +1698,34 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                 }}
               />
             )}
-            {/* Locked overlay */}
-            {isLocked && (
+            {/* Retired legacy paid-photo state. */}
+            {isLocked && !isMe && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 rounded-2xl">
                 <div className="h-14 w-14 rounded-full bg-background/90 flex items-center justify-center shadow-lg mb-2">
                   <Lock className="h-6 w-6 text-foreground" />
                 </div>
-                <p className="text-white text-xs font-semibold mb-2 drop-shadow">Locked Photo</p>
-                <button type="button"
-                  disabled={unlockLoading}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleUnlockPayment();
-                  }}
-                  className="px-4 py-1.5 rounded-full bg-ig-gradient text-white text-xs font-bold shadow-lg active:scale-95 transition-transform flex items-center gap-1.5"
-                >
-                  {unlockLoading ? (
-                    <span className="animate-spin h-3.5 w-3.5 border-2 border-primary-foreground border-t-transparent rounded-full" />
-                  ) : isStarsLocked ? (
-                    <span className="text-[13px] leading-none">{"\u2b50"}</span>
-                  ) : (
-                    <DollarSign className="h-3.5 w-3.5" />
-                  )}
-                  {unlockButtonLabel}
-                </button>
+                <p className="max-w-[15rem] px-3 text-center text-xs font-semibold text-white drop-shadow">
+                  Legacy paid attachment unavailable
+                </p>
               </div>
             )}
             {/* Lock badge for sender */}
             {isLockedType && isMe && (
               <div className="absolute top-2 right-2 bg-black/50 rounded-full px-2 py-0.5 flex items-center gap-1">
                 <Lock className="h-3 w-3 text-white" />
-                <span className="text-[10px] text-white font-medium">Locked {"\u00B7"} {unlockPriceLabel}</span>
+                <span className="text-[10px] text-white font-medium">Legacy paid attachment</span>
               </div>
             )}
             </SensitiveMediaGate>
+          </div>
+        )}
+
+        {!message && isLockedTextType && isLocked && !isMe && (
+          <div className="rounded-[22px] rounded-bl-[6px] bg-muted/70 px-4 py-4 text-[14.5px] shadow-sm">
+            <div className="flex items-center gap-2 text-rose-500">
+              <Lock className="h-4 w-4" />
+              <span className="text-[12px] font-semibold">Legacy paid attachment unavailable</span>
+            </div>
           </div>
         )}
 
@@ -1961,8 +1817,8 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
 
           // For locked_text bubbles we display the payload fetched separately
           // (via lockedTextPayload above); for everything else the plaintext is
-          // in message itself. Recipients who haven't unlocked never reach this
-          // branch â€” they hit the paywall return below.
+          // in message itself. Recipients without available legacy content see
+          // the retired attachment state below.
           const effectiveMessage = isLockedTextType ? (lockedTextPayload ?? "") : message;
           const urlRegex = /(https?:\/\/[^\s]+)/gi;
           const urls = effectiveMessage.match(urlRegex);
@@ -1990,31 +1846,15 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%)" }} />
               )}
 
-              {/* Locked text â€” recipient sees a paywall until they unlock */}
+              {/* Legacy paid text remains visible in history without a checkout path. */}
               {isLockedTextType && isLocked && !isMe ? (
-                <div className="px-4 py-4 relative z-[1] flex flex-col items-start gap-2">
+                <div className="px-4 py-4 relative z-[1] flex items-center gap-2">
                   <div className="flex items-center gap-2 text-rose-500">
                     <Lock className="h-4 w-4" />
-                    <span className="text-[12px] font-extrabold uppercase tracking-wide">
-                      Locked message
+                    <span className="text-[12px] font-semibold">
+                      Legacy paid attachment unavailable
                     </span>
                   </div>
-                  <p className="text-[12px] text-muted-foreground italic">
-                    Unlock to read the full message
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleUnlockPayment}
-                    disabled={unlockLoading}
-                    className="mt-1 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[12px] font-extrabold disabled:opacity-60"
-                  >
-                    {unlockLoading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Lock className="h-3.5 w-3.5" />
-                    )}
-                    {unlockLoading ? "Unlocking\u2026" : `Unlock \u00B7 ${unlockPriceLabel}`}
-                  </button>
                 </div>
               ) : (
                 <>
@@ -2022,7 +1862,7 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                   {isLockedTextType && isMe && (
                     <div className="px-4 pt-3 -mb-1 relative z-[1]">
                       <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-rose-300 bg-rose-500/20 rounded-full px-2 py-0.5">
-                        <Lock className="h-2.5 w-2.5" /> Locked {"\u00B7"} {unlockPriceLabel}
+                        <Lock className="h-2.5 w-2.5" /> Legacy paid attachment
                       </span>
                     </div>
                   )}
@@ -2183,22 +2023,10 @@ const ChatMessageBubble = memo(function ChatMessageBubble({
                       {message?.trim() && !isMe && (
                         <MsgMenuItem icon={Languages} label={translation ? (showTranslation ? "Hide translation" : "Show translation") : "Translate"} onClick={handleTranslate} />
                       )}
-                      {!isMe && isLockedType && (
+                      {!isMe && onReport && (
                         <MsgMenuItem
                           icon={Flag}
-                          label="Report paid content"
-                          onClick={() => {
-                            setReportPaidOpen(true);
-                            setShowActions(false);
-                            setShowReactions(false);
-                          }}
-                          destructive
-                        />
-                      )}
-                      {!isMe && !isLockedType && onReport && (
-                        <MsgMenuItem
-                          icon={Flag}
-                          label="Report 18+"
+                          label="Report message"
                           onClick={() => {
                             void onReport(id, "Nudity or sexual content");
                             setShowActions(false);
@@ -2321,11 +2149,10 @@ function MsgMenuItem({ icon: Icon, label, onClick, destructive, active, chevron 
 }
 
 /* â”€â”€ Link Preview Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-type SocialPlatformId = "facebook" | "onlyfans" | "instagram" | "x" | "tiktok" | "youtube" | "snapchat" | "telegram" | "linkedin";
+type SocialPlatformId = "facebook" | "instagram" | "x" | "tiktok" | "youtube" | "snapchat" | "telegram" | "linkedin";
 
 const SOCIAL_HOST_MAP: { match: RegExp; id: SocialPlatformId; label: string; color: string; textColor: string; brandImage?: string }[] = [
   { match: /(^|\.)facebook\.com$|(^|\.)fb\.com$/i,    id: "facebook",  label: "Facebook",  color: "bg-[#1877F2]", textColor: "text-white" },
-  { match: /(^|\.)onlyfans\.com$/i,                    id: "onlyfans",  label: "OnlyFans",  color: "bg-white",     textColor: "text-[#00AFF0]" },
   { match: /(^|\.)instagram\.com$/i,                   id: "instagram", label: "Instagram", color: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]", textColor: "text-white" },
   { match: /(^|\.)(x\.com|twitter\.com)$/i,            id: "x",         label: "X",         color: "bg-black", textColor: "text-white" },
   { match: /(^|\.)tiktok\.com$/i,                      id: "tiktok",    label: "TikTok",    color: "bg-black", textColor: "text-white" },

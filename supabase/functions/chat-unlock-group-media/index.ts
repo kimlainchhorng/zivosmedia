@@ -1,10 +1,13 @@
 // chat-unlock-group-media - Stars unlock flow for locked group media.
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 Deno.serve(withSecurity("chat-unlock-group-media", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, corsHeaders);
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   try {
     const jwt = (req.headers.get("Authorization") || req.headers.get("authorization") || "").replace("Bearer ", "");

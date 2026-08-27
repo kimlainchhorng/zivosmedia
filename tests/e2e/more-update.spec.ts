@@ -5,7 +5,6 @@ const PASSWORD = process.env.E2E_PASSWORD;
 
 const SECTIONS = [
   "Essentials",
-  "Creator Studio",
   "Travel & Orders",
   "Social",
   "Business",
@@ -41,7 +40,6 @@ test.describe("/more — full page walkthrough", () => {
 
   test("spotlight cards link to their destinations", async ({ page }) => {
     await expect(page.getByText("ZIVO Plus")).toBeVisible();
-    await expect(page.getByText("Creator Hub")).toBeVisible();
     await expect(page.getByText("Rewards")).toBeVisible();
     await expect(page.getByText("Membership")).toBeVisible();
   });
@@ -66,7 +64,6 @@ test.describe("/more — full page walkthrough", () => {
       // Pick a known link inside each section as the visibility witness.
       const witness: Record<string, RegExp> = {
         Essentials: /My Profile/i,
-        "Creator Studio": /Creator Dashboard/i,
         "Travel & Orders": /My Trips/i,
         Social: /Communities/i,
         Business: /Shop Dashboard/i,

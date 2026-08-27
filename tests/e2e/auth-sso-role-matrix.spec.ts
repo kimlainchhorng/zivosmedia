@@ -27,11 +27,6 @@ const ROLE_MATRIX = [
     guards: ['.from("drivers")', "driverId", "customer-payout-method-record"],
   },
   {
-    role: "creator",
-    routes: ['path="/creator-dashboard"', 'path="/creator-payouts"'],
-    guards: ["creator-payout-request", "creator_profiles", "creator_tips"],
-  },
-  {
     role: "admin",
     routes: ['path="/admin/analytics"', 'path="/admin/security"', 'path="/admin/support"'],
     guards: ["requireAdmin", "allowSupport", "<AccessDenied"],
@@ -73,6 +68,8 @@ test.describe("auth SSO role matrix", () => {
     expect(userAccess).toContain('roles.includes("support")');
     expect(userAccess).toContain('roles.includes("moderator")');
     expect(userAccess).toContain('roles.includes("operations")');
+    expect(app).not.toContain('path="/creator-dashboard"');
+    expect(app).not.toContain('path="/creator-payouts"');
   });
 
   test("keeps SSO callback, saved-session restore, and role redirect logic aligned", () => {

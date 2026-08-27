@@ -48,7 +48,6 @@ describe("cross-vertical role navigation", () => {
       'path="/driver/earnings"',
       'path="/driver/payouts"',
       'path="/eats/driver-deliveries"',
-      'path="/creator-dashboard"',
       'path="/shop-dashboard"',
       'path="/admin/analytics"',
     ]) {
@@ -57,7 +56,6 @@ describe("cross-vertical role navigation", () => {
 
     for (const shortcut of [
       'label: "Driver Dashboard", description: "Manage your rides", href: "/drive"',
-      'label: "Creator Dashboard", href: "/creator-dashboard"',
       'label: "Eats Driver", href: "/eats/driver-deliveries"',
       'label: "Shop Dashboard"',
       'label: "Admin dashboard"',
@@ -68,6 +66,8 @@ describe("cross-vertical role navigation", () => {
     expect(appMore).not.toContain(
       'href: "/driver", color: "from-blue-500 to-blue-600"',
     );
+    expect(app).not.toContain('path="/creator-dashboard"');
+    expect(appMore + morePage).not.toContain('href: "/creator-dashboard"');
     expect(driverMap).toContain('navigate("/drive")');
     expect(driverMap).not.toContain('navigate("/driver")');
   });

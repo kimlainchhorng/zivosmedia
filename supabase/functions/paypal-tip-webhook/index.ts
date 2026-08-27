@@ -7,6 +7,10 @@
 import { createClient } from "../_shared/deps.ts";
 import { creditCreatorTipToWallet } from "../_shared/tipWalletCredit.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  creatorMonetizationWebhookAcknowledgement,
+  isCreatorMonetizationDisabled,
+} from "../_shared/creatorMonetizationCompliance.ts";
 
 const PAYPAL_BASE = (Deno.env.get("PAYPAL_MODE") ?? "sandbox") === "sandbox"
   ? "https://api-m.sandbox.paypal.com"
@@ -68,6 +72,12 @@ Deno.serve(withSecurity("paypal-tip-webhook", async (req) => {
 
   const eventId = event.id as string;
   const eventType = event.event_type as string;
+  if (
+    isCreatorMonetizationDisabled() &&
+    (eventType === "PAYMENT.CAPTURE.COMPLETED" || eventType === "CHECKOUT.ORDER.COMPLETED")
+  ) {
+    return creatorMonetizationWebhookAcknowledgement();
+  }
   const resource = event.resource ?? {};
   const orderId = resource?.id && resource?.intent ? resource.id : resource?.supplementary_data?.related_ids?.order_id ?? null;
   const captureId = (eventType.startsWith("PAYMENT.CAPTURE") || eventType.startsWith("PAYMENT.AUTHORIZATION")) ? resource?.id : null;

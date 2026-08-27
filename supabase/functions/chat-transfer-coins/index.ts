@@ -1,10 +1,12 @@
 // chat-transfer-coins — peer-to-peer coin transfer + chat message
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 Deno.serve(withSecurity("chat-transfer-coins", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405, corsHeaders);
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
   try {
     const jwt = (req.headers.get("Authorization") || "").replace("Bearer ", "");
     if (!jwt) return json({ error: "Unauthorized" }, 401, corsHeaders);

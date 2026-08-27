@@ -8,7 +8,6 @@ import { createPortal } from "react-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { getPublicOrigin, getProfileShareUrl } from "@/lib/getPublicOrigin";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
@@ -21,7 +20,7 @@ import { useMutualFollows } from "@/hooks/useMutualFollows";
 import {
   ArrowLeft, Loader2, User, ImageIcon, Film, Grid3X3, UserPlus, UserCheck, UserX,
   Heart, MessageCircle, Lock, ShieldCheck, Users, Share2, Play, Eye, Bookmark, Globe, MoreHorizontal,
-  Phone, Video, Gift, Camera,
+  Phone, Video, Camera,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -39,11 +38,6 @@ import CollapsibleCaption from "@/components/social/CollapsibleCaption";
 import ReelThumbnail from "@/components/social/ReelThumbnail";
 import { resolveSharedOrigins, type SharedOriginInfo } from "@/lib/social/resolveSharedOrigins";
 import { toUserPostInteractionId } from "@/lib/social/postInteraction";
-import CreatorTiersSubscribe from "@/components/creator/CreatorTiersSubscribe";
-import TopSupporters from "@/components/creator/TopSupporters";
-import CreatorPPVStrip from "@/components/ppv/CreatorPPVStrip";
-import { useAdultGate } from "@/hooks/useAdultGate";
-import TipSheet from "@/components/social/TipSheet";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { SwipeGrabHandle } from "@/components/social/SwipeGrabHandle";
 import { cn } from "@/lib/utils";
@@ -99,7 +93,6 @@ type FullProfileCandidate = {
   profile_visibility: string | null;
   is_verified: boolean | null;
   share_code: string | null;
-  is_of_creator?: boolean | null;
   updated_at: string | null;
 };
 
@@ -183,9 +176,6 @@ function resolveFullProfile(candidates: FullProfileCandidate[], requestedId: str
       ? true
       : ((pickFirstPresent(ranked, (candidate) => candidate.is_verified) as boolean | null) ?? false),
     share_code: (pickFirstPresent(ranked, (candidate) => candidate.share_code) as string | null) ?? null,
-    is_of_creator: ranked.some((candidate) => candidate.is_of_creator === true)
-      ? true
-      : ((pickFirstPresent(ranked, (candidate) => candidate.is_of_creator) as boolean | null) ?? false),
   };
 }
 
@@ -242,11 +232,9 @@ export default function PublicProfilePage() {
   const viewAs = (searchParams.get("as") || "").toLowerCase();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isOFMode: zivoOFMode } = useZivoOFMode();
   const queryClient = useQueryClient();
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [confirmAction, setConfirmAction] = useState<null | { action: "cancel" | "unfriend" | "unfollow"; label: string }>(null);
-  const [tipOpen, setTipOpen] = useState(false);
   const [postTab, setPostTab] = useState<PostTab>("all");
   const [commentPost, setCommentPost] = useState<any>(null);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -254,9 +242,6 @@ export default function PublicProfilePage() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [blockingUser, setBlockingUser] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  // OF creator age gate — persistent via useAdultGate (DB + localStorage)
-  const adultGate = useAdultGate();
-  const ofAgeConfirmed = adultGate.isConfirmed;
 
   // ── Tab swipe gesture (horizontal) ─────────────────────────────────────
   const swipeTouchStartX = useRef<number>(0);
@@ -276,7 +261,6 @@ export default function PublicProfilePage() {
   }, [postTab]);
 
   const backTarget = useMemo(() => {
-    if (source === "monetization") return "/monetization";
     if (source === "profile") return "/profile";
     return null;
   }, [source]);
@@ -299,30 +283,11 @@ export default function PublicProfilePage() {
     queryFn: async () => {
       if (!userId) return null;
 
-      const selectWithOfCreator =
-        "id, user_id, full_name, avatar_url, bio, cover_url, cover_position, profile_visibility, is_verified, share_code, updated_at, is_of_creator";
-      const selectWithoutOfCreator =
-        "id, user_id, full_name, avatar_url, bio, cover_url, cover_position, profile_visibility, is_verified, share_code, updated_at";
-
-      let { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("profiles")
-        .select(selectWithOfCreator)
+        .select("id, user_id, full_name, avatar_url, bio, cover_url, cover_position, profile_visibility, is_verified, share_code, updated_at")
         .or(`id.eq.${userId},user_id.eq.${userId}`)
         .limit(10);
-
-      const missingOfCreatorColumn =
-        error?.code === "42703" ||
-        String(error?.message || "").toLowerCase().includes("is_of_creator");
-
-      if (missingOfCreatorColumn) {
-        const retry = await (supabase as any)
-          .from("profiles")
-          .select(selectWithoutOfCreator)
-          .or(`id.eq.${userId},user_id.eq.${userId}`)
-          .limit(10);
-        data = retry.data;
-        error = retry.error;
-      }
 
       if (error) {
         console.error("Error loading public profile:", error);
@@ -359,7 +324,6 @@ export default function PublicProfilePage() {
         profile_visibility: "public",
         is_verified: false,
         share_code: null,
-        is_of_creator: false,
       };
     },
     enabled: !!userId,
@@ -392,7 +356,6 @@ export default function PublicProfilePage() {
           profile_visibility: "public",
           is_verified: false,
           share_code: shareCodeFromUrl || null,
-          is_of_creator: false,
         };
       }
 
@@ -674,7 +637,7 @@ export default function PublicProfilePage() {
 
   const handleShare = async () => {
     const url = buildShareUrl();
-    const brand = zivoOFMode ? "ZIVO OF" : "ZIVO";
+    const brand = "ZIVO";
     try {
       if (navigator.share) {
         await navigator.share({ title: `${resolvedProfile?.full_name || "User"} on ${brand}`, url });
@@ -740,7 +703,7 @@ export default function PublicProfilePage() {
 
   const handleSharePost = async (post: any) => {
     const url = buildShareUrl(post?.id);
-    const brand = zivoOFMode ? "ZIVO OF" : "ZIVO";
+    const brand = "ZIVO";
     try {
       if (navigator.share) {
         await navigator.share({
@@ -993,10 +956,8 @@ export default function PublicProfilePage() {
   };
 
   const profileName = resolvedProfile?.full_name || resolvedProfile?.username || "Profile";
-  const brand = zivoOFMode ? "ZIVO OF" : "ZIVO";
-  const profileBio = resolvedProfile?.bio || (zivoOFMode
-    ? `Subscribe to ${profileName} on ZIVO OF for exclusive content.`
-    : `Follow ${profileName} on ZIVO for travel, lifestyle, and more.`);
+  const brand = "ZIVO";
+  const profileBio = resolvedProfile?.bio || `Follow ${profileName} on ZIVO for travel, lifestyle, and more.`;
   const profileAvatar = resolvedProfile?.avatar_url || undefined;
   const profileStats = [
     { label: "Followers", value: isLocked ? "—" : formatCount(followerCount) ?? "0" },
@@ -1084,20 +1045,6 @@ export default function PublicProfilePage() {
         <div className="flex flex-col items-center justify-center h-60 text-muted-foreground"><User className="h-10 w-10 mb-2" /><p className="text-sm">Profile not found</p></div>
       ) : (
         <>
-          {/* OF Creator Age Gate */}
-          {(resolvedProfile as any).is_of_creator && !ofAgeConfirmed && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-              <div className="bg-card border border-rose-500/40 rounded-2xl max-w-sm w-full p-6 flex flex-col items-center gap-4 text-center shadow-2xl">
-                <span className="text-5xl">🔞</span>
-                <h2 className="text-xl font-bold text-foreground">18+ Content</h2>
-                <p className="text-sm text-muted-foreground">This profile belongs to an OF Creator and may contain adult content. You must be 18 or older to view it.</p>
-                <div className="flex gap-3 w-full mt-2">
-                  <button onClick={() => navigate(-1)} className="flex-1 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Go back</button>
-                  <button onClick={() => void adultGate.confirm()} className="flex-1 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">I am 18+</button>
-                </div>
-              </div>
-            </div>
-          )}
           {/* ── 2026 Profile Card ─────────────────────────────── */}
           <div className="mx-auto max-w-3xl lg:max-w-5xl px-3 pt-3">
             <section className="overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
@@ -1146,26 +1093,22 @@ export default function PublicProfilePage() {
                   {/* Desktop: inline action buttons to the right of avatar */}
                   {!isOwnProfile && user && (
                     <div className="hidden lg:flex items-center gap-2 ml-auto pb-1">
-                      {!zivoOFMode && (
-                        <motion.button whileTap={{ scale: 0.96 }}
-                          onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }}
-                          disabled={followMutation.isPending}
-                          className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-extrabold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
-                          {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isFollowing && "fill-primary text-primary")} />}
-                          {followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}
-                        </motion.button>
-                      )}
-                      {!zivoOFMode && (
-                        <motion.button whileTap={{ scale: 0.96 }}
-                          onClick={() => { if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" }); else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` }); else friendMutation.mutate(friendBtn.action); }}
-                          disabled={friendMutation.isPending}
-                          className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                            friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary" : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground" : friendshipStatus === "request_received" ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground"
-                          )}>
-                          {friendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <friendBtn.icon className="h-4 w-4" />}
-                          {friendMutation.isPending ? "Updating" : friendBtn.label}
-                        </motion.button>
-                      )}
+                      <motion.button whileTap={{ scale: 0.96 }}
+                        onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }}
+                        disabled={followMutation.isPending}
+                        className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-extrabold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
+                        {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isFollowing && "fill-primary text-primary")} />}
+                        {followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.96 }}
+                        onClick={() => { if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" }); else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` }); else friendMutation.mutate(friendBtn.action); }}
+                        disabled={friendMutation.isPending}
+                        className={cn("flex h-10 items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary" : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground" : friendshipStatus === "request_received" ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground"
+                        )}>
+                        {friendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <friendBtn.icon className="h-4 w-4" />}
+                        {friendMutation.isPending ? "Updating" : friendBtn.label}
+                      </motion.button>
                       {canMessageProfile && (
                         <motion.button whileTap={{ scale: 0.96 }}
                           onClick={() => navigate(`/chat`, { state: { openChat: { recipientId: targetUserId, recipientName: resolvedProfile?.full_name || "User", recipientAvatar: resolvedProfile?.avatar_url } } })}
@@ -1174,12 +1117,6 @@ export default function PublicProfilePage() {
                           Message
                         </motion.button>
                       )}
-                      <motion.button whileTap={{ scale: 0.96 }}
-                        onClick={() => { if (!user) { toast.error("Sign in to tip"); navigate("/auth"); return; } setTipOpen(true); }}
-                        aria-label="Send a tip"
-                        className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                        <Gift className="h-4 w-4" />
-                      </motion.button>
                     </div>
                   )}
                   {isOwnProfile && (
@@ -1206,47 +1143,35 @@ export default function PublicProfilePage() {
                 </div>
 
                 {/* Stats bar */}
-                {!zivoOFMode && (
-                  <div className="mt-4 flex overflow-hidden rounded-2xl border border-border/70 bg-muted/25">
-                    {profileStats.map((stat, i) => (
-                      <div key={stat.label} className={cn("flex-1 px-2 py-2 text-center", i > 0 && "border-l border-border/60")}>
-                        <p className="text-[15px] font-black leading-none text-foreground lg:text-[17px]">{stat.value}</p>
-                        <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{stat.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-4 flex overflow-hidden rounded-2xl border border-border/70 bg-muted/25">
+                  {profileStats.map((stat, i) => (
+                    <div key={stat.label} className={cn("flex-1 px-2 py-2 text-center", i > 0 && "border-l border-border/60")}>
+                      <p className="text-[15px] font-black leading-none text-foreground lg:text-[17px]">{stat.value}</p>
+                      <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
 
                 <MutualFollowsBadge mutual={mutual} className="mt-2 text-left text-[11px]" />
 
                 {/* Mobile-only action buttons */}
                 {!isOwnProfile && user && (
-                  <div className="mt-4 lg:hidden grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_44px] gap-2">
-                    {!zivoOFMode && (
-                      <motion.button whileTap={{ scale: 0.96 }}
-                        onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }}
-                        disabled={followMutation.isPending}
-                        className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-extrabold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
-                        {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isFollowing && "fill-primary text-primary")} />}
-                        <span className="truncate">{followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}</span>
-                      </motion.button>
-                    )}
-                    {!zivoOFMode && (
-                      <motion.button whileTap={{ scale: 0.96 }}
-                        onClick={() => { if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" }); else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` }); else friendMutation.mutate(friendBtn.action); }}
-                        disabled={friendMutation.isPending}
-                        className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl border px-2 text-sm font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary" : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground" : friendshipStatus === "request_received" ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground"
-                        )}>
-                        {friendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <friendBtn.icon className="h-4 w-4" />}
-                        <span className="truncate">{friendMutation.isPending ? "Updating" : friendBtn.label}</span>
-                      </motion.button>
-                    )}
+                  <div className="mt-4 lg:hidden grid grid-cols-2 gap-2">
                     <motion.button whileTap={{ scale: 0.96 }}
-                      onClick={() => { if (!user) { toast.error("Sign in to tip"); navigate("/auth"); return; } setTipOpen(true); }}
-                      aria-label={`Send a tip to ${resolvedProfile?.full_name || "this creator"}`}
-                      className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      <Gift className="h-5 w-5" />
+                      onClick={() => { if (isFollowing) { setConfirmAction({ action: "unfollow", label: `Unfollow ${resolvedProfile?.full_name}?` }); } else { followMutation.mutate(); } }}
+                      disabled={followMutation.isPending}
+                      className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-extrabold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isFollowing ? "border border-border bg-muted text-foreground" : "bg-ig-gradient text-white")}>
+                      {followMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Heart className={cn("h-4 w-4", isFollowing && "fill-primary text-primary")} />}
+                      <span className="truncate">{followMutation.isPending ? "Updating" : isFollowing ? "Following" : "Follow"}</span>
+                    </motion.button>
+                    <motion.button whileTap={{ scale: 0.96 }}
+                      onClick={() => { if (friendBtn.action === "cancel") setConfirmAction({ action: "cancel", label: "Cancel this friend request?" }); else if (friendBtn.action === "unfriend") setConfirmAction({ action: "unfriend", label: `Unfriend ${resolvedProfile?.full_name}?` }); else friendMutation.mutate(friendBtn.action); }}
+                      disabled={friendMutation.isPending}
+                      className={cn("flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-2xl border px-2 text-sm font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        friendshipStatus === "friends" ? "border-primary/30 bg-primary/10 text-primary" : friendshipStatus === "request_sent" ? "border-border bg-muted text-muted-foreground" : friendshipStatus === "request_received" ? "border-primary bg-ig-gradient text-white" : "border-border bg-card text-foreground"
+                      )}>
+                      {friendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <friendBtn.icon className="h-4 w-4" />}
+                      <span className="truncate">{friendMutation.isPending ? "Updating" : friendBtn.label}</span>
                     </motion.button>
                   </div>
                 )}
@@ -1299,21 +1224,6 @@ export default function PublicProfilePage() {
             </div>
           ) : (
             <>
-              {/* Top supporters strip */}
-              {targetUserId && <TopSupporters creatorId={targetUserId} />}
-
-              {/* Creator subscription tiers */}
-              {targetUserId && (
-                <CreatorTiersSubscribe
-                  creatorId={targetUserId}
-                  creatorName={resolvedProfile?.full_name || undefined}
-                  isOwnProfile={isOwnProfile}
-                />
-              )}
-
-              {/* PPV strip — locked content a creator has published */}
-              {targetUserId && <CreatorPPVStrip creatorUserId={targetUserId} />}
-
               {/* Content Tabs — sticky, swipe-to-switch */}
               <div className="sticky top-[56px] lg:top-[64px] z-30 mx-auto mt-4 max-w-3xl lg:max-w-5xl px-3 pb-2 bg-background/90 backdrop-blur-xl">
                 <div className="grid grid-cols-3 gap-1 rounded-[22px] border border-border/70 bg-card/95 p-1 shadow-[0_4px_24px_rgba(15,23,42,0.06)]">
@@ -1743,16 +1653,6 @@ export default function PublicProfilePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {targetUserId && (
-        <TipSheet
-          open={tipOpen}
-          onClose={() => setTipOpen(false)}
-          creatorId={targetUserId}
-          creatorName={resolvedProfile?.full_name || "Creator"}
-          creatorAvatar={resolvedProfile?.avatar_url}
-        />
-      )}
 
       {targetUserId && reportOpen && (
         <Suspense fallback={null}>

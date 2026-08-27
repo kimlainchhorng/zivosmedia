@@ -171,20 +171,17 @@ describe("ChatContactInfo", () => {
 
   it("connects top contact actions to chat workflows", () => {
     const onStartCall = vi.fn();
-    const onOpenGift = vi.fn();
     const onOpenSearch = vi.fn();
 
-    renderContactInfo({ onStartCall, onOpenGift, onOpenSearch });
+    renderContactInfo({ onStartCall, onOpenSearch });
 
     fireEvent.click(screen.getByRole("button", { name: "Audio" }));
     fireEvent.click(screen.getByRole("button", { name: "Video" }));
-    fireEvent.click(screen.getByRole("button", { name: "Gift" }));
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
     fireEvent.click(screen.getByRole("button", { name: "Profile" }));
 
     expect(onStartCall).toHaveBeenNthCalledWith(1, "voice");
     expect(onStartCall).toHaveBeenNthCalledWith(2, "video");
-    expect(onOpenGift).toHaveBeenCalledTimes(1);
     expect(onOpenSearch).toHaveBeenCalledTimes(1);
     expect(mocks.navigate).toHaveBeenCalledWith("/user/peer");
   });

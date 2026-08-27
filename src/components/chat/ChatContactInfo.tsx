@@ -39,7 +39,6 @@ import Clock from "lucide-react/dist/esm/icons/clock";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import Star from "lucide-react/dist/esm/icons/star";
 import StarOff from "lucide-react/dist/esm/icons/star-off";
-import Gift from "lucide-react/dist/esm/icons/gift";
 import Users from "lucide-react/dist/esm/icons/users";
 import Copy from "lucide-react/dist/esm/icons/copy";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link";
@@ -49,10 +48,8 @@ import Camera from "lucide-react/dist/esm/icons/camera";
 import Hash from "lucide-react/dist/esm/icons/hash";
 import Music2 from "lucide-react/dist/esm/icons/music-2";
 import Send from "lucide-react/dist/esm/icons/send";
-import Heart from "lucide-react/dist/esm/icons/heart";
 import { toast } from "sonner";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import onlyfansLogo from "@/assets/brand-logos/onlyfans.png";
 import Pin from "lucide-react/dist/esm/icons/pin";
 import Archive from "lucide-react/dist/esm/icons/archive";
 import Mail from "lucide-react/dist/esm/icons/mail";
@@ -94,7 +91,6 @@ type RecipientProfileRow = {
   country: string | null;
   social_links_visible: boolean | null;
   social_facebook: string | null;
-  social_onlyfans: string | null;
   social_instagram: string | null;
   social_tiktok: string | null;
   social_snapchat: string | null;
@@ -125,7 +121,6 @@ interface ChatContactInfoProps {
   onOpenLinks?: () => void;
   onOpenGifs?: () => void;
   onOpenMusic?: () => void;
-  onOpenGift?: () => void;
 }
 
 export default function ChatContactInfo({
@@ -147,7 +142,6 @@ export default function ChatContactInfo({
   onOpenLinks,
   onOpenGifs,
   onOpenMusic,
-  onOpenGift,
 }: ChatContactInfoProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -254,7 +248,7 @@ export default function ChatContactInfo({
     queryKey: ["recipient-profile", recipientId],
     queryFn: async () => {
       const { data } = await dbFrom("profiles")
-        .select("user_id, full_name, avatar_url, bio, email, city, country, social_links_visible, social_facebook, social_onlyfans, social_instagram, social_tiktok, social_snapchat, social_x, social_linkedin, social_telegram")
+        .select("user_id, full_name, avatar_url, bio, email, city, country, social_links_visible, social_facebook, social_instagram, social_tiktok, social_snapchat, social_x, social_linkedin, social_telegram")
         .eq("user_id", recipientId)
         .maybeSingle();
       return (data || null) as RecipientProfileRow | null;
@@ -271,7 +265,6 @@ export default function ChatContactInfo({
     };
     const items = [
       { id: "facebook",  label: "Facebook",  url: buildUrl(recipientProfile.social_facebook,  "https://facebook.com/") },
-      { id: "onlyfans",  label: "OnlyFans",  url: buildUrl(recipientProfile.social_onlyfans,  "https://onlyfans.com/") },
       { id: "instagram", label: "Instagram", url: buildUrl(recipientProfile.social_instagram, "https://instagram.com/") },
       { id: "x",         label: "X",         url: buildUrl(recipientProfile.social_x,         "https://x.com/") },
       { id: "tiktok",    label: "TikTok",    url: buildUrl(recipientProfile.social_tiktok,    "https://tiktok.com/@") },
@@ -503,7 +496,6 @@ export default function ChatContactInfo({
             {[
               { icon: Phone, label: "Audio", action: () => onStartCall?.("voice") },
               { icon: Video, label: "Video", action: () => onStartCall?.("video") },
-              { icon: Gift, label: "Gift", action: onOpenGift },
               { icon: Search, label: "Search", action: onOpenSearch },
               { icon: UserRound, label: "Profile", action: handleViewProfile },
               { icon: isFavorite ? StarOff : Star, label: isFavorite ? "Unfav" : "Favorite", action: toggleFavorite },
@@ -555,7 +547,7 @@ export default function ChatContactInfo({
           </>
         )}
 
-        {/* Social Links — recipient's external profiles (Facebook, OnlyFans, Instagram, etc.) */}
+        {/* Social Links — recipient's external profiles (Facebook, Instagram, etc.) */}
         {socialLinks.length > 0 && (
           <>
             <Section title="Social Links">
@@ -834,7 +826,6 @@ export default function ChatContactInfo({
 
 const SOCIAL_META: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; brandImage?: string }> = {
   facebook:  { icon: MessageCircle, color: "bg-[#1877F2]" },
-  onlyfans:  { icon: Heart,     color: "bg-white", brandImage: onlyfansLogo },
   instagram: { icon: Camera,    color: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]" },
   x:         { icon: AtSign,    color: "bg-black" },
   tiktok:    { icon: Music2,    color: "bg-black" },

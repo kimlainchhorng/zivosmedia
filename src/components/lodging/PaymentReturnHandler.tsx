@@ -33,9 +33,6 @@ export function PaymentReturnHandler() {
     const groceryPaypalRes = params.get("grocery_paypal_return");
     const groceryPaypalCancelled = params.get("grocery_paypal_cancel");
     const grocerySquareRes = params.get("grocery_square_return");
-    const tipPaypalRes = params.get("tip_paypal_return");
-    const tipPaypalCancelled = params.get("tip_paypal_cancel");
-    const tipSquareRes = params.get("tip_square_return");
 
     // Lodging PayPal
     if (paypalRes && paypalToken && !handledRef.current.has(paypalToken)) {
@@ -160,46 +157,6 @@ export function PaymentReturnHandler() {
       setParams(next, { replace: true });
     }
 
-    // Creator tips — PayPal
-    if (tipPaypalRes && paypalToken && !handledRef.current.has(`tip-${paypalToken}`)) {
-      handledRef.current.add(`tip-${paypalToken}`);
-      (async () => {
-        const t = toast.loading("Confirming tip…");
-        try {
-          const { data, error } = await supabase.functions.invoke("capture-tip-paypal-order", {
-            body: { order_id: paypalToken },
-          });
-          if (error) throw error;
-          if ((data as any)?.error) throw new Error((data as any).error);
-          toast.success("Tip sent via PayPal 🎉", { id: t });
-        } catch (e: any) {
-          toast.error(e?.message || "PayPal capture failed", { id: t });
-        } finally {
-          const next = new URLSearchParams(params);
-          next.delete("tip_paypal_return");
-          next.delete("token");
-          next.delete("PayerID");
-          setParams(next, { replace: true });
-        }
-      })();
-    }
-
-    if (tipPaypalCancelled && !handledRef.current.has("tip-cancel")) {
-      handledRef.current.add("tip-cancel");
-      toast.info("Tip cancelled");
-      const next = new URLSearchParams(params);
-      next.delete("tip_paypal_cancel");
-      next.delete("token");
-      setParams(next, { replace: true });
-    }
-
-    if (tipSquareRes && !handledRef.current.has("tip-sq")) {
-      handledRef.current.add("tip-sq");
-      toast.info("Verifying Square tip…");
-      const next = new URLSearchParams(params);
-      next.delete("tip_square_return");
-      setParams(next, { replace: true });
-    }
   }, [params, setParams]);
 
   return null;

@@ -12,14 +12,13 @@ import SEOHead from "@/components/SEOHead";
 import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
 import LoadFailureCard from "@/components/reliability/LoadFailureCard";
 import {
-  User, ArrowLeft, Loader2, Sparkles, Camera, ImagePlus, Check, X, MoveVertical,
+  User, ArrowLeft, Loader2, Camera, ImagePlus, Check, X, MoveVertical,
   Shield, Star, ChevronRight, UserPlus, BadgeCheck,
   Wallet, Store, ExternalLink, Users, Globe, ChevronDown, Crown, MapPin, ShoppingBag,
   Handshake, Car, Wrench, UtensilsCrossed, Building2, Truck, Phone, AlertCircle, Bell, MoreHorizontal,
   Pencil, RotateCcw, Share2, BarChart3,
-  Repeat, DollarSign, Briefcase, User as UserIcon,
-  Heart, Lock, Gift, MessageCircle, Video, TrendingUp, Eye,
-  Settings as SettingsIcon,
+  Repeat, Briefcase, User as UserIcon,
+  Lock, Eye,
 } from "lucide-react";
 import { useHaptics } from "@/hooks/useHaptics";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,6 @@ import FeedSidebar from "@/components/social/FeedSidebar";
 import { useBookingHistory } from "@/hooks/useBookingHistory";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import { useNotifications } from "@/hooks/useNotifications";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
 import { resolveBusinessDashboardRoute } from "@/lib/business/dashboardRoute";
 import { formatDistanceToNowStrict } from "date-fns";
 
@@ -426,28 +424,7 @@ const Profile = () => {
     if (typeof window === "undefined") return "personal";
     return localStorage.getItem("zivo:active_mode") || "personal";
   });
-  const { isOFMode: zivoOFMode, setOFMode: setZivoOFMode } = useZivoOFMode();
-
-  const { data: ofSubscribersCount = 0 } = useQuery({
-    queryKey: ["of-active-subs-count", user?.id],
-    enabled: !!user?.id && zivoOFMode,
-    queryFn: async () => {
-      const { count } = await (supabase as any)
-        .from("creator_subscriptions")
-        .select("id", { count: "exact", head: true })
-        .eq("creator_id", user!.id)
-        .eq("status", "active");
-      return (count as number) || 0;
-    },
-  });
-
-  useEffect(() => {
-    if (!zivoOFMode) return;
-    setActiveMode((current) => (current === "creator" ? current : "creator"));
-    try { localStorage.setItem("zivo:active_mode", "creator"); } catch {}
-  }, [zivoOFMode]);
-
-  const workflowMode = zivoOFMode ? "creator" : activeMode;
+  const workflowMode = activeMode;
   const profileCompletion = useMemo(() => {
     const hasName = Boolean((profile?.full_name || "").trim());
     const hasUsername = Boolean(claimedUsername || profile?.has_username || profile?.username);
@@ -1204,13 +1181,6 @@ const Profile = () => {
                           loading="lazy"
                           decoding="async"
                         />
-                      ) : zivoOFMode ? (
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#00AEEF] via-[#0099D9] to-[#0077B6]">
-                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.18),transparent_70%)]" />
-                          <div className="absolute bottom-3 right-4 text-white/70 text-[11px] font-medium flex items-center gap-1">
-                            <ImagePlus className="w-3.5 h-3.5" /> Add cover photo
-                          </div>
-                        </div>
                       ) : (
                         <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/15 to-accent/20">
                           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,hsl(var(--primary)/0.25),transparent_70%)]" />
@@ -1296,14 +1266,7 @@ const Profile = () => {
                           whileHover={{ scale: 1.05 }}
                           transition={{ type: "spring", stiffness: 300 }}
                         >
-                          {/* Story-ring around the profile avatar.
-                              OF mode swaps to OnlyFans cyan/blue. */}
-                          <div className={cn(
-                            "absolute -inset-1 rounded-full pointer-events-none",
-                            zivoOFMode
-                              ? "bg-gradient-to-tr from-[#0077B6] via-[#00AEEF] to-[#7CD6FF]"
-                              : "bg-ig-gradient"
-                          )} />
+                          <div className="absolute -inset-1 rounded-full bg-ig-gradient pointer-events-none" />
                           <Avatar className="relative h-[56px] w-[56px] sm:h-[68px] sm:w-[68px] ring-[3px] ring-card shadow-lg">
                             <AvatarImage src={avatarPreview || profile?.avatar_url || undefined} alt="Profile" />
                             <AvatarFallback className="bg-muted text-foreground text-2xl font-bold">
@@ -1496,26 +1459,7 @@ const Profile = () => {
                         </motion.button>
                       </div>
 
-                      {/* Stats row — OF mode shows subscribers + posts only,
-                          default mode shows the full social signals. */}
-                      {zivoOFMode ? (
-                        <div className="mt-2 grid grid-cols-2 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
-                          <button
-                            type="button"
-                            aria-label={`View ${ofSubscribersCount} subscribers`}
-                            onClick={() => { selectionChanged(); navigate("/creator/subscribers"); }}
-                            className="border-r border-border/15 px-3 py-2 text-center transition-colors hover:bg-muted/35 active:bg-muted/45 focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none"
-                          >
-                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(ofSubscribersCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Subscribers</span>
-                          </button>
-                          <span className="px-3 py-2 text-center">
-                            <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(postsCount) ?? "0"}</span>
-                            <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">Posts</span>
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="mt-2 grid grid-cols-4 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
+                      <div className="mt-2 grid grid-cols-4 overflow-hidden rounded-xl border border-border/30 bg-muted/20">
                           <button
                             type="button"
                             aria-label={`View ${followerCount} followers`}
@@ -1547,48 +1491,13 @@ const Profile = () => {
                             <span className="block text-sm font-semibold leading-none text-foreground">{formatCount(friendCount) ?? "0"}</span>
                             <span className="mt-0.5 block truncate text-[10px] font-medium text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
                           </button>
-                        </div>
-                      )}
+                      </div>
 
-                      {/* Quick Actions row (mobile-only).
-                          OF mode: single OnlyFans-style monetization CTA.
-                          Default: business shortcuts (Shop, Employees, Mode, Monetization). */}
-                      {zivoOFMode ? (
-                        <div className="lg:hidden mt-2 space-y-1.5">
-                          <button
-                            type="button"
-                            onClick={() => { selectionChanged(); navigate("/monetization"); }}
-                            className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white bg-[#00AEEF] hover:bg-[#00A3E5] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
-                          >
-                            <Lock className="h-4 w-4" />
-                            <span>{zivoOFMode ? "ZIVO OF · Subscribe & Monetize" : "Subscribe & Monetize"}</span>
-                          </button>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => { selectionChanged(); navigate("/monetization"); }}
-                              className="flex items-center justify-center gap-1.5 rounded-full border border-[#00AEEF]/30 bg-[#00AEEF]/5 px-4 py-2 text-[12px] font-semibold text-[#00AEEF] hover:bg-[#00AEEF]/10 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-[#00AEEF]/60 focus-visible:outline-none transition-all"
-                            >
-                              <SettingsIcon className="h-3.5 w-3.5" />
-                              <span>ZIVO OF Settings</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { selectionChanged(); setModeOpen(true); }}
-                              className="flex items-center justify-center gap-1.5 rounded-full border border-border/60 bg-muted/30 px-4 py-2 text-[12px] font-semibold text-foreground hover:bg-muted/50 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none transition-all"
-                            >
-                              <Repeat className="h-3.5 w-3.5" />
-                              <span>Switch Mode</span>
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="lg:hidden mt-2 grid grid-cols-4 gap-1.5">
+                      <div className="lg:hidden mt-2 grid grid-cols-3 gap-1.5">
                           {[
                             { label: "Shop", icon: Store, chipTint: "bg-emerald-500/12", iconColor: "text-emerald-600 dark:text-emerald-400", onClick: openShopDashboard },
                             { label: "Employees", icon: Users, chipTint: "bg-sky-500/12", iconColor: "text-sky-600 dark:text-sky-400", onClick: () => { selectionChanged(); if (!user) { toast.info("Sign in to open Workplace"); navigate("/login?redirect=/personal-dashboard"); return; } navigate("/personal-dashboard"); } },
                             { label: "Mode", icon: Repeat, chipTint: "bg-violet-500/12", iconColor: "text-violet-600 dark:text-violet-400", onClick: () => { selectionChanged(); setModeOpen(true); } },
-                            { label: "Earn", icon: DollarSign, chipTint: "bg-amber-500/12", iconColor: "text-amber-700 dark:text-amber-400", onClick: () => { selectionChanged(); navigate("/monetization"); } },
                           ].map((a) => (
                             <button type="button"
                               key={a.label}
@@ -1601,8 +1510,7 @@ const Profile = () => {
                               <span className="truncate">{a.label}</span>
                             </button>
                           ))}
-                        </div>
-                      )}
+                      </div>
 
                       {/* Social Links Row */}
                       {profile?.social_links_visible !== false && (() => {
@@ -1756,7 +1664,7 @@ const Profile = () => {
 
               {/* Account Quick Links moved to /more page to avoid duplication */}
 
-              {/* ── Social Content Tabs (Posts, Videos, Live, Status) ── */}
+              {/* ── Social content tabs ── */}
               <ParallaxSection index={2.5}>
                 <ProfileContentTabs
                   userId={user?.id}
@@ -1808,46 +1716,18 @@ const Profile = () => {
             <p className="text-sm text-muted-foreground">Choose the workspace you want to use right now.</p>
           </SheetHeader>
           <div className="grid gap-2">
-            {zivoOFMode && (
-              <div className="mb-1 flex items-center justify-between gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/5 px-3 py-2.5">
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold text-foreground">ZIVO OF Mode is active</p>
-                  <p className="text-[11px] text-muted-foreground">Creator workflow is locked while OF mode is on.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setZivoOFMode(false);
-                    toast.success("ZIVO OF Mode turned off");
-                  }}
-                  className="shrink-0 rounded-xl border border-border/40 px-3 py-2 text-[11px] font-bold hover:bg-muted/50"
-                >
-                  Turn off
-                </button>
-              </div>
-            )}
-            {(zivoOFMode
-              ? [
-                  { id: "creator", label: "Creator", desc: "Subscriptions, PPV & tips", icon: Sparkles, route: "/creator-dashboard" },
-                ]
-              : [
+            {[
                   { id: "personal", label: "Personal", desc: "Your everyday account", icon: UserIcon, route: "/profile" },
-                  { id: "fan", label: "Fan", desc: "Subscribe to creators & unlock content", icon: Heart, route: "/account/subscriptions" },
-                  { id: "creator", label: "Creator", desc: "Subscriptions, PPV & tips", icon: Sparkles, route: "/creator-dashboard" },
                   { id: "business", label: "Business", desc: "Manage company travel & teams", icon: Briefcase, route: "/business" },
                   { id: "driver", label: "Driver", desc: "Go online and accept rides", icon: Car, route: "/driver/home" },
                   { id: "shop", label: "Shop Partner", desc: "Open your store dashboard", icon: Store, route: getShopDashboardPath() },
-                ]).map((m) => {
+                ].map((m) => {
               const active = workflowMode === m.id;
               const Icon = m.icon;
               return (
                 <button type="button"
                   key={m.id}
                   onClick={() => {
-                    if (zivoOFMode && m.id !== "creator") {
-                      toast.info("Disable ZIVO OF Mode in Monetization to switch modes");
-                      return;
-                    }
                     setActiveMode(m.id);
                     try { localStorage.setItem("zivo:active_mode", m.id); } catch {}
                     toast.success(`Switched to ${m.label} mode`);
@@ -1892,7 +1772,6 @@ const Profile = () => {
                 {[
                   { label: "Edit profile", icon: Pencil, route: "/account/profile-edit" },
                   { label: "Privacy", icon: Shield, route: "/account/privacy" },
-                  { label: "18+ Blur", icon: Eye, route: "/account/privacy#sensitive" },
                   { label: "Notifications", icon: Bell, route: "/account/notifications" },
                   { label: "Wallet", icon: Wallet, route: "/wallet" },
                   { label: "Saved places", icon: MapPin, route: "/account/saved-places" },
@@ -1923,87 +1802,6 @@ const Profile = () => {
             </div>
           )}
 
-          {workflowMode === "creator" && (
-            <div className="mt-5 border-t border-border/40 pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-muted-foreground">
-                  {zivoOFMode ? "ZIVO OF tools" : "Creator tools"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setModeOpen(false); navigate("/monetization"); }}
-                  className="text-[11px] font-bold text-primary"
-                >
-                  See all
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {(zivoOFMode
-                  ? [
-                      { label: "Subscribers", icon: Users, route: "/creator/subscribers" },
-                      { label: "Subscription", icon: Crown, route: "/monetization/program/subscription" },
-                      { label: "Locked media", icon: Lock, route: "/monetization/program/locked-media" },
-                      { label: "Paid DMs", icon: MessageCircle, route: "/monetization/program/paid-dms" },
-                      { label: "Tips", icon: Gift, route: "/monetization/program/tips-donations" },
-                      { label: "Payouts", icon: DollarSign, route: "/wallet" },
-                    ]
-                  : [
-                      { label: "Subscribers", icon: Users, route: "/creator/subscribers" },
-                      { label: "PPV posts", icon: Lock, route: "/monetization" },
-                      { label: "Tips", icon: Gift, route: "/creator/tips" },
-                      { label: "Mass DM", icon: MessageCircle, route: "/chat" },
-                      { label: "Earnings", icon: TrendingUp, route: "/creator-analytics" },
-                      { label: "Go live", icon: Video, route: "/live" },
-                    ]).map((a) => {
-                  const Icon = a.icon;
-                  return (
-                    <button type="button"
-                      key={a.label}
-                      onClick={() => { setModeOpen(false); navigate(a.route); }}
-                      className="flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-card p-3 text-center shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    >
-                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/40">
-                        <Icon className="h-5 w-5 text-foreground" />
-                      </span>
-                      <span className="text-[11px] font-bold leading-tight">{a.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {workflowMode === "fan" && (
-            <div className="mt-5 border-t border-border/40 pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-muted-foreground">My fan activity</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { label: "Subscriptions", icon: Heart, route: "/account/subscriptions" },
-                  { label: "Unlocked", icon: Lock, route: "/account/subscriptions" },
-                  { label: "Tips sent", icon: Gift, route: "/account/tips" },
-                  { label: "DMs", icon: MessageCircle, route: "/chat" },
-                  { label: "Wallet", icon: DollarSign, route: "/wallet" },
-                  { label: "Discover", icon: Sparkles, route: "/feed?tab=foryou" },
-                ].map((a) => {
-                  const Icon = a.icon;
-                  return (
-                    <button type="button"
-                      key={a.label}
-                      onClick={() => { setModeOpen(false); navigate(a.route); }}
-                      className="flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border/60 bg-card p-3 text-center shadow-sm transition-transform active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    >
-                      <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted/40">
-                        <Icon className="h-5 w-5 text-foreground" />
-                      </span>
-                      <span className="text-[11px] font-bold leading-tight">{a.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </SheetContent>
       </Sheet>
 

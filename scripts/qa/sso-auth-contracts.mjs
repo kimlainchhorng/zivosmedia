@@ -62,7 +62,7 @@ const contracts = [
         'event === "SIGNED_OUT" && !explicitSignOutRef.current',
         'event === "SIGNED_IN"',
         "TOKEN_REFRESHED",
-        "checkAdminRole(session.user.id)",
+        "const adminResolution = await checkAdminRole(userId)",
         "setupActivityTracking",
         "clearSessionArtifacts",
         'supabase.auth.signOut({ scope: "local" })',
@@ -344,8 +344,6 @@ const contracts = [
       for (const route of [
         'path="/personal-dashboard"',
         'path="/shop-dashboard"',
-        'path="/creator-dashboard"',
-        'path="/creator-payouts"',
         'path="/eats/driver-deliveries"',
         'path="/driver/payouts"',
         'path="/admin/analytics"',
@@ -356,7 +354,9 @@ const contracts = [
       ]) {
         requireContains(this.id, app, route, appPath);
       }
-      for (const role of ["customer", "shop-owner", "staff", "driver", "creator", "admin"]) {
+      requireNotContains(this.id, app, 'path="/creator-dashboard"', appPath);
+      requireNotContains(this.id, app, 'path="/creator-payouts"', appPath);
+      for (const role of ["customer", "shop-owner", "staff", "driver", "admin"]) {
         requireContains(this.id, roleMatrix, `role: "${role}"`, roleMatrixPath);
       }
       requireContains(this.id, roleMatrix, "SSO callback, saved-session restore, and role redirect logic", roleMatrixPath);

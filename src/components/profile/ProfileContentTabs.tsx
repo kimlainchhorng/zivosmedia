@@ -322,7 +322,6 @@ export default function ProfileContentTabs({
   const [menuOnly, setMenuOnly] = useState(false);
   const [editingCaption, setEditingCaption] = useState(false);
   const [editCaptionValue, setEditCaptionValue] = useState("");
-  const [showLive, setShowLive] = useState(false);
   const [feed, setFeed] = useState<FeedItem[]>(() => {
     const seeded = getE2ESeedPosts();
     return seeded && seeded.length > 0 ? (seeded as FeedItem[]) : demoFeed;
@@ -636,14 +635,6 @@ export default function ProfileContentTabs({
     }
     setComposerType(type);
     setShowCreatePost(true);
-  }, [navigate, user?.id]);
-  const openLiveBroadcast = useCallback(() => {
-    if (!user?.id) {
-      toast.info("Sign in to go live");
-      navigate("/login?redirect=/profile");
-      return;
-    }
-    setShowLive(true);
   }, [navigate, user?.id]);
   const closeCreatePost = useCallback(() => {
     setShowCreatePost(false);
@@ -1203,7 +1194,7 @@ export default function ProfileContentTabs({
           <span className="flex-1 truncate text-sm font-semibold text-muted-foreground">What's on your mind?</span>
           <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/55" />
         </button>
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
           <button
             type="button"
             aria-label="Create photo post"
@@ -1223,16 +1214,6 @@ export default function ProfileContentTabs({
           >
             <Film className="h-3.5 w-3.5 text-blue-600" />
             <span>Reel</span>
-          </button>
-          <button
-            type="button"
-            aria-label="Go live from camera"
-            title="Live camera"
-            onClick={openLiveBroadcast}
-            className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-orange-500/15 bg-orange-500/10 px-2 text-[11px] font-semibold text-orange-700 transition hover:bg-orange-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 dark:text-orange-300"
-          >
-            <Camera className="h-3.5 w-3.5 text-orange-600" />
-            <span>Live</span>
           </button>
         </div>
       </div>
@@ -1592,14 +1573,6 @@ export default function ProfileContentTabs({
               }}
             />
           )}
-        </AnimatePresence>,
-        document.body
-      )}
-
-      {/* Live Broadcast Overlay */}
-      {createPortal(
-        <AnimatePresence>
-          {showLive && <LiveBroadcast onClose={() => setShowLive(false)} onPublishClip={handleCreatePost} />}
         </AnimatePresence>,
         document.body
       )}

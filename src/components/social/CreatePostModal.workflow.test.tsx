@@ -30,10 +30,6 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-vi.mock("@/hooks/useZivoOFMode", () => ({
-  useZivoOFMode: () => ({ zivoOFMode: false }),
-}));
-
 vi.mock("@/utils/uploadWithProgress", () => ({
   uploadWithProgress: mocks.uploadWithProgress,
 }));
@@ -51,7 +47,7 @@ type ComposerProps = ComponentProps<typeof CreatePostModal>;
 const publicVideoUrl = "https://cdn.zivo.test/reels/uploaded-reel.mp4";
 
 const renderComposer = (
-  initialMode: "photo" | "reel" | "poll" | "story" | "shop" | "live" = "reel",
+  initialMode: "photo" | "reel" | "poll" | "story" | "shop" = "reel",
   props: Partial<ComposerProps> = {},
 ) => {
   const queryClient = new QueryClient({

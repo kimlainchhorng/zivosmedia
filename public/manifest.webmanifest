@@ -1,7 +1,7 @@
 {
-  "name": "ZIVO – Free Super-App: Travel, Social, Shop, Jobs & Creators",
+  "name": "ZIVO – Free Super-App: Travel, Social, Shop & Jobs",
   "short_name": "ZIVO",
-  "description": "All-in-one free app: book flights, hotels & cars, order rides & food, share reels, follow creators, open a shop, post or apply for jobs, chat & call.",
+  "description": "All-in-one free app: book flights, hotels and cars, order rides and food, share reels, open a shop, post or apply for jobs, chat and call.",
   "categories": ["travel", "social", "lifestyle", "business", "shopping"],
   "lang": "en",
   "dir": "ltr",

@@ -11,7 +11,7 @@ import {
   Users, Gift, Trophy,
   Clock, DollarSign, ChevronRight, Eye, EyeOff,
   TrendingUp, Zap, Banknote, Building2, Send, AlertCircle,
-  Radio, Coins, CheckCircle, MoreHorizontal,
+  CheckCircle, MoreHorizontal,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,6 @@ import { useCustomerWallet } from "@/hooks/useCustomerWallet";
 import { useStripePaymentMethods, useDeleteStripeCard, useSetDefaultStripeCard } from "@/hooks/useStripePaymentMethods";
 import { useWalletTransactions, useWalletCredits, useWalletSummary } from "@/hooks/useZivoWallet";
 import { useLoyaltyPoints } from "@/hooks/useLoyaltyPoints";
-import { useLiveEarnings } from "@/hooks/useLiveEarnings";
 import AddCardForm from "@/components/wallet/AddCardForm";
 import UnifiedPayoutCard from "@/components/wallet/UnifiedPayoutCard";
 import WithdrawalReceipt, { type WithdrawalReceiptData } from "@/components/wallet/WithdrawalReceipt";
@@ -91,7 +90,6 @@ function brandLabel(brand: string) {
 
 const TAB_ITEMS = [
   { key: "cards", label: "Cards", icon: CreditCard },
-  { key: "gifts", label: "Gifts", icon: Gift },
   { key: "cashout", label: "Cash Out", icon: Banknote },
   { key: "history", label: "History", icon: Clock },
   { key: "credits", label: "Credits", icon: Gift },
@@ -215,7 +213,7 @@ export default function WalletPage() {
   const navigate = useNavigate();
   const [showAddCard, setShowAddCard] = useState(false);
   const [balanceHidden, setBalanceHidden] = useState(false);
-  const [activeTab, setActiveTab] = useState<"cards" | "gifts" | "cashout" | "history" | "credits">("cards");
+  const [activeTab, setActiveTab] = useState<"cards" | "cashout" | "history" | "credits">("cards");
   const [cashoutAmount, setCashoutAmount] = useState("");
   const [cashoutMethod, setCashoutMethod] = useState<string>("bank_transfer");
   const [cashoutNote, setCashoutNote] = useState("");
@@ -251,7 +249,6 @@ export default function WalletPage() {
   const { data: walletCredits = [], isLoading: creditsLoading } = useWalletCredits();
   const { data: summary, isLoading: summaryLoading } = useWalletSummary();
   const { points, isLoading: pointsLoading } = useLoyaltyPoints();
-  const { totals: liveEarnings, payouts: liveGiftPayouts } = useLiveEarnings();
 
   // ── Wallet topup (in-ZIVO Stripe Elements) ─────────────────────────────
   const [topupOpen, setTopupOpen] = useState(false);
@@ -702,106 +699,6 @@ export default function WalletPage() {
                       </div>
                     </motion.div>
                   ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === "gifts" && (
-            <motion.div key="gifts" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} className="space-y-4">
-              {/* Live gift earnings hero */}
-              <button type="button"
-                onClick={() => navigate("/creator/live-earnings")}
-                className="w-full text-left relative rounded-2xl overflow-hidden active:scale-[0.99] transition-transform"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-400 via-orange-500" />
-                <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/15" />
-                <div className="relative z-10 p-5 text-white">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                        <Gift className="w-4.5 h-4.5" />
-                      </div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/80">
-                        Live Gift Earnings
-                      </p>
-                    </div>
-                    <Badge className="bg-white/20 text-white border-0 text-[9px]">70% share</Badge>
-                  </div>
-                  <p className="text-3xl font-extrabold leading-none">
-                    ${((liveEarnings?.earnings_cents ?? 0) / 100).toFixed(2)}
-                  </p>
-                  <p className="text-[11px] text-white/75 mt-1.5 flex items-center gap-1">
-                    <Coins className="w-3 h-3" />
-                    {(liveEarnings?.total_coins_received ?? 0).toLocaleString()} coins from{" "}
-                    {(liveEarnings?.total_gifts_received ?? 0).toLocaleString()} gifts
-                  </p>
-                  <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold">
-                    Open Live Earnings
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-              </button>
-
-              {/* Quick stats */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-2xl bg-card border border-border/30 p-3 text-center">
-                  <Users className="w-4 h-4 text-primary mx-auto mb-1" />
-                  <p className="font-bold text-sm tabular-nums">
-                    {(liveEarnings?.unique_gifters ?? 0).toLocaleString()}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">Gifters</p>
-                </div>
-                <div className="rounded-2xl bg-card border border-border/30 p-3 text-center">
-                  <Gift className="w-4 h-4 text-foreground mx-auto mb-1" />
-                  <p className="font-bold text-sm tabular-nums">
-                    {(liveEarnings?.total_gifts_received ?? 0).toLocaleString()}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">Gifts</p>
-                </div>
-                <div className="rounded-2xl bg-card border border-border/30 p-3 text-center">
-                  <Banknote className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
-                  <p className="font-bold text-sm tabular-nums">
-                    {liveGiftPayouts.length}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">Payouts</p>
-                </div>
-              </div>
-
-              {/* Recent live-gift withdrawals */}
-              {liveGiftPayouts.length > 0 ? (
-                <div className="space-y-2">
-                  <h3 className="font-bold text-[13px] text-muted-foreground">Recent Withdrawals</h3>
-                  {liveGiftPayouts.slice(0, 5).map((p: any) => (
-                    <div key={p.id} className="rounded-xl bg-card border border-border/30 p-3 flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        p.status === "paid" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
-                      }`}>
-                        <Banknote className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-[13px]">${(p.amount_cents / 100).toFixed(2)}</p>
-                        <p className="text-[11px] text-muted-foreground capitalize">
-                          {p.status} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border/60 p-6 text-center">
-                  <Radio className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="font-semibold text-sm">No live earnings yet</p>
-                  <p className="text-xs text-muted-foreground mt-1 mb-4">
-                    Go live and let viewers send Z Coin gifts
-                  </p>
-                  <Button
-                    onClick={() => navigate("/go-live")}
-                    size="sm"
-                    className="rounded-xl text-xs font-bold gap-1.5"
-                  >
-                    <Radio className="w-3.5 h-3.5" /> Go Live Now
-                  </Button>
                 </div>
               )}
             </motion.div>

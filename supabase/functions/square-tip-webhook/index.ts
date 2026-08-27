@@ -6,6 +6,10 @@
 import { createClient } from "../_shared/deps.ts";
 import { creditCreatorTipToWallet } from "../_shared/tipWalletCredit.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  creatorMonetizationWebhookAcknowledgement,
+  isCreatorMonetizationDisabled,
+} from "../_shared/creatorMonetizationCompliance.ts";
 
 async function hmacSha256Base64(key: string, message: string): Promise<string> {
   const cryptoKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -51,6 +55,13 @@ Deno.serve(withSecurity("square-tip-webhook", async (req) => {
   const data = event.data?.object ?? {};
   const payment = data.payment ?? null;
   const refund = data.refund ?? null;
+  if (
+    isCreatorMonetizationDisabled() &&
+    (eventType === "payment.created" || eventType === "payment.updated") &&
+    payment?.status === "COMPLETED"
+  ) {
+    return creatorMonetizationWebhookAcknowledgement();
+  }
   const paymentId: string | null = payment?.id ?? refund?.payment_id ?? null;
   const checkoutId: string | null = payment?.order_id ?? null;
   const note: string | null = payment?.note ?? refund?.reason ?? null;

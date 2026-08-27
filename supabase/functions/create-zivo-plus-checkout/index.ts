@@ -3,6 +3,10 @@ import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  creatorMonetizationBlockedResponse,
+  isCreatorMonetizationDisabled,
+} from "../_shared/creatorMonetizationCompliance.ts";
 
 const logStep = (step: string, details?: any) => {
   const d = details ? ` - ${JSON.stringify(details)}` : "";
@@ -73,6 +77,11 @@ serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
       throw new Error(`Invalid plan: ${requestedPlan}. Use 'monthly', 'chat', 'pro', or 'annual'`);
     }
 
+    const hasGiftRecipient = typeof gift_recipient_id === "string" && gift_recipient_id.trim().length > 0;
+    if (isCreatorMonetizationDisabled() && hasGiftRecipient) {
+      return creatorMonetizationBlockedResponse(corsHeaders);
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const { data: planRow, error: planError } = await supabaseClient
@@ -94,7 +103,6 @@ serve(withSecurity("create-zivo-plus-checkout", async (req, ctx) => {
     if (!priceId) throw new Error(`ZIVO+ price is not configured for ${requestedPlan}`);
     logStep("Plan selected", { plan: requestedPlan, priceId, source: dbPriceId ? "database" : "function_fallback" });
 
-    const hasGiftRecipient = typeof gift_recipient_id === "string" && gift_recipient_id.length > 0;
     if (hasGiftRecipient && !UUID_RE.test(gift_recipient_id)) {
       throw new Error("Invalid gift recipient");
     }

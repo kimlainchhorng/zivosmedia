@@ -1,6 +1,6 @@
 ﻿/**
  * ChatAttachMenu — upgraded attachment sheet UI.
- * Lock & Unlock requires Chat+ or Pro ZIVO+ plan.
+ * Keeps ordinary sharing and privacy tools together in one sheet.
  */
 import { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,11 +10,8 @@ import Video from "lucide-react/dist/esm/icons/video";
 import Music from "lucide-react/dist/esm/icons/music";
 import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import Timer from "lucide-react/dist/esm/icons/timer";
-import Lock from "lucide-react/dist/esm/icons/lock";
 import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
 import Flame from "lucide-react/dist/esm/icons/flame";
-import Gift from "lucide-react/dist/esm/icons/gift";
-import Coins from "lucide-react/dist/esm/icons/coins";
 import ScanLine from "lucide-react/dist/esm/icons/scan-line";
 import FileUp from "lucide-react/dist/esm/icons/file-up";
 import BarChart3 from "lucide-react/dist/esm/icons/bar-chart-3";
@@ -24,10 +21,6 @@ import Compass from "lucide-react/dist/esm/icons/compass";
 import X from "lucide-react/dist/esm/icons/x";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up";
-import { useZivoPlus } from "@/contexts/ZivoPlusContext";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { createPortal } from "react-dom";
 
 interface ChatAttachMenuProps {
@@ -65,7 +58,7 @@ const menuItems = [
   { id: "video", label: "Video", hint: "Camera clip", icon: Video, color: "text-violet-500", bg: "bg-violet-500/10" },
   { id: "gif", label: "GIF", hint: "Animated image", icon: ImagePlay, color: "text-pink-500", bg: "bg-pink-500/10" },
   { id: "music", label: "Music", hint: "Audio file", icon: Music, color: "text-teal-500", bg: "bg-teal-500/10" },
-  { id: "sensitive", label: "18+", hint: "Blur next media", icon: ShieldAlert, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
+  { id: "sensitive", label: "Content warning", hint: "Blur sensitive media", icon: ShieldAlert, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
   { id: "view-once", label: "View once", hint: "Burn after view", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" },
   { id: "file", label: "File", hint: "PDF and docs", icon: FileUp, color: "text-sky-500", bg: "bg-sky-500/10" },
   { id: "scan", label: "Scan", hint: "Quick document", icon: ScanLine, color: "text-cyan-500", bg: "bg-cyan-500/10", isNew: true },
@@ -74,10 +67,6 @@ const menuItems = [
   { id: "poll", label: "Poll", hint: "Vote together", icon: BarChart3, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
   { id: "social", label: "Social", hint: "Share links", icon: Share2, color: "text-[#1877F2]", bg: "bg-blue-500/10" },
   { id: "zivo", label: "ZIVO", hint: "App actions", icon: Compass, color: "text-pink-500", bg: "bg-pink-500/10", isNew: true },
-  { id: "gift", label: "Gift", hint: "Send a gift", icon: Gift, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { id: "money", label: "Money", hint: "Fast transfer", icon: Coins, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { id: "locked", label: "Locked", hint: "Paid unlock", icon: Lock, color: "text-rose-500", bg: "bg-rose-500/10" },
-  { id: "locked-text", label: "Paid DM", hint: "Locked message", icon: Lock, color: "text-rose-500", bg: "bg-rose-500/10" },
   { id: "disappearing", label: "24h", hint: "Auto delete", icon: Timer, color: "text-amber-500", bg: "bg-amber-500/10" },
 ] as const;
 
@@ -85,30 +74,16 @@ type ChatAttachMenuItem = (typeof menuItems)[number] & {
   isNew?: boolean;
 };
 
-/** Plans that include Lock & Unlock */
-const LOCK_UNLOCK_PLANS = new Set(["chat", "pro"]);
 const USAGE_STORAGE_KEY = "chat:attach:usage:v2";
 const RECENT_STORAGE_KEY = "chat:attach:recent:v2";
 const RECENT_LIMIT = 3;
 const PRIMARY_VISIBLE_COUNT = 10;
 
 export default function ChatAttachMenu({
-  open, onClose, onImageSelect, onVideoSelect, onGifSelect, onMusicSelect, onLocationShare, onToggleDisappearing, onLockedImageSelect, onLockedTextSelect,
-  onToggleSensitiveMedia, onToggleViewOnce, onSendGift, onOpenWallet, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, viewOnceMarked = false, lockedMediaHint, lockedMediaLabel, disappearingLabel,
+  open, onClose, onImageSelect, onVideoSelect, onGifSelect, onMusicSelect, onLocationShare, onToggleDisappearing,
+  onToggleSensitiveMedia, onToggleViewOnce, onScanDocument, onFileSelect, onCreatePoll, onShareContact, onShareSocial, onShareZivoCard, disappearingEnabled, sensitiveMediaMarked = false, viewOnceMarked = false, disappearingLabel,
 }: ChatAttachMenuProps) {
-  const { isPlus, plan } = useZivoPlus();
-  const { isOFMode: zivoOFMode } = useZivoOFMode();
-  const navigate = useNavigate();
-  const configuredItems = menuItems
-    .filter((it) => it.id !== "locked-text" || !!onLockedTextSelect)
-    .map((it) => (
-      it.id === "locked"
-        ? { ...it, label: lockedMediaLabel ?? it.label, hint: lockedMediaHint ?? it.hint }
-        : it
-    ));
-  const visibleItems = zivoOFMode
-    ? configuredItems.filter((it) => ["image", "video", "gif", "sensitive", "view-once", "locked", "locked-text", "money", "gift"].includes(it.id))
-    : configuredItems;
+  const visibleItems = menuItems;
   const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
   const [recentIds, setRecentIds] = useState<string[]>([]);
@@ -168,13 +143,7 @@ export default function ChatAttachMenu({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  const canUseLocked = isPlus && plan && LOCK_UNLOCK_PLANS.has(plan);
-
   const isActionUnavailable = (id: string): boolean => {
-    if (id === "locked") return !onLockedImageSelect;
-    if (id === "locked-text") return !onLockedTextSelect;
-    if (id === "gift") return !onSendGift;
-    if (id === "money") return !onOpenWallet;
     if (id === "file") return !onFileSelect;
     if (id === "gif") return !onGifSelect;
     if (id === "music") return !onMusicSelect;
@@ -189,7 +158,6 @@ export default function ChatAttachMenu({
   };
 
   const unavailableReason = (id: string): string | null => {
-    if ((id === "locked" || id === "locked-text") && !canUseLocked) return "Requires Chat+ or Pro";
     if (isActionUnavailable(id)) return "Not available here";
     return null;
   };
@@ -234,8 +202,6 @@ export default function ChatAttachMenu({
     }
 
     switch (id) {
-      case "gift": onSendGift?.(); break;
-      case "money": onOpenWallet?.(); break;
       case "scan":
         onScanDocument?.();
         break;
@@ -257,26 +223,6 @@ export default function ChatAttachMenu({
       case "gif": onGifSelect?.(); break;
       case "music": onMusicSelect?.(); break;
       case "location": onLocationShare(); break;
-      case "locked":
-        if (!canUseLocked) {
-          toast("Lock & Unlock requires Chat+ or Pro plan", {
-            action: { label: "Upgrade", onClick: () => navigate("/zivo-plus") },
-          });
-          onClose();
-          return;
-        }
-        onLockedImageSelect?.();
-        break;
-      case "locked-text":
-        if (!canUseLocked) {
-          toast("Lock & Unlock requires Chat+ or Pro plan", {
-            action: { label: "Upgrade", onClick: () => navigate("/zivo-plus") },
-          });
-          onClose();
-          return;
-        }
-        onLockedTextSelect?.();
-        break;
       case "disappearing": onToggleDisappearing(); break;
     }
     trackItemUsage(id);
@@ -348,7 +294,6 @@ export default function ChatAttachMenu({
 
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2.5 sm:gap-3">
               {renderedItems.map((item: ChatAttachMenuItem) => {
-                const isLockedGated = item.id === "locked" && !canUseLocked;
                 const isUnavailable = isActionUnavailable(item.id);
                 const reason = unavailableReason(item.id);
                 return (
@@ -366,7 +311,7 @@ export default function ChatAttachMenu({
                       item.id === "sensitive" && sensitiveMediaMarked ? "ring-2 ring-fuchsia-500 ring-offset-2 ring-offset-background" : ""
                     } ${
                       item.id === "view-once" && viewOnceMarked ? "ring-2 ring-orange-500 ring-offset-2 ring-offset-background" : ""
-                    } ${isLockedGated ? "opacity-50" : ""} ${isUnavailable ? "opacity-60" : ""}`}>
+                    } ${isUnavailable ? "opacity-60" : ""}`}>
                       <item.icon className={`w-[18px] h-[18px] sm:w-5 sm:h-5 ${item.color}`} />
                     </div>
                     <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground transition-colors whitespace-nowrap leading-none">
@@ -387,10 +332,7 @@ export default function ChatAttachMenu({
                     {item.id === "view-once" && viewOnceMarked && (
                       <span className="text-[8px] text-orange-500 font-bold -mt-1">ON</span>
                     )}
-                    {isLockedGated && (
-                      <span className="absolute -top-1 -right-1 text-[7px] font-bold px-1 py-0.5 rounded-full bg-amber-500 text-white">PRO</span>
-                    )}
-                    {isUnavailable && !isLockedGated && (
+                    {isUnavailable && (
                       <span className="absolute -top-1 -right-1 text-[7px] font-bold px-1 py-0.5 rounded-full bg-muted-foreground text-background">OFF</span>
                     )}
                   </button>

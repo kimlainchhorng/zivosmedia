@@ -4,6 +4,10 @@ import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import {
+  creatorMonetizationBlockedResponse,
+  isCreatorMonetizationAccount,
+} from "../_shared/creatorMonetizationCompliance.ts";
+import {
   adultCreatorPaymentBlockedResponse,
   isAdultCreatorAccount,
 } from "../_shared/adultCreatorPaymentBoundary.ts";
@@ -34,6 +38,10 @@ serve(withSecurity("connect-account-session", async (req, ctx) => {
     );
     if (uErr || !userData.user) throw new Error("Invalid auth");
     const user = userData.user;
+
+    if (await isCreatorMonetizationAccount(supabase, user.id)) {
+      return creatorMonetizationBlockedResponse(corsHeaders);
+    }
 
     const { country = "US" } = await req.json().catch(() => ({}));
 

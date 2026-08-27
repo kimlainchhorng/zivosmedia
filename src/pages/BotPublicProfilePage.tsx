@@ -4,7 +4,7 @@ import { Bot as BotIcon, MessageCircle, Star, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { isAllowedCheckoutUrl, validateExternalUrl } from "@/lib/urlSafety";
+import { validateExternalUrl } from "@/lib/urlSafety";
 
 type PublicBot = {
   id: string;
@@ -20,24 +20,20 @@ type PublicBot = {
 };
 
 type App = { slug: string; title: string; description: string | null; icon_emoji: string | null; app_url: string };
-type Pay = { slug: string; title: string; description: string | null; amount_cents: number; currency: string; checkout_url: string };
-
 export default function BotPublicProfilePage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const [bot, setBot] = useState<PublicBot | null>(null);
   const [apps, setApps] = useState<App[]>([]);
-  const [pays, setPays] = useState<Pay[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     (async () => {
       if (!username) return;
-      const [{ data, error }, { data: a }, { data: p }] = await Promise.all([
+      const [{ data, error }, { data: a }] = await Promise.all([
         supabase.rpc("bot_public_profile", { p_username: username }),
         supabase.rpc("bot_public_apps", { p_username: username }),
-        supabase.rpc("bot_public_payments", { p_username: username }),
       ]);
       if (error) toast.error(error.message);
       const row = Array.isArray(data) ? data[0] : data;
@@ -46,10 +42,6 @@ export default function BotPublicProfilePage() {
       setApps(((a ?? []) as App[]).flatMap((app) => {
         const safeUrl = validateExternalUrl(app.app_url);
         return safeUrl ? [{ ...app, app_url: safeUrl }] : [];
-      }));
-      setPays(((p ?? []) as Pay[]).flatMap((pay) => {
-        const checkoutUrl = pay.checkout_url.trim();
-        return isAllowedCheckoutUrl(checkoutUrl) ? [{ ...pay, checkout_url: checkoutUrl }] : [];
       }));
       setLoading(false);
     })();
@@ -120,31 +112,6 @@ export default function BotPublicProfilePage() {
             <div className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">{bot.category}</div>
           )}
         </section>
-
-        {pays.length > 0 && (
-          <section className="rounded-2xl bg-card border border-border p-4">
-            <div className="text-sm font-medium mb-2">Pay & subscribe</div>
-            <div className="space-y-2">
-              {pays.map((p) => (
-                <a
-                  key={p.slug}
-                  href={p.checkout_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3 hover:bg-emerald-100 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{p.title}</div>
-                    {p.description && <div className="text-[11px] text-muted-foreground line-clamp-2">{p.description}</div>}
-                  </div>
-                  <div className="text-base font-semibold text-emerald-700 flex-shrink-0">
-                    {(p.amount_cents/100).toFixed(2)} <span className="text-xs">{p.currency.toUpperCase()}</span>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
 
         {apps.length > 0 && (
           <section className="rounded-2xl bg-card border border-border p-4">

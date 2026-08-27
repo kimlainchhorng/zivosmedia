@@ -37,7 +37,6 @@ const RULES: Rule[] = [
   {
     match: [
       /https?:\/\/[^\s]*(facebook|fb)\.com\//i,
-      /https?:\/\/[^\s]*onlyfans\.com\//i,
       /https?:\/\/[^\s]*instagram\.com\//i,
       /https?:\/\/[^\s]*tiktok\.com\//i,
       /https?:\/\/[^\s]*(x\.com|twitter\.com)\//i,

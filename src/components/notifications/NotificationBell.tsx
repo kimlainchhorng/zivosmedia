@@ -18,7 +18,6 @@ import {
   Plane,
   ShoppingBag,
   Wallet,
-  Gift,
   Megaphone,
   Sparkles,
   AtSign,
@@ -74,8 +73,6 @@ const ICONS: Record<string, { icon: any; tone: string }> = {
   flight_booking_:            { icon: Plane,             tone: 'from-cyan-500/20 to-sky-400/5 text-cyan-500' },
   marketplace_order_:         { icon: ShoppingBag,       tone: 'from-yellow-500/20 to-amber-400/5 text-yellow-600' },
   wallet_received:            { icon: Wallet,            tone: 'from-emerald-500/20 to-green-400/5 text-emerald-500' },
-  creator_tip_received:       { icon: Gift,              tone: 'from-pink-500/20 to-rose-400/5 text-pink-500' },
-  creator_new_subscriber:     { icon: Sparkles,          tone: 'from-violet-500/20 to-fuchsia-400/5 text-violet-500' },
   channel_post:               { icon: Megaphone,         tone: 'from-blue-500/20 to-indigo-400/5 text-blue-500' },
 };
 
@@ -117,8 +114,7 @@ function passesFilter(n: Notif, f: typeof FILTERS[number]['id']): boolean {
       n.template.startsWith('lodge_booking_') ||
       n.template.startsWith('flight_booking_') ||
       n.template.startsWith('marketplace_order_') ||
-      n.template === 'wallet_received' ||
-      n.template === 'creator_tip_received'
+      n.template === 'wallet_received'
     );
   }
   return true;

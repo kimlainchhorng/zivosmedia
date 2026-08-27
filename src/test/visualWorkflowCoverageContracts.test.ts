@@ -24,7 +24,6 @@ describe("visual workflow coverage contracts", () => {
       '{ area: "shop-staff", path: "/shop-dashboard/employees", needsAuth: true }',
       '{ area: "shop-wallet", path: "/shop-dashboard/wallet", needsAuth: true }',
       '{ area: "driver", path: "/driver/orders", needsAuth: true }',
-      '{ area: "creator", path: "/creator-dashboard", needsAuth: true }',
       '{ area: "admin-security", path: "/admin/security", needsAuth: true }',
       '{ area: "admin-webhooks", path: "/admin/payments/webhook-status", needsAuth: true }',
       '{ area: "checkout", path: "/rent-car/checkout" }',

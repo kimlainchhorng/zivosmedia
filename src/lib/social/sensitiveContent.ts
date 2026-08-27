@@ -41,7 +41,7 @@ export function detectSensitiveContent(
   options: { creatorMarked?: boolean; reportMarked?: boolean; reason?: string | null } = {},
 ): SensitiveContentMatch {
   if (options.creatorMarked) {
-    return { isSensitive: true, reason: "creator_marked", label: "18+ sensitive media" };
+    return { isSensitive: true, reason: "creator_marked", label: "Sensitive media" };
   }
   if (options.reportMarked) {
     return { isSensitive: true, reason: "report_marked", label: "Reported sensitive media" };
@@ -49,7 +49,7 @@ export function detectSensitiveContent(
 
   const haystack = `${text || ""} ${options.reason || ""}`.trim();
   if (haystack && SENSITIVE_CONTENT_PATTERNS.some((pattern) => pattern.test(haystack))) {
-    return { isSensitive: true, reason: "keyword_match", label: "18+ sensitive media" };
+    return { isSensitive: true, reason: "keyword_match", label: "Sensitive media" };
   }
 
   return { isSensitive: false, reason: null, label: "Sensitive media" };

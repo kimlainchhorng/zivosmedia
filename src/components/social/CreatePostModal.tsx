@@ -7,8 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X as XIcon, Globe, Users, Lock, FolderPlus, MapPin, Hash,
-  ChevronDown, Image as ImageIcon, Play, Film, Radio, Plus, Search, Share2, Loader2,
-  Smile, Music, ShoppingBag, ShieldAlert, ShieldCheck, Sparkles, Pencil,
+  ChevronDown, Image as ImageIcon, Play, Film, Plus, Search, Share2, Loader2,
+  Smile, Music, ShoppingBag, ShieldCheck, Sparkles, Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -19,8 +19,7 @@ import { isBlueVerified } from "@/lib/verification";
 import { uploadWithProgress } from "@/utils/uploadWithProgress";
 import { stripImageMetadata } from "@/utils/stripImageMetadata";
 import { nativeConfirm } from "@/lib/native/dialog";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
-import { detectSensitiveContent, isSensitiveSchemaDriftError } from "@/lib/social/sensitiveContent";
+import { detectSensitiveContent } from "@/lib/social/sensitiveContent";
 import ProductPickerSheet from "@/components/social/ProductPickerSheet";
 import { useSwipeDownClose } from "@/components/social/useSwipeDownClose";
 import { useOwnerStores } from "@/hooks/useOwnerStoreProfile";
@@ -50,7 +49,7 @@ interface CreatePostModalProps {
   initialAudioName?: string;
   // Preselect a creation mode so entry buttons (Photo/Reels/Poll) skip the
   // redundant second tap inside the modal toolbar.
-  initialMode?: "photo" | "reel" | "poll" | "story" | "shop" | "live";
+  initialMode?: "photo" | "reel" | "poll" | "story" | "shop";
 }
 
 const COMPOSER_WORKFLOWS = [
@@ -59,7 +58,6 @@ const COMPOSER_WORKFLOWS = [
   { mode: "story", label: "Story", description: "Photo or video under 1m", icon: Play },
   { mode: "poll", label: "Poll", description: "Ask and collect votes", icon: Hash },
   { mode: "shop", label: "Shop", description: "Tag product or sale", icon: ShoppingBag },
-  { mode: "live", label: "Live", description: "Go on air now", icon: Radio },
 ] as const;
 
 type ComposerWorkflow = (typeof COMPOSER_WORKFLOWS)[number]["mode"];
@@ -107,13 +105,6 @@ const WORKFLOW_STYLES: Record<ComposerWorkflow, {
     soft: "bg-emerald-50 text-emerald-700",
     text: "text-emerald-700",
   },
-  live: {
-    accent: "from-red-500 via-pink-500 to-fuchsia-500",
-    activeCard: "border-red-200 bg-red-50 text-red-700 shadow-[0_8px_24px_rgba(239,68,68,0.14)]",
-    iconBubble: "bg-red-500 text-white",
-    soft: "bg-red-50 text-red-700",
-    text: "text-red-700",
-  },
 };
 
 const WORKFLOW_PROMPTS: Record<ComposerWorkflow, string> = {
@@ -122,7 +113,6 @@ const WORKFLOW_PROMPTS: Record<ComposerWorkflow, string> = {
   story: "Add a quick story caption...",
   poll: "Ask a clear question for your audience...",
   shop: "Describe what you are selling or promoting...",
-  live: "Tell people what your live is about...",
 };
 
 
@@ -216,14 +206,12 @@ export default function CreatePostModal({
   const [mediaType, setMediaType] = useState<"image" | "video">(
     sharedMediaType || (initialMode === "reel" || initialMode === "story" ? "video" : "image"),
   );
-  const [selectedType, setSelectedType] = useState<"Photo" | "Video" | "Reel" | "Story" | "Live" | null>(
+  const [selectedType, setSelectedType] = useState<"Photo" | "Video" | "Reel" | "Story" | null>(
     initialMode === "photo" || initialMode === "shop"
       ? "Photo"
       : initialMode === "reel" || initialMode === "story"
         ? "Reel"
-        : initialMode === "live"
-          ? "Live"
-          : null,
+        : null,
   );
   const [workflowMode, setWorkflowMode] = useState<ComposerWorkflow>(
     initialMode === "reel"
@@ -234,9 +222,7 @@ export default function CreatePostModal({
           ? "poll"
           : initialMode === "shop"
             ? "shop"
-            : initialMode === "live"
-              ? "live"
-              : "post",
+            : "post",
   );
   const [visibility, setVisibility] = useState<"everyone" | "friends" | "onlyme">("everyone");
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
@@ -269,10 +255,6 @@ export default function CreatePostModal({
   // Resolve effective store: prefer the passed commerce link, fall back to the user's own first store.
   const { data: ownedStores = [] } = useOwnerStores();
   const effectiveStoreId = commerceLinkDraft?.storeId ?? ownedStores[0]?.id ?? null;
-  const { isOFMode: zivoOFMode } = useZivoOFMode();
-  const [unlockPrice, setUnlockPrice] = useState<string>("");
-  const [showUnlockInput, setShowUnlockInput] = useState(false);
-  const [markSensitive, setMarkSensitive] = useState(() => detectSensitiveContent(initialCaption).isSensitive);
   const hasVideoAttachment =
     files.some((file) => file.type.startsWith("video/")) ||
     Boolean(sharedMediaUrl && (sharedMediaType === "video" || isVideoMediaUrl(sharedMediaUrl)));
@@ -331,12 +313,6 @@ export default function CreatePostModal({
   }, []);
 
   useEffect(() => { autoResize(); }, [caption, autoResize]);
-
-  useEffect(() => {
-    if (detectSensitiveContent(caption).isSensitive) {
-      setMarkSensitive(true);
-    }
-  }, [caption]);
 
   // Focus album input when shown
   useEffect(() => {
@@ -483,11 +459,6 @@ export default function CreatePostModal({
 
   const selectWorkflowMode = (mode: ComposerWorkflow) => {
     setWorkflowMode(mode);
-    if (mode === "live") {
-      setSelectedType("Live");
-      setIsPoll(false);
-      return;
-    }
     if (mode === "poll") {
       setSelectedType(null);
       setMediaType("image");
@@ -517,6 +488,10 @@ export default function CreatePostModal({
   };
 
   const handlePost = async () => {
+    if (detectSensitiveContent(caption).isSensitive) {
+      toast.error("Sexual or explicit content is not permitted on ZIVO.");
+      return;
+    }
     if (workflowMode === "post") {
       if (files.length === 0) {
         toast.error("Add at least one picture for a post");
@@ -673,17 +648,6 @@ export default function CreatePostModal({
         finalCaption = `📊 ${finalCaption}\n\n${optLines}`;
         finalMediaType = "image";
       }
-      if (zivoOFMode && unlockPrice) {
-        const priceNum = parseFloat(unlockPrice);
-        if (Number.isFinite(priceNum) && priceNum > 0) {
-          const tag = `🔒 Unlock for $${priceNum.toFixed(2)}`;
-          finalCaption = finalCaption ? `${tag}\n\n${finalCaption}` : tag;
-        }
-      }
-
-      const sensitiveAnalysis = detectSensitiveContent(finalCaption, { creatorMarked: markSensitive });
-      const shouldMarkSensitive = markSensitive || sensitiveAnalysis.isSensitive;
-
       const insertData: any = {
         user_id: userId,
         media_type: finalMediaType,
@@ -694,10 +658,6 @@ export default function CreatePostModal({
         is_published: true,
         visibility,
       };
-      if (shouldMarkSensitive) {
-        insertData.is_sensitive = true;
-        insertData.sensitive_reason = sensitiveAnalysis.reason || "creator_marked";
-      }
       if (location) insertData.location = location;
       if (audioName.trim()) insertData.audio_name = audioName.trim();
       if (sharedPostId) insertData.shared_from_post_id = sharedPostId;
@@ -708,19 +668,6 @@ export default function CreatePostModal({
         .insert(insertData)
         .select("id")
         .single();
-      if (insertErr && shouldMarkSensitive && isSensitiveSchemaDriftError(insertErr)) {
-        const retryData = { ...insertData };
-        delete retryData.is_sensitive;
-        delete retryData.sensitive_reason;
-        delete retryData.sensitive_report_count;
-        const retry = await (supabase as any)
-          .from("user_posts")
-          .insert(retryData)
-          .select("id")
-          .single();
-        insertedPost = retry.data;
-        insertErr = retry.error;
-      }
       if (insertErr) throw insertErr;
 
       if (commerceLinkDraft && insertedPost?.id) {
@@ -813,7 +760,7 @@ export default function CreatePostModal({
   const charLimit = 2200;
   const activeWorkflow = COMPOSER_WORKFLOWS.find((workflow) => workflow.mode === workflowMode) || COMPOSER_WORKFLOWS[0];
   const activeWorkflowStyle = WORKFLOW_STYLES[workflowMode];
-  const captionPlaceholder = zivoOFMode ? "Compose a new post for your fans..." : WORKFLOW_PROMPTS[workflowMode];
+  const captionPlaceholder = WORKFLOW_PROMPTS[workflowMode];
   const publishLabel = workflowMode === "reel"
     ? "Share Reel"
     : workflowMode === "story"
@@ -822,11 +769,8 @@ export default function CreatePostModal({
         ? "Post Poll"
         : workflowMode === "shop"
           ? "Share Shop"
-          : workflowMode === "live"
-            ? "Go Live"
-            : "Share";
+          : "Share";
   const canPublish = !uploading && (
-    workflowMode === "live" ||
     isPoll ||
     (workflowMode === "reel" && hasVideoAttachment) ||
     (workflowMode !== "reel" && (
@@ -835,7 +779,6 @@ export default function CreatePostModal({
     !!caption.trim()
     ))
   );
-  const composerSensitive = markSensitive || detectSensitiveContent(caption).isSensitive;
   const mediaSignal = previews.length > 1
     ? { label: "Media stack", detail: `${previews.length} items attached`, width: "100%" }
     : previews.length === 1
@@ -1033,28 +976,8 @@ export default function CreatePostModal({
         {/* Privacy & extras row */}
         <div className="px-4 pb-2 flex items-center gap-1.5 flex-nowrap overflow-x-auto scrollbar-hide">
 
-          {/* 18+ sensitivity chip */}
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.93 }}
-            onClick={() => setMarkSensitive((v) => !v)}
-            className={cn(
-              "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold min-h-[34px] transition-colors",
-              composerSensitive
-                ? "bg-amber-500/12 text-amber-600 dark:text-amber-400 border-amber-400/30"
-                : "bg-muted/40 text-muted-foreground border-border/30",
-            )}
-            aria-pressed={composerSensitive}
-            title="Mark as 18+ sensitive"
-          >
-            {composerSensitive
-              ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-              : <ShieldAlert className="h-3.5 w-3.5 shrink-0" />}
-            {composerSensitive ? "18+ on" : "18+"}
-          </motion.button>
-
           {/* Album chip */}
-          {!zivoOFMode && (
+          {(
             <motion.button
               type="button"
               whileTap={{ scale: 0.93 }}
@@ -1078,7 +1001,7 @@ export default function CreatePostModal({
           )}
 
           {/* Location chip */}
-          {!zivoOFMode && (
+          {(
             <motion.button
               type="button"
               whileTap={{ scale: 0.93 }}
@@ -1098,7 +1021,7 @@ export default function CreatePostModal({
           )}
 
           {/* Tag people chip */}
-          {!zivoOFMode && (
+          {(
             <motion.button
               type="button"
               whileTap={{ scale: 0.93 }}
@@ -1355,51 +1278,6 @@ export default function CreatePostModal({
                     </button>
                   ))}
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* OF mode: Money Unlock price input */}
-        <AnimatePresence>
-          {zivoOFMode && showUnlockInput && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-border/30"
-            >
-              <div className="px-4 py-3 space-y-2">
-                <p className="text-[11px] font-semibold text-[#00AEEF] uppercase tracking-wide flex items-center gap-1.5">
-                  <Lock className="h-3 w-3" /> Lock post — fans pay to unlock
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-[#00AEEF]/5 border border-[#00AEEF]/30 focus-within:ring-2 focus-within:ring-[#00AEEF]/30">
-                    <span className="text-sm font-bold text-[#00AEEF]">$</span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      step="0.01"
-                      value={unlockPrice}
-                      onChange={(e) => setUnlockPrice(e.target.value)}
-                      placeholder="Price (e.g. 9.99)"
-                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
-                    />
-                  </div>
-                  {unlockPrice && (
-                    <button
-                      type="button"
-                      onClick={() => { setUnlockPrice(""); setShowUnlockInput(false); }}
-                      className="px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted/40"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Free preview is shown to non-subscribers. They tap to pay and unlock.
-                </p>
               </div>
             </motion.div>
           )}
@@ -1814,9 +1692,7 @@ export default function CreatePostModal({
               {visibility === "friends" && <Users className="h-4 w-4 text-primary" />}
               {visibility === "onlyme" && <Lock className="h-4 w-4 text-primary" />}
               <span>
-                {zivoOFMode
-                  ? visibility === "everyone" ? "All Subscribers" : visibility === "friends" ? "Free Fans" : "Only me"
-                  : visibility === "everyone" ? "Everyone" : visibility === "friends" ? "Friends" : "Only me"}
+                {visibility === "everyone" ? "Everyone" : visibility === "friends" ? "Friends" : "Only me"}
               </span>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
@@ -1828,18 +1704,11 @@ export default function CreatePostModal({
                   exit={{ opacity: 0, y: 4 }}
                   className="absolute bottom-full left-0 z-20 mb-2 w-44 overflow-hidden rounded-2xl border border-border/40 bg-card shadow-lg"
                 >
-                  {(zivoOFMode
-                    ? [
-                        { value: "everyone" as const, label: "All Subscribers", icon: Globe },
-                        { value: "friends" as const, label: "Free Fans", icon: Users },
-                        { value: "onlyme" as const, label: "Only me", icon: Lock },
-                      ]
-                    : [
-                        { value: "everyone" as const, label: "Everyone", icon: Globe },
-                        { value: "friends" as const, label: "Friends", icon: Users },
-                        { value: "onlyme" as const, label: "Only me", icon: Lock },
-                      ]
-                  ).map((opt) => (
+                  {[
+                    { value: "everyone" as const, label: "Everyone", icon: Globe },
+                    { value: "friends" as const, label: "Friends", icon: Users },
+                    { value: "onlyme" as const, label: "Only me", icon: Lock },
+                  ].map((opt) => (
                     <button type="button"
                       key={opt.value}
                       onClick={() => { setVisibility(opt.value); setShowVisibilityMenu(false); }}
@@ -1858,14 +1727,7 @@ export default function CreatePostModal({
             </AnimatePresence>
           </div>
           <button type="button"
-            onClick={() => {
-              if (workflowMode === "live") {
-                onClose();
-                navigate("/live");
-                return;
-              }
-              handlePost();
-            }}
+            onClick={handlePost}
             disabled={!canPublish}
             aria-label={publishLabel}
             title={publishLabel}

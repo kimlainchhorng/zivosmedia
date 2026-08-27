@@ -70,9 +70,6 @@ import Link2 from "lucide-react/dist/esm/icons/link-2";
 const StickerKeyboard = lazy(() => import("./StickerKeyboard"));
 const ChatMiniApps = lazy(() => import("./ChatMiniApps"));
 const ChatComposerHub = lazy(() => import("./ChatComposerHub"));
-const LockedMediaPricePicker = lazy(() => import("./LockedMediaPricePicker"));
-const ChatGiftPanel = lazy(() => import("./ChatGiftPanel"));
-const ChatWalletSheet = lazy(() => import("./ChatWalletSheet"));
 const ChatDocumentScanner = lazy(() => import("./DocumentScanner"));
 const ContactPickerSheet = lazy(() => import("./ChatContactPicker"));
 const ChatSocialShare = lazy(() => import("./ChatSocialShareSheet"));
@@ -94,7 +91,7 @@ import { suggestStickersFor } from "@/lib/stickerSuggest";
 import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
 import { detectSensitiveContent, isGroupMessageSafetySchemaDriftError } from "@/lib/social/sensitiveContent";
 import { submitSafetyReport } from "@/lib/social/safetyReport";
-import { formatStarsPrice, getLockedMediaPreviewPath, isLockedMediaMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
+import { isLockedMediaMessage } from "@/lib/chat/lockedMedia";
 import { formatChatDateLabel } from "@/lib/chat/dateLabels";
 import ChatFormatBar, { matchFormatHotkey } from "./ChatFormatBar";
 import { applyFormat, type RichFormat } from "@/lib/chat/richText";
@@ -124,10 +121,6 @@ type GroupFilePayload = {
   filename?: string;
   page_count?: number | null;
   thumbnail_url?: string | null;
-  locked_preview_url?: string | null;
-  locked_preview_image_url?: string | null;
-  locked_price_coins?: number | null;
-  locked_items?: LockedMediaItem[];
   sensitive?: boolean;
   is_sensitive?: boolean;
   sensitive_reason?: string | null;
@@ -162,7 +155,6 @@ interface GroupMessage {
   hidden_reason?: string | null;
   sensitive_report_count?: number;
   is_pinned?: boolean;
-  locked_price_coins?: number | null;
   expires_at?: string | null;
   file_payload?: GroupFilePayload | null;
   _local_voice_url?: string;
@@ -216,7 +208,6 @@ type GroupMessageInsert = {
   video_url?: string;
   voice_url?: string;
   reply_to_id?: string;
-  locked_price_coins?: number | null;
   file_payload?: GroupFilePayload | null;
 };
 
@@ -224,11 +215,9 @@ const dbFrom = (table: string): any => (supabase as any).from(table);
 const CHAT_MEDIA_BUCKET = "chat-media-files";
 const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
-const LOCKED_MEDIA_BUNDLE_LIMIT = 10;
 const PHOTO_MEDIA_ACCEPT = "image/*";
 const VIDEO_MEDIA_ACCEPT = "video/*";
 const GIF_MEDIA_ACCEPT = "image/gif,.gif";
-const MIXED_MEDIA_ACCEPT = `${PHOTO_MEDIA_ACCEPT},${VIDEO_MEDIA_ACCEPT},.gif`;
 const MEDIA_MESSAGE_TEXT = {
   image: "Photo",
   video: "Video",
@@ -287,84 +276,6 @@ function extensionForChatMedia(file: File, kind: ChatMediaKind): string {
   return kind === "video" ? "mp4" : "jpg";
 }
 
-function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error("Could not render media preview"));
-    }, "image/jpeg", 0.72);
-  });
-}
-
-function drawBlurredPreview(source: CanvasImageSource, width: number, height: number): Promise<Blob> {
-  const canvas = document.createElement("canvas");
-  const maxSide = 360;
-  const ratio = Math.min(maxSide / Math.max(width, height), 1);
-  const targetWidth = Math.max(160, Math.round(width * ratio));
-  const targetHeight = Math.max(160, Math.round(height * ratio));
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return Promise.reject(new Error("Canvas unavailable"));
-  ctx.fillStyle = "#111827";
-  ctx.fillRect(0, 0, targetWidth, targetHeight);
-  ctx.filter = "blur(14px)";
-  ctx.drawImage(source, -18, -18, targetWidth + 36, targetHeight + 36);
-  ctx.filter = "none";
-  ctx.fillStyle = "rgba(0,0,0,0.28)";
-  ctx.fillRect(0, 0, targetWidth, targetHeight);
-  return canvasToBlob(canvas);
-}
-
-async function createImagePreviewBlob(file: File): Promise<Blob> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = new Image();
-    img.decoding = "async";
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Could not load image preview"));
-      img.src = url;
-    });
-    return await drawBlurredPreview(img, img.naturalWidth || 320, img.naturalHeight || 320);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-async function createVideoPreviewBlob(file: File): Promise<Blob> {
-  const url = URL.createObjectURL(file);
-  try {
-    const video = document.createElement("video");
-    video.src = url;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = "metadata";
-    await new Promise<void>((resolve, reject) => {
-      const timeout = window.setTimeout(() => reject(new Error("Video preview timed out")), 7000);
-      video.onloadeddata = () => {
-        window.clearTimeout(timeout);
-        resolve();
-      };
-      video.onerror = () => {
-        window.clearTimeout(timeout);
-        reject(new Error("Could not load video preview"));
-      };
-    });
-    try {
-      video.currentTime = Math.min(0.1, Math.max(0, (video.duration || 1) / 2));
-    } catch {
-      // Some browser codecs reject seeking before enough metadata is available.
-    }
-    return await drawBlurredPreview(video, video.videoWidth || 320, video.videoHeight || 568);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-function createLockedMediaPreviewBlob(file: File, isVideo: boolean): Promise<Blob> {
-  return isVideo ? createVideoPreviewBlob(file) : createImagePreviewBlob(file);
-}
 
 async function getVideoDurationMs(file: File): Promise<number | null> {
   if (!file.type.startsWith("video/")) return null;
@@ -404,9 +315,7 @@ function formatTime(dateStr: string) {
 function getGroupMessagePreview(message: GroupMessage) {
   const text = (message.message || "").trim();
   if (text) return text.length > 96 ? `${text.slice(0, 96)}...` : text;
-  if (message.message_type === "locked_album") return "Locked media bundle";
-  if (message.message_type === "locked_image") return "Locked photo";
-  if (message.message_type === "locked_video") return "Locked video";
+  if (isLockedMediaMessage(message.message_type)) return "Legacy attachment unavailable";
   if (message.message_type === "media_album") return "Photo album";
   if (message.message_type === "image") return "Photo";
   if (message.message_type === "video") return "Video";
@@ -533,21 +442,15 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const [groupCall, setGroupCall] = useState<"audio" | "video" | null>(autoStartCall ?? null);
   const [showComposerHub, setShowComposerHub] = useState(false);
   const [composerHubAction, setComposerHubAction] = useState<ComposerActionId | null>(null);
-  const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
-  const [lockedMediaFiles, setLockedMediaFiles] = useState<File[]>([]);
-  const [unlockedGroupMediaIds, setUnlockedGroupMediaIds] = useState<Set<string>>(() => new Set());
   const [showStickerKeyboard, setShowStickerKeyboard] = useState(false);
   const [disappearingSec, setDisappearingSec] = useState<number | null>(null);
   const [markNextMediaSensitive, setMarkNextMediaSensitive] = useState(false);
   const [markNextMediaProtected, setMarkNextMediaProtected] = useState(false);
-  const [showGiftPanel, setShowGiftPanel] = useState(false);
-  const [showWalletSheet, setShowWalletSheet] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showSocialShare, setShowSocialShare] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const lockedImageInputRef = useRef<HTMLInputElement>(null);
   const [actionTarget, setActionTarget] = useState<GroupMessage | null>(null);
   const [navigatorMode, setNavigatorMode] = useState<"search" | "pinned" | null>(null);
   const [activePinnedIndex, setActivePinnedIndex] = useState(0);
@@ -573,7 +476,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
   const handleToggleSensitiveMedia = useCallback(() => {
     const next = !markNextMediaSensitive;
     setMarkNextMediaSensitive(next);
-    toast.success(next ? "Next group media will be blurred as 18+" : "18+ media blur marker off");
+    toast.success(next ? "Content warning enabled for the next group media" : "Content warning disabled");
   }, [markNextMediaSensitive]);
   const handleToggleProtectedMedia = useCallback(() => {
     const next = !markNextMediaProtected;
@@ -976,37 +879,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     };
   }, [groupId, user?.id, scrollToBottom]);
 
-  useEffect(() => {
-    if (!user?.id) {
-      setUnlockedGroupMediaIds(new Set());
-      return;
-    }
-    const lockedIds = messages
-      .filter((msg) => isLockedMediaMessage(msg.message_type) && !msg.id.startsWith("opt-") && msg.sender_id !== user.id)
-      .map((msg) => msg.id);
-    if (lockedIds.length === 0) {
-      setUnlockedGroupMediaIds(new Set());
-      return;
-    }
-
-    let cancelled = false;
-    void (async () => {
-      const { data } = await dbFrom("media_unlocks")
-        .select("message_id")
-        .eq("message_table", "group_messages")
-        .eq("buyer_id", user.id)
-        .eq("status", "completed")
-        .in("message_id", lockedIds);
-      if (cancelled) return;
-      const next = new Set(((data || []) as Array<{ message_id: string }>).map((row) => row.message_id));
-      setUnlockedGroupMediaIds((prev) => {
-        if (prev.size === next.size && [...prev].every((id) => next.has(id))) return prev;
-        return next;
-      });
-    })();
-
-    return () => { cancelled = true; };
-  }, [messages, user?.id]);
 
   const getSenderName = (senderId: string) => {
     if (senderId === user?.id) return "You";
@@ -1017,218 +889,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     return members.find((m) => m.user_id === senderId)?.avatar || null;
   };
 
-  const handleLockedMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
-    if (files.length === 0) return;
-    if (files.length > LOCKED_MEDIA_BUNDLE_LIMIT) {
-      toast.error(`Choose up to ${LOCKED_MEDIA_BUNDLE_LIMIT} photos or videos`);
-      return;
-    }
-
-    const invalidFile = files.find((file) => {
-      const isImage = file.type.startsWith("image");
-      const isVideo = file.type.startsWith("video");
-      if (!isImage && !isVideo) return true;
-      const maxSize = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
-      return file.size > maxSize;
-    });
-    if (invalidFile) {
-      const isVideo = invalidFile.type.startsWith("video");
-      const limit = isVideo ? VIDEO_UPLOAD_LIMIT_BYTES : IMAGE_UPLOAD_LIMIT_BYTES;
-      toast.error(`${invalidFile.name || "File"} must be an image or video under ${formatUploadLimit(limit)}`);
-      return;
-    }
-
-    setLockedMediaFiles(files);
-    setShowLockedPricePicker(true);
-  };
-
-  const handleLockedMediaConfirm = async (priceCoins: number) => {
-    setShowLockedPricePicker(false);
-    const files = lockedMediaFiles;
-    setLockedMediaFiles([]);
-    if (files.length === 0 || !user?.id) return;
-
-    const finalPrice = Math.floor(Number(priceCoins) || 0);
-    if (finalPrice <= 0) {
-      toast.error("Choose a Stars price");
-      return;
-    }
-
-    const clientSendId = randomMediaId();
-    const optimisticId = `opt-locked-${clientSendId}`;
-    const isAlbum = files.length > 1;
-    const preparedItems: Array<{
-      id: string;
-      file: File;
-      kind: "image" | "video";
-      localUrl: string;
-      previewBlob: Blob;
-      previewLocalUrl: string;
-      originalPath?: string;
-      previewPath?: string;
-    }> = [];
-    const cleanupPaths: string[] = [];
-    const caption = input.trim();
-    const firstIsVideo = files[0]?.type.startsWith("video") ?? false;
-    const messageType = isAlbum ? "locked_album" : firstIsVideo ? "locked_video" : "locked_image";
-    const label = `${isAlbum ? "Locked Bundle" : firstIsVideo ? "Locked Video" : "Locked Photo"} · ${formatStarsPrice(finalPrice)}`;
-    const currentReply = replyTo;
-    const textSensitivity = detectSensitiveContent(caption);
-    const shouldMarkSensitiveMedia = markNextMediaSensitive || textSensitivity.isSensitive;
-
-    setInput("");
-    setReplyTo(null);
-    if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
-    setUploadingImage(true);
-
-    try {
-      for (const file of files) {
-        const kind = file.type.startsWith("video") ? "video" : "image";
-        const previewBlob = await createLockedMediaPreviewBlob(file, kind === "video");
-        preparedItems.push({
-          id: randomMediaId(),
-          file,
-          kind,
-          localUrl: URL.createObjectURL(file),
-          previewBlob,
-          previewLocalUrl: URL.createObjectURL(previewBlob),
-        });
-      }
-
-      const optimisticLockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
-        id: item.id,
-        kind: item.kind,
-        original_path: item.localUrl,
-        preview_path: item.previewLocalUrl,
-        mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
-        size: item.file.size,
-      }));
-      const sensitivePayload = shouldMarkSensitiveMedia ? {
-        sensitive: true,
-        is_sensitive: true,
-        sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
-      } : {};
-      const optimisticMsg: GroupMessage = {
-        id: optimisticId,
-        group_id: groupId,
-        sender_id: user.id,
-        message: caption || label,
-        image_url: !isAlbum && preparedItems[0]?.kind === "image" ? preparedItems[0].localUrl : null,
-        video_url: !isAlbum && preparedItems[0]?.kind === "video" ? preparedItems[0].localUrl : null,
-        voice_url: null,
-        message_type: messageType,
-        reply_to_id: currentReply?.id || null,
-        locked_price_coins: finalPrice,
-        file_payload: {
-          client_send_id: clientSendId,
-          source: "locked-media",
-          locked_preview_url: optimisticLockedItems[0]?.preview_path || null,
-          locked_preview_image_url: optimisticLockedItems[0]?.preview_path || null,
-          locked_price_coins: finalPrice,
-          ...(isAlbum ? { locked_items: optimisticLockedItems } : {}),
-          ...sensitivePayload,
-        },
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, optimisticMsg]);
-      scrollToBottom();
-
-      for (let index = 0; index < preparedItems.length; index += 1) {
-        const item = preparedItems[index];
-        const ext = extensionForChatMedia(item.file, item.kind);
-        const pathSeed = `${Date.now()}-${clientSendId}-${index}-${item.id}`;
-        item.originalPath = `${user.id}/locked/groups/${groupId}/${pathSeed}.${ext}`;
-        item.previewPath = `${user.id}/locked-previews/groups/${groupId}/${pathSeed}.jpg`;
-
-        const { error: mediaError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.originalPath, item.file, {
-          contentType: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
-          cacheControl: "3600",
-          upsert: false,
-        });
-        if (mediaError) throw mediaError;
-        cleanupPaths.push(item.originalPath);
-
-        const { error: previewError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.previewPath, item.previewBlob, {
-          contentType: "image/jpeg",
-          cacheControl: "3600",
-          upsert: false,
-        });
-        if (previewError) throw previewError;
-        cleanupPaths.push(item.previewPath);
-      }
-
-      const lockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
-        id: item.id,
-        kind: item.kind,
-        original_path: item.originalPath,
-        preview_path: item.previewPath,
-        mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
-        size: item.file.size,
-      }));
-      const firstItem = lockedItems[0];
-
-      const insertData: GroupMessageInsert = {
-        group_id: groupId,
-        sender_id: user.id,
-        message: caption || label,
-        message_type: messageType,
-        locked_price_coins: finalPrice,
-        file_payload: {
-          client_send_id: clientSendId,
-          source: "locked-media",
-          locked_preview_url: firstItem?.preview_path || null,
-          locked_preview_image_url: firstItem?.preview_path || null,
-          locked_price_coins: finalPrice,
-          ...(isAlbum ? { locked_items: lockedItems } : {}),
-          ...sensitivePayload,
-        },
-      };
-      if (!isAlbum && firstItem?.kind === "video" && firstItem.original_path) insertData.video_url = firstItem.original_path;
-      if (!isAlbum && firstItem?.kind === "image" && firstItem.original_path) insertData.image_url = firstItem.original_path;
-      if (currentReply) insertData.reply_to_id = currentReply.id;
-
-      const { error: insertError } = await dbFrom("group_messages").insert(insertData);
-      if (insertError) throw insertError;
-      toast.success(isAlbum ? "Locked media bundle sent" : "Locked media sent");
-    } catch (error) {
-      console.warn("[group/locked-media] upload/send failed", error);
-      if (cleanupPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(cleanupPaths).catch(() => {});
-      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId));
-      toast.error("Failed to send locked media");
-    } finally {
-      setUploadingImage(false);
-      for (const item of preparedItems) {
-        setTimeout(() => URL.revokeObjectURL(item.localUrl), 30000);
-        setTimeout(() => URL.revokeObjectURL(item.previewLocalUrl), 30000);
-      }
-    }
-  };
-
-  const handleUnlockGroupMedia = useCallback(async (messageId: string) => {
-    if (!user?.id || messageId.startsWith("opt-")) return false;
-    try {
-      const { data, error } = await supabase.functions.invoke("chat-unlock-group-media", {
-        body: { message_id: messageId },
-      });
-      if (error) throw error;
-      if ((data as { unlocked?: boolean } | null)?.unlocked) {
-        setUnlockedGroupMediaIds((prev) => new Set(prev).add(messageId));
-        return true;
-      }
-      toast.error("Unlock did not complete");
-      return false;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Unlock failed";
-      if (message.toLowerCase().includes("insufficient")) {
-        toast.error("Not enough Stars");
-      } else {
-        toast.error(message);
-      }
-      return false;
-    }
-  }, [user?.id]);
 
   const handleSend = useCallback(async (imageUrl?: string, voiceUrl?: string) => {
     const text = input.trim();
@@ -1241,7 +901,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     const shouldMarkSensitiveMedia = isMediaSend && (markNextMediaSensitive || textSensitivity.isSensitive);
     const shouldMarkProtectedMedia = isMediaSend && markNextMediaProtected;
     if (textSensitivity.isSensitive && !isMediaSend) {
-      toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
+      toast.error("Sexual or explicit content is not permitted on ZIVO.");
       inputRef.current?.focus();
       return;
     }
@@ -2223,7 +1883,7 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
     const msgType = messageType || (payload.messageType === "sticker" || payload.messageType === "gif" ? payload.messageType : "text");
     const textSensitivity = detectSensitiveContent(text);
     if (msgType === "text" && textSensitivity.isSensitive) {
-      toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
+      toast.error("Sexual or explicit content is not permitted on ZIVO.");
       inputRef.current?.focus();
       return;
     }
@@ -2728,6 +2388,13 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                         />
                       );
                     })()
+                  ) : isLockedMediaMessage(msg.message_type) ? (
+                    <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className="max-w-[75%] rounded-2xl border border-border/40 bg-muted/60 px-3 py-2">
+                        <p className="text-xs text-muted-foreground">This legacy attachment is no longer available.</p>
+                        <p className="mt-1 text-[9px] text-muted-foreground/70">{formatTime(msg.created_at)}</p>
+                      </div>
+                    </div>
                   ) : (
                     <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted/20 rounded-xl" />}>
                       <ChatMessageBubble
@@ -2735,8 +2402,8 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                         message={msg.message}
                         time={formatTime(msg.created_at)}
                         isMe={isMe}
-                        imageUrl={msg.message_type === "image" || msg.message_type === "locked_image" ? msg.image_url : null}
-                        videoUrl={msg.message_type === "video" || msg.message_type === "locked_video" ? msg.video_url : null}
+                        imageUrl={msg.message_type === "image" ? msg.image_url : null}
+                        videoUrl={msg.message_type === "video" ? msg.video_url : null}
                         messageType={msg.message_type}
                         isPinned={msg.is_pinned}
                         senderId={msg.sender_id}
@@ -2744,11 +2411,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                         senderAvatar={senderAvatar}
                         createdAt={msg.created_at}
                         filePayload={msg.file_payload}
-                        lockedPriceCoins={msg.locked_price_coins ?? (typeof msg.file_payload?.locked_price_coins === "number" ? msg.file_payload.locked_price_coins : null)}
-                        lockedPreviewUrl={getLockedMediaPreviewPath(msg.file_payload)}
-                        initiallyLocked={isLockedMediaMessage(msg.message_type) && !isMe && !unlockedGroupMediaIds.has(msg.id)}
-                        onUnlockLockedMedia={isLockedMediaMessage(msg.message_type) && !isMe ? handleUnlockGroupMedia : undefined}
-                        onLockedMediaUnlocked={(messageId) => setUnlockedGroupMediaIds((prev) => new Set(prev).add(messageId))}
                         onReply={(id, m, me) => setReplyTo({ id, message: m || "Media", senderName })}
                         onDelete={handleDeleteMsg}
                         onReport={handleReportMessage}
@@ -2882,22 +2544,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
       </AnimatePresence>
 
       <AnimatePresence>
-        {showLockedPricePicker && (
-          <Suspense fallback={null}>
-            <LockedMediaPricePicker
-              open={showLockedPricePicker}
-              mode="stars"
-              onClose={() => {
-                setShowLockedPricePicker(false);
-                setLockedMediaFiles([]);
-              }}
-              onConfirm={handleLockedMediaConfirm}
-            />
-          </Suspense>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {showMiniApps && (
           <Suspense fallback={null}>
             <ChatMiniApps
@@ -2908,22 +2554,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               initialView={miniAppView}
               onItemCreated={(text, type) => handleStickerSend({ text, messageType: "text" }, type)}
             />
-          </Suspense>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showGiftPanel && (
-          <Suspense fallback={null}>
-            <ChatGiftPanel open={showGiftPanel} onClose={() => setShowGiftPanel(false)} recipientId={groupId} />
-          </Suspense>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showWalletSheet && (
-          <Suspense fallback={null}>
-            <ChatWalletSheet open={showWalletSheet} onClose={() => setShowWalletSheet(false)} recipientId={groupId} />
           </Suspense>
         )}
       </AnimatePresence>
@@ -3098,11 +2728,11 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
             type="button"
             onClick={() => setMarkNextMediaSensitive(false)}
             className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-bold text-fuchsia-600"
-            aria-label="Turn off 18+ marker for next group media"
-            title="Turn off 18+ marker"
+            aria-label="Turn off content warning for next group media"
+            title="Turn off content warning"
           >
             <ShieldAlert className="h-3.5 w-3.5" />
-            18+ blur on for next media
+            Content warning on for next media
             <X className="h-3 w-3" />
           </button>
         )}
@@ -3141,7 +2771,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           <input ref={fileInputRef} type="file" accept={PHOTO_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose photos" aria-label="Choose photos" />
           <input ref={videoInputRef} type="file" accept={VIDEO_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose videos" aria-label="Choose videos" />
           <input ref={gifInputRef} type="file" accept={GIF_MEDIA_ACCEPT} multiple className="hidden" onChange={handleGifSelect} title="Choose GIFs" aria-label="Choose GIFs" />
-          <input ref={lockedImageInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
 
           <ChatMediaUploader
             recipientId={groupId}
@@ -3319,9 +2948,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
                     onGifSelect={() => gifInputRef.current?.click()}
                     onMusicSelect={() => filePickerTriggerRef.current?.("audio")}
                     onLocationShare={handleLocationShare}
-                    onLockedImageSelect={() => lockedImageInputRef.current?.click()}
-                    onSendGift={() => setShowGiftPanel(true)}
-                    onOpenWallet={() => setShowWalletSheet(true)}
                     onScanDocument={() => setShowScanner(true)}
                     onFileSelect={() => filePickerTriggerRef.current?.("document")}
                     onCreatePoll={() => setShowPollCreator(true)}
@@ -3415,7 +3041,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
           setNavigatorMode("pinned");
         }}
         onOpenMediaTab={(nextTab) => openSharedMedia(nextTab)}
-        isMessageUnlocked={(messageId) => unlockedGroupMediaIds.has(messageId)}
         onStartCall={(kind) => {
           setShowInfo(false);
           void primeCallAudio();
@@ -3439,7 +3064,6 @@ export default function GroupChat({ groupId, groupName, groupAvatar, onClose, au
               groupName: currentGroupName,
               messages,
               senderLabelFor: getSenderName,
-              isMessageUnlocked: (messageId) => unlockedGroupMediaIds.has(messageId),
             }}
             initialTab={sharedMediaTab}
             onJumpToMessage={jumpToMessage}

@@ -7,8 +7,8 @@ const root = process.cwd();
 const read = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
-describe("staff driver creator role access", () => {
-  it("keeps staff, driver, creator, and support routes protected and reachable", () => {
+describe("staff and driver role access with retired creator monetization", () => {
+  it("keeps staff, driver, and support routes protected while creator routes stay retired", () => {
     const app = read("src/App.tsx");
     const morePage = read("src/pages/MorePage.tsx");
     const appMore = read("src/pages/app/AppMore.tsx");
@@ -20,8 +20,6 @@ describe("staff driver creator role access", () => {
       'path="/shop-dashboard/employee-rules" element={<ProtectedRoute><ShopEmployeeRulesPage /></ProtectedRoute>}',
       'path="/eats/driver-deliveries" element={<ProtectedRoute><EatsDriverDeliveryPage /></ProtectedRoute>}',
       'path="/driver/payouts" element={<ProtectedRoute><DriverPayoutsPage /></ProtectedRoute>}',
-      'path="/creator-dashboard" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>}',
-      'path="/creator-payouts" element={<ProtectedRoute><CreatorPayoutsPage /></ProtectedRoute>}',
       'path="/admin/employees" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
       'path="/admin/support" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>',
     ]) {
@@ -34,7 +32,6 @@ describe("staff driver creator role access", () => {
       'label: "Employee Rules", href: "/shop-dashboard/employee-rules"',
       'label: "Driver Payouts", href: "/driver/payouts"',
       'label: "Eats Driver", href: "/eats/driver-deliveries"',
-      'label: "Creator Dashboard", href: "/creator-dashboard"',
     ]) {
       expect(morePage + appMore).toContain(shortcut);
     }
@@ -42,6 +39,9 @@ describe("staff driver creator role access", () => {
     expect(protectedRoute).toContain("allowSupport");
     expect(protectedRoute).toContain("supportAccessAllowed");
     expect(protectedRoute).toContain("<AccessDenied");
+    expect(app).not.toContain('path="/creator-dashboard"');
+    expect(app).not.toContain('path="/creator-payouts"');
+    expect(morePage + appMore).not.toContain('href: "/creator-dashboard"');
   });
 
   it("keeps role discovery deriving support, moderator, operations, driver, and store ownership", () => {
@@ -96,10 +96,9 @@ describe("staff driver creator role access", () => {
     expect(employeeGate).toContain("store-employee-manage");
   });
 
-  it("keeps driver and creator payout actions MFA/idempotency protected", () => {
+  it("keeps driver payouts protected and creator payout creation fail-closed", () => {
     const driverPayouts = read("src/pages/driver/DriverPayoutsPage.tsx");
     const customerPayoutMethod = read("supabase/functions/customer-payout-method-record/index.ts");
-    const liveEarnings = read("src/hooks/useLiveEarnings.ts");
     const creatorPayout = read("supabase/functions/creator-payout-request/index.ts");
 
     for (const fn of [
@@ -122,12 +121,10 @@ describe("staff driver creator role access", () => {
       expect(customerPayoutMethod).toContain(needle);
     }
 
-    expect(liveEarnings).toContain('supabase.functions.invoke("creator-payout-request"');
     for (const needle of [
       'withSecurity("creator-payout-request"',
-      "enforceAal2(auth, corsHeaders)",
-      'withIdempotency(req, "creator-payout-request", user.id',
-      "request_live_earnings_payout",
+      "isCreatorMonetizationDisabled()",
+      "creatorMonetizationBlockedResponse(corsHeaders)",
       'trackNetwork: "suspicious"',
       "blockNetworkRiskAt: 85",
     ]) {

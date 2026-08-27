@@ -8,7 +8,7 @@ import {
   Car, UtensilsCrossed, MapPin, Plane, Hotel, CarFront,
   Package, Compass,
   Users, Bookmark, Clock, Settings, TrendingUp, Calendar,
-  Radio, Film, Bell, Star, Mic2, ShoppingCart,
+  Film, Bell, Mic2, ShoppingCart,
   BadgeCheck, ChevronRight, ChevronsUpDown, Crown, LogOut, Gift, Building2,
 } from "lucide-react";
 import { COMPANY_INFO } from "@/config/legalContent";
@@ -35,7 +35,6 @@ const storeLetterBg = (name: string, category: string | null | undefined): strin
 };
 
 const NAV_ITEMS = [
-  { label: "Live", icon: Radio, path: "/live" },
   { label: "Reels", icon: Film, path: "/reels" },
   { label: "Rides", icon: Car, path: "/rides/hub" },
   { label: "Eats", icon: UtensilsCrossed, path: "/eats" },
@@ -61,7 +60,6 @@ const MORE_ITEMS = [
   { label: "Explore", icon: Compass, path: "/explore" },
   { label: "Saved", icon: Bookmark, path: "/saved" },
   { label: "Notifications", icon: Bell, path: "/notifications" },
-  { label: "Creators", icon: Star, path: "/creators" },
   { label: "Rewards", icon: Gift, path: "/rewards" },
   { label: "Trending", icon: TrendingUp, path: "/trending" },
   { label: "History", icon: Clock, path: "/history" },

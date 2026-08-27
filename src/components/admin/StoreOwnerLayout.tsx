@@ -15,7 +15,7 @@ import {
   FileSignature, Hammer, HardHat, BellRing, CircleDot, Truck, BarChart3,
   BedDouble, CalendarRange, CalendarDays, KeyRound, Sparkles, Hotel, LayoutDashboard, Images, Search,
   PackagePlus, Utensils, Palmtree, HeartPulse, MessageSquareText, ListChecks, DollarSign,
-  Inbox, BadgeCheck, Star, Building2, Tag, Tv, Briefcase, BookOpen, UserCog, Banknote, Download,
+  Inbox, BadgeCheck, Star, Building2, Tag, Briefcase, BookOpen, UserCog, Banknote, Download,
   Moon, ScrollText, Receipt, TrendingUp, Bell, Zap,
   UtensilsCrossed, Gift, AlarmClock, WashingMachine, MessageCircleWarning,
   Camera, Globe, QrCode, Timer,
@@ -416,10 +416,6 @@ export default function StoreOwnerLayout({ children, title, storeId, storeName, 
     ] : []),
     ...(!isCafe && !isCarRental && !isCarDealership && !isBus ? [
       { id: "marketing", label: "Marketing & Ads", icon: Megaphone },
-    ] : []),
-    // Live Stream is hidden for salons & cafes & car rental & dealerships & bus & auto-repair — not relevant to those workflows.
-    ...(!isSalon && !isCafe && !isCarRental && !isCarDealership && !isBus && !isAutoRepair ? [
-      { id: "livestream", label: "Live Stream", icon: Tv },
     ] : []),
   ];
 

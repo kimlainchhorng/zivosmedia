@@ -9,6 +9,7 @@ import { serve, createClient } from "../_shared/deps.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,6 +24,8 @@ serve(withSecurity("creator-payout-method-record", async (req, ctx) => {
   if (req.method !== "POST") {
     return json({ error: "Method not allowed" }, 405, { Allow: "POST, OPTIONS" });
   }
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   try {
     const authHeader = req.headers.get("Authorization");

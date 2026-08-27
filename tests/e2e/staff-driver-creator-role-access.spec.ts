@@ -7,8 +7,8 @@ const root = process.cwd();
 const read = (relativePath: string) =>
   fs.readFileSync(path.join(root, relativePath), "utf8");
 
-test.describe("staff, driver, creator, and admin role access contracts", () => {
-  test("role dashboards stay mounted behind authenticated or admin-aware route guards", async () => {
+test.describe("staff, driver, admin, and retired creator access contracts", () => {
+  test("supported role dashboards stay mounted while creator routes stay retired", async () => {
     const app = read("src/App.tsx");
     const guard = read("src/components/auth/ProtectedRoute.tsx");
     const access = read("src/hooks/useUserAccess.ts");
@@ -21,7 +21,6 @@ test.describe("staff, driver, creator, and admin role access contracts", () => {
       'path="/shop-dashboard/employee-schedule"',
       'path="/shop-dashboard/training"',
       'path="/shop-dashboard/documents"',
-      'path="/creator-dashboard"',
       'path="/eats/driver-deliveries"',
       'path="/driver/payouts"',
       'path="/admin/support"',
@@ -30,6 +29,9 @@ test.describe("staff, driver, creator, and admin role access contracts", () => {
     ]) {
       expect(app).toContain(route);
     }
+
+    expect(app).not.toContain('path="/creator-dashboard"');
+    expect(app).not.toContain('path="/creator-payouts"');
 
     expect(app).toContain('path="/admin/support" element={<ProtectedRoute requireAdmin={true} allowSupport={true}>');
     expect(app).toContain('path="/admin/stores/:storeId" element={<ProtectedRoute requireAdmin={true} allowStoreOwner={true}>');
@@ -101,10 +103,9 @@ test.describe("staff, driver, creator, and admin role access contracts", () => {
     expect(employeeSection).toContain("store_employees");
   });
 
-  test("driver and creator money surfaces use server functions instead of direct payout writes", async () => {
+  test("driver payouts stay server-gated and creator payout creation fails closed", async () => {
     const driverPayouts = read("src/pages/driver/DriverPayoutsPage.tsx");
-    const creatorDashboard = read("src/pages/CreatorDashboardPage.tsx");
-    const liveEarnings = read("src/hooks/useLiveEarnings.ts");
+    const app = read("src/App.tsx");
     const creatorPayout = read("supabase/functions/creator-payout-request/index.ts");
     const driverResolve = read("supabase/functions/resolve-driver-earning-payout/index.ts");
     const morePage = read("src/pages/MorePage.tsx");
@@ -118,24 +119,16 @@ test.describe("staff, driver, creator, and admin role access contracts", () => {
     }
     expect(driverPayouts).not.toMatch(/from\("driver_earnings"\)[\s\S]{0,200}\.(insert|update|delete)/);
 
-    for (const table of [
-      "creator_profiles",
-      "creator_tips",
-      "creator_subscriptions",
-      "ppv_posts",
-      "direct_message_unlocks",
-    ]) {
-      expect(creatorDashboard).toContain(`from("${table}")`);
-    }
-    expect(liveEarnings).toContain('supabase.functions.invoke("creator-payout-request"');
+    expect(app).not.toContain('path="/creator-dashboard"');
+    expect(app).not.toContain('path="/creator-payouts"');
     expect(creatorPayout).toContain('withSecurity("creator-payout-request"');
-    expect(creatorPayout).toContain("enforceAal2");
-    expect(creatorPayout).toContain("withIdempotency");
+    expect(creatorPayout).toContain("isCreatorMonetizationDisabled()");
+    expect(creatorPayout).toContain("creatorMonetizationBlockedResponse(corsHeaders)");
     expect(driverResolve).toContain('withSecurity("resolve-driver-earning-payout"');
     expect(driverResolve).toContain('admin.rpc("has_role"');
     expect(driverResolve).toContain('admin.from("admin_driver_actions").insert');
 
-    expect(morePage).toContain('label: "Creator Dashboard", href: "/creator-dashboard"');
+    expect(morePage).not.toContain('href: "/creator-dashboard"');
     expect(morePage).toContain('label: "Driver Payouts", href: "/driver/payouts"');
     expect(morePage).toContain('label: "Eats Driver", href: "/eats/driver-deliveries"');
   });

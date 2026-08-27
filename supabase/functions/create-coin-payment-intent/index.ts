@@ -3,6 +3,7 @@ import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { z } from "npm:zod@3.23.8";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 const PACKAGES = {
   starter: { coins: 60, bonus: 0, price_cents: 99, label: "60 Z Coins" },
@@ -25,6 +26,8 @@ Deno.serve(withSecurity("create-coin-payment-intent", async (req, ctx) => {
       status: 405,
     });
   }
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   try {
     const authHeader = req.headers.get("Authorization") || "";

@@ -920,47 +920,35 @@ const contracts = [
     check() {
       const termsPath = "src/pages/legal/TermsOfService.tsx";
       const previewPath = "src/components/legal/LegalPreviewSheet.tsx";
-      const subscribePath = "src/components/creator/CreatorSubscribeSheet.tsx";
-      const academyPath = "src/pages/MonetizationArticlesPage.tsx";
+      const appPath = "src/App.tsx";
       const testPath = "src/test/creatorMonetizationLegalDisclosure.test.ts";
       const terms = source(termsPath);
       const preview = source(previewPath);
-      const subscribe = source(subscribePath);
-      const academy = source(academyPath);
+      const app = source(appPath);
       const test = source(testPath);
 
       for (const needle of [
-        "Creator Monetization & Payouts",
-        "tips, gifts, locked media, subscriptions, ad revenue",
+        "Business and Service-Partner Settlements",
+        "drivers, restaurants, merchants",
+        "completed rides, deliveries, orders",
         "identity and tax verification",
-        "minimum payout thresholds",
-        "refund clawbacks",
+        "minimum thresholds",
+        "refund adjustments",
         "chargebacks",
         "payment reversals",
         "Fraudulent, artificial, self-funded",
-        "sponsored-content compliance",
       ]) {
         requireContains(this.id, terms, needle, termsPath);
       }
 
-      requireContains(this.id, preview, "Monetization & Creator Earnings", previewPath);
-      requireContains(this.id, preview, "refund clawbacks", previewPath);
-      requireContains(this.id, preview, "chargeback liability", previewPath);
-      requireContains(this.id, subscribe, 'href="/legal/terms"', subscribePath);
-      requireContains(this.id, subscribe, 'href="/legal/refunds"', subscribePath);
-      requireContains(this.id, subscribe, "payout, tax, chargeback, and refund rules", subscribePath);
-
-      for (const topic of [
-        "Tax information for ZIVO creators",
-        "FTC disclosure requirements for creators",
-        "GDPR and data privacy for creators",
-        "Creator legal essentials",
-        "How to verify your identity for payouts",
-      ]) {
-        requireContains(this.id, academy, topic, academyPath);
-      }
-
-      requireContains(this.id, test, "creator monetization legal disclosure", testPath);
+      requireNotMatch(this.id, terms, /Creator Monetization & Payouts/, termsPath);
+      requireNotMatch(this.id, terms, /tips, gifts, locked media, subscriptions, ad revenue/, termsPath);
+      requireContains(this.id, preview, "Business and Service-Partner Settlements", previewPath);
+      requireContains(this.id, preview, "Pornography, sexually explicit content, sexual services", previewPath);
+      requireNotMatch(this.id, preview, /Monetization & Creator Earnings/, previewPath);
+      requireNotMatch(this.id, app, /CreatorSubscribeSheet/, appPath);
+      requireNotMatch(this.id, app, /path="\/monetization"/, appPath);
+      requireContains(this.id, test, "retired creator monetization legal disclosure", testPath);
     },
   },
   {
@@ -1121,12 +1109,10 @@ const contracts = [
       const termsPath = "src/pages/legal/TermsOfService.tsx";
       const privacyPath = "src/pages/legal/PrivacyPolicy.tsx";
       const previewPath = "src/components/legal/LegalPreviewSheet.tsx";
-      const academyPath = "src/pages/MonetizationArticlesPage.tsx";
       const testPath = "src/test/ageEligibilitySafetyDisclosure.test.ts";
       const terms = source(termsPath);
       const privacy = source(privacyPath);
       const preview = source(previewPath);
-      const academy = source(academyPath);
       const test = source(testPath);
 
       for (const needle of [
@@ -1134,10 +1120,7 @@ const contracts = [
         "at least 16 where local law requires a higher digital consent age",
         "at least 18 years old",
         "book travel",
-        "send or receive gifts",
-        "go live",
-        "unlock paid content",
-        "receive payouts",
+        "receive marketplace payouts",
         "business/partner tools",
         "Provide accurate age or date-of-birth information when requested",
       ]) {
@@ -1147,17 +1130,15 @@ const contracts = [
       requireContains(this.id, privacy, "not intended for children under 13 years of age", privacyPath);
       requireContains(this.id, privacy, "under 16 where local law requires", privacyPath);
       requireContains(this.id, privacy, "travel booking, rides, delivery ordering, car rental", privacyPath);
-      requireContains(this.id, privacy, "payments, gifts", privacyPath);
-      requireContains(this.id, privacy, "live streaming", privacyPath);
-      requireContains(this.id, privacy, "payout features", privacyPath);
+      requireContains(this.id, privacy, "marketplace payout features", privacyPath);
       requireContains(this.id, privacy, "privacy@zivosmedia.com", privacyPath);
       requireNotMatch(this.id, privacy, /privacy@zivo\.com/, privacyPath);
+      requireNotMatch(this.id, privacy, /payments, gifts|paid content|live streaming/, privacyPath);
 
       requireContains(this.id, preview, "You must be at least 13 to create a personal account", previewPath);
-      requireContains(this.id, preview, "18 to book travel, make payments, send/receive gifts, go live", previewPath);
-      requireContains(this.id, preview, "hidden from minors", previewPath);
-      requireContains(this.id, academy, "Child safety and minor protection", academyPath);
-      requireContains(this.id, academy, "COPPA compliance and kids' content", academyPath);
+      requireContains(this.id, preview, "receive marketplace payouts", previewPath);
+      requireContains(this.id, preview, "Pornography, sexually explicit content, sexual services", previewPath);
+      requireNotMatch(this.id, preview, /send\/receive gifts|Live streaming has additional safety/, previewPath);
       requireContains(this.id, test, "age eligibility safety disclosure", testPath);
     },
   },
@@ -1463,7 +1444,7 @@ const contracts = [
         "detect a face on-device",
         "without identifying you",
         "face geometry used for identity verification",
-        "liveness detection for driver, merchant, creator",
+        "liveness detection for driver, merchant, service-partner payout",
         "underage-access prevention",
         "does not use facial recognition to identify people in public posts",
         "sell face geometry",

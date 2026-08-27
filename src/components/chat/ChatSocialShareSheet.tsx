@@ -1,6 +1,6 @@
 ﻿/**
  * ChatSocialShareSheet — Bottom sheet to share an external social profile link
- * inside a chat (Facebook, OnlyFans, Instagram, X, TikTok, YouTube, Snapchat,
+ * inside a chat (Facebook, Instagram, X, TikTok, YouTube, Snapchat,
  * Telegram, LinkedIn). Prefills the user's saved handle from their profile and
  * lets them edit before sending. Resulting URL is appended to the composer
  * input via `onShareLink`.
@@ -9,7 +9,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import X from "lucide-react/dist/esm/icons/x";
-import Heart from "lucide-react/dist/esm/icons/heart";
 import LinkIcon from "lucide-react/dist/esm/icons/link";
 import UserRound from "lucide-react/dist/esm/icons/user-round";
 import FacebookLogo from "@/lib/icons/facebook";
@@ -22,11 +21,9 @@ import { getProfileShareUrl, getPublicOrigin } from "@/lib/getPublicOrigin";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import onlyfansLogo from "@/assets/brand-logos/onlyfans.png";
 
 type Platform =
   | "facebook"
-  | "onlyfans"
   | "instagram"
   | "x"
   | "tiktok"
@@ -107,7 +104,6 @@ const PLATFORMS: {
   placeholder: string;
 }[] = [
   { id: "facebook",  label: "Facebook",  icon: FacebookLogo, color: "bg-[#1877F2]",                                  prefix: "https://facebook.com/",   placeholder: "yourname" },
-  { id: "onlyfans",  label: "OnlyFans",  icon: Heart,     brandImage: onlyfansLogo, color: "bg-white",                prefix: "https://onlyfans.com/",   placeholder: "yourname" },
   { id: "instagram", label: "Instagram", icon: InstagramLogo, color: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF]", prefix: "https://instagram.com/", placeholder: "yourname" },
   { id: "x",         label: "X",         icon: XLogo,        color: "bg-black",                                      prefix: "https://x.com/",          placeholder: "yourname" },
   { id: "tiktok",    label: "TikTok",    icon: TikTokLogo,   color: "bg-black",                                      prefix: "https://tiktok.com/@",    placeholder: "yourname" },
@@ -193,7 +189,6 @@ export default function ChatSocialShareSheet({ open, onClose, onShareLink, onSha
     if (!selected || !profile) return "";
     const raw =
       selected === "facebook"  ? profile.social_facebook :
-      selected === "onlyfans"  ? profile.social_onlyfans :
       selected === "instagram" ? profile.social_instagram :
       selected === "tiktok"    ? profile.social_tiktok :
       selected === "snapchat"  ? profile.social_snapchat :

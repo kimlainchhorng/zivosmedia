@@ -2,6 +2,7 @@ import { serve, createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 async function notify(
   supabaseAdmin: any,
@@ -32,6 +33,8 @@ serve(withSecurity("verify-coin-purchase", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
     });
   }
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   try {
     const supabaseAuth = createClient(

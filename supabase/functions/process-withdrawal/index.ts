@@ -3,6 +3,10 @@ import { enforceAal2 } from "../_shared/aalCheck.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withIdempotency } from "../_shared/idempotency.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import {
+  creatorMonetizationBlockedResponse,
+  isCreatorMonetizationAccount,
+} from "../_shared/creatorMonetizationCompliance.ts";
 
 serve(withSecurity("process-withdrawal", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
@@ -32,6 +36,10 @@ serve(withSecurity("process-withdrawal", async (req, ctx) => {
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData.user) throw new Error("Invalid auth token");
     const userId = userData.user.id;
+
+    if (await isCreatorMonetizationAccount(supabase, userId)) {
+      return creatorMonetizationBlockedResponse(corsHeaders);
+    }
 
     const rl = await rateLimitDb(userId, "payment");
     if (rl && !rl.allowed) {

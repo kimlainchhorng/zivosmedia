@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   ChevronRight, Settings, ShoppingBag, Wallet, MapPin, Handshake,
   Sparkles, Car, UtensilsCrossed, Store, Wrench, Building2, Truck, Shield,
-  Copy, Share2, QrCode, Check, User, Users, Plane, Hotel, DollarSign,
+  Copy, Share2, QrCode, Check, User, Users, Plane, Hotel,
   Scissors, Hand, Heart, Dumbbell, GraduationCap, Stethoscope, PawPrint,
   Briefcase, Camera, Music, Crown,
   AlertCircle, CheckCircle2, BarChart3,
@@ -66,7 +66,6 @@ const quickLinks = [
   { icon: Wallet, label: "Wallet", href: "/wallet", description: "Balance & transactions", iconColor: "text-emerald-500", iconBg: "bg-emerald-500/10" },
   { icon: Sparkles, label: "Loyalty", href: "/account/loyalty", description: "Points & tier perks", iconColor: "text-amber-500", iconBg: "bg-amber-500/10" },
   { icon: MapPin, label: "Saved Addresses", href: "/account/addresses", description: "Delivery addresses", iconColor: "text-rose-500", iconBg: "bg-rose-500/10" },
-  { icon: DollarSign, label: "Monetization", href: "/monetization", description: "Earn & grow revenue", iconColor: "text-primary", iconBg: "bg-primary/10" },
   { icon: Handshake, label: "Become Partner", href: "#partner", description: "Join ZIVO as partner", iconColor: "text-violet-500", iconBg: "bg-violet-500/10" },
 ];
 

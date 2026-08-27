@@ -18,13 +18,10 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useZivoOFMode } from "@/hooks/useZivoOFMode";
-import { useDirectMessageUnlocks } from "@/hooks/useDirectMessageUnlocks";
 import { useContacts } from "@/hooks/useContacts";
-import { getLockedMediaPreviewPath, isLockedDirectMessage, type LockedMediaItem } from "@/lib/chat/lockedMedia";
+import { isLockedDirectMessage } from "@/lib/chat/lockedMedia";
 import MediaGalleryLightbox from "./MediaGalleryLightbox";
 import { OPEN_MEDIA_EVENT, type OpenMediaDetail } from "@/lib/chat/openMedia";
-import { openP2PTransfer } from "@/lib/p2pTransfer";
 import { signedUrlFor } from "@/lib/security/signedMedia";
 import { topicForPairSync } from "@/lib/security/channelName";
 import { subscribeToPooledPostgresChanges } from "@/services/chatRealtimePool";
@@ -33,7 +30,6 @@ import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import Send from "lucide-react/dist/esm/icons/send";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import Phone from "lucide-react/dist/esm/icons/phone";
-import Gift from "lucide-react/dist/esm/icons/gift";
 import X from "lucide-react/dist/esm/icons/x";
 import Mic from "lucide-react/dist/esm/icons/mic";
 import Search from "lucide-react/dist/esm/icons/search";
@@ -89,11 +85,6 @@ import ChatPollCreator, { type PollDraft } from "./ChatPollCreator";
 import ChatQuickReplies from "./ChatQuickReplies";
 import ChatContactPicker, { type SharedContact } from "./ChatContactPicker";
 import ChatSocialShareSheet from "./ChatSocialShareSheet";
-const ChatGiftPanel = lazy(() => import("./ChatGiftPanel"));
-const ChatWalletSheet = lazy(() => import("./ChatWalletSheet"));
-const CoinTransferBubble = lazy(() => import("./CoinTransferBubble"));
-const GiftBubble = lazy(() => import("./GiftBubble"));
-const P2PTransferMessageCard = lazy(() => import("./P2PTransferMessageCard"));
 const ChatPollBubble = lazy(() => import("./ChatPollBubble"));
 const ChatContactBubble = lazy(() => import("./ChatContactBubble"));
 const ChatSocialBubble = lazy(() => import("./ChatSocialBubble"));
@@ -120,7 +111,6 @@ const ChatMiniApps = lazy(() => import("./ChatMiniApps"));
 const ChatSecurity = lazy(() => import("./ChatSecurity"));
 const CallHistoryPage = lazy(() => import("./CallHistoryPage"));
 const ChatMediaUploader = lazy(() => import("./ChatMediaUploader").then(m => ({ default: m.ChatMediaUploader })));
-const LockedMediaPricePicker = lazy(() => import("./LockedMediaPricePicker"));
 const ChatContactInfo = lazy(() => import("./ChatContactInfo"));
 const MessageScheduler = lazy(() => import("./MessageScheduler"));
 const ChatMessageNavigator = lazy(() => import("./ChatMessageNavigator"));
@@ -168,8 +158,6 @@ interface PersonalChatProps {
   recipientIsVerified?: boolean;
   /** Pre-seed the composer with this text once on mount (e.g. quoted from "Reply Privately"). */
   prefillInput?: string;
-  /** Open the gift picker once after a deep link enters this chat. */
-  openGiftOnMount?: boolean;
   /** Highlight and scroll to this message after opening from search/pin deep links. */
   initialJumpMessageId?: string | null;
   onClose: () => void;
@@ -226,14 +214,6 @@ interface Message {
   _upload_status_code?: number;
   _upload_phase?: "preflight" | "upload" | "insert";
   _upload_body?: string;
-}
-
-function lockedPriceCoinsFromPayload(filePayload: FileBubbleData | null | undefined): number | null {
-  if (!filePayload || typeof filePayload !== "object") return null;
-  const value = (filePayload as { locked_price_coins?: unknown; price_coins?: unknown }).locked_price_coins
-    ?? (filePayload as { price_coins?: unknown }).price_coins;
-  const numeric = Number(value);
-  return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : null;
 }
 
 interface CallEvent {
@@ -299,11 +279,9 @@ const dbFrom = (table: string): any => (supabase as any).from(table);
 const CHAT_MEDIA_BUCKET = "chat-media-files";
 const IMAGE_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 const VIDEO_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
-const LOCKED_MEDIA_BUNDLE_LIMIT = 10;
 const PHOTO_MEDIA_ACCEPT = "image/*";
 const VIDEO_MEDIA_ACCEPT = "video/*";
 const GIF_MEDIA_ACCEPT = "image/gif,.gif";
-const MIXED_MEDIA_ACCEPT = `${PHOTO_MEDIA_ACCEPT},${VIDEO_MEDIA_ACCEPT},.gif`;
 const MEDIA_MESSAGE_TEXT = {
   image: "Photo",
   video: "Video",
@@ -397,84 +375,6 @@ function extensionForChatMedia(file: File, kind: ChatMediaKind): string {
   return kind === "video" ? "mp4" : "jpg";
 }
 
-function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error("Could not render media preview"));
-    }, "image/jpeg", 0.72);
-  });
-}
-
-function drawBlurredPreview(source: CanvasImageSource, width: number, height: number): Promise<Blob> {
-  const canvas = document.createElement("canvas");
-  const maxSide = 360;
-  const ratio = Math.min(maxSide / Math.max(width, height), 1);
-  const targetWidth = Math.max(160, Math.round(width * ratio));
-  const targetHeight = Math.max(160, Math.round(height * ratio));
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return Promise.reject(new Error("Canvas unavailable"));
-  ctx.fillStyle = "#111827";
-  ctx.fillRect(0, 0, targetWidth, targetHeight);
-  ctx.filter = "blur(14px)";
-  ctx.drawImage(source, -18, -18, targetWidth + 36, targetHeight + 36);
-  ctx.filter = "none";
-  ctx.fillStyle = "rgba(0,0,0,0.28)";
-  ctx.fillRect(0, 0, targetWidth, targetHeight);
-  return canvasToBlob(canvas);
-}
-
-async function createImagePreviewBlob(file: File): Promise<Blob> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = new Image();
-    img.decoding = "async";
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Could not load image preview"));
-      img.src = url;
-    });
-    return await drawBlurredPreview(img, img.naturalWidth || 320, img.naturalHeight || 320);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-async function createVideoPreviewBlob(file: File): Promise<Blob> {
-  const url = URL.createObjectURL(file);
-  try {
-    const video = document.createElement("video");
-    video.src = url;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = "metadata";
-    await new Promise<void>((resolve, reject) => {
-      const timeout = window.setTimeout(() => reject(new Error("Video preview timed out")), 7000);
-      video.onloadeddata = () => {
-        window.clearTimeout(timeout);
-        resolve();
-      };
-      video.onerror = () => {
-        window.clearTimeout(timeout);
-        reject(new Error("Could not load video preview"));
-      };
-    });
-    try {
-      video.currentTime = Math.min(0.1, Math.max(0, (video.duration || 1) / 2));
-    } catch {
-      // Some browser codecs reject seeking before enough metadata is available.
-    }
-    return await drawBlurredPreview(video, video.videoWidth || 320, video.videoHeight || 568);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-function createLockedMediaPreviewBlob(file: File, isVideo: boolean): Promise<Blob> {
-  return isVideo ? createVideoPreviewBlob(file) : createImagePreviewBlob(file);
-}
 
 async function getVideoDurationMs(file: File): Promise<number | null> {
   if (!file.type.startsWith("video/")) return null;
@@ -605,9 +505,8 @@ function DirectChatIntroCard({
   );
 }
 
-export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, openGiftOnMount, initialJumpMessageId, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
+export default function PersonalChat({ recipientId, recipientName, recipientAvatar, recipientIsVerified, prefillInput, initialJumpMessageId, onClose, autoStartCall, onCallStarted, inline = false }: PersonalChatProps) {
   const { user } = useAuth();
-  const { isOFMode: zivoOFMode } = useZivoOFMode();
   const { contacts, add: addContact, loading: contactsLoading } = useContacts();
   const navigate = useNavigate();
   // Notch safe-area padding on the sticky chat header is only needed in the
@@ -830,19 +729,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
   const [navigatorMode, setNavigatorMode] = useState<"search" | "pinned" | null>(null);
-  const [showLockedPricePicker, setShowLockedPricePicker] = useState(false);
-  // Paid DM (locked text) flow — sender opens the same price picker, then we
-  // route to handleLockedTextConfirm (vs handleLockedMediaConfirm) based on intent.
-  const [lockedPriceIntent, setLockedPriceIntent] = useState<"media" | "text" | null>(null);
-  const dmUnlocks = useDirectMessageUnlocks(recipientId);
-  const [showGiftPanel, setShowGiftPanel] = useState(false);
-  const giftDeepLinkOpenedRef = useRef(false);
-  useEffect(() => {
-    if (!openGiftOnMount || giftDeepLinkOpenedRef.current) return;
-    giftDeepLinkOpenedRef.current = true;
-    setShowGiftPanel(true);
-  }, [openGiftOnMount]);
-  const [showWalletSheet, setShowWalletSheet] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -882,7 +768,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       window.removeEventListener("dragend", resetDragState);
     };
   }, []);
-  const [pendingLockedFiles, setPendingLockedFiles] = useState<File[]>([]);
   const [chatStyle, setChatStyle] = useState({ wallpaper: "default", themeColor: "default", fontSize: "medium" });
   const [callEvents, setCallEvents] = useState<CallEvent[]>([]);
   const [dismissedMissedCallMarker, setDismissedMissedCallMarker] = useState<MissedCallDismissMarker | null>(null);
@@ -914,7 +799,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const gifInputRef = useRef<HTMLInputElement>(null);
-  const lockedImageInputRef = useRef<HTMLInputElement>(null);
   const voiceUploadInFlightRef = useRef(false);
   const pendingVoiceOptimisticIdRef = useRef<string | null>(null);
   // Per-voice-message cancellable jobs keyed by client_send_id
@@ -1624,7 +1508,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     const shouldMarkSensitiveMedia = isMediaSend && (markNextMediaSensitive || textSensitivity.isSensitive);
     const shouldMarkProtectedMedia = isMediaSend && markNextMediaProtected;
     if (textSensitivity.isSensitive && !isMediaSend) {
-      toast.error("This message looks sexual or explicit. Use 18+ media blur for adult content.");
+      toast.error("Sexual or explicit content is not permitted on ZIVO.");
       inputRef.current?.focus();
       return;
     }
@@ -2525,310 +2409,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     });
   };
 
-  // Locked media: first show price picker
-  const handleLockedMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (lockedImageInputRef.current) lockedImageInputRef.current.value = "";
-    if (files.length === 0 || !user?.id) return;
-    if (files.length > LOCKED_MEDIA_BUNDLE_LIMIT) {
-      toast.error(`Choose up to ${LOCKED_MEDIA_BUNDLE_LIMIT} photos or videos`);
-      return;
-    }
-
-    const invalidFile = files.find((file) => {
-      const kind = getChatMediaKind(file);
-      if (!kind) return true;
-      return file.size > getUploadLimitForKind(kind);
-    });
-    if (invalidFile) {
-      const kind = getChatMediaKind(invalidFile);
-      const limit = kind ? getUploadLimitForKind(kind) : IMAGE_UPLOAD_LIMIT_BYTES;
-      toast.error(`${invalidFile.name || "File"} must be an image or video under ${formatUploadLimit(limit)}`);
-      return;
-    }
-
-    setPendingLockedFiles(files);
-    setLockedPriceIntent("media");
-    setShowLockedPricePicker(true);
-  };
-
-  // Paid DM (locked text): open price picker; we send the current composer text
-  // as a locked_text message after the user confirms a price.
-  const handleLockedTextSelect = () => {
-    const text = input.trim();
-    if (!text) {
-      toast("Type a message first, then tap Paid DM");
-      return;
-    }
-    setLockedPriceIntent("text");
-    setShowLockedPricePicker(true);
-  };
-
-  const handleLockedTextConfirm = async (priceCents: number) => {
-    setShowLockedPricePicker(false);
-    setLockedPriceIntent(null);
-    const text = input.trim();
-    if (!text || !user?.id) return;
-    setInput("");
-    clearDraft();
-    setSending(true);
-    const optimisticId = `opt-${Date.now()}`;
-    const optimisticMsg: Message = {
-      id: optimisticId, sender_id: user.id, receiver_id: recipientId,
-      message: text,
-      image_url: null, video_url: null, voice_url: null,
-      message_type: "locked_text",
-      reply_to_id: null, location_lat: null, location_lng: null, location_label: null,
-      is_pinned: false, expires_at: null, created_at: new Date().toISOString(), is_read: false,
-      locked_price_cents: priceCents,
-    };
-    setMessages((prev) => [...prev, optimisticMsg]);
-    scrollToBottom(true);
-    try {
-      // Locked plaintext lives in direct_message_locked_payloads (RLS-gated
-      // on direct_message_unlocks membership) — never in direct_messages.message,
-      // which the recipient can read unconditionally via base RLS.
-      const { data: inserted, error: insertErr } = await dbFrom("direct_messages")
-        .insert({
-          sender_id: user.id, receiver_id: recipientId,
-          message: "",
-          message_type: "locked_text",
-          locked_price_cents: priceCents,
-        })
-        .select("id")
-        .single();
-      if (insertErr) throw insertErr;
-
-      const { error: payloadErr } = await dbFrom("direct_message_locked_payloads")
-        .insert({ message_id: (inserted as { id: string }).id, content: text });
-      if (payloadErr) {
-        // Roll back the parent so the recipient doesn't see an empty locked
-        // bubble that unlock would reveal nothing for.
-        await dbFrom("direct_messages").delete().eq("id", (inserted as { id: string }).id);
-        throw payloadErr;
-      }
-      void sendChatPush("locked_text" as any, `🔒 Paid DM · $${(priceCents / 100).toFixed(2)}`);
-    } catch {
-      toast.error("Failed to send paid DM");
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-    }
-    setSending(false);
-  };
-
-  // Locked media: upload after price confirmed
-  const handleLockedMediaConfirm = async (priceCents: number) => {
-    setShowLockedPricePicker(false);
-    setLockedPriceIntent(null);
-    const files = pendingLockedFiles;
-    setPendingLockedFiles([]);
-    if (files.length === 0 || !user?.id) return;
-
-    const finalPrice = Math.floor(Number(priceCents) || 0);
-    if (finalPrice <= 0) {
-      toast.error("Choose a price");
-      return;
-    }
-
-    const clientSendId = randomMediaId();
-    const optimisticId = `opt-locked-${clientSendId}`;
-    const isAlbum = files.length > 1;
-    const caption = input.trim();
-    const firstKind = getChatMediaKind(files[0]);
-    if (!firstKind) return;
-    const messageType = isAlbum ? "locked_album" : firstKind === "video" ? "locked_video" : "locked_image";
-    const priceLabel = `$${(finalPrice / 100).toFixed(2)}`;
-    const label = `Locked ${isAlbum ? "Album" : firstKind === "video" ? "Video" : "Photo"} · ${priceLabel}`;
-    const currentReply = replyTo;
-    const textSensitivity = detectSensitiveContent(caption);
-    const shouldMarkSensitiveMedia = markNextMediaSensitive || textSensitivity.isSensitive;
-    const preparedItems: Array<{
-      id: string;
-      file: File;
-      kind: ChatMediaKind;
-      localUrl: string;
-      previewBlob: Blob;
-      previewLocalUrl: string;
-      originalPath?: string;
-      previewPath?: string;
-    }> = [];
-    const cleanupPaths: string[] = [];
-
-    setInput("");
-    clearDraft();
-    setReplyTo(null);
-    if (shouldMarkSensitiveMedia) setMarkNextMediaSensitive(false);
-    setUploadingMedia(true);
-    setSending(true);
-    try {
-      const file = files[0];
-      const isVideo = firstKind === "video";
-
-      if (isAlbum) {
-        for (const selectedFile of files) {
-          const kind = getChatMediaKind(selectedFile);
-          if (!kind) throw new Error("Unsupported locked media type");
-          const previewBlob = await createLockedMediaPreviewBlob(selectedFile, kind === "video");
-          preparedItems.push({
-            id: randomMediaId(),
-            file: selectedFile,
-            kind,
-            localUrl: URL.createObjectURL(selectedFile),
-            previewBlob,
-            previewLocalUrl: URL.createObjectURL(previewBlob),
-          });
-        }
-
-        const optimisticLockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
-          id: item.id,
-          kind: item.kind,
-          original_path: item.localUrl,
-          preview_path: item.previewLocalUrl,
-          mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
-          size: item.file.size,
-        }));
-        const sensitivePayload = shouldMarkSensitiveMedia ? {
-          sensitive: true,
-          is_sensitive: true,
-          sensitive_reason: textSensitivity.isSensitive ? textSensitivity.reason : "sender_marked",
-        } : {};
-        const optimisticFilePayload = {
-          client_send_id: clientSendId,
-          source: "locked-media",
-          locked_preview_url: optimisticLockedItems[0]?.preview_path || null,
-          locked_preview_image_url: optimisticLockedItems[0]?.preview_path || null,
-          locked_price_cents: finalPrice,
-          locked_items: optimisticLockedItems,
-          ...sensitivePayload,
-        } as unknown as FileBubbleData;
-        const optimisticMsg: Message = {
-          id: optimisticId, sender_id: user.id, receiver_id: recipientId,
-          message: caption || label,
-          image_url: null,
-          video_url: null,
-          voice_url: null, message_type: messageType,
-          reply_to_id: currentReply?.id || null, location_lat: null, location_lng: null, location_label: null,
-          is_pinned: false, expires_at: null, created_at: new Date().toISOString(), is_read: false,
-          locked_price_cents: finalPrice,
-          file_payload: optimisticFilePayload,
-        };
-        setMessages((prev) => [...prev, optimisticMsg]);
-        scrollToBottom(true);
-
-        for (let index = 0; index < preparedItems.length; index += 1) {
-          const item = preparedItems[index];
-          const ext = extensionForChatMedia(item.file, item.kind);
-          const pathSeed = `${Date.now()}-${clientSendId}-${index}-${item.id}`;
-          item.originalPath = `${user.id}/locked/dm/${recipientId}/${pathSeed}.${ext}`;
-          item.previewPath = `${user.id}/locked-previews/dm/${recipientId}/${pathSeed}.jpg`;
-
-          const { error: mediaError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.originalPath, item.file, {
-            contentType: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
-            cacheControl: "3600",
-            upsert: false,
-          });
-          if (mediaError) throw mediaError;
-          cleanupPaths.push(item.originalPath);
-
-          const { error: previewError } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(item.previewPath, item.previewBlob, {
-            contentType: "image/jpeg",
-            cacheControl: "3600",
-            upsert: false,
-          });
-          if (previewError) throw previewError;
-          cleanupPaths.push(item.previewPath);
-        }
-
-        const lockedItems: LockedMediaItem[] = preparedItems.map((item) => ({
-          id: item.id,
-          kind: item.kind,
-          original_path: item.originalPath,
-          preview_path: item.previewPath,
-          mime_type: item.file.type || (item.kind === "video" ? "video/mp4" : "image/jpeg"),
-          size: item.file.size,
-        }));
-        const firstItem = lockedItems[0];
-        const filePayload = {
-          client_send_id: clientSendId,
-          source: "locked-media",
-          locked_preview_url: firstItem?.preview_path || null,
-          locked_preview_image_url: firstItem?.preview_path || null,
-          locked_price_cents: finalPrice,
-          locked_items: lockedItems,
-          ...sensitivePayload,
-        } as unknown as FileBubbleData;
-
-        const insertData: DirectMessageInsert = {
-          sender_id: user.id,
-          receiver_id: recipientId,
-          message: caption || label,
-          message_type: messageType,
-          locked_price_cents: finalPrice,
-          file_payload: filePayload,
-        };
-        if (currentReply) insertData.reply_to_id = currentReply.id;
-
-        const { error: albumInsertErr } = await dbFrom("direct_messages").insert(insertData);
-        if (albumInsertErr) throw albumInsertErr;
-        void sendChatPush(messageType, caption || label);
-        toast.success("Locked album sent");
-        return;
-      }
-
-      const ext = extensionForChatMedia(file, isVideo ? "video" : "image");
-      const path = `${user.id}/locked/${Date.now()}-${randomMediaId()}.${ext}`;
-      const { error } = await supabase.storage.from(CHAT_MEDIA_BUCKET).upload(path, file, {
-        contentType: file.type || (isVideo ? "video/mp4" : "image/jpeg"),
-        cacheControl: "3600",
-        upsert: false,
-      });
-      if (error) throw error;
-      const signedUrl = await signedUrlFor(CHAT_MEDIA_BUCKET, path, "display");
-      const singleMessageType = isVideo ? "locked_video" : "locked_image";
-      const singlePriceLabel = `$${(priceCents / 100).toFixed(2)}`;
-      const singleLabel = isVideo ? `🔒 Locked Video · ${singlePriceLabel}` : `🔒 Locked Photo · ${singlePriceLabel}`;
-      const text = input.trim();
-      setInput("");
-      clearDraft();
-      setSending(true);
-      const singleOptId = `opt-${Date.now()}`;
-      const optimisticMsg: Message = {
-        id: singleOptId, sender_id: user.id, receiver_id: recipientId,
-        message: text || singleLabel,
-        image_url: isVideo ? null : signedUrl,
-        video_url: isVideo ? signedUrl : null,
-        voice_url: null, message_type: singleMessageType,
-        reply_to_id: null, location_lat: null, location_lng: null, location_label: null,
-        is_pinned: false, expires_at: null, created_at: new Date().toISOString(), is_read: false,
-        locked_price_cents: priceCents,
-      };
-      setMessages((prev) => [...prev, optimisticMsg]);
-      scrollToBottom(true);
-
-      const { error: insertErr } = await dbFrom("direct_messages")
-        .insert({
-          sender_id: user.id, receiver_id: recipientId,
-          message: text || singleLabel,
-          image_url: isVideo ? null : path,
-          video_url: isVideo ? path : null,
-          message_type: singleMessageType,
-          locked_price_cents: priceCents,
-        });
-      if (insertErr) throw insertErr;
-      void sendChatPush(singleMessageType, text || singleLabel);
-    } catch (error) {
-      console.warn("[dm/locked-media] upload/send failed", error);
-      if (cleanupPaths.length > 0) void supabase.storage.from(CHAT_MEDIA_BUCKET).remove(cleanupPaths).catch(() => {});
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-      toast.error("Failed to upload locked media");
-    } finally {
-      setUploadingMedia(false);
-      setSending(false);
-      for (const item of preparedItems) {
-        setTimeout(() => URL.revokeObjectURL(item.localUrl), 30000);
-        setTimeout(() => URL.revokeObjectURL(item.previewLocalUrl), 30000);
-      }
-    }
-  };
 
 
   const handleLocationShare = useCallback(() => {
@@ -3110,8 +2690,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     if (isSelfChat) return [] as Array<{ id: string; label: string; hint: string; run: () => void }>;
     return [
       { id: "location", label: "/location", hint: "Share your current location", run: () => handleLocationShare() },
-      { id: "gift", label: "/gift", hint: "Send a coin gift", run: () => setShowGiftPanel(true) },
-      { id: "wallet", label: "/wallet", hint: "Open the wallet sheet", run: () => setShowWalletSheet(true) },
       { id: "schedule", label: "/schedule", hint: "Schedule a message for later", run: () => openComposerHub("schedule") },
       { id: "poll", label: "/poll", hint: "Create a poll", run: () => openComposerHub("poll") },
       { id: "scan", label: "/scan", hint: "Scan a document", run: () => setShowScanner(true) },
@@ -3340,8 +2918,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
     missedCallIsFresh &&
     missedCallIsLatestActivity &&
     !isMissedCallDismissed(latestMissedCall, effectiveMissedCallDismissMarker) &&
-    !activeCall &&
-    !zivoOFMode;
+    !activeCall;
 
   const initials = useMemo(
     () => (recipientName || "U").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2),
@@ -3446,17 +3023,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
           <div className="flex items-center gap-0.5">
             {user?.id && <OutboxPendingBadge ownerId={user.id} chatKey={recipientId} />}
             {!isSelfChat && (
-              <motion.button
-                whileTap={{ scale: 0.85 }}
-                onClick={() => setShowGiftPanel(true)}
-                className="zivo-chat-icon-button flex h-11 w-11 items-center justify-center rounded-full transition-colors"
-                aria-label={zivoOFMode ? "Send a tip" : "Send a gift"}
-                title={zivoOFMode ? "Send a tip" : "Send a gift"}
-              >
-                <Gift className={`h-5 w-5 ${zivoOFMode ? "text-[#00AEEF]" : "text-amber-500"}`} />
-              </motion.button>
-            )}
-            {!isSelfChat && !zivoOFMode && (
               <>
                 <motion.button
                   whileTap={{ scale: 0.85 }}
@@ -3858,27 +3424,14 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       </div>
                     )}
 
-                    {/* Gift and coin transfer messages */}
-                    {msg.message_type === "gift" && msg.gift_payload ? (
+                    {["gift", "coin_transfer", "p2p_transfer"].includes(msg.message_type) ? (
                       <div className={`flex ${isMe ? "justify-end" : "justify-start"} ${msg.id.startsWith("opt-") ? "opacity-60" : ""}`}>
-                        <div className="flex flex-col gap-1">
-                          <Suspense fallback={null}>
-                            <GiftBubble payload={msg.gift_payload} isMine={isMe} />
-                          </Suspense>
+                        <div className="max-w-[75%] rounded-2xl border border-border/40 bg-muted/60 px-3 py-2">
+                          <span className="text-xs text-muted-foreground">This legacy payment message is no longer available.</span>
                           <span className={`text-[9px] mt-0.5 ${isMe ? "text-right text-muted-foreground/70" : "text-left text-muted-foreground/70"}`}>
                             {formatMsgTime(msg.created_at)}
                           </span>
                         </div>
-                      </div>
-                    ) : msg.message_type === "coin_transfer" && msg.gift_payload ? (
-                      <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                        <Suspense fallback={null}>
-                          <CoinTransferBubble
-                            amount={Number(msg.gift_payload?.amount || 0)}
-                            note={msg.gift_payload?.note}
-                            isOwn={isMe}
-                          />
-                        </Suspense>
                       </div>
                     ) : msg.message_type === "location" && msg.location_lat != null && msg.location_lng != null ? (
                       <Suspense fallback={null}>
@@ -3920,24 +3473,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                             onDeleteForMe={!isOpt ? () => handleDeleteForMe(msg.id) : undefined}
                             onReact={!isOpt ? (emoji) => toggleMessageReaction(msg.id, emoji) : undefined}
                           />
-                        );
-                      })()
-                    ) : msg.message_type === "p2p_transfer" && msg.file_payload ? (
-                      (() => {
-                        const fp = msg.file_payload as { transferId?: string; amount_cents?: number; note?: string; mode?: "send" | "request" };
-                        if (!fp?.transferId || !fp?.amount_cents) return null;
-                        return (
-                          <Suspense fallback={null}>
-                            <P2PTransferMessageCard
-                              transferId={fp.transferId}
-                              amountCents={fp.amount_cents}
-                              note={fp.note ?? null}
-                              mode={fp.mode ?? "send"}
-                              isMe={isMe}
-                              currentUserId={user?.id ?? ""}
-                              time={formatMsgTime(msg.created_at)}
-                            />
-                          </Suspense>
                         );
                       })()
                     ) : msg.message_type === "zivo_card" && msg.file_payload ? (
@@ -4019,6 +3554,13 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                           </div>
                         );
                       })()
+                    ) : isLockedDirectMessage(msg.message_type) ? (
+                      <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                        <div className="max-w-[75%] rounded-2xl border border-border/40 bg-muted/60 px-3 py-2">
+                          <p className="text-xs text-muted-foreground">This legacy attachment is no longer available.</p>
+                          <p className="mt-1 text-[9px] text-muted-foreground/70">{formatMsgTime(msg.created_at)}</p>
+                        </div>
+                      </div>
                     ) : (
                       <ChatMessageBubble
                         id={msg.id}
@@ -4034,22 +3576,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                         messageType={msg.message_type}
                         filePayload={msg.file_payload}
                         senderId={msg.sender_id}
-                        lockedPriceCents={msg.locked_price_cents}
-                        lockedPriceCoins={lockedPriceCoinsFromPayload(msg.file_payload)}
-                        lockedPreviewUrl={getLockedMediaPreviewPath(msg.file_payload as unknown as Parameters<typeof getLockedMediaPreviewPath>[0])}
-                        initiallyLocked={
-                          isLockedDirectMessage(msg.message_type) && !isMe
-                            ? !dmUnlocks.isUnlocked(msg.id)
-                            : undefined
-                        }
-                        onUnlockLockedMedia={
-                          isLockedDirectMessage(msg.message_type) && !isMe && !msg.id.startsWith("opt-")
-                            ? async (mid) => dmUnlocks.unlock({
-                                messageId: mid,
-                                priceCents: msg.locked_price_cents ?? undefined,
-                              })
-                            : undefined
-                        }
                         initialReactions={reactionsMap[msg.id]}
                         editedAt={msg.edited_at}
                         createdAt={msg.created_at}
@@ -4212,11 +3738,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               type="button"
               onClick={() => setMarkNextMediaSensitive(false)}
               className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-fuchsia-500/25 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-bold text-fuchsia-600"
-              aria-label="Turn off 18+ marker for next media"
-              title="Turn off 18+ marker"
+              aria-label="Turn off content warning for next media"
+              title="Turn off content warning"
             >
               <Shield className="h-3.5 w-3.5" />
-              18+ blur on for next media
+              Content warning on for next media
               <X className="h-3 w-3" />
             </button>
           )}
@@ -4271,26 +3797,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               <input ref={fileInputRef} type="file" accept={PHOTO_MEDIA_ACCEPT} multiple className="hidden" onChange={handleImageSelect} title="Choose photos" aria-label="Choose photos" />
               <input ref={videoInputRef} type="file" accept={VIDEO_MEDIA_ACCEPT} multiple className="hidden" onChange={handleVideoSelect} title="Choose videos" aria-label="Choose videos" />
               <input ref={gifInputRef} type="file" accept={GIF_MEDIA_ACCEPT} multiple className="hidden" onChange={handleGifSelect} title="Choose GIFs" aria-label="Choose GIFs" />
-              <input ref={lockedImageInputRef} type="file" accept={MIXED_MEDIA_ACCEPT} multiple className="hidden" onChange={handleLockedMediaSelect} title="Choose locked media" aria-label="Choose locked media" />
-
-              {/* Locked media / paid DM price picker */}
-              {showLockedPricePicker && (
-                <Suspense fallback={null}>
-                  <LockedMediaPricePicker
-                    open={showLockedPricePicker}
-                    onClose={() => {
-                      setShowLockedPricePicker(false);
-                      setPendingLockedFiles([]);
-                      setLockedPriceIntent(null);
-                    }}
-                    onConfirm={(priceCents) =>
-                      lockedPriceIntent === "text"
-                        ? handleLockedTextConfirm(priceCents)
-                        : handleLockedMediaConfirm(priceCents)
-                    }
-                  />
-                </Suspense>
-              )}
 
             </div>
 
@@ -4424,16 +3930,11 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                       onShareContact={() => setShowContactPicker(true)}
                       onCreatePoll={() => setShowPollCreator(true)}
                       onOpenMiniApps={() => setShowMiniApps(true)}
-                      onSendGift={() => setShowGiftPanel(true)}
-                      onOpenWallet={() => {
-                        if (isSelfChat) { setShowWalletSheet(true); return; }
-                        openP2PTransfer({ receiverId: recipientId, receiverName: recipientName, mode: "send" });
-                      }}
                       onShareZivoCard={() => setShowZivoCardPicker(true)}
                       onToggleSensitiveMedia={() => {
                         setMarkNextMediaSensitive((prev) => {
                           const next = !prev;
-                          toast.success(next ? "Next media will be blurred as 18+" : "18+ media blur marker off");
+                           toast.success(next ? "Content warning enabled for the next media" : "Content warning disabled");
                           return next;
                         });
                       }}
@@ -4451,8 +3952,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
                           return next;
                         });
                       }}
-                      onLockedImageSelect={() => lockedImageInputRef.current?.click()}
-                      onLockedTextSelect={handleLockedTextSelect}
                       onToggleDisappearing={cycleAutoDelete}
                       onSchedule={() => {
                         if (!input.trim()) {
@@ -4562,7 +4061,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
               type: "dm",
               recipientId,
               recipientName,
-              isMessageUnlocked: dmUnlocks.isUnlocked,
             }}
             initialTab={mediaGalleryTab}
             onJumpToMessage={scrollToMessage}
@@ -4658,7 +4156,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
             onStartCall={(type) => { setShowContactInfo(false); void handleStartCall(type); }}
             onOpenMediaGallery={() => { setMediaGalleryTab("photos"); setShowContactInfo(false); setShowMediaGallery(true); }}
             onOpenSearch={() => { setShowContactInfo(false); setNavigatorMode("search"); }}
-            onOpenGift={() => { setShowContactInfo(false); setShowGiftPanel(true); }}
             onOpenCallHistory={() => { setShowContactInfo(false); setShowCallHistory(true); }}
             onOpenPersonalization={() => { setShowContactInfo(false); setShowPersonalization(true); }}
             onOpenSecurity={() => { setShowContactInfo(false); setShowSecurity(true); }}
@@ -4743,35 +4240,6 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
       {activeEffect && (
         <Suspense fallback={null}>
           <MessageEffects effect={activeEffect} onComplete={() => setActiveEffect(null)} />
-        </Suspense>
-      )}
-
-      {/* Gift drawer (live-style) */}
-      {showGiftPanel && (
-        <Suspense fallback={null}>
-          <ChatGiftPanel
-            open={showGiftPanel}
-            onClose={() => setShowGiftPanel(false)}
-            onOpenWallet={() => {
-              setShowGiftPanel(false);
-              setShowWalletSheet(true);
-            }}
-            recipientId={recipientId}
-            recipientName={recipientName}
-            recipientAvatar={recipientAvatar}
-          />
-        </Suspense>
-      )}
-
-      {/* In-chat wallet sheet */}
-      {showWalletSheet && (
-        <Suspense fallback={null}>
-          <ChatWalletSheet
-            open={showWalletSheet}
-            onClose={() => setShowWalletSheet(false)}
-            recipientId={recipientId}
-            recipientName={recipientName}
-          />
         </Suspense>
       )}
 
@@ -4906,7 +4374,7 @@ export default function PersonalChat({ recipientId, recipientName, recipientAvat
         }}
       />
 
-      {/* Social profile share sheet — Facebook, OnlyFans, Instagram, X, TikTok, etc. */}
+      {/* Social profile share sheet */}
       <ChatSocialShareSheet
         open={showSocialShare}
         onClose={() => setShowSocialShare(false)}

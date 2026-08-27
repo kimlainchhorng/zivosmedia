@@ -18,7 +18,6 @@ import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import HelpCircle from "lucide-react/dist/esm/icons/help-circle";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles";
 import Users from "lucide-react/dist/esm/icons/users";
-import Award from "lucide-react/dist/esm/icons/award";
 import Crown from "lucide-react/dist/esm/icons/crown";
 import LogOut from "lucide-react/dist/esm/icons/log-out";
 import UserCircle from "lucide-react/dist/esm/icons/user-circle";
@@ -94,7 +93,6 @@ const moreItems = [
   { label: "Delivery", description: "Send packages anywhere", href: "/delivery", icon: Package, color: "text-violet-500" },
   { label: "Extras", description: "Transfers, eSIM, Tours & more", href: "/extras", icon: Sparkles, color: "text-primary" },
   { label: "Partners", description: "Our travel partners", href: "/partners", icon: Users, color: "text-muted-foreground" },
-  { label: "Creators", description: "Creator program", href: "/creators", icon: Award, color: "text-muted-foreground" },
 ];
 
 const legalItems = [
@@ -195,7 +193,7 @@ const NavBar = forwardRef<HTMLDivElement>(function NavBar(_, ref) {
   const desktopNavItems = isTravel ? travelNavItems : directNavItems;
   const desktopSearchHint = isTravel
     ? "Flights, stays, cars, and support"
-    : "Apps, rides, food, creators";
+    : "Apps, rides, food, and travel";
 
   return (
     <>

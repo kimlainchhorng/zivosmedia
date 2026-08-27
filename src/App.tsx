@@ -8,7 +8,6 @@ import { HelmetProvider } from "react-helmet-async";
 import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-const P2PTransferSheet = lazy(() => import("@/components/chat/P2PTransferSheet"));
 const PartnerSignupSheet = lazy(() => import("@/components/partner/PartnerSignupSheet"));
 const AffiliateRedirectPage = lazy(() => import("@/pages/AffiliateRedirectPage"));
 const EventsHubPage = lazy(() => import("@/pages/hubs/EventsHubPage"));
@@ -25,9 +24,7 @@ const CreateSupportTicketPage = lazy(() => import("@/pages/support/CreateSupport
 const TwoFactorSetupSheet = lazy(() => import("@/components/security/TwoFactorSetupSheet"));
 const OnboardingTour = lazy(() => import("@/components/onboarding/OnboardingTour"));
 const BugReportSheet = lazy(() => import("@/components/support/BugReportSheet"));
-const AffiliateLinkSheet = lazy(() => import("@/components/affiliate/AffiliateLinkSheet"));
 const CurrencyPickerSheet = lazy(() => import("@/components/currency/CurrencyPickerSheet"));
-const CreatorSubscribeSheet = lazy(() => import("@/components/creator/CreatorSubscribeSheet"));
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useVerificationRealtime } from "@/hooks/useVerificationRealtime";
 import { useOTAUpdate } from "@/hooks/useOTAUpdate";
@@ -119,7 +116,6 @@ import { lazyRetry } from "@/lib/lazyRetry";
 import { perfLog } from "@/lib/perfTrace";
 import { pathFromNativeOpenUrl } from "@/lib/nativeDeepLinks";
 import { SOCIAL_ROUTE_PATHS } from "@/lib/socialRoutes";
-import { P2P_TRANSFER_EVENT, hasPendingP2PTransfer, subscribeP2PTransferMount } from "@/lib/p2pTransfer";
 import { recordRequestIssue } from "@/lib/requestHealth";
 import RequestHealthBadge from "@/components/dev/RequestHealthBadge";
 import {
@@ -168,7 +164,6 @@ const ConnectChat = lazy(() => import("./pages/ConnectChat"));
 const ConnectSoftware = lazy(() => import("./pages/ConnectSoftware"));
 const ConnectMedia = lazy(() => import("./pages/ConnectMedia"));
 const PublicDocumentView = lazy(() => import("./pages/PublicDocumentView"));
-const PairPage = lazy(() => lazyRetry(() => import("./pages/PairPage")));
 const EstimateApprovalPage = lazy(() => lazyRetry(() => import("./pages/EstimateApprovalPage")));
 const RepairStatusPage = lazy(() => lazyRetry(() => import("./pages/RepairStatusPage")));
 const InspectionViewPage = lazy(() => lazyRetry(() => import("./pages/InspectionViewPage")));
@@ -327,24 +322,6 @@ const ChannelAdminLogPage = lazy(() => import("./pages/channels/ChannelAdminLogP
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const BookmarksPage = lazy(() => import("./pages/BookmarksPage"));
 const PrivacySettingsPage = lazy(() => import("./pages/account/PrivacySettingsPage"));
-const CreatorDashboardPage = lazy(() => import("./pages/CreatorDashboardPage"));
-const CreatorAnalyticsPage = lazy(() => import("./pages/CreatorAnalyticsPage"));
-const CreatorSetupPage = lazy(() => import("./pages/CreatorSetupPage"));
-const CreatorWelcomePage = lazy(() => import("./pages/CreatorWelcomePage"));
-const AdultDiscoveryPage = lazy(() => import("./pages/AdultDiscoveryPage"));
-const CreatePPVPostPage = lazy(() => import("./pages/CreatePPVPostPage"));
-const PPVPostsPage = lazy(() => import("./pages/PPVPostsPage"));
-const CreatorLiveEarningsPage = lazy(() => import("./pages/CreatorLiveEarningsPage"));
-const CreatorSubscribersPage = lazy(() => import("./pages/CreatorSubscribersPage"));
-const CreatorTipsPage = lazy(() => import("./pages/CreatorTipsPage"));
-const AffiliateHubPage = lazy(() => import("./pages/AffiliateHubPage"));
-const DigitalProductsPage = lazy(() => import("./pages/DigitalProductsPage"));
-const MonetizationPage = lazy(() => import("./pages/MonetizationPage"));
-const MonetizationArticlesPage = lazy(() => import("./pages/MonetizationArticlesPage"));
-const MonetizationArticleDetailPage = lazy(() => import("./pages/MonetizationArticleDetailPage"));
-const ProgramDetailPage = lazy(() => import("./pages/ProgramDetailPage"));
-const LiveStreamPage = lazy(() => import("./pages/LiveStreamPage"));
-const GoLivePage = lazy(() => import("./pages/GoLivePage"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const CommunitiesPage = lazy(() => import("./pages/CommunitiesPage"));
 const CommunityDetailPage = lazy(() => import("./pages/CommunityDetailPage"));
@@ -668,9 +645,7 @@ const ZivoPlus = lazy(() => import("./pages/ZivoPlus"));
 const MembershipPage = lazy(() => import("./pages/MembershipPage"));
 const LibraryPage = lazy(() => import("./pages/LibraryPage"));
 const MediaLibraryPage = lazy(() => import("./pages/MediaLibraryPage"));
-const CreatorGoalsPage = lazy(() => import("./pages/CreatorGoalsPage"));
 const PodcastsPage = lazy(() => import("./pages/PodcastsPage"));
-const BrandDealsPage = lazy(() => import("./pages/BrandDealsPage"));
 const PromotePage = lazy(() => import("./pages/PromotePage"));
 const SoundsPage = lazy(() => import("./pages/SoundsPage"));
 const TrackPackagePage = lazy(() => import("./pages/TrackPackagePage"));
@@ -685,7 +660,6 @@ const HighlightsPage = lazy(() => import("./pages/HighlightsPage"));
 const CloseFriendsPage = lazy(() => import("./pages/CloseFriendsPage"));
 const CollectionsPage = lazy(() => import("./pages/CollectionsPage"));
 const PollsPage = lazy(() => import("./pages/PollsPage"));
-const CreatorMilestonesPage = lazy(() => import("./pages/CreatorMilestonesPage"));
 const MentionsPage = lazy(() => import("./pages/MentionsPage"));
 const PostAlbumsPage = lazy(() => import("./pages/PostAlbumsPage"));
 const CollabsPage = lazy(() => import("./pages/CollabsPage"));
@@ -695,7 +669,6 @@ const ReferralsPage = lazy(() => import("./pages/ReferralsPage"));
 const ChatThemesPage = lazy(() => import("./pages/ChatThemesPage"));
 const RewardsCenterPage = lazy(() => import("./pages/RewardsCenterPage"));
 const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
-const CreatorEarningsPage = lazy(() => import("./pages/CreatorEarningsPage"));
 const NotificationPrefsPage = lazy(() => import("./pages/NotificationPrefsPage"));
 const StoryInsightsPage = lazy(() => import("./pages/StoryInsightsPage"));
 const DevicesPage = lazy(() => import("./pages/DevicesPage"));
@@ -712,14 +685,9 @@ const TravelJournalsPage = lazy(() => import("./pages/TravelJournalsPage"));
 const SurveysPage = lazy(() => import("./pages/SurveysPage"));
 const ExchangeRatesPage = lazy(() => import("./pages/ExchangeRatesPage"));
 const HashtagsDirectoryPage = lazy(() => import("./pages/HashtagsDirectoryPage"));
-const CoinWalletPage = lazy(() => import("./pages/CoinWalletPage"));
 const GifLibraryPage = lazy(() => import("./pages/GifLibraryPage"));
 const SplitBillsPage = lazy(() => import("./pages/SplitBillsPage"));
-const FanBadgesPage = lazy(() => import("./pages/FanBadgesPage"));
-const MyUnlocksPage = lazy(() => import("./pages/MyUnlocksPage"));
 const VoiceNotesPage = lazy(() => import("./pages/VoiceNotesPage"));
-const AffiliateLinksPage = lazy(() => import("./pages/AffiliateLinksPage"));
-const GiftHistoryPage = lazy(() => import("./pages/GiftHistoryPage"));
 const SharedTodosPage = lazy(() => import("./pages/SharedTodosPage"));
 const PointsHistoryPage = lazy(() => import("./pages/PointsHistoryPage"));
 const ModerationAppealsPage = lazy(() => import("./pages/ModerationAppealsPage"));
@@ -743,7 +711,6 @@ const AutoMessagesLogPage = lazy(() => import("./pages/AutoMessagesLogPage"));
 const OrderDisputesPage = lazy(() => import("./pages/OrderDisputesPage"));
 const FlightPriceAlertsPage = lazy(() => import("./pages/FlightPriceAlertsPage"));
 const AudioRoomsPage = lazy(() => import("./pages/AudioRoomsPage"));
-const CoinTransfersPage = lazy(() => import("./pages/CoinTransfersPage"));
 const LiveLocationsPage = lazy(() => import("./pages/LiveLocationsPage"));
 const FriendRequestsPage = lazy(() => import("./pages/FriendRequestsPage"));
 const GroupOrdersPage = lazy(() => import("./pages/GroupOrdersPage"));
@@ -761,8 +728,6 @@ const LiveChatSessionsPage = lazy(() => import("./pages/LiveChatSessionsPage"));
 const MutedBlockedUsersPage = lazy(() => import("./pages/MutedBlockedUsersPage"));
 const MutedChatsPage = lazy(() => import("./pages/MutedChatsPage"));
 const PushDevicesPage = lazy(() => import("./pages/PushDevicesPage"));
-const CreatorPayoutsPage = lazy(() => import("./pages/CreatorPayoutsPage"));
-const P2PMoneyPage = lazy(() => import("./pages/P2PMoneyPage"));
 const MusicStickersPage = lazy(() => import("./pages/MusicStickersPage"));
 const AvatarMoodsPage = lazy(() => import("./pages/AvatarMoodsPage"));
 const DownloadedPacksPage = lazy(() => import("./pages/DownloadedPacksPage"));
@@ -809,8 +774,6 @@ const NotificationSettings = lazy(() => import("./pages/account/NotificationSett
 const AccountReferralsPage = lazy(() => import("./pages/account/ReferralsPage"));
 const AccountWalletPage = lazy(() => import("./pages/account/WalletPage"));
 const AccountSubscriptionsPage = lazy(() => import("./pages/account/AccountSubscriptionsPage"));
-const AccountTipsPage = lazy(() => import("./pages/account/AccountTipsPage"));
-const CoinPurchaseSuccess = lazy(() => import("./pages/CoinPurchaseSuccess"));
 const GuestProfilePreview = lazy(() => import("./components/auth/GuestProfilePreview"));
 const GiftCardsPage = lazy(() => import("./pages/account/GiftCardsPage"));
 const GiftCardSuccessPage = lazy(() => import("./pages/account/GiftCardSuccessPage"));
@@ -1337,30 +1300,12 @@ function DeferredRoutePrefetcher() {
   return ready ? <Suspense fallback={null}><RoutePrefetcher /></Suspense> : null;
 }
 
-const PAYMENT_RETURN_MARKER_RE = /(?:^|[?&])(?:paypal_return|paypal_cancel|square_return|eats_paypal_return|eats_paypal_cancel|eats_square_return|grocery_paypal_return|grocery_paypal_cancel|grocery_square_return|tip_paypal_return|tip_paypal_cancel|tip_square_return)=/;
+const PAYMENT_RETURN_MARKER_RE = /(?:^|[?&])(?:paypal_return|paypal_cancel|square_return|eats_paypal_return|eats_paypal_cancel|eats_square_return|grocery_paypal_return|grocery_paypal_cancel|grocery_square_return)=/;
 
 function PaymentReturnBootstrap() {
   const { search } = useLocation();
   if (!PAYMENT_RETURN_MARKER_RE.test(search)) return null;
   return <Suspense fallback={null}><PaymentReturnHandler /></Suspense>;
-}
-
-function LazyP2PTransferSheetHost() {
-  const [mounted, setMounted] = useState(() => hasPendingP2PTransfer());
-
-  useEffect(() => {
-    const mount = () => setMounted(true);
-    const unsubscribe = subscribeP2PTransferMount(mount);
-    window.addEventListener(P2P_TRANSFER_EVENT, mount);
-    if (hasPendingP2PTransfer()) mount();
-
-    return () => {
-      unsubscribe();
-      window.removeEventListener(P2P_TRANSFER_EVENT, mount);
-    };
-  }, []);
-
-  return mounted ? <Suspense fallback={null}><P2PTransferSheet /></Suspense> : null;
 }
 
 function DeferredGlobalSheets() {
@@ -1374,8 +1319,6 @@ function DeferredGlobalSheets() {
       <TwoFactorSetupSheet />
       <OnboardingTour />
       <BugReportSheet />
-      <AffiliateLinkSheet />
-      <CreatorSubscribeSheet />
     </Suspense>
   );
 }
@@ -1689,7 +1632,6 @@ const App = () => (
                   <DeferredPassiveChatOverlays />
                   <AuthBackgroundServices />
                   <Suspense fallback={null}><ShareToChatSheet /></Suspense>
-                  <LazyP2PTransferSheetHost />
                   <DeferredGlobalSheets />
                    <RemoteConfigProvider>
                   <ZivoPlusProvider>
@@ -1730,7 +1672,6 @@ const App = () => (
                 <Route path="/payments" element={<ProtectedRoute><PreserveQueryRedirect to="/wallet" /></ProtectedRoute>} />
                 <Route path="/wallet" element={isCurrentZivoTravelHost() ? <ZivoTravelWallet /> : <ProtectedRoute><AccountWalletPage /></ProtectedRoute>} />
                 <Route path="/payment-methods" element={isCurrentZivoTravelHost() ? <ZivoTravelPaymentMethods /> : <ProtectedRoute><PreserveQueryRedirect to="/wallet" /></ProtectedRoute>} />
-                <Route path="/wallet/coins/success" element={<ProtectedRoute><CoinPurchaseSuccess /></ProtectedRoute>} />
                 <Route path="/support" element={<ProtectedRoute><SupportCenterPage /></ProtectedRoute>} />
                 <Route path="/travel" element={isCurrentZivoTravelHost() ? <ZivoTravelHome /> : <ProtectedRoute><AppTravel /></ProtectedRoute>} />
                 {/* /more is registered below with MorePage (the canonical hub).
@@ -1809,9 +1750,6 @@ const App = () => (
                 <Route path={SOCIAL_ROUTE_PATHS.feed} element={<ReelsFeedPage />} />
                 <Route path="/feed-new" element={<SocialFeedPage />} />
                 <Route path={SOCIAL_ROUTE_PATHS.reels} element={<FeedPage />} />
-                <Route path="/live" element={<LiveStreamPage />} />
-                <Route path="/go-live" element={<GoLivePage />} />
-                <Route path="/pair/:token" element={<PairPage />} />
                 <Route path="/estimate/:token" element={<EstimateApprovalPage />} />
                 <Route path="/repair/:token" element={<RepairStatusPage />} />
                 <Route path="/inspection/:token" element={<InspectionViewPage />} />
@@ -1865,23 +1803,6 @@ const App = () => (
                 <Route path="/chat/settings/storage" element={<ProtectedRoute><StorageManagerPage /></ProtectedRoute>} />
                 <Route path="/explore" element={<ExplorePage />} />
                 <Route path="/saved" element={<ProtectedRoute><BookmarksPage /></ProtectedRoute>} />
-                <Route path="/creators" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>} />
-                <Route path="/creator-dashboard" element={<ProtectedRoute><CreatorDashboardPage /></ProtectedRoute>} />
-                <Route path="/creator/setup" element={<ProtectedRoute><CreatorSetupPage /></ProtectedRoute>} />
-                <Route path="/creator/welcome" element={<ProtectedRoute><CreatorWelcomePage /></ProtectedRoute>} />
-                <Route path="/explore/18-plus" element={<ProtectedRoute><AdultDiscoveryPage /></ProtectedRoute>} />
-                <Route path="/ppv" element={<ProtectedRoute><PPVPostsPage /></ProtectedRoute>} />
-                <Route path="/ppv/create" element={<ProtectedRoute><CreatePPVPostPage /></ProtectedRoute>} />
-                <Route path="/creator-analytics" element={<ProtectedRoute><CreatorAnalyticsPage /></ProtectedRoute>} />
-                <Route path="/creator/live-earnings" element={<ProtectedRoute><CreatorLiveEarningsPage /></ProtectedRoute>} />
-                <Route path="/creator/subscribers" element={<ProtectedRoute><CreatorSubscribersPage /></ProtectedRoute>} />
-                <Route path="/creator/tips" element={<ProtectedRoute><CreatorTipsPage /></ProtectedRoute>} />
-                <Route path="/affiliate-hub" element={<ProtectedRoute><AffiliateHubPage /></ProtectedRoute>} />
-                <Route path="/digital-products" element={<ProtectedRoute><DigitalProductsPage /></ProtectedRoute>} />
-                <Route path="/monetization" element={<ProtectedRoute><MonetizationPage /></ProtectedRoute>} />
-                <Route path="/monetization/articles" element={<ProtectedRoute><MonetizationArticlesPage /></ProtectedRoute>} />
-                <Route path="/monetization/articles/:slug" element={<ProtectedRoute><MonetizationArticleDetailPage /></ProtectedRoute>} />
-                <Route path="/monetization/program/:programId" element={<ProtectedRoute><ProgramDetailPage /></ProtectedRoute>} />
                 <Route path="/events" element={<EventsPage />} />
                 <Route path="/communities" element={<CommunitiesPage />} />
                 <Route path="/communities/:id" element={<CommunityDetailPage />} />
@@ -2197,14 +2118,12 @@ const App = () => (
                 {/* Other ComingSoon placeholders */}
                 <Route path="/filters" element={<ARFiltersPage />} />
                 <Route path="/promote" element={<ProtectedRoute><PromotePage /></ProtectedRoute>} />
-                <Route path="/brand-deals" element={<ProtectedRoute><BrandDealsPage /></ProtectedRoute>} />
                 <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
                 <Route path="/archive" element={<ProtectedRoute><StoryArchivePage /></ProtectedRoute>} />
                 <Route path="/highlights" element={<ProtectedRoute><HighlightsPage /></ProtectedRoute>} />
                 <Route path="/close-friends" element={<ProtectedRoute><CloseFriendsPage /></ProtectedRoute>} />
                 <Route path="/collections" element={<ProtectedRoute><CollectionsPage /></ProtectedRoute>} />
                 <Route path="/polls" element={<ProtectedRoute><PollsPage /></ProtectedRoute>} />
-                <Route path="/creator/milestones" element={<ProtectedRoute><CreatorMilestonesPage /></ProtectedRoute>} />
                 <Route path="/mentions" element={<ProtectedRoute><MentionsPage /></ProtectedRoute>} />
                 <Route path="/albums" element={<ProtectedRoute><PostAlbumsPage /></ProtectedRoute>} />
                 <Route path="/collabs" element={<ProtectedRoute><CollabsPage /></ProtectedRoute>} />
@@ -2214,7 +2133,6 @@ const App = () => (
                 <Route path="/chat-themes" element={<ProtectedRoute><ChatThemesPage /></ProtectedRoute>} />
                 <Route path="/rewards-center" element={<ProtectedRoute><RewardsCenterPage /></ProtectedRoute>} />
                 <Route path="/achievements" element={<AchievementsPage />} />
-                <Route path="/creator/earnings" element={<ProtectedRoute><CreatorEarningsPage /></ProtectedRoute>} />
                 <Route path="/notifications/preferences" element={<ProtectedRoute><NotificationPrefsPage /></ProtectedRoute>} />
                 <Route path="/story-insights" element={<ProtectedRoute><StoryInsightsPage /></ProtectedRoute>} />
                 <Route path="/devices" element={<ProtectedRoute><DevicesPage /></ProtectedRoute>} />
@@ -2231,14 +2149,9 @@ const App = () => (
                 <Route path="/surveys" element={<SurveysPage />} />
                 <Route path="/exchange-rates" element={<ExchangeRatesPage />} />
                 <Route path="/hashtags" element={<HashtagsDirectoryPage />} />
-                <Route path="/coins" element={<ProtectedRoute><CoinWalletPage /></ProtectedRoute>} />
                 <Route path="/gifs" element={<GifLibraryPage />} />
                 <Route path="/split-bills" element={<ProtectedRoute><SplitBillsPage /></ProtectedRoute>} />
-                <Route path="/fan-badges" element={<ProtectedRoute><FanBadgesPage /></ProtectedRoute>} />
-                <Route path="/my-unlocks" element={<ProtectedRoute><MyUnlocksPage /></ProtectedRoute>} />
                 <Route path="/voice-notes" element={<ProtectedRoute><VoiceNotesPage /></ProtectedRoute>} />
-                <Route path="/affiliate-links" element={<ProtectedRoute><AffiliateLinksPage /></ProtectedRoute>} />
-                <Route path="/gift-history" element={<ProtectedRoute><GiftHistoryPage /></ProtectedRoute>} />
                 <Route path="/shared-todos" element={<ProtectedRoute><SharedTodosPage /></ProtectedRoute>} />
                 <Route path="/points-history" element={<ProtectedRoute><PointsHistoryPage /></ProtectedRoute>} />
                 <Route path="/moderation-appeals" element={<ProtectedRoute><ModerationAppealsPage /></ProtectedRoute>} />
@@ -2263,7 +2176,6 @@ const App = () => (
                 <Route path="/order-disputes" element={<ProtectedRoute><OrderDisputesPage /></ProtectedRoute>} />
                 <Route path="/flight-price-alerts" element={<ProtectedRoute><FlightPriceAlertsPage /></ProtectedRoute>} />
                 <Route path="/audio-rooms" element={<AudioRoomsPage />} />
-                <Route path="/coin-transfers" element={<ProtectedRoute><CoinTransfersPage /></ProtectedRoute>} />
                 <Route path="/live-locations" element={<ProtectedRoute><LiveLocationsPage /></ProtectedRoute>} />
                 <Route path="/friend-requests" element={<ProtectedRoute><FriendRequestsPage /></ProtectedRoute>} />
                 <Route path="/group-orders" element={<ProtectedRoute><GroupOrdersPage /></ProtectedRoute>} />
@@ -2281,8 +2193,6 @@ const App = () => (
                 <Route path="/muted-blocked" element={<ProtectedRoute><MutedBlockedUsersPage /></ProtectedRoute>} />
                 <Route path="/muted-chats" element={<ProtectedRoute><MutedChatsPage /></ProtectedRoute>} />
                 <Route path="/push-devices" element={<ProtectedRoute><PushDevicesPage /></ProtectedRoute>} />
-                <Route path="/creator-payouts" element={<ProtectedRoute><CreatorPayoutsPage /></ProtectedRoute>} />
-                <Route path="/p2p-money" element={<ProtectedRoute><P2PMoneyPage /></ProtectedRoute>} />
                 <Route path="/music-stickers" element={<MusicStickersPage />} />
                 <Route path="/avatar-moods" element={<AvatarMoodsPage />} />
                 <Route path="/downloaded-packs" element={<ProtectedRoute><DownloadedPacksPage /></ProtectedRoute>} />
@@ -2300,7 +2210,6 @@ const App = () => (
                 <Route path="/podcasts" element={<PodcastsPage />} />
                 <Route path="/sounds" element={<SoundsPage />} />
                 <Route path="/media-library" element={<ProtectedRoute><MediaLibraryPage /></ProtectedRoute>} />
-                <Route path="/creator/goals" element={<ProtectedRoute><CreatorGoalsPage /></ProtectedRoute>} />
                 <Route path="/track" element={<ProtectedRoute><TrackPackagePage /></ProtectedRoute>} />
                 {/* Redirect legacy paths to the real implementations */}
                 <Route path="/account/cookies" element={<Navigate to="/account/data-rights#cookies" replace />} />
@@ -2316,7 +2225,6 @@ const App = () => (
                 <Route path="/account/receipts" element={<ProtectedRoute><ReceiptsPage /></ProtectedRoute>} />
                 <Route path="/account/reviews" element={<ProtectedRoute><MyReviewsPage /></ProtectedRoute>} />
                 <Route path="/account/subscriptions" element={<ProtectedRoute><AccountSubscriptionsPage /></ProtectedRoute>} />
-                <Route path="/account/tips" element={<ProtectedRoute><AccountTipsPage /></ProtectedRoute>} />
 
                 {/* Trip Itineraries */}
                 <Route path="/trips" element={<ProtectedRoute><TripsListPage /></ProtectedRoute>} />

@@ -97,8 +97,6 @@ Allow: /eats
 Allow: /about
 Allow: /how-it-works
 Allow: /partners
-Allow: /creators
-Allow: /creators/*
 Allow: /contact
 Allow: /help
 Allow: /faq
@@ -161,6 +159,24 @@ Disallow: /profile
 Disallow: /profile/*
 Disallow: /settings
 Disallow: /trips
+
+# Retired creator-monetization and money-movement surfaces
+Disallow: /creators
+Disallow: /creator-dashboard
+Disallow: /creator/
+Disallow: /explore/18-plus
+Disallow: /ppv
+Disallow: /monetization
+Disallow: /digital-products
+Disallow: /brand-deals
+Disallow: /live
+Disallow: /go-live
+Disallow: /coins
+Disallow: /coin-transfers
+Disallow: /gift-history
+Disallow: /fan-badges
+Disallow: /my-unlocks
+Disallow: /p2p-money
 
 # Authentication
 Disallow: /auth-callback

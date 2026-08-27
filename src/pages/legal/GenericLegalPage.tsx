@@ -203,7 +203,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "1. Limited Biometric Use",
         content:
-          "ZIVO may process biometric-related data for identity verification, liveness detection, account security, fraud prevention, creator or partner verification, camera effects, accessibility, and safety. We do not sell biometric identifiers or biometric information.",
+          "ZIVO may process biometric-related data for identity verification, liveness detection, account security, fraud prevention, driver, merchant, or other service-partner verification, camera effects, accessibility, and safety. We do not sell biometric identifiers or biometric information.",
       },
       {
         title: "2. Consent & Alternatives",
@@ -240,7 +240,7 @@ const policyContent: Record<string, { badge: string; intro: string; sections: { 
       {
         title: "2. Identity & Safety Uses",
         content:
-          "ZIVO may use facial recognition or liveness detection for driver, merchant, creator, payout, account recovery, anti-fraud, underage-access prevention, and safety verification where permitted by law.",
+          "ZIVO may use facial recognition or liveness detection for driver, merchant, service-partner payout, account recovery, anti-fraud, underage-access prevention, and safety verification where permitted by law.",
       },
       {
         title: "3. Restrictions",

@@ -263,7 +263,7 @@ const lanes = [
   },
   {
     id: "role-workflows",
-    label: "Customer, Shop Owner, Staff, Driver, Creator, Admin Workflows",
+    label: "Customer, Shop Owner, Staff, Driver, Support, Admin Workflows",
     patterns: [/customer|owner|shop|staff|driver|creator|admin|client|booking|order|dashboard/i],
     commands: [
       "npm run qa:customer-booking-contracts",
@@ -272,7 +272,7 @@ const lanes = [
       "npm run test -- src/test/roleWorkflowMatrix.test.ts src/test/crossVerticalRoleNavigation.test.ts src/test/staffDriverCreatorRoleAccess.test.ts src/test/merchantPayoutOwnerOpsAccess.test.ts src/test/adminModerationRoleAccess.test.ts src/test/adminSupportAccountRoleAccess.test.ts",
       "npx playwright test tests/e2e/customer-booking-payment.spec.ts tests/e2e/shop-owner-dashboard-permissions.spec.ts tests/e2e/staff-driver-creator-role-access.spec.ts",
     ],
-    next: "Keep customer booking, shop owner, staff, driver, creator, support, and admin role workflows green.",
+    next: "Keep customer booking, shop owner, staff, driver, support, and admin workflows green while creator monetization remains retired.",
   },
   {
     id: "payments-payouts",

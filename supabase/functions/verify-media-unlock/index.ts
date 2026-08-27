@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import Stripe from "../_shared/stripe.ts";
 import { createClient } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { creatorMonetizationBlockedResponse, isCreatorMonetizationDisabled } from "../_shared/creatorMonetizationCompliance.ts";
 
 serve(withSecurity("verify-media-unlock", async (req, ctx) => {
   const corsHeaders = ctx.corsHeaders;
@@ -11,6 +12,8 @@ serve(withSecurity("verify-media-unlock", async (req, ctx) => {
       headers: { ...corsHeaders, "Content-Type": "application/json", "Allow": "POST, OPTIONS" },
     });
   }
+
+  if (isCreatorMonetizationDisabled()) return creatorMonetizationBlockedResponse(corsHeaders);
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",

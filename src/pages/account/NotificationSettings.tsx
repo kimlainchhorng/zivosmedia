@@ -33,12 +33,9 @@ import {
   Plane,
   BadgeCheck,
   Briefcase,
-  Tv,
   Activity,
-  Rocket,
   Pill,
   Calendar,
-  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -67,7 +64,7 @@ import { PhoneVerificationDialog } from "@/components/account/PhoneVerificationD
 import InstallAppCard from "@/components/account/InstallAppCard";
 import { toast } from "sonner";
 
-type CategoryGroup = "account" | "social" | "commerce" | "live" | "wellness" | "creator";
+type CategoryGroup = "account" | "social" | "commerce" | "wellness" | "career";
 
 interface NotificationCategory {
   id: string;
@@ -82,12 +79,11 @@ const GROUP_META: Record<CategoryGroup, { title: string; subtitle: string; ancho
   account: { title: "Account & Security", subtitle: "Sign-ins, verification, and trust signals", anchor: "account" },
   social: { title: "Social & Activity", subtitle: "Mentions, follows, and your community", anchor: "social" },
   commerce: { title: "Orders & Payments", subtitle: "Bookings, deliveries, payouts, and deals", anchor: "commerce" },
-  live: { title: "Live & Streaming", subtitle: "When followed creators go live", anchor: "live" },
   wellness: { title: "Wellness & Health", subtitle: "Reminders for activity, meds, and appointments", anchor: "wellness" },
-  creator: { title: "Creator & Career", subtitle: "Jobs, monetization, and audience updates", anchor: "creator" },
+  career: { title: "Work & Career", subtitle: "Job matches, applications, and interview updates", anchor: "career" },
 };
 
-const GROUP_ORDER: CategoryGroup[] = ["account", "social", "commerce", "live", "wellness", "creator"];
+const GROUP_ORDER: CategoryGroup[] = ["account", "social", "commerce", "wellness", "career"];
 
 const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   // Account & Security
@@ -106,18 +102,13 @@ const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   { id: "rewards", label: "Rewards & Loyalty", description: "Points earned, tier upgrades, and referral rewards", icon: Crown, defaultEnabled: true, group: "commerce" },
   { id: "promotions", label: "Deals & Promotions", description: "Exclusive offers, flash sales, and seasonal deals", icon: Gift, defaultEnabled: false, group: "commerce" },
 
-  // Live & Streaming
-  { id: "live_streams", label: "Live & Streams", description: "When followed creators go live or start audio spaces", icon: Tv, defaultEnabled: true, group: "live" },
-
   // Wellness & Health
   { id: "wellness_reminders", label: "Wellness Reminders", description: "Daily activity, hydration, sleep, and goal nudges", icon: Activity, defaultEnabled: false, group: "wellness" },
   { id: "medication_reminders", label: "Medication Reminders", description: "Reminders to take and refill medications", icon: Pill, defaultEnabled: false, group: "wellness" },
   { id: "appointment_reminders", label: "Appointment Reminders", description: "Telehealth visits, bookings, and scheduled events", icon: Calendar, defaultEnabled: true, group: "wellness" },
 
-  // Creator & Career
-  { id: "job_alerts", label: "Job Alerts", description: "New job matches, application updates, and interview reminders", icon: Briefcase, defaultEnabled: true, group: "creator" },
-  { id: "creator_updates", label: "Creator & Monetization", description: "Payouts, brand deals, content milestones, and analytics", icon: Rocket, defaultEnabled: true, group: "creator" },
-  { id: "earnings_payouts", label: "Earnings & Payouts", description: "Driver, shop, and creator payment notifications", icon: DollarSign, defaultEnabled: true, group: "creator" },
+  // Work & Career
+  { id: "job_alerts", label: "Job Alerts", description: "New job matches, application updates, and interview reminders", icon: Briefcase, defaultEnabled: true, group: "career" },
 ];
 
 const PREFS_KEY = "zivo_notification_prefs";
@@ -231,7 +222,7 @@ export default function NotificationSettings() {
     }
   }, [prefs]);
 
-  // Hash-anchor scrolling (e.g. /account/notifications#live)
+  // Hash-anchor scrolling (e.g. /account/notifications#wellness)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash?.replace("#", "");
@@ -245,7 +236,7 @@ export default function NotificationSettings() {
   // Group categories for sectioned rendering
   const groupedCategories = useMemo(() => {
     const map: Record<CategoryGroup, NotificationCategory[]> = {
-      account: [], social: [], commerce: [], live: [], wellness: [], creator: [],
+      account: [], social: [], commerce: [], wellness: [], career: [],
     };
     for (const cat of NOTIFICATION_CATEGORIES) map[cat.group].push(cat);
     return map;
