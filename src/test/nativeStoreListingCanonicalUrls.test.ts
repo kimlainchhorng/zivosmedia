@@ -8,6 +8,24 @@ const read = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("native store listing canonical URLs", () => {
+  it("keeps the installed Android identity aligned with the ZIVO app and Play listing", () => {
+    const androidStrings = read("android/app/src/main/res/values/strings.xml");
+    const capacitorConfig = read("capacitor.config.ts");
+    const playStore = read("android/store-listing/PLAY_STORE.md");
+
+    expect(androidStrings).toContain('<string name="app_name">ZIVO</string>');
+    expect(androidStrings).toContain(
+      '<string name="title_activity_main">ZIVO</string>',
+    );
+    expect(androidStrings).not.toMatch(
+      /<string name="(?:app_name|title_activity_main)">Zivo<\/string>/,
+    );
+    expect(capacitorConfig).toContain("appId: 'com.hizovo.app'");
+    expect(capacitorConfig).toContain("appName: 'ZIVO'");
+    expect(playStore).toContain("Package name: `com.hizovo.app`");
+    expect(playStore).toContain("ZIVO – Travel, Social & Shop");
+  });
+
   it("keeps iOS and Android store metadata on the canonical public domain and legal routes", () => {
     const appStore = read("ios/store-listing/APP_STORE.md");
     const playStore = read("android/store-listing/PLAY_STORE.md");
