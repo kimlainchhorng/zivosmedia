@@ -8,19 +8,21 @@ Package name: `com.hizovo.app`
 
 ---
 
-## 1. App Name  (max 30 characters)
+## 1. App Name (max 30 characters)
 
 ```
-ZIVO – Travel, Social & Shop
+ZIVO
 ```
 
-## 2. Short Description  (max 80 characters)
+Keep this exactly `ZIVO` so the public listing matches the installed Android app label and icon identity.
+
+## 2. Short Description (max 80 characters)
 
 ```
 Flights, hotels, reels, jobs, shop & chat — one free super-app for everything.
 ```
 
-## 3. Full Description  (max 4000 characters)
+## 3. Full Description (max 4000 characters)
 
 ```
 ZIVO is the free all-in-one super-app for travel, social, shopping, and work — built for everyone, everywhere.
@@ -71,7 +73,7 @@ Privacy:  https://zivosmedia.com/legal/privacy
 Terms:    https://zivosmedia.com/legal/terms
 ```
 
-## 4. What's New / Release Notes  (max 500 characters — UPDATE EVERY RELEASE)
+## 4. What's New / Release Notes (max 500 characters — UPDATE EVERY RELEASE)
 
 ```
 • Faster flight search and smoother feed
@@ -135,6 +137,7 @@ Tablet screenshots: optional but recommended for 7" and 10"
 ---
 
 ### How to publish
+
 1. Bump `versionCode` and `versionName` in `android/app/build.gradle`
 2. Run `npm run android:sync`
 3. Open Android Studio → **Build → Generate Signed App Bundle**

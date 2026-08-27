@@ -23,7 +23,8 @@ describe("native store listing canonical URLs", () => {
     expect(capacitorConfig).toContain("appId: 'com.hizovo.app'");
     expect(capacitorConfig).toContain("appName: 'ZIVO'");
     expect(playStore).toContain("Package name: `com.hizovo.app`");
-    expect(playStore).toContain("ZIVO – Travel, Social & Shop");
+    expect(playStore).toMatch(/## 1\. App Name[\s\S]*?```\nZIVO\n```/);
+    expect(playStore).not.toContain("ZIVO – Travel, Social & Shop");
   });
 
   it("keeps iOS and Android store metadata on the canonical public domain and legal routes", () => {
