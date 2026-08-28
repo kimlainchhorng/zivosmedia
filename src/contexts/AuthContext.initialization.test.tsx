@@ -5,10 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   authCallback: null as
     null | ((event: AuthChangeEvent, session: Session | null) => void),
+  clearNativeRestoreCredential: vi.fn(),
   clearSessionArtifacts: vi.fn(),
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
+  provisionNativeRestoreCredential: vi.fn(),
   rpc: vi.fn(),
+  signOut: vi.fn(),
+  tryRestoreNativeSession: vi.fn(),
   unsubscribe: vi.fn(),
 }));
 
@@ -19,12 +23,18 @@ vi.mock("@/integrations/supabase/client", () => ({
       onAuthStateChange: mocks.onAuthStateChange,
       signUp: vi.fn(),
       signInWithPassword: vi.fn(),
-      signOut: vi.fn(),
+      signOut: mocks.signOut,
       getUser: vi.fn(),
     },
     functions: { invoke: vi.fn() },
     rpc: mocks.rpc,
   },
+}));
+
+vi.mock("@/lib/nativeRestoreCredentials", () => ({
+  clearNativeRestoreCredential: mocks.clearNativeRestoreCredential,
+  provisionNativeRestoreCredential: mocks.provisionNativeRestoreCredential,
+  tryRestoreNativeSession: mocks.tryRestoreNativeSession,
 }));
 
 vi.mock("@/lib/security/sessionSecurity", () => ({
@@ -110,7 +120,11 @@ describe("AuthProvider startup recovery", () => {
       mocks.authCallback = callback;
       return { data: { subscription: { unsubscribe: mocks.unsubscribe } } };
     });
+    mocks.clearNativeRestoreCredential.mockResolvedValue(undefined);
+    mocks.provisionNativeRestoreCredential.mockResolvedValue(undefined);
     mocks.rpc.mockResolvedValue({ data: false, error: null });
+    mocks.signOut.mockResolvedValue({ error: null });
+    mocks.tryRestoreNativeSession.mockResolvedValue(null);
     consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
@@ -227,6 +241,50 @@ describe("AuthProvider startup recovery", () => {
     expect(screen.getByTestId("admin-error")).toHaveTextContent(
       "verify your access",
     );
+    expect(mocks.provisionNativeRestoreCredential).toHaveBeenCalledWith(
+      "user-1",
+    );
+  });
+
+  it("restores a missing persisted session through the native Android bridge", async () => {
+    const restoredSession = sessionFor("restored-user");
+    mocks.getSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: null,
+    });
+    mocks.tryRestoreNativeSession.mockResolvedValueOnce(restoredSession);
+
+    renderProvider();
+    await act(flushMicrotasks);
+
+    expect(mocks.tryRestoreNativeSession).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("user")).toHaveTextContent("restored-user");
+    expect(screen.getByTestId("session")).toHaveTextContent("restored-user");
+    expect(mocks.provisionNativeRestoreCredential).toHaveBeenCalledWith(
+      "restored-user",
+    );
+  });
+
+  it("clears the native restore key before explicit local sign-out", async () => {
+    mocks.getSession.mockResolvedValueOnce({
+      data: { session: sessionFor("sign-out-user") },
+      error: null,
+    });
+
+    renderProvider();
+    await act(flushMicrotasks);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+      await flushMicrotasks();
+    });
+
+    expect(mocks.clearNativeRestoreCredential).toHaveBeenCalledWith(
+      "sign-out-user",
+    );
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(
+      mocks.clearNativeRestoreCredential.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocks.signOut.mock.invocationCallOrder[0]);
   });
 
   it("uses an early INITIAL_SESSION event when storage restoration stalls", async () => {
