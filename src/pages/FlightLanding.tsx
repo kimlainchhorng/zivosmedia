@@ -1274,6 +1274,7 @@ function Animated3DBackground() {
 /* ─── Main Component ─── */
 const FlightLanding = () => {
   useFlightAppTrackingTransparencyPrompt(true);
+  const navigate = useNavigate();
   const { fromCity, toCity } = useParams();
   const flightInitial = useFlightDeepLinkInitial(fromCity, toCity);
   const flightResultsSearch = useFlightDeepLinkResultsSearch(flightInitial);
@@ -1302,6 +1303,8 @@ const FlightLanding = () => {
         />
         <AppLayout
           title="Flights"
+          showBack
+          onBack={() => navigate("/", { replace: true })}
           headerRightAction={undefined}
           showTravelFooter={isTravelHost}
           className={cn("zivo-travel-3d", isTravelHost && "zivo-travel-light")}
