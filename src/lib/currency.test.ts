@@ -241,4 +241,15 @@ describe("Stripe minor units", () => {
     expect(formatStripeAmount(50000, "VND")).not.toMatch(/^\$/);
     expect(formatStripeAmount(12000, "KHR")).not.toMatch(/^\$/);
   });
+
+  it("distinguishes the other dollar currencies from USD", () => {
+    // `currencyDisplay: "narrowSymbol"` collapses all of these to a bare "$"
+    // in en-US, which would silently print a US price on a foreign fare.
+    const usd = formatStripeAmount(12345, "USD");
+    for (const code of ["CAD", "SGD", "HKD", "AUD", "NZD"]) {
+      const out = formatStripeAmount(12345, code);
+      expect(out).not.toBe(usd);
+      expect(out).not.toMatch(/^\$/);
+    }
+  });
 });

@@ -254,16 +254,10 @@ export function formatStripeAmount(minorUnits: number, currencyCode: string): st
   const code = (currencyCode || "USD").toUpperCase();
   const value = fromStripeMinorUnits(minorUnits, code);
 
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: code,
-      currencyDisplay: "narrowSymbol",
-    }).format(value);
-  } catch {
-    // Unknown ISO code, or an engine without narrowSymbol support.
-  }
-
+  // Deliberately the default `currencyDisplay`, not "narrowSymbol": the narrow
+  // form renders CAD, SGD, HKD, AUD and NZD as a bare "$" in en-US, which is
+  // the ambiguity these helpers exist to remove. The default disambiguates
+  // them as CA$, SGD, HK$, A$, NZ$.
   try {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(value);
   } catch {
