@@ -9,9 +9,12 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const testState = vi.hoisted(() => ({
+  authorizeUrl: null as string | null,
   canEmbedRide: true,
   configuredRideUrl: "https://ride.zivo.test/" as string | null,
   currentUserId: "customer-a",
+  isNativeAuthorizationParent: false,
+  issueNativeRideAuthorization: vi.fn(),
   localRideCandidate: null as string | null,
   navigate: vi.fn(),
   location: {
@@ -26,6 +29,7 @@ const embedSessions = {
   "customer-a": "a".repeat(32),
   "customer-b": "b".repeat(32),
 } as const;
+const NATIVE_OAUTH_STATE = "native_oauth_state_".padEnd(32, "s");
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const original = await importOriginal<typeof import("react-router-dom")>();
@@ -49,11 +53,18 @@ vi.mock("@/lib/rideEmbedSession", () => ({
 
 vi.mock("@/lib/zivoRideProductionBoundary", () => ({
   canEmbedRideApp: () => testState.canEmbedRide,
-  getRideAuthorizeUrl: () => null,
+  getRideAuthorizeUrl: () =>
+    testState.authorizeUrl ? new URL(testState.authorizeUrl) : null,
   resolveLocalRideAppBaseUrl: () =>
     testState.localRideCandidate ? new URL(testState.localRideCandidate) : null,
   resolveRideAppBaseUrl: () =>
     testState.configuredRideUrl ? new URL(testState.configuredRideUrl) : null,
+}));
+
+vi.mock("@/lib/nativeRideAuthorization", () => ({
+  isNativeRideAuthorizationParent: () => testState.isNativeAuthorizationParent,
+  issueNativeRideAuthorization: (...args: unknown[]) =>
+    testState.issueNativeRideAuthorization(...args),
 }));
 
 import CanonicalRidePage from "./CanonicalRidePage";
@@ -61,9 +72,12 @@ import CanonicalRidePage from "./CanonicalRidePage";
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  testState.authorizeUrl = null;
   testState.canEmbedRide = true;
   testState.configuredRideUrl = "https://ride.zivo.test/";
   testState.currentUserId = "customer-a";
+  testState.isNativeAuthorizationParent = false;
+  testState.issueNativeRideAuthorization.mockReset();
   testState.localRideCandidate = null;
   testState.location = {
     pathname: "/rides/hub",
@@ -116,6 +130,58 @@ function postNavigationMessage(
       data: {
         type: "zivo-ride:navigate",
         path,
+      },
+      origin,
+      source,
+    }),
+  );
+}
+
+function postEmbedChallengeMessage(
+  source: MessageEventSource | null,
+  origin: string,
+  embedSession: unknown,
+  nonce: unknown,
+) {
+  fireEvent(
+    window,
+    new MessageEvent("message", {
+      data: {
+        type: "zivo-ride:embed-challenge",
+        embed_session: embedSession,
+        nonce,
+      },
+      origin,
+      source,
+    }),
+  );
+}
+
+function nativeAuthorizeUrl() {
+  const url = new URL("https://zivosmedia.com/auth/zivosmedia/authorize");
+  url.searchParams.set("app_key", "zivo_ride");
+  url.searchParams.set(
+    "redirect_uri",
+    "https://ride.zivo.test/auth/callback?source=zivosmedia",
+  );
+  url.searchParams.set("state", NATIVE_OAUTH_STATE);
+  url.searchParams.set("code_challenge", "c".repeat(43));
+  url.searchParams.set("code_challenge_method", "S256");
+  return url;
+}
+
+function postAuthorizeMessage(
+  source: MessageEventSource | null,
+  origin: string,
+  embedSession: unknown,
+) {
+  fireEvent(
+    window,
+    new MessageEvent("message", {
+      data: {
+        type: "zivo-ride:authorize",
+        url: testState.authorizeUrl,
+        embed_session: embedSession,
       },
       origin,
       source,
@@ -203,6 +269,310 @@ describe("CanonicalRidePage account isolation", () => {
 
     postNavigationMessage(frameWindow, rideOrigin);
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("confirms an exact trusted Ride embed challenge", () => {
+    render(<CanonicalRidePage />);
+    const frame = getRideFrame();
+    const frameWindow = frame.contentWindow;
+    const rideOrigin = new URL(frame.src).origin;
+    const nonce = "native_embed_nonce_".padEnd(32, "a");
+    const postMessageSpy = vi
+      .spyOn(frameWindow, "postMessage")
+      .mockImplementation(() => undefined);
+
+    postEmbedChallengeMessage(
+      frameWindow,
+      rideOrigin,
+      embedSessions["customer-a"],
+      nonce,
+    );
+
+    expect(postMessageSpy).toHaveBeenCalledOnce();
+    expect(postMessageSpy).toHaveBeenCalledWith(
+      {
+        type: "zivo-ride:embed-confirm",
+        embed_session: embedSessions["customer-a"],
+        nonce,
+      },
+      rideOrigin,
+    );
+  });
+
+  it("ignores Ride embed challenges with the wrong source, origin, session, or nonce", () => {
+    render(<CanonicalRidePage />);
+    const frame = getRideFrame();
+    const frameWindow = frame.contentWindow;
+    const rideOrigin = new URL(frame.src).origin;
+    const validNonce = "native_embed_nonce_".padEnd(32, "a");
+    const postMessageSpy = vi
+      .spyOn(frameWindow, "postMessage")
+      .mockImplementation(() => undefined);
+
+    postEmbedChallengeMessage(
+      null,
+      rideOrigin,
+      embedSessions["customer-a"],
+      validNonce,
+    );
+    postEmbedChallengeMessage(
+      frameWindow,
+      "https://attacker.example",
+      embedSessions["customer-a"],
+      validNonce,
+    );
+    postEmbedChallengeMessage(
+      frameWindow,
+      rideOrigin,
+      embedSessions["customer-b"],
+      validNonce,
+    );
+    postEmbedChallengeMessage(frameWindow, rideOrigin, undefined, validNonce);
+    postEmbedChallengeMessage(
+      frameWindow,
+      rideOrigin,
+      embedSessions["customer-a"],
+      "too-short",
+    );
+    postEmbedChallengeMessage(
+      frameWindow,
+      rideOrigin,
+      embedSessions["customer-a"],
+      "invalid+nonce".padEnd(32, "a"),
+    );
+    postEmbedChallengeMessage(
+      frameWindow,
+      rideOrigin,
+      embedSessions["customer-a"],
+      "a".repeat(129),
+    );
+
+    expect(postMessageSpy).not.toHaveBeenCalled();
+  });
+
+  it("relays a server-issued authorization result only to the exact native Ride frame", async () => {
+    const authorizeUrl = nativeAuthorizeUrl();
+    testState.authorizeUrl = authorizeUrl.toString();
+    testState.isNativeAuthorizationParent = true;
+    testState.issueNativeRideAuthorization.mockResolvedValue({
+      type: "zivo-ride:authorize-result",
+      ok: true,
+      code: "a".repeat(43),
+      state: NATIVE_OAUTH_STATE,
+      redirect_uri: "https://ride.zivo.test/auth/callback?source=zivosmedia",
+    });
+
+    render(<CanonicalRidePage />);
+    const frame = getRideFrame();
+    const frameWindow = frame.contentWindow;
+    const rideOrigin = new URL(frame.src).origin;
+    const postMessageSpy = vi
+      .spyOn(frameWindow, "postMessage")
+      .mockImplementation(() => undefined);
+
+    postAuthorizeMessage(frameWindow, rideOrigin, embedSessions["customer-a"]);
+
+    await waitFor(() => {
+      expect(testState.issueNativeRideAuthorization).toHaveBeenCalledWith(
+        expect.objectContaining({
+          search: authorizeUrl.search,
+        }),
+        rideOrigin,
+        "customer-a",
+        expect.any(AbortSignal),
+      );
+    });
+    await waitFor(() => {
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        {
+          type: "zivo-ride:authorize-result",
+          ok: true,
+          embed_session: embedSessions["customer-a"],
+          code: "a".repeat(43),
+          state: NATIVE_OAUTH_STATE,
+          redirect_uri:
+            "https://ride.zivo.test/auth/callback?source=zivosmedia",
+        },
+        rideOrigin,
+      );
+    });
+
+    postAuthorizeMessage(frameWindow, rideOrigin, embedSessions["customer-a"]);
+    await waitFor(() => {
+      expect(testState.issueNativeRideAuthorization).toHaveBeenCalledTimes(2);
+      expect(postMessageSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("rejects native authorization from the wrong source, origin, or embed session", async () => {
+    testState.authorizeUrl = nativeAuthorizeUrl().toString();
+    testState.isNativeAuthorizationParent = true;
+    testState.issueNativeRideAuthorization.mockResolvedValue({
+      type: "zivo-ride:authorize-result",
+      ok: false,
+      state: NATIVE_OAUTH_STATE,
+      error: "authorization_unavailable",
+    });
+
+    render(<CanonicalRidePage />);
+    const frame = getRideFrame();
+    const frameWindow = frame.contentWindow;
+    const rideOrigin = new URL(frame.src).origin;
+    const postMessageSpy = vi
+      .spyOn(frameWindow, "postMessage")
+      .mockImplementation(() => undefined);
+
+    postAuthorizeMessage(null, rideOrigin, embedSessions["customer-a"]);
+    postAuthorizeMessage(
+      frameWindow,
+      "https://attacker.example",
+      embedSessions["customer-a"],
+    );
+    postAuthorizeMessage(frameWindow, rideOrigin, embedSessions["customer-b"]);
+
+    expect(testState.issueNativeRideAuthorization).not.toHaveBeenCalled();
+
+    postAuthorizeMessage(frameWindow, rideOrigin, embedSessions["customer-a"]);
+    await waitFor(() => {
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        {
+          type: "zivo-ride:authorize-result",
+          ok: false,
+          embed_session: embedSessions["customer-a"],
+          state: NATIVE_OAUTH_STATE,
+          error: "authorization_unavailable",
+        },
+        rideOrigin,
+      );
+    });
+  });
+
+  it("allows only one native authorization request per frame generation", async () => {
+    testState.authorizeUrl = nativeAuthorizeUrl().toString();
+    testState.isNativeAuthorizationParent = true;
+    let resolveAuthorization:
+      | ((value: {
+          type: "zivo-ride:authorize-result";
+          ok: true;
+          code: string;
+          state: string;
+          redirect_uri: string;
+        }) => void)
+      | undefined;
+    testState.issueNativeRideAuthorization.mockReturnValue(
+      new Promise((resolve) => {
+        resolveAuthorization = resolve;
+      }),
+    );
+
+    render(<CanonicalRidePage />);
+    const frame = getRideFrame();
+    const frameWindow = frame.contentWindow;
+    const rideOrigin = new URL(frame.src).origin;
+
+    postAuthorizeMessage(frameWindow, rideOrigin, embedSessions["customer-a"]);
+    postAuthorizeMessage(frameWindow, rideOrigin, embedSessions["customer-a"]);
+
+    expect(testState.issueNativeRideAuthorization).toHaveBeenCalledOnce();
+    resolveAuthorization?.({
+      type: "zivo-ride:authorize-result",
+      ok: true,
+      code: "a".repeat(43),
+      state: NATIVE_OAUTH_STATE,
+      redirect_uri: "https://ride.zivo.test/auth/callback?source=zivosmedia",
+    });
+    await waitFor(() => {
+      expect(testState.issueNativeRideAuthorization).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("suppresses a late native authorization result after an account switch", async () => {
+    testState.authorizeUrl = nativeAuthorizeUrl().toString();
+    testState.isNativeAuthorizationParent = true;
+    let resolveAuthorization:
+      | ((value: {
+          type: "zivo-ride:authorize-result";
+          ok: true;
+          code: string;
+          state: string;
+          redirect_uri: string;
+        }) => void)
+      | undefined;
+    testState.issueNativeRideAuthorization.mockReturnValue(
+      new Promise((resolve) => {
+        resolveAuthorization = resolve;
+      }),
+    );
+
+    const { rerender } = render(<CanonicalRidePage />);
+    const frameA = getRideFrame();
+    const frameAWindow = frameA.contentWindow;
+    const rideOrigin = new URL(frameA.src).origin;
+    const oldFramePostMessage = vi
+      .spyOn(frameAWindow, "postMessage")
+      .mockImplementation(() => undefined);
+    postAuthorizeMessage(frameAWindow, rideOrigin, embedSessions["customer-a"]);
+
+    const requestSignal = testState.issueNativeRideAuthorization.mock
+      .calls[0]?.[3] as AbortSignal;
+    testState.currentUserId = "customer-b";
+    rerender(<CanonicalRidePage />);
+    expect(getRideFrame()).not.toBe(frameA);
+    expect(requestSignal.aborted).toBe(true);
+
+    resolveAuthorization?.({
+      type: "zivo-ride:authorize-result",
+      ok: true,
+      code: "a".repeat(43),
+      state: NATIVE_OAUTH_STATE,
+      redirect_uri: "https://ride.zivo.test/auth/callback?source=zivosmedia",
+    });
+    await act(async () => Promise.resolve());
+
+    expect(oldFramePostMessage).not.toHaveBeenCalled();
+  });
+
+  it("suppresses a late native authorization result after the frame becomes stale", async () => {
+    vi.useFakeTimers();
+    testState.authorizeUrl = nativeAuthorizeUrl().toString();
+    testState.isNativeAuthorizationParent = true;
+    let resolveAuthorization:
+      | ((value: {
+          type: "zivo-ride:authorize-result";
+          ok: true;
+          code: string;
+          state: string;
+          redirect_uri: string;
+        }) => void)
+      | undefined;
+    testState.issueNativeRideAuthorization.mockReturnValue(
+      new Promise((resolve) => {
+        resolveAuthorization = resolve;
+      }),
+    );
+
+    render(<CanonicalRidePage />);
+    const frame = getRideFrame();
+    const frameWindow = frame.contentWindow;
+    const rideOrigin = new URL(frame.src).origin;
+    const postMessageSpy = vi
+      .spyOn(frameWindow, "postMessage")
+      .mockImplementation(() => undefined);
+    postAuthorizeMessage(frameWindow, rideOrigin, embedSessions["customer-a"]);
+
+    act(() => vi.advanceTimersByTime(15_000));
+    expect(screen.queryByTitle("ZIVO Ride")).not.toBeInTheDocument();
+
+    resolveAuthorization?.({
+      type: "zivo-ride:authorize-result",
+      ok: true,
+      code: "a".repeat(43),
+      state: NATIVE_OAUTH_STATE,
+      redirect_uri: "https://ride.zivo.test/auth/callback?source=zivosmedia",
+    });
+    await act(async () => Promise.resolve());
+
+    expect(postMessageSpy).not.toHaveBeenCalled();
   });
 
   it("replaces a stalled Ride frame with retry and Home recovery", () => {
