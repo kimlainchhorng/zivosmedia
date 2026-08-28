@@ -101,6 +101,7 @@ describe("auth session security contracts", () => {
       "setMfaPending(null)",
       "getDeviceFingerprint()",
       "remove_trusted_device",
+      "clearNativeRestoreCredential(currentUser?.id)",
       'supabase.auth.signOut({ scope: "local" })',
       "setUser(null)",
       "setSession(null)",
