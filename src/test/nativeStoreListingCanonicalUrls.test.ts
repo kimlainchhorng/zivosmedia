@@ -66,4 +66,27 @@ describe("native store listing canonical URLs", () => {
       expect(app).toContain(route);
     }
   });
+
+  it("keeps the Android listing limited to device-verifiable product claims", () => {
+    const playStore = read("android/store-listing/PLAY_STORE.md");
+
+    expect(playStore).toContain(
+      "Social, messaging, and travel search in one ZIVO account.",
+    );
+    expect(playStore).toContain(
+      "Feature availability varies by location, provider, account, and internet connection.",
+    );
+
+    for (const unverifiedClaim of [
+      "500+ partners",
+      "Book rides and order food or groceries in seconds",
+      "AI trip planner creates your full itinerary instantly",
+      "Stripe payouts",
+      "Free HD voice and video calls",
+      "No booking fees on travel",
+      "offline-friendly",
+    ]) {
+      expect(playStore).not.toContain(unverifiedClaim);
+    }
+  });
 });
