@@ -66,7 +66,16 @@ for (const item of criticalFunctions) {
     new RegExp(`\\[functions\\.${item.slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\]\\s+verify_jwt = ${item.verifyJwt ? "true" : "false"}`),
     configPath,
   );
-  requireContains(id, fn, `withSecurity("${item.slug}"`, fnPath);
+  // Whitespace-tolerant: the wrapper is often written as
+  //   serve(withSecurity(
+  //     "slug",
+  // and a single-line substring check reported that as missing.
+  requireMatch(
+    id,
+    fn,
+    new RegExp(`withSecurity\\(\\s*"${item.slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
+    fnPath,
+  );
   requireContains(id, fn, 'allowedMethods: ["POST"]', fnPath);
   if (item.verifyJwt) requireUserAuth(id, fn, fnPath);
 }
