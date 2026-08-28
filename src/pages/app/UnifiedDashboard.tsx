@@ -39,9 +39,10 @@ const tripIconMap: Record<string, LucideIcon> = {
 
 function TripCard({ trip, index }: { trip: UnifiedTrip; index: number }) {
   const TripIcon = tripIconMap[trip.icon] || Plane;
-  return (
+  const detailPath = trip.detailPath;
+  const cardContent = (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }}>
-      <Card className="hover:shadow-lg transition-all duration-300 border-border/40 hover:border-primary/15 group">
+      <Card className={cn("transition-all duration-300 border-border/40", detailPath && "hover:shadow-lg hover:border-primary/15")}>
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -55,12 +56,18 @@ function TripCard({ trip, index }: { trip: UnifiedTrip; index: number }) {
                 <span className="text-[10px] text-muted-foreground font-medium">${trip.amount.toFixed(2)}</span>
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+            {detailPath && <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />}
           </div>
         </CardContent>
       </Card>
     </motion.div>
   );
+
+  return detailPath ? (
+    <Link to={detailPath} className="group block rounded-2xl transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      {cardContent}
+    </Link>
+  ) : cardContent;
 }
 
 export default function UnifiedDashboard() {
@@ -106,14 +113,6 @@ export default function UnifiedDashboard() {
       totalSpent: `$${(walletSummary?.totalSpent ?? 0).toFixed(0)}`,
     };
   }, [recentActivity, walletSummary]);
-
-  const safetyAlerts = [
-    { location: "Paris", level: "Low", type: "Protests planned Mar 8", color: "text-amber-500" },
-    { location: "Tokyo", level: "None", type: "All clear", color: "text-emerald-500" },
-    { location: "Cancún", level: "Low", type: "Weather advisory", color: "text-amber-500" },
-  ];
-
-  const carbonData = { totalCO2: "1.2 tons", offsetPct: 45, treesPlanted: 6, greenTrips: 12, rank: "Top 20%" };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -233,36 +232,36 @@ export default function UnifiedDashboard() {
           {/* Safety Alerts */}
           <button type="button" aria-expanded={showSafetyAlerts} onClick={() => setShowSafetyAlerts(!showSafetyAlerts)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Travel Safety Alerts
-            <ChevronRight className={cn("w-3 h-3 ml-auto transition-transform", showSafetyAlerts && "rotate-90")} />
+            <Badge variant="secondary" className="text-[8px] ml-auto">Unavailable</Badge>
+            <ChevronRight className={cn("w-3 h-3 transition-transform", showSafetyAlerts && "rotate-90")} />
           </button>
           {showSafetyAlerts && (
-            <div className="space-y-2">
-              {safetyAlerts.map(a => (
-                <div key={a.location} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/40">
-                  <div className="flex-1"><p className="text-xs font-bold text-foreground">{a.location}</p><p className="text-[10px] text-muted-foreground">{a.type}</p></div>
-                  <span className={cn("text-xs font-bold", a.color)}>{a.level}</span>
-                </div>
-              ))}
+            <div role="status" className="flex items-start gap-3 rounded-xl bg-amber-500/5 border border-amber-500/20 p-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">Live safety alerts unavailable</p>
+                <p className="text-[10px] leading-relaxed text-muted-foreground mt-1">ZIVO is not connected to a verified travel-advisory provider yet. Check official local authorities before you travel.</p>
+              </div>
             </div>
           )}
 
           {/* Carbon Tracker */}
           <button type="button" aria-expanded={showCarbonTracker} onClick={() => setShowCarbonTracker(!showCarbonTracker)} className="w-full flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-all touch-manipulation rounded-lg active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Leaf className="w-3.5 h-3.5 text-emerald-500" /> Carbon Footprint
-            <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[8px] ml-auto">{carbonData.rank}</Badge>
+            <Badge variant="secondary" className="text-[8px] ml-auto">Unavailable</Badge>
             <ChevronRight className={cn("w-3 h-3 transition-transform", showCarbonTracker && "rotate-90")} />
           </button>
           {showCarbonTracker && (
-            <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4">
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="text-center"><p className="text-sm font-bold text-emerald-500">{carbonData.totalCO2}</p><p className="text-[9px] text-muted-foreground">Total CO2</p></div>
-                <div className="text-center"><p className="text-sm font-bold text-foreground">{carbonData.offsetPct}%</p><p className="text-[9px] text-muted-foreground">Offset</p></div>
-                <div className="text-center"><p className="text-sm font-bold text-emerald-500">{carbonData.treesPlanted}</p><p className="text-[9px] text-muted-foreground">Trees</p></div>
+            <div role="status" className="flex items-start gap-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <Leaf className="w-4 h-4 text-emerald-500" />
               </div>
-              <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${carbonData.offsetPct}%` }} transition={{ duration: 1.2 }} className="h-full rounded-full bg-emerald-500" />
+              <div>
+                <p className="text-xs font-bold text-foreground">Carbon estimate unavailable</p>
+                <p className="text-[10px] leading-relaxed text-muted-foreground mt-1">ZIVO needs verified trip distance and transport data before it can calculate your footprint.</p>
               </div>
-              <p className="text-[10px] text-muted-foreground text-center mt-2">🌳 {carbonData.greenTrips} green trips this year</p>
             </div>
           )}
         </div>
