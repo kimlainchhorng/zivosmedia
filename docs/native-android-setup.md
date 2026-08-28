@@ -86,6 +86,62 @@ prove the release pipeline ran; Google Play Console Bundle Explorer remains
 authoritative for the exact optimization percentages Google calculates after
 upload.
 
+## Android zero-tap account restoration foundation
+
+The Android shell includes a disabled-by-default Credential Manager Restore
+Credentials bridge. It uses Supabase Auth's two-step passkey challenge and
+verification APIs, creates a system-managed restore key after a successful
+sign-in, attempts zero-tap restoration on first launch, and removes the native
+and server key before explicit sign-out. Restore-key challenges and responses
+are never persisted by the app. Existing password, OTP, OAuth, MFA, and saved
+account flows remain the fallback.
+
+Run the source and release contract guard with:
+
+```bash
+npm run android:restore-credentials:test
+npm run android:restore-credentials:check
+```
+
+The release build runs the check automatically. The source foundation is not
+production activation and does not by itself prove Google Play compliance.
+Keep the feature flag absent or false until all setup and QA below are done.
+
+Before activation, configure Passkeys in the main Supabase Auth project with
+the owner-approved relying-party values:
+
+```text
+Relying-party ID: zivosmedia.com
+Web origin: https://zivosmedia.com
+Play Android origin: android:apk-key-hash:6kWZHpGKnzD57sKZGn9yZg6sSWgYS3QWqMQMHgDu-lI
+Upload/local Android origin: android:apk-key-hash:LLQQEib7T8lVhDnkgnTuPAwZVaH7h35Gs-1uhAuL2X4
+```
+
+The Play origin is derived from the verified `com.hizovo.app` package key shown
+in Google Play Console's Android developer-verification record on 2026-08-27.
+The upload/local origin is derived from the certificate that signs the local
+release AAB. Supabase and `public/.well-known/assetlinks.json` must allow both
+origins so Play-distributed builds and directly installed release-test builds
+can complete the server-side WebAuthn ceremony. The asset-links file includes
+both certificates and `delegate_permission/common.get_login_creds`, but the
+relation is not live until the website is deployed separately. Reconfirm the
+Play key before activation if Google changes the package's registered key.
+
+After the Supabase relying-party configuration and deployed Digital Asset
+Links file are verified, enable the native build explicitly:
+
+```text
+VITE_ANDROID_RESTORE_CREDENTIALS_ENABLED=true
+```
+
+Then complete Android's two-device transfer and cloud-backup restore test on
+Android 9 or newer with current Google Play services. Verify successful restore
+for password, OTP, and OAuth-created accounts; no restore after local sign-out;
+all ZIVO-labeled restore keys removed after global sign-out; ordinary login
+fallback when no restore key exists; and local-only fallback when end-to-end
+encrypted cloud backup is unavailable. The current `android:allowBackup=false`
+setting continues to exclude app data and does not disable Restore Credentials.
+
 For a Google Play-ready signed release, add the real upload key outside Git:
 
 ```text
