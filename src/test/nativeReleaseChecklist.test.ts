@@ -25,6 +25,7 @@ describe("native release checklist", () => {
       "npm run android:build:debug",
       "npm run android:build:release",
       "npm run android:optimization:check",
+      "npm run android:installability:check",
       "npm run android:policy-pages:check",
       "npm run android:upload:play:draft",
       "npm run native:store-signing:preflight",
