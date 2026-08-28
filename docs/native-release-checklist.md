@@ -12,6 +12,7 @@ npm run native:doctor
 npm run native:doctor -- --android-only
 npm run android:icons:check
 npm run android:optimization:test
+npm run android:installability:test
 npm run native:release-secrets:guide
 npm run native:push-secrets:preflight
 npm run native:store-signing:preflight
@@ -139,6 +140,22 @@ deobfuscation mapping and R8 metadata are embedded in the AAB. The Play draft
 helper repeats it before opening Play Console. Google Play Console Bundle
 Explorer remains authoritative for the exact optimization percentages reported
 after upload; a local green check does not claim Google's percentage result.
+
+The supported release command runs Gradle's `bundleRelease` and
+`packageReleaseUniversalApk` tasks together so the final Play bundle and its
+installable universal APK come from the same synchronized payload, then runs:
+
+```bash
+npm run android:installability:check
+```
+
+This guard verifies the APK archive and signature, exact package/version/SDK/app
+label/launch activity, required Capacitor payload files, arm64 coverage when
+native code is present, and matching web entrypoints in the current built web
+app, AAB, and APK. The Play draft helper repeats this check and refuses a stale
+or mismatched artifact.
+This is artifact-level evidence only: install and launch the exact release from
+a Play test track on a real supported Android device before submitting it.
 
 Verify the exact public pages declared to Google Play are live and visibly complete:
 
