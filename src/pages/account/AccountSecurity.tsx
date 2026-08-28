@@ -51,6 +51,7 @@ import { formatDistanceToNow } from "date-fns";
 import LoginHistorySection from "@/components/auth/LoginHistorySection";
 import DeleteAccountFlow from "@/components/account/DeleteAccountFlow";
 import PendingDeletionBanner from "@/components/account/PendingDeletionBanner";
+import { clearNativeRestoreCredential } from "@/lib/nativeRestoreCredentials";
 
 // Client-side throttle: prevent rapid password change attempts (anti-brute-force)
 const PWD_CHANGE_THROTTLE_KEY = "zivo_pwd_change_attempts";
@@ -280,6 +281,7 @@ export default function AccountSecurity() {
     setIsLoggingOutAll(true);
     try {
       // Sign out from all sessions
+      await clearNativeRestoreCredential(user?.id, { allDevices: true });
       await supabase.auth.signOut({ scope: 'global' });
       toast.success("Logged out of all devices");
       // Redirect to login
