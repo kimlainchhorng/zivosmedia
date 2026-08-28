@@ -722,6 +722,7 @@ const FlightTravelerInfo = () => {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Back to flight selection"
                   onClick={() => navigate(-1)}
                   className="shrink-0 w-9 h-9 rounded-xl"
                   style={{
@@ -755,6 +756,7 @@ const FlightTravelerInfo = () => {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Back to flight selection"
               onClick={() => navigate(-1)}
               className="shrink-0 rounded-xl"
               style={{

@@ -128,6 +128,7 @@ export default function FlightTracker({
             <Button 
               variant="ghost" 
               size="icon" 
+              aria-label="Refresh flight status"
               className="h-8 w-8"
               onClick={refresh}
               disabled={isLoading}
@@ -138,6 +139,7 @@ export default function FlightTracker({
             <Button 
               variant="ghost" 
               size="icon" 
+              aria-label={notificationsEnabled ? "Turn off flight status alerts" : "Turn on flight status alerts"}
               className="h-8 w-8"
               onClick={handleNotificationToggle}
             >

@@ -102,14 +102,14 @@ export default function ImportCartPage() {
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-[13px] font-bold text-primary">${(it.price_cents / 100).toFixed(2)}</span>
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(it.productId, it.qty - 1, it.variant)}>
+                      <Button size="icon" variant="outline" className="h-7 w-7" aria-label={`Decrease quantity of ${it.title}`} onClick={() => updateQty(it.productId, it.qty - 1, it.variant)}>
                         <Minus className="h-3 w-3" />
                       </Button>
                       <span className="text-[12px] font-bold w-6 text-center">{it.qty}</span>
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(it.productId, it.qty + 1, it.variant)}>
+                      <Button size="icon" variant="outline" className="h-7 w-7" aria-label={`Increase quantity of ${it.title}`} onClick={() => updateQty(it.productId, it.qty + 1, it.variant)}>
                         <Plus className="h-3 w-3" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeItem(it.productId, it.variant)}>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label={`Remove ${it.title} from cart`} onClick={() => removeItem(it.productId, it.variant)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
