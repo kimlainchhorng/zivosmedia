@@ -220,6 +220,9 @@ const sharedClientOptions = {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    experimental: {
+      passkey: true,
+    },
   },
   global: {
     // Keep TCP connection alive across requests to avoid cold-start latency
