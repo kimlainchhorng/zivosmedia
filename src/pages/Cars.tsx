@@ -7,6 +7,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { withRedirectParam } from "@/lib/authRedirect";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
+import NativeBackButton from "@/components/shared/NativeBackButton";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
@@ -283,6 +284,7 @@ export default function Cars() {
         description={`Search current approved owner-listed cars by city, vehicle type, and price on ${seoBrand}. Pickup and return date availability is confirmed before booking.`}
       />
       <Header />
+      <NativeBackButton />
 
       <MaybePageTransition enabled={isTravelHost}>
         <main className={cn("pt-20 pb-16", isTravelHost && "relative overflow-hidden pb-24 pt-28 sm:pt-32 lg:pt-24")}>
