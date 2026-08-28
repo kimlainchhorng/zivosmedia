@@ -8,6 +8,11 @@ import { getMfaChallenge, verifyMfaChallenge, type MfaState } from "@/lib/securi
 import { clearSignedUrlCache } from "@/lib/security/signedMedia";
 import { perfMeasure, perfNow } from "@/lib/perfTrace";
 import { clearPendingSignup, savePendingSignup } from "@/lib/auth/pendingSignup";
+import {
+  clearNativeRestoreCredential,
+  provisionNativeRestoreCredential,
+  tryRestoreNativeSession,
+} from "@/lib/nativeRestoreCredentials";
 
 type AuthContextType = {
   user: User | null;
@@ -330,6 +335,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (checkedAdminForRef.current !== nextSession.user.id) {
             deferAuthWork(() => resolveAdminRole(nextSession.user.id, revision));
           }
+          if (event === "SIGNED_IN") {
+            const signedInUserId = nextSession.user.id;
+            deferAuthWork(() => {
+              if (
+                explicitSignOutRef.current ||
+                currentUserIdRef.current !== signedInUserId
+              ) {
+                return;
+              }
+              return provisionNativeRestoreCredential(signedInUserId, {
+                afterInteractiveSignIn: true,
+              });
+            });
+          }
         } else {
           clearSessionArtifacts();
         }
@@ -354,6 +373,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (restoredSession?.user && initializationError === null) {
         void resolveAdminRole(restoredSession.user.id, revision);
+        void provisionNativeRestoreCredential(restoredSession.user.id);
       } else if (initializationError) {
         setIsAdminLoading(false);
       }
@@ -385,6 +405,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("[Auth] Session initialization failed:", error);
         finishInitialization(null, AUTH_INITIALIZATION_ERROR_MESSAGE);
         return;
+      }
+
+      if (
+        !restoredSession?.user &&
+        !explicitSignOutRef.current &&
+        !pendingStartupEvent?.wasExplicitSignOut &&
+        pendingStartupEvent?.event !== "SIGNED_OUT"
+      ) {
+        const nativeSession = await tryRestoreNativeSession();
+        if (!active) return;
+        if (nativeSession?.user) restoredSession = nativeSession;
       }
 
       if (pendingStartupEvent?.event === "SIGNED_OUT") {
@@ -550,6 +581,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               8_000,
             );
             if (isDriver) {
+              await clearNativeRestoreCredential(signedInUser.id);
               await supabase.auth.signOut();
               return { error: new Error("DRIVER_ACCOUNT") };
             }
@@ -623,6 +655,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // The "Remove this account" button on the picker still does a full wipe
     // (clears the saved-account entry entirely from localStorage), which is
     // the right place for an explicit "forget me on this device" action.
+    await clearNativeRestoreCredential(currentUser?.id);
     await supabase.auth.signOut({ scope: "local" });
     setUser(null);
     setSession(null);
