@@ -22,9 +22,11 @@ describe("native submission commands", () => {
       '"android:icons:generate": "node scripts/generate-launcher-icons.mjs"',
       '"android:icons:check": "node scripts/native/check-android-launcher-identity.mjs"',
       '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"',
-      '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease && npm run android:optimization:check"',
+      '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease packageReleaseUniversalApk && npm run android:optimization:check && npm run android:installability:check && npm run android:restore-credentials:check"',
       '"android:optimization:check": "node scripts/native/check-android-release-optimization.mjs"',
       '"android:optimization:test": "node --test scripts/native/check-android-release-optimization.test.mjs"',
+      '"android:installability:check": "node scripts/native/check-android-installability.mjs"',
+      '"android:installability:test": "node --test scripts/native/check-android-installability.test.mjs"',
       '"android:policy-pages:check": "node scripts/native/check-play-public-policy-pages.mjs"',
       '"android:policy-pages:test": "node --test scripts/native/check-play-public-policy-pages.test.mjs"',
       '"android:upload:play:draft": "node scripts/upload-to-play.mjs"',
@@ -45,6 +47,7 @@ describe("native submission commands", () => {
     expect(playStore).toContain("npm run android:icons:generate");
     expect(playStore).toContain("npm run android:icons:check");
     expect(playStore).toContain("npm run android:optimization:check");
+    expect(playStore).toContain("npm run android:installability:check");
     expect(playStore).toContain("npm run android:policy-pages:check");
     expect(playStore).toContain("Generate Signed App Bundle");
     expect(playStore).toContain("Play Console");
@@ -110,5 +113,24 @@ describe("native submission commands", () => {
     expect(uploadHelper).toContain(
       "checkAndroidReleaseOptimization({ rootDir: root });",
     );
+  });
+
+  it("fails Play draft uploads closed without a matching installable artifact", () => {
+    const uploadHelper = read("scripts/upload-to-play.mjs");
+    const installabilityCheck = read(
+      "scripts/native/check-android-installability.mjs",
+    );
+
+    expect(uploadHelper).toContain(
+      'import { checkAndroidInstallability } from "./native/check-android-installability.mjs"',
+    );
+    expect(uploadHelper).toContain(
+      "checkAndroidInstallability({ rootDir: root });",
+    );
+    expect(installabilityCheck).toContain("packageReleaseUniversalApk");
+    expect(installabilityCheck).toContain("app-release-universal.apk");
+    expect(installabilityCheck).toContain("com.hizovo.app.MainActivity");
+    expect(installabilityCheck).toContain("apksigner");
+    expect(installabilityCheck).toContain("No device was changed");
   });
 });
