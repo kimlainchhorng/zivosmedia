@@ -46,6 +46,7 @@ import { BUS_AMENITIES, type BusVehicleAmenity } from "@/config/busVehicleTypes"
 import BusInlinePaymentForm from "@/components/bus/BusInlinePaymentForm";
 import KHQRPaymentModal from "@/components/shop/KHQRPaymentModal";
 import { PageTransition } from "@/components/zivo-travel/PageTransition";
+import { formatBusTravelDate } from "@/lib/busTravelDate";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -366,7 +367,7 @@ const SearchHero = ({
 
 export default function BusBookingPage() {
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const reduce = useReducedMotion();
@@ -798,20 +799,27 @@ export default function BusBookingPage() {
 
                     {/* Date + Passengers */}
                     <div className="grid grid-cols-2 gap-3">
-                      <label className={cn("flex cursor-pointer items-center gap-3 rounded-2xl px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] sm:px-5", softCardClass)}>
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <label className={cn("relative flex cursor-pointer items-center gap-3 rounded-2xl px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-shadow focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background sm:px-5", softCardClass)}>
+                        <span className="pointer-events-none flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                           <Calendar className="h-4 w-4 text-primary" aria-hidden />
                         </span>
-                        <span className="min-w-0 flex-1">
+                        <span className="pointer-events-none min-w-0 flex-1">
                           <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">{t("bus.date")}</span>
-                          <input
-                            type="date"
-                            value={date}
-                            min={todayISO()}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="mt-0.5 w-full bg-transparent text-sm font-bold text-foreground outline-none sm:text-[15px]"
-                          />
+                          <span
+                            data-testid="bus-date-display"
+                            className="mt-0.5 block truncate text-base font-black text-foreground sm:text-[15px]"
+                          >
+                            {formatBusTravelDate(date, locale)}
+                          </span>
                         </span>
+                        <input
+                          type="date"
+                          aria-label={t("bus.date")}
+                          value={date}
+                          min={todayISO()}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                        />
                       </label>
 
                       <div className={cn("flex items-center gap-3 rounded-2xl px-4 py-3.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] sm:px-5", softCardClass)}>
