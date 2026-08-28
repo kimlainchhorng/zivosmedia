@@ -6,6 +6,7 @@ import { createClient } from "../_shared/deps.ts";
 import Stripe from "../_shared/stripe.ts";
 import { rateLimitDb, rateLimitHeaders } from "../_shared/rateLimiter.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
+import { isValidCurrencyCode, normalizeCurrencyCode, toStripeMinorUnits } from "../_shared/stripeMoney.ts";
 
 interface CheckoutRequest {
   userId: string;
@@ -150,8 +151,18 @@ Deno.serve(withSecurity("create-flight-payment-intent", async (req, ctx) => {
 
     console.log("[FlightPI] Validation passed,", passengers.length, "passengers");
 
+    // `currency` arrives in the request body. It decides what Stripe actually
+    // charges, so it is never trusted as-is: the amount is verified against
+    // Duffel but the currency was not, which let a caller pair a real USD fare
+    // with a weak currency code and settle a $500 ticket for pocket change.
+    const requestedCurrency = normalizeCurrencyCode(currency);
+    if (!isValidCurrencyCode(requestedCurrency)) {
+      throw new Error("Unsupported payment currency.");
+    }
+
     // Verify offer in LIVE mode
     const DUFFEL_API_KEY = Deno.env.get("DUFFEL_API_KEY");
+    let verifiedOfferCurrency: string | null = null;
     if (DUFFEL_API_KEY && isLiveMode) {
       try {
         const offerRes = await fetch(`https://api.duffel.com/air/offers/${offerId}`, {
@@ -173,12 +184,42 @@ Deno.serve(withSecurity("create-flight-payment-intent", async (req, ctx) => {
         if (new Date(offerData.data.expires_at) < new Date()) {
           throw new Error("This offer has expired. Please search again.");
         }
+        // Captured outside the catch below: a currency mismatch is a hard
+        // failure, not a best-effort warning.
+        verifiedOfferCurrency = normalizeCurrencyCode(offerData.data.total_currency ?? "");
       } catch (e) {
         if (e instanceof Error && (e.message.includes("no longer") || e.message.includes("changed") || e.message.includes("expired"))) {
           throw e;
         }
         console.warn("[FlightPI] Offer verify error (continuing):", e);
       }
+    }
+
+    // The airline's own currency wins when we could read the offer. When we
+    // could not (sandbox, or Duffel unreachable), fall back to an explicit
+    // allowlist so an arbitrary code can never reach Stripe.
+    const allowedCurrencies = new Set(
+      (Deno.env.get("FLIGHT_PAYMENT_CURRENCIES") ?? "USD")
+        .split(",")
+        .map((c) => normalizeCurrencyCode(c))
+        .filter((c) => isValidCurrencyCode(c)),
+    );
+
+    let paymentCurrency: string;
+    if (verifiedOfferCurrency && isValidCurrencyCode(verifiedOfferCurrency)) {
+      if (verifiedOfferCurrency !== requestedCurrency) {
+        console.error(
+          `[FlightPI] Currency mismatch: requested ${requestedCurrency}, offer ${verifiedOfferCurrency}`,
+        );
+        throw new Error("This fare is no longer available. Please search again.");
+      }
+      paymentCurrency = verifiedOfferCurrency;
+    } else {
+      if (!allowedCurrencies.has(requestedCurrency)) {
+        console.error(`[FlightPI] Unverified currency rejected: ${requestedCurrency}`);
+        throw new Error("Unsupported payment currency.");
+      }
+      paymentCurrency = requestedCurrency;
     }
 
     // Get user email
@@ -207,7 +248,7 @@ Deno.serve(withSecurity("create-flight-payment-intent", async (req, ctx) => {
         total_amount: totalBookingAmount,
         base_fare: totalBaseFare,
         taxes_fees: totalTaxesFees,
-        currency: currency.toUpperCase(),
+        currency: paymentCurrency,
         offer_id: offerId,
         payment_status: "pending",
         ticketing_status: "pending",
@@ -254,7 +295,9 @@ Deno.serve(withSecurity("create-flight-payment-intent", async (req, ctx) => {
     // Create Stripe PaymentIntent
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    const totalCents = Math.round(totalAmount * passengers.length * 100);
+    // Zero-decimal currencies (JPY, KRW, VND, KHR...) take the amount unscaled.
+    // A blanket *100 here charged those customers 100x the fare.
+    const totalCents = toStripeMinorUnits(totalAmount * passengers.length, paymentCurrency);
 
     let customerId: string | undefined;
     if (userEmail) {
@@ -272,7 +315,7 @@ Deno.serve(withSecurity("create-flight-payment-intent", async (req, ctx) => {
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalCents,
-      currency: currency.toLowerCase(),
+      currency: paymentCurrency.toLowerCase(),
       capture_method: "manual",
       customer: customerId,
       metadata: {
