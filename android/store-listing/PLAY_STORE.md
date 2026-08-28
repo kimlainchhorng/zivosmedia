@@ -19,50 +19,35 @@ Keep this exactly `ZIVO` so the public listing matches the installed Android app
 ## 2. Short Description (max 80 characters)
 
 ```
-Flights, hotels, reels, jobs, shop & chat — one free super-app for everything.
+Social, messaging, and travel search in one ZIVO account.
 ```
 
 ## 3. Full Description (max 4000 characters)
 
 ```
-ZIVO is the free all-in-one super-app for travel, social, shopping, and work — built for everyone, everywhere.
+ZIVO brings social discovery, messaging, and travel search into one app.
 
-✈️ TRAVEL & DELIVERY
-• Search and compare flights, hotels, and car rentals from 500+ partners
-• Book rides and order food or groceries in seconds
-• AI trip planner creates your full itinerary instantly
+SOCIAL
+• Browse posts and short videos
+• Follow accounts and manage your profile
+• Create and share supported content after signing in
 
-📱 SOCIAL & CREATORS
-• Share short videos, reels, and stories
-• Follow your favorite creators and subscribe for exclusive content
-• Watch live streams, join audio spaces, react in real time
+MESSAGING
+• Start and manage conversations
+• Share supported photos, videos, files, and voice messages
+• Manage chat notification and privacy settings
 
-🛒 SHOP & SELL
-• Open an online shop in minutes — no monthly fees
-• Built-in POS, order management, and Stripe payouts
-• Sell to buyers worldwide
+TRAVEL
+• Search flights, hotels, car rentals, and bus options
+• Review available prices, schedules, and provider details before continuing
+• View and manage supported trips from your account
 
-💼 JOBS & HIRING
-• Find and apply to jobs with one tap
-• Businesses post unlimited listings and review applicants
-• Side hustles to full-time — all in one feed
+ACCOUNT & PRIVACY
+• Manage sign-in, profile, and security settings
+• Request account deletion in the app or on the ZIVO website
+• Access ZIVO's privacy, terms, and support resources
 
-💬 CHAT, CALLS & CHANNELS
-• Messaging with photos, voice notes, and reactions
-• Free HD voice and video calls
-• Group chats, public channels, and audio rooms
-
-🌍 LANGUAGES
-• English, Khmer, Arabic, French
-• Sign in with Google
-
-Why ZIVO?
-• One app instead of ten — travel, social, shop, jobs, chat
-• No booking fees on travel
-• Free to join, post, sell, and chat
-• Lightweight, fast, and offline-friendly
-
-Download ZIVO and run your whole day in one app.
+Feature availability varies by location, provider, account, and internet connection. Prices and inventory appear only when returned by the relevant travel provider. ZIVO does not guarantee that every service is available to every user.
 
 —
 ZIVO LLC is a registered booking agent. Airlines, hotels, and car suppliers are the merchants of record for their inventory. Some premium features and creator subscriptions may have a price.
@@ -76,13 +61,17 @@ Terms:    https://zivosmedia.com/legal/terms
 ## 4. What's New / Release Notes (max 500 characters — UPDATE EVERY RELEASE)
 
 ```
-• Faster flight search and smoother feed
-• New AI trip planner — get a full itinerary instantly
-• HD video call quality improvements
-• Bug fixes and stability updates
+• Improved Android startup reliability
+• Aligned the installed app name and icon with the Play listing
+• Updated account privacy and deletion guidance
+• Performance and stability improvements
 
 Feedback? support@zivosmedia.com
 ```
+
+Keep the listing conservative. Do not add a feature, price, partner-count,
+availability, or "free" claim until that exact behavior has been verified in the
+Play-track build on a supported Android device.
 
 ## 5. Categorization
 
@@ -143,6 +132,20 @@ the supported release command rebuilds and syncs again before packaging.
 If Android Studio's **Build → Generate Signed App Bundle** flow is used, rerun
 the optimization check against that newly generated bundle before upload.
 
+Verify that the same release bundle can produce a structurally valid, signed
+universal APK:
+
+```bash
+npm run android:installability:check
+```
+
+The supported release command runs Gradle's `bundleRelease` and
+`packageReleaseUniversalApk` tasks together. The check locks the package,
+version, SDK, `ZIVO` label, launch activity, signature, archive contents, native
+arm64 coverage, and current built web/AAB/APK payload parity. It does not
+install anything. Before submission, install and launch this exact release
+through a Play test track on a real supported Android device.
+
 ## 9. Release Metadata
 
 ```
@@ -163,12 +166,21 @@ Tablet screenshots: optional but recommended for 7" and 10"
 
 `android/store-listing/icon-512.png` is the canonical ZIVO artwork. Google Play applies the
 final icon mask and drop shadow, so do not add a platform mask or shadow to an upload copy.
+`android/store-listing/feature-graphic.jpg` is the canonical ZIVO feature graphic. It uses the
+same icon and wordmark without product, price, availability, or partner-count claims; replace it
+only with another 1024 × 500 asset that preserves that truthful installed/listing identity.
 After replacing the canonical icon, regenerate and verify every installed Android launcher:
 
 ```bash
 npm run android:icons:generate
 npm run android:icons:check
 ```
+
+Capture the 2–8 phone screenshots from the exact signed Play-track Android build on a supported
+Android device. Do not relabel iOS Simulator or browser screenshots as Android evidence.
+Place approved captures in `android/store-listing/phone-screenshots/` using the checklist in that
+folder. The screenshot contract treats an empty folder as truthfully pending and rejects a partial
+one-image package or invalid portrait dimensions.
 
 ---
 
@@ -178,7 +190,8 @@ npm run android:icons:check
 2. Run `npm run android:icons:check` so the installed launcher matches the listing icon
 3. Bump `versionCode` and `versionName` in `android/app/build.gradle`
 4. Run `npm run android:build:release` to sync, build, and verify R8/resource shrinking
-5. Run `npm run android:optimization:check` again after any Android Studio rebuild
-6. Play Console → Production → **Create new release** → upload `.aab`
-7. Confirm the uploaded bundle's optimization results in Bundle Explorer
-8. Paste fields above into matching boxes → Save → Review → Roll out
+5. Run `npm run android:installability:check` and install/launch the exact release from a Play test track on a real supported device
+6. Run `npm run android:optimization:check` again after any Android Studio rebuild
+7. Play Console → Production → **Create new release** → upload `.aab`
+8. Confirm the uploaded bundle's optimization results in Bundle Explorer
+9. Paste fields above into matching boxes → Save → Review → Roll out
