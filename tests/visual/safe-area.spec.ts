@@ -34,6 +34,8 @@ const VIEWPORTS = [
   { name: "iphone-14-pro-max", ...devices["iPhone 14 Pro Max"] },
 ];
 
+const SNAPSHOT_PLATFORM = process.platform;
+
 type RouteCfg = {
   name: string;
   path: string;
@@ -57,6 +59,10 @@ const ROUTES: RouteCfg[] = [
 
 const TOP_CLIP_HEIGHT = 120;
 const BOTTOM_CLIP_HEIGHT = 140;
+
+function safeAreaSnapshotName(viewportName: string, routeName: string, edge: "top" | "bottom") {
+  return `${viewportName}-${routeName}-${edge}-${SNAPSHOT_PLATFORM}.png`;
+}
 
 async function seedConsent(page: import("@playwright/test").Page) {
   await page.addInitScript(() => {
@@ -98,7 +104,7 @@ for (const vp of VIEWPORTS) {
         const buf = await page.screenshot({
           clip: { x: 0, y: 0, width: vp.viewport.width, height: TOP_CLIP_HEIGHT },
         });
-        expect(buf).toMatchSnapshot(`${vp.name}-${route.name}-top.png`, {
+        expect(buf).toMatchSnapshot(safeAreaSnapshotName(vp.name, route.name, "top"), {
           maxDiffPixelRatio: 0.001,
         });
       });
@@ -117,7 +123,7 @@ for (const vp of VIEWPORTS) {
             height: BOTTOM_CLIP_HEIGHT,
           },
         });
-        expect(buf).toMatchSnapshot(`${vp.name}-${route.name}-bottom.png`, {
+        expect(buf).toMatchSnapshot(safeAreaSnapshotName(vp.name, route.name, "bottom"), {
           maxDiffPixelRatio: 0.001,
         });
       });
