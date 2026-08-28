@@ -57,26 +57,33 @@ describe("safe-area visual baseline contracts", () => {
     const matrix = source("scripts/qa/platform-readiness-matrix.mjs");
     const baselineDir = "tests/visual/__screenshots__/safe-area.spec.ts";
 
-    for (const fileName of [
-      "iphone-se-home-top.png",
-      "iphone-se-home-bottom.png",
-      "iphone-se-account-top.png",
-      "iphone-se-account-bottom.png",
-      "iphone-13-home-top.png",
-      "iphone-13-home-bottom.png",
-      "iphone-13-account-top.png",
-      "iphone-13-account-bottom.png",
-      "iphone-14-pro-max-home-top.png",
-      "iphone-14-pro-max-home-bottom.png",
-      "iphone-14-pro-max-account-top.png",
-      "iphone-14-pro-max-account-bottom.png",
-    ]) {
+    const baselineVariants = [
+      "iphone-se-home-top",
+      "iphone-se-home-bottom",
+      "iphone-se-account-top",
+      "iphone-se-account-bottom",
+      "iphone-13-home-top",
+      "iphone-13-home-bottom",
+      "iphone-13-account-top",
+      "iphone-13-account-bottom",
+      "iphone-14-pro-max-home-top",
+      "iphone-14-pro-max-home-bottom",
+      "iphone-14-pro-max-account-top",
+      "iphone-14-pro-max-account-bottom",
+    ];
+
+    for (const fileName of baselineVariants.flatMap((base) => [
+      `${base}-darwin.png`,
+      `${base}-linux.png`,
+    ])) {
       expect(existsSync(path.join(root, baselineDir, fileName))).toBe(true);
-      expect(frontendContracts).toContain(fileName);
     }
 
     expect(frontendContracts).toContain('id: "safe-area-visual-baselines"');
     expect(frontendContracts).toContain("tests/visual/safe-area.spec.ts");
+    expect(frontendContracts).toContain("baselineVariants.flatMap");
+    expect(frontendContracts).toContain("${base}-darwin.png");
+    expect(frontendContracts).toContain("${base}-linux.png");
     expect(packageJson).toContain('"test:visual"');
     expect(matrix).toContain("npm run test:visual");
   });

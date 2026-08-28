@@ -177,20 +177,25 @@ const contracts = [
         requireContains(this.id, safeAreaVisual, needle, safeAreaVisualPath);
       }
 
-      for (const fileName of [
-        "iphone-se-home-top.png",
-        "iphone-se-home-bottom.png",
-        "iphone-se-account-top.png",
-        "iphone-se-account-bottom.png",
-        "iphone-13-home-top.png",
-        "iphone-13-home-bottom.png",
-        "iphone-13-account-top.png",
-        "iphone-13-account-bottom.png",
-        "iphone-14-pro-max-home-top.png",
-        "iphone-14-pro-max-home-bottom.png",
-        "iphone-14-pro-max-account-top.png",
-        "iphone-14-pro-max-account-bottom.png",
-      ]) {
+      const baselineVariants = [
+        "iphone-se-home-top",
+        "iphone-se-home-bottom",
+        "iphone-se-account-top",
+        "iphone-se-account-bottom",
+        "iphone-13-home-top",
+        "iphone-13-home-bottom",
+        "iphone-13-account-top",
+        "iphone-13-account-bottom",
+        "iphone-14-pro-max-home-top",
+        "iphone-14-pro-max-home-bottom",
+        "iphone-14-pro-max-account-top",
+        "iphone-14-pro-max-account-bottom",
+      ];
+
+      for (const fileName of baselineVariants.flatMap((base) => [
+        `${base}-darwin.png`,
+        `${base}-linux.png`,
+      ])) {
         const relativePath = path.join(baselineDir, fileName);
         if (!existsSync(path.join(root, relativePath))) {
           failures.push(`${this.id}: missing visual baseline ${relativePath}`);

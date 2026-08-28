@@ -54,6 +54,36 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
+      - name: Verify Linux safe-area baselines are committed
+        run: |
+          baseline_dir="tests/visual/__screenshots__/safe-area.spec.ts"
+          required=(
+            iphone-se-home-top-linux.png
+            iphone-se-home-bottom-linux.png
+            iphone-se-account-top-linux.png
+            iphone-se-account-bottom-linux.png
+            iphone-13-home-top-linux.png
+            iphone-13-home-bottom-linux.png
+            iphone-13-account-top-linux.png
+            iphone-13-account-bottom-linux.png
+            iphone-14-pro-max-home-top-linux.png
+            iphone-14-pro-max-home-bottom-linux.png
+            iphone-14-pro-max-account-top-linux.png
+            iphone-14-pro-max-account-bottom-linux.png
+          )
+          missing=()
+          for name in "${required[@]}"; do
+            if [ ! -f "$baseline_dir/$name" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing Linux safe-area baselines: ${missing[*]}"
+            echo "Run on Linux: npx playwright test tests/visual/safe-area.spec.ts --project=visual --update-snapshots"
+            echo "Then commit tests/visual/__screenshots__/safe-area.spec.ts/*-linux.png."
+            exit 1
+          fi
+
       - name: Seed authenticated storage state (optional)
         env:
           QA_TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
@@ -163,7 +193,7 @@ jobs:
               `   • \`safe-area-visual-report\` — full HTML report`,
               `   • \`safe-area-visual-diffs\` — per-test \`*-actual.png\`, \`*-diff.png\``,
               ``,
-              `_If snapshots are intentionally different, run \`npx playwright test tests/visual/safe-area.spec.ts --update-snapshots\` locally and commit the new baselines._`,
+              `_If snapshots are intentionally different, run \`npx playwright test tests/visual/safe-area.spec.ts --project=visual --update-snapshots\` on the target platform and commit the updated \`*-<platform>.png\` baselines._`,
               failList,
             ].join('\n');
 

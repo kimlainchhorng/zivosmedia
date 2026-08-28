@@ -52,6 +52,52 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: E2E secret preflight
+        env:
+          QA_TEST_EMAIL: ${{ secrets.QA_TEST_EMAIL }}
+          QA_TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          VITE_ZIVO_SOFTWARE_SUPABASE_URL: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_URL }}
+          VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          required=(
+            QA_TEST_EMAIL
+            QA_TEST_PASSWORD
+            VITE_SUPABASE_URL
+            VITE_SUPABASE_PUBLISHABLE_KEY
+            VITE_SUPABASE_PROJECT_ID
+            VITE_ZIVO_SOFTWARE_SUPABASE_URL
+            VITE_ZIVO_SOFTWARE_SUPABASE_PUBLISHABLE_KEY
+          )
+          missing=()
+          for name in "${required[@]}"; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
+
+          {
+            echo "### E2E secret preflight"
+            echo
+            if [ "${#missing[@]}" -eq 0 ]; then
+              echo "✅ All required E2E secrets are configured."
+            else
+              echo "⚠️ Missing required GitHub Actions secrets:"
+              for name in "${missing[@]}"; do
+                echo "- \`$name\`"
+              done
+              echo
+              echo "Configure these under: **Settings → Secrets and variables → Actions**."
+              echo "Without QA credentials, authenticated Playwright specs are skipped."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::warning::Missing required E2E GitHub Actions secrets: ${missing[*]}"
+          fi
+
       - name: Run Playwright
         env:
           CI: 'true'
