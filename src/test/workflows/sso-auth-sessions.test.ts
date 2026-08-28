@@ -25,7 +25,9 @@ describe("SSO, auth, sessions, and devices workflow", () => {
     }
 
     expect(workflowCoverage).toContain("qa:sso-auth-contracts");
-    expect(packageJson).toContain('"qa:sso-auth-contracts": "node scripts/qa/sso-auth-contracts.mjs"');
+    expect(packageJson).toContain(
+      '"qa:sso-auth-contracts": "node scripts/qa/sso-auth-contracts.mjs"',
+    );
     expect(packageJson).toContain("npm run qa:sso-auth-contracts");
   });
 
@@ -46,9 +48,15 @@ describe("SSO, auth, sessions, and devices workflow", () => {
     expect(auth).toContain("getMfaChallenge");
     expect(auth).toContain("verifyMfaChallenge");
     expect(verifyDevice).toContain("register_trusted_device");
-    expect(verifyDevice).toContain('supabase.functions.invoke("verify-otp-code"');
-    expect(accountSessions).toContain('supabase.functions.invoke("list-my-sessions"');
-    expect(accountSessions).toContain('supabase.functions.invoke("revoke-session"');
+    expect(verifyDevice).toContain(
+      'supabase.functions.invoke("verify-otp-code"',
+    );
+    expect(accountSessions).toContain(
+      'supabase.functions.invoke("list-my-sessions"',
+    );
+    expect(accountSessions).toContain(
+      'supabase.functions.invoke("revoke-session"',
+    );
     expect(accountSessions).toContain('sessionId: "all_others"');
     expect(protectedRoute).toContain("allowStoreOwner");
     expect(protectedRoute).toContain("allowSupport");
@@ -78,8 +86,12 @@ describe("SSO, auth, sessions, and devices workflow", () => {
     const issuer = read("supabase/functions/mint-sso-handoff/index.ts");
     const config = read("supabase/config.toml");
 
-    expect(crossDomain).toContain('const SSO_HANDOFF_FUNCTION = "mint-sso-handoff"');
-    expect(crossDomain).toContain("authSupabase.functions.invoke<HandoffMintResponse>");
+    expect(crossDomain).toContain(
+      'const SSO_HANDOFF_FUNCTION = "mint-sso-handoff"',
+    );
+    expect(crossDomain).toContain(
+      "authSupabase.functions.invoke<HandoffMintResponse>",
+    );
     expect(crossDomain).toContain("body: { targetOrigin: target }");
     expect(crossDomain).toContain("ott: tokenHash");
     expect(crossDomain).not.toContain("rt: session.refresh_token");
@@ -104,5 +116,33 @@ describe("SSO, auth, sessions, and devices workflow", () => {
 
     expect(config).toContain("[functions.mint-sso-handoff]");
     expect(config).toContain("verify_jwt = true");
+  });
+
+  it("keeps Ride code issuance compatible only with the known missing blocklist RPC", () => {
+    const issuer = read(
+      "supabase/functions/zivosmedia-auth-issue-code/index.ts",
+    );
+
+    expect(issuer).toContain('const MISSING_USER_BLOCKLIST_RPC = "PGRST202"');
+    expect(issuer).toContain('const MISSING_USER_BLOCKLIST_TABLE = "PGRST205"');
+    expect(issuer).toMatch(/service\.rpc\(\s*"is_user_blocked"/);
+    expect(issuer).toContain(
+      "blocklistError.code !== MISSING_USER_BLOCKLIST_RPC",
+    );
+    expect(issuer).toContain(
+      'throw new Error("User suspension check unavailable")',
+    );
+    expect(issuer).toContain("service.auth.admin.getUserById(userId)");
+    expect(issuer).toContain('.from("user_blocklist")');
+    expect(issuer).toContain(
+      "blocklistTableError.code !== MISSING_USER_BLOCKLIST_TABLE",
+    );
+    expect(issuer).toContain(
+      'ctx.log.warn("user_blocklist_schema_compatibility"',
+    );
+    expect(issuer).toContain("userData.user.banned_until");
+    expect(issuer).toContain('new HttpError(403, "Account suspended"');
+    expect(issuer).toContain('code: "invalid_session"');
+    expect(issuer).not.toContain("requireUserNotBlocked(auth.userId)");
   });
 });
