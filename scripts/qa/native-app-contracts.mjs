@@ -461,6 +461,8 @@ const contracts = [
       const androidLauncherCheckPath = "scripts/native/check-android-launcher-identity.mjs";
       const androidOptimizationCheckPath = "scripts/native/check-android-release-optimization.mjs";
       const androidOptimizationCheckTestPath = "scripts/native/check-android-release-optimization.test.mjs";
+      const androidInstallabilityCheckPath = "scripts/native/check-android-installability.mjs";
+      const androidInstallabilityCheckTestPath = "scripts/native/check-android-installability.test.mjs";
       const playPolicyCheckPath = "scripts/native/check-play-public-policy-pages.mjs";
       const playPolicyCheckTestPath = "scripts/native/check-play-public-policy-pages.test.mjs";
       const appStoreUploadPath = "scripts/upload-to-app-store.mjs";
@@ -483,6 +485,8 @@ const contracts = [
       const androidLauncherCheck = source(androidLauncherCheckPath);
       const androidOptimizationCheck = source(androidOptimizationCheckPath);
       const androidOptimizationCheckTest = source(androidOptimizationCheckTestPath);
+      const androidInstallabilityCheck = source(androidInstallabilityCheckPath);
+      const androidInstallabilityCheckTest = source(androidInstallabilityCheckTestPath);
       const playPolicyCheck = source(playPolicyCheckPath);
       const playPolicyCheckTest = source(playPolicyCheckTestPath);
       const appStoreUpload = source(appStoreUploadPath);
@@ -516,6 +520,8 @@ const contracts = [
         "android:build:release",
         "android:optimization:check",
         "android:optimization:test",
+        "android:installability:check",
+        "android:installability:test",
         "android:policy-pages:check",
         "android:policy-pages:test",
         "android:upload:play:draft",
@@ -528,9 +534,11 @@ const contracts = [
       requireContains(this.id, packageJson, '"android:build:debug": "npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs assembleDebug"', packagePath);
       requireContains(this.id, packageJson, '"android:icons:generate": "node scripts/generate-launcher-icons.mjs"', packagePath);
       requireContains(this.id, packageJson, '"android:icons:check": "node scripts/native/check-android-launcher-identity.mjs"', packagePath);
-      requireContains(this.id, packageJson, '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease && npm run android:optimization:check"', packagePath);
+      requireContains(this.id, packageJson, '"android:build:release": "npm run android:icons:check && npm run native:doctor -- --android-only && node scripts/native/run-android-gradle.mjs bundleRelease packageReleaseUniversalApk && npm run android:optimization:check && npm run android:installability:check && npm run android:restore-credentials:check"', packagePath);
       requireContains(this.id, packageJson, '"android:optimization:check": "node scripts/native/check-android-release-optimization.mjs"', packagePath);
       requireContains(this.id, packageJson, '"android:optimization:test": "node --test scripts/native/check-android-release-optimization.test.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"android:installability:check": "node scripts/native/check-android-installability.mjs"', packagePath);
+      requireContains(this.id, packageJson, '"android:installability:test": "node --test scripts/native/check-android-installability.test.mjs"', packagePath);
       requireContains(this.id, packageJson, '"android:policy-pages:check": "node scripts/native/check-play-public-policy-pages.mjs"', packagePath);
       requireContains(this.id, packageJson, '"android:policy-pages:test": "node --test scripts/native/check-play-public-policy-pages.test.mjs"', packagePath);
       requireContains(this.id, packageJson, '"native:store-signing:preflight": "node scripts/native/store-signing-preflight.mjs"', packagePath);
@@ -548,6 +556,10 @@ const contracts = [
       for (const needle of ["disables R8 minification", "disables resource shrinking", "non-optimized default ProGuard", "missing obfuscation and removed-code evidence"]) {
         requireContains(this.id, androidOptimizationCheckTest, needle, androidOptimizationCheckTestPath);
       }
+      for (const needle of ["app-release-universal.apk", "dist/index.html", "aapt2", "apksigner", "No device was changed"]) {
+        requireContains(this.id, androidInstallabilityCheck, needle, androidInstallabilityCheckPath);
+      }
+      requireContains(this.id, androidInstallabilityCheckTest, "accepts a signed universal APK", androidInstallabilityCheckTestPath);
       for (const needle of ["https://zivosmedia.com/legal/privacy", "https://zivosmedia.com/delete-account", "Delete Your ZIVO Account", "What may be retained", "validatePlayPolicyPageEvidence"]) {
         requireContains(this.id, playPolicyCheck, needle, playPolicyCheckPath);
       }
@@ -753,6 +765,7 @@ const contracts = [
         "android:build:debug",
         "android:build:release",
         "android:optimization:check",
+        "android:installability:check",
         "android:policy-pages:check",
         "android:upload:play:draft",
       ]) {
@@ -763,6 +776,7 @@ const contracts = [
       requireContains(this.id, appStore, "App Store Connect", appStorePath);
       requireContains(this.id, playStore, "npm run android:sync", playStorePath);
       requireContains(this.id, playStore, "npm run android:optimization:check", playStorePath);
+      requireContains(this.id, playStore, "npm run android:installability:check", playStorePath);
       requireContains(this.id, playStore, "npm run android:policy-pages:check", playStorePath);
       requireContains(this.id, playStore, "Generate Signed App Bundle", playStorePath);
       requireContains(this.id, playStore, "Play Console", playStorePath);
@@ -900,6 +914,7 @@ const contracts = [
         "npm run android:build:debug",
         "npm run android:build:release",
         "npm run android:optimization:check",
+        "npm run android:installability:check",
         "npm run android:upload:play:draft",
         "npm run native:store-signing:preflight",
         "npm run deploy:update:dry-run",
