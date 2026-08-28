@@ -83,6 +83,12 @@ describe("ZIVO Ride production boundary", () => {
       ),
     ).toBe(true);
     expect(
+      canEmbedRideApp("capacitor://localhost", ZIVO_RIDE_PRODUCTION_ORIGIN),
+    ).toBe(true);
+    expect(
+      canEmbedRideApp("https://localhost", ZIVO_RIDE_PRODUCTION_ORIGIN),
+    ).toBe(true);
+    expect(
       canEmbedRideApp(
         "http://127.0.0.1:8081",
         ZIVO_RIDE_PRODUCTION_ORIGIN,
@@ -104,6 +110,29 @@ describe("ZIVO Ride production boundary", () => {
     expect(
       canEmbedRideApp("not-an-origin", ZIVO_RIDE_PRODUCTION_ORIGIN, dev),
     ).toBe(false);
+  });
+
+  it("rejects native parent lookalikes, credentials, ports, paths, and insecure localhost", () => {
+    for (const parentOrigin of [
+      "http://localhost",
+      "https://localhost:8443",
+      "https://user@localhost",
+      "https://localhost/rides/hub",
+      "https://localhost?embed=true",
+      "https://localhost#ride",
+      "capacitor://localhost:8080",
+      "capacitor://user:pass@localhost",
+      "capacitor://localhost/rides/hub",
+      "capacitor://localhost?embed=true",
+      "capacitor://localhost#ride",
+      "capacitor://localhost.evil.example",
+      "capacitor://evil-localhost",
+    ]) {
+      expect(
+        canEmbedRideApp(parentOrigin, ZIVO_RIDE_PRODUCTION_ORIGIN),
+        parentOrigin,
+      ).toBe(false);
+    }
   });
 
   it("accepts only the central production authorize endpoint", () => {
