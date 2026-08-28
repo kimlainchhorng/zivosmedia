@@ -33,7 +33,7 @@ function validEvidence(overrides = {}) {
     usageText: "com.example.RemovedClass:\n",
     configurationText: "-optimizationpasses 5\n",
     seedsText:
-      "com.hizovo.app.MainActivity\ncom.hizovo.app.PlayIntegrityPlugin\n",
+      "com.hizovo.app.MainActivity\ncom.hizovo.app.PlayIntegrityPlugin\ncom.hizovo.app.RestoreCredentialsPlugin\n",
     embeddedMappingBytes: 256,
     r8MetadataBytes: 64,
     ...overrides,
@@ -130,6 +130,6 @@ test("rejects an AAB without embedded R8 metadata or preserved app plugins", () 
           r8MetadataBytes: 0,
         }),
       ),
-    /missing its embedded deobfuscation mapping; release AAB is missing its embedded R8 metadata; R8 seeds do not preserve com\.hizovo\.app\.MainActivity; R8 seeds do not preserve com\.hizovo\.app\.PlayIntegrityPlugin/,
+    /missing its embedded deobfuscation mapping; release AAB is missing its embedded R8 metadata; R8 seeds do not preserve com\.hizovo\.app\.MainActivity; R8 seeds do not preserve com\.hizovo\.app\.PlayIntegrityPlugin; R8 seeds do not preserve com\.hizovo\.app\.RestoreCredentialsPlugin/,
   );
 });
