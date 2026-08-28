@@ -23,11 +23,29 @@ import {
   resolveRideAppBaseUrl,
 } from "@/lib/zivoRideProductionBoundary";
 import { getOrCreateRideEmbedSession } from "@/lib/rideEmbedSession";
+import {
+  isNativeRideAuthorizationParent,
+  issueNativeRideAuthorization,
+} from "@/lib/nativeRideAuthorization";
 
 const LOCAL_RIDE_PROBE_TIMEOUT_MS = 2_500;
 const RIDE_FRAME_READY_TIMEOUT_MS = 15_000;
+const RIDE_EMBED_CHALLENGE_NONCE_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 const LOCAL_RIDE_HTML_MARKER =
   '<meta name="application-name" content="ZIVO Ride"';
+
+type ActiveNativeRideAuthorization = {
+  controller: AbortController;
+  requestGeneration: number;
+  frameAttempt: number;
+  frameWindow: Window;
+  rideOrigin: string;
+  embedSession: string;
+  userId: string;
+  state: string;
+  challenge: string;
+  redirectUri: string;
+};
 
 function appendCanonicalPath(baseUrl: URL, canonicalPath: string) {
   const basePath = baseUrl.pathname.replace(/\/+$/, "");
@@ -160,9 +178,11 @@ function RideOpeningRecoveryCard({ onRetry }: { onRetry: () => void }) {
 function CanonicalRideFrame({
   rideUrl,
   embedSession,
+  userId,
 }: {
   rideUrl: string;
   embedSession: string | null;
+  userId: string | null;
 }) {
   const navigate = useNavigate();
   const [frameAttempt, setFrameAttempt] = useState(0);
@@ -173,8 +193,16 @@ function CanonicalRideFrame({
   const isFrameReadyRef = useRef(false);
   const isAuthorizingRef = useRef(false);
   const isOpeningAccountRef = useRef(false);
+  const authorizationRequestGenerationRef = useRef(0);
+  const activeNativeAuthorizationRef =
+    useRef<ActiveNativeRideAuthorization | null>(null);
+  const currentEmbedSessionRef = useRef(embedSession);
+  const currentUserIdRef = useRef(userId);
 
   useEffect(() => {
+    currentEmbedSessionRef.current = embedSession;
+    currentUserIdRef.current = userId;
+    let isMounted = true;
     const rideOrigin = new URL(rideUrl).origin;
     const handleRideMessage = (event: MessageEvent<unknown>) => {
       const iframeWindow = iframeRef.current?.contentWindow;
@@ -184,6 +212,32 @@ function CanonicalRideFrame({
         event.origin !== rideOrigin
       )
         return;
+
+      const challenge =
+        event.data && typeof event.data === "object"
+          ? (event.data as {
+              type?: unknown;
+              embed_session?: unknown;
+              nonce?: unknown;
+            })
+          : null;
+      if (
+        embedSession &&
+        challenge?.type === "zivo-ride:embed-challenge" &&
+        challenge.embed_session === embedSession &&
+        typeof challenge.nonce === "string" &&
+        RIDE_EMBED_CHALLENGE_NONCE_PATTERN.test(challenge.nonce)
+      ) {
+        iframeWindow.postMessage(
+          {
+            type: "zivo-ride:embed-confirm",
+            embed_session: embedSession,
+            nonce: challenge.nonce,
+          },
+          rideOrigin,
+        );
+        return;
+      }
 
       if (isRideManageAccountRequest(event.data, embedSession)) {
         if (isOpeningAccountRef.current) return;
@@ -212,13 +266,91 @@ function CanonicalRideFrame({
       });
       if (!authorizeUrl || isAuthorizingRef.current) return;
 
+      if (isNativeRideAuthorizationParent(window.location.origin)) {
+        const request =
+          event.data && typeof event.data === "object"
+            ? (event.data as { embed_session?: unknown })
+            : null;
+        const state = authorizeUrl.searchParams.get("state");
+        const challenge = authorizeUrl.searchParams.get("code_challenge");
+        const redirectUri = authorizeUrl.searchParams.get("redirect_uri");
+        if (
+          !embedSession ||
+          !userId ||
+          request?.embed_session !== embedSession ||
+          !state ||
+          !challenge ||
+          !redirectUri
+        ) {
+          return;
+        }
+
+        isAuthorizingRef.current = true;
+        const requestGeneration = authorizationRequestGenerationRef.current + 1;
+        authorizationRequestGenerationRef.current = requestGeneration;
+        const binding: ActiveNativeRideAuthorization = {
+          controller: new AbortController(),
+          requestGeneration,
+          frameAttempt: activeFrameAttemptRef.current,
+          frameWindow: iframeWindow,
+          rideOrigin,
+          embedSession,
+          userId,
+          state,
+          challenge,
+          redirectUri,
+        };
+        activeNativeAuthorizationRef.current = binding;
+
+        void (async () => {
+          const result = await issueNativeRideAuthorization(
+            authorizeUrl,
+            rideOrigin,
+            binding.userId,
+            binding.controller.signal,
+          );
+          const current = activeNativeAuthorizationRef.current;
+          const isCurrentRequest =
+            isMounted &&
+            !binding.controller.signal.aborted &&
+            current === binding &&
+            authorizationRequestGenerationRef.current === requestGeneration &&
+            activeFrameAttemptRef.current === binding.frameAttempt &&
+            iframeRef.current?.contentWindow === binding.frameWindow &&
+            currentEmbedSessionRef.current === binding.embedSession &&
+            currentUserIdRef.current === binding.userId &&
+            current?.rideOrigin === binding.rideOrigin &&
+            current?.state === binding.state &&
+            current?.challenge === binding.challenge &&
+            current?.redirectUri === binding.redirectUri;
+          if (!isCurrentRequest) return;
+
+          binding.frameWindow.postMessage(
+            { ...result, embed_session: binding.embedSession },
+            binding.rideOrigin,
+          );
+          if (activeNativeAuthorizationRef.current === binding) {
+            activeNativeAuthorizationRef.current = null;
+            isAuthorizingRef.current = false;
+          }
+        })();
+        return;
+      }
+
       isAuthorizingRef.current = true;
       window.location.assign(authorizeUrl.toString());
     };
 
     window.addEventListener("message", handleRideMessage);
-    return () => window.removeEventListener("message", handleRideMessage);
-  }, [embedSession, navigate, rideUrl]);
+    return () => {
+      isMounted = false;
+      activeNativeAuthorizationRef.current?.controller.abort();
+      activeNativeAuthorizationRef.current = null;
+      authorizationRequestGenerationRef.current += 1;
+      isAuthorizingRef.current = false;
+      window.removeEventListener("message", handleRideMessage);
+    };
+  }, [embedSession, navigate, rideUrl, userId]);
 
   useEffect(() => {
     if (isFrameReady || isFrameUnavailable) return;
@@ -231,6 +363,10 @@ function CanonicalRideFrame({
       )
         return;
 
+      activeNativeAuthorizationRef.current?.controller.abort();
+      activeNativeAuthorizationRef.current = null;
+      authorizationRequestGenerationRef.current += 1;
+      isAuthorizingRef.current = false;
       setIsFrameUnavailable(true);
     }, RIDE_FRAME_READY_TIMEOUT_MS);
 
@@ -238,6 +374,10 @@ function CanonicalRideFrame({
   }, [frameAttempt, isFrameReady, isFrameUnavailable]);
 
   const retryRideFrame = () => {
+    activeNativeAuthorizationRef.current?.controller.abort();
+    activeNativeAuthorizationRef.current = null;
+    authorizationRequestGenerationRef.current += 1;
+    isAuthorizingRef.current = false;
     const nextFrameAttempt = activeFrameAttemptRef.current + 1;
     activeFrameAttemptRef.current = nextFrameAttempt;
     isFrameReadyRef.current = false;
@@ -511,6 +651,7 @@ export default function CanonicalRidePage() {
       key={rideUrl}
       rideUrl={rideUrl}
       embedSession={embedSession}
+      userId={user?.id ?? null}
     />
   );
 }
