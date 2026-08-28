@@ -5,6 +5,11 @@ const ZIVOSMEDIA_AUTHORIZE_ORIGINS = new Set([
   "https://www.zivosmedia.com",
 ]);
 
+const NATIVE_ZIVOSMEDIA_ORIGINS = new Set([
+  "capacitor://localhost",
+  "https://localhost",
+]);
+
 const LOCAL_RIDE_ORIGINS = new Set([
   "http://localhost:5177",
   "http://127.0.0.1:5177",
@@ -18,6 +23,42 @@ const LOCAL_ZIVOSMEDIA_ORIGINS = new Set([
 type BoundaryOptions = {
   allowLocalDevelopment?: boolean;
 };
+
+/**
+ * Normalizes an exact ZIVO parent origin without relying on `URL.origin` for
+ * Capacitor's custom scheme (which serializes as `null` in standards-based URL
+ * implementations). Native origins remain an explicit, closed allowlist.
+ */
+function normalizeRideParentOrigin(parentOrigin: string): string | null {
+  const rawOrigin = parentOrigin.trim();
+
+  try {
+    const parent = new URL(rawOrigin);
+    if (
+      parent.username ||
+      parent.password ||
+      parent.search ||
+      parent.hash ||
+      (parent.pathname !== "" && parent.pathname !== "/")
+    ) {
+      return null;
+    }
+
+    if (parent.protocol === "capacitor:") {
+      return rawOrigin === "capacitor://localhost"
+        ? "capacitor://localhost"
+        : null;
+    }
+
+    if (parent.protocol === "https:" && parent.hostname === "localhost") {
+      return rawOrigin === "https://localhost" ? "https://localhost" : null;
+    }
+
+    return parent.origin;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Maps the exact local Zivosmedia parent to the matching canonical Ride dev
@@ -59,11 +100,16 @@ export function canEmbedRideApp(
   options: BoundaryOptions = {},
 ): boolean {
   try {
-    const parent = new URL(parentOrigin).origin;
+    const parent = normalizeRideParentOrigin(parentOrigin);
     const ride = new URL(rideAppUrl).origin;
 
+    if (!parent) return false;
+
     if (ride === ZIVO_RIDE_PRODUCTION_ORIGIN) {
-      return ZIVOSMEDIA_AUTHORIZE_ORIGINS.has(parent);
+      return (
+        ZIVOSMEDIA_AUTHORIZE_ORIGINS.has(parent) ||
+        NATIVE_ZIVOSMEDIA_ORIGINS.has(parent)
+      );
     }
 
     return Boolean(
