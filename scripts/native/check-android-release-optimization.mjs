@@ -150,6 +150,7 @@ export function validateAndroidReleaseOptimizationEvidence(evidence) {
   for (const className of [
     "com.hizovo.app.MainActivity",
     "com.hizovo.app.PlayIntegrityPlugin",
+    "com.hizovo.app.RestoreCredentialsPlugin",
   ]) {
     if (!seedsText.split(/\r?\n/).includes(className)) {
       failures.push(`R8 seeds do not preserve ${className}`);
