@@ -49,6 +49,24 @@ Deno.serve(withSecurity("create-user-wallet-topup", async (req, ctx) => {
     const successUrl = String(body?.success_url ?? `${new URL(req.url).origin}/wallet?topup=success`);
     const cancelUrl = String(body?.cancel_url ?? `${new URL(req.url).origin}/wallet?topup=cancel`);
 
+    // `currency` is caller-supplied while MIN_TOPUP_CENTS / MAX_TOPUP_CENTS are
+    // USD-shaped (their own error message is written in dollars), so an
+    // unvalidated code lets a caller clear a dollar bound with a far cheaper
+    // currency. Both callers — WalletPage and TravelWalletTopupDialog — send
+    // "USD"; widen WALLET_TOPUP_CURRENCIES if that ever changes.
+    const allowedTopupCurrencies = new Set(
+      (Deno.env.get("WALLET_TOPUP_CURRENCIES") ?? "USD")
+        .split(",")
+        .map((c) => c.trim().toUpperCase())
+        .filter((c) => /^[A-Z]{3}$/.test(c)),
+    );
+    if (!allowedTopupCurrencies.has(currency)) {
+      return new Response(JSON.stringify({
+        error: "unsupported_currency",
+        message: "This currency is not supported for wallet top-ups.",
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (!Number.isFinite(amountCents) || amountCents < MIN_TOPUP_CENTS || amountCents > MAX_TOPUP_CENTS) {
       return new Response(JSON.stringify({
         error: "invalid_amount",
