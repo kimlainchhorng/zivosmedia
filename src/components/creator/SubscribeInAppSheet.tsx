@@ -2,6 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Crown, CreditCard, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatStripeAmount } from "@/lib/currency";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -17,6 +18,8 @@ interface Props {
     id: string;
     name: string;
     price_cents: number;
+    /** ISO code subscribe-to-tier-intent charges in; the row is fetched with select("*"). */
+    currency?: string | null;
     billing_interval?: string;
     badge_emoji?: string | null;
     welcome_message?: string | null;
@@ -153,7 +156,7 @@ function SubscribeForm({ creatorId, creatorName, tier, onClose }: Omit<Props, "o
       <div className="rounded-2xl bg-muted/40 p-4 mb-4">
         <p className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">Subscription</p>
         <p className="text-2xl font-extrabold mt-1">
-          ${(tier.price_cents / 100).toFixed(2)}
+          {formatStripeAmount(tier.price_cents, tier.currency || "USD")}
           <span className="text-sm font-semibold text-muted-foreground"> / {intervalLabel(tier.billing_interval)}</span>
         </p>
         {Array.isArray(tier.benefits) && tier.benefits.length > 0 && (
@@ -195,7 +198,7 @@ function SubscribeForm({ creatorId, creatorName, tier, onClose }: Omit<Props, "o
         className="w-full h-12 rounded-full bg-gradient-to-r from-[#00AEEF] to-[#0099D9] text-white font-extrabold text-sm uppercase tracking-wide active:scale-[0.99] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-[#00AEEF]/30"
       >
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-        {submitting ? "Processing..." : `Pay $${(tier.price_cents / 100).toFixed(2)}`}
+        {submitting ? "Processing…" : `Pay ${formatStripeAmount(tier.price_cents, tier.currency || "USD")}`}
       </button>
 
       <p className="text-[10px] text-muted-foreground text-center mt-3">
