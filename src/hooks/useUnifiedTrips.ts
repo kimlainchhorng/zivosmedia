@@ -264,8 +264,7 @@ export function useUnifiedTrips(filter: TripsFilter = {}) {
               icon: "bus",
               details: { booking: b, trip, route },
               orderNumber: b.booking_ref || b.id,
-              // No /my-trips/bus/:id route exists yet, so the card renders
-              // without a link rather than pointing at a 404.
+              detailPath: `/my-trips/bus/${b.id}`,
             });
           });
         }
