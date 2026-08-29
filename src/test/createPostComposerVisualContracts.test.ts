@@ -17,10 +17,15 @@ describe("create post composer visual contracts", () => {
       '{ mode: "story", label: "Story", description: "Photo or video under 1m", icon: Play }',
       '{ mode: "poll", label: "Poll", description: "Ask and collect votes", icon: Hash }',
       '{ mode: "shop", label: "Shop", description: "Tag product or sale", icon: ShoppingBag }',
-      '{ mode: "live", label: "Live", description: "Go on air now", icon: Radio }',
     ]) {
       expect(composer).toContain(workflow);
     }
+
+    // `e3f08a0ea Retire creator monetization and dating surfaces` removed the
+    // Live workflow from the composer. Guard the removal rather than the old
+    // entry, so a stray re-add is caught instead of silently shipping.
+    expect(composer).not.toContain('mode: "live"');
+    expect(composer).not.toContain("Go on air now");
 
     expect(composer).toContain("WORKFLOW_STYLES");
     expect(composer).toContain("WORKFLOW_PROMPTS");

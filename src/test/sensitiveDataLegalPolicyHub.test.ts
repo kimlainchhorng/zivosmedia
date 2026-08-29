@@ -59,7 +59,12 @@ describe("sensitive data legal policy hub", () => {
     expect(genericLegal).toContain("detect a face on-device");
     expect(genericLegal).toContain("without identifying you");
     expect(genericLegal).toContain("face geometry used for identity verification");
-    expect(genericLegal).toContain("liveness detection for driver, merchant, creator");
+    // `e3f08a0ea Retire creator monetization and dating surfaces` reworded this
+    // clause from "driver, merchant, creator" to "service-partner payout" when
+    // creator surfaces were retired. Asserting the shipped policy text.
+    expect(genericLegal).toContain(
+      "liveness detection for driver, merchant, service-partner payout",
+    );
     expect(genericLegal).toContain("underage-access prevention");
     expect(genericLegal).toContain("does not use facial recognition to identify people in public posts");
     expect(genericLegal).toContain("sell face geometry");
