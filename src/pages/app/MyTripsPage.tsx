@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, ChevronRight,
   Plane, Car, UtensilsCrossed, Package, MapPin, BedDouble, Compass,
-  CarFront, CarTaxiFront, Building2, CreditCard, type LucideIcon
+  CarFront, CarTaxiFront, Building2, CreditCard, BusFront, type LucideIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,7 @@ const serviceFilters: Array<{ id: ServiceType | "all"; label: string; icon?: Rea
   { id: "hotels", label: "Hotels", icon: BedDouble },
   { id: "p2p_cars", label: "Cars", icon: CarFront },
   { id: "rides", label: "Ride", icon: CarTaxiFront },
+  { id: "bus", label: "Bus", icon: BusFront },
 ];
 
 const statusFilters = [
@@ -60,6 +61,7 @@ const tripIconMap: Record<string, LucideIcon> = {
   "car": Car,
   "car-front": CarFront,
   "car-taxi-front": CarTaxiFront,
+  "bus": BusFront,
   "utensils-crossed": UtensilsCrossed,
   "package": Package,
   "building-2": Building2,
