@@ -15,13 +15,20 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
+import { formatCurrencyAmount } from "@/lib/currency";
 import { ReviewSubmissionSheet } from "@/components/reviews/ReviewSubmissionSheet";
 import { ReviewsList } from "@/components/reviews/ReviewsList";
 import { ReviewsSummary } from "@/components/reviews/ReviewsSummary";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
+/**
+ * p2p_bookings has no currency column — these rentals are priced in USD — so
+ * the symbol is fixed here. The cents are not: `toFixed(0)` rounded a $47.50
+ * daily rate to "$48" on a booking the customer is reading to check what they
+ * were charged.
+ */
 const formatPrice = (amount: number) =>
-  amount > 0 ? `$${amount.toFixed(0)}` : "—";
+  amount > 0 ? formatCurrencyAmount(amount, "USD") : "—";
 
 interface CarBookingDetail {
   id: string;
@@ -269,21 +276,21 @@ export default function MyCarTripPage() {
               <p className="text-sm font-bold text-foreground mb-3">Pricing Breakdown</p>
               <div className="space-y-1.5 text-[12px]">
                 <div className="flex justify-between text-muted-foreground">
-                  <span>${booking.daily_rate.toFixed(0)}/day × {booking.total_days} days</span>
-                  <span>${booking.subtotal.toFixed(0)}</span>
+                  <span>{formatPrice(booking.daily_rate)}/day × {booking.total_days} days</span>
+                  <span>{formatPrice(booking.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Service fee (10%)</span>
-                  <span>${booking.service_fee.toFixed(0)}</span>
+                  <span>{formatPrice(booking.service_fee)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Insurance</span>
-                  <span>${booking.insurance_fee.toFixed(0)}</span>
+                  <span>{formatPrice(booking.insurance_fee)}</span>
                 </div>
                 <div className="h-px bg-border/30 my-1.5" />
                 <div className="flex justify-between font-bold text-base">
                   <span>Total</span>
-                  <span className="text-primary">${booking.total_amount.toFixed(0)}</span>
+                  <span className="text-primary">{formatPrice(booking.total_amount)}</span>
                 </div>
               </div>
             </motion.div>

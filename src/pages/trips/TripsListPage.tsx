@@ -18,6 +18,7 @@ import { useTripItineraries, useCreateTrip, useDeleteTrip } from "@/hooks/useTri
 import type { TripItinerary } from "@/hooks/useTripItineraries";
 import { useFlightBookings, getTicketingStatusInfo } from "@/hooks/useFlightBooking";
 import PullToRefresh from "@/components/shared/PullToRefresh";
+import { formatStripeAmount } from "@/lib/currency";
 import { format } from "date-fns";
 
 const statusColors: Record<string, string> = {
@@ -273,7 +274,9 @@ function TripCard({
   onOpen: () => void;
   onDelete: () => void;
 }) {
-  const costDollars = (trip.total_estimated_cost_cents / 100).toFixed(0);
+  // trip_itineraries stores a currency; the cost is minor units in it, so a
+  // blanket "$" + /100 both assumed USD and rounded the cents away.
+  const costDollars = formatStripeAmount(trip.total_estimated_cost_cents, trip.currency);
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}>
@@ -306,7 +309,7 @@ function TripCard({
             )}
             {trip.total_estimated_cost_cents > 0 && (
               <span className="flex items-center gap-1">
-                <DollarSign className="w-3 h-3" /> ${costDollars}
+                <DollarSign className="w-3 h-3" /> {costDollars}
               </span>
             )}
           </div>
