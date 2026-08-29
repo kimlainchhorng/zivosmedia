@@ -7,6 +7,7 @@ const _listeners = new Set<() => void>();
 
 function setGlobalLang(code: string) {
   _lang = code;
+  ensureLocaleLoaded(code);
   localStorage.setItem("zivo_lang", code);
   document.documentElement.setAttribute("lang", code);
   window.dispatchEvent(new CustomEvent("zivo-lang-change", { detail: code }));
@@ -32,9 +33,39 @@ function subscribe(cb: () => void) {
 
 function getSnapshot() { return _lang; }
 
-/* ── Translations — eagerly imported to prevent flash of raw keys ── */
-import translationsData from "@/i18n/translations";
-const _translations: Record<string, Record<string, string>> = translationsData;
+/* ── Translations ──────────────────────────────────────────────────
+ * en (the fallback every lookup ends at) and km (the primary market) are
+ * bundled, so t() stays synchronous and neither audience ever sees a flash.
+ * The other 35 locales were ~150 KB of the entry graph that almost nobody
+ * used; they are fetched the first time someone actually selects one.
+ */
+import coreTranslations from "@/i18n/translations.core";
+
+const _translations: Record<string, Record<string, string>> = { ...coreTranslations };
+
+let _extraLoaded = false;
+let _extraLoading: Promise<void> | null = null;
+
+function ensureLocaleLoaded(code: string) {
+  if (_extraLoaded || _translations[code] || typeof window === "undefined") return;
+  if (!_extraLoading) {
+    _extraLoading = import("@/i18n/translations.extra")
+      .then((mod) => {
+        Object.assign(_translations, mod.default);
+        _extraLoaded = true;
+        // Re-render subscribers now that the strings exist; until this
+        // resolves they render English rather than raw keys.
+        _listeners.forEach((l) => l());
+      })
+      .catch(() => {
+        // Stay on the English fallback rather than breaking the screen.
+        _extraLoading = null;
+      });
+  }
+}
+
+// A returning user whose stored language is not bundled needs it immediately.
+ensureLocaleLoaded(_lang);
 
 /* ── Available languages ── */
 export const LANGUAGES = [

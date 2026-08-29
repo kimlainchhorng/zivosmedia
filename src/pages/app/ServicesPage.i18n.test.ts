@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import translations from "../../i18n/translations";
+// en and km are the bundled core locales — exactly the pair this bilingual
+// contract covers. The other 35 live in ../../i18n/translations.extra.
+import translations from "../../i18n/translations.core";
 
 const source = readFileSync(path.join(process.cwd(), "src/pages/app/ServicesPage.tsx"), "utf8");
 
