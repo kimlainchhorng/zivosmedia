@@ -162,10 +162,37 @@ describe("ZivoMobileNav", () => {
     expect(screen.getByLabelText("current path")).toHaveTextContent("/profile");
   });
 
-  it("no longer shows a Chat tab (chat moved to the dedicated ZIVO Chat app)", () => {
+  // Reversed on the owner's instruction. The nav's contract is only to route to
+  // /chat; ZivoChatRedirectGuard (mounted in App) then hands standalone chat off
+  // to zivoschat.com, carrying the path so deep links land right. Before this tab
+  // that entry point existed only in menus, and the unread count had no surface.
+  it("routes to the chat entry point for signed-in users", () => {
+    authState.user = { email: "rider@example.com", user_metadata: {} };
     renderMobileNav();
 
-    expect(screen.queryByLabelText("Chat")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Chat"));
+    expect(screen.getByLabelText("current path")).toHaveTextContent("/chat");
+  });
+
+  it("keeps the chat tab behind login for anonymous users", () => {
+    renderMobileNav();
+
+    fireEvent.click(screen.getByLabelText("Chat"));
+    expect(screen.getByLabelText("current path")).toHaveTextContent(
+      "/login?redirect=%2Fchat",
+    );
+  });
+
+  // Matters for the frame before the handoff, and for the tab never being
+  // mis-attributed to Home as it was before the /chat branch existed.
+  it("marks the Chat tab as current while on a chat route", () => {
+    renderMobileNav("/chat");
+
+    expect(screen.getByLabelText("Chat")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByLabelText("Home")).not.toHaveAttribute("aria-current");
   });
 
   it("does not show the old center create button", () => {
@@ -175,6 +202,7 @@ describe("ZivoMobileNav", () => {
     expect(screen.getByLabelText("Home")).toBeInTheDocument();
     expect(screen.getByLabelText("Feed")).toBeInTheDocument();
     expect(screen.getByLabelText("Reels")).toBeInTheDocument();
+    expect(screen.getByLabelText("Chat")).toBeInTheDocument();
     expect(screen.getByLabelText("Account")).toBeInTheDocument();
   });
 

@@ -1,7 +1,7 @@
 /**
  * ZIVO Mobile Bottom Navigation — 2026 floating pill
- * Dynamic Island–inspired frosted capsule with always-visible labels.
- * The active tab gets a calm lozenge while every route remains easy to scan.
+ * Dynamic Island–inspired frosted capsule. Only the active tab shows its
+ * label; the rest are icon-only with the text kept for screen readers.
  */
 import { forwardRef, useMemo } from "react";
 import { createPortal } from "react-dom";
@@ -12,6 +12,7 @@ import {
   Film,
   Newspaper,
   Car,
+  MessageCircle,
   Compass,
   Luggage,
   Wallet,
@@ -93,6 +94,15 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
       [notifications],
     );
 
+    // accountUnread deliberately excludes chat notifications. Without a Chat
+    // tab to carry them they were counted nowhere and the user saw no badge at
+    // all for unread messages; this is the surface that owns them. The tab
+    // routes to /chat, which ZivoChatRedirectGuard hands off to zivoschat.com.
+    const chatUnread = useMemo(
+      () => notifications.filter((n) => !n.is_read && isChatNotification(n)).length,
+      [notifications],
+    );
+
     // On the Zivo Travel host (or `?zt=1` preview) the bottom nav becomes a
     // travel-only tab set — never the social Feed/Reels/Ride tabs.
     const isTravel = typeof window !== "undefined" && isZivoTravelHost();
@@ -122,6 +132,13 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
         path: SOCIAL_ROUTE_PATHS.reels,
       },
       { id: "ride", labelKey: "nav.ride", icon: Car, path: "/rides/hub" },
+      {
+        id: "chat",
+        labelKey: "nav.chat",
+        icon: MessageCircle,
+        path: gated(SOCIAL_ROUTE_PATHS.chat),
+        badge: chatUnread,
+      },
       {
         id: "account",
         labelKey: "nav.account",
@@ -225,7 +242,7 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
                   )}
                   aria-label={
                     typeof tab.badge === "number" && tab.badge > 0
-                      ? `${label}, ${tab.badge > 99 ? "99+" : tab.badge} unread`
+                      ? `${label}, ${tab.badge > 99 ? "99+" : tab.badge} ${t("nav.unread")}`
                       : label
                   }
                   aria-current={isActive ? "page" : undefined}
@@ -251,8 +268,8 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
                     <div className="relative z-10 shrink-0 rounded-full transition-all duration-300">
                       <Avatar
                         className={cn(
-                          "block transition-all duration-200",
-                          isActive ? "h-7 w-7" : "h-6 w-6",
+                          "block h-5 w-5 transition-all duration-200",
+                          isActive && "scale-[1.08]",
                         )}
                       >
                         <AvatarImage

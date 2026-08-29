@@ -23,6 +23,7 @@ export const getZivoMobileNavActiveTab = (path: string, isTravel: boolean) => {
   if (path.startsWith(SOCIAL_ROUTE_PATHS.reels)) return "reels";
   if (path.startsWith("/rides")) return "ride";
   if (path.startsWith(SOCIAL_ROUTE_PATHS.feed)) return "feed";
+  if (path.startsWith(SOCIAL_ROUTE_PATHS.chat)) return "chat";
   if (
     path.startsWith("/account") ||
     path.startsWith(SOCIAL_ROUTE_PATHS.profile) ||

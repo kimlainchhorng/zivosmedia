@@ -287,6 +287,7 @@ const CORE_TRANSLATIONS: Record<string, Record<string, string>> = {
     "nav.map": "Map",
     "nav.alerts": "Alerts",
     "nav.chat": "Chat",
+    "nav.unread": "unread",
     "nav.account": "Account",
     // Home
     "home.rides": "Rides",
@@ -1113,6 +1114,8 @@ const CORE_TRANSLATIONS: Record<string, Record<string, string>> = {
     "nav.feed": "ផ្សព្វផ្សាយ",
     "nav.reel": "រីល",
     "nav.ride": "ជិះ",
+    "nav.chat": "ជជែក",
+    "nav.unread": "មិនទាន់អាន",
     "feed.no_posts": "មិនមានការបង្ហោះនៅឡើយ",
     "feed.no_posts_desc": "ហាងនឹងចែករំលែករូបភាព និងវីដេអូនៅទីនេះ",
     "nav.trips": "ដំណើរ",
