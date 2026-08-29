@@ -142,7 +142,7 @@ export default function CafeReservationsCard({ storeId }: Props) {
                     </SelectContent>
                   </Select>
                   <Button
-                    size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                    size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive"
                     onClick={() => { if (confirm(`Remove ${r.customer_name}'s reservation?`)) void remove(r.id); }}
                   >
                     <Trash2 className="h-4 w-4" />

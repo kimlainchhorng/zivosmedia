@@ -79,7 +79,7 @@ export default function MarketingCampaignRow({
         {campaign.sparkline && <MiniSparkline data={campaign.sparkline} />}
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0">
+            <Button size="icon" aria-label="More options" variant="ghost" className="h-7 w-7 shrink-0">
               <MoreHorizontal className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>

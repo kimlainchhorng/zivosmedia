@@ -315,7 +315,7 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
                         onClick={() => markSent.mutate(r.id)}>
                         <CheckCircle2 className="w-3 h-3" /> Sent
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                      <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive"
                         onClick={() => deleteReminder.mutate(r.id)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -362,7 +362,7 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant={r.severity === "high" ? "destructive" : "outline"}>{r.severity ?? "—"}</Badge>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                      <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive"
                         onClick={() => deleteRecall.mutate(r.id)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -388,7 +388,7 @@ export default function AutoRepairRemindersSection({ storeId }: Props) {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="capitalize text-[10px]">{r.status}</Badge>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive"
                       onClick={() => deleteReminder.mutate(r.id)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>

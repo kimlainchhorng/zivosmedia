@@ -275,10 +275,10 @@ export default function CarRentalExpensesSection({ storeId }: Props) {
                       <div className="flex items-center gap-2 sm:flex-col sm:items-end">
                         <span className="text-sm font-bold text-foreground">{formatMoney(e.amount_cents)}</span>
                         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(e)}>
+                          <Button variant="ghost" size="icon" aria-label="Edit" className="h-7 w-7" onClick={() => openEdit(e)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(e.id); }}>
+                          <Button variant="ghost" size="icon" aria-label="Delete" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(e.id); }}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>

@@ -914,10 +914,10 @@ export default function AutoRepairLaborTimeSection({ storeId }: Props) {
                             {cost > 0 && <span className="text-[11px] text-amber-600 font-semibold">{fmt$(cost)}</span>}
                           </div>
                           <div className="flex gap-1 shrink-0">
-                            {!isRunning && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startTimer(e.id, e.duration_minutes ?? 0)}><Play className="h-3.5 w-3.5 text-emerald-500" /></Button>}
-                            {isRunning && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => stopTimer(e.id)}><Square className="h-3.5 w-3.5 text-emerald-600" /></Button>}
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)}><Pencil className="h-3.5 w-3.5" /></Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => { if (confirm("Delete?")) deleteEntry.mutate(e.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                            {!isRunning && <Button size="icon" aria-label="Play" variant="ghost" className="h-7 w-7" onClick={() => startTimer(e.id, e.duration_minutes ?? 0)}><Play className="h-3.5 w-3.5 text-emerald-500" /></Button>}
+                            {isRunning && <Button size="icon" aria-label="Stop" variant="ghost" className="h-7 w-7" onClick={() => stopTimer(e.id)}><Square className="h-3.5 w-3.5 text-emerald-600" /></Button>}
+                            <Button size="icon" aria-label="Edit" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)}><Pencil className="h-3.5 w-3.5" /></Button>
+                            <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => { if (confirm("Delete?")) deleteEntry.mutate(e.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
                           </div>
                         </CardContent>
                       </Card>

@@ -125,10 +125,10 @@ export default function TemplatesLibrary({ storeId, category, storeName }: { sto
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(t)}>
+                    <Button size="icon" aria-label="Edit" variant="ghost" className="h-7 w-7" onClick={() => setEditing(t)}>
                       <Edit className="w-3 h-3" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => del.mutate(t.id)}>
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => del.mutate(t.id)}>
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>

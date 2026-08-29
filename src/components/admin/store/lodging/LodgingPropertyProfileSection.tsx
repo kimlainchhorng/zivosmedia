@@ -458,7 +458,7 @@ export default function LodgingPropertyProfileSection({ storeId }: { storeId: st
                             ><I className="h-3.5 w-3.5" /></button>
                           ))}
                         </div>
-                        <Button type="button" size="icon" variant="ghost" className="col-span-1 h-8 w-8" onClick={() => removeNearby(i)}>
+                        <Button type="button" size="icon" aria-label="Delete" variant="ghost" className="col-span-1 h-8 w-8" onClick={() => removeNearby(i)}>
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       </div>

@@ -290,10 +290,10 @@ export default function CarRentalPromotionsSection({ storeId }: Props) {
                             <Share2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}>
+                        <Button variant="ghost" size="icon" aria-label="Edit" className="h-7 w-7" onClick={() => openEdit(p)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(p.id); }}>
+                        <Button variant="ghost" size="icon" aria-label="Delete" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(p.id); }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>

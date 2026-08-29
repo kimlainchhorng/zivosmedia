@@ -650,7 +650,7 @@ export default function AutoRepairEstimatesSection({ storeId }: Props) {
                       <Input className="h-9" type="number" placeholder="$" value={(it.unit_cents / 100) || ""}
                         onChange={(e) => setItems((arr) => arr.map((x, i) => i === idx ? { ...x, unit_cents: Math.round((Number(e.target.value) || 0) * 100) } : x))} />
                       {items.length > 1 && (
-                        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0 text-destructive"
+                        <Button size="icon" aria-label="Delete" variant="ghost" className="h-9 w-9 shrink-0 text-destructive"
                           onClick={() => setItems(arr => arr.filter((_, i) => i !== idx))}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>

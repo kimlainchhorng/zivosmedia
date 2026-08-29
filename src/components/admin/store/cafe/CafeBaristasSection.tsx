@@ -148,7 +148,7 @@ export default function CafeBaristasSection({ storeId }: Props) {
                   <span className="tabular-nums text-sm font-medium shrink-0">{fmt(b.hourly_rate_cents)}/hr</span>
                   <Switch checked={b.is_active} onCheckedChange={(v) => update(b.id, { is_active: v })} />
                   <Button size="sm" variant="ghost" onClick={() => openEdit(b.id)}>Edit</Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm(`Remove ${b.display_name}?`)) remove(b.id); }}>
+                  <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm(`Remove ${b.display_name}?`)) remove(b.id); }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </li>

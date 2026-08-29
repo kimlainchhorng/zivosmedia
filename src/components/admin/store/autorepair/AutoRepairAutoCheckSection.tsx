@@ -411,7 +411,7 @@ export default function AutoRepairAutoCheckSection({ storeId }: Props) {
                     <span className="text-[10px] text-muted-foreground/60">{timeAgo(h.created_at)}</span>
                   </div>
                 </button>
-                <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-destructive"
+                <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-destructive"
                   onClick={() => deleteHistory(h.id)}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>

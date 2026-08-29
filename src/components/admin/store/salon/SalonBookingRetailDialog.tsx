@@ -156,11 +156,11 @@ export default function SalonBookingRetailDialog({
                       <p className="text-[11px] text-muted-foreground">{formatPrice(it.unit_price_cents)} each</p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => adjustQty(it, -1)} disabled={saving}><Minus className="h-3.5 w-3.5" /></Button>
+                      <Button type="button" size="icon" aria-label="Remove" variant="outline" className="h-7 w-7" onClick={() => adjustQty(it, -1)} disabled={saving}><Minus className="h-3.5 w-3.5" /></Button>
                       <span className="w-6 text-center text-sm font-bold">{it.quantity}</span>
-                      <Button type="button" size="icon" variant="outline" className="h-7 w-7" onClick={() => adjustQty(it, 1)} disabled={saving}><Plus className="h-3.5 w-3.5" /></Button>
+                      <Button type="button" size="icon" aria-label="Add" variant="outline" className="h-7 w-7" onClick={() => adjustQty(it, 1)} disabled={saving}><Plus className="h-3.5 w-3.5" /></Button>
                     </div>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeItem(it)} disabled={saving}>
+                    <Button type="button" variant="ghost" size="icon" aria-label="Delete" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeItem(it)} disabled={saving}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </li>

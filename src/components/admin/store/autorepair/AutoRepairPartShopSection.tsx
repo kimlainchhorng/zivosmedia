@@ -697,8 +697,8 @@ export default function AutoRepairPartShopSection({ storeId, isSoftwareDomain = 
                 {stockBadge(p.stock)}
                 <div className="flex gap-1">
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600" title="Adjust stock" onClick={() => { setAdjustPart(p); setAdjustDelta("0"); setAdjustMode("receive"); }}><PackagePlus className="w-3.5 h-3.5" /></Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(p)}><Pencil className="w-3.5 h-3.5" /></Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm(`Remove ${p.name}?`)) remove.mutate(p.id); }}><Trash2 className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" aria-label="Edit" variant="ghost" className="h-7 w-7" onClick={() => startEdit(p)}><Pencil className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm(`Remove ${p.name}?`)) remove.mutate(p.id); }}><Trash2 className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
             ))}
@@ -910,8 +910,8 @@ function PartCard({ part: p, onEdit, onAdjust, onRemove }: { part: Part; onEdit:
           </div>
           <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button size="icon" variant="secondary" className="h-7 w-7 shadow-sm text-emerald-700" title="Adjust stock" onClick={() => onAdjust(p)}><PackagePlus className="w-3.5 h-3.5" /></Button>
-            <Button size="icon" variant="secondary" className="h-7 w-7 shadow-sm" onClick={() => onEdit(p)}><Pencil className="w-3.5 h-3.5" /></Button>
-            <Button size="icon" variant="secondary" className="h-7 w-7 shadow-sm text-destructive" onClick={() => onRemove(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+            <Button size="icon" aria-label="Edit" variant="secondary" className="h-7 w-7 shadow-sm" onClick={() => onEdit(p)}><Pencil className="w-3.5 h-3.5" /></Button>
+            <Button size="icon" aria-label="Delete" variant="secondary" className="h-7 w-7 shadow-sm text-destructive" onClick={() => onRemove(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
           </div>
         </div>
 

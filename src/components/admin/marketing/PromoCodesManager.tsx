@@ -74,10 +74,10 @@ export default function PromoCodesManager({ storeId }: { storeId: string }) {
                     {c.expires_at && <span>· expires {format(parseISO(c.expires_at), "MMM d")}</span>}
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.code); toast.success("Copied"); }}>
+                <Button size="icon" aria-label="Copy" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.code); toast.success("Copied"); }}>
                   <Copy className="w-3.5 h-3.5" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); del.mutate(c.id); }}>
+                <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={(e) => { e.stopPropagation(); del.mutate(c.id); }}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>

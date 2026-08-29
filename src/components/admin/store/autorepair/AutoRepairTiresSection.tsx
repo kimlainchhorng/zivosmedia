@@ -174,22 +174,22 @@ export default function AutoRepairTiresSection({ storeId }: Props) {
                   <div className="flex items-center gap-2 shrink-0">
                     {/* Stock adjuster */}
                     <div className="flex items-center gap-1 border border-border rounded-lg">
-                      <Button size="icon" variant="ghost" className="h-7 w-7 rounded-r-none"
+                      <Button size="icon" aria-label="Remove" variant="ghost" className="h-7 w-7 rounded-r-none"
                         onClick={() => adjustQty.mutate({ id: t.id, delta: -1 })} disabled={t.qty <= 0}>
                         <Minus className="w-3 h-3" />
                       </Button>
                       <span className={`text-sm font-medium px-2 ${t.qty <= t.reorder_point ? "text-destructive" : ""}`}>
                         {t.qty}
                       </span>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 rounded-l-none"
+                      <Button size="icon" aria-label="Add" variant="ghost" className="h-7 w-7 rounded-l-none"
                         onClick={() => adjustQty.mutate({ id: t.id, delta: 1 })}>
                         <Plus className="w-3 h-3" />
                       </Button>
                     </div>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(t)}>
+                    <Button size="icon" aria-label="Edit" variant="ghost" className="h-8 w-8" onClick={() => openEdit(t)}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive"
                       onClick={() => { if (confirm(`Remove ${t.brand} ${t.size}?`)) del.mutate(t.id); }}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>

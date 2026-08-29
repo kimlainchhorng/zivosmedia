@@ -253,7 +253,7 @@ export default function AutoRepairInspectionsSection({ storeId, onCreateEstimate
                       </Button>
                     )}
                     <Button size="sm" variant="outline" className="h-8" onClick={() => startEdit(i)}>Open</Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm("Delete inspection?")) remove.mutate(i.id); }}>
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm("Delete inspection?")) remove.mutate(i.id); }}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>

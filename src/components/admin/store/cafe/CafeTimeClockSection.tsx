@@ -161,7 +161,7 @@ export default function CafeTimeClockSection({ storeId }: Props) {
                     {e.break_minutes > 0 && <span className="text-[11px] text-muted-foreground">−{e.break_minutes}m break</span>}
                     <span className="tabular-nums font-medium">{fmtHrs(liveMinutes)}</span>
                     <span className="tabular-nums text-muted-foreground w-16 text-right">{fmt(wage)}</span>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Delete this shift?")) removeEntry(e.id); }}>
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Delete this shift?")) removeEntry(e.id); }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </li>

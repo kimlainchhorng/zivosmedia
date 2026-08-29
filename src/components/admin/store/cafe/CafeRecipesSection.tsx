@@ -163,7 +163,7 @@ export default function CafeRecipesSection({ storeId }: Props) {
                       className="h-8 w-24 tabular-nums"
                     />
                     {ing && <span className="text-[11px] text-muted-foreground tabular-nums w-20 text-right">{fmt(Math.round(lineCost))}</span>}
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm("Remove this ingredient?")) recipes.removeIngredient(r.id); }}>
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm("Remove this ingredient?")) recipes.removeIngredient(r.id); }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </li>

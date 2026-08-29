@@ -250,7 +250,7 @@ export default function AdminLayout({ children, title, brandLabel }: AdminLayout
             </div>
             <Button
               variant="ghost"
-              size="icon"
+              size="icon" aria-label="Previous"
               className="lg:hidden"
               onClick={() => setSidebarOpen(false)}
             >
@@ -344,7 +344,7 @@ export default function AdminLayout({ children, title, brandLabel }: AdminLayout
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon" aria-label="Open menu"
                 className="lg:hidden"
                 onClick={() => setSidebarOpen(true)}
               >

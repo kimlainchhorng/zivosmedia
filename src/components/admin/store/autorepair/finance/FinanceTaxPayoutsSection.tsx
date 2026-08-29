@@ -153,7 +153,7 @@ export default function FinanceTaxPayoutsSection({ storeId }: Props) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium tabular-nums">{fmt(p.amount_cents)}</span>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => remove.mutate(p.id)}>
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7" onClick={() => remove.mutate(p.id)}>
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </Button>
                   </div>

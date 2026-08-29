@@ -291,7 +291,7 @@ export default function AutoRepairLoanersSection({ storeId }: Props) {
                         </Button>
                       ) : null}
                       <Button
-                        size="icon"
+                        size="icon" aria-label="Delete"
                         variant="ghost"
                         className="h-7 w-7 text-destructive"
                         onClick={() => { if (confirm(`Remove ${v.year ?? ""} ${v.make} ${v.model}?`)) remove.mutate(v.id); }}

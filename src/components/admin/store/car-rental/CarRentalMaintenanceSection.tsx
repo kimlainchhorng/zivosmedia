@@ -349,10 +349,10 @@ export default function CarRentalMaintenanceSection({ storeId }: Props) {
                   <div className="flex items-center gap-2 sm:flex-col sm:items-end">
                     <span className="text-sm font-bold text-foreground">{formatMoney(r.cost_cents)}</span>
                     <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(r)}>
+                      <Button variant="ghost" size="icon" aria-label="Edit" className="h-7 w-7" onClick={() => openEdit(r)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(r.id); }}>
+                      <Button variant="ghost" size="icon" aria-label="Delete" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(r.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -646,7 +646,7 @@ function BlackoutsCard({ vehicles, blackouts, loading, saving, error, onCreate, 
                     </p>
                     {b.reason && <p className="truncate text-[11px] text-muted-foreground">{b.reason}</p>}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive transition-opacity sm:opacity-0 sm:group-hover:opacity-100" onClick={() => void onDelete(b.id)}>
+                  <Button variant="ghost" size="icon" aria-label="Delete" className="h-7 w-7 text-destructive transition-opacity sm:opacity-0 sm:group-hover:opacity-100" onClick={() => void onDelete(b.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </li>

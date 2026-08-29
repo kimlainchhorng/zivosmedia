@@ -197,6 +197,7 @@ export default function AutoRepairPromosSection({ storeId }: Props) {
                         </Button>
                         <Button
                           size="icon"
+                          aria-label={`Delete ${p.title}`}
                           variant="ghost"
                           className="h-8 w-8 text-destructive"
                           onClick={() => {

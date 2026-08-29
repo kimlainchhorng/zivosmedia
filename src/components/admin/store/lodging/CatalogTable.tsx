@@ -80,11 +80,12 @@ export function CatalogTable<T extends { id: string; active?: boolean }>({
                     aria-label="Active"
                   />
                 )}
-                <Button size="icon" variant="ghost" onClick={() => onEdit(row)}>
+                <Button size="icon" aria-label="Edit" variant="ghost" onClick={() => onEdit(row)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <Button
                   size="icon"
+                  aria-label="Delete item"
                   variant="ghost"
                   className="text-destructive hover:text-destructive"
                   onClick={() => {

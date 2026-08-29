@@ -244,7 +244,7 @@ function CardRow({ card, fmt, onRedeem, onToggle, onHistory, onDelete }: {
   return (
     <li className="py-3 flex flex-wrap items-center gap-3">
       <div className="font-mono text-sm font-semibold tracking-wider">{card.code}</div>
-      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleCopy}>
+      <Button size="icon" aria-label="Copy" variant="ghost" className="h-7 w-7" onClick={handleCopy}>
         <Copy className="h-3.5 w-3.5" />
       </Button>
       <div className="flex-1 min-w-0 text-sm">
@@ -268,7 +268,7 @@ function CardRow({ card, fmt, onRedeem, onToggle, onHistory, onDelete }: {
         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onToggle} title={card.is_active ? "Disable" : "Enable"}>
           {card.is_active ? <ShieldOff className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
         </Button>
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={onDelete}>
+        <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={onDelete}>
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>

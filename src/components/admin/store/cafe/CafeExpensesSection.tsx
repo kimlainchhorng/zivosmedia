@@ -139,7 +139,7 @@ export default function CafeExpensesSection({ storeId }: Props) {
                   {e.is_recurring && <Badge variant="outline" className="text-[10px]">recurring</Badge>}
                   {e.payment_method && <span className="text-[11px] text-muted-foreground uppercase">{e.payment_method}</span>}
                   <span className="tabular-nums font-semibold w-20 text-right">{fmt(e.amount_cents)}</span>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Delete this expense?")) remove(e.id); }}>
+                  <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Delete this expense?")) remove(e.id); }}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </li>

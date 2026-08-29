@@ -371,7 +371,7 @@ export default function CafeInventorySection({ storeId }: Props) {
                     <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit" onClick={() => openEdit(i.id)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm(`Delete "${i.name}"?`)) removeItem(i.id); }}>
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm(`Delete "${i.name}"?`)) removeItem(i.id); }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </li>

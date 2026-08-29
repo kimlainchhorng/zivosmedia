@@ -172,10 +172,10 @@ export default function CarRentalLocationsSection({ storeId }: Props) {
                       )}
                     </div>
                     <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(l)}>
+                      <Button variant="ghost" size="icon" aria-label="Edit" className="h-7 w-7" onClick={() => openEdit(l)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(l.id); }}>
+                      <Button variant="ghost" size="icon" aria-label="Delete" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(l.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
