@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { displayableDriverRating } from "@/lib/driverRating";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -97,6 +98,7 @@ function timeAgo(ts: string | null): string {
 export default function GroceryOrderTracking() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/grocery");
   const [order, setOrder] = useState<OrderData | null>(null);
   const [driver, setDriver] = useState<DriverInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -231,7 +233,7 @@ export default function GroceryOrderTracking() {
       <div className="relative max-w-md mx-auto px-5">
         {/* Header */}
         <div className="flex items-center gap-3 pt-12 pb-4">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="p-2 -ml-2 rounded-xl hover:bg-muted/40 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Go back" className="p-2 -ml-2 rounded-xl hover:bg-muted/40 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex-1">
