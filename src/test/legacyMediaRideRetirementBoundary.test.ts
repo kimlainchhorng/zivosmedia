@@ -51,13 +51,26 @@ describe("legacy Media Ride retirement boundary", () => {
   });
 
   it("has no current browser invocation of a retired Media Ride payment route", () => {
-    const appSource = appSourceFiles(path.join(root, "src"))
-      .map((file) => readFileSync(file, "utf8"))
-      .join("\n");
+    // Scanned per file rather than joined: concatenating src/ produced a
+    // ~33MB string across ~2900 files, and allocating that while the rest of
+    // the suite runs in parallel pushed this test past its timeout. Checking
+    // each file and discarding it keeps the same coverage, and a failure now
+    // names the file instead of pointing at one enormous haystack.
+    const needles = retiredRoutes.flatMap((route) => [
+      `functions.invoke("${route}"`,
+      `functions/v1/${route}`,
+    ]);
 
-    for (const route of retiredRoutes) {
-      expect(appSource).not.toContain(`functions.invoke("${route}"`);
-      expect(appSource).not.toContain(`functions/v1/${route}`);
+    const offenders: string[] = [];
+    for (const file of appSourceFiles(path.join(root, "src"))) {
+      const contents = readFileSync(file, "utf8");
+      for (const needle of needles) {
+        if (contents.includes(needle)) {
+          offenders.push(`${path.relative(root, file)}: ${needle}`);
+        }
+      }
     }
+
+    expect(offenders, "retired Media Ride payment routes are still invoked").toEqual([]);
   });
 });

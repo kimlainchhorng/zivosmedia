@@ -134,7 +134,7 @@ describe("ChatAttachMenu", () => {
     expect(callbacks.onShareSocial).toHaveBeenCalledTimes(1);
     expect(callbacks.onShareZivoCard).toHaveBeenCalledTimes(1);
     expect(callbacks.onToggleDisappearing).toHaveBeenCalledTimes(1);
-  }, 10_000);
+  });
 
   it("keeps scan disabled instead of falling back to photo when scanner is unavailable", async () => {
     const callbacks = renderMenu({ onScanDocument: undefined });
