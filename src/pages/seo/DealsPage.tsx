@@ -96,7 +96,7 @@ export default function DealsPage() {
               {/* Quick Search Buttons */}
               <div className="flex flex-wrap justify-center gap-4">
                 <Link to="/flights">
-                  <Button size="lg" className="h-12 gap-2 bg-foreground hover:bg-foreground">
+                  <Button size="lg" className="h-12 gap-2">
                     <Plane className="h-5 w-5" />
                     Search Flights
                   </Button>

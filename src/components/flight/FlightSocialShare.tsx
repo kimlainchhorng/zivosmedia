@@ -105,7 +105,7 @@ const FlightSocialShare = () => {
                   placeholder="Enter email address"
                   className="flex-1 h-11 px-4 bg-background/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50"
                 />
-                <Button onClick={handleInvite} className="bg-foreground hover:bg-foreground">
+                <Button onClick={handleInvite}>
                   <Mail className="w-4 h-4 mr-2" />
                   Send Invite
                 </Button>

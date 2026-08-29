@@ -169,7 +169,7 @@ export default function CarRentalCityPage() {
               </p>
 
               <Link to={searchUrl}>
-                <Button size="lg" className="h-14 px-8 text-primary-foreground shadow-lg bg-foreground">
+                <Button size="lg" className="h-14 px-8 shadow-lg">
                   <CarFront className="h-5 w-5 mr-2" />
                   Search Cars in {displayName}
                   <ArrowRight className="h-5 w-5 ml-2" />

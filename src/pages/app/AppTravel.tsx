@@ -347,7 +347,7 @@ const AppTravel = () => {
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="font-bold text-xl text-foreground">${flight.price}</p>
-                          <Button size="sm" className="rounded-xl gap-1 text-primary-foreground shadow-md font-bold bg-foreground" onClick={handleBookNow}>
+                          <Button size="sm" className="rounded-xl gap-1 shadow-md font-bold" onClick={handleBookNow}>
                             View Deal <ArrowRight className="w-3 h-3" />
                           </Button>
                         </div>

@@ -166,7 +166,7 @@ const TravelInsurance = () => {
                 lost luggage, and more.
               </p>
               <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
-                <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-10 text-sm sm:text-lg font-bold rounded-2xl text-primary-foreground shadow-xl hover:opacity-90 gap-2 touch-manipulation active:scale-[0.98] bg-foreground">
+                <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-10 text-sm sm:text-lg font-bold rounded-2xl shadow-xl hover:opacity-90 gap-2 touch-manipulation active:scale-[0.98]">
                   Get Protected
                   <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
@@ -347,7 +347,7 @@ const TravelInsurance = () => {
               <p className="text-sm sm:text-lg text-muted-foreground mb-6 sm:mb-10">Get instant coverage and peace of mind for your next trip</p>
               
               <div className="inline-block mb-6 sm:mb-10">
-                <Button size="lg" className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-bold rounded-xl sm:rounded-2xl text-primary-foreground shadow-xl hover:opacity-90 gap-2 sm:gap-3 touch-manipulation active:scale-[0.98] bg-foreground">
+                <Button size="lg" className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-bold rounded-xl sm:rounded-2xl shadow-xl hover:opacity-90 gap-2 sm:gap-3 touch-manipulation active:scale-[0.98]">
                   Get Insured Now
                   <ArrowRight className="w-4 h-4 sm:w-6 sm:h-6" />
                 </Button>

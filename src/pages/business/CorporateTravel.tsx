@@ -136,7 +136,7 @@ export default function CorporateTravel() {
                   ))}
                 </ul>
 
-                <Button asChild size="lg" className="gap-2 bg-foreground hover:bg-foreground">
+                <Button asChild size="lg" className="gap-2">
                   <a href="#waitlist">
                     Join the Waitlist
                     <ArrowRight className="w-4 h-4" />

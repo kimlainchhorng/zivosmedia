@@ -71,7 +71,7 @@ const FlightDealsCarousel = ({ onSelect }: FlightDealsCarouselProps) => {
                   <p className="text-sm text-muted-foreground mb-3">
                     Avg. flight time: {route.duration}
                   </p>
-                  <Button className="w-full bg-foreground hover:bg-foreground text-primary-foreground">
+                  <Button className="w-full">
                     Search Flights <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
