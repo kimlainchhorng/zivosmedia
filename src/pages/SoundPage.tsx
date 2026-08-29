@@ -13,6 +13,7 @@ import CreatePostModal from "@/components/social/CreatePostModal";
 import { Helmet } from "react-helmet-async";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { isBlueVerified } from "@/lib/verification";
+import { useGoBack } from "@/hooks/useGoBack";
 
 /** Convert a URL slug like "midnight-drive" into "Midnight Drive" */
 function humanizeSlug(slug: string): string {
@@ -36,6 +37,7 @@ const KNOWN_TRACKS: Record<string, { title: string; artist: string; genre: strin
 export default function SoundPage() {
   const { soundName } = useParams<{ soundName: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const slug = soundName || "";
   const knownTrack = KNOWN_TRACKS[slug];
@@ -131,7 +133,7 @@ export default function SoundPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-40 bg-background/95 backdrop-blur border-b border-border/40">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-1.5 rounded-full hover:bg-muted/50 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-1.5 rounded-full hover:bg-muted/50 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5 text-foreground" />
           </button>
           <div className="flex-1 min-w-0">

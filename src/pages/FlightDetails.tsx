@@ -20,9 +20,11 @@ import { type DuffelOffer, type DuffelSegment } from "@/hooks/useDuffelFlights";
 import { AirlineLogo } from "@/components/flight/AirlineLogo";
 import { cn } from "@/lib/utils";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const FlightDetails = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [showSegments, setShowSegments] = useState(false);
 
   const offerRaw = sessionStorage.getItem("zivo_selected_offer");
@@ -61,7 +63,7 @@ const FlightDetails = () => {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-3 mb-5"
           >
-            <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+            <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
@@ -312,7 +314,7 @@ const FlightDetails = () => {
             <Button
               variant="outline"
               className="w-full border-border/40"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
             >
               Back to Results
             </Button>

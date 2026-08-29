@@ -108,7 +108,7 @@ describe("ChatAttachMenu", () => {
     clickAction("Video");
     clickAction("GIF");
     clickAction("Music");
-    clickAction("18+");
+    clickAction("Content warning");
     clickAction("View once");
     clickAction("File");
     clickAction("Scan");
@@ -118,9 +118,6 @@ describe("ChatAttachMenu", () => {
     clickAction("Poll");
     clickAction("Social");
     clickAction("ZIVO");
-    clickAction("Gift");
-    clickAction("Money");
-    clickAction("Locked");
     clickAction("24h");
 
     expect(callbacks.onImageSelect).toHaveBeenCalledTimes(1);
@@ -136,11 +133,8 @@ describe("ChatAttachMenu", () => {
     expect(callbacks.onCreatePoll).toHaveBeenCalledTimes(1);
     expect(callbacks.onShareSocial).toHaveBeenCalledTimes(1);
     expect(callbacks.onShareZivoCard).toHaveBeenCalledTimes(1);
-    expect(callbacks.onSendGift).toHaveBeenCalledTimes(1);
-    expect(callbacks.onOpenWallet).toHaveBeenCalledTimes(1);
-    expect(callbacks.onLockedImageSelect).toHaveBeenCalledTimes(1);
     expect(callbacks.onToggleDisappearing).toHaveBeenCalledTimes(1);
-  }, 10_000);
+  });
 
   it("keeps scan disabled instead of falling back to photo when scanner is unavailable", async () => {
     const callbacks = renderMenu({ onScanDocument: undefined });
@@ -155,14 +149,25 @@ describe("ChatAttachMenu", () => {
     expect(callbacks.onImageSelect).not.toHaveBeenCalled();
   });
 
-  it("can tailor locked media copy and hides paid DM when text unlock is unavailable", async () => {
+  // `e3f08a0ea Retire creator monetization and dating surfaces` removed the
+  // 18+, Gift, Money and Locked actions from this menu. This test used to
+  // assert the locked-media copy; it now guards the removal instead, so the
+  // retired surfaces cannot reappear through the attachment menu unnoticed.
+  it("keeps the retired monetization and adult actions out of the menu", async () => {
     renderMenu({ lockedMediaHint: "Stars unlock" });
 
     await screen.findByRole("dialog", { name: /attachment menu/i });
     clickAction(/show more actions/i);
 
-    expect(screen.getByRole("button", { name: "Locked" })).toBeInTheDocument();
-    expect(screen.getByText("Stars unlock")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Paid DM" })).not.toBeInTheDocument();
+    for (const retired of ["18+", "Gift", "Money", "Locked", "Paid DM"]) {
+      expect(
+        screen.queryByRole("button", { name: retired }),
+        `${retired} is a retired action and must not render`,
+      ).not.toBeInTheDocument();
+    }
+    // The replacement for 18+ is the neutral content warning toggle.
+    expect(screen.getByRole("button", { name: "Content warning" })).toBeInTheDocument();
+    // A hint for retired locked media must not leak into the UI either.
+    expect(screen.queryByText("Stars unlock")).not.toBeInTheDocument();
   });
 });

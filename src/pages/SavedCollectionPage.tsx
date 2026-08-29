@@ -19,6 +19,7 @@ import Image from "lucide-react/dist/esm/icons/image";
 
 import ReelThumbnail from "@/components/social/ReelThumbnail";
 import { useSavedCollections } from "@/hooks/useSavedCollections";
+import { useGoBack } from "@/hooks/useGoBack";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ interface CollectionMeta {
 
 export default function SavedCollectionPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { id: collectionId } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const { rename, remove } = useSavedCollections();
@@ -183,7 +185,7 @@ export default function SavedCollectionPage() {
       >
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Back"
         >

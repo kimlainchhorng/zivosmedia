@@ -22,6 +22,7 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 import { isBlueVerified } from '@/lib/verification';
 import DegradedDataBanner from '@/components/reliability/DegradedDataBanner';
 import LoadFailureCard from '@/components/reliability/LoadFailureCard';
+import { useGoBack } from '@/hooks/useGoBack';
 
 type NotificationCategory = 'all' | 'chat' | 'social' | 'orders' | 'promos' | 'support' | 'delays';
 
@@ -235,6 +236,7 @@ const SwipeableNotificationRow = ({
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { t } = useI18n();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<NotificationCategory>('all');
@@ -488,7 +490,7 @@ const NotificationsPage = () => {
               <div className="flex min-w-0 items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate(-1)}
+                  onClick={goBack}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-background text-foreground transition-all hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Go back"
                 >

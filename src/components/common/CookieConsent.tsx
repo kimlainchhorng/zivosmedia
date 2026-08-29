@@ -142,7 +142,11 @@ const CookieConsent = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="pointer-events-none fixed left-0 right-0 z-[100] p-3 bottom-[calc(12px+var(--zivo-safe-bottom,0px))] md:bottom-0 md:p-6"
+          /* Clears the fixed bottom nav, which is z-[1401] against this banner's
+             z-[100] and so paints over it. The nav is hidden from lg up, not md,
+             so md:bottom-0 pinned the consent buttons underneath it on tablets.
+             4rem matches the .pb-nav allowance the rest of the app uses. */
+          className="pointer-events-none fixed left-0 right-0 z-[100] p-3 bottom-[calc(4rem+12px+var(--zivo-safe-bottom,0px))] md:p-6 lg:bottom-0"
         >
           <Card className="pointer-events-auto max-w-xl mx-auto shadow-2xl border-0 bg-card/95 backdrop-blur-xl overflow-hidden max-h-[46vh] overflow-y-auto md:max-w-4xl md:max-h-none">
             {/* Top gradient line */}

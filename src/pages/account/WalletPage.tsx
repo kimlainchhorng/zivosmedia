@@ -31,6 +31,7 @@ import WithdrawalReceipt, { type WithdrawalReceiptData } from "@/components/wall
 import { getStripe } from "@/lib/stripe";
 import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -211,6 +212,7 @@ function WalletTopupPaymentForm({
 
 export default function WalletPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [showAddCard, setShowAddCard] = useState(false);
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [activeTab, setActiveTab] = useState<"cards" | "cashout" | "history" | "credits">("cards");
@@ -494,7 +496,7 @@ export default function WalletPage() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition-transform"
           >
             <ArrowLeft className="w-4.5 h-4.5" />

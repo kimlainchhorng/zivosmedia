@@ -11,6 +11,7 @@ import { validateExternalUrl } from "@/lib/urlSafety";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface BioLink {
   id: string;
@@ -29,6 +30,7 @@ const THEMES = [
 
 export default function LinkHubPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [links, setLinks] = useState<BioLink[]>([]);
   const [creatorId, setCreatorId] = useState<string | null>(null);
@@ -175,7 +177,7 @@ export default function LinkHubPage() {
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
+            <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}><ArrowLeft className="h-5 w-5" /></Button>
             <Link2 className="h-5 w-5 text-primary" />
             <h1 className="text-xl font-bold text-ig-gradient">Link Hub</h1>
           </div>

@@ -18,6 +18,7 @@ import { useMutedThreads, MUTE_DURATIONS, formatMuteLabel, type MuteDurationId }
 import { useMessageRequestNotificationPrivacy } from "@/hooks/useAllowMessageRequests";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 import {
   deleteNotificationById,
   deleteNotificationsById,
@@ -161,6 +162,7 @@ const TABS: { key: string; label: string; icon?: any }[] = [
 
 export default function NotificationCenterPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -386,7 +388,7 @@ export default function NotificationCenterPage() {
         style={{ paddingTop: "var(--zivo-safe-top-sticky, var(--zivo-safe-top,0px))" }}>
         <div className="flex items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-2">
-            <Button aria-label="Back" variant="ghost" size="icon" className="rounded-full" onClick={() => navigate(-1)}>
+            <Button aria-label="Back" variant="ghost" size="icon" className="rounded-full" onClick={goBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-[17px] font-bold">Notifications</h1>

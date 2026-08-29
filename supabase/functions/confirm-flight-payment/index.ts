@@ -115,7 +115,14 @@ Deno.serve(withSecurity("confirm-flight-payment", async (req, ctx) => {
               passengers: duffelPassengers,
               payments: [{
                 type: "balance",
-                amount: String(booking.total_amount * (dbPassengers?.length || 1)),
+                // `total_amount` is already the whole-booking total:
+                // create-flight-payment-intent stores totalAmount * passengers.
+                // Multiplying by the passenger count again sent Duffel N x the
+                // offer price, which it rejected, failing every multi-passenger
+                // booking. (create-flight-checkout stores a per-passenger
+                // figure, but its hook has no callers and its hosted-checkout
+                // rows settle through stripe-webhook, never through here.)
+                amount: String(booking.total_amount),
                 currency: booking.currency,
               }],
             },

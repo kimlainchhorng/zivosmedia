@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, DollarSign, AlertTriangle, Ban, Scale, FileText, Clock, Gavel, CreditCard, Globe, Users, Plane, Car, UtensilsCrossed, Hotel, Smartphone, MapPin, Heart, Zap, Lock, Eye, MessageSquare, RefreshCw, Landmark, BadgeAlert, ShieldOff, Wallet, Receipt, TrendingDown, UserX, Handshake, BookOpen, Database, Mail, CircleAlert, Timer, Megaphone, Construction, Umbrella, Flame, Server, Wifi, CloudOff, PackageX, Truck, Navigation, Star, ThumbsDown, Bomb, Siren, Activity, Boxes, BadgeDollarSign, ShieldCheck, FileLock, Fingerprint, ScaleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const sections = [
   {
@@ -257,11 +258,12 @@ const sections = [
 
 export default function LimitationOfLiability() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Limitation of Liability</h1>

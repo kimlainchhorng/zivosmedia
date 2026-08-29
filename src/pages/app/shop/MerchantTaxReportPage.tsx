@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useGoBack } from "@/hooks/useGoBack";
 import { FileText, Download, ArrowLeft, AlertTriangle, CheckCircle, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -26,6 +27,7 @@ interface MonthSummary {
 export default function MerchantTaxReportPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
 
   const { data: store } = useQuery({
     queryKey: ["merchant-store-tax", user?.id],
@@ -118,7 +120,7 @@ export default function MerchantTaxReportPage() {
   return (
     <div className="min-h-screen bg-background p-4 pb-24 max-w-lg mx-auto space-y-4 safe-area-top">
       <div className="flex items-center gap-3">
-        <Button aria-label="Back" variant="outline" size="icon" onClick={() => navigate(-1)}>
+        <Button aria-label="Back" variant="outline" size="icon" onClick={goBack}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>

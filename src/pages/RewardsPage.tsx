@@ -27,9 +27,11 @@ import {
   ReferralCard,
 } from "@/components/loyalty";
 import { POINTS_COMPLIANCE, type ZivoTier } from "@/config/zivoPoints";
+import { useGoBack } from "@/hooks/useGoBack";
 
 export default function RewardsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user, isLoading: authLoading } = useAuth();
   const { points, isLoading } = useLoyaltyPoints();
   const [activeTab, setActiveTab] = useState("overview");
@@ -182,7 +184,7 @@ export default function RewardsPage() {
           <div className="flex items-center gap-3">
             <motion.button
               whileTap={{ scale: 0.88 }}
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               aria-label="Back"
               className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >

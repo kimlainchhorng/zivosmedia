@@ -6,6 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { DELIVERY_MIN_FEE, DELIVERY_MAX_FEE, SERVICE_FEE_PCT, SERVICE_FEE_MIN, SERVICE_FEE_MAX, MARKUP_THRESHOLD, formatFee } from "@/config/groceryPricing";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const sections = [
   {
@@ -91,12 +92,13 @@ Cancellation fees compensate drivers for their time and effort. ZIVO reserves th
 
 export default function GroceryTerms() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/grocery");
 
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-2xl border-b border-border/20">
         <div className="flex items-center gap-3 px-4 py-3">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} aria-label="Go back" className="p-2 rounded-2xl hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="h-5 w-5" /></motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="p-2 rounded-2xl hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="h-5 w-5" /></motion.button>
           <div>
             <h1 className="text-base font-bold">Grocery Terms of Service</h1>
             <p className="text-[10px] text-muted-foreground">Last updated March 2026</p>

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { validateExternalUrl } from "@/lib/urlSafety";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type PublicBot = {
   id: string;
@@ -23,6 +24,7 @@ type App = { slug: string; title: string; description: string | null; icon_emoji
 export default function BotPublicProfilePage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [bot, setBot] = useState<PublicBot | null>(null);
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export default function BotPublicProfilePage() {
     <div className="min-h-screen bg-background pb-[var(--zivo-safe-bottom,0px)]">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex items-center gap-2 h-14 px-2 max-w-2xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-semibold flex-1 truncate">@{bot.username}</h1>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -57,6 +58,7 @@ function groupByMonth(
 
 export default function PersonalPayStubsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -153,7 +155,7 @@ export default function PersonalPayStubsPage() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-4 h-4" />

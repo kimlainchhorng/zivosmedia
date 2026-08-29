@@ -22,6 +22,7 @@ import { useAdultGate } from "@/hooks/useAdultGate";
 import SEOHead from "@/components/SEOHead";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type OFCreator = {
   user_id: string;
@@ -36,6 +37,7 @@ type OFCreator = {
 
 export default function AdultDiscoveryPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { isConfirmed, isLoading, confirm } = useAdultGate();
   const [search, setSearch] = useState("");
   const [pendingConfirm, setPendingConfirm] = useState(false);
@@ -110,7 +112,7 @@ export default function AdultDiscoveryPage() {
         >
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground rounded-md transition-all active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back
@@ -189,7 +191,7 @@ export default function AdultDiscoveryPage() {
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Back"
             className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >

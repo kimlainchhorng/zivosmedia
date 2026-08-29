@@ -172,7 +172,7 @@ export default function CafeBundlesCard({ storeId }: Props) {
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                    size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive"
                     onClick={() => { if (confirm(`Delete bundle "${b.name}"?`)) void remove(b.id); }}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -304,7 +304,7 @@ export default function CafeBundlesCard({ storeId }: Props) {
                           {fmt((m?.price_cents ?? 0) * line.quantity)}
                         </span>
                         <Button
-                          size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                          size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive"
                           onClick={() => setDraft({ ...draft, items: draft.items.filter((_, i) => i !== idx) })}
                         >
                           <Trash2 className="h-3.5 w-3.5" />

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useGoBack } from "@/hooks/useGoBack";
 import { ShieldAlert, ArrowLeft, RefreshCw, Ban, TriangleAlert, Activity, UserX } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ interface SenderBlockRow {
 
 export default function AdminChatSecurityPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [unblockingSenderId, setUnblockingSenderId] = useState<string | null>(null);
 
   const { data: events = [], isLoading, refetch, isFetching } = useQuery({
@@ -98,7 +100,7 @@ export default function AdminChatSecurityPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button aria-label="Back" variant="outline" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="outline" size="icon" onClick={goBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

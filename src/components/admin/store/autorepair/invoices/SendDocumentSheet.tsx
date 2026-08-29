@@ -90,7 +90,7 @@ export default function SendDocumentSheet({
             </Label>
             <div className="flex gap-2">
               <Input value={generating ? "Generating…" : url} readOnly className="text-xs" />
-              <Button size="icon" variant="outline" onClick={copyLink} disabled={!url}>
+              <Button size="icon" aria-label="Copy link" variant="outline" onClick={copyLink} disabled={!url}>
                 {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import DriverAppDownloadSheet from "@/components/partner/DriverAppDownloadSheet";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const partnerOptions = [
   { icon: Car, label: "Become a Driver", description: "Earn money driving with ZIVO", href: "/partner-with-zivo?type=driver", color: "from-blue-500 to-blue-600" },
@@ -71,6 +72,7 @@ const quickLinks = [
 
 const AppMore = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user, signOut, isAdmin } = useAuth();
   const { data: access } = useUserAccess(user?.id);
   const { data: ownerStores = [] } = useOwnerStores();
@@ -443,7 +445,7 @@ const AppMore = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mt-3 text-center">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="text-muted-foreground text-sm font-medium touch-manipulation rounded-md transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Close

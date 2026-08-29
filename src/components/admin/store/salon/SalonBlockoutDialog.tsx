@@ -192,7 +192,7 @@ export default function SalonBlockoutDialog({ storeId, open, defaultDate, onClos
                       <p className="text-sm font-medium text-foreground">{formatRange(b.start_at, b.end_at)}</p>
                       {b.reason && <p className="truncate text-xs text-muted-foreground">{b.reason}</p>}
                     </div>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(b)} disabled={saving}>
+                    <Button type="button" variant="ghost" size="icon" aria-label="Delete" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(b)} disabled={saving}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </li>

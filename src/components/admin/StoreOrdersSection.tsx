@@ -255,7 +255,7 @@ export default function StoreOrdersSection({ storeId }: Props) {
         </div>
         <Button
           variant="outline"
-          size="icon"
+          size="icon" aria-label="Sort"
           onClick={() => setSortNewest(!sortNewest)}
           className="rounded-xl shrink-0"
         >

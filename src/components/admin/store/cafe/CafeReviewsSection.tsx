@@ -159,7 +159,7 @@ export default function CafeReviewsSection({ storeId }: Props) {
                     <Button size="icon" variant="ghost" className="h-7 w-7" title={r.is_visible ? "Hide" : "Show"} onClick={() => setVisible(r.id, !r.is_visible)}>
                       {r.is_visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Delete review?")) remove(r.id); }}>
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Delete review?")) remove(r.id); }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>

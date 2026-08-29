@@ -147,11 +147,11 @@ export default function CarRentalReservationsSection({ storeId }: Props) {
           {view === "calendar" ? null : (
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setDate(addDays(date, -1))}>
+              <Button variant="outline" size="icon" aria-label="Previous day" className="h-8 w-8" onClick={() => setDate(addDays(date, -1))}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-auto" />
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setDate(addDays(date, 1))}>
+              <Button variant="outline" size="icon" aria-label="Next day" className="h-8 w-8" onClick={() => setDate(addDays(date, 1))}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setDate(todayIso())}>Today</Button>

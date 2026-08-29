@@ -28,11 +28,13 @@ import {
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
 import { FLIGHT_DISCLAIMERS } from "@/config/flightCompliance";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type CheckoutStatus = "loading" | "ready" | "error" | "timeout";
 
 const EmbeddedCheckout = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<CheckoutStatus>("loading");
   const [iframeError, setIframeError] = useState(false);
@@ -128,7 +130,7 @@ const EmbeddedCheckout = () => {
         {/* Locked Header */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border pt-safe">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
+            <Button variant="ghost" onClick={goBack} className="gap-2">
               <ArrowLeft className="w-4 h-4" />
               Go Back
             </Button>
@@ -164,7 +166,7 @@ const EmbeddedCheckout = () => {
                 
                 <Button 
                   variant="outline" 
-                  onClick={() => navigate(-1)} 
+                  onClick={goBack} 
                   className="w-full"
                 >
                   Go Back
@@ -194,7 +196,7 @@ const EmbeddedCheckout = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border pt-safe">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
+            <Button variant="ghost" size="sm" onClick={goBack} className="gap-2">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back</span>
             </Button>
@@ -282,7 +284,7 @@ const EmbeddedCheckout = () => {
 
                 <Button 
                   variant="outline" 
-                  onClick={() => navigate(-1)} 
+                  onClick={goBack} 
                   className="mt-6"
                 >
                   Go Back

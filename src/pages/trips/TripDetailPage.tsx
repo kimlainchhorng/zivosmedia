@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { isAllowedCheckoutUrl } from "@/lib/urlSafety";
+import { formatStripeAmount } from "@/lib/currency";
 
 const itemIcons: Record<ItemType, typeof Plane> = {
   flight: Plane,
@@ -192,7 +193,7 @@ export default function TripDetailPage() {
           <Card>
             <CardContent className="p-3 text-center">
               <p className="text-[10px] text-muted-foreground uppercase">Est. Cost</p>
-              <p className="text-xl font-bold">${(totalCost / 100).toFixed(0)}</p>
+              <p className="text-xl font-bold">{formatStripeAmount(totalCost, trip.currency)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -312,6 +313,7 @@ export default function TripDetailPage() {
                         <TripItemCard
                           key={item.id}
                           item={item}
+                          currency={trip.currency}
                           onDelete={() => deleteItem.mutate({ id: item.id, itineraryId: trip.id })}
                         />
                       ))}
@@ -327,7 +329,7 @@ export default function TripDetailPage() {
   );
 }
 
-function TripItemCard({ item, onDelete }: { item: TripItem; onDelete: () => void }) {
+function TripItemCard({ item, onDelete, currency }: { item: TripItem; onDelete: () => void; currency: string }) {
   const Icon = itemIcons[item.item_type];
   const colorClass = itemColors[item.item_type];
 
@@ -358,7 +360,7 @@ function TripItemCard({ item, onDelete }: { item: TripItem; onDelete: () => void
               )}
               {item.estimated_cost_cents > 0 && (
                 <span className="flex items-center gap-0.5">
-                  <DollarSign className="w-3 h-3" /> ${(item.estimated_cost_cents / 100).toFixed(0)}
+                  <DollarSign className="w-3 h-3" /> {formatStripeAmount(item.estimated_cost_cents, currency)}
                 </span>
               )}
             </div>

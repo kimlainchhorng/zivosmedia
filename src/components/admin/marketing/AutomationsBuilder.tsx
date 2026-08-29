@@ -71,10 +71,10 @@ export default function AutomationsBuilder({ storeId }: { storeId: string }) {
                   onCheckedChange={(v) => toggle.mutate({ id: a.id, status: v ? "active" : "paused" })}
                   className="scale-75"
                 />
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(a)}>
+                <Button size="icon" aria-label="Edit" variant="ghost" className="h-8 w-8" onClick={() => setEditing(a)}>
                   <Edit className="w-3.5 h-3.5" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => del.mutate(a.id)}>
+                <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => del.mutate(a.id)}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>

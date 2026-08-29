@@ -26,9 +26,11 @@ import {
 import { useAccountDeletion } from '@/hooks/useAccountDeletion';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useGoBack } from '@/hooks/useGoBack';
 
 export default function DeleteAccountPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const {
     deletionRequest,
     isLoading,
@@ -73,7 +75,7 @@ export default function DeleteAccountPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5" />

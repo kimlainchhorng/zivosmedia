@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion } from "framer-motion";
 
 type ContentType = "reel" | "map_pin";
@@ -23,6 +24,7 @@ const BUDGET_TIERS = [
 
 export default function MerchantBoostEngine() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [contentType, setContentType] = useState<ContentType>("reel");
   const [selectedTier, setSelectedTier] = useState(1);
@@ -102,7 +104,7 @@ export default function MerchantBoostEngine() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur-md border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack} className="rounded-xl">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

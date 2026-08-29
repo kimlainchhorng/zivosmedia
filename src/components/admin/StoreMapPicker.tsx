@@ -49,14 +49,14 @@ async function getApiKey(): Promise<string> {
 }
 
 async function loadGoogleMaps(apiKey: string): Promise<boolean> {
-  if (window.google?.maps) return true;
+  if (window.google?.maps?.Map) return true;
   const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
   if (existing) {
     return new Promise((resolve) => {
       const check = setInterval(() => {
-        if (window.google?.maps) { clearInterval(check); resolve(true); }
+        if (window.google?.maps?.Map) { clearInterval(check); resolve(true); }
       }, 200);
-      setTimeout(() => { clearInterval(check); resolve(!!window.google?.maps); }, 8000);
+      setTimeout(() => { clearInterval(check); resolve(!!window.google?.maps?.Map); }, 8000);
     });
   }
   return new Promise((resolve) => {

@@ -48,6 +48,12 @@ vi.mock("@capacitor/core", () => ({
     isNativePlatform: () => false,
     getPlatform: () => "web",
   },
+  // AuthContext pulls in nativeRestoreCredentials, which calls registerPlugin
+  // at module scope. Without it the whole Auth Context suite fails on import
+  // rather than on anything it means to assert. Returns a proxy of async
+  // no-ops: these tests run as web, where the plugin is never invoked.
+  registerPlugin: () =>
+    new Proxy({}, { get: () => vi.fn().mockResolvedValue(undefined) }),
 }));
 
 function createTestWrapper() {

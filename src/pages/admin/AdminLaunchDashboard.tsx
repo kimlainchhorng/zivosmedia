@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface DailyMetric {
   day: string;
@@ -23,6 +24,7 @@ interface DailyMetric {
 
 export default function AdminLaunchDashboard() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [loading, setLoading] = useState(true);
   const [totalInstalls, setTotalInstalls] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -149,7 +151,7 @@ export default function AdminLaunchDashboard() {
 
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur-md border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" title="Go back">
+          <button type="button" onClick={goBack} aria-label="Go back" title="Go back">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <BarChart3 className="h-5 w-5 text-primary" />

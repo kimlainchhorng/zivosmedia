@@ -19,6 +19,7 @@ import Image from "lucide-react/dist/esm/icons/image";
 import ReelThumbnail from "@/components/social/ReelThumbnail";
 import SavedCollectionsRail from "@/components/social/SavedCollectionsRail";
 import AddToCollectionPopover from "@/components/social/AddToCollectionPopover";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface SavedTile {
   bookmarkId: string;
@@ -34,6 +35,7 @@ interface SavedTile {
 
 export default function SavedPostsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
 
@@ -164,7 +166,7 @@ export default function SavedPostsPage() {
         style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}
       >
         <button type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Back"
         >

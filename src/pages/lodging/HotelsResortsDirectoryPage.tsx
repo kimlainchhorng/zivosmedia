@@ -27,6 +27,7 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { TravelFlowHeader } from "@/components/zivo-travel";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface DirectoryStore {
   id: string;
@@ -49,6 +50,7 @@ const FILTERS: Array<{ id: string; label: string; match: (cat: string) => boolea
 
 export default function HotelsResortsDirectoryPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
@@ -119,7 +121,7 @@ export default function HotelsResortsDirectoryPage() {
         ) : (
           <div className="px-4 py-3 flex items-center gap-2 safe-area-top">
             <button type="button"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               aria-label="Back"
               className="min-h-[40px] min-w-[40px] -ml-1 rounded-full flex items-center justify-center active:bg-muted transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >

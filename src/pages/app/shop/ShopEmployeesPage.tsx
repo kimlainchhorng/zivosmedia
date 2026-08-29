@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sendMetaConversionEvent } from "@/services/metaConversion";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type EmployeeRole = "owner" | "manager" | "cashier" | "staff";
 type EmployeeStatus = "active" | "inactive";
@@ -153,6 +154,7 @@ const EMPTY_FORM: EmployeeFormState = {
 
 export default function ShopEmployeesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
@@ -538,7 +540,7 @@ export default function ShopEmployeesPage() {
       <div className="flex flex-col px-4 pt-3 pb-24 max-w-2xl mx-auto">
         <div className="flex items-center gap-2.5 mb-5">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" />

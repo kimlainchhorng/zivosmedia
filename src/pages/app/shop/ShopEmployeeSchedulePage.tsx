@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface EmployeeOption {
   id: string;
@@ -50,6 +51,7 @@ function trimTime(t: string) {
 
 export default function ShopEmployeeSchedulePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
@@ -186,7 +188,7 @@ export default function ShopEmployeeSchedulePage() {
     <AppLayout title="Employee Schedule" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24 max-w-2xl mx-auto">
         <div className="flex items-center gap-2.5 mb-5">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" aria-label="Go back" onClick={goBack} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-[17px] flex-1">Employee Schedule</h1>

@@ -19,9 +19,11 @@ import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import AddCardForm from "@/components/wallet/AddCardForm";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const PaymentMethodsPage = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { t } = useI18n();
   const { user } = useAuth();
   const { methods, deleteCard, setDefault, isEmpty, isLoading } = useLocalPaymentMethods();
@@ -43,7 +45,7 @@ const PaymentMethodsPage = () => {
       {/* Header */}
       <header className="sticky top-0 safe-area-top z-50 flex items-center gap-3 px-4 py-4 bg-background/95 backdrop-blur-xl border-b border-border/50">
         <button type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="p-2 rounded-full hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation"
           aria-label="Go back"
         >

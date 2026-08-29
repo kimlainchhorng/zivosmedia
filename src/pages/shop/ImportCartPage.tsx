@@ -11,12 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useImportCart } from "@/hooks/useImportShop";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 type PayMethod = "card" | "aba" | "cash_on_delivery" | "wallet";
 
 export default function ImportCartPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const { items, updateQty, removeItem, clear, subtotal_cents, shipping_cents } = useImportCart();
   const [contactName, setContactName] = useState("");
@@ -76,7 +78,7 @@ export default function ImportCartPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border/40 flex items-center px-3 py-2.5 gap-2" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
-        <Button variant="ghost" size="icon" aria-label="Go back" className="h-9 w-9" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" aria-label="Go back" className="h-9 w-9" onClick={goBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-base font-bold flex-1">Cart & Checkout</h1>
@@ -102,14 +104,14 @@ export default function ImportCartPage() {
                   <div className="flex items-center justify-between mt-1.5">
                     <span className="text-[13px] font-bold text-primary">${(it.price_cents / 100).toFixed(2)}</span>
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(it.productId, it.qty - 1, it.variant)}>
+                      <Button size="icon" variant="outline" className="h-7 w-7" aria-label={`Decrease quantity of ${it.title}`} onClick={() => updateQty(it.productId, it.qty - 1, it.variant)}>
                         <Minus className="h-3 w-3" />
                       </Button>
                       <span className="text-[12px] font-bold w-6 text-center">{it.qty}</span>
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(it.productId, it.qty + 1, it.variant)}>
+                      <Button size="icon" variant="outline" className="h-7 w-7" aria-label={`Increase quantity of ${it.title}`} onClick={() => updateQty(it.productId, it.qty + 1, it.variant)}>
                         <Plus className="h-3 w-3" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeItem(it.productId, it.variant)}>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" aria-label={`Remove ${it.title} from cart`} onClick={() => removeItem(it.productId, it.variant)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>

@@ -150,9 +150,9 @@ export default function AddOnsSheet({ open, onOpenChange, reservationId, addons,
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button variant="outline" size="icon" className="h-8 w-8" disabled={disabled || count <= 0} onClick={() => setQty((q) => ({ ...q, [id]: Math.max(0, count - 1) }))}><Minus className="h-3.5 w-3.5" /></Button>
+                      <Button variant="outline" size="icon" aria-label={`Remove one ${addon.name || addon.label || "add-on"}`} className="h-8 w-8" disabled={disabled || count <= 0} onClick={() => setQty((q) => ({ ...q, [id]: Math.max(0, count - 1) }))}><Minus className="h-3.5 w-3.5" /></Button>
                       <span className="w-6 text-center text-sm font-semibold">{count}</span>
-                      <Button variant="outline" size="icon" className="h-8 w-8" disabled={disabled || count >= max} onClick={() => setQty((q) => ({ ...q, [id]: count + 1 }))}><Plus className="h-3.5 w-3.5" /></Button>
+                      <Button variant="outline" size="icon" aria-label={`Add one ${addon.name || addon.label || "add-on"}`} className="h-8 w-8" disabled={disabled || count >= max} onClick={() => setQty((q) => ({ ...q, [id]: count + 1 }))}><Plus className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                   {rule?.eligible === false && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" /> {rule.reason || "Unavailable for this reservation."}</p>}

@@ -12,6 +12,7 @@ import { useGiftCards, type GiftCard } from "@/hooks/useGiftCards";
 import { useAuth } from "@/contexts/AuthContext";
 import SEOHead from "@/components/SEOHead";
 import { useI18n } from "@/hooks/useI18n";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -25,6 +26,7 @@ const PRESET_AMOUNTS = [
 
 export default function GiftCardsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const { t } = useI18n();
   const { myGiftCards, cardsLoading, purchaseGiftCard, redeemGiftCard } = useGiftCards();
@@ -209,7 +211,7 @@ export default function GiftCardsPage() {
       <div className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center justify-between px-6 py-4">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Back"
             className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >

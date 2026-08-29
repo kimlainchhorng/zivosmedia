@@ -11,6 +11,7 @@ import { formatDistanceToNow } from "date-fns";
 import SEOHead from "@/components/SEOHead";
 import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
 import LoadFailureCard from "@/components/reliability/LoadFailureCard";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface Activity {
   id: string;
@@ -54,6 +55,7 @@ const COLOR_MAP: Record<string, string> = {
 
 export default function ActivityFeedPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [filter, setFilter] = useState<string>("all");
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -139,7 +141,7 @@ export default function ActivityFeedPage() {
       />
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-xl font-bold text-ig-gradient">Activity</h1>

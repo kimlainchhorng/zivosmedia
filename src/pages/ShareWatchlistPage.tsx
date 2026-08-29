@@ -19,9 +19,11 @@ import Pencil from "lucide-react/dist/esm/icons/pencil";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useShareWatchlist, type WatchlistEntry } from "@/hooks/useShareWatchlist";
+import { useGoBack } from "@/hooks/useGoBack";
 
 export default function ShareWatchlistPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { entries, remove } = useShareWatchlist();
 
   return (
@@ -29,7 +31,7 @@ export default function ShareWatchlistPage() {
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border/40 pt-safe">
         <div className="max-w-screen-md mx-auto px-4 py-3 flex items-center gap-3">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >

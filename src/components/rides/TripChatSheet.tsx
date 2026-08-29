@@ -243,7 +243,7 @@ export default function TripChatSheet({ open, onOpenChange, rideRequestId, count
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
               className="flex-1"
             />
-            <Button onClick={send} disabled={!input.trim() || sending} size="icon" className="bg-emerald-500 hover:bg-emerald-600">
+            <Button onClick={send} disabled={!input.trim() || sending} size="icon" aria-label="Send message" className="bg-emerald-500 hover:bg-emerald-600">
               <Send className="w-4 h-4" />
             </Button>
           </div>

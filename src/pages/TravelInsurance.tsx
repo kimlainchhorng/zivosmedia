@@ -32,9 +32,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const TravelInsurance = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [selectedPlan, setSelectedPlan] = useState("standard");
 
   const plans = [
@@ -142,7 +144,7 @@ const TravelInsurance = () => {
             <div className="mb-6 sm:mb-8 animate-in fade-in slide-in-from-left-2 duration-300">
               <Button
                 variant="ghost"
-                onClick={() => navigate(-1)}
+                onClick={goBack}
                 className="gap-2 text-muted-foreground hover:text-foreground touch-manipulation active:scale-95 rounded-xl"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -166,7 +168,7 @@ const TravelInsurance = () => {
                 lost luggage, and more.
               </p>
               <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
-                <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-10 text-sm sm:text-lg font-bold rounded-2xl text-primary-foreground shadow-xl hover:opacity-90 gap-2 touch-manipulation active:scale-[0.98] bg-foreground">
+                <Button size="lg" className="h-12 sm:h-14 px-6 sm:px-10 text-sm sm:text-lg font-bold rounded-2xl shadow-xl hover:opacity-90 gap-2 touch-manipulation active:scale-[0.98]">
                   Get Protected
                   <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
@@ -347,7 +349,7 @@ const TravelInsurance = () => {
               <p className="text-sm sm:text-lg text-muted-foreground mb-6 sm:mb-10">Get instant coverage and peace of mind for your next trip</p>
               
               <div className="inline-block mb-6 sm:mb-10">
-                <Button size="lg" className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-bold rounded-xl sm:rounded-2xl text-primary-foreground shadow-xl hover:opacity-90 gap-2 sm:gap-3 touch-manipulation active:scale-[0.98] bg-foreground">
+                <Button size="lg" className="h-12 sm:h-16 px-6 sm:px-10 text-base sm:text-xl font-bold rounded-xl sm:rounded-2xl shadow-xl hover:opacity-90 gap-2 sm:gap-3 touch-manipulation active:scale-[0.98]">
                   Get Insured Now
                   <ArrowRight className="w-4 h-4 sm:w-6 sm:h-6" />
                 </Button>

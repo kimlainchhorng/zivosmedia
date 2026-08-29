@@ -14,6 +14,7 @@ import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import UserX from "lucide-react/dist/esm/icons/user-x";
 import X from "lucide-react/dist/esm/icons/x";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface Match {
   user_id: string;
@@ -26,6 +27,7 @@ const USERNAME_RE = /^[a-zA-Z0-9_.]{2,32}$/;
 
 export default function FindByUsernamePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [raw, setRaw] = useState("");
   const [match, setMatch] = useState<Match | null>(null);
   const [status, setStatus] = useState<"idle" | "searching" | "found" | "not_found" | "invalid">("idle");
@@ -72,7 +74,7 @@ export default function FindByUsernamePage() {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-xl border-b border-border/30 safe-area-top">
         <div className="px-3 py-2 flex items-center gap-2">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Back"
             className="h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted"
           >

@@ -122,7 +122,7 @@ export default function CafePromotionsSection({ storeId }: Props) {
                   </div>
                   <Switch checked={p.is_active} onCheckedChange={(v) => update(p.id, { is_active: v })} />
                   <Button size="sm" variant="ghost" onClick={() => openEdit(p.id)}>Edit</Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm(`Delete "${p.name}"?`)) remove(p.id); }}>
+                  <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm(`Delete "${p.name}"?`)) remove(p.id); }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </li>

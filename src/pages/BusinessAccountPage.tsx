@@ -11,6 +11,7 @@ import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface BizRow {
   id: string;
@@ -31,6 +32,7 @@ function formatDate(iso: string | null): string {
 
 export default function BusinessAccountPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
 
   const { data: account, isLoading } = useQuery({
@@ -50,7 +52,7 @@ export default function BusinessAccountPage() {
       <SEOHead title="Business Account · ZIVO" description="Corporate renter account." noIndex />
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}><ArrowLeft className="h-5 w-5" /></Button>
           <div className="flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-ig-gradient flex items-center justify-center"><Building className="h-4 w-4 text-white" /></div>
             <h1 className="text-lg font-bold tracking-tight text-ig-gradient">Business Account</h1>

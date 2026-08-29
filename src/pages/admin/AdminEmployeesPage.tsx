@@ -360,6 +360,7 @@ export default function AdminEmployeesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Delete invitation for ${inv.email}`}
                         className="h-7 w-7"
                         onClick={() => {
                           if (confirm(`Delete invitation for ${inv.email}?`)) {
@@ -418,6 +419,7 @@ export default function AdminEmployeesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Remove ${emp.role} role from ${emp.email ?? "this user"}`}
                         className="h-7 w-7"
                         onClick={() => {
                           if (confirm(`Remove ${emp.role} role from ${emp.email ?? "this user"}?`)) {

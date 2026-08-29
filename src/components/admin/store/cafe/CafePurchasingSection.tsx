@@ -203,7 +203,7 @@ export default function CafePurchasingSection({ storeId }: Props) {
                   </div>
                   <Switch checked={s.is_active} onCheckedChange={(v) => purch.updateSupplier(s.id, { is_active: v })} />
                   <Button size="sm" variant="ghost" onClick={() => openEditSupplier(s.id)}>Edit</Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm(`Remove ${s.name}?`)) purch.removeSupplier(s.id); }}>
+                  <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => { if (confirm(`Remove ${s.name}?`)) purch.removeSupplier(s.id); }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </li>
@@ -405,7 +405,7 @@ export default function CafePurchasingSection({ storeId }: Props) {
                           onChange={(e) => setPoLines((p) => p.map((l, i) => i === idx ? { ...l, unit_cost_cents: Math.round(parseFloat(e.target.value || "0") * 100) } : l))}
                           className="h-8 w-24 tabular-nums" placeholder="cost" />
                         <span className="tabular-nums text-sm w-20 text-right">{fmt(Math.round(line.qty_ordered * line.unit_cost_cents))}</span>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setPoLines((p) => p.filter((_, i) => i !== idx))}>
+                        <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setPoLines((p) => p.filter((_, i) => i !== idx))}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </li>

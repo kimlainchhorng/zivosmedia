@@ -123,7 +123,7 @@ export default function SegmentBuilder({ open, onClose, storeId, segment }: Prop
                     placeholder="value"
                     className="h-8 text-xs flex-1"
                   />
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeCondition(gi, ci)}>
+                  <Button size="icon" aria-label="Close" variant="ghost" className="h-8 w-8" onClick={() => removeCondition(gi, ci)}>
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>

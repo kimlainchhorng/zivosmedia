@@ -19,6 +19,7 @@ import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import MerchantBoostModal from "@/components/shop/MerchantBoostModal";
 import MerchantViewerHeatmap from "@/components/shop/MerchantViewerHeatmap";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface DashboardData {
   reelViews: number;
@@ -33,6 +34,7 @@ interface DashboardData {
 
 export default function MerchantROIDashboard() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -145,7 +147,7 @@ export default function MerchantROIDashboard() {
         {/* Header */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border/30 px-4 py-3 pt-safe">
           <div className="flex items-center gap-3">
-            <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button type="button" aria-label="Go back" onClick={goBack} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <BarChart3 className="h-5 w-5 text-primary" />

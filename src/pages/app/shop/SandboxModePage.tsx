@@ -18,6 +18,7 @@ import {
   Loader2, Zap, ExternalLink, AlertTriangle, DollarSign
 } from "lucide-react";
 import { sendMetaConversionEvent } from "@/services/metaConversion";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion, AnimatePresence } from "framer-motion";
 
 type TestType = "truck_sale" | "ride";
@@ -34,6 +35,7 @@ interface TestResult {
 
 export default function SandboxModePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [testType, setTestType] = useState<TestType>("truck_sale");
   const [amount, setAmount] = useState("25.00");
@@ -125,7 +127,7 @@ export default function SandboxModePage() {
         {/* Header */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border/30 px-4 py-3 pt-safe">
           <div className="flex items-center gap-3">
-            <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button type="button" aria-label="Go back" onClick={goBack} className="rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <TestTube className="h-5 w-5 text-amber-500" />

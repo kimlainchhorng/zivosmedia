@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useImportProduct, useImportCart } from "@/hooks/useImportShop";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 export default function ImportProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { data: product, isLoading } = useImportProduct(id);
   const { addItem, itemCount } = useImportCart();
   const [activeImage, setActiveImage] = useState(0);
@@ -61,7 +63,7 @@ export default function ImportProductPage() {
   return (
     <div className="min-h-screen bg-background pb-28">
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border/40 flex items-center px-3 py-2.5 gap-2" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
-        <Button variant="ghost" size="icon" aria-label="Go back" className="h-9 w-9" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" aria-label="Go back" className="h-9 w-9" onClick={goBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-sm font-bold flex-1 truncate">{product.title}</h1>

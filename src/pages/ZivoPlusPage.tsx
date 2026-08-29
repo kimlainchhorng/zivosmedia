@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useGoBack } from "@/hooks/useGoBack";
 import { useQuery } from "@tanstack/react-query";
 
 const BENEFITS = [
@@ -244,6 +245,7 @@ function LegalSheet({ title, onClose, children }: { title: string; onClose: () =
 
 export default function ZivoPlusPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { isPlus, plan, subscriptionEnd, isLoading, refresh } = useZivoPlus();
@@ -379,7 +381,7 @@ export default function ZivoPlusPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-2xl border-b border-border/20">
         <div className="flex items-center gap-3 px-4 py-3">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} aria-label="Go back" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-2xl hover:bg-muted/60 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-2xl hover:bg-muted/60 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </motion.button>
           <div className="flex items-center gap-2">

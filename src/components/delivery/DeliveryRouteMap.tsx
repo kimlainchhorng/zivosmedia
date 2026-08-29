@@ -30,19 +30,19 @@ async function getApiKey(): Promise<string> {
 }
 
 async function loadGoogleMaps(apiKey: string): Promise<boolean> {
-  if (window.google?.maps) return true;
+  if (window.google?.maps?.Map) return true;
   const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
   if (existing) {
     return new Promise((resolve) => {
       const check = setInterval(() => {
-        if (window.google?.maps) {
+        if (window.google?.maps?.Map) {
           clearInterval(check);
           resolve(true);
         }
       }, 200);
       setTimeout(() => {
         clearInterval(check);
-        resolve(!!window.google?.maps);
+        resolve(!!window.google?.maps?.Map);
       }, 8000);
     });
   }
@@ -87,7 +87,7 @@ export default function DeliveryRouteMap({ pickupAddress, dropoffAddress }: Prop
         return;
       }
       const ok = await loadGoogleMaps(key);
-      if (!ok || cancelled || !window.google?.maps) {
+      if (!ok || cancelled || !window.google?.maps?.Map) {
         if (!cancelled) setFailed(true);
         return;
       }

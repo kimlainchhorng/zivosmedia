@@ -789,7 +789,7 @@ export default function FinanceExpensesSection({ storeId }: Props) {
                   </button>
                   <div className="flex items-center gap-2">
                     <span className="font-medium tabular-nums">{fmt(e.amount_cents)}</span>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => remove.mutate(e.id)}>
+                    <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7" onClick={() => remove.mutate(e.id)}>
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </Button>
                   </div>
@@ -951,7 +951,7 @@ export default function FinanceExpensesSection({ storeId }: Props) {
                         <Input className="h-9 text-sm text-right" type="number" step="0.01" value={it.unit_price} onChange={(e) => updateItem(i, { unit_price: e.target.value })} placeholder="0.00" />
                       </div>
                       <div className="text-sm text-right tabular-nums font-medium self-center">{fmt(lineTotal)}</div>
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 self-center" onClick={() => removeItem(i)}>
+                      <Button type="button" size="icon" aria-label="Close" variant="ghost" className="h-8 w-8 self-center" onClick={() => removeItem(i)}>
                         <X className="w-4 h-4 text-muted-foreground" />
                       </Button>
                     </div>

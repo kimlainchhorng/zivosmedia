@@ -217,10 +217,10 @@ export default function CarRentalAddonsSection({ storeId }: Props) {
                         title={a.is_active ? "Click to deactivate" : "Click to activate"}
                       />
                       <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(a)}>
+                        <Button variant="ghost" size="icon" aria-label="Edit" className="h-7 w-7" onClick={() => openEdit(a)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(a.id); }}>
+                        <Button variant="ghost" size="icon" aria-label="Delete" className="h-7 w-7 text-destructive" onClick={() => { setSubmitted(false); setDeleteId(a.id); }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>

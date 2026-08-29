@@ -68,6 +68,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 interface StoreRow {
@@ -306,6 +307,7 @@ interface PromoInfo {
 export default function HotelResortDetailPage() {
   const { storeId = "" } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const { data: ownerStore } = useOwnerStoreProfile();
@@ -833,7 +835,7 @@ export default function HotelResortDetailPage() {
           <Hotel className="w-10 h-10 text-muted-foreground" />
           <h1 className="text-lg font-semibold">Property not found</h1>
           <p className="text-sm text-muted-foreground">This hotel or resort is no longer available.</p>
-          <Button variant="outline" onClick={() => navigate(-1)}>Go back</Button>
+          <Button variant="outline" onClick={goBack}>Go back</Button>
         </div>
       </TravelPageFrame>
     );
@@ -852,7 +854,7 @@ export default function HotelResortDetailPage() {
         <div className="mx-auto max-w-3xl lg:max-w-5xl flex items-center gap-2 px-3 py-2">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Back"
             className="h-9 w-9 rounded-full hover:bg-muted/50 flex items-center justify-center shrink-0"
           >
@@ -939,7 +941,7 @@ export default function HotelResortDetailPage() {
         {/* Top nav */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between safe-area-top">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Back"
             className={HERO_ACTION_BUTTON_CLASS}
           >

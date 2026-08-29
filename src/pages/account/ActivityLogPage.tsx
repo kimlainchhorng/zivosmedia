@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -130,6 +131,7 @@ function formatSourceLabel(source: string | null | undefined) {
 export default function ActivityLogPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialFilter = FILTER_OPTIONS.some((opt) => opt.value === searchParams.get("filter"))
@@ -344,7 +346,7 @@ export default function ActivityLogPage() {
       <SEOHead title="Activity Log – ZIVO" description="Full history of your account activity including logins, settings changes, profile updates, and security events. Filter, search, and export for compliance." />
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50 safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button variant="ghost" size="icon" aria-label="Back" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" aria-label="Back" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0 flex-1">

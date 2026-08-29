@@ -16,6 +16,10 @@ import {
   getPriceDisplay,
   parsePrice,
   KHR_PER_USD,
+  getStripeCurrencyExponent,
+  fromStripeMinorUnits,
+  toStripeMinorUnits,
+  formatStripeAmount,
 } from "./currency";
 
 const RATES = { USD: 1, EUR: 0.5, JPY: 100, GBP: 2 };
@@ -152,6 +156,100 @@ describe("KHR_PER_USD (ZIVO Cambodia pricing rate)", () => {
     for (const riel of [1000, 900, 3000, 12500]) {
       const usd = riel / KHR_PER_USD;
       expect(Math.round(usd * KHR_PER_USD)).toBe(riel);
+    }
+  });
+});
+
+/**
+ * Stripe minor-unit contract. The inline payment forms render the CTA amount
+ * straight from the PaymentIntent's minor-unit integer, so a wrong exponent
+ * here is a wrong number on the "Pay" button.
+ */
+describe("Stripe minor units", () => {
+  it("uses 2 decimals for ordinary currencies", () => {
+    for (const code of ["USD", "EUR", "GBP", "THB", "SGD"]) {
+      expect(getStripeCurrencyExponent(code)).toBe(2);
+    }
+  });
+
+  it("uses 0 decimals for Stripe zero-decimal currencies", () => {
+    for (const code of ["JPY", "KRW", "VND", "KHR", "CLP", "XOF"]) {
+      expect(getStripeCurrencyExponent(code)).toBe(0);
+    }
+  });
+
+  it("uses 3 decimals for Stripe three-decimal currencies", () => {
+    for (const code of ["BHD", "JOD", "KWD", "OMR", "TND"]) {
+      expect(getStripeCurrencyExponent(code)).toBe(3);
+    }
+  });
+
+  it("is case-insensitive and defaults unknown codes to 2", () => {
+    expect(getStripeCurrencyExponent("jpy")).toBe(0);
+    expect(getStripeCurrencyExponent("ZZZ")).toBe(2);
+    expect(getStripeCurrencyExponent("")).toBe(2);
+  });
+
+  it("does not scale zero-decimal amounts", () => {
+    // ¥5,000 is amount: 5000 on the wire, not 500000.
+    expect(fromStripeMinorUnits(5000, "JPY")).toBe(5000);
+    expect(toStripeMinorUnits(5000, "JPY")).toBe(5000);
+  });
+
+  it("scales ordinary currencies by 100", () => {
+    expect(fromStripeMinorUnits(12345, "USD")).toBeCloseTo(123.45);
+    expect(toStripeMinorUnits(123.45, "USD")).toBe(12345);
+  });
+
+  it("scales three-decimal currencies by 1000", () => {
+    expect(fromStripeMinorUnits(1500, "KWD")).toBeCloseTo(1.5);
+    expect(toStripeMinorUnits(1.5, "KWD")).toBe(1500);
+  });
+
+  it("round-trips every supported exponent", () => {
+    for (const code of ["USD", "JPY", "KWD", "KHR", "EUR"]) {
+      const minor = toStripeMinorUnits(2500, code);
+      expect(fromStripeMinorUnits(minor, code)).toBeCloseTo(2500);
+    }
+  });
+
+  it("tolerates non-finite input instead of rendering NaN", () => {
+    expect(fromStripeMinorUnits(Number.NaN, "USD")).toBe(0);
+    expect(toStripeMinorUnits(Number.NaN, "USD")).toBe(0);
+    expect(formatStripeAmount(Number.NaN, "USD")).toContain("0");
+  });
+
+  it("formats zero-decimal amounts without inventing cents", () => {
+    const jpy = formatStripeAmount(5000, "JPY");
+    expect(jpy).toContain("5,000");
+    expect(jpy).not.toContain("50.00");
+  });
+
+  it("formats ordinary amounts with cents", () => {
+    expect(formatStripeAmount(12345, "USD")).toContain("123.45");
+  });
+
+  it("never borrows another currency's symbol for an unlisted code", () => {
+    // Duffel can quote a currency outside SUPPORTED_CURRENCIES; the old
+    // `code === "USD" ? "$" : code + " "` shortcut printed "$" for it.
+    const out = formatStripeAmount(12345, "ZZZ");
+    expect(out).not.toContain("$");
+    expect(out).toContain("ZZZ");
+  });
+
+  it("does not print a dollar sign for a non-dollar currency", () => {
+    expect(formatStripeAmount(50000, "VND")).not.toMatch(/^\$/);
+    expect(formatStripeAmount(12000, "KHR")).not.toMatch(/^\$/);
+  });
+
+  it("distinguishes the other dollar currencies from USD", () => {
+    // `currencyDisplay: "narrowSymbol"` collapses all of these to a bare "$"
+    // in en-US, which would silently print a US price on a foreign fare.
+    const usd = formatStripeAmount(12345, "USD");
+    for (const code of ["CAD", "SGD", "HKD", "AUD", "NZD"]) {
+      const out = formatStripeAmount(12345, code);
+      expect(out).not.toBe(usd);
+      expect(out).not.toMatch(/^\$/);
     }
   });
 });

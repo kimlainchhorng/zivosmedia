@@ -139,7 +139,7 @@ export default function FlightToCity() {
               </p>
 
               <Link to={searchUrl}>
-                <Button size="lg" className="h-14 px-8 text-primary-foreground shadow-lg bg-foreground">
+                <Button size="lg" className="h-14 px-8 shadow-lg">
                   <Plane className="h-5 w-5 mr-2" />
                   Search Flights to {cityName}
                 </Button>
@@ -266,7 +266,7 @@ export default function FlightToCity() {
                   </p>
                 </div>
                 <Link to={searchUrl}>
-                  <Button className="bg-foreground hover:bg-foreground">
+                  <Button>
                     Set Alert
                   </Button>
                 </Link>
@@ -298,7 +298,7 @@ export default function FlightToCity() {
               Compare real-time prices from trusted travel partners and book securely on ZIVO.
             </p>
             <Link to={searchUrl}>
-              <Button size="lg" className="h-14 px-8 text-primary-foreground shadow-lg bg-foreground">
+              <Button size="lg" className="h-14 px-8 shadow-lg">
                 <Plane className="h-5 w-5 mr-2" />
                 Search Flights Now
               </Button>

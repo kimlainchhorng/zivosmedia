@@ -1174,7 +1174,7 @@ export default function AutoRepairInvoicesSection({ storeId, isSoftwareDomain = 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={closeEditor}>
+              <Button size="icon" aria-label="Go back" variant="ghost" className="h-8 w-8" onClick={closeEditor}>
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <CardTitle className="text-base flex items-center gap-2">
@@ -1733,7 +1733,7 @@ export default function AutoRepairInvoicesSection({ storeId, isSoftwareDomain = 
                         )}
 
                         <span className="text-right text-sm font-semibold tabular-nums">${lineAmount(it).toFixed(2)}</span>
-                        <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => removeItem(it.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        <Button size="icon" aria-label="Delete" variant="ghost" className="h-9 w-9" onClick={() => removeItem(it.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
                       );
                     })}

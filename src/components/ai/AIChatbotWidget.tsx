@@ -135,7 +135,7 @@ export default function AIChatbotWidget() {
               <div className="p-3 border-t border-border flex gap-2">
                 <Input placeholder="Ask anything..." value={input} onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()} className="text-sm" disabled={isStreaming} />
-                <Button size="icon" onClick={handleSend} disabled={!input.trim() || isStreaming}>
+                <Button size="icon" aria-label="Send message" onClick={handleSend} disabled={!input.trim() || isStreaming}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

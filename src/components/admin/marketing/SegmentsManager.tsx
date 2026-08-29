@@ -76,13 +76,13 @@ export default function SegmentsManager({ storeId }: { storeId: string }) {
                       : "Never refreshed"}
                   </p>
                 </div>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => refresh.mutate(s)} disabled={refresh.isPending}>
+                <Button size="icon" aria-label="Refresh" variant="ghost" className="h-8 w-8" onClick={() => refresh.mutate(s)} disabled={refresh.isPending}>
                   <RefreshCw className={`w-3.5 h-3.5 ${refresh.isPending ? "animate-spin" : ""}`} />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditing(s)}>
+                <Button size="icon" aria-label="Edit" variant="ghost" className="h-8 w-8" onClick={() => setEditing(s)}>
                   <Edit className="w-3.5 h-3.5" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => del.mutate(s.id)}>
+                <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => del.mutate(s.id)}>
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>

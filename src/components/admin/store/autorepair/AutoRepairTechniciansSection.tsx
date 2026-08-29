@@ -192,10 +192,10 @@ export default function AutoRepairTechniciansSection({ storeId }: Props) {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Switch checked={!!t.active} onCheckedChange={(v) => toggleTech.mutate({ id: t.id, active: v })} />
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditTech(t)}>
+                      <Button size="icon" aria-label="Edit" variant="ghost" className="h-8 w-8" onClick={() => openEditTech(t)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"
+                      <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive"
                         onClick={() => { if (confirm(`Remove ${t.name}?`)) delTech.mutate(t.id); }}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>

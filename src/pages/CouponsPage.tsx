@@ -13,6 +13,7 @@ import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface CouponRow {
   id: string;
@@ -44,6 +45,7 @@ function expiryLabel(iso: string | null): { label: string; expired: boolean; soo
 
 export default function CouponsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [filter, setFilter] = useState<"all" | "active" | "expiring">("active");
 
   const { data: coupons = [], isLoading } = useQuery({
@@ -89,7 +91,7 @@ export default function CouponsPage() {
 
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2 flex-1">

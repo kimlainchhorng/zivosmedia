@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoBack } from "@/hooks/useGoBack";
 import {
   getModerationContentLabel,
   isPendingModerationStatus,
@@ -278,6 +279,7 @@ async function loadContentDetails(report: ModerationReport): Promise<ContentDeta
 
 export default function AdminModerationPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [reports, setReports] = useState<ModerationReport[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -432,7 +434,7 @@ export default function AdminModerationPage() {
       <SEOHead title="Moderation - ZIVO" description="Admin moderation panel." canonical="/admin/moderation" noIndex />
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <Shield className="h-5 w-5 text-primary" />

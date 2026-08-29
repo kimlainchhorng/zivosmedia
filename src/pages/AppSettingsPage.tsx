@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useGoBack } from "@/hooks/useGoBack";
 import {
   ArrowLeft, Settings, Globe, Bell, BellOff, Eye,
   Lock, Palette, Type, Volume2, VolumeX, Smartphone, Shield, Trash2, LogOut,
@@ -22,6 +23,7 @@ interface SettingToggle {
 
 export default function AppSettingsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [language, setLanguage] = useState("en");
   const [fontSize, setFontSize] = useState("medium");
   const [toggles, setToggles] = useState<SettingToggle[]>([
@@ -57,7 +59,7 @@ export default function AppSettingsPage() {
     <div className="min-h-screen bg-background pb-20">
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <Settings className="h-5 w-5 text-primary" />

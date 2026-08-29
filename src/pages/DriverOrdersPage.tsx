@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useEatsNotifications } from "@/hooks/useEatsNotifications";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 import { formatDistanceToNow } from "date-fns";
 
 function OrderCard({
@@ -135,6 +136,7 @@ const STATUS_ADVANCE_LABEL: Record<string, string> = {
 
 export default function DriverOrdersPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { notify: notifyEats } = useEatsNotifications();
   const { available, assigned, isLoading, acceptOrder, updateStatus, refetch } = useDriverShoppingOrders();
   const handlePullRefresh = useCallback(async () => { await refetch(); }, [refetch]);
@@ -175,7 +177,7 @@ export default function DriverOrdersPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-1.5 rounded-xl hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-1.5 rounded-xl hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-lg font-bold flex-1">Shopping Orders</h1>

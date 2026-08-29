@@ -24,6 +24,7 @@ import { formatDistanceToNow } from "date-fns";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import EatsAutoPayoutLedger from "@/components/admin/store/restaurant/EatsAutoPayoutLedger";
 import EatsRequestPayoutSheet from "@/components/admin/store/restaurant/EatsRequestPayoutSheet";
+import { useGoBack } from "@/hooks/useGoBack";
 
 // ─── Types ───────────────────────────────────────────────────
 interface MenuItem {
@@ -53,6 +54,7 @@ interface FoodOrder {
 // ─── Component ───────────────────────────────────────────────
 export default function EatsRestaurantDashboard() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [restaurant, setRestaurant] = useState<any>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -303,7 +305,7 @@ export default function EatsRestaurantDashboard() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur-md border-b border-border/40">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack} className="shrink-0">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1 min-w-0">

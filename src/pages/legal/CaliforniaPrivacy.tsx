@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, Eye, EyeOff, Globe, Lock, FileText, Ban, UserX, Bell, Scale, Database, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const sections = [
   { icon: Shield, title: "1. CCPA Rights Overview", content: "Under the California Consumer Privacy Act (CCPA) as amended by the California Privacy Rights Act (CPRA), California residents have specific rights regarding their personal information. This policy supplements our Privacy Policy and applies solely to residents of the State of California. ZIVO respects your privacy rights and is committed to transparency in data practices." },
@@ -19,11 +20,12 @@ const sections = [
 
 export default function CaliforniaPrivacy() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">California Privacy (CCPA)</h1>

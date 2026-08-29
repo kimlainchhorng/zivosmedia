@@ -14,6 +14,7 @@ import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const WAITLIST_SERVICE = "Brand Deals";
 
@@ -37,6 +38,7 @@ const WHAT_TO_EXPECT = [
 
 export default function BrandDealsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [email, setEmail] = useState(user?.email ?? "");
   const [submitted, setSubmitted] = useState(false);
@@ -76,7 +78,7 @@ export default function BrandDealsPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

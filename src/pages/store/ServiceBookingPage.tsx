@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { getServiceImage } from "@/config/autoRepairServiceImages";
 import { getPublicOrigin } from "@/lib/getPublicOrigin";
 import { withRedirectParam } from "@/lib/authRedirect";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const TIME_SLOTS = [
   "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM",
@@ -64,6 +65,7 @@ const VEHICLE_MODELS: Record<string, string[]> = {
 export default function ServiceBookingPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [store, setStore] = useState<any>(null);
@@ -464,7 +466,7 @@ export default function ServiceBookingPage() {
       {/* Header */}
       <div className="bg-card border-b border-border sticky top-0 safe-area-top z-10">
         <div className="max-w-5xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center gap-3">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3">

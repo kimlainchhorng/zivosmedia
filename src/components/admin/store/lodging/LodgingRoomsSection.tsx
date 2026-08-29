@@ -850,7 +850,7 @@ export default function LodgingRoomsSection({ storeId }: { storeId: string }) {
                           <option value="guest">/ guest</option>
                           <option value="person_night">/ guest/night</option>
                         </select>
-                        <Button type="button" size="icon" variant="ghost" className="col-span-1 h-8 w-8" onClick={() => removeAddon(i)}>
+                        <Button type="button" size="icon" aria-label="Delete" variant="ghost" className="col-span-1 h-8 w-8" onClick={() => removeAddon(i)}>
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                         <Input className="col-span-3 h-8 text-xs" placeholder="id / slug" value={a.id || slugify(a.name || "")} onChange={e => updateAddon(i, { id: slugify(e.target.value) })} />

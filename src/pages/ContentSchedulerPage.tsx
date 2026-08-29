@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 interface ScheduledPost {
@@ -23,6 +24,7 @@ interface ScheduledPost {
 
 export default function ContentSchedulerPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -146,7 +148,7 @@ export default function ContentSchedulerPage() {
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <Calendar className="h-5 w-5 text-primary" />

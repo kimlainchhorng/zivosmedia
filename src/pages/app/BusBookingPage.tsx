@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import AppLayout from "@/components/app/AppLayout";
+import { formatStripeAmount } from "@/lib/currency";
 import SEOHead from "@/components/SEOHead";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { Button } from "@/components/ui/button";
@@ -166,8 +167,13 @@ const operatorLogoColors = (name: string) => {
   return palettes[hashString(name) % palettes.length];
 };
 
+// PopularBusRoute carries the route's own currency, so the price is formatted
+// in it rather than assumed to be dollars. Cambodian routes are quoted in
+// Riel, and KHR is zero-decimal — the old `/ 100` showed a hundredth of it.
 const formatRoutePrice = (route: PopularBusRoute) =>
-  route.minPriceCents == null ? null : `from $${Math.round((route.minPriceCents / 100) * 100) / 100}`;
+  route.minPriceCents == null
+    ? null
+    : `from ${formatStripeAmount(route.minPriceCents, route.currency || "USD")}`;
 
 // ─── Data builders ───────────────────────────────────────────────
 

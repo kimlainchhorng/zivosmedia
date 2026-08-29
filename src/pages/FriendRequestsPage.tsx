@@ -13,6 +13,7 @@ import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 interface FriendshipRow {
@@ -42,6 +43,7 @@ function initials(name: string | null): string {
 
 export default function FriendRequestsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -130,7 +132,7 @@ export default function FriendRequestsPage() {
 
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">

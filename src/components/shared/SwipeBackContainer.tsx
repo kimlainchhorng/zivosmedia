@@ -3,18 +3,19 @@
  *
  * Wraps a page in a div that translates with the drag, dims/fades as the
  * user pulls right, and on release-past-threshold calls `onSwipeBack`
- * (typically `() => navigate(-1)`).
+ * (typically the page's own back handler).
  *
  * Live peel preview gives the standard iOS gesture feel.
  */
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import { useSwipeBack } from "@/hooks/useSwipeBack";
 import { cn } from "@/lib/utils";
 
 interface Props {
   children: React.ReactNode;
-  /** Override the back action. Default: navigate(-1). */
+  /** Override the back action. Default: useGoBack, which falls back to home
+   *  when the page was opened directly and has no history to pop. */
   onBack?: () => void;
   /** Disable the gesture (e.g., inside an open modal). Default false. */
   disabled?: boolean;
@@ -22,11 +23,13 @@ interface Props {
 }
 
 export function SwipeBackContainer({ children, onBack, disabled = false, className }: Props) {
-  const navigate = useNavigate();
+  // Swiping back on a deep-linked screen had nothing to pop, so the gesture
+  // silently did nothing on every page this wraps.
+  const goBack = useGoBack("/");
   const back = React.useCallback(() => {
     if (onBack) onBack();
-    else navigate(-1);
-  }, [onBack, navigate]);
+    else goBack();
+  }, [onBack, goBack]);
 
   const { offset, active } = useSwipeBack({ onSwipeBack: back, disabled });
 

@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { trackMarketingEvent } from "@/services/marketingTracking";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface UserPostRow {
   id: string;
@@ -72,6 +73,7 @@ function firstMediaUrl(post: UserPostRow): string | null {
 
 export default function PromotePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<BoostTier["id"]>("growth");
@@ -134,7 +136,7 @@ export default function PromotePage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

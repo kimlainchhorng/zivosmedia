@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useReferrals } from "@/hooks/useReferrals";
 import { REFERRAL_REWARDS, REFERRAL_TERMS } from "@/config/referralProgram";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -16,6 +17,7 @@ import { toast } from "sonner";
 
 export default function ReferralsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const {
     referralCode,
     referrals,
@@ -120,7 +122,7 @@ export default function ReferralsPage() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center"
           >
             <ArrowLeft className="w-5 h-5" />

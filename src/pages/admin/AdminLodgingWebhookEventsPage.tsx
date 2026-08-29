@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadWebhookEventsCsv } from "@/lib/admin/webhookEventsCsv";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface WebhookEvent {
   id: string;
@@ -40,6 +41,7 @@ const statusConfig: Record<string, { tone: string; icon: typeof Clock; label: st
 
 export default function AdminLodgingWebhookEventsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [searchParams, setSearchParams] = useSearchParams();
   const [eventType, setEventType] = useState<string>(searchParams.get("type") || "");
   const [status, setStatus] = useState<string>(searchParams.get("status") || "");
@@ -97,7 +99,7 @@ export default function AdminLodgingWebhookEventsPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button aria-label="Back" variant="outline" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
+          <Button aria-label="Back" variant="outline" size="icon" onClick={goBack} className="rounded-xl">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

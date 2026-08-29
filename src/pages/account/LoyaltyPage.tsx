@@ -44,9 +44,11 @@ import {
 } from "@/components/loyalty";
 import { POINTS_COMPLIANCE, type ZivoTier } from "@/config/zivoPoints";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 export default function LoyaltyPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user, isLoading: authLoading } = useAuth();
   const { points, isLoading: pointsLoading } = useLoyaltyPoints();
   const { data: history = [], isLoading: historyLoading } = usePointsHistory();
@@ -86,7 +88,7 @@ export default function LoyaltyPage() {
       <div className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Go back"
             className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >

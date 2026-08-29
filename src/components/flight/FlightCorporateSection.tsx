@@ -41,7 +41,7 @@ const FlightCorporateSection = () => {
               </ul>
 
               <div className="flex gap-4">
-                <Button size="lg" className="bg-foreground hover:bg-foreground text-primary-foreground">
+                <Button size="lg">
                   Request Demo <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
                 <Button size="lg" variant="outline" className="border-border text-foreground hover:bg-muted">

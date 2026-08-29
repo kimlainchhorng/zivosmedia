@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface LibrarySection {
   icon: typeof Bookmark;
@@ -183,6 +184,7 @@ const DEFAULT_OPEN = new Set(GROUPS.slice(0, 2).map((g) => g.id));
 
 export default function LibraryPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [openIds, setOpenIds] = useState<Set<string>>(DEFAULT_OPEN);
@@ -234,7 +236,7 @@ export default function LibraryPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

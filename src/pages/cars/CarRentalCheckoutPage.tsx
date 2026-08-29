@@ -26,6 +26,7 @@ import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import { TravelFlowHeader } from "@/components/zivo-travel";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { resolveRentalDateWindow } from "@/lib/cars/rentalDateWindow";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const formatPrice = (amount: number) =>
   amount > 0 ? `$${amount.toFixed(0)}` : "—";
@@ -33,6 +34,7 @@ const formatPrice = (amount: number) =>
 export default function CarRentalCheckoutPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [params] = useSearchParams();
   const isTravelHost = typeof window !== "undefined" && isZivoTravelHost();
 
@@ -183,7 +185,7 @@ export default function CarRentalCheckoutPage() {
           >
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               aria-label="Back"
               className="h-9 w-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition"
             >

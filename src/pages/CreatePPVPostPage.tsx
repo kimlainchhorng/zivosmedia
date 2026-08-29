@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
 import { PPV_FREE_FOR_SUBS_UI_ENABLED } from "@/lib/ppv/featureFlags";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type UploadedItem = {
   path: string;
@@ -33,6 +34,7 @@ type UploadedItem = {
 
 export default function CreatePPVPostPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const { creatorType, isLoading: typeLoading } = useCreatorType();
   const qc = useQueryClient();
@@ -166,7 +168,7 @@ export default function CreatePPVPostPage() {
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Back"
             className="p-2 -ml-2 rounded-full hover:bg-muted/50 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >

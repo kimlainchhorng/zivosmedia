@@ -13,6 +13,7 @@ import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type EmojiItem = { name?: string; url?: string; key?: string };
 
@@ -30,6 +31,7 @@ type Tab = "all" | "mine" | "public";
 
 export default function EmojiPacksPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -77,7 +79,7 @@ export default function EmojiPacksPage() {
 
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">

@@ -13,10 +13,12 @@ import { useTicketDetails } from "@/hooks/useSupportTickets";
 import { TicketChat } from "@/components/support/TicketChat";
 import { TicketStatusBadge } from "@/components/support/TicketStatusBadge";
 import { TicketPriorityBadge } from "@/components/support/TicketPriorityBadge";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const TicketDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
 
   const { data, isLoading } = useTicketDetails(id);
   const ticket = data?.ticket;
@@ -50,7 +52,7 @@ const TicketDetailPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               aria-label="Go back"
             >
               <ArrowLeft className="h-5 w-5" />

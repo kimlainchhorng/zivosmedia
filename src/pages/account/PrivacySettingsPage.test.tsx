@@ -41,6 +41,9 @@ vi.mock("@/hooks/useSensitiveMediaPreference", () => ({
 
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mocks.navigate,
+  // useGoBack reads the location key to tell a deep-linked page (no history
+  // to pop) from a normal in-app navigation.
+  useLocation: () => ({ key: "test-key", pathname: "/account/privacy" }),
 }));
 
 vi.mock("sonner", () => ({

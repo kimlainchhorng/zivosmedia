@@ -26,6 +26,7 @@ import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { toast } from "sonner";
 import { useSensitiveMediaPreference } from "@/hooks/useSensitiveMediaPreference";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type PrivacySettings = {
   allow_message_requests: boolean;
@@ -129,6 +130,7 @@ function UnavailableState({
 export default function PrivacySettingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const queryClient = useQueryClient();
   const isTravelHost =
     typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
@@ -396,7 +398,7 @@ export default function PrivacySettingsPage() {
             size="icon"
             aria-label="Back"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import DriverBottomNav from "@/components/driver/DriverBottomNav";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion } from "framer-motion";
 
 export default function DriverEarningsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { stats, isLoading, refetch } = useDriverDashboardData();
   const [activeTab, setActiveTab] = useState<"today" | "week">("today");
   const handlePullRefresh = useCallback(async () => { await refetch(); }, [refetch]);
@@ -31,7 +33,7 @@ export default function DriverEarningsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button type="button"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="p-2 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />

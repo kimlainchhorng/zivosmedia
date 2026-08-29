@@ -214,7 +214,7 @@ export default function AutoRepairWarrantySection({ storeId }: Props) {
                         ? <Badge variant="destructive" className="text-[10px]">Expired</Badge>
                         : <Badge variant="outline" className="text-[10px]">{w.expires_at ?? "—"}</Badge>
                       }
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                      <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 text-destructive"
                         onClick={() => { if (confirm("Remove this warranty?")) deleteWarranty.mutate(w.id); }}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>

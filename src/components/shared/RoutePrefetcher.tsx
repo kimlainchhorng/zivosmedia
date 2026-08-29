@@ -83,18 +83,44 @@ function resolvePrefetchRouteKey(path: string) {
   return path;
 }
 
+/**
+ * Schedule idle work and return a canceller that actually matches how it was
+ * scheduled.
+ *
+ * `requestIdleCallback` is cancelled with `cancelIdleCallback`, but the
+ * `setTimeout` fallback is not — calling `cancelIdleCallback` on a timeout id
+ * silently does nothing, so every effect below leaked its work. That is not
+ * only a test artefact: browsers without `requestIdleCallback` (older iOS
+ * Safari, which this app ships to through Capacitor) take the fallback path,
+ * so navigating away never cancelled the prefetch there.
+ */
+function scheduleIdle(cb: () => void, timeoutMs: number): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  if (typeof window.requestIdleCallback === "function") {
+    const handle = window.requestIdleCallback(cb);
+    return () => window.cancelIdleCallback?.(handle);
+  }
+
+  const handle = window.setTimeout(cb, timeoutMs);
+  return () => window.clearTimeout(handle);
+}
+
 function prefetchRoute(path: string) {
+  // Can fire from a timer that outlived the document (jsdom teardown, or a
+  // navigation racing an idle callback), so never assume `window` is here.
+  if (typeof window === "undefined") return;
+
   const routeKey = resolvePrefetchRouteKey(path);
   if (prefetched.has(routeKey)) return;
   const loader = PREFETCH_ROUTES[routeKey];
   if (!loader) return;
   prefetched.add(routeKey);
-  const schedule = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 100));
-  schedule(() => {
+  scheduleIdle(() => {
     loader().catch(() => {
       prefetched.delete(routeKey);
     });
-  });
+  }, 100);
 }
 
 /**
@@ -108,33 +134,27 @@ export function useRoutePrefetch() {
   // Only prefetch the redirect target on homepage — not all top routes.
   useEffect(() => {
     if (location.pathname !== "/") return;
-    const schedule = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 200));
-    const handle = schedule(() => prefetchRoute(SOCIAL_ROUTE_PATHS.feed));
-    return () => {
-      if (typeof handle === "number" && window.cancelIdleCallback) {
-        window.cancelIdleCallback(handle);
-      }
-    };
+    return scheduleIdle(() => prefetchRoute(SOCIAL_ROUTE_PATHS.feed), 200);
   }, [location.pathname]);
 
   // When the user lands on /feed, warm the common next-hop destinations on
   // idle so empty-state pills + cross-link chips feel instant.
   useEffect(() => {
     if (location.pathname !== SOCIAL_ROUTE_PATHS.feed) return;
-    const schedule = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 600));
     // Stagger across two idle ticks so we don't all-at-once compete with the
     // feed's own chunk loading or the initial post fetches.
-    const handles: Array<number | unknown> = [];
+    const cancels: Array<() => void> = [];
     FEED_IDLE_PREFETCH.forEach((path, i) => {
-      handles.push(schedule(() => {
-        // Inner setTimeout so 4 prefetches are spread across ~400ms post-idle.
-        setTimeout(() => prefetchRoute(path), i * 100);
-      }));
+      cancels.push(scheduleIdle(() => {
+        // Inner timer so 4 prefetches are spread across ~400ms post-idle. It
+        // used to be an untracked setTimeout, so once the idle callback fired
+        // these four ran even after unmount, on every browser.
+        const inner = window.setTimeout(() => prefetchRoute(path), i * 100);
+        cancels.push(() => window.clearTimeout(inner));
+      }, 600));
     });
     return () => {
-      if (window.cancelIdleCallback) {
-        handles.forEach((h) => { if (typeof h === "number") window.cancelIdleCallback(h); });
-      }
+      cancels.forEach((cancel) => cancel());
     };
   }, [location.pathname]);
 

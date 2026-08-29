@@ -44,7 +44,7 @@ export function BedConfigBuilder({ value, onChange }: Props) {
             onChange={e => update(i, { qty: Math.max(1, parseInt(e.target.value) || 1) })}
           />
           <span className="col-span-2 text-[10px] text-muted-foreground">× {slot.type.toLowerCase()}</span>
-          <Button type="button" size="icon" variant="ghost" className="col-span-1 h-8 w-8" onClick={() => remove(i)}>
+          <Button type="button" size="icon" variant="ghost" aria-label={`Remove ${slot.type.toLowerCase()}`} className="col-span-1 h-8 w-8" onClick={() => remove(i)}>
             <Trash2 className="h-3.5 w-3.5 text-destructive" />
           </Button>
         </div>

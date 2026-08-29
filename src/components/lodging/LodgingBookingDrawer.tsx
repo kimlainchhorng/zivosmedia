@@ -584,6 +584,7 @@ export function LodgingBookingDrawer({
                       {checked && (
                         <div className="flex items-center gap-1 shrink-0">
                           <Button type="button" size="icon" variant="outline" className="h-7 w-7"
+                            aria-label={`Remove one ${a.name || "add-on"}`}
                             onClick={() => setAddonQty(i, Math.max(0, (sel.qty || 1) - 1), a)}>
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -597,6 +598,7 @@ export function LodgingBookingDrawer({
                             }}
                           />
                           <Button type="button" size="icon" variant="outline" className="h-7 w-7"
+                            aria-label={`Add one ${a.name || "add-on"}`}
                             onClick={() => setAddonQty(i, (sel.qty || 1) + 1, a)}>
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -871,7 +873,7 @@ export function LodgingBookingDrawer({
               <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-bold">Reference</p>
               <div className="flex items-center justify-center gap-2 mt-1.5">
                 <p className="font-extrabold text-2xl tracking-wider text-ig-gradient">{reference}</p>
-                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={copyRef}>
+                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" aria-label="Copy booking reference" onClick={copyRef}>
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>

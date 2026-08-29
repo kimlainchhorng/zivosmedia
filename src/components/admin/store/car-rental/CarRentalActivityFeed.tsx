@@ -182,7 +182,7 @@ export default function CarRentalActivityFeed({ storeId, onJumpToTab }: Props) {
                   </div>
                   <span className="shrink-0 text-[11px] text-muted-foreground self-center">{ago(e.at)}</span>
                   {e.tab && onJumpToTab && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onJumpToTab(e.tab!)}>
+                    <Button variant="ghost" size="icon" aria-label="Continue" className="h-7 w-7" onClick={() => onJumpToTab(e.tab!)}>
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                   )}

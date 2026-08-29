@@ -5,6 +5,7 @@ import { ArrowLeft, RotateCcw, Camera, Clock, DollarSign, ShieldCheck, PackageX,
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const REFUND_TABLE = [
   { issue: "Wrong item delivered", resolution: "Full refund or re-delivery", timeframe: "24 hours" },
@@ -26,12 +27,13 @@ const STEPS = [
 
 export default function GroceryReturns() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/grocery");
 
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-2xl border-b border-border/20">
         <div className="flex items-center gap-3 px-4 py-3">
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} aria-label="Go back" className="p-2 rounded-2xl hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="h-5 w-5" /></motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={goBack} aria-label="Go back" className="p-2 rounded-2xl hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="h-5 w-5" /></motion.button>
           <div>
             <h1 className="text-base font-bold">Returns & Refund Policy</h1>
             <p className="text-[10px] text-muted-foreground">ZIVO Grocery Delivery · Last updated March 2026</p>

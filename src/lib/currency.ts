@@ -186,3 +186,99 @@ export function parsePrice(formattedPrice: string): number {
   
   return parseFloat(cleaned) || 0;
 }
+
+/* ------------------------------------------------------------------ *
+ * Stripe minor units
+ *
+ * Stripe amounts are integers in the currency's *smallest unit*, and the
+ * number of decimals is a wire-format fact about the currency, not a display
+ * preference. Most currencies are 2-decimal ($1.00 -> 100), but zero-decimal
+ * currencies take the amount unscaled (¥5,000 -> 5000) and a handful are
+ * three-decimal.
+ *
+ * Deliberately independent of `SUPPORTED_CURRENCIES[].decimals`, which is a
+ * *display* convention for the storefront and covers only the ~45 currencies
+ * ZIVO lists. Supplier-priced flows (Duffel offers, partner car rental
+ * sessions) can hand us a currency outside that list, and
+ * `getCurrencyConfig()` silently falls back to USD — which would print "$" on
+ * a non-USD fare. These helpers never fall back to a different currency.
+ *
+ * Source: https://docs.stripe.com/currencies#zero-decimal
+ * ------------------------------------------------------------------ */
+
+/** Currencies Stripe treats as having no minor unit. */
+export const STRIPE_ZERO_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set([
+  "BIF", "CLP", "DJF", "GNF", "JPY", "KHR", "KMF", "KRW", "MGA",
+  "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF",
+]);
+
+/** Currencies Stripe charges in thousandths (amounts must be a multiple of 10). */
+export const STRIPE_THREE_DECIMAL_CURRENCIES: ReadonlySet<string> = new Set([
+  "BHD", "JOD", "KWD", "OMR", "TND",
+]);
+
+/**
+ * Decimal exponent Stripe uses for a currency: minorUnits = amount * 10^exponent.
+ */
+export function getStripeCurrencyExponent(currencyCode: string): number {
+  const code = (currencyCode || "USD").toUpperCase();
+  if (STRIPE_ZERO_DECIMAL_CURRENCIES.has(code)) return 0;
+  if (STRIPE_THREE_DECIMAL_CURRENCIES.has(code)) return 3;
+  return 2;
+}
+
+/**
+ * Convert a Stripe minor-unit integer to the human amount.
+ * `fromStripeMinorUnits(5000, "JPY")` is 5000, not 50.
+ */
+export function fromStripeMinorUnits(minorUnits: number, currencyCode: string): number {
+  const safe = Number.isFinite(minorUnits) ? minorUnits : 0;
+  return safe / 10 ** getStripeCurrencyExponent(currencyCode);
+}
+
+/**
+ * Convert a human amount to the Stripe minor-unit integer to charge.
+ * `toStripeMinorUnits(5000, "JPY")` is 5000, not 500000.
+ */
+export function toStripeMinorUnits(amount: number, currencyCode: string): number {
+  const safe = Number.isFinite(amount) ? amount : 0;
+  return Math.round(safe * 10 ** getStripeCurrencyExponent(currencyCode));
+}
+
+/**
+ * Format a Stripe minor-unit integer for display, honouring the currency's own
+ * decimals. Unknown/invalid codes fall back to `CODE 1,234.56` rather than
+ * borrowing another currency's symbol.
+ */
+export function formatStripeAmount(minorUnits: number, currencyCode: string): string {
+  const code = (currencyCode || "USD").toUpperCase();
+  return formatCurrencyAmount(fromStripeMinorUnits(minorUnits, code), code);
+}
+
+/**
+ * Format a decimal amount that already carries its own currency — a stored
+ * `total_amount`, a supplier quote — without borrowing another currency's
+ * symbol for an unlisted code.
+ *
+ * Distinct from `formatPrice`, which resolves through `getCurrencyConfig` and
+ * therefore falls back to USD (symbol included) for any code outside
+ * SUPPORTED_CURRENCIES. Supplier-priced flows can quote outside that list.
+ */
+export function formatCurrencyAmount(amount: number, currencyCode: string): string {
+  const code = (currencyCode || "USD").toUpperCase();
+  const value = Number.isFinite(amount) ? amount : 0;
+
+  // Deliberately the default `currencyDisplay`, not "narrowSymbol": the narrow
+  // form renders CAD, SGD, HKD, AUD and NZD as a bare "$" in en-US, which is
+  // the ambiguity these helpers exist to remove. The default disambiguates
+  // them as CA$, SGD, HK$, A$, NZ$.
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(value);
+  } catch {
+    const digits = getStripeCurrencyExponent(code) === 0 ? 0 : 2;
+    return `${code} ${value.toLocaleString("en-US", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    })}`;
+  }
+}

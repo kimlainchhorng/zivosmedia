@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { generateSalt, hashSecret } from "@/lib/auth/passwordHash";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const STORAGE_KEY = "zivo_safety_prefs";
 
@@ -161,6 +162,7 @@ function stateFromRow(row: ParentalSafetyRow): PersistedSafetyState {
 
 export default function SafetyCenterPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const initialPrefs = loadPrefs() ?? defaultSafetyState();
 
@@ -390,7 +392,7 @@ export default function SafetyCenterPage() {
     <div className="min-h-screen bg-background pb-20">
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <Shield className="h-5 w-5 text-primary" />

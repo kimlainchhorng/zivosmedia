@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useGoBack } from "@/hooks/useGoBack";
 import {
   ArrowLeft, MapPin, Package, Scan, Truck, Users, RefreshCw,
   Navigation, Minus, Plus, CheckCircle, Loader2, Camera
@@ -38,6 +39,7 @@ interface NearbyCustomer {
 
 export default function TruckDashboardPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -215,7 +217,7 @@ export default function TruckDashboardPage() {
         {/* Header */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border/30 px-4 py-3 pt-safe">
           <div className="flex items-center gap-3">
-            <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="rounded-full active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button type="button" aria-label="Go back" onClick={goBack} className="rounded-full active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <Truck className="h-5 w-5 text-primary" />

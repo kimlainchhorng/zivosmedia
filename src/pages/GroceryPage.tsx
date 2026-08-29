@@ -23,9 +23,11 @@ import { useGroceryCart } from "@/hooks/useGroceryCart";
 import { GROCERY_STORES, DEFAULT_STORE, getStoreConfig, getStoresForMarket, type StoreName } from "@/config/groceryStores";
 import { useCountry } from "@/hooks/useCountry";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 
 export default function GroceryPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { country } = useCountry();
   const marketStores = useMemo(() => getStoresForMarket(country), [country]);
   const defaultStore = (marketStores[0]?.name ?? DEFAULT_STORE) as StoreName;
@@ -98,7 +100,7 @@ export default function GroceryPage() {
       {/* ── Header ── */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="p-1.5 rounded-xl hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Go back" className="p-1.5 rounded-xl hover:bg-muted transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2 flex-1 min-w-0">

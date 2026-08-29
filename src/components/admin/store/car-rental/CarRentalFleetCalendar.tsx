@@ -147,11 +147,11 @@ export default function CarRentalFleetCalendar({ storeId }: Props) {
           <CalendarRange className="h-5 w-5 text-primary" /> Fleet calendar
         </CardTitle>
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setStartIso(addDays(startIso, -7))}>
+          <Button variant="outline" size="icon" aria-label="Previous" className="h-8 w-8" onClick={() => setStartIso(addDays(startIso, -7))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setStartIso(todayIso())}>This week</Button>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setStartIso(addDays(startIso, 7))}>
+          <Button variant="outline" size="icon" aria-label="Next" className="h-8 w-8" onClick={() => setStartIso(addDays(startIso, 7))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

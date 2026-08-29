@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import { Capacitor } from "@capacitor/core";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 
@@ -21,11 +22,12 @@ export default function NativeBackButton({
   label = "Back to ZIVO Home",
 }: NativeBackButtonProps) {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   if (!Capacitor.isNativePlatform()) return null;
 
   const handleBack = () => {
     if (to === -1) {
-      navigate(-1);
+      goBack();
       return;
     }
 

@@ -7,8 +7,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { fromStripeMinorUnits } from "@/lib/currency";
 
-export type ServiceType = "flights" | "cars" | "p2p_cars" | "rides" | "eats" | "move" | "hotels" | "activities" | "transfers";
+export type ServiceType = "flights" | "cars" | "p2p_cars" | "rides" | "eats" | "move" | "hotels" | "activities" | "transfers" | "bus";
 
 export interface UnifiedTrip {
   id: string;
@@ -208,6 +209,65 @@ export function useUnifiedTrips(filter: TripsFilter = {}) {
             detailPath: `/my-trips/cars/${r.id}`,
           });
         });
+      }
+
+      // Fetch Bus bookings
+      //
+      // Three flat queries rather than a nested select: the route (origin ->
+      // destination) lives on bus_routes, reached through bus_trips.route_id,
+      // and every column named here is checked against the generated types by
+      // supabaseSelectColumnContract.
+      if (!services || services.includes("bus")) {
+        const { data: busBookings } = await supabase
+          .from("bus_bookings")
+          .select("id, trip_id, status, payment_status, amount_cents, currency, booking_ref, passenger_count, created_at")
+          .eq("customer_id", user!.id)
+          .order("created_at", { ascending: false })
+          .limit(limit);
+
+        const bookings = busBookings || [];
+        if (bookings.length > 0) {
+          const tripIds = [...new Set(bookings.map((b: any) => b.trip_id).filter(Boolean))];
+          const { data: busTrips } = tripIds.length
+            ? await supabase.from("bus_trips").select("id, depart_date, depart_time, route_id").in("id", tripIds)
+            : { data: [] as any[] };
+
+          const routeIds = [...new Set((busTrips || []).map((t: any) => t.route_id).filter(Boolean))];
+          const { data: busRoutes } = routeIds.length
+            ? await supabase.from("bus_routes").select("id, origin, destination").in("id", routeIds)
+            : { data: [] as any[] };
+
+          const tripById = new Map((busTrips || []).map((t: any) => [t.id, t]));
+          const routeById = new Map((busRoutes || []).map((r: any) => [r.id, r]));
+
+          bookings.forEach((b: any) => {
+            const trip = tripById.get(b.trip_id);
+            const route = trip ? routeById.get(trip.route_id) : undefined;
+            const journey = route ? `${route.origin} → ${route.destination}` : "Bus journey";
+            const seats = b.passenger_count > 1 ? ` · ${b.passenger_count} seats` : "";
+
+            trips.push({
+              id: b.id,
+              service: "bus",
+              title: "Bus",
+              subtitle: trip?.depart_date
+                ? `${journey} · ${format(new Date(trip.depart_date), "MMM d")}${trip.depart_time ? ` ${trip.depart_time.slice(0, 5)}` : ""}${seats}`
+                : `${journey}${seats}`,
+              status: b.status || b.payment_status || "pending",
+              // Sort by departure where known so an upcoming bus ranks with
+              // other upcoming trips rather than by when it was booked.
+              date: trip?.depart_date || b.created_at,
+              // amount_cents is a Stripe minor-unit integer: KHR and other
+              // zero-decimal currencies must not be divided by 100.
+              amount: fromStripeMinorUnits(Number(b.amount_cents) || 0, b.currency || "USD"),
+              currency: (b.currency || "USD").toUpperCase(),
+              icon: "bus",
+              details: { booking: b, trip, route },
+              orderNumber: b.booking_ref || b.id,
+              detailPath: `/my-trips/bus/${b.id}`,
+            });
+          });
+        }
       }
 
       // Fetch Move jobs

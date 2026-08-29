@@ -8,10 +8,12 @@ import { ArrowLeft, Truck, Loader2, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 export default function ShopDeliveryPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [storeId, setStoreId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +62,7 @@ export default function ShopDeliveryPage() {
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
+            <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}><ArrowLeft className="h-5 w-5" /></Button>
             <Truck className="h-5 w-5 text-primary" />
             <h1 className="text-xl font-bold">Delivery Settings</h1>
           </div>

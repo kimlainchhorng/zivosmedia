@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface NearbyItem {
   id: string;
@@ -38,6 +39,7 @@ const FILTERS = ["all", "places", "check-ins"];
 
 export default function NearbyPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [filter, setFilter] = useState("all");
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [geoError, setGeoError] = useState(false);
@@ -129,7 +131,7 @@ export default function NearbyPage() {
       />
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}><ArrowLeft className="h-5 w-5" /></Button>
           <Navigation className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-bold text-ig-gradient">Nearby</h1>
         </div>

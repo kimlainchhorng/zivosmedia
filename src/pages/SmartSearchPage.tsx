@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import SEOHead from "@/components/SEOHead";
 import { EmptyState as SharedEmptyState } from "@/components/ui/empty-state";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface UserResult { id: string; name: string; username: string | null; bio: string | null; avatar: string | null; }
 interface PostResult { id: string; author: string; content: string; }
@@ -64,6 +65,7 @@ const writeSmartSearchHistory = (userId: string | null, items: string[]) => {
 
 export default function SmartSearchPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [query, setQuery] = useState("");
@@ -192,7 +194,7 @@ export default function SmartSearchPage() {
       />
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="relative flex-1">

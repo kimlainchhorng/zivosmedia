@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import DriverEnRouteTracker from "@/components/rides/DriverEnRouteTracker";
 import { cn } from "@/lib/utils";
 import { displayableDriverRating } from "@/lib/driverRating";
+import { useGoBack } from "@/hooks/useGoBack";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -160,6 +161,7 @@ function TripCompleteScreen({ onDone }: { onDone: () => void }) {
 export default function TripStatusPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
 
   const [job, setJob] = useState<JobRow | null>(null);
@@ -402,7 +404,7 @@ export default function TripStatusPage() {
         style={{ paddingTop: "calc(var(--zivo-safe-top,0px) + 12px)" }}
       >
         <button type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Go back"
         >

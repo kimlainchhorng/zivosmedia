@@ -188,7 +188,7 @@ export default function PaymentsTable({ storeId, payments, invoices, onOpenInvoi
                           <RotateCcw className="w-3.5 h-3.5" />
                         </Button>
                       )}
-                      <Button size="icon" variant="ghost" className="h-6 w-6"
+                      <Button size="icon" aria-label="Delete" variant="ghost" className="h-6 w-6"
                         onClick={() => { if (confirm("Delete this payment?")) remove.mutate(p.id); }}>
                         <Trash2 className="w-3.5 h-3.5 text-destructive" />
                       </Button>

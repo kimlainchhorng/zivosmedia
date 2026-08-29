@@ -150,7 +150,7 @@ export default function TwoFactorSetupDialog({ open, onOpenChange, onEnrolled }:
               <Label className="text-xs text-muted-foreground">Or enter this key manually</Label>
               <div className="flex gap-2">
                 <Input value={secret} readOnly className="font-mono text-xs" />
-                <Button type="button" variant="outline" size="icon" onClick={copySecret}>
+                <Button type="button" variant="outline" size="icon" aria-label={copied ? "Setup key copied" : "Copy setup key"} onClick={copySecret}>
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>

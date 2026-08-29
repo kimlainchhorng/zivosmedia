@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { planFromQuery } from "@/lib/conciergePlanner";
 import type { ConciergeStepKind } from "@/lib/conciergePlanner";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const ICON_BY_KIND: Record<ConciergeStepKind, { icon: LucideIcon; tone: string }> = {
   reserve: { icon: CalendarClock, tone: "bg-orange-500/15 text-orange-600" },
@@ -44,6 +45,7 @@ const EXAMPLES = [
 
 export default function ConciergePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [params] = useSearchParams();
   const [query, setQuery] = useState(params.get("q") ?? "");
   const [submitted, setSubmitted] = useState(query);
@@ -140,7 +142,7 @@ export default function ConciergePage() {
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border/40 pt-safe">
         <div className="max-w-screen-md mx-auto px-4 py-3 flex items-center gap-3">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >

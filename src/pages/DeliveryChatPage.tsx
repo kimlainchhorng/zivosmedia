@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/app/AppLayout";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface DeliveryMessage {
   id: string;
@@ -17,6 +18,7 @@ interface DeliveryMessage {
 export default function DeliveryChatPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [messages, setMessages] = useState<DeliveryMessage[]>([]);
   const [input, setInput] = useState("");
@@ -97,7 +99,7 @@ export default function DeliveryChatPage() {
         <div className="shrink-0 sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/40">
           <div className="flex items-center gap-2.5 px-4 pt-safe pb-3">
             <button type="button"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               aria-label="Back"
               className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >

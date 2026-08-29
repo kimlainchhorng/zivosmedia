@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { INTERVAL_LABEL, type BillingInterval } from "@/lib/tierFormat";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface SubscriptionRow {
   id: string;
@@ -43,6 +44,7 @@ type Tab = "active" | "ended";
 export default function AccountSubscriptionsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("active");
   const [confirmCancel, setConfirmCancel] = useState<SubscriptionRow | null>(null);
@@ -137,7 +139,7 @@ export default function AccountSubscriptionsPage() {
         style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}
       >
         <div className="flex items-center gap-3 px-3 h-14 max-w-3xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-base font-bold flex items-center gap-1.5">

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface TrackingEvent {
   status: "ordered" | "shipped" | "in_transit" | "out_for_delivery" | "delivered" | "exception";
@@ -54,6 +55,7 @@ const STATUS_ICONS: Record<TrackingEvent["status"], typeof Package> = {
 
 export default function TrackPackagePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [trackingId, setTrackingId] = useState("");
   const [result, setResult] = useState<TrackResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +82,7 @@ export default function TrackPackagePage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

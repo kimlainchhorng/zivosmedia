@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Armchair, Check, X, Loader2, Sparkles, PlaneTakeoff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatCurrencyAmount } from "@/lib/currency";
 import { useDuffelSeatMaps, type SeatElement, type SeatMap } from "@/hooks/useDuffelSeatMaps";
 
 interface SelectedSeat {
@@ -430,7 +431,7 @@ export default function DuffelSeatPicker({
                                     )}
                                     title={
                                       el.designator
-                                        ? `${el.designator}${svc ? ` - $${svc.price}` : " - Unavailable"}`
+                                        ? `${el.designator}${svc ? ` - ${formatCurrencyAmount(svc.price, svc.currency)}` : " - Unavailable"}`
                                         : ""
                                     }
                                   >
@@ -545,7 +546,7 @@ export default function DuffelSeatPicker({
                           </span>
                         </div>
                         <span className="font-bold tabular-nums text-[hsl(var(--flights))]">
-                          {seat.price === 0 ? "Free" : `+$${seat.price.toFixed(2)}`}
+                          {seat.price === 0 ? "Free" : `+${formatCurrencyAmount(seat.price, seat.currency)}`}
                         </span>
                       </div>
                     );

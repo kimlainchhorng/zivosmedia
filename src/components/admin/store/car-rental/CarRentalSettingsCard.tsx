@@ -202,7 +202,7 @@ export default function CarRentalSettingsCard({ storeId }: Props) {
                 <span className="text-[11px] text-muted-foreground">%</span>
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="icon" aria-label="Delete"
                   className="h-7 w-7 ml-auto text-destructive"
                   disabled={draft.refund_tiers.length <= 1}
                   onClick={() => update("refund_tiers", draft.refund_tiers.filter((_, j) => j !== i))}

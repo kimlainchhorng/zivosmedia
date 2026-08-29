@@ -44,6 +44,7 @@ import zivoPharmacyIcon from "@/assets/zivo-pharmacy-icon.webp";
 import zivoThingsToDo from "@/assets/zivo-things-to-do.webp";
 import zivoAiPlanner from "@/assets/zivo-ai-planner.webp";
 import zivoLogo from "@/assets/zivo-logo.png";
+import { useGoBack } from "@/hooks/useGoBack";
 
 /* ── Types ── */
 interface ServiceItem {
@@ -312,6 +313,7 @@ function saveFavoriteServices(favorites: string[], userId: string | null): void 
 /* ── Page ── */
 export default function ServicesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { t } = useI18n();
   const { prefetch } = useRoutePrefetch();
   const { user } = useAuth();
@@ -492,7 +494,7 @@ export default function ServicesPage() {
           <button
             type="button"
             aria-label={t("services.a11y.back")}
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border/45 bg-card/85 shadow-sm backdrop-blur-md transition-all duration-200 hover:bg-card active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="h-5 w-5 text-foreground" />

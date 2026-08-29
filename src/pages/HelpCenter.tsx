@@ -15,10 +15,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 const HelpCenter = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
   const hashTargetClassName = cn("scroll-mt-[calc(var(--zivo-safe-top-sticky)_+_4.25rem)]", !isTravelHost && "lg:scroll-mt-[95px]");
@@ -224,7 +226,7 @@ const HelpCenter = () => {
       {/* Header - Mobile optimized */}
       <header className={cn("sticky top-0 safe-area-top z-50 bg-card/80 backdrop-blur-xl border-b border-white/10 px-3 py-2.5", !isTravelHost && "lg:relative lg:top-auto")}>
         <div className="flex items-center gap-2.5">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9 rounded-xl hover:bg-white/10 active:scale-95 transition-transform" aria-label="Go back">
+          <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 rounded-xl hover:bg-white/10 active:scale-95 transition-transform" aria-label="Go back">
             <ChevronLeft className="h-4 h-4" />
           </Button>
           <div className="flex items-center gap-2">
@@ -469,7 +471,7 @@ const HelpCenter = () => {
                       <Badge variant="outline" className="mb-3 sm:mb-4 font-semibold text-xs">
                         {contact.badge}
                       </Badge>
-                      <Button asChild className={`w-full rounded-xl font-semibold touch-manipulation active:scale-[0.98] ${index === 0 ? "bg-foreground text-background hover:bg-foreground/90" : ""}`} variant={index === 0 ? "default" : "outline"}>
+                      <Button asChild className="w-full rounded-xl font-semibold touch-manipulation active:scale-[0.98]" variant={index === 0 ? "default" : "outline"}>
                         {contact.href.startsWith("mailto:") ? <a href={contact.href}>{contact.action}</a> : <Link to={contact.href}>{contact.action}</Link>}
                       </Button>
                     </CardContent>
@@ -513,7 +515,7 @@ const HelpCenter = () => {
                       </div>
                       <h3 className="text-xl font-bold">Sign in to contact support</h3>
                       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">Signing in keeps the request connected to your account and lets you track replies.</p>
-                      <Button asChild className="mt-5 rounded-xl bg-foreground font-semibold text-background hover:bg-foreground/90">
+                      <Button asChild className="mt-5 rounded-xl font-semibold">
                         <Link to="/login?redirect=%2Fhelp-center">Sign in</Link>
                       </Button>
                     </div>
@@ -526,7 +528,7 @@ const HelpCenter = () => {
                       <p className="text-sm sm:text-base text-muted-foreground mb-2">Your request was received. Track replies from Support tickets.</p>
                       {submittedTicketNumber && <p className="text-[11px] text-muted-foreground/70 mb-4 sm:mb-6 font-mono">Reference: {submittedTicketNumber}</p>}
                       <div className="flex flex-col justify-center gap-2 sm:flex-row">
-                        <Button asChild className="rounded-xl bg-foreground font-semibold text-background hover:bg-foreground/90">
+                        <Button asChild className="rounded-xl font-semibold">
                           <Link to="/support/tickets">View tickets</Link>
                         </Button>
                         <Button variant="outline" onClick={resetTicketForm} className="rounded-xl font-semibold touch-manipulation active:scale-95">
@@ -586,7 +588,7 @@ const HelpCenter = () => {
                         </Label>
                         <Textarea id="description" value={ticketDescription} onChange={(e) => setTicketDescription(e.target.value)} placeholder="Please provide as much detail as possible..." required maxLength={5000} className="min-h-[120px] sm:min-h-[150px] rounded-xl resize-none" />
                       </div>
-                      <Button type="submit" disabled={submittingTicket} className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-xl bg-foreground text-background hover:bg-foreground/90 shadow-lg gap-2 touch-manipulation active:scale-[0.98]">
+                      <Button type="submit" disabled={submittingTicket} className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold rounded-xl shadow-lg gap-2 touch-manipulation active:scale-[0.98]">
                         {submittingTicket ? (
                           <>
                             <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />

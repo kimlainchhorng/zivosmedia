@@ -45,6 +45,7 @@ import { toast } from "sonner";
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import { format } from "date-fns";
 import { useMembershipSavings } from "@/hooks/useMembershipSavings";
+import { useGoBack } from "@/hooks/useGoBack";
 import { Link } from "react-router-dom";
 import {
   AlertDialog,
@@ -85,6 +86,7 @@ const benefits = [
 
 export default function MembershipPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const [isAnnual, setIsAnnual] = useState(true);
@@ -178,7 +180,7 @@ export default function MembershipPage() {
         {/* Back Button */}
         <div className="container mx-auto px-4 mb-6">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-all duration-200"
           >
             <ArrowLeft className="w-4 h-4" />

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface Show {
   id: string;
@@ -49,6 +50,7 @@ const CATEGORIES = ["All", "Travel", "Business", "Hospitality", "Tech"];
 
 export default function PodcastsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [activeCategory, setActiveCategory] = useState("All");
   const [playingId, setPlayingId] = useState<string | null>(null);
 
@@ -65,7 +67,7 @@ export default function PodcastsPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

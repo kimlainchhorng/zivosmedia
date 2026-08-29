@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 
 /* ─── Types ─── */
 interface Article {
@@ -761,6 +762,7 @@ const TAB_DATA: Record<string, { hero?: { title: string; description: string }; 
 
 export default function MonetizationArticlesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [activeTab, setActiveTab] = useState("recommended");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -792,7 +794,7 @@ export default function MonetizationArticlesPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           {searchOpen ? (

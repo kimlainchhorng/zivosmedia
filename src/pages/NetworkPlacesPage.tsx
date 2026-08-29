@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import PartnerBadge from "@/components/shared/PartnerBadge";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type Tab = "all" | "restaurants" | "hotels";
 
@@ -54,6 +55,7 @@ const ENABLE_PUBLIC_NETWORK_PLACES =
 
 export default function NetworkPlacesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [params, setParams] = useSearchParams();
   const initialTab = (params.get("tab") as Tab) || "all";
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -138,7 +140,7 @@ export default function NetworkPlacesPage() {
         <div className="px-4 pt-3 pb-3 max-w-screen-md mx-auto">
           <div className="flex items-center gap-2 mb-3">
             <button type="button"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Back"
             >

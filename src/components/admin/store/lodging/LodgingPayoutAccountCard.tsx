@@ -328,7 +328,7 @@ function ManualMethodForm({
                   {m.method_type === "aba" ? `ABA: ${m.aba_account_id}` : m.method_type === "paypal" ? m.account_number : `${m.bank_name || ""} ···${(m.account_number || "").slice(-4)}`}
                 </p>
               </div>
-              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => onRemove(m.id)}>
+              <Button size="icon" aria-label="Delete" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => onRemove(m.id)}>
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </Button>
             </li>

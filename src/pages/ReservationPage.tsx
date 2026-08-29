@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CrossServiceCTAs from "@/components/shared/CrossServiceCTAs";
 import { downloadICS } from "@/lib/buildICS";
+import { useGoBack } from "@/hooks/useGoBack";
 import CalendarPlus from "lucide-react/dist/esm/icons/calendar-plus";
 
 type Step = "details" | "confirm" | "done";
@@ -65,6 +66,7 @@ const TIMES = [
 
 export default function ReservationPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [params] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -166,7 +168,7 @@ export default function ReservationPage() {
         <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-black/20" />
         <button type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           style={{ top: 'calc(var(--zivo-safe-top,0px) + 0.75rem)' }}
           className="absolute left-3 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           aria-label="Back"

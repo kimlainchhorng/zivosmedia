@@ -62,6 +62,7 @@ import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import PartnerBadge from "@/components/shared/PartnerBadge";
 import { useNetworkFavorites } from "@/hooks/useNetworkFavorites";
+import { useGoBack } from "@/hooks/useGoBack";
 
 // ─── Types ───────────────────────────────────────────────────────────
 type Step = "browse" | "restaurant" | "cart" | "checkout";
@@ -211,6 +212,7 @@ const EATS_STATUS_TO_STEP: Record<string, number> = {
 
 export default function EatsLanding() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const { placeOrder, placing: placingOrder } = useEatsOrder();
 
@@ -802,7 +804,7 @@ export default function EatsLanding() {
             <motion.button
               type="button"
               whileTap={{ scale: 0.88 }}
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="w-9 h-9 rounded-xl bg-card/80 border border-border/40 flex items-center justify-center touch-manipulation shrink-0"
               aria-label="Go back"
             >

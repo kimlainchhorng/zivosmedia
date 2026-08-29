@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNetworkFavorites } from "@/hooks/useNetworkFavorites";
 import PartnerBadge from "@/components/shared/PartnerBadge";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface RestaurantRow {
   id: string;
@@ -47,6 +48,7 @@ const FALLBACK_HOTEL =
 
 export default function SavedFavoritesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const restaurantFavs = useNetworkFavorites("restaurant");
   const hotelFavs = useNetworkFavorites("hotel");
 
@@ -95,7 +97,7 @@ export default function SavedFavoritesPage() {
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border/40 pt-safe">
         <div className="max-w-screen-md mx-auto px-4 py-3 flex items-center gap-3">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >

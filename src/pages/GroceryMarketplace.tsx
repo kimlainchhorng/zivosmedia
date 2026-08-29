@@ -24,6 +24,7 @@ import { GroceryHeroSkeleton, GroceryGridSkeleton } from "@/components/grocery/G
 import { getStoreStatus, getLiveEta } from "@/utils/storeStatus";
 import GroceryDeliveryBar from "@/components/grocery/GroceryDeliveryBar";
 import type { DeliveryAddress } from "@/hooks/useDeliveryAddress";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const container = {
   hidden: {},
@@ -187,6 +188,7 @@ function StoreCardWithLocation({ store, eta, location }: { store: StoreConfig; e
 /* ─── Main page ─── */
 export default function GroceryMarketplace() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const cart = useGroceryCart();
   const { country } = useCountry();
   const marketStores = useMemo(() => getStoresForMarket(country), [country]);
@@ -337,7 +339,7 @@ export default function GroceryMarketplace() {
         <div className="flex items-center gap-3 px-4 py-3">
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-2xl hover:bg-muted/60 transition-colors duration-200 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Go back"
           >

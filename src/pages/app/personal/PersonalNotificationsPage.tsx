@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useWebPush } from "@/hooks/useWebPush";
 import { markNotificationRead, markNotificationsRead } from "@/lib/notifications/notificationManage";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const PUSH_DISMISS_KEY = "zivo_push_dismissed";
 const PUSH_DISMISS_MAX = 3;
@@ -305,6 +306,7 @@ const MUTED_KEY = "notif_muted_cats";
 
 export default function PersonalNotificationsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [mutedCategories, setMutedCategories] = useState<string[]>(() => {
@@ -383,7 +385,7 @@ export default function PersonalNotificationsPage() {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-4 h-4" />

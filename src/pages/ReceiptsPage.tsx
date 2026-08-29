@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { formatBakongBillId } from "@/lib/khqr";
+import { formatStripeAmount } from "@/lib/currency";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 interface ReceiptRow {
@@ -45,19 +47,13 @@ function getTypeIcon(type: string): typeof Receipt {
   return TYPE_ICONS[type.toLowerCase()] ?? Receipt;
 }
 
-const ZERO_DECIMAL_CURRENCIES = new Set(["BIF", "CLP", "DJF", "GNF", "JPY", "KHR", "KMF", "KRW", "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"]);
-
+/**
+ * Receipt totals are stored as Stripe minor units, so they go through the same
+ * zero-decimal-aware formatter the payment buttons use. This file used to carry
+ * its own copy of the zero-decimal currency list.
+ */
 function formatCents(cents: number, currency: string): string {
-  const normalizedCurrency = (currency || "USD").toUpperCase();
-  if (ZERO_DECIMAL_CURRENCIES.has(normalizedCurrency)) {
-    return `${Math.round(cents ?? 0).toLocaleString("en-US")} ${normalizedCurrency}`;
-  }
-  const v = (cents ?? 0) / 100;
-  try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: normalizedCurrency }).format(v);
-  } catch {
-    return `$${v.toFixed(2)}`;
-  }
+  return formatStripeAmount(cents ?? 0, currency);
 }
 
 function formatTotals(receipts: ReceiptRow[]): string {
@@ -82,6 +78,7 @@ function formatDate(iso: string): string {
 
 export default function ReceiptsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [activeType, setActiveType] = useState<string>("All");
@@ -195,7 +192,7 @@ export default function ReceiptsPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

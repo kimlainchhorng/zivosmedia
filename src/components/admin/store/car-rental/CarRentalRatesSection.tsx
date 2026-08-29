@@ -204,10 +204,10 @@ function RateCell({
             }}
             className="h-7 w-24 text-right text-xs"
           />
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => void commit()} disabled={saving}>
+          <Button size="icon" aria-label="Confirm" variant="ghost" className="h-7 w-7" onClick={() => void commit()} disabled={saving}>
             <Check className="h-3.5 w-3.5 text-emerald-500" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancel}>
+          <Button size="icon" aria-label="Close" variant="ghost" className="h-7 w-7" onClick={cancel}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>

@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isBlueVerified } from "@/lib/verification";
 import { cn } from "@/lib/utils";
 import { optimizeAvatar } from "@/utils/optimizeAvatar";
+import { useGoBack } from "@/hooks/useGoBack";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import ArrowUpRight from "lucide-react/dist/esm/icons/arrow-up-right";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
@@ -179,6 +180,7 @@ async function getTrendingHashtagsFromTables(): Promise<TrendTag[]> {
 
 export default function TrendingPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("posts");
   const [query, setQuery] = useState("");
@@ -313,7 +315,7 @@ export default function TrendingPage() {
       <SEOHead title="Trending | ZIVO" description="Discover what's trending on ZIVO right now." />
       <div className="sticky top-0 z-40 safe-area-top border-b border-pink-100/70 bg-white/82 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white bg-white text-slate-900 shadow-[0_12px_30px_rgba(15,23,42,0.12)] active:translate-y-0.5">
+          <button type="button" aria-label="Go back" onClick={goBack} className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white bg-white text-slate-900 shadow-[0_12px_30px_rgba(15,23,42,0.12)] active:translate-y-0.5">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex min-w-0 flex-1 items-center gap-2">

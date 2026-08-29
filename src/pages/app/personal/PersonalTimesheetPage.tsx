@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import { format, addWeeks, startOfWeek, endOfWeek, addDays, isSameDay } from "date-fns";
 
 const statusColor: Record<string, string> = {
@@ -18,6 +19,7 @@ const statusColor: Record<string, string> = {
 
 export default function PersonalTimesheetPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -88,7 +90,7 @@ export default function PersonalTimesheetPage() {
     <AppLayout title="Timesheet" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24 space-y-4">
         <div className="flex items-center gap-2.5">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" aria-label="Go back" onClick={goBack} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-[17px]">Timesheet</h1>

@@ -15,13 +15,22 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
+import { formatCurrencyAmount } from "@/lib/currency";
 import { ReviewSubmissionSheet } from "@/components/reviews/ReviewSubmissionSheet";
 import { ReviewsList } from "@/components/reviews/ReviewsList";
 import { ReviewsSummary } from "@/components/reviews/ReviewsSummary";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import { useGoBack } from "@/hooks/useGoBack";
 
-const formatPrice = (amount: number) =>
-  amount > 0 ? `$${amount.toFixed(0)}` : "—";
+/**
+ * flight_bookings stores `total_amount` as a decimal in `currency` — there is
+ * no `total_amount_cents` column, which is why this screen previously read
+ * undefined, divided it by 100 and rendered "—" in place of the fare. Duffel
+ * quotes in many currencies, so the code is honoured rather than assumed USD,
+ * and cents are shown rather than rounded away.
+ */
+const formatPrice = (amount: number | null | undefined, currency: string | null | undefined) =>
+  Number(amount) > 0 ? formatCurrencyAmount(Number(amount), currency || "USD") : "—";
 
 interface FlightBookingDetail {
   id: string;
@@ -36,7 +45,8 @@ interface FlightBookingDetail {
   airline: string;
   flight_number: string;
   aircraft_type: string;
-  total_amount_cents: number;
+  total_amount: number;
+  currency: string | null;
   status: string;
   payment_status: string;
   ticketing_status: string;
@@ -47,6 +57,7 @@ interface FlightBookingDetail {
 export default function MyFlightTripPage() {
   const { bookingId = "" } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [booking, setBooking] = useState<FlightBookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -87,7 +98,7 @@ export default function MyFlightTripPage() {
       kind: "flight",
       title: `${booking.departure_airport} → ${booking.arrival_airport}`,
       subtitle: `${format(parseISO(booking.departure_time), "MMM d, h:mm a")} · ${booking.airline} ${booking.flight_number}`,
-      meta: formatPrice(booking.total_amount_cents / 100),
+      meta: formatPrice(booking.total_amount, booking.currency),
       deepLink: `/my-trips/flights/${bookingId}`,
       image: null,
     });
@@ -109,7 +120,7 @@ export default function MyFlightTripPage() {
 
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/40 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
         <button type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           aria-label="Back"
           className="h-9 w-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -240,7 +251,7 @@ export default function MyFlightTripPage() {
                 <div>
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Total Price</p>
                   <p className="text-2xl font-bold text-primary mt-1">
-                    {formatPrice(booking.total_amount_cents / 100)}
+                    {formatPrice(booking.total_amount, booking.currency)}
                   </p>
                 </div>
                 {booking.payment_status === "paid" && (

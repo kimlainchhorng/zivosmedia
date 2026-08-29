@@ -626,7 +626,7 @@ export default function DeliveryPage() {
                 </div>
               </div>
 
-              <Button onClick={handleContinueToPackage} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
+              <Button onClick={handleContinueToPackage} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl shadow-lg active:scale-[0.98] transition-all" size="lg">
                 Continue <Zap className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -1438,7 +1438,7 @@ export default function DeliveryPage() {
                 <PriceEstimate total={totalPrice} />
               )}
 
-              <Button onClick={handleContinueToReview} disabled={!selectedSize} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
+              <Button onClick={handleContinueToReview} disabled={!selectedSize} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl shadow-lg active:scale-[0.98] transition-all" size="lg">
                 Review Order <Zap className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -1592,7 +1592,7 @@ export default function DeliveryPage() {
                 <span>{insuranceFee > 0 ? `Package insured · ${selectedInsTier.coverage}` : "No insurance"} · Secured by ZIVO</span>
               </div>
 
-              <Button onClick={handlePlaceOrder} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl hover:text-primary-foreground shadow-lg active:scale-[0.98] transition-all bg-foreground" size="lg">
+              <Button onClick={handlePlaceOrder} className="w-full h-14 text-base font-bold gap-2.5 rounded-2xl shadow-lg active:scale-[0.98] transition-all" size="lg">
                 <CheckCircle className="w-5 h-5" /> Confirm Delivery · ${totalPrice.toFixed(2)}
               </Button>
             </motion.div>

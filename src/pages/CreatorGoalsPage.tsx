@@ -13,6 +13,7 @@ import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface Goals {
   followers: number;
@@ -64,6 +65,7 @@ function formatCount(n: number): string {
 
 export default function CreatorGoalsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [goalState, setGoalState] = useState<{ userId: string | null; goals: Goals }>(() => ({
@@ -158,7 +160,7 @@ export default function CreatorGoalsPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

@@ -914,10 +914,10 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                               onCheckedChange={(checked) => togglePromoActive.mutate({ id: p.id, active: checked })}
                               className="scale-75"
                             />
-                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditPromo(p)}>
+                            <Button size="icon" aria-label="Edit" variant="ghost" className="h-8 w-8" onClick={() => openEditPromo(p)}>
                               <Edit className="w-3.5 h-3.5" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletePromoId(p.id)}>
+                            <Button size="icon" aria-label="Delete" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeletePromoId(p.id)}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
@@ -1370,7 +1370,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
   ${embedLinkText}
 </a>`}
                 </pre>
-                <Button size="icon" variant="ghost" className="absolute top-1.5 right-1.5 h-7 w-7" onClick={() => copyToClipboard(`<a href="${storeUrl}" target="_blank" rel="noopener">${embedLinkText}</a>`, "Embed code")}>
+                <Button size="icon" aria-label="Copy" variant="ghost" className="absolute top-1.5 right-1.5 h-7 w-7" onClick={() => copyToClipboard(`<a href="${storeUrl}" target="_blank" rel="noopener">${embedLinkText}</a>`, "Embed code")}>
                   <Copy className="w-3 h-3" />
                 </Button>
               </div>
@@ -1398,7 +1398,7 @@ export default function StoreMarketingSection({ storeId, storeSlug, storeName, s
                 <Label className="text-xs">Promo Code *</Label>
                 <div className="flex gap-1.5">
                   <Input value={promoForm.code} onChange={e => setPromoForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="SUMMER20" className="font-mono" />
-                  <Button variant="outline" size="icon" className="shrink-0" onClick={() => setPromoForm(f => ({ ...f, code: generatePromoCode() }))}>
+                  <Button variant="outline" size="icon" aria-label="Generate promo code" className="shrink-0" onClick={() => setPromoForm(f => ({ ...f, code: generatePromoCode() }))}>
                     <Sparkles className="w-3.5 h-3.5" />
                   </Button>
                 </div>

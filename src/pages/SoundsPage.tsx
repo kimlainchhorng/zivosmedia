@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface Sound {
   id: string;
@@ -38,6 +39,7 @@ const GENRES = ["All", "Chill", "Jazz", "Pop", "Ambient", "Electronic", "Cinemat
 
 export default function SoundsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [activeGenre, setActiveGenre] = useState("All");
   const [playingId, setPlayingId] = useState<string | null>(null);
 
@@ -55,7 +57,7 @@ export default function SoundsPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

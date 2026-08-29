@@ -3,6 +3,7 @@
  * Mobile-first header with logo, city selector, and notifications
  */
 import { Link, useNavigate } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import { Bell, ChevronLeft } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import ZivoTravelLogo from "@/components/ZivoTravelLogo";
@@ -30,6 +31,7 @@ const AppHeader = ({
   hideLocation = false
 }: AppHeaderProps) => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { unreadCount } = useNotifications(20);
   const isTravel = typeof window !== "undefined" && isZivoTravelHost();
 
@@ -37,7 +39,7 @@ const AppHeader = ({
     if (onBack) {
       onBack();
     } else {
-      navigate(-1);
+      goBack();
     }
   };
 

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 import { ShieldX, Home, ArrowLeft } from "lucide-react";
 
 interface AccessDeniedProps {
@@ -13,6 +14,7 @@ const AccessDenied = ({
   message = "You don't have permission to access this dashboard." 
 }: AccessDeniedProps) => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -24,7 +26,7 @@ const AccessDenied = ({
           <h2 className="text-xl font-semibold mb-2">{title}</h2>
           <p className="text-muted-foreground mb-6">{message}</p>
           <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl active:scale-95 transition-all duration-200 touch-manipulation">
+            <Button variant="outline" onClick={goBack} className="rounded-xl active:scale-95 transition-all duration-200 touch-manipulation">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
             </Button>
