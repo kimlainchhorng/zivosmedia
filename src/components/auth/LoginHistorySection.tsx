@@ -54,11 +54,11 @@ async function getMapsKey(): Promise<string> {
 
 function loadGoogleMapsScript(apiKey: string): Promise<void> {
   if (googleMapsAuthFailed) return Promise.reject(new Error("Google Maps auth failed"));
-  if (googleMapsLoaded && window.google?.maps) return Promise.resolve();
+  if (googleMapsLoaded && window.google?.maps?.Map) return Promise.resolve();
   if (googleMapsPromise) return googleMapsPromise;
 
   googleMapsPromise = new Promise<void>((resolve, reject) => {
-    if (window.google?.maps) {
+    if (window.google?.maps?.Map) {
       googleMapsLoaded = true;
       resolve();
       return;
@@ -67,7 +67,7 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
     const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]') as HTMLScriptElement | null;
     if (existing) {
       const waitForMaps = () => {
-        if (window.google?.maps) {
+        if (window.google?.maps?.Map) {
           googleMapsLoaded = true;
           resolve();
           return;
@@ -159,7 +159,7 @@ function MiniMap({
         if (!key) throw new Error("Missing Google Maps key");
 
         await loadGoogleMapsScript(key);
-        if (cancelled || !mapRef.current || !window.google?.maps) return;
+        if (cancelled || !mapRef.current || !window.google?.maps?.Map) return;
 
         const map = new window.google.maps.Map(mapRef.current, {
           center: hasCoords ? { lat: lat!, lng: lon! } : { lat: 39.8283, lng: -98.5795 },
