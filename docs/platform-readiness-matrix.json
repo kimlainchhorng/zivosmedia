@@ -1,13 +1,13 @@
 {
-  "generated": "2026-08-27T23:51:33.455Z",
+  "generated": "2026-08-29T15:51:34.202Z",
   "totals": {
-    "pageFiles": 716,
-    "componentFiles": 1333,
-    "sourceFiles": 2762,
-    "edgeFunctions": 460,
+    "pageFiles": 717,
+    "componentFiles": 1335,
+    "sourceFiles": 2772,
+    "edgeFunctions": 477,
     "migrations": 1147,
-    "testFiles": 261,
-    "docsFiles": 1632
+    "testFiles": 267,
+    "docsFiles": 1591
   },
   "currentGate": {
     "mode": "strict",
@@ -33,36 +33,36 @@
     {
       "id": "release-safety",
       "label": "Release Safety Foundation",
-      "evidenceCount": 1663,
+      "evidenceCount": 1627,
       "evidenceBreakdown": {
         "pages": 19,
         "components": 20,
         "otherSource": 18,
-        "edgeFunctions": 202,
+        "edgeFunctions": 203,
         "migrations": 1147,
         "tests": 100,
-        "docs": 157
+        "docs": 120
       },
       "testGap": {
-        "implementationEvidence": 1406,
+        "implementationEvidence": 1407,
         "testEvidence": 100,
-        "testCoverageRatio": 0.0601,
-        "targetTestEvidence": 34,
+        "testCoverageRatio": 0.0615,
+        "targetTestEvidence": 33,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
+        "src/pages/ChatHubPage.tsx",
+        "src/pages/FeedPage.tsx",
+        "src/pages/FlightReview.tsx",
+        "src/pages/FlightTravelerInfo.tsx",
+        "src/pages/InspectionViewPage.tsx",
+        "src/pages/MonetizationArticlesPage.tsx",
+        "src/pages/SecurityStatus.tsx",
         "src/pages/account/ActivityLogPage.tsx",
         "src/pages/account/LegalPoliciesPage.tsx",
-        "src/pages/account/LinkDevicePage.tsx",
-        "src/pages/admin/AdminAdsAnalyticsPage.tsx",
-        "src/pages/admin/AdminTelegramSystemPage.tsx",
-        "src/pages/admin/HotelAdminLaunchPage.tsx",
-        "src/pages/app/CanonicalRidePage.test.tsx",
-        "src/pages/app/personal/ApplyJobHubPage.tsx",
-        "src/pages/ChatHubPage.tsx",
-        "src/pages/FeedPage.tsx"
+        "src/pages/account/LinkDevicePage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/releaseSafetyPreflight.test.ts",
@@ -84,36 +84,36 @@
     {
       "id": "auth-sso-sessions",
       "label": "Auth, SSO, Sessions, and Account Protection",
-      "evidenceCount": 3321,
+      "evidenceCount": 3300,
       "evidenceBreakdown": {
-        "pages": 483,
-        "components": 373,
-        "otherSource": 258,
-        "edgeFunctions": 412,
+        "pages": 484,
+        "components": 375,
+        "otherSource": 264,
+        "edgeFunctions": 417,
         "migrations": 843,
-        "tests": 161,
-        "docs": 791
+        "tests": 163,
+        "docs": 754
       },
       "testGap": {
-        "implementationEvidence": 2369,
-        "testEvidence": 161,
-        "testCoverageRatio": 0.0485,
-        "targetTestEvidence": 67,
+        "implementationEvidence": 2383,
+        "testEvidence": 163,
+        "testCoverageRatio": 0.0494,
+        "targetTestEvidence": 66,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
+        "src/pages/AMAPage.tsx",
         "src/pages/About.tsx",
-        "src/pages/account/AccountAnalyticsPage.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSessionsPage.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/AccountSubscriptionsPage.tsx",
-        "src/pages/account/AccountTipsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/AddressesPage.tsx"
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AffiliateHubPage.tsx",
+        "src/pages/AffiliateLinksPage.tsx",
+        "src/pages/AppSettingsPage.tsx",
+        "src/pages/AudioSpacesPage.tsx",
+        "src/pages/AuthCallback.tsx",
+        "src/pages/AuthHandoff.tsx",
+        "src/pages/AutoMessagesLogPage.tsx"
       ],
       "suggestedTestFiles": [
         "tests/e2e/auth-sso-role-matrix.spec.ts",
@@ -131,36 +131,36 @@
     {
       "id": "role-workflows",
       "label": "Customer, Shop Owner, Staff, Driver, Support, Admin Workflows",
-      "evidenceCount": 5431,
+      "evidenceCount": 5424,
       "evidenceBreakdown": {
-        "pages": 698,
-        "components": 1167,
-        "otherSource": 520,
-        "edgeFunctions": 437,
+        "pages": 699,
+        "components": 1170,
+        "otherSource": 524,
+        "edgeFunctions": 454,
         "migrations": 850,
-        "tests": 163,
-        "docs": 1596
+        "tests": 168,
+        "docs": 1559
       },
       "testGap": {
-        "implementationEvidence": 3672,
-        "testEvidence": 163,
-        "testCoverageRatio": 0.03,
+        "implementationEvidence": 3697,
+        "testEvidence": 168,
+        "testCoverageRatio": 0.031,
         "targetTestEvidence": 109,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
+        "src/pages/AITripPlanner.tsx",
+        "src/pages/AMAPage.tsx",
+        "src/pages/ARFiltersPage.tsx",
         "src/pages/About.tsx",
-        "src/pages/account/AccountAnalyticsPage.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSessionsPage.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/AccountSubscriptionsPage.tsx",
-        "src/pages/account/AccountTipsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/AddressesPage.tsx"
+        "src/pages/AccountDeletionInfo.tsx",
+        "src/pages/AchievementsPage.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdminModerationPage.tsx",
+        "src/pages/AdultDiscoveryPage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/roleWorkflowMatrix.test.ts",
@@ -185,36 +185,36 @@
     {
       "id": "payments-payouts",
       "label": "Payments, Payouts, Refunds, and Webhooks",
-      "evidenceCount": 2060,
+      "evidenceCount": 2033,
       "evidenceBreakdown": {
-        "pages": 346,
-        "components": 407,
-        "otherSource": 143,
+        "pages": 348,
+        "components": 409,
+        "otherSource": 144,
         "edgeFunctions": 229,
         "migrations": 274,
-        "tests": 114,
-        "docs": 547
+        "tests": 119,
+        "docs": 510
       },
       "testGap": {
-        "implementationEvidence": 1399,
-        "testEvidence": 114,
-        "testCoverageRatio": 0.0553,
-        "targetTestEvidence": 42,
+        "implementationEvidence": 1404,
+        "testEvidence": 119,
+        "testCoverageRatio": 0.0585,
+        "targetTestEvidence": 41,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
         "src/pages/About.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/AccountSubscriptionsPage.tsx",
-        "src/pages/account/GiftCardsPage.tsx",
-        "src/pages/account/GiftCardSuccessPage.tsx",
-        "src/pages/account/LegalPoliciesPage.tsx",
-        "src/pages/account/NotificationSettings.tsx",
-        "src/pages/account/PrivacySettingsPage.tsx",
-        "src/pages/account/ProfileEditPage.tsx"
+        "src/pages/AccountDeletionInfo.tsx",
+        "src/pages/AchievementsPage.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AffiliateDisclosure.tsx",
+        "src/pages/AffiliateHubPage.tsx",
+        "src/pages/AirportPage.tsx",
+        "src/pages/AutoMessagesLogPage.tsx",
+        "src/pages/AvatarMoodsPage.tsx",
+        "src/pages/BecomePartnerPage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/paymentWebhookIdempotency.test.ts",
@@ -233,36 +233,36 @@
     {
       "id": "email-push-marketing",
       "label": "Email, Push, SMS, and Marketing",
-      "evidenceCount": 1845,
+      "evidenceCount": 1814,
       "evidenceBreakdown": {
         "pages": 303,
         "components": 343,
-        "otherSource": 233,
+        "otherSource": 238,
         "edgeFunctions": 230,
         "migrations": 267,
-        "tests": 89,
-        "docs": 380
+        "tests": 90,
+        "docs": 343
       },
       "testGap": {
-        "implementationEvidence": 1376,
-        "testEvidence": 89,
-        "testCoverageRatio": 0.0482,
+        "implementationEvidence": 1381,
+        "testEvidence": 90,
+        "testCoverageRatio": 0.0496,
         "targetTestEvidence": 37,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
+        "src/pages/AMAPage.tsx",
         "src/pages/About.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/BusinessInvoicesPage.tsx",
-        "src/pages/account/GiftCardsPage.tsx",
-        "src/pages/account/GiftCardSuccessPage.tsx",
-        "src/pages/account/LegalPoliciesPage.tsx",
-        "src/pages/account/LinkedDevicesPage.tsx"
+        "src/pages/AccountDeletionInfo.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AffiliateDisclosure.tsx",
+        "src/pages/AffiliateHubPage.tsx",
+        "src/pages/AppSettingsPage.tsx",
+        "src/pages/AudioSpacesPage.tsx",
+        "src/pages/AuthCallback.tsx",
+        "src/pages/AutoMessagesLogPage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/marketingConsentSuppression.test.ts",
@@ -281,36 +281,36 @@
     {
       "id": "database-storage-media",
       "label": "Database, Storage, and Media",
-      "evidenceCount": 4197,
+      "evidenceCount": 4182,
       "evidenceBreakdown": {
-        "pages": 539,
-        "components": 559,
-        "otherSource": 296,
-        "edgeFunctions": 460,
+        "pages": 540,
+        "components": 560,
+        "otherSource": 300,
+        "edgeFunctions": 477,
         "migrations": 904,
-        "tests": 200,
-        "docs": 1239
+        "tests": 201,
+        "docs": 1200
       },
       "testGap": {
-        "implementationEvidence": 2758,
-        "testEvidence": 200,
-        "testCoverageRatio": 0.0477,
+        "implementationEvidence": 2781,
+        "testEvidence": 201,
+        "testCoverageRatio": 0.0481,
         "targetTestEvidence": 84,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
+        "src/pages/AITripPlanner.tsx",
+        "src/pages/AMAPage.tsx",
         "src/pages/About.tsx",
-        "src/pages/account/AccountAnalyticsPage.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSessionsPage.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/AccountSubscriptionsPage.tsx",
-        "src/pages/account/AccountTipsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/AddressesPage.tsx"
+        "src/pages/AccountDeletionInfo.tsx",
+        "src/pages/AchievementsPage.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdminModerationPage.tsx",
+        "src/pages/AdultDiscoveryPage.tsx",
+        "src/pages/AffiliateDisclosure.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/rls/dataApiGrantCoverage.test.ts",
@@ -331,36 +331,36 @@
     {
       "id": "security-anti-abuse",
       "label": "Security, Anti-Abuse, and Hacker Protection",
-      "evidenceCount": 3427,
+      "evidenceCount": 3396,
       "evidenceBreakdown": {
-        "pages": 327,
-        "components": 439,
+        "pages": 328,
+        "components": 440,
         "otherSource": 117,
         "edgeFunctions": 460,
         "migrations": 747,
-        "tests": 126,
-        "docs": 1211
+        "tests": 129,
+        "docs": 1175
       },
       "testGap": {
-        "implementationEvidence": 2090,
-        "testEvidence": 126,
-        "testCoverageRatio": 0.0368,
-        "targetTestEvidence": 69,
+        "implementationEvidence": 2092,
+        "testEvidence": 129,
+        "testCoverageRatio": 0.038,
+        "targetTestEvidence": 68,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
+        "src/pages/AITripPlanner.tsx",
+        "src/pages/AMAPage.tsx",
+        "src/pages/ARFiltersPage.tsx",
         "src/pages/About.tsx",
-        "src/pages/account/AccountAnalyticsPage.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSessionsPage.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/AddressesPage.tsx",
-        "src/pages/account/LegalPoliciesPage.tsx",
-        "src/pages/account/LinkDevicePage.tsx"
+        "src/pages/AccountDeletionInfo.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdultDiscoveryPage.tsx",
+        "src/pages/AppSettingsPage.tsx",
+        "src/pages/AudioSpacesPage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/securityAttackDrills.test.ts",
@@ -380,36 +380,36 @@
     {
       "id": "legal-policy-compliance",
       "label": "Law, Policy, Compliance, and Trust",
-      "evidenceCount": 4662,
+      "evidenceCount": 4653,
       "evidenceBreakdown": {
-        "pages": 704,
-        "components": 1288,
-        "otherSource": 644,
-        "edgeFunctions": 205,
+        "pages": 705,
+        "components": 1290,
+        "otherSource": 649,
+        "edgeFunctions": 224,
         "migrations": 774,
-        "tests": 134,
-        "docs": 913
+        "tests": 135,
+        "docs": 876
       },
       "testGap": {
-        "implementationEvidence": 3615,
-        "testEvidence": 134,
-        "testCoverageRatio": 0.0287,
+        "implementationEvidence": 3642,
+        "testEvidence": 135,
+        "testCoverageRatio": 0.029,
         "targetTestEvidence": 94,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
+        "src/pages/AITripPlanner.tsx",
+        "src/pages/AMAPage.tsx",
+        "src/pages/ARFiltersPage.tsx",
         "src/pages/About.tsx",
-        "src/pages/account/AccountAnalyticsPage.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSessionsPage.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/AccountSubscriptionsPage.tsx",
-        "src/pages/account/AccountTipsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/AddressesPage.tsx"
+        "src/pages/AccountDeletionInfo.tsx",
+        "src/pages/AchievementsPage.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdminModerationPage.tsx",
+        "src/pages/AdultDiscoveryPage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/legalRouteSurface.test.ts",
@@ -452,36 +452,36 @@
     {
       "id": "frontend-graphics-speed",
       "label": "Frontend, Graphics, Design, and Speed",
-      "evidenceCount": 4054,
+      "evidenceCount": 4063,
       "evidenceBreakdown": {
-        "pages": 636,
-        "components": 791,
-        "otherSource": 455,
-        "edgeFunctions": 421,
+        "pages": 637,
+        "components": 789,
+        "otherSource": 459,
+        "edgeFunctions": 435,
         "migrations": 213,
-        "tests": 94,
-        "docs": 1444
+        "tests": 97,
+        "docs": 1433
       },
       "testGap": {
-        "implementationEvidence": 2516,
-        "testEvidence": 94,
-        "testCoverageRatio": 0.0232,
+        "implementationEvidence": 2533,
+        "testEvidence": 97,
+        "testCoverageRatio": 0.0239,
         "targetTestEvidence": 82,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
-        "src/pages/account/AccountAnalyticsPage.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSessionsPage.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/AccountSubscriptionsPage.tsx",
-        "src/pages/account/AccountTipsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/AddressesPage.tsx",
-        "src/pages/account/BusinessInvoicesPage.tsx"
+        "src/pages/AITripPlanner.tsx",
+        "src/pages/AMAPage.tsx",
+        "src/pages/ARFiltersPage.tsx",
+        "src/pages/AchievementsPage.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdminModerationPage.tsx",
+        "src/pages/AdultDiscoveryPage.tsx",
+        "src/pages/AffiliateHubPage.tsx",
+        "src/pages/AffiliateLinksPage.tsx"
       ],
       "suggestedTestFiles": [
         "tests/visual/workflow-visual-readiness.spec.ts",
@@ -510,36 +510,36 @@
     {
       "id": "native-mobile-release",
       "label": "Native iOS, Android, OTA, and Store Release",
-      "evidenceCount": 2619,
+      "evidenceCount": 2600,
       "evidenceBreakdown": {
-        "pages": 504,
-        "components": 520,
-        "otherSource": 228,
+        "pages": 507,
+        "components": 522,
+        "otherSource": 236,
         "edgeFunctions": 110,
         "migrations": 165,
-        "tests": 73,
-        "docs": 1019
+        "tests": 78,
+        "docs": 982
       },
       "testGap": {
-        "implementationEvidence": 1527,
-        "testEvidence": 73,
-        "testCoverageRatio": 0.0279,
-        "targetTestEvidence": 53,
+        "implementationEvidence": 1540,
+        "testEvidence": 78,
+        "testCoverageRatio": 0.03,
+        "targetTestEvidence": 52,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
+        "src/pages/AITripPlanner.tsx",
+        "src/pages/AMAPage.tsx",
+        "src/pages/ARFiltersPage.tsx",
         "src/pages/About.tsx",
-        "src/pages/account/AccountAnalyticsPage.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSessionsPage.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/AccountTipsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/AddressesPage.tsx",
-        "src/pages/account/BusinessInvoicesPage.tsx"
+        "src/pages/AchievementsPage.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdminModerationPage.tsx",
+        "src/pages/AdultDiscoveryPage.tsx",
+        "src/pages/AffiliateHubPage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/workflows/native-app-release.test.ts",
@@ -568,36 +568,36 @@
     {
       "id": "api-server-operations",
       "label": "API, Server Speed, Observability, and Operations",
-      "evidenceCount": 5079,
+      "evidenceCount": 5071,
       "evidenceBreakdown": {
-        "pages": 688,
-        "components": 1148,
-        "otherSource": 627,
-        "edgeFunctions": 460,
+        "pages": 689,
+        "components": 1151,
+        "otherSource": 632,
+        "edgeFunctions": 477,
         "migrations": 637,
-        "tests": 170,
-        "docs": 1349
+        "tests": 173,
+        "docs": 1312
       },
       "testGap": {
-        "implementationEvidence": 3560,
-        "testEvidence": 170,
-        "testCoverageRatio": 0.0335,
+        "implementationEvidence": 3586,
+        "testEvidence": 173,
+        "testCoverageRatio": 0.0341,
         "targetTestEvidence": 102,
         "testsNeededForHigh": 0,
         "testsNeededForOk": 0,
         "priority": "ok"
       },
       "sampleEvidence": [
-        "src/pages/account/AccountAnalyticsPage.tsx",
-        "src/pages/account/AccountExportPage.tsx",
-        "src/pages/account/AccountSecurity.tsx",
-        "src/pages/account/AccountSessionsPage.tsx",
-        "src/pages/account/AccountSettingsPage.tsx",
-        "src/pages/account/AccountSubscriptionsPage.tsx",
-        "src/pages/account/AccountTipsPage.tsx",
-        "src/pages/account/ActivityLogPage.tsx",
-        "src/pages/account/AddressesPage.tsx",
-        "src/pages/account/BusinessInvoicesPage.tsx"
+        "src/pages/AITripPlanner.tsx",
+        "src/pages/AMAPage.tsx",
+        "src/pages/ARFiltersPage.tsx",
+        "src/pages/AchievementsPage.tsx",
+        "src/pages/ActivityFeedPage.tsx",
+        "src/pages/AdminContentReportsPage.tsx",
+        "src/pages/AdminModerationPage.tsx",
+        "src/pages/AdultDiscoveryPage.tsx",
+        "src/pages/AffiliateHubPage.tsx",
+        "src/pages/AffiliateLinksPage.tsx"
       ],
       "suggestedTestFiles": [
         "src/test/apiObservabilityContracts.test.ts",
