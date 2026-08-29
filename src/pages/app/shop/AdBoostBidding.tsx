@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion } from "framer-motion";
 
 type PlacementType = "top_map" | "top_reel";
@@ -36,6 +37,7 @@ const PLACEMENT_CONFIG = {
 
 export default function AdBoostBidding() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [placement, setPlacement] = useState<PlacementType>("top_map");
   const [budgetCents, setBudgetCents] = useState(500);
@@ -82,7 +84,7 @@ export default function AdBoostBidding() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur-md border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack} className="rounded-xl">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

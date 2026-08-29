@@ -15,6 +15,7 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { EmptyState } from "@/components/ui/empty-state";
 import ReelThumbnail from "@/components/social/ReelThumbnail";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type BookmarkTab = "all" | "post" | "flight" | "restaurant";
 
@@ -27,6 +28,7 @@ const postOpenHref = (source: "store" | "user", postId: string, isVideo?: boolea
 export default function BookmarksPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<BookmarkTab>("all");
 
@@ -194,7 +196,7 @@ export default function BookmarksPage() {
       <SEOHead title="Bookmarks – ZIVO" description="Your saved flights, restaurants, and content on ZIVO." canonical="/bookmarks" noIndex />
       <div className="zivo-sticky-mobile-header safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Saved</h1>

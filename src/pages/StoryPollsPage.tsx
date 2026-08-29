@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -26,6 +27,7 @@ interface StoryPoll {
 
 export default function StoryPollsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [polls, setPolls] = useState<StoryPoll[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +118,7 @@ export default function StoryPollsPage() {
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <BarChart3 className="h-5 w-5 text-primary" />

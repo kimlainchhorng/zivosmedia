@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import Footer from "@/components/Footer";
 import ZivoTravelLogo from "@/components/ZivoTravelLogo";
 import { getZivoHeaderSafeTop } from "@/lib/zivoHeaderSafeArea";
+import { useGoBack } from "@/hooks/useGoBack";
 import { PageTransition } from "./PageTransition";
 
 /**
@@ -40,6 +41,7 @@ export function TravelUtilityShell({
   children: ReactNode;
 }) {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const location = useLocation();
   // In local preview we live under /zivo-travel/*; on the travel host the same
   // pages live at clean paths. Build nav links + active state for either context.
@@ -64,7 +66,7 @@ export function TravelUtilityShell({
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Go back"
             className="grid h-9 w-9 place-items-center rounded-full border border-slate-900/10 bg-white/60 text-slate-700 transition hover:bg-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40"
           >

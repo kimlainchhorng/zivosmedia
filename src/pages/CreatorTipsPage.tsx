@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface TipRow {
   id: string;
@@ -28,6 +29,7 @@ const SUCCESS_STATUSES = new Set(["succeeded", "completed", "paid"]);
 export default function CreatorTipsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
 
   const { data: tips = [], isLoading } = useQuery<TipRow[]>({
     queryKey: ["creator-tips-inbox", user?.id],
@@ -85,7 +87,7 @@ export default function CreatorTipsPage() {
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 bg-background/85 backdrop-blur border-b border-border/40 safe-area-top">
         <div className="flex items-center gap-3 px-3 h-14 max-w-3xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Back" className="p-2 -ml-2 rounded-lg hover:bg-muted/60 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-base font-bold flex items-center gap-1.5">

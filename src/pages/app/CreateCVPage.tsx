@@ -80,6 +80,7 @@ import { cn } from "@/lib/utils";
 import AppLayout from "@/components/app/AppLayout";
 import { toast } from "sonner";
 import { SkillLogo, PRESET_SKILLS, findPresetSkill } from "@/components/cv/SkillLogo";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const CV_TEMPLATES = [
   { id: "classic", name: "Classic", desc: "Two-column pro", color: "#10b981", gradient: "from-emerald-500 to-teal-600" },
@@ -1183,6 +1184,7 @@ function formatDate(d: string) {
 /* ── Main Component ───────────────────────────────── */
 const CreateCVPage = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
 
   // Personal info
@@ -1796,7 +1798,7 @@ const CreateCVPage = () => {
         {/* Header */}
         <div className="sticky top-0 z-20 -mx-4 px-4 pt-2 pb-3 mb-3 bg-background/92 backdrop-blur-xl border-b border-border/10">
           <div className="flex items-center gap-2.5">
-            <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="w-9 h-9 rounded-full bg-muted/70 flex items-center justify-center touch-manipulation active:scale-90 transition-transform">
+            <button type="button" onClick={goBack} aria-label="Go back" className="w-9 h-9 rounded-full bg-muted/70 flex items-center justify-center touch-manipulation active:scale-90 transition-transform">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex-1 min-w-0">

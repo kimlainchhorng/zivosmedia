@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, DollarSign, AlertTriangle, Ban, Eye, Lock, FileText, Globe, Scale, Landmark, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const sections = [
   { icon: Shield, title: "1. AML Policy Statement", content: "ZIVO LLC is committed to preventing money laundering, terrorist financing, and other financial crimes. This Anti-Money Laundering (AML) Policy establishes the framework for identifying, monitoring, and reporting suspicious activities in compliance with the Bank Secrecy Act (BSA), USA PATRIOT Act, and Financial Crimes Enforcement Network (FinCEN) regulations. All users must comply with this policy as a condition of using the Services." },
@@ -18,11 +19,12 @@ const sections = [
 
 export default function AntiMoneyLaundering() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Anti-Money Laundering</h1>

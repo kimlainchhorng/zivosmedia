@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const PARTNER_TYPES = [
   {
@@ -118,6 +119,7 @@ const TYPE_PARAM_MAP: Record<string, string> = {
 
 export default function PartnerWithZivo() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [params] = useSearchParams();
   const initialType = TYPE_PARAM_MAP[params.get("type") ?? ""] ?? "";
 
@@ -190,7 +192,7 @@ export default function PartnerWithZivo() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="rounded-xl"
             aria-label="Go back"
           >

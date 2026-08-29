@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/app/AppLayout";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, differenceInMinutes, isAfter, isBefore, isEqual, isSameWeek } from "date-fns";
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,6 +46,7 @@ type DayOff = {
 
 export default function PersonalSchedulePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [now, setNow] = useState(new Date());
@@ -254,7 +256,7 @@ export default function PersonalSchedulePage() {
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/40 pt-safe">
           <div className="safe-area-top" />
           <div className="flex items-center gap-3 px-4 h-11">
-            <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform -ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <button type="button" aria-label="Go back" onClick={goBack} className="w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform -ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <ArrowLeft className="w-[18px] h-[18px] text-foreground" />
             </button>
             <h1 className="font-bold text-[15px] text-ig-gradient flex-1">My Schedule</h1>

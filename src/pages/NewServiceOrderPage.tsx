@@ -17,6 +17,7 @@ import { useCreateServiceOrder, type CreateServiceOrderInput } from "@/hooks/use
 import LegalAcknowledgment from "@/components/legal/LegalAcknowledgment";
 import PromoCodeField from "@/components/service/PromoCodeField";
 import type { ServiceOrderItem } from "@/types/serviceOrder";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const PIPELINE_LEGAL_VERSION = "1.0.0";
 const LEGAL_DOCS = [
@@ -33,6 +34,7 @@ const fmt = (cents: number, currency = "USD") =>
 
 export default function NewServiceOrderPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [params] = useSearchParams();
   const initialKind = params.get("kind") === "delivery" ? "delivery" : "ride";
@@ -171,7 +173,7 @@ export default function NewServiceOrderPage() {
 
   return (
     <div className="container mx-auto p-4 max-w-2xl space-y-4 pb-24 safe-area-top">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="-ml-2">
+      <Button variant="ghost" onClick={goBack} className="-ml-2">
         <ArrowLeft className="mr-2 h-4 w-4" /> Back
       </Button>
 

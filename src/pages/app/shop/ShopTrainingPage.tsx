@@ -14,6 +14,7 @@ import AppLayout from "@/components/app/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const DEFAULT_MODULES = [
   { id: "safety", title: "Workplace Safety", duration: "30 min", category: "Compliance" },
@@ -26,6 +27,7 @@ const DEFAULT_MODULES = [
 
 export default function ShopTrainingPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -112,7 +114,7 @@ export default function ShopTrainingPage() {
     <AppLayout title="Training" hideHeader>
       <div className="flex flex-col pb-28">
         <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 py-3 flex items-center gap-3" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" aria-label="Go back" onClick={goBack} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="font-bold text-lg flex-1">Training</h1>

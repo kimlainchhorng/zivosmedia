@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { useTravelCart } from "@/contexts/TravelCartContext";
 import SEOHead from "@/components/SEOHead";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const formatCartDate = (value: string) => {
   const date = new Date(value);
@@ -47,6 +48,7 @@ const formatCartAmount = (amount: number, currency: string) => {
 
 const TravelCheckoutPage = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { items, getTotal } = useTravelCart();
 
   if (items.length === 0) {
@@ -99,7 +101,7 @@ const TravelCheckoutPage = () => {
 
         <header className="sticky top-0 z-40 border-b border-sky-100 bg-white/85 backdrop-blur-xl safe-area-top">
           <div className="container mx-auto flex items-center gap-4 px-4 py-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back">
+            <Button variant="ghost" size="icon" onClick={goBack} aria-label="Go back">
               <ArrowLeft className="h-5 w-5" aria-hidden />
             </Button>
             <div>
@@ -159,7 +161,7 @@ const TravelCheckoutPage = () => {
                   <Button onClick={() => navigate("/")} className="sm:min-w-44">
                     Back to Zivo Travel
                   </Button>
-                  <Button variant="outline" onClick={() => navigate(-1)} className="sm:min-w-36">
+                  <Button variant="outline" onClick={goBack} className="sm:min-w-36">
                     Go back
                   </Button>
                 </div>

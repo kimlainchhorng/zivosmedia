@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type PublishStatus = "live" | "draft";
 type PreviewTheme = "light" | "dark";
@@ -38,6 +39,7 @@ function savePrefs(patch: Record<string, unknown>) {
 
 const ConnectWebsitePage = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   const prefs = loadPrefs();
@@ -116,7 +118,7 @@ const ConnectWebsitePage = () => {
         {/* Top bar */}
         <div className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md pt-safe">
           <div className="container max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="-ml-2">
+            <Button variant="ghost" size="sm" onClick={goBack} className="-ml-2">
               <ArrowLeft className="w-4 h-4 mr-1" /> Settings
             </Button>
           </div>

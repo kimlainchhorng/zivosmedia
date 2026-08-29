@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -211,6 +212,7 @@ const buildCategories = (): ExportCategory[] => [
 export default function AccountExportPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const categories = useMemo(buildCategories, []);
 
   const [selected, setSelected] = useState<Record<string, boolean>>(() => {
@@ -326,7 +328,7 @@ export default function AccountExportPage() {
       <SEOHead title="Export Data – ZIVO" description="Download all your personal data in JSON or CSV format. Select which categories to include: messages, posts, bookmarks, notifications, activity log, and more." />
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50 safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button variant="ghost" size="icon" aria-label="Back" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" aria-label="Back" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Export Data</h1>

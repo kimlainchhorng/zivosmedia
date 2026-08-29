@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { formatBakongBillId } from "@/lib/khqr";
 import { formatStripeAmount } from "@/lib/currency";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 interface ReceiptRow {
@@ -77,6 +78,7 @@ function formatDate(iso: string): string {
 
 export default function ReceiptsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [activeType, setActiveType] = useState<string>("All");
@@ -190,7 +192,7 @@ export default function ReceiptsPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

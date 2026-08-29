@@ -62,6 +62,7 @@ import {
 import { NotificationChannelCard } from "@/components/account/NotificationChannelCard";
 import { PhoneVerificationDialog } from "@/components/account/PhoneVerificationDialog";
 import InstallAppCard from "@/components/account/InstallAppCard";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 type CategoryGroup = "account" | "social" | "commerce" | "wellness" | "career";
@@ -154,6 +155,7 @@ const SMS_CONSENT_TEXT = "I agree to receive SMS notifications from ZIVO for ord
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const {
     isSupported,
@@ -365,7 +367,7 @@ export default function NotificationSettings() {
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Go back"
             title="Go back"
             className="p-2.5 -ml-2 rounded-full hover:bg-muted touch-manipulation active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"

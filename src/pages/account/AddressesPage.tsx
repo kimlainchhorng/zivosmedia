@@ -43,9 +43,11 @@ import {
   useDeleteSavedLocation,
 } from "@/hooks/useSavedLocations";
 import type { SavedLocation, SavedLocationInput } from "@/hooks/useSavedLocations";
+import { useGoBack } from "@/hooks/useGoBack";
 
 export default function AddressesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const { t } = useI18n();
   const { country } = useCountry();
@@ -178,7 +180,7 @@ export default function AddressesPage() {
       <div className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b">
         <div className="flex items-center justify-between px-6 py-4 max-w-2xl mx-auto">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
           >
             <ArrowLeft className="w-5 h-5" />

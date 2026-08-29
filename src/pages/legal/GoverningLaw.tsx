@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, MapPin, Globe, Scale, FileText, Gavel, BookOpen, Landmark, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const sections = [
   { icon: MapPin, title: "1. Governing Law", content: "These Terms of Service and all related documents, policies, and agreements shall be governed by and construed in accordance with the laws of the State of Delaware, United States of America, without regard to its conflict of law provisions. You agree that the laws of Delaware shall govern these Terms regardless of where you reside, where you access the Services, or where any transaction occurs. The application of the United Nations Convention on Contracts for the International Sale of Goods is expressly excluded." },
@@ -17,11 +18,12 @@ const sections = [
 
 export default function GoverningLaw() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Governing Law & Jurisdiction</h1>

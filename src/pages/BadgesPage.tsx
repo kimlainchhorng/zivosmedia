@@ -14,6 +14,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 import { formatDistanceToNow } from "date-fns";
 
 const ICON_MAP: Record<string, any> = {
@@ -36,6 +37,7 @@ const COLOR_MAP: Record<string, string> = {
 
 export default function BadgesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState("all");
 
@@ -113,7 +115,7 @@ export default function BadgesPage() {
       />
       <div className="bg-gradient-to-b from-primary/20 to-background p-4 pt-6 safe-area-top">
         <div className="flex items-center gap-2 mb-6">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <Award className="h-5 w-5 text-primary" />

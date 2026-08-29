@@ -15,10 +15,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isZivoTravelHost } from "@/config/zivoTravelDomain";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 const HelpCenter = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const isTravelHost = typeof window !== "undefined" && isZivoTravelHost(window.location.hostname);
   const hashTargetClassName = cn("scroll-mt-[calc(var(--zivo-safe-top-sticky)_+_4.25rem)]", !isTravelHost && "lg:scroll-mt-[95px]");
@@ -224,7 +226,7 @@ const HelpCenter = () => {
       {/* Header - Mobile optimized */}
       <header className={cn("sticky top-0 safe-area-top z-50 bg-card/80 backdrop-blur-xl border-b border-white/10 px-3 py-2.5", !isTravelHost && "lg:relative lg:top-auto")}>
         <div className="flex items-center gap-2.5">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9 rounded-xl hover:bg-white/10 active:scale-95 transition-transform" aria-label="Go back">
+          <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 rounded-xl hover:bg-white/10 active:scale-95 transition-transform" aria-label="Go back">
             <ChevronLeft className="h-4 h-4" />
           </Button>
           <div className="flex items-center gap-2">

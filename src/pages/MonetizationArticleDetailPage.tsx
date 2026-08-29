@@ -16,6 +16,7 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import AdSenseUnit from "@/components/ads/AdSenseUnit";
 import { AD_SLOTS } from "@/config/adSlots";
+import { useGoBack } from "@/hooks/useGoBack";
 
 /* ─── Content generation based on slug keywords ─── */
 const TOPIC_CONTENT: Record<string, { sections: { heading: string; body: string }[]; tips: string[]; stats: string[] }> = {
@@ -125,6 +126,7 @@ const RELATED_ARTICLES = [
 
 export default function MonetizationArticleDetailPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { slug } = useParams();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -159,7 +161,7 @@ export default function MonetizationArticleDetailPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Go back" className="p-2 -ml-2 rounded-full hover:bg-muted/50 touch-manipulation transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-sm font-bold flex-1 text-center truncate">{title}</h1>

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, Ban, AlertTriangle, UserX, Lock, Eye, Scale, Gavel, Globe, Smartphone, FileText, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const sections = [
   { icon: Shield, title: "1. Expected User Conduct", content: "By using ZIVO, you agree to conduct yourself in a lawful, respectful, and responsible manner at all times. You are solely responsible for all activity that occurs under your account. You agree to use the Services only for lawful purposes and in accordance with these Terms, all applicable laws, and commonly accepted practices of the internet community." },
@@ -19,11 +20,12 @@ const sections = [
 
 export default function UserConduct() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">User Conduct Policy</h1>

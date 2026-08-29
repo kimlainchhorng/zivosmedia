@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const TIER_THRESHOLDS: Record<string, { next: string; target: number; multiplier: number }> = {
   silver:   { next: "Gold",     target: 1000, multiplier: 1.0 },
@@ -25,6 +26,7 @@ const REFEREE_DISCOUNT = 20;
 
 const Promotions = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { toast } = useToast();
   const { user } = useAuth();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -169,7 +171,7 @@ const Promotions = () => {
       {/* Header */}
       <header className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 animate-in fade-in slide-in-from-top-2 duration-300">
         <div className="container mx-auto px-4 py-3 sm:py-4 flex items-center gap-3 sm:gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl touch-manipulation active:scale-95" aria-label="Go back">
+          <Button variant="ghost" size="icon" onClick={goBack} className="rounded-xl touch-manipulation active:scale-95" aria-label="Go back">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2 sm:gap-3">

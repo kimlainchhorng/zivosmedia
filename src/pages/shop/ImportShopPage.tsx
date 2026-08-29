@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useImportProducts, useImportCart } from "@/hooks/useImportShop";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const CATEGORIES = ["All", "Fashion", "Electronics", "Home", "Beauty", "Toys", "Grocery", "Sports"];
 
 export default function ImportShopPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
   const { data: products = [], isLoading } = useImportProducts(category);
@@ -33,7 +35,7 @@ export default function ImportShopPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border/40" style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}>
         <div className="flex items-center gap-2 px-3 py-2.5">
-          <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" aria-label="Go back" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-base font-bold flex-1">ZIVO Shop</h1>

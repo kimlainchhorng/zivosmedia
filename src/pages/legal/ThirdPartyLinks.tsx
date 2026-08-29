@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, Link, Globe, ExternalLink, AlertTriangle, Eye, FileText, Lock, Ban, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const sections = [
   { icon: Link, title: "1. Third-Party Links on ZIVO", content: "The ZIVO platform may contain links, references, or redirects to third-party websites, applications, and services that are not owned, operated, or controlled by ZIVO. These links are provided solely for your convenience and informational purposes. ZIVO does not endorse, approve, verify, monitor, or control the content, products, services, privacy practices, or policies of any third-party website or service. You access third-party links entirely at your own risk." },
@@ -17,11 +18,12 @@ const sections = [
 
 export default function ThirdPartyLinks() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Third-Party Links</h1>

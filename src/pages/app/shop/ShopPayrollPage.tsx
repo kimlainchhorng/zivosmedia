@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/app/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 interface PayrollRow {
@@ -25,6 +26,7 @@ interface RoiRow {
 
 export default function ShopPayrollPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [basePay, setBasePay] = useState<number>(0);
@@ -112,7 +114,7 @@ export default function ShopPayrollPage() {
     <AppLayout title="Payroll" hideHeader>
       <div className="flex flex-col px-4 pt-3 pb-24">
         <div className="flex items-center gap-2.5 mb-6">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="w-4 h-4" /></button>
+          <button type="button" aria-label="Go back" onClick={goBack} className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="w-4 h-4" /></button>
           <h1 className="font-bold text-[17px]">Payroll</h1>
         </div>
 

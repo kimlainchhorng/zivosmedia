@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface UserReview {
   id: string;
@@ -36,6 +37,7 @@ const serviceTypeLabel: Record<string, string> = {
 
 export default function MyReviewsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [reviews, setReviews] = useState<UserReview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +140,7 @@ export default function MyReviewsPage() {
         <button
           type="button"
           aria-label="Go back"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="h-9 w-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="w-4 h-4" />

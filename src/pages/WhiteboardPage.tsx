@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useGoBack } from "@/hooks/useGoBack";
 import { ArrowLeft, Pencil, Eraser, Circle, Square, Type, Download, Undo2, Redo2, Palette, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +12,7 @@ const SIZES = [2, 4, 8, 12];
 
 export default function WhiteboardPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState("#000000");
@@ -84,7 +86,7 @@ export default function WhiteboardPage() {
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
+            <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}><ArrowLeft className="h-5 w-5" /></Button>
             <h1 className="text-lg font-bold text-ig-gradient">Whiteboard</h1>
           </div>
           <div className="flex gap-1">

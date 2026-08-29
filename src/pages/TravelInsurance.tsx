@@ -32,9 +32,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const TravelInsurance = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [selectedPlan, setSelectedPlan] = useState("standard");
 
   const plans = [
@@ -142,7 +144,7 @@ const TravelInsurance = () => {
             <div className="mb-6 sm:mb-8 animate-in fade-in slide-in-from-left-2 duration-300">
               <Button
                 variant="ghost"
-                onClick={() => navigate(-1)}
+                onClick={goBack}
                 className="gap-2 text-muted-foreground hover:text-foreground touch-manipulation active:scale-95 rounded-xl"
               >
                 <ChevronLeft className="w-4 h-4" />

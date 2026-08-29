@@ -48,6 +48,7 @@ import {
   profileToPassenger,
 } from "@/components/flight/traveler/SavedTravelerPicker";
 import type { TravelerProfile } from "@/hooks/useTravelerProfiles";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type TravelerAiStatus = "idle" | "loading" | "ready" | "error";
 
@@ -442,6 +443,7 @@ function TravelerCheckoutPanel({
 /* ── Main page ─────────────────────────────── */
 const FlightTravelerInfo = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { toast } = useToast();
   const { user } = useAuth();
   const isMobile = useIsMobile();
@@ -723,7 +725,7 @@ const FlightTravelerInfo = () => {
                   variant="ghost"
                   size="icon"
                   aria-label="Back to flight selection"
-                  onClick={() => navigate(-1)}
+                  onClick={goBack}
                   className="shrink-0 w-9 h-9 rounded-xl"
                   style={{
                     background: "hsl(var(--muted) / 0.5)",
@@ -757,7 +759,7 @@ const FlightTravelerInfo = () => {
               variant="ghost"
               size="icon"
               aria-label="Back to flight selection"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="shrink-0 rounded-xl"
               style={{
                 background: "hsl(var(--muted) / 0.4)",

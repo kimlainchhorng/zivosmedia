@@ -52,6 +52,7 @@ import LoginHistorySection from "@/components/auth/LoginHistorySection";
 import DeleteAccountFlow from "@/components/account/DeleteAccountFlow";
 import PendingDeletionBanner from "@/components/account/PendingDeletionBanner";
 import { clearNativeRestoreCredential } from "@/lib/nativeRestoreCredentials";
+import { useGoBack } from "@/hooks/useGoBack";
 
 // Client-side throttle: prevent rapid password change attempts (anti-brute-force)
 const PWD_CHANGE_THROTTLE_KEY = "zivo_pwd_change_attempts";
@@ -79,6 +80,7 @@ function checkPasswordChangeThrottle(): { allowed: boolean; retryInMin: number }
 
 export default function AccountSecurity() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const { t } = useI18n();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -311,7 +313,7 @@ export default function AccountSecurity() {
             size="icon"
             aria-label="Go back"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

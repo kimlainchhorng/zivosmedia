@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface EmployeeDetail {
   id: string;
@@ -92,6 +93,7 @@ function computeWeeklyHours(logs: ClockLog[]): number {
 
 export default function ShopEmployeeDetailPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
@@ -205,7 +207,7 @@ export default function ShopEmployeeDetailPage() {
         <div className="flex items-center gap-2.5 mb-5">
           <button type="button"
             aria-label="Go back"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center active:scale-90 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <ArrowLeft className="w-4 h-4" />

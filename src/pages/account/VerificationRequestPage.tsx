@@ -11,11 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { uploadWithProgress } from "@/utils/uploadWithProgress";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 export default function VerificationRequestPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const queryClient = useQueryClient();
   const [fullName, setFullName] = useState("");
   const [category, setCategory] = useState("personal");
@@ -143,7 +145,7 @@ export default function VerificationRequestPage() {
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50 safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button variant="ghost" size="icon" aria-label="Back" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" aria-label="Back" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Blue Verified</h1>

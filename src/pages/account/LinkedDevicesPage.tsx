@@ -30,6 +30,7 @@ import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 function deviceIcon(platform: string | null) {
   const p = (platform ?? "").toLowerCase();
@@ -75,6 +76,7 @@ function groupDevices(devices: UserDevice[]): Record<GroupKey, UserDevice[]> {
 
 export default function LinkedDevicesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const {
     devices,
     loading,
@@ -189,7 +191,7 @@ export default function LinkedDevicesPage() {
       >
         <button type="button"
           aria-label="Back"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="-ml-2 rounded-full p-2 hover:bg-foreground/5"
         >
           <ArrowLeft className="h-5 w-5" />

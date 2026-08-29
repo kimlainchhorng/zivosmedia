@@ -26,6 +26,7 @@ import { CountUp } from "@/components/ui/count-up";
 import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import SEOHead from "@/components/SEOHead";
 import { useLiveEarnings, useRequestLiveEarningsPayout } from "@/hooks/useLiveEarnings";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const QUICK_AMOUNTS = [10, 25, 50, 100];
 const PAYOUT_METHODS = [
@@ -35,6 +36,7 @@ const PAYOUT_METHODS = [
 
 export default function CreatorLiveEarningsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { totals, streams, payouts, isLoading } = useLiveEarnings();
   const requestPayout = useRequestLiveEarningsPayout();
 
@@ -99,7 +101,7 @@ export default function CreatorLiveEarningsPage() {
       <div className="sticky top-0 safe-area-top z-30 bg-background/85 backdrop-blur-xl border-b border-border/30">
         <div className="flex items-center gap-3 px-4 py-3">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="h-11 w-11 -ml-2 rounded-full hover:bg-muted/50 active:scale-95 touch-manipulation flex items-center justify-center transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Back"
           >

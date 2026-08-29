@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type Category = "All" | "Meditation" | "Breathing" | "Sleep" | "Focus" | "Stress";
 
@@ -53,6 +54,7 @@ function loadStreak(): number {
 
 export default function MindfulnessPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [activeCategory, setActiveCategory] = useState<Category>("All");
   const [streak] = useState(loadStreak());
 
@@ -70,7 +72,7 @@ export default function MindfulnessPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

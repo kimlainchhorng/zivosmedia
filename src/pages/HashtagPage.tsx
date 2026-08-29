@@ -21,6 +21,7 @@ import Heart from "lucide-react/dist/esm/icons/heart";
 import MessageCircle from "lucide-react/dist/esm/icons/message-circle";
 import SEOHead from "@/components/SEOHead";
 import ReelThumbnail from "@/components/social/ReelThumbnail";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface Tile {
   feedId: string;       // id used by `/feed?post=…`
@@ -42,6 +43,7 @@ function formatCount(n: number): string {
 export default function HashtagPage() {
   const { tag } = useParams<{ tag: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const safeTag = (tag ?? "").toLowerCase().replace(/^#/, "");
 
   // Match #tag bounded by start-of-text or whitespace, escape regex specials
@@ -153,7 +155,7 @@ export default function HashtagPage() {
         style={{ paddingTop: "var(--zivo-safe-top-sticky)" }}
       >
         <button type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="rounded-full p-2.5 hover:bg-muted/50 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Back"
         >

@@ -11,12 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import SEOHead from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 type Status = "loading" | "ready" | "claimed" | "expired" | "error";
 
 export default function LinkDevicePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [status, setStatus] = useState<Status>("loading");
   const [token, setToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -111,7 +113,7 @@ export default function LinkDevicePage() {
       >
         <button type="button"
           aria-label="Back"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="-ml-2 rounded-full p-2 hover:bg-foreground/5"
         >
           <ArrowLeft className="h-5 w-5" />

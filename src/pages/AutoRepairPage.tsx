@@ -21,6 +21,7 @@ import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import { Input } from "@/components/ui/input";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const SERVICE_FILTERS = [
   "All",
@@ -55,6 +56,7 @@ interface Shop {
 
 export default function AutoRepairPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
@@ -105,7 +107,7 @@ export default function AutoRepairPage() {
       {/* Mobile header */}
       <div className="md:hidden sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/20 safe-area-top">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" aria-label="Go back" onClick={() => navigate(-1)} className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-full hover:bg-muted/60 transition-all touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" aria-label="Go back" onClick={goBack} className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-full hover:bg-muted/60 transition-all touch-manipulation active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2">

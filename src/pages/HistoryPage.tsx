@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, format } from "date-fns";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left";
 import Clock from "lucide-react/dist/esm/icons/clock";
 import Car from "lucide-react/dist/esm/icons/car";
@@ -52,6 +53,7 @@ function StatusBadge({ status }: { status: string | null }) {
 
 export default function HistoryPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [tab, setTab] = useState<HistoryTab>("all");
 
@@ -232,7 +234,7 @@ export default function HistoryPage() {
         {/* Header */}
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border/20 safe-area-top">
           <div className="flex items-center gap-3 px-4 py-3 max-w-2xl mx-auto">
-            <button type="button" onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-muted/60 transition-colors">
+            <button type="button" onClick={goBack} className="p-1.5 rounded-full hover:bg-muted/60 transition-colors">
               <ChevronLeft className="h-5 w-5 text-foreground" />
             </button>
             <div className="flex items-center gap-2">

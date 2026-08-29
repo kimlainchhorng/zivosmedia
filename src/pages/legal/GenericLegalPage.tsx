@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, FileText, Shield, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const policyContent: Record<string, { badge: string; intro: string; sections: { title: string; content: string }[] }> = {
   "/legal/automated-decisions": {
@@ -286,6 +287,7 @@ function slugToTitle(slug: string): string {
 
 export default function GenericLegalPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const location = useLocation();
   const title = slugToTitle(location.pathname);
   const custom = policyContent[location.pathname];
@@ -297,7 +299,7 @@ export default function GenericLegalPage() {
       <div className="min-h-screen bg-background">
         <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
           <div className="flex items-center gap-3 px-4 py-3">
-            <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+            <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-lg font-semibold line-clamp-1">Legal</h1>
@@ -324,7 +326,7 @@ export default function GenericLegalPage() {
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold line-clamp-1">{title}</h1>

@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -33,6 +34,7 @@ const DEFAULT_PROMPTS: Record<Vibe, string> = {
 
 export default function AiCreativeSuite() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [uploads, setUploads] = useState<UploadSlot[]>([
     { id: 0, label: "Photo 1", imageUrl: null },
     { id: 1, label: "Photo 2", imageUrl: null },
@@ -98,7 +100,7 @@ export default function AiCreativeSuite() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur-md border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack} className="rounded-xl">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

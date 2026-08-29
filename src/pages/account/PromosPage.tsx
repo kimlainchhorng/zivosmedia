@@ -24,6 +24,7 @@ import { format, isBefore, addDays, isAfter } from "date-fns";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface PromoCode {
   id: string;
@@ -46,6 +47,7 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 
 export default function PromosPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -238,7 +240,7 @@ export default function PromosPage() {
       <div className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center justify-between px-6 py-4">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-10 h-10 rounded-full bg-muted border border-border/50 flex items-center justify-center"
           >
             <ArrowLeft className="w-5 h-5" />

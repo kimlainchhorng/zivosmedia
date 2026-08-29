@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useGoBack } from "@/hooks/useGoBack";
 import { Wallet, ArrowUpRight, ArrowDownLeft, Clock, DollarSign, Percent, Send, ArrowLeft, CheckCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,7 @@ interface PayoutRequest {
 export default function MerchantWalletPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const queryClient = useQueryClient();
   const [payoutAmount, setPayoutAmount] = useState("");
   const [bankName, setBankName] = useState("");
@@ -135,7 +137,7 @@ export default function MerchantWalletPage() {
     <div className="min-h-screen bg-background p-4 pb-24 max-w-lg mx-auto space-y-4 safe-area-top">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button aria-label="Back" variant="outline" size="icon" onClick={() => navigate(-1)}>
+        <Button aria-label="Back" variant="outline" size="icon" onClick={goBack}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>

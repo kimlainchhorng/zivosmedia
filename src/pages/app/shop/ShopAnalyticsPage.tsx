@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 import { format, subDays, startOfDay } from "date-fns";
 
 interface DayRevenue { date: string; revenue: number; orders: number; }
@@ -23,6 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function ShopAnalyticsPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function ShopAnalyticsPage() {
     <div className="min-h-screen bg-background pb-20">
       <div className="sticky top-0 safe-area-top z-10 bg-background/95 backdrop-blur-sm border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack}><ArrowLeft className="h-5 w-5" /></Button>
           <BarChart3 className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-bold">Analytics</h1>
           <Badge variant="outline" className="text-xs ml-1">Last 7 days</Badge>

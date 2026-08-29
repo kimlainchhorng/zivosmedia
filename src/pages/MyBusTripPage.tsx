@@ -31,6 +31,7 @@ import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
 import { formatStripeAmount } from "@/lib/currency";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface BusTripDetail {
   id: string;
@@ -71,6 +72,7 @@ function seatLabels(seats: unknown): string[] {
 export default function MyBusTripPage() {
   const { bookingId = "" } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
   const [booking, setBooking] = useState<BusTripDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -170,7 +172,7 @@ export default function MyBusTripPage() {
         >
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Back"
             className="h-9 w-9 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >

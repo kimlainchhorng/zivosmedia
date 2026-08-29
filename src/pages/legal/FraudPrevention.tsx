@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, Ban, AlertTriangle, Scale, Eye, DollarSign, Globe, Lock, FileText, Gavel, Users, Fingerprint, Clock, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const sections = [
   { icon: Shield, title: "1. Zero Tolerance Policy", content: "ZIVO MAINTAINS A STRICT ZERO-TOLERANCE POLICY AGAINST FRAUD. Any user found engaging in fraudulent activity will be immediately and permanently banned from the platform, all pending transactions will be frozen, and the matter will be referred to law enforcement. ZIVO cooperates fully with federal, state, and local law enforcement agencies investigating fraud." },
@@ -21,11 +22,12 @@ const sections = [
 
 export default function FraudPrevention() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 safe-area-top z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Fraud Prevention</h1>

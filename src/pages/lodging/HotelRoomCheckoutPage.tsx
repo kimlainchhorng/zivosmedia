@@ -54,6 +54,7 @@ import { withRedirectParam } from "@/lib/authRedirect";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
 import { isCutluyLodgingStoreEnabled } from "@/config/cutluyLodging";
 import { resolveHotelDateWindow } from "@/lib/lodging/hotelDateWindow";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type PayMethod = "cash" | "card" | "khqr";
 type CheckoutReservation = {
@@ -223,6 +224,7 @@ const getBookingErrorMessage = (err: unknown) => {
 export default function HotelRoomCheckoutPage() {
   const { storeId = "" } = useParams<{ storeId: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const location = useLocation();
   const [params, setSearchParams] = useSearchParams();
   const { user } = useAuth();
@@ -731,7 +733,7 @@ export default function HotelRoomCheckoutPage() {
             type="button"
             variant="outline"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Back"
             className="h-11 w-11 shrink-0 rounded-full border-border/60 bg-card/80 shadow-sm"
           >

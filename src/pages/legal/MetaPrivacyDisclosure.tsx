@@ -6,9 +6,11 @@ import { ArrowLeft, Shield, Eye, Lock, Database, ExternalLink } from "lucide-rea
 import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import SEOHead from "@/components/SEOHead";
+import { useGoBack } from "@/hooks/useGoBack";
 
 export default function MetaPrivacyDisclosure() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">
@@ -20,7 +22,7 @@ export default function MetaPrivacyDisclosure() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur-md border-b border-border/30 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => navigate(-1)}>
+          <button type="button" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </button>
           <Shield className="h-5 w-5 text-primary" />

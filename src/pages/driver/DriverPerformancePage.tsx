@@ -6,9 +6,11 @@ import { ArrowLeft, Target, Clock, Percent, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DriverBottomNav from "@/components/driver/DriverBottomNav";
 import { useDriverDashboardData } from "@/hooks/useDriverDashboardData";
+import { useGoBack } from "@/hooks/useGoBack";
 
 export default function DriverPerformancePage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { stats } = useDriverDashboardData();
 
   const performanceStats = [
@@ -45,7 +47,7 @@ export default function DriverPerformancePage() {
       <header className="sticky top-0 safe-area-top z-40 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
           <button type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="p-2 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />

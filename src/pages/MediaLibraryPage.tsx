@@ -12,6 +12,7 @@ import SEOHead from "@/components/SEOHead";
 import { SwipeBackContainer } from "@/components/shared/SwipeBackContainer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface UserPostRow {
   id: string;
@@ -30,6 +31,7 @@ function firstMediaUrl(post: UserPostRow): string | null {
 
 export default function MediaLibraryPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { user } = useAuth();
 
   const { data: posts = [], isLoading } = useQuery({
@@ -70,7 +72,7 @@ export default function MediaLibraryPage() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 rounded-full"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

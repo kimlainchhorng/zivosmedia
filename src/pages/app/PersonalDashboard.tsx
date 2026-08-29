@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import AppLayout from "@/components/app/AppLayout";
 import { QRScannerModal } from "@/components/clock/QRScannerModal";
 import { EmployeeQRDisplay } from "@/components/clock/EmployeeQRDisplay";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 import { format, startOfWeek, startOfMonth, addDays, isAfter, isEqual, subWeeks } from "date-fns";
 
@@ -66,6 +67,7 @@ type MenuSection = {
 
 const PersonalDashboard = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [clockStatus, setClockStatus] = useState<ClockStatus>("clocked-out");
@@ -656,7 +658,7 @@ const PersonalDashboard = () => {
           <button
             type="button"
             aria-label="Go back"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
           >
             <ArrowLeft className="w-4 h-4" />

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/hooks/useI18n";
 import { cn } from "@/lib/utils";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type SectionKey = "profile" | "share" | "entities" | "notifications" | "safety";
 
@@ -60,6 +61,7 @@ function StageNote({ children }: { children: React.ReactNode }) {
 
 export default function EcosystemPrototype() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const { locale, setLocale } = useI18n();
   const L = locale === "km" ? "km" : "en";
   const t = (k: string) => DICT[L][k] ?? DICT.en[k] ?? k;
@@ -70,7 +72,7 @@ export default function EcosystemPrototype() {
     <div className="min-h-screen bg-background text-foreground" lang={L}>
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" className="rounded-full p-1 hover:bg-muted">
+        <button onClick={goBack} aria-label="Back" className="rounded-full p-1 hover:bg-muted">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="min-w-0 flex-1">

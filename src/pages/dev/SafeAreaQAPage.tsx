@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { useGoBack } from "@/hooks/useGoBack";
 import {
   ArrowLeft,
   Copy,
@@ -128,6 +129,7 @@ function runToCsv(run: RunRecord, rows: Row[], devices: ReadonlyArray<{ id: stri
 
 const SafeAreaQAPage = () => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [overlayOn, setOverlayOn] = useState(false);
   const [insets, setInsets] = useState({ top: 0, bottom: 0 });
@@ -264,7 +266,7 @@ const SafeAreaQAPage = () => {
     <div className="min-h-screen bg-background safe-area-top">
       <header className="sticky top-0 z-10 bg-background/90 backdrop-blur border-b border-border">
         <div className="flex items-center gap-2 px-4 py-3 max-w-3xl mx-auto">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Back">
+          <Button variant="ghost" size="icon" onClick={goBack} aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">

@@ -19,6 +19,7 @@ import SEOHead from "@/components/SEOHead";
 import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
 import type { FavoriteItemType } from "@/types/personalization";
+import { useGoBack } from "@/hooks/useGoBack";
 
 type TabKey = "all" | "restaurant" | "hotel" | "destination" | "flight";
 type SortKey = "recent" | "name" | "rating";
@@ -50,6 +51,7 @@ const typeStyles: Record<string, { color: string; bg: string; icon: typeof Heart
 
 export default function FavoritesPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const filterType = tabs.find((t) => t.key === activeTab)?.itemType;
   const { favorites, isLoading, removeFavorite } = useFavorites(filterType);
@@ -124,7 +126,7 @@ export default function FavoritesPage() {
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-50 bg-background/80 backdrop-blur-xl border-b">
         <div className="flex items-center justify-between px-6 py-4 max-w-2xl mx-auto">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Go back" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <button type="button" onClick={goBack} aria-label="Go back" className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="font-bold text-lg">Favorites</h1>
