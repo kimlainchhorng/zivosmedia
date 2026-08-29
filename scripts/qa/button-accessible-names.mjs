@@ -157,6 +157,10 @@ function scanFile(relPath) {
     if (!tag.selfClosing) {
       const children = elementChildren(src, tag.tag, tag.end);
       if (/sr-only/.test(children) || hasVisibleText(children)) continue;
+      // With `asChild` the component renders *as* its child, so a label on
+      // that child (e.g. <Button asChild><Link aria-label="Go back">) is the
+      // control's accessible name.
+      if (/\basChild\b/.test(tag.attrs) && NAMING_ATTRS.test(children)) continue;
     }
 
     offenders.push({

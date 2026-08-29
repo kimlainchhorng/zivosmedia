@@ -250,9 +250,9 @@ function Counter({ label, sub, value, min, max, onChange }: { label: string; sub
         <p className="text-[10px] text-muted-foreground">{sub}</p>
       </div>
       <div className="flex items-center gap-2">
-        <Button type="button" size="icon" variant="outline" className="h-7 w-7" disabled={value <= min} onClick={() => onChange(value - 1)}><Minus className="h-3 w-3" /></Button>
+        <Button type="button" size="icon" variant="outline" aria-label={`Decrease ${label}`} className="h-7 w-7" disabled={value <= min} onClick={() => onChange(value - 1)}><Minus className="h-3 w-3" /></Button>
         <span className="w-6 text-center text-sm font-bold">{value}</span>
-        <Button type="button" size="icon" variant="outline" className="h-7 w-7" disabled={value >= max} onClick={() => onChange(value + 1)}><Plus className="h-3 w-3" /></Button>
+        <Button type="button" size="icon" variant="outline" aria-label={`Increase ${label}`} className="h-7 w-7" disabled={value >= max} onClick={() => onChange(value + 1)}><Plus className="h-3 w-3" /></Button>
       </div>
     </div>
   );

@@ -134,6 +134,7 @@ export default function MultiCityLegs({ className, passengers = 1, cabin = "econ
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label={`Remove flight ${i + 1}`}
                 className="h-6 w-6 text-destructive/60 hover:text-destructive"
                 onClick={() => removeLeg(i)}
               >

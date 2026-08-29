@@ -43,7 +43,7 @@ export function ChannelMemberRow({ member, isOwnerView, onPromote, onDemote, onR
       {isOwnerView && member.role !== "owner" && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label={`Options for ${member.display_name ?? "subscriber"}`}><MoreHorizontal className="h-4 w-4" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             {member.role === "subscriber" && (

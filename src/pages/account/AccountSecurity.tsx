@@ -309,6 +309,7 @@ export default function AccountSecurity() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Go back"
             className="h-10 w-10 rounded-full"
             onClick={() => navigate(-1)}
           >
