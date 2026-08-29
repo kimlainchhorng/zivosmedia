@@ -94,7 +94,9 @@ const FlightConfirmation = () => {
           passengers: String(booking.passengers || 1),
           airline: (booking as any).airline || "",
           flight_number: (booking as any).flight_number || "",
-          total_price: String(Number(booking.total_amount) * Number(booking.passengers || 1)),
+          // `total_amount` is already the whole-booking total (price per
+          // passenger x passengers), so multiplying again double-counted it.
+          total_price: String(Number(booking.total_amount)),
           currency: booking.currency || "USD",
           ticket_numbers: booking.ticket_numbers,
           pnr: booking.pnr,
@@ -346,7 +348,7 @@ const FlightConfirmation = () => {
                     <span className="font-medium">Total Paid</span>
                     <span className="text-2xl font-bold text-[hsl(var(--flights))] tabular-nums">
                       {formatCurrency(
-                        Number(booking.total_amount) * Number(booking.passengers || 1),
+                        Number(booking.total_amount),
                         String(booking.currency || "USD")
                       )}
                     </span>

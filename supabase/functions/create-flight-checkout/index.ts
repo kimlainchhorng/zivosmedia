@@ -234,9 +234,17 @@ serve(withSecurity("create-flight-checkout", async (req, ctx) => {
         return_date: returnDate || null,
         passengers: passengers.length,
         cabin_class: cabinClass,
-        total_amount: totalAmount,
-        base_fare: baseFare,
-        taxes_fees: taxesFees,
+        // Whole-booking total, matching create-flight-payment-intent. This used
+        // to store the per-passenger figure while that function stored the
+        // multiplied total, so the same column meant two different things
+        // depending on which path created the row — and readers disagreed:
+        // process-flight-refund and the Meta bridges take it as the full total,
+        // while the confirmation screen multiplied it by the passenger count.
+        // Stripe already charges the full total here (unit_amount x quantity).
+        total_amount: Number((totalAmount * passengers.length).toFixed(2)),
+        price_per_passenger: totalAmount,
+        base_fare: Number((baseFare * passengers.length).toFixed(2)),
+        taxes_fees: Number((taxesFees * passengers.length).toFixed(2)),
         currency: currency.toUpperCase(),
         offer_id: offerId,
         payment_status: "pending",
