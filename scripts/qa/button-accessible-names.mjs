@@ -151,6 +151,7 @@ function scanFile(relPath) {
     const tag = enclosingTag(src, match.index);
     if (!tag || seen.has(tag.end)) continue;
     seen.add(tag.end);
+    scannedIconButtons += 1;
 
     if (NAMING_ATTRS.test(tag.attrs)) continue;
 
@@ -170,6 +171,9 @@ function scanFile(relPath) {
   }
   return offenders;
 }
+
+/** Icon buttons seen across the whole scan, offending or not. */
+let scannedIconButtons = 0;
 
 const results = new Map();
 let total = 0;
@@ -206,6 +210,18 @@ if (UPDATE || !existsSync(BASELINE_PATH)) {
 }
 
 const baseline = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
+
+// Now that the backlog is zero, "no offenders" and "the scanner broke and
+// matched nothing" look identical. Assert the scan actually saw the icon
+// buttons that exist (there are ~640) before trusting a clean result.
+const MIN_EXPECTED_ICON_BUTTONS = 400;
+if (scannedIconButtons < MIN_EXPECTED_ICON_BUTTONS) {
+  console.error(
+    `Scanner only found ${scannedIconButtons} icon buttons, expected at least ` +
+      `${MIN_EXPECTED_ICON_BUTTONS}. It is probably broken rather than the app being clean.`,
+  );
+  process.exit(1);
+}
 const regressions = [];
 for (const [file, count] of Object.entries(current)) {
   const allowed = baseline.files[file] ?? 0;
@@ -229,7 +245,8 @@ if (regressions.length > 0) {
 }
 
 console.log(
-  `OK — ${total} unnamed icon buttons (baseline ${baseline.total}), no file regressed.`,
+  `OK — ${total} unnamed icon buttons across ${scannedIconButtons} scanned ` +
+    `(baseline ${baseline.total}), no file regressed.`,
 );
 if (improved.length > 0) {
   console.log(
