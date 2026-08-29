@@ -37,7 +37,10 @@ describe("hotel checkout visual consistency", () => {
       '<header className="sticky top-0 z-20',
     );
     expect(compactCheckoutSource).toContain(
-      'variant="outline" size="icon" onClick={() => navigate(-1)} aria-label="Back" className="h-11 w-11',
+      // The handler moved to useGoBack so a deep-linked checkout is not
+      // stranded; the control's size, variant and label are what this
+      // contract is actually guarding.
+      'variant="outline" size="icon" onClick={goBack} aria-label="Back" className="h-11 w-11',
     );
     expect(checkoutSource.match(/"h-11 rounded-xl text-sm"/g)).toHaveLength(2);
     expect(compactCheckoutSource).toContain(
