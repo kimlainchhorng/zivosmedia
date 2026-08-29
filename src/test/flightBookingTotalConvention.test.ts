@@ -69,6 +69,31 @@ describe("flight_bookings.total_amount convention", () => {
     expect(offenders, "total_amount is already multiplied").toEqual([]);
   });
 
+  it("the flight trip detail reads a column that exists", () => {
+    // flight_bookings has `total_amount` (decimal) and `currency`. It has no
+    // `total_amount_cents`. MyFlightTripPage used to read that name and divide
+    // it by 100, producing NaN, so the fare rendered as "—" on every booking.
+    // select("*") hides this from supabaseSelectColumnContract, which only
+    // inspects explicit column lists.
+    const types = read("src/integrations/supabase/types.ts");
+    const start = types.indexOf("      flight_bookings: {");
+    const rowBlock = types.slice(start, types.indexOf("Insert: {", start));
+    expect(rowBlock).toContain("total_amount:");
+    expect(rowBlock).not.toContain("total_amount_cents:");
+
+    const page = read("src/pages/MyFlightTripPage.tsx");
+    expect(page).not.toMatch(/booking\.total_amount_cents/);
+    expect(page).toMatch(/formatPrice\(booking\.total_amount, booking\.currency\)/);
+  });
+
+  it("the flight trip detail does not hardcode a dollar sign or round off cents", () => {
+    const page = read("src/pages/MyFlightTripPage.tsx");
+    // Duffel quotes in many currencies; the old formatter was
+    // `$${amount.toFixed(0)}`, which both assumed USD and dropped the cents.
+    expect(page).toContain("formatCurrencyAmount");
+    expect(page).not.toMatch(/`\$\$\{amount\.toFixed\(0\)\}`/);
+  });
+
   it("the confirmation screen shows Total Paid unmultiplied", () => {
     const src = read("src/pages/FlightConfirmation.tsx");
     expect(src).toContain("Total Paid");

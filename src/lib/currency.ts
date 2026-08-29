@@ -252,7 +252,21 @@ export function toStripeMinorUnits(amount: number, currencyCode: string): number
  */
 export function formatStripeAmount(minorUnits: number, currencyCode: string): string {
   const code = (currencyCode || "USD").toUpperCase();
-  const value = fromStripeMinorUnits(minorUnits, code);
+  return formatCurrencyAmount(fromStripeMinorUnits(minorUnits, code), code);
+}
+
+/**
+ * Format a decimal amount that already carries its own currency — a stored
+ * `total_amount`, a supplier quote — without borrowing another currency's
+ * symbol for an unlisted code.
+ *
+ * Distinct from `formatPrice`, which resolves through `getCurrencyConfig` and
+ * therefore falls back to USD (symbol included) for any code outside
+ * SUPPORTED_CURRENCIES. Supplier-priced flows can quote outside that list.
+ */
+export function formatCurrencyAmount(amount: number, currencyCode: string): string {
+  const code = (currencyCode || "USD").toUpperCase();
+  const value = Number.isFinite(amount) ? amount : 0;
 
   // Deliberately the default `currencyDisplay`, not "narrowSymbol": the narrow
   // form renders CAD, SGD, HKD, AUD and NZD as a bare "$" in en-US, which is

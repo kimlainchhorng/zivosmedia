@@ -15,13 +15,21 @@ import ZivoMobileNav from "@/components/app/ZivoMobileNav";
 import { openShareToChat } from "@/components/chat/ShareToChatSheet";
 import SEOHead from "@/components/SEOHead";
 import { cn } from "@/lib/utils";
+import { formatCurrencyAmount } from "@/lib/currency";
 import { ReviewSubmissionSheet } from "@/components/reviews/ReviewSubmissionSheet";
 import { ReviewsList } from "@/components/reviews/ReviewsList";
 import { ReviewsSummary } from "@/components/reviews/ReviewsSummary";
 import TravelPageFrame from "@/components/travel/TravelPageFrame";
 
-const formatPrice = (amount: number) =>
-  amount > 0 ? `$${amount.toFixed(0)}` : "—";
+/**
+ * flight_bookings stores `total_amount` as a decimal in `currency` — there is
+ * no `total_amount_cents` column, which is why this screen previously read
+ * undefined, divided it by 100 and rendered "—" in place of the fare. Duffel
+ * quotes in many currencies, so the code is honoured rather than assumed USD,
+ * and cents are shown rather than rounded away.
+ */
+const formatPrice = (amount: number | null | undefined, currency: string | null | undefined) =>
+  Number(amount) > 0 ? formatCurrencyAmount(Number(amount), currency || "USD") : "—";
 
 interface FlightBookingDetail {
   id: string;
@@ -36,7 +44,8 @@ interface FlightBookingDetail {
   airline: string;
   flight_number: string;
   aircraft_type: string;
-  total_amount_cents: number;
+  total_amount: number;
+  currency: string | null;
   status: string;
   payment_status: string;
   ticketing_status: string;
@@ -87,7 +96,7 @@ export default function MyFlightTripPage() {
       kind: "flight",
       title: `${booking.departure_airport} → ${booking.arrival_airport}`,
       subtitle: `${format(parseISO(booking.departure_time), "MMM d, h:mm a")} · ${booking.airline} ${booking.flight_number}`,
-      meta: formatPrice(booking.total_amount_cents / 100),
+      meta: formatPrice(booking.total_amount, booking.currency),
       deepLink: `/my-trips/flights/${bookingId}`,
       image: null,
     });
@@ -240,7 +249,7 @@ export default function MyFlightTripPage() {
                 <div>
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Total Price</p>
                   <p className="text-2xl font-bold text-primary mt-1">
-                    {formatPrice(booking.total_amount_cents / 100)}
+                    {formatPrice(booking.total_amount, booking.currency)}
                   </p>
                 </div>
                 {booking.payment_status === "paid" && (
