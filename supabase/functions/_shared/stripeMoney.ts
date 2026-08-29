@@ -49,3 +49,29 @@ export function normalizeCurrencyCode(currencyCode: string): string {
 export function isValidCurrencyCode(currencyCode: string): boolean {
   return /^[A-Z]{3}$/.test(normalizeCurrencyCode(currencyCode));
 }
+
+/**
+ * Format a Stripe minor-unit integer for a customer-facing string, honouring
+ * the currency's own decimals.
+ *
+ * Notifications used to interpolate `$${(amount / 100).toFixed(2)}`, which
+ * prints a dollar sign on a non-USD charge and shows a zero-decimal amount as
+ * a hundredth of itself. Pass the amount exactly as Stripe holds it, together
+ * with the object's own `currency` field.
+ */
+export function formatStripeAmount(minorUnits: number, currencyCode: string): string {
+  const code = normalizeCurrencyCode(currencyCode) || "USD";
+  const value = fromStripeMinorUnits(minorUnits, code);
+
+  // Default currencyDisplay, never "narrowSymbol": the narrow form renders
+  // CAD, SGD, HKD, AUD and NZD as a bare "$" in en-US.
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(value);
+  } catch {
+    const digits = getStripeCurrencyExponent(code) === 0 ? 0 : 2;
+    return `${code} ${value.toLocaleString("en-US", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    })}`;
+  }
+}

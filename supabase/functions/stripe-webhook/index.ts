@@ -4,6 +4,7 @@
  * charge.refunded, charge.dispute.created
  */
 import { serve, createClient } from "../_shared/deps.ts";
+import { formatStripeAmount } from "../_shared/stripeMoney.ts";
 import Stripe from "../_shared/stripe.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { notifyEatsOrderConfirmed, notifyEatsRefundIssued } from "../_shared/eats-notifications.ts";
@@ -562,7 +563,7 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
               await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
-                body: JSON.stringify({ user_id: metadata.user_id, notification_type: "payment_confirmed", title: "Flight Payment Confirmed ✈️", body: `Your flight payment of $${((session.amount_total || 0) / 100).toFixed(2)} was successful. Ticketing in progress.`, data: { type: "payment_confirmed", service: "flight", booking_id: metadata.booking_id, action_url: `/bookings/${metadata.booking_id}` } }),
+                body: JSON.stringify({ user_id: metadata.user_id, notification_type: "payment_confirmed", title: "Flight Payment Confirmed ✈️", body: `Your flight payment of ${formatStripeAmount(session.amount_total || 0, session.currency || "usd")} was successful. Ticketing in progress.`, data: { type: "payment_confirmed", service: "flight", booking_id: metadata.booking_id, action_url: `/bookings/${metadata.booking_id}` } }),
               });
             } catch {}
           }
@@ -1611,7 +1612,7 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
-              body: JSON.stringify({ user_id: failedUserId, notification_type: "payment_failed", title: "Payment Failed ❌", body: `Your payment of $${(paymentIntent.amount / 100).toFixed(2)} could not be processed. Please try again.`, data: { type: "payment_failed", action_url: "/wallet" } }),
+              body: JSON.stringify({ user_id: failedUserId, notification_type: "payment_failed", title: "Payment Failed ❌", body: `Your payment of ${formatStripeAmount(paymentIntent.amount, paymentIntent.currency)} could not be processed. Please try again.`, data: { type: "payment_failed", action_url: "/wallet" } }),
             });
           } catch {}
         }
@@ -1709,7 +1710,7 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
             await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
-              body: JSON.stringify({ user_id: refundUserId, notification_type: "refund_processed", title: "Refund Processed 💵", body: `$${refundAmount.toFixed(2)} has been refunded to your payment method`, data: { type: "refund_processed", amount: refundAmount, action_url: "/wallet" } }),
+              body: JSON.stringify({ user_id: refundUserId, notification_type: "refund_processed", title: "Refund Processed 💵", body: `${formatStripeAmount(charge.amount_refunded, charge.currency)} has been refunded to your payment method`, data: { type: "refund_processed", amount: refundAmount, action_url: "/wallet" } }),
             });
           } catch {}
         }
@@ -1833,7 +1834,7 @@ serve(withSecurity("stripe-webhook", async (req, ctx) => {
               await supabase.from('flight_admin_alerts').insert({
                 booking_id: flightBooking.id,
                 alert_type: 'dispute_created',
-                message: `🚨 CHARGEBACK DISPUTE: Booking ${flightBooking.booking_reference}. Reason: ${dispute.reason}. Amount: $${dispute.amount / 100}. Respond within deadline!`,
+                message: `🚨 CHARGEBACK DISPUTE: Booking ${flightBooking.booking_reference}. Reason: ${dispute.reason}. Amount: ${formatStripeAmount(dispute.amount, dispute.currency)}. Respond within deadline!`,
                 severity: 'critical',
               });
 
