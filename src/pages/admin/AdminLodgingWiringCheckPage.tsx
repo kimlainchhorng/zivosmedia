@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadWiringReportCsv, type WiringReport, type WiringCheck } from "@/lib/admin/wiringReportCsv";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const SUPABASE_PROJECT = import.meta.env.VITE_SUPABASE_PROJECT_ID || "";
 
@@ -64,6 +65,7 @@ const isWebhookCheck = (c: WiringCheck): boolean => {
 
 export default function AdminLodgingWiringCheckPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [searchParams, setSearchParams] = useSearchParams();
   const currentRunIdRef = useRef<string | null>(null);
 
@@ -210,7 +212,7 @@ export default function AdminLodgingWiringCheckPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button aria-label="Back" variant="outline" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
+          <Button aria-label="Back" variant="outline" size="icon" onClick={goBack} className="rounded-xl">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useGoBack } from "@/hooks/useGoBack";
 import { toast } from "sonner";
 
 const APP_META = {
@@ -112,13 +113,14 @@ function MetaField({ label, value, multiline }: { label: string; value: string; 
 
 export default function AdminAppStoreAssets() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
 
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 safe-area-top z-30 bg-background/95 backdrop-blur-md border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Button aria-label="Back" variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl">
+          <Button aria-label="Back" variant="ghost" size="icon" onClick={goBack} className="rounded-xl">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

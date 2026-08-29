@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoBack } from "@/hooks/useGoBack";
 
 interface ShoppingOrder {
   id: string;
@@ -51,6 +52,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function AdminShoppingOrders() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [orders, setOrders] = useState<ShoppingOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -89,7 +91,7 @@ export default function AdminShoppingOrders() {
       {/* Header */}
       <div className="safe-area-top sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onClick={() => navigate(-1)} className="p-1.5 rounded-xl hover:bg-muted">
+          <button type="button" onClick={goBack} className="p-1.5 rounded-xl hover:bg-muted">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex-1">

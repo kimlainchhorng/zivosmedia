@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useGoBack } from "@/hooks/useGoBack";
 import { Shield, ArrowLeft, RefreshCw, CheckCircle2, Siren, ShieldAlert } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ interface SecurityIncident {
 
 export default function AdminSecuritySentinelPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<"all" | "chat_security" | "auth_shield">("all");
 
@@ -78,7 +80,7 @@ export default function AdminSecuritySentinelPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button aria-label="Back" variant="outline" size="icon" onClick={() => navigate(-1)}>
+          <Button aria-label="Back" variant="outline" size="icon" onClick={goBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
