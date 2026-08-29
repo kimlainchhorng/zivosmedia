@@ -134,7 +134,7 @@ export default function MyCarTripPage() {
     <TravelPageFrame>
       <div className="min-h-screen bg-background pb-32">
         <SEOHead
-          title={loading ? "Car Rental" : `${booking?.vehicle?.year} ${booking?.vehicle?.make} Rental`}
+          title={booking?.vehicle ? `${booking.vehicle.year} ${booking.vehicle.make} Rental` : "Car Rental"}
           description={`View your car rental booking details and information.`}
         />
 
@@ -349,7 +349,20 @@ export default function MyCarTripPage() {
               </Button>
             </motion.div>
           </>
-        ) : null}
+        ) : (
+          /* A stale link, a deleted record, or another account's booking used
+             to render nothing at all here — a header above empty space. */
+          <div className="rounded-2xl border border-dashed border-border/60 p-8 text-center">
+            <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground/60" aria-hidden="true" />
+            <p className="mt-3 font-semibold">Car rental not found</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This car rental booking either does not exist or belongs to another account.
+            </p>
+            <Button onClick={() => navigate("/my-trips")} className="mt-5 rounded-2xl">
+              Back to My Trips
+            </Button>
+          </div>
+        )}
       </div>
 
       <ReviewSubmissionSheet
@@ -358,7 +371,7 @@ export default function MyCarTripPage() {
         serviceType="car_rental"
         serviceId={bookingId}
         bookingReference={booking?.id}
-        title={`${booking?.vehicle?.year} ${booking?.vehicle?.make} ${booking?.vehicle?.model}`}
+        title={booking?.vehicle ? `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}` : "Car Rental"}
       />
 
       <ZivoMobileNav />

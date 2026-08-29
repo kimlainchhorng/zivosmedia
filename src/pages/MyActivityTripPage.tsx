@@ -4,8 +4,7 @@ import { motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import {
   ArrowLeft, MapPin, Calendar, Users, Share2, Ticket,
-  CheckCircle, Clock, Copy, Check, Shield, MessageCircle, DollarSign,
-} from "lucide-react";
+  CheckCircle, Clock, Copy, Check, Shield, MessageCircle, DollarSign, AlertCircle,} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -110,7 +109,7 @@ export default function MyActivityTripPage() {
   return (
     <div className="min-h-screen bg-background pb-32">
       <SEOHead
-        title={loading ? "Activity Booking" : `${booking?.activity?.name} Booking`}
+        title={booking?.activity ? `${booking.activity.name} Booking` : "Activity Booking"}
         description="View your activity booking details and reservation information."
       />
 
@@ -327,7 +326,20 @@ export default function MyActivityTripPage() {
               </Button>
             </motion.div>
           </>
-        ) : null}
+        ) : (
+          /* A stale link, a deleted record, or another account's booking used
+             to render nothing at all here — a header above empty space. */
+          <div className="rounded-2xl border border-dashed border-border/60 p-8 text-center">
+            <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground/60" aria-hidden="true" />
+            <p className="mt-3 font-semibold">Activity booking not found</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This activity booking either does not exist or belongs to another account.
+            </p>
+            <Button onClick={() => navigate("/my-trips")} className="mt-5 rounded-2xl">
+              Back to My Trips
+            </Button>
+          </div>
+        )}
       </div>
 
       <ReviewSubmissionSheet

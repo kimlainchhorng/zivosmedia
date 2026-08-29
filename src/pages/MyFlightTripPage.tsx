@@ -114,7 +114,7 @@ export default function MyFlightTripPage() {
     <TravelPageFrame>
       <div className="min-h-screen bg-background pb-32">
         <SEOHead
-          title={loading ? "Flight Booking" : `${booking?.departure_airport} to ${booking?.arrival_airport}`}
+          title={booking ? `${booking.departure_airport} to ${booking.arrival_airport}` : "Flight Booking"}
           description="View your flight booking details and reservation information."
         />
 
@@ -299,7 +299,20 @@ export default function MyFlightTripPage() {
               </Button>
             </motion.div>
           </>
-        ) : null}
+        ) : (
+          /* A stale link, a deleted record, or another account's booking used
+             to render nothing at all here — a header above empty space. */
+          <div className="rounded-2xl border border-dashed border-border/60 p-8 text-center">
+            <AlertCircle className="mx-auto h-8 w-8 text-muted-foreground/60" aria-hidden="true" />
+            <p className="mt-3 font-semibold">Flight booking not found</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This flight booking either does not exist or belongs to another account.
+            </p>
+            <Button onClick={() => navigate("/my-trips")} className="mt-5 rounded-2xl">
+              Back to My Trips
+            </Button>
+          </div>
+        )}
       </div>
 
       <ReviewSubmissionSheet
@@ -308,7 +321,7 @@ export default function MyFlightTripPage() {
         serviceType="flight"
         serviceId={booking?.id || bookingId}
         bookingReference={booking?.booking_reference}
-        title={`${booking?.departure_airport} to ${booking?.arrival_airport}`}
+        title={booking ? `${booking.departure_airport} to ${booking.arrival_airport}` : "Flight Booking"}
       />
 
       <ZivoMobileNav />
