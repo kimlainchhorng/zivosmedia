@@ -368,6 +368,7 @@ const CORE_TRANSLATIONS: Record<string, Record<string, string>> = {
     "bus.err_seat_taken": "Sorry, one of those seats was just taken. Please pick again.",
     "bus.err_trip_unavailable": "This trip is no longer available.",
     "bus.err_generic": "Couldn't complete the booking. Please try again.",
+    "bus.err_payment_unavailable": "Your seat is held but payment couldn't start. Please try again.",
     "bus.booked_toast": "Bus booked! Your e-ticket is ready.",
     "bus.operate_cta": "Operate a bus service →",
     "bus.my_tickets": "My Bus Tickets",

@@ -72,8 +72,16 @@ serve(withSecurity("eats-order-state-update", async (req, ctx) => {
       .from("food_orders")
       .update(update)
       .eq("id", orderId);
+    // Accepting a job is a CLAIM, not an update: `.is("driver_id", null)` makes
+    // it atomic, so the second driver to press accept gets 404 rather than
+    // taking the order off the first. Without it the assigned branch ran a bare
+    // `.eq("id", orderId)` — every other branch scopes to `.eq("driver_id",
+    // driver.id)`, but that one could not, since the driver is not on the row
+    // yet. Any account with a drivers row could therefore reassign any
+    // food_orders row to itself by id. Same shape as the working sibling,
+    // shopping-order-state-update's driver_accept.
     const { data, error } = await (jobStatus === "assigned"
-      ? query.select("id, status, driver_id").maybeSingle()
+      ? query.is("driver_id", null).select("id, status, driver_id").maybeSingle()
       : query.eq("driver_id", driver.id).select("id, status, driver_id").maybeSingle());
 
     if (error) {

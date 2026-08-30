@@ -90,17 +90,33 @@ serve(withSecurity("salon-booking-manage", async (req, ctx) => {
       const reason = cleanNullableText(body.reason, 500);
       if (reason) values.cancellation_reason = reason;
     }
+    // The fee the owner sets goes on `no_show_fee_cents` — what is owed.
+    // `no_show_fee_charged_cents` means what Stripe actually took, and it is
+    // the idempotency guard: charge-salon-no-show-fee refuses with "No-show fee
+    // already charged." when it is > 0, and uses `.eq("no_show_fee_charged_cents", 0)`
+    // as its race guard against the webhook. Writing the intended fee there
+    // permanently blocked the real charge while the row asserted money had been
+    // collected that nobody ever took.
+    //
+    // DO NOT DEPLOY THIS FUNCTION BEFORE MIGRATION
+    // 20260524420000_salon_no_show_fees.sql. That migration is what adds
+    // no_show_fee_cents to salon_bookings ("snapshot of
+    // store_payment_settings.no_show_fee_cents at booking-insert") and it has
+    // never been applied — production has only no_show_fee_charged_cents. Until
+    // it lands this write 400s. The already-live charge-salon-no-show-fee
+    // selects the same missing columns, so salon no-show fees have never
+    // worked in production at all.
     if (status === "no_show" && body.no_show_fee_cents !== undefined) {
       const fee = cleanInteger(body.no_show_fee_cents, 0, 1_000_000);
       if (fee === null) return json({ error: "Invalid no-show fee" }, 400);
-      values.no_show_fee_charged_cents = fee;
+      values.no_show_fee_cents = fee;
     }
     if (
       existing.data.status === "no_show" &&
       status !== "no_show" &&
-      Number(existing.data.no_show_fee_charged_cents ?? 0) > 0
+      Number(existing.data.no_show_fee_cents ?? 0) > 0
     ) {
-      values.no_show_fee_charged_cents = 0;
+      values.no_show_fee_cents = 0;
     }
   } else {
     const booking = await cleanBooking(admin, body.patch, existing.data.store_id, { partial: true, current: existing.data });

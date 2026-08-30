@@ -75,7 +75,18 @@ serve(withSecurity("car-rental-review-submit", async (req, ctx) => {
     service: cleanNullableRating(body.service),
     value: cleanNullableRating(body.value),
     comment: cleanText(body.comment, 0, 2000),
-    is_published: true,
+    // Unpublished until the owner shows it. This route is deliberately public
+    // (/car-rental-review/:reservationId, no ProtectedRoute) so the only
+    // credential is the reservation UUID — and the row carries the real
+    // customer's name copied off the reservation. Publishing straight to the
+    // storefront on that basis let anyone holding a reservation id post under
+    // that customer's name, and the "Review already submitted" check then
+    // locked the genuine customer out of ever replacing it.
+    // This matches every sibling: car-dealership-review-submit writes
+    // is_visible:false, and car-rental-review-manage's own create path already
+    // inserts is_published:false. The owner publishes from
+    // CarRentalReviewsSection's Show button (action "set_published").
+    is_published: false,
     is_acknowledged: false,
   };
 

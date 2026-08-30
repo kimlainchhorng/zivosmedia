@@ -574,6 +574,41 @@ export default function BusBookingPage() {
     return t("bus.err_generic");
   };
 
+  /**
+   * Take the freshly created booking to Stripe.
+   *
+   * This used to end in `catch { goStep("confirmed"); toast.success(booked) }`,
+   * so when create-bus-payment-intent failed the passenger was shown "Bus
+   * booked! Your e-ticket is ready." with no card authorised at all — and the
+   * operator got a booking nobody had paid for. The function is currently not
+   * deployed, so that catch was firing on every single card booking.
+   *
+   * There is no legitimate silent-success path to preserve: the function
+   * returns a client_secret or it returns an error, nothing else. So a missing
+   * client_secret is a failure like any other, and the passenger stays on the
+   * summary step where they can try again.
+   */
+  const startBusPayment = async (bookingId: string, amountCents: number) => {
+    try {
+      const { data: pay, error: payErr } = await supabase.functions.invoke(
+        "create-bus-payment-intent",
+        { body: { booking_id: bookingId } },
+      );
+      if (payErr) throw payErr;
+      if (!pay?.client_secret) throw new Error("payment_not_started");
+      setClientSecret(pay.client_secret);
+      setPayAmountCents(pay.amount_cents ?? amountCents);
+      goStep("pay");
+    } catch {
+      toast.error(
+        t(
+          "bus.err_payment_unavailable",
+          "Your seat is held but payment couldn't start. Please try again.",
+        ),
+      );
+    }
+  };
+
   const confirmBooking = async () => {
     const isCurrentServerTrip = Boolean(
       selectedTrip?.real && trips.some((trip) => trip.real && trip.id === selectedTrip.id),
@@ -588,6 +623,17 @@ export default function BusBookingPage() {
     if (selectedTrip?.real) {
       if (!user) { toast.error(t("bus.err_login")); navigate(`/login?redirect=${encodeURIComponent("/bus")}`); return; }
       setSubmitting(true);
+      // Payment failed on a booking we already made: retry paying for THAT one.
+      // Calling create_bus_booking again would ask for the same seats a second
+      // time, which its own hold now owns.
+      if (createdBookingId) {
+        try {
+          await startBusPayment(createdBookingId, Math.round(totalUsd * 100));
+        } finally {
+          setSubmitting(false);
+        }
+        return;
+      }
       try {
         const seatLabels = selectedSeats.map(seatLabel);
         const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: Array<{ booking_id: string; booking_ref: string; amount_cents: number }> | null; error: { message: string } | null }> })
@@ -614,21 +660,7 @@ export default function BusBookingPage() {
 
         if (payMethod === "khqr") { setPayAmountCents(amtCents); setKhqrOpen(true); return; }
 
-        try {
-          const { data: pay, error: payErr } = await supabase.functions.invoke("create-bus-payment-intent", { body: { booking_id: bookingId } });
-          if (payErr) throw payErr;
-          if (pay?.client_secret) {
-            setClientSecret(pay.client_secret);
-            setPayAmountCents(pay.amount_cents ?? amtCents);
-            goStep("pay");
-            return;
-          }
-          goStep("confirmed");
-          toast.success(t("bus.booked_toast"));
-        } catch {
-          goStep("confirmed");
-          toast.success(t("bus.booked_toast"));
-        }
+        await startBusPayment(bookingId, amtCents);
       } catch (e) {
         toast.error(bookingErrorMessage(String(e)));
       } finally {
