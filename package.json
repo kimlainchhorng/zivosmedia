@@ -77,6 +77,7 @@
     "test:e2e": "playwright test --project=chromium",
     "test:visual": "playwright test --project=visual",
     "qa:dead-links": "node scripts/qa/check-dead-links.mjs",
+    "qa:edge-function-probe": "node scripts/qa/edge-function-production-probe.mjs",
     "qa:conflict-markers": "node scripts/qa/conflict-markers.mjs",
     "qa:safe-area": "node scripts/qa/safe-area-check.mjs",
   "qa:button-accessible-names": "node scripts/qa/button-accessible-names.mjs",
