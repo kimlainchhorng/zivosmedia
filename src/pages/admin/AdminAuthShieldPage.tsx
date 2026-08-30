@@ -17,14 +17,19 @@ interface LockoutRow {
   updated_at: string;
 }
 
+// Mirrors public.login_attempts, the table production's auth lockout actually
+// uses. The old auth_login_events design (auth_shield_lockout) was superseded
+// and never deployed, so risk_score / risk_labels / blocked_before_attempt have
+// no source; they stay optional rather than being invented.
 interface LoginEventRow {
   id: string;
   identifier: string;
   success: boolean;
-  blocked_before_attempt: boolean;
-  risk_score: number;
-  risk_labels: string[];
+  device_fingerprint: string | null;
   created_at: string;
+  risk_score?: number;
+  risk_labels?: string[];
+  blocked_before_attempt?: boolean;
 }
 
 export default function AdminAuthShieldPage() {
@@ -41,13 +46,11 @@ export default function AdminAuthShieldPage() {
   } = useQuery({
     queryKey: ["admin-auth-shield-lockouts"],
     queryFn: async () => {
-      const now = new Date().toISOString();
+      // admin_auth_lockouts derives the lockout from login_attempts using the
+      // exact thresholds auth_precheck_login enforces, so this console cannot
+      // drift from the lockout a user actually hits.
       const { data, error } = await (supabase as any)
-        .from("auth_login_protection")
-        .select("identifier, failed_streak, blocked_until, updated_at")
-        .or(`blocked_until.gt.${now},failed_streak.gte.3`)
-        .order("updated_at", { ascending: false })
-        .limit(200);
+        .rpc("admin_auth_lockouts", { _limit: 200 });
       if (error) throw error;
       return (data || []) as LockoutRow[];
     },
@@ -62,8 +65,8 @@ export default function AdminAuthShieldPage() {
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await (supabase as any)
-        .from("auth_login_events")
-        .select("id, identifier, success, blocked_before_attempt, risk_score, risk_labels, created_at")
+        .from("login_attempts")
+        .select("id, identifier, success, device_fingerprint, created_at")
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(300);
@@ -104,7 +107,12 @@ export default function AdminAuthShieldPage() {
   });
 
   const activeLockouts = lockouts.filter((item) => item.blocked_until && new Date(item.blocked_until) > new Date()).length;
-  const blockedAttempts = loginEvents.filter((e) => e.blocked_before_attempt).length;
+  // login_attempts records the attempt, not whether the precheck rejected it,
+  // so count distinct identifiers under pressure rather than showing a zero
+  // that looks like "nothing is being blocked".
+  const blockedAttempts = new Set(
+    loginEvents.filter((e) => !e.success).map((e) => e.identifier),
+  ).size;
   const failedAttempts = loginEvents.filter((e) => !e.success).length;
 
   const topTargets = useMemo(() => {
@@ -158,7 +166,7 @@ export default function AdminAuthShieldPage() {
             <Unlock className="h-7 w-7 text-yellow-600" />
             <div>
               <p className="text-2xl font-bold">{blockedAttempts}</p>
-              <p className="text-xs text-muted-foreground">Blocked Prechecks (24h)</p>
+              <p className="text-xs text-muted-foreground">Accounts Under Attack (24h)</p>
             </div>
           </CardContent>
         </Card>
@@ -255,7 +263,7 @@ export default function AdminAuthShieldPage() {
                     <Badge variant={event.success ? "secondary" : "destructive"}>
                       {event.success ? "Success" : "Failed"}
                     </Badge>
-                    {event.risk_score > 0 && (
+                    {(event.risk_score ?? 0) > 0 && (
                       <Badge variant="outline">Risk {event.risk_score}</Badge>
                     )}
                     {event.blocked_before_attempt && <Badge variant="outline">Precheck Blocked</Badge>}
@@ -263,7 +271,7 @@ export default function AdminAuthShieldPage() {
                 </div>
                 {(event.risk_labels || []).length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {event.risk_labels.map((label) => (
+                    {(event.risk_labels || []).map((label) => (
                       <Badge key={`${event.id}-${label}`} variant="secondary" className="text-[10px]">
                         {label}
                       </Badge>
