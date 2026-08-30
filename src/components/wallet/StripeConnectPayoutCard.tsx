@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConnectStatus, useConnectOnboard, useInstantPayout } from "@/hooks/useStripeConnect";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import StripeEmbeddedOnboarding from "./StripeEmbeddedOnboarding";
 import { detectInAppBrowser } from "@/lib/isInAppBrowser";
 
@@ -88,7 +89,10 @@ function shouldUseEmbedded(): boolean {
 export default function StripeConnectPayoutCard({ balanceDollars, detectedCountry }: Props) {
   const { data: status, isLoading } = useConnectStatus();
   const onboard = useConnectOnboard();
-  const payout = useInstantPayout();
+  // connect-instant-payout requires AAL2; without the step-up its 403 reaches
+  // the user as a generic non-2xx error and the payout button does nothing.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+  const payout = useInstantPayout(ensureAal2);
   const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<"instant" | "standard">("instant");
@@ -137,6 +141,7 @@ export default function StripeConnectPayoutCard({ balanceDollars, detectedCountr
   if (!status?.connected || !status?.details_submitted) {
     return (
       <>
+        {mfaDialog}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -194,6 +199,7 @@ export default function StripeConnectPayoutCard({ balanceDollars, detectedCountr
   // Connected — show payout form
   return (
     <>
+      {mfaDialog}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
         <div className="rounded-2xl bg-gradient-to-br from-[#635bff] to-[#4b44d9] text-white p-4 shadow-lg shadow-[#635bff]/20">
           <div className="flex items-center justify-between">

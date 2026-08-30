@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -421,10 +422,14 @@ export default function WalletPage() {
     enabled: !!user,
   });
 
+  // customer-payout-method-record is enforceAal2-gated, same as
+  // process-withdrawal below it. The withdrawal path already prompts via
+  // ensureAal2; these two did not, so adding or removing a payout destination
+  // failed with supabase-js's generic non-2xx message and no way forward.
   const addPayoutMethod = useMutation({
     mutationFn: async (form: typeof payoutForm) => {
       if (!user) throw new Error("Not authenticated");
-      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
+      const { data, error } = await invokeSensitive<{ error?: string }>("customer-payout-method-record", {
         body: {
           action: "create",
           method_type: form.method_type,
@@ -438,7 +443,7 @@ export default function WalletPage() {
         headers: {
           "Idempotency-Key": `payout-method-${user.id}-${form.method_type}-${crypto.randomUUID()}`,
         },
-      });
+      }, ensureAal2, "Confirm payout method");
       if (error || (data as any)?.error) {
         throw new Error((data as any)?.error || error?.message || "Failed to add payout method");
       }
@@ -454,9 +459,12 @@ export default function WalletPage() {
 
   const deletePayoutMethod = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase.functions.invoke("customer-payout-method-record", {
-        body: { action: "delete", method_id: id },
-      });
+      const { data, error } = await invokeSensitive<{ error?: string }>(
+        "customer-payout-method-record",
+        { body: { action: "delete", method_id: id } },
+        ensureAal2,
+        "Confirm payout method",
+      );
       if (error || (data as any)?.error) {
         throw new Error((data as any)?.error || error?.message || "Failed to delete payout method");
       }

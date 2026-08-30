@@ -3,6 +3,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { isAllowedStripeConnectUrl } from "@/lib/urlSafety";
@@ -65,7 +66,18 @@ export function useConnectOnboard() {
   });
 }
 
-export function useInstantPayout() {
+/**
+ * connect-instant-payout is the only enforceAal2-gated function in this file
+ * (connect-status and connect-onboard are not). It answers
+ * 403 {"code":"mfa_required"} to any session below AAL2, and a password-only
+ * session is aal1 — so called plainly the payout button just reports
+ * supabase-js's "Edge Function returned a non-2xx status code".
+ *
+ * `ensureAal2` is a parameter rather than a useStepUpMfa() call in here: the
+ * challenge needs its dialog rendered in the component's own tree, which a
+ * hook cannot do. Optional, so any other caller keeps compiling unchanged.
+ */
+export function useInstantPayout(ensureAal2?: (label?: string) => Promise<boolean>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { amount_cents: number; method?: "instant" | "standard" }) => {
@@ -73,10 +85,15 @@ export function useInstantPayout() {
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const { data, error } = await supabase.functions.invoke("connect-instant-payout", {
+      const opts = {
         body: { amount_cents: params.amount_cents, method: params.method ?? "instant" },
         headers: { "Idempotency-Key": `instant-payout-${idempotencyKey}` },
-      });
+      };
+      const { data, error } = ensureAal2
+        ? await invokeSensitive<{ error?: string; arrival_date?: number; method?: string }>(
+            "connect-instant-payout", opts, ensureAal2, "Authorize instant payout",
+          )
+        : await supabase.functions.invoke("connect-instant-payout", opts);
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data;

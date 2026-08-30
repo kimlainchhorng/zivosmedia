@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCafeTips, type TipSplitMode } from "@/hooks/cafe/useCafeTips";
+import { useStepUpMfa } from "@/hooks/useStepUpMfa";
 import { useCafeCurrency } from "@/hooks/cafe/useCafeCurrency";
 import { formatCafeMoney } from "@/lib/cafe-currency";
 import { cn } from "@/lib/utils";
@@ -38,7 +39,10 @@ export default function CafeTipsSection({ storeId }: Props) {
   const { code: currencyCode } = useCafeCurrency(storeId);
   const fmt = (c: number) => formatCafeMoney(c, currencyCode);
   const [days, setDays] = useState(1);
-  const { poolCents, distribution, mode, setMode, weights, setWeight, payouts, paying, payOut, loading } = useCafeTips(storeId, days);
+  // cafe-tip-payout-record requires AAL2; without the step-up its 403 reaches
+  // the owner as a generic non-2xx error and "Pay out" does nothing.
+  const { ensureAal2, dialog: mfaDialog } = useStepUpMfa();
+  const { poolCents, distribution, mode, setMode, weights, setWeight, payouts, paying, payOut, loading } = useCafeTips(storeId, days, ensureAal2);
   const [payDialog, setPayDialog] = useState(false);
   const [payNotes, setPayNotes] = useState("");
 
@@ -52,6 +56,8 @@ export default function CafeTipsSection({ storeId }: Props) {
   }
 
   return (
+    <>
+    {mfaDialog}
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Tip pool</h2>
@@ -197,5 +203,6 @@ export default function CafeTipsSection({ storeId }: Props) {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

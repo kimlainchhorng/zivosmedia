@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase as _supabaseTyped } from "@/integrations/supabase/client";
+import { invokeSensitive } from "@/lib/security/sensitiveInvoke";
 const supabase: any = _supabaseTyped;
 
 export type TipSplitMode = "equal" | "by_hours" | "weighted";
@@ -36,7 +37,21 @@ export interface CafeTipPayout {
   notes: string | null;
 }
 
-export function useCafeTips(storeId: string | undefined, windowDays = 1) {
+/**
+ * cafe-tip-payout-record is enforceAal2-gated — 403 {"code":"mfa_required"} for
+ * any session below AAL2, which a password-only session is. Called plainly, the
+ * "Pay out" button reports supabase-js's generic non-2xx message and nothing
+ * happens.
+ *
+ * `ensureAal2` is a parameter, not a useStepUpMfa() call in here: the challenge
+ * needs its dialog in the component's tree. Optional, so existing callers keep
+ * compiling.
+ */
+export function useCafeTips(
+  storeId: string | undefined,
+  windowDays = 1,
+  ensureAal2?: (label?: string) => Promise<boolean>,
+) {
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [entries, setEntries] = useState<TimeEntryRow[]>([]);
   const [baristas, setBaristas] = useState<BaristaRow[]>([]);
@@ -175,7 +190,7 @@ export function useCafeTips(storeId: string | undefined, windowDays = 1) {
       weight: l.weight,
       payout_cents: l.payout_cents,
     }));
-    const { data, error: payoutErr } = await supabase.functions.invoke("cafe-tip-payout-record", {
+    const payoutOpts = {
       body: {
         store_id: storeId,
         window_start: windowStart,
@@ -188,7 +203,12 @@ export function useCafeTips(storeId: string | undefined, windowDays = 1) {
       headers: {
         "Idempotency-Key": `cafe-tip-payout-${storeId}-${windowStart}-${poolCents}`,
       },
-    });
+    };
+    const { data, error: payoutErr } = ensureAal2
+      ? await invokeSensitive<{ error?: string }>(
+          "cafe-tip-payout-record", payoutOpts, ensureAal2, "Confirm tip payout",
+        )
+      : await supabase.functions.invoke("cafe-tip-payout-record", payoutOpts);
     setPaying(false);
     if (payoutErr || data?.error) {
       console.error("[useCafeTips] payOut", payoutErr || data?.error);
@@ -197,7 +217,7 @@ export function useCafeTips(storeId: string | undefined, windowDays = 1) {
     }
     await load();
     return true;
-  }, [storeId, poolCents, distribution, mode, windowDays, load]);
+  }, [storeId, poolCents, distribution, mode, windowDays, load, ensureAal2]);
 
   return {
     poolCents, distribution, mode, setMode, weights, setWeight,
