@@ -9,7 +9,7 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling } from "../_shared/errors.ts";
 import { requireUser, requireUserNotBlocked, getServiceRoleClient } from "../_shared/auth.ts";
 import { recordAudit } from "../_shared/audit.ts";
-import { ok } from "../_shared/respond.ts";
+import { err, ok } from "../_shared/respond.ts";
 
 const MAX_TEXT = 240;
 const MAX_NOTE = 2_000;
@@ -29,10 +29,7 @@ serve(
     "refund-request-submit",
     withErrorHandling(async (req) => {
       if (req.method !== "POST") {
-        return new Response(JSON.stringify({ error: "Method not allowed" }), {
-          status: 405,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Method not allowed", 405);
       }
 
       const { userId } = await requireUser(req);
@@ -43,10 +40,7 @@ serve(
       const transactionId = cleanText(body.transaction_id, MAX_TEXT);
       const amount = cleanAmount(body.amount);
       if (!reason || !transactionId || amount == null) {
-        return new Response(JSON.stringify({ error: "Invalid refund request" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Invalid refund request", 400);
       }
 
       const note = cleanText(body.note, MAX_NOTE);

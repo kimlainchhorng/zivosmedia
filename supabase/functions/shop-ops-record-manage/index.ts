@@ -9,7 +9,7 @@ import { serve } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling } from "../_shared/errors.ts";
 import { getServiceRoleClient, requireUser, requireUserNotBlocked } from "../_shared/auth.ts";
-import { ok } from "../_shared/respond.ts";
+import { err, ok } from "../_shared/respond.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 const BUCKET = "shop-documents";
@@ -28,18 +28,12 @@ serve(
 
       const body = await req.json().catch(() => ({})) as Body;
       if (body.action !== "delete_document") {
-        return new Response(JSON.stringify({ error: "Unsupported shop ops action" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Unsupported shop ops action", 400);
       }
 
       const recordId = cleanUuid(body.record_id);
       if (!recordId) {
-        return new Response(JSON.stringify({ error: "Invalid shop document id" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Invalid shop document id", 400);
       }
 
       const sb = getServiceRoleClient();
@@ -52,10 +46,7 @@ serve(
         .maybeSingle();
       if (lookupError) throw lookupError;
       if (!record?.id) {
-        return new Response(JSON.stringify({ error: "Shop document not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Shop document not found", 404);
       }
 
       const storagePath = safeStoragePath(record.message, userId);

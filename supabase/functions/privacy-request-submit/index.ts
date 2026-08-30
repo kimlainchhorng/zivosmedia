@@ -9,7 +9,7 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling } from "../_shared/errors.ts";
 import { requireUser, getServiceRoleClient, requireUserNotBlocked } from "../_shared/auth.ts";
 import { recordAudit } from "../_shared/audit.ts";
-import { ok } from "../_shared/respond.ts";
+import { err, ok } from "../_shared/respond.ts";
 
 const MAX_TEXT = 240;
 const MAX_REASON = 2_000;
@@ -32,10 +32,7 @@ serve(
     "privacy-request-submit",
     withErrorHandling(async (req) => {
       if (req.method !== "POST") {
-        return new Response(JSON.stringify({ error: "Method not allowed" }), {
-          status: 405,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Method not allowed", 405);
       }
 
       const { userId, claims } = await requireUser(req);
@@ -51,10 +48,7 @@ serve(
         const requestType = cleanEnum(body.request_type, REQUEST_TYPES);
         const requestTitle = cleanText(body.request_title, MAX_TEXT);
         if (!requestType || !requestTitle) {
-          return new Response(JSON.stringify({ error: "Invalid privacy request" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
+          return err(req, "Invalid privacy request", 400);
         }
 
         const message = JSON.stringify({
@@ -93,10 +87,7 @@ serve(
       if (kind === "consent_change") {
         const category = cleanEnum(body.consent_category, CONSENT_TYPES);
         if (!category || typeof body.enabled !== "boolean") {
-          return new Response(JSON.stringify({ error: "Invalid consent change" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          });
+          return err(req, "Invalid consent change", 400);
         }
 
         const message = JSON.stringify({
@@ -131,10 +122,7 @@ serve(
         return ok(req, { ok: true, id: data?.id ?? null });
       }
 
-      return new Response(JSON.stringify({ error: "Invalid privacy request kind" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return err(req, "Invalid privacy request kind", 400);
     }, "privacy-request-submit"),
     { strictCors: true, allowedMethods: ["POST"], rateLimit: "api_general", trackNetwork: "suspicious", blockNetworkRiskAt: 90 },
   ),

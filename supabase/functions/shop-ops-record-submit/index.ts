@@ -8,7 +8,7 @@ import { serve } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling } from "../_shared/errors.ts";
 import { requireUser, requireUserNotBlocked, getServiceRoleClient } from "../_shared/auth.ts";
-import { ok } from "../_shared/respond.ts";
+import { err, ok } from "../_shared/respond.ts";
 
 const MAX_TEXT = 240;
 const MAX_MESSAGE = 6_000;
@@ -26,10 +26,7 @@ serve(
     "shop-ops-record-submit",
     withErrorHandling(async (req) => {
       if (req.method !== "POST") {
-        return new Response(JSON.stringify({ error: "Method not allowed" }), {
-          status: 405,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Method not allowed", 405);
       }
 
       const { userId } = await requireUser(req);
@@ -39,10 +36,7 @@ serve(
       const category = cleanEnum(body.category, CATEGORIES);
       const message = cleanPayload(body.payload);
       if (!category || !message) {
-        return new Response(JSON.stringify({ error: "Invalid shop record" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Invalid shop record", 400);
       }
 
       const sb = getServiceRoleClient();
