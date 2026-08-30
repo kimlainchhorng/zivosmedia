@@ -2,12 +2,24 @@
  * Integration tests for BusinessPageWizard's leave-guard, auto-save, and
  * Save & exit flows.
  *
- * NOTE (2026-05-01): The full file currently hangs in JSDOM — `waitReady()`
- * never resolves because the framer-motion mock + Proxy interaction with
- * the wizard's step transitions doesn't settle. The wizard component
- * itself works in the browser. Re-enable once the framer-motion mock is
- * rewritten or replaced with a real lightweight stub.
+ * HISTORY: the whole file was `describe.skip`-ed on 2026-05-01 with the note
+ * that JSDOM "hangs" because of the framer-motion mock. Re-enabled 2026-08-29
+ * after finding two concrete causes, neither of which was a hang:
+ *
+ *   1. The supabase mock ended its chain at `.eq().maybeSingle()`, but the
+ *      wizard fetches every store the owner has and ends at `.order()`. That
+ *      threw inside the async resume, so `setChecking(false)` never ran and
+ *      every test waited on a spinner until it timed out.
+ *   2. The framer-motion Proxy returned a NEW component function on each
+ *      property access, so `motion.div` changed identity every render and React
+ *      remounted the subtree. Element references captured before `fireEvent`
+ *      pointed at detached nodes reading "" while component state was correct.
+ *
+ * With both fixed, the leave-guard and resume tests pass. Six tests remain
+ * skipped individually below, each with the specific reason.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -68,6 +80,16 @@ vi.mock("@/integrations/supabase/client", () => {
               return {
                 eq() {
                   return {
+                    // The wizard fetches ALL of the owner's stores and picks a
+                    // preferred one, so the chain ends in .order() and expects an
+                    // ARRAY. This mock modelled the older single-row
+                    // .maybeSingle() shape, so .order was undefined, the async
+                    // resume threw, setChecking(false) never ran, and every test
+                    // timed out against a spinner. maybeSingle stays for any
+                    // caller that still wants one row.
+                    async order() {
+                      return { data: resumeRow ? [resumeRow] : [], error: null };
+                    },
                     async maybeSingle() {
                       return { data: resumeRow, error: null };
                     },
@@ -129,11 +151,38 @@ vi.mock("sonner", () => ({
 }));
 
 // Stub framer-motion to be synchronous + render children.
+// The previous mock built the Proxy with `get: () => (props) => ...`, which
+// returns a BRAND NEW function component on every property access. React
+// compares element types by identity, so `motion.div` looked like a different
+// component on every render and the whole subtree was unmounted and remounted.
+// Inputs lost their DOM identity, so a reference captured before fireEvent
+// pointed at a detached node reading "" -- while the component's state was
+// perfectly correct (the slug preview rendered "/sunrise-coffee"). That is what
+// made these tests look unfixable and got the file skipped in 2026-05.
+// Caching one stable component per tag is the whole fix.
+const motionComponentCache = new Map<string, any>();
+const stripMotionProps = ({
+  initial: _i, animate: _a, exit: _e, transition: _t, variants: _v,
+  whileHover: _wh, whileTap: _wt, whileInView: _wi, viewport: _vp,
+  layout: _l, layoutId: _lid, drag: _d, onAnimationComplete: _oac,
+  ...rest
+}: any) => rest;
+
 vi.mock("framer-motion", () => ({
-  motion: new Proxy(
-    {},
-    { get: () => (props: any) => props.children ? <div {...props} /> : null }
-  ) as any,
+  motion: new Proxy({} as any, {
+    get: (_target, tag: string) => {
+      if (!motionComponentCache.has(tag)) {
+        const Tag = tag as any;
+        const Component = (props: any) => {
+          const { children, ...rest } = stripMotionProps(props);
+          return <Tag {...rest}>{children}</Tag>;
+        };
+        Component.displayName = `motion.${tag}`;
+        motionComponentCache.set(tag, Component);
+      }
+      return motionComponentCache.get(tag);
+    },
+  }) as any,
   AnimatePresence: ({ children }: any) => children,
 }));
 
@@ -193,7 +242,7 @@ const waitReady = async () => {
   });
 };
 
-describe.skip("BusinessPageWizard — leave guard", () => {
+describe("BusinessPageWizard — leave guard", () => {
   it("does NOT prompt when nothing has been touched (header back)", async () => {
     renderWizard();
     await waitReady();
@@ -271,7 +320,9 @@ describe.skip("BusinessPageWizard — leave guard", () => {
     expect(navigateSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("rapid repeated popstate does NOT cause an infinite prompt loop", async () => {
+  // SKIP: drives many popstate events in a tight loop; needs the dialog
+  // open/close to settle between each one or the assertions race.
+  it.skip("rapid repeated popstate does NOT cause an infinite prompt loop", async () => {
     renderWizard();
     await waitReady();
     await fillBasics();
@@ -305,8 +356,10 @@ describe.skip("BusinessPageWizard — leave guard", () => {
   });
 });
 
-describe.skip("BusinessPageWizard — Save & exit", () => {
-  it("persists progress and navigates to /account on Save & exit", async () => {
+describe("BusinessPageWizard — Save & exit", () => {
+  // SKIP: Save & exit asserts a persist call that now only happens from
+  // step 2 onward; the test still drives it from step 1.
+  it.skip("persists progress and navigates to /account on Save & exit", async () => {
     renderWizard();
     await waitReady();
     await fillBasics();
@@ -327,7 +380,8 @@ describe.skip("BusinessPageWizard — Save & exit", () => {
     );
   });
 
-  it("keeps the dialog open and toasts the error if Save & exit fails", async () => {
+  // SKIP: same step-1 persistence assumption as the test above.
+  it.skip("keeps the dialog open and toasts the error if Save & exit fails", async () => {
     persistMock.mockResolvedValueOnce({ id: null, error: "Something went wrong" });
     renderWizard();
     await waitReady();
@@ -347,8 +401,11 @@ describe.skip("BusinessPageWizard — Save & exit", () => {
   });
 });
 
-describe.skip("BusinessPageWizard — auto-save and resume", () => {
-  it("auto-saves on every Continue (step 1 → 2)", async () => {
+describe("BusinessPageWizard — auto-save and resume", () => {
+  // SKIP: STALE. goNext persists only when `step >= 2 && step <= 4` -- step 1
+  // deliberately does not write, so the row is created with a real category
+  // instead of the DB default. Rewrite against step 2 -> 3, not 1 -> 2.
+  it.skip("auto-saves on every Continue (step 1 → 2)", async () => {
     renderWizard();
     await waitReady();
     await fillBasics();
@@ -389,8 +446,10 @@ describe.skip("BusinessPageWizard — auto-save and resume", () => {
   });
 });
 
-describe.skip("BusinessPageWizard — unsaved-changes indicator", () => {
-  it("shows the chip only when fields differ from baseline", async () => {
+describe("BusinessPageWizard — unsaved-changes indicator", () => {
+  // SKIP: the baseline snapshot settles after the profile prefill; the test
+  // samples the chip before that lands.
+  it.skip("shows the chip only when fields differ from baseline", async () => {
     renderWizard();
     await waitReady();
 
@@ -411,8 +470,10 @@ describe.skip("BusinessPageWizard — unsaved-changes indicator", () => {
   });
 });
 
-describe.skip("BusinessPageWizard — completion disarms guard", () => {
-  it("does not prompt during/after completion", async () => {
+describe("BusinessPageWizard — completion disarms guard", () => {
+  // SKIP: completion now runs through handleComplete + a setup_complete
+  // update; the test still models the older single-call completion.
+  it.skip("does not prompt during/after completion", async () => {
     resumeRow = {
       id: "store-9",
       name: "Done Biz",
@@ -447,5 +508,60 @@ describe.skip("BusinessPageWizard — completion disarms guard", () => {
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     expect(screen.queryByText(/leave business setup/i)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The bug this guards: STEP_LABELS listed six steps and STEP_COUNT was 6, but
+ * the JSX only had render blocks for steps 1-5. A user who finished "Cover"
+ * landed on "Step 6 of 6 - Polish" as a COMPLETELY BLANK page with a
+ * "Go to dashboard" button, and the description / address / payment-method /
+ * social fields the wizard already persisted had no UI at all -- every business
+ * silently saved paymentTypes ["cash","card"] and an empty address.
+ *
+ * Driving the rendered wizard all the way to step 6 needs five successful
+ * saves, so this reads the source instead: cheap, and it fails the moment a
+ * step is advertised without being built.
+ */
+describe("BusinessPageWizard — every advertised step is implemented", () => {
+  const source = readFileSync(
+    path.join(process.cwd(), "src/pages/business/BusinessPageWizard.tsx"),
+    "utf8",
+  );
+
+  it("declares as many step labels as STEP_COUNT", () => {
+    const count = Number(/const STEP_COUNT = (\d+)/.exec(source)?.[1]);
+    const labels = /const STEP_LABELS = \[([^\]]+)\]/.exec(source)?.[1] ?? "";
+    expect(count).toBeGreaterThan(0);
+    expect(labels.split(",").filter((s) => s.trim()).length).toBe(count);
+  });
+
+  it("renders a block for every step from 1 to STEP_COUNT", () => {
+    const count = Number(/const STEP_COUNT = (\d+)/.exec(source)?.[1]);
+    const rendered = new Set(
+      [...source.matchAll(/\{step === (\d+) &&/g)].map((m) => Number(m[1])),
+    );
+    const missing = Array.from({ length: count }, (_, i) => i + 1).filter(
+      (n) => !rendered.has(n),
+    );
+    expect(missing, `steps with no render block: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("collects the fields it persists — no write-only wizard state", () => {
+    // Each of these is written into the snapshot by persist(); if a field is
+    // saved it must also be reachable, or the user silently ships a default.
+    for (const setter of [
+      "setBizDescription",
+      "setAddress",
+      "setPaymentTypes",
+      "setFacebookUrl",
+      "setInstagramUrl",
+      "setTiktokUrl",
+      "setTelegramUrl",
+    ]) {
+      const uses = source.split(setter).length - 1;
+      // 1 = the useState declaration alone, i.e. never called from the UI.
+      expect(uses, `${setter} is never called from the UI`).toBeGreaterThan(1);
+    }
   });
 });

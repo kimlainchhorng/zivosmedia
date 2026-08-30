@@ -45,6 +45,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -963,6 +964,136 @@ export default function BusinessPageWizard() {
                       if (f) uploadAsset(f, "banner");
                     }}
                   />
+                </div>
+              </>
+            )}
+
+            {step === 6 && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="bg-ig-gradient flex h-10 w-10 items-center justify-center rounded-2xl text-white shadow-[0_2px_10px_rgba(236,72,153,0.22)]">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-[17px] font-bold text-foreground">Polish your page</h2>
+                    <p className="text-sm text-muted-foreground">
+                      The last details customers look for. All optional.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bizDescription">About your business</Label>
+                  <Textarea
+                    id="bizDescription"
+                    placeholder="e.g. Family-run cafe serving Khmer coffee and fresh pastries since 2019."
+                    maxLength={500}
+                    rows={4}
+                    value={bizDescription}
+                    onChange={(e) => setBizDescription(e.target.value)}
+                  />
+                  <p className="text-right text-xs text-muted-foreground">
+                    {bizDescription.length}/500
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <div className="relative">
+                    <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="address"
+                      className="pl-9"
+                      placeholder="e.g. St 271, Sen Sok, Phnom Penh"
+                      maxLength={200}
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>How can customers pay?</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {PAYMENT_OPTIONS.map((opt) => {
+                      const Icon = opt.icon;
+                      const on = paymentTypes.includes(opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() =>
+                            setPaymentTypes((prev) =>
+                              prev.includes(opt.value)
+                                ? prev.filter((v) => v !== opt.value)
+                                : [...prev, opt.value],
+                            )
+                          }
+                          className={cn(
+                            "flex min-h-[44px] items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-semibold transition-all touch-manipulation",
+                            on
+                              ? "border-transparent bg-ig-gradient text-white"
+                              : "border-border bg-card text-muted-foreground hover:border-foreground/25",
+                          )}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{opt.label}</span>
+                          {on && <Check className="ml-auto h-4 w-4 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Social links</Label>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Facebook className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        inputMode="url"
+                        placeholder="Facebook page link"
+                        maxLength={200}
+                        value={facebookUrl}
+                        onChange={(e) => setFacebookUrl(e.target.value)}
+                        aria-label="Facebook page link"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Instagram className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        inputMode="url"
+                        placeholder="Instagram profile link"
+                        maxLength={200}
+                        value={instagramUrl}
+                        onChange={(e) => setInstagramUrl(e.target.value)}
+                        aria-label="Instagram profile link"
+                      />
+                    </div>
+                    <div className="relative">
+                      <MessageCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="pl-9"
+                        inputMode="url"
+                        placeholder="Telegram link"
+                        maxLength={200}
+                        value={telegramUrl}
+                        onChange={(e) => setTelegramUrl(e.target.value)}
+                        aria-label="Telegram link"
+                      />
+                    </div>
+                    <Input
+                      inputMode="url"
+                      placeholder="TikTok profile link"
+                      maxLength={200}
+                      value={tiktokUrl}
+                      onChange={(e) => setTiktokUrl(e.target.value)}
+                      aria-label="TikTok profile link"
+                    />
+                  </div>
                 </div>
               </>
             )}
