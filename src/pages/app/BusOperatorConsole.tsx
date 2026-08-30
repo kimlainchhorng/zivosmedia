@@ -19,6 +19,7 @@ import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { edgeFunctionErrorMessage, isEdgeFunctionMissing } from "@/lib/edgeFunctionError";
 import { normalizeStoreCategory } from "@/hooks/useOwnerStoreProfile";
 import { cn } from "@/lib/utils";
 import StorePaymentSection from "@/components/admin/StorePaymentSection";
@@ -1321,35 +1322,51 @@ function BookingsTab({ bookings, reload, routeLabel, trips }: {
   // fall back to a plain status update so confirming always works; the booking
   // row's payment_status still shows whether the card was captured.
   const confirmBooking = async (id: string) => {
-    try {
-      const { error } = await supabase.functions.invoke("capture-bus-payment", { body: { booking_id: id } });
-      if (error) throw error;
+    const { error } = await supabase.functions.invoke("capture-bus-payment", { body: { booking_id: id } });
+    if (!error) {
       toast.success("Booking confirmed.");
       void reload();
       return;
-    } catch {
-      const { error } = await db.from("bus_bookings").update({ status: "confirmed" }).eq("id", id);
-      if (error) { toast.error("Couldn't confirm booking."); return; }
-      toast.success("Booking confirmed.");
-      void reload();
     }
+    // A bare catch here used to send every failure to the direct write below,
+    // so a deliberate refusal became a confirmation. capture-bus-payment
+    // answers 409 "This payment was refunded and cannot be captured." — that
+    // must reach the operator, not be overwritten with "Booking confirmed."
+    if (!isEdgeFunctionMissing(error)) {
+      toast.error(edgeFunctionErrorMessage(error, "Couldn't confirm booking."));
+      void reload();
+      return;
+    }
+    const { error: fallbackError } = await db.from("bus_bookings").update({ status: "confirmed" }).eq("id", id);
+    if (fallbackError) { toast.error("Couldn't confirm booking."); return; }
+    toast.success("Booking confirmed.");
+    void reload();
   };
 
   // Cancel + refund. The edge function voids an uncaptured authorization or
   // refunds a captured charge, then marks the booking cancelled. Falls back to
   // a plain status update if the payment function isn't deployed yet.
   const cancelAndRefund = async (id: string) => {
-    try {
-      const { error } = await supabase.functions.invoke("capture-bus-payment", { body: { booking_id: id, action: "refund" } });
-      if (error) throw error;
+    const { error } = await supabase.functions.invoke("capture-bus-payment", { body: { booking_id: id, action: "refund" } });
+    if (!error) {
       toast.success("Booking cancelled & refunded.");
       void reload();
-    } catch {
-      const { error } = await db.from("bus_bookings").update({ status: "cancelled" }).eq("id", id);
-      if (error) { toast.error("Couldn't cancel booking."); return; }
-      toast.success("Booking cancelled.");
-      void reload();
+      return;
     }
+    if (!isEdgeFunctionMissing(error)) {
+      toast.error(edgeFunctionErrorMessage(error, "Couldn't cancel booking."));
+      void reload();
+      return;
+    }
+    // Only when the function is absent: cancel the seat locally, and say
+    // plainly that no money moved. The old fallback toasted "Booking
+    // cancelled." after a failed refund, which reads as money returned.
+    const { error: fallbackError } = await db.from("bus_bookings").update({ status: "cancelled" }).eq("id", id);
+    if (fallbackError) { toast.error("Couldn't cancel booking."); return; }
+    toast.warning("Booking cancelled — refund NOT processed.", {
+      description: "The payment function is not deployed. Refund this passenger in Stripe.",
+    });
+    void reload();
   };
 
   const toggleBoarded = async (b: Booking) => {
