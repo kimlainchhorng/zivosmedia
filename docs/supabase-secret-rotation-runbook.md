@@ -55,7 +55,11 @@ npm run security:scan:local
 Expected signals:
 
 - `SUPABASE_ANON_KEY` is not reported as a service-role/secret key.
-- Remote migration history is readable when `SUPABASE_ACCESS_TOKEN` is configured.
+- Remote migration history is readable when `SUPABASE_ACCESS_TOKEN` is configured
+  **or** the Supabase CLI has a stored `supabase login` session. Either path
+  authenticates the linked query, so a machine that is logged in reads the history
+  even with the env var unset — the drift report still prints
+  `SUPABASE_ACCESS_TOKEN configured: no` in that case, which is expected.
 - API readiness has `critical: 0`.
 - Secret scan reports no leaked secrets.
 - Local env audit reports no leaked Supabase tokens after machine-local values are rotated or removed.

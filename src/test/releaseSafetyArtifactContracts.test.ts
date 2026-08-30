@@ -107,9 +107,32 @@ describe("release safety artifact contracts", () => {
       }),
     );
     expect(summary.supabase.linkedHistoryDisconnected).toBe(false);
-    expect(summary.supabase.remoteMigrationHistoryStatus).toBe("unavailable");
+
+    // SUPABASE_ACCESS_TOKEN really is absent here, so this stays pinned -- it is
+    // the actual "deploy secret is missing" assertion this suite exists for.
     expect(summary.blockers.production).toContain("Missing SUPABASE_ACCESS_TOKEN for production migration-history verification.");
-    expect(summary.blockers.production).toContain("Supabase remote migration history is unavailable (unavailable).");
+
+    // Whether the history could be READ is a different question, and it is not
+    // decided by that env var: the CLI also authenticates through a stored
+    // `supabase login` session, so this flips between a maintainer's machine and
+    // CI. Pinning one side made `npm run deploy:preflight` -- a required
+    // pre-deploy step -- turn the suite red every time it ran while logged in.
+    // Assert the invariant instead: a history that could not be read must ALWAYS
+    // surface as an explicit production blocker, never be silently dropped.
+    expect(["read", "access_token_missing", "unavailable"]).toContain(
+      summary.supabase.remoteMigrationHistoryStatus,
+    );
+    if (summary.supabase.remoteMigrationHistoryRead) {
+      expect(summary.supabase.remoteMigrationHistoryStatus).toBe("read");
+      expect(summary.blockers.production.join("\n")).not.toContain(
+        "Supabase remote migration history is unavailable",
+      );
+    } else {
+      expect(summary.supabase.remoteMigrationHistoryStatus).not.toBe("read");
+      expect(summary.blockers.production).toContain(
+        `Supabase remote migration history is unavailable (${summary.supabase.remoteMigrationHistoryStatus}).`,
+      );
+    }
 
     expect(apiReadiness).toContain(`- Warnings: ${summary.counts.apiWarnings}`);
     expect(databaseReadiness).toContain("## Blockers");
