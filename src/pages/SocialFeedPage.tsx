@@ -179,6 +179,30 @@ export default function SocialFeedPage() {
         if (allowedAuthorIds.length === 0) return [];
       }
 
+      // Hiding a post and muting an author both wrote to relations that do not
+      // exist AND were never read back, so both actions only ever produced a
+      // toast: the post returned on the next load. Exclude them server-side so
+      // "We won't show this in your feed again" is true.
+      let hiddenPostIds: string[] = [];
+      let mutedAuthorIds: string[] = [];
+      if (user?.id) {
+        const [{ data: hiddenRows }, { data: snoozedRows }] = await Promise.all([
+          withSupabaseAbortSignal((supabase as any)
+            .from("feed_hidden_posts")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .eq("post_source", "user"), signal),
+          withSupabaseAbortSignal((supabase as any)
+            .from("feed_snoozed_authors")
+            .select("author_id")
+            .eq("user_id", user.id)
+            .eq("author_source", "user")
+            .gt("snoozed_until", new Date().toISOString()), signal),
+        ]);
+        hiddenPostIds = (hiddenRows || []).map((r: any) => r.post_id).filter(Boolean);
+        mutedAuthorIds = (snoozedRows || []).map((r: any) => r.author_id).filter(Boolean);
+      }
+
       let query: any = (supabase as any)
         .from("user_posts")
         .select("id, user_id, caption, media_url, media_urls, media_type, likes_count, comments_count, shares_count, created_at, comments_enabled, sharing_enabled, tips_enabled, is_pinned, visibility")
@@ -187,6 +211,12 @@ export default function SocialFeedPage() {
         .limit(30);
       if (allowedAuthorIds) {
         query = query.in("user_id", allowedAuthorIds);
+      }
+      if (hiddenPostIds.length) {
+        query = query.not("id", "in", `(${hiddenPostIds.join(",")})`);
+      }
+      if (mutedAuthorIds.length) {
+        query = query.not("user_id", "in", `(${mutedAuthorIds.join(",")})`);
       }
 
       const { data: posts } = await withSupabaseAbortSignal(query, signal);
@@ -788,9 +818,13 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   const handleHidePost = async () => {
     if (!user?.id) return navigate(withRedirectParam("/login", "/feed"));
     try {
+      // public.hidden_posts does not exist. The real relation is
+      // feed_hidden_posts (user_id, post_id, post_source), which is also what
+      // useHiddenPosts already reads. post_source is "user" here because this
+      // feed is built from user_posts -- the same value handleReport uses.
       const { error } = await (supabase as any)
-        .from("hidden_posts")
-        .insert({ user_id: user.id, post_id: post.id });
+        .from("feed_hidden_posts")
+        .insert({ user_id: user.id, post_id: post.id, post_source: "user" });
       if (error && (error as any).code !== "23505") throw error;
       queryClient.invalidateQueries({ queryKey: ["social-feed-posts"] });
       toast.success("Post hidden", {
@@ -804,9 +838,24 @@ function PostMoreMenu({ post }: { post: FeedPost }) {
   const handleMuteAuthor = async () => {
     if (!user?.id) return navigate(withRedirectParam("/login", "/feed"));
     try {
+      // public.muted_users does not exist. feed_snoozed_authors is the only
+      // author-level suppression relation there is, and its reader filters on
+      // `snoozed_until > now()`, so an indefinite mute is expressed as a snooze
+      // far enough out that it never lapses. Reels reads the same table, so
+      // muting here also mutes there -- which is what "mute" should mean.
+      const mutedUntil = new Date();
+      mutedUntil.setFullYear(mutedUntil.getFullYear() + 100);
       const { error } = await (supabase as any)
-        .from("muted_users")
-        .insert({ user_id: user.id, muted_user_id: post.user_id });
+        .from("feed_snoozed_authors")
+        .upsert(
+          {
+            user_id: user.id,
+            author_id: post.user_id,
+            author_source: "user",
+            snoozed_until: mutedUntil.toISOString(),
+          },
+          { onConflict: "user_id,author_id,author_source" },
+        );
       if (error && (error as any).code !== "23505") throw error;
       queryClient.invalidateQueries({ queryKey: ["social-feed-posts"] });
       toast.success("Author muted", {

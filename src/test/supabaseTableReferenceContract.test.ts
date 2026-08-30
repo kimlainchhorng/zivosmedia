@@ -35,6 +35,14 @@ import { resolve, relative, join } from "node:path";
  *   favorites  -> user_favorites  (the GDPR export reported 0 favorites)
  *   stores     -> store_profiles  (a shop owner with no career_company was not
  *     recognised as an employer, and the employer prefill never ran)
+ * and two more once the 20260526145114_feed_preferences migration was finally
+ * applied to production, which is what gave them a target:
+ *   hidden_posts -> feed_hidden_posts
+ *   muted_users  -> feed_snoozed_authors (the only author-level suppression
+ *     relation; an indefinite mute is a snooze far enough out never to lapse)
+ * Both were doubly broken: the write went nowhere AND SocialFeedPage never read
+ * either back, so "We won't show this in your feed again" was false. The feed
+ * now excludes both server-side.
  * The `favorites` comment called the target a product decision between
  * user_favorites and marketplace_favorites. Both DO exist. Settled on shape,
  * not availability: the export row is labelled "Saved restaurants, hotels,
@@ -230,11 +238,6 @@ const KNOWN_MISSING = new Set<string>([
   // 1 site (GlobalChatSearch). Chat has ~20 real `chat_*` relations but no
   // `chat_history`, so global chat search returns nothing.
   "chat_history",
-  // 1 site (SocialFeedPage) — per-user post hiding. No such relation.
-  "hidden_posts",
-  // 1 site (SocialFeedPage) — per-user muting. `muted_conversations` exists;
-  // a user-level mute relation does not.
-  "muted_users",
   // 1 site (AdminGodView). The `meta_capi_bridge_webhooks` migration creates
   // no table at all, so this admin panel reads a relation that never shipped.
   "meta_capi_events",
