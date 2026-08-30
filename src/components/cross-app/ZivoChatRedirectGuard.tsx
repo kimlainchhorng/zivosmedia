@@ -2,20 +2,29 @@ import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { isStandaloneChatRoute, zivoChatUrl } from "@/config/zivoChatDomain";
+import {
+  getZivoChatSurface,
+  isStandaloneChatRoute,
+  zivoChatUrl,
+} from "@/config/zivoChatDomain";
 
 /**
- * Standalone chat now lives in the dedicated ZIVO Chat app (zivoschat.com).
+ * Standalone chat also lives in the dedicated ZIVO Chat app (zivoschat.com,
+ * com.zivo.chat on iOS/Android).
  *
- * Any in-app navigation to a standalone chat route is forwarded there — carrying
- * the path and query string so deep links like `/chat?with=<id>` land on the
- * right conversation — and the super-app then bounces home so it never sits on a
- * now-handed-off chat screen. ZIVO Chat shares the super-app's Supabase identity
- * and pulls the session via the `/connect/chat` SSO handoff when needed.
+ * This used to forward EVERY standalone chat route there unconditionally, which
+ * meant you could not read your messages in the super-app at all -- tapping Chat
+ * threw you onto another domain and, if you were not signed in there, onto its
+ * login screen. Both surfaces run on the same Supabase project, so there is no
+ * data reason to force that.
+ *
+ * Now the handoff is opt-in: it fires only for users who chose "dedicated-app"
+ * (see {@link getZivoChatSurface}). Everyone else reads chat in place, and the
+ * hub offers the app as a skippable suggestion. Deep links still carry their
+ * path and query so `/chat?with=<id>` lands on the right conversation.
  *
  * Embedded contextual chat (ride/delivery, lodging, support, store) and the
- * `/connect/chat` issuer page are intentionally left untouched — see
- * {@link isStandaloneChatRoute}.
+ * `/connect/chat` issuer page are untouched -- see {@link isStandaloneChatRoute}.
  */
 export default function ZivoChatRedirectGuard() {
   const location = useLocation();
@@ -24,6 +33,7 @@ export default function ZivoChatRedirectGuard() {
 
   useEffect(() => {
     if (!isStandaloneChatRoute(location.pathname)) return;
+    if (getZivoChatSurface() !== "dedicated-app") return;
 
     const key = `${location.pathname}${location.search}`;
     if (handledRef.current === key) return;

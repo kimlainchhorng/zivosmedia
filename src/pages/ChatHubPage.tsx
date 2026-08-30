@@ -93,6 +93,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import PullToRefresh from "@/components/shared/PullToRefresh";
 import DegradedDataBanner from "@/components/reliability/DegradedDataBanner";
 import SEOHead from "@/components/SEOHead";
+import OpenInZivoChatBanner from "@/components/chat/OpenInZivoChatBanner";
 import { useCallback } from "react";
 import { assessChatMessageRisk, sanitizeOutgoingMessage } from "@/lib/security/chatContentSafety";
 import { validateExternalUrl } from "@/lib/urlSafety";
@@ -5440,6 +5441,11 @@ export default function ChatHubPage({ embedded = false }: { embedded?: boolean }
           canonical="/chat"
           noIndex
         />
+        {/* Chat is no longer a forced handoff to zivoschat.com, so this is the
+            remaining pointer to the native app -- suggested, never required. */}
+        {!embedded && !openPersonalChat && !openGroupChat && (
+          <OpenInZivoChatBanner />
+        )}
         {shell}
         {!openPersonalChat && !openGroupChat && (
           <Suspense fallback={null}>
