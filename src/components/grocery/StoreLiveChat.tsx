@@ -717,9 +717,10 @@ export default function StoreLiveChat({ storeId, storeName, storeLogo, open, onC
                         });
                         const { data: { user } } = await supabase.auth.getUser();
                         if (!user) return;
-                        await supabase.from("store_chat_messages").insert({
+                        const { error } = await supabase.from("store_chat_messages").insert({
                           chat_id: chatId, sender_id: user.id, sender_type: "store", content,
                         });
+                        if (error) toast.error(error.message || "Failed to share location");
                       }}
                       className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-accent/60 text-accent-foreground text-[11px] font-medium hover:bg-accent transition-colors"
                     >
@@ -745,9 +746,10 @@ export default function StoreLiveChat({ storeId, storeName, storeLogo, open, onC
                           });
                           const { data: { user } } = await supabase.auth.getUser();
                           if (!user) return;
-                          await supabase.from("store_chat_messages").insert({
+                          const { error } = await supabase.from("store_chat_messages").insert({
                             chat_id: chatId, sender_id: user.id, sender_type: "store", content,
                           });
+                          if (error) toast.error(error.message || "Failed to send payment link");
                         };
                         sendQR();
                       }}
@@ -769,9 +771,10 @@ export default function StoreLiveChat({ storeId, storeName, storeLogo, open, onC
                           });
                           const { data: { user } } = await supabase.auth.getUser();
                           if (!user) return;
-                          await supabase.from("store_chat_messages").insert({
+                          const { error } = await supabase.from("store_chat_messages").insert({
                             chat_id: chatId, sender_id: user.id, sender_type: "store", content,
                           });
+                          if (error) toast.error(error.message || "Failed to share tracking");
                         };
                         sendTracking();
                       }}

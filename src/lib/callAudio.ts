@@ -274,7 +274,22 @@ export function registerCallAudioUnlock() {
   if (typeof window === "undefined") return () => {};
   if (primeRegistered) return () => {};
 
-  const unlock = () => { void primeCallAudio(); };
+  // Audio needs unlocking only once — the browser allows <audio>.play() after the first
+  // user gesture. Self-remove the four listeners after that first prime; otherwise they
+  // keep firing on every tap/keypress for the whole session, and armAudioElement's
+  // pause→currentTime=0→play would restart an actively-ringing call tone on each
+  // interaction. playIncomingRingtone/playOutgoingRingback re-prime at call time, so
+  // dropping these global listeners can't break first-call audio.
+  const removeUnlockListeners = () => {
+    window.removeEventListener("pointerdown", unlock, { capture: true });
+    window.removeEventListener("touchstart", unlock, { capture: true });
+    window.removeEventListener("click", unlock, { capture: true });
+    window.removeEventListener("keydown", unlock, { capture: true });
+  };
+  const unlock = () => {
+    void primeCallAudio();
+    removeUnlockListeners();
+  };
 
   primeRegistered = true;
   window.addEventListener("pointerdown", unlock, { capture: true, passive: true });

@@ -43,7 +43,12 @@ export function useScreenShare(pcRef: RefObject<RTCPeerConnection | null>) {
 
   const stopSharing = useCallback(async () => {
     const pc = pcRef.current;
-    if (!pc || !isSharing) return;
+    // Guard on the stream ref (not isSharing) so this stays stable across renders:
+    // startSharing wires screenTrack.onended to stopSharing, and the browser's own
+    // "Stop sharing" control fires it. With isSharing in the deps, onended would hold
+    // a stale stopSharing (captured when isSharing was false) and early-return — never
+    // restoring the camera or clearing the sharing state.
+    if (!pc || !screenStreamRef.current) return;
 
     // Restore original camera track
     if (originalTrackRef.current) {
@@ -57,7 +62,7 @@ export function useScreenShare(pcRef: RefObject<RTCPeerConnection | null>) {
     screenStreamRef.current = null;
     originalTrackRef.current = null;
     setIsSharing(false);
-  }, [pcRef, isSharing]);
+  }, [pcRef]);
 
   const toggleSharing = useCallback(async () => {
     if (isSharing) {
