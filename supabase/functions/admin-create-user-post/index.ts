@@ -1,5 +1,10 @@
 import { createClient } from "../_shared/deps.ts";
-import { decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+// std renamed these in 0.210: the module exports encodeBase64/decodeBase64,
+// and there is no `decode`. Importing a name a module does not export is a
+// module-instantiation error in Deno, so this function answered 503
+// BOOT_ERROR to every request — including the OPTIONS preflight, which is
+// why the browser reported it as "Failed to fetch" rather than an error.
+import { decodeBase64 as decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { enforceAal2 } from "../_shared/aalCheck.ts";
 
