@@ -9,7 +9,7 @@ import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling } from "../_shared/errors.ts";
 import { requireUser, requireUserNotBlocked, getServiceRoleClient } from "../_shared/auth.ts";
 import { recordAudit } from "../_shared/audit.ts";
-import { ok } from "../_shared/respond.ts";
+import { err, ok } from "../_shared/respond.ts";
 
 const MAX_SUBJECT = 180;
 const MAX_MESSAGE = 4_000;
@@ -28,10 +28,7 @@ serve(
     "support-ticket-submit",
     withErrorHandling(async (req) => {
       if (req.method !== "POST") {
-        return new Response(JSON.stringify({ error: "Method not allowed" }), {
-          status: 405,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Method not allowed", 405);
       }
 
       const { userId, claims } = await requireUser(req);
@@ -41,10 +38,7 @@ serve(
       const subject = cleanText(body.subject, MAX_SUBJECT);
       const message = cleanText(body.message, MAX_MESSAGE);
       if (!subject || !message) {
-        return new Response(JSON.stringify({ error: "Invalid support ticket" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Invalid support ticket", 400);
       }
 
       const email = cleanEmail(body.email) ?? cleanEmail(claims.email);

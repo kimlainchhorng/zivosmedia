@@ -8,7 +8,7 @@ import { serve } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling } from "../_shared/errors.ts";
 import { getServiceRoleClient, requireUser, requireUserNotBlocked } from "../_shared/auth.ts";
-import { ok } from "../_shared/respond.ts";
+import { err, ok } from "../_shared/respond.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 
@@ -26,18 +26,12 @@ serve(
 
       const body = await req.json().catch(() => ({})) as Body;
       if (body.action !== "delete") {
-        return new Response(JSON.stringify({ error: "Unsupported support ticket action" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Unsupported support ticket action", 400);
       }
 
       const ticketId = cleanUuid(body.ticket_id);
       if (!ticketId) {
-        return new Response(JSON.stringify({ error: "Invalid support ticket id" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Invalid support ticket id", 400);
       }
 
       const sb = getServiceRoleClient();

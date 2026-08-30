@@ -8,7 +8,7 @@ import { serve } from "../_shared/deps.ts";
 import { withSecurity } from "../_shared/withSecurity.ts";
 import { withErrorHandling } from "../_shared/errors.ts";
 import { requireUser, requireUserNotBlocked, getServiceRoleClient } from "../_shared/auth.ts";
-import { ok } from "../_shared/respond.ts";
+import { err, ok } from "../_shared/respond.ts";
 
 const MAX_MESSAGE = 4_000;
 const MAX_TEXT = 240;
@@ -24,10 +24,7 @@ serve(
     "concierge-message-submit",
     withErrorHandling(async (req) => {
       if (req.method !== "POST") {
-        return new Response(JSON.stringify({ error: "Method not allowed" }), {
-          status: 405,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Method not allowed", 405);
       }
 
       const { userId } = await requireUser(req);
@@ -36,10 +33,7 @@ serve(
       const body = await req.json().catch(() => ({})) as Body;
       const text = cleanText(body.message, MAX_MESSAGE);
       if (!text) {
-        return new Response(JSON.stringify({ error: "Invalid concierge message" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return err(req, "Invalid concierge message", 400);
       }
 
       const sb = getServiceRoleClient();

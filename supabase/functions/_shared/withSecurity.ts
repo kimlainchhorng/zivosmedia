@@ -241,6 +241,18 @@ export function withSecurity(
     // 4) Run handler with timing + error capture
     try {
       const res = await handler(req, ctx);
+      // CORS on the handler's own response too. Every other return in this
+      // function calls applyCorsHeaders; this one did not, so a handler that
+      // built its Response by hand — `new Response(body, { headers: {
+      // 'Content-Type': 'application/json' } })` rather than ok()/err() or a
+      // spread of ctx.corsHeaders — came back with no CORS headers at all.
+      // The browser then cannot read the response and reports a bare
+      // "TypeError: Failed to fetch", so the caller shows a network error
+      // instead of the real message. Caught 2026-08-30 by calling
+      // support-ticket-manage, support-ticket-submit and
+      // concierge-message-submit from the running app: their validation
+      // branches were invisible while their ok() success path was fine.
+      applyCorsHeaders(res, corsHeaders);
       res.headers.set('x-request-id', correlationId);
       applySecurityHeaders(res);
       log.info('request_completed', { status: res.status, ms: Date.now() - ctx.startedAt });
