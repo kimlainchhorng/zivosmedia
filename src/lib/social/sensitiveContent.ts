@@ -5,7 +5,18 @@ export type SensitiveContentMatch = {
 };
 
 const SENSITIVE_CONTENT_PATTERNS: RegExp[] = [
-  /\b18\+\b/i,
+  // This list drives a HARD rejection ("Sexual or explicit content is not
+  // permitted on ZIVO" — CreatePostModal.tsx), so a false positive accuses
+  // someone of posting porn and blocks them. Bare "18+" cannot carry that: in a
+  // super-app full of job ads, venue rules and service listings, "18+ years
+  // experience", "ages 18+" and "must be 18+ to enter" are ordinary copy. So
+  // match 18+ only where it is actually labelling adult material.
+  //
+  // The previous /\b18\+\b/i matched none of these — nor real adult captions.
+  // \b after "+" requires a word character next, so the only string it could
+  // ever hit was the glued "18+content". The rule has been dead in production.
+  /\b18\+\s*(?:only|content|material|adult|nsfw|xxx)\b/i,
+  /\b(?:adult|nsfw|xxx)\s*[-:]?\s*18\+/i,
   /\bnsfw\b/i,
   /\badult\s+content\b/i,
   /\bexplicit\b/i,

@@ -23,6 +23,42 @@ describe("sensitiveContent", () => {
     expect(detectSensitiveContent("A post about Essex travel").isSensitive).toBe(false);
   });
 
+  // detectSensitiveContent gates a HARD rejection on post and comment creation,
+  // so both directions matter: an adult caption must be caught, and ordinary
+  // "18+" copy must NOT be accused of being explicit.
+  describe("the 18+ marker", () => {
+    it.each([
+      "18+ only",
+      "18+ content",
+      "18+ material",
+      "NSFW 18+",
+      "adult 18+",
+      "xxx 18+",
+    ])("treats %j as adult material", (caption) => {
+      expect(detectSensitiveContent(caption).isSensitive).toBe(true);
+    });
+
+    // Ordinary copy in a super-app carrying job ads, venue rules and service
+    // listings. Blocking these would tell the poster their listing is porn.
+    it.each([
+      "18+ years experience",
+      "Open to 18+ applicants",
+      "must be 18+ to enter",
+      "ages 18+",
+      "18+ yrs in the trade",
+    ])("leaves %j alone", (caption) => {
+      expect(detectSensitiveContent(caption).isSensitive).toBe(false);
+    });
+
+    // The rule this replaced was /\b18\+\b/i, which could only ever match the
+    // glued form: \b after "+" demands a following word character. It caught no
+    // real caption, so the marker was dead in production.
+    it("catches the spacing the old boundary-anchored rule could not", () => {
+      expect(detectSensitiveContent("18+ only").isSensitive).toBe(true);
+      expect(/\b18\+\b/i.test("18+ only")).toBe(false);
+    });
+  });
+
   it("recognizes sexual report reasons", () => {
     expect(isSensitiveReportReason("Nudity or sexual content", "Non-consensual imagery")).toBe(true);
     expect(isSensitiveReportReason("Spam", "Clickbait")).toBe(false);
