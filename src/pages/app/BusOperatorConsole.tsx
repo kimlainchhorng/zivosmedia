@@ -208,7 +208,7 @@ export default function BusOperatorConsole() {
           title="Create a bus operator page"
           desc="You don't have a bus business yet. Create one (choose the “Bus” category) to start adding routes and trips."
           cta="Create a business"
-          onCta={() => navigate("/business/new")}
+          onCta={() => navigate("/business/new?new=1")}
         />
       </AppLayout>
     );

@@ -113,7 +113,7 @@ export default function ZivoBusinessHome() {
                 <Link to="/login?redirect=%2Fbusiness">Log in</Link>
               </Button>
               <Button asChild className="h-12 rounded-full bg-zinc-950 px-6 font-bold text-white hover:bg-zinc-800">
-                <Link to="/business/new">Create business</Link>
+                <Link to="/business/new?new=1">Create business</Link>
               </Button>
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function ZivoBusinessHome() {
               </p>
               <div className="mt-9 flex flex-wrap items-center gap-3">
                 <Button asChild className="h-14 rounded-full bg-zinc-950 px-8 text-lg font-bold text-white hover:bg-zinc-800">
-                  <Link to="/business/new">
+                  <Link to="/business/new?new=1">
                     Create your business <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
@@ -221,7 +221,7 @@ export default function ZivoBusinessHome() {
           <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-6 py-10 text-sm font-medium text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
             <span>© ZIVO Business — part of the Zivosmedia network</span>
             <div className="flex flex-wrap gap-5">
-              <Link to="/business/new" className="hover:text-zinc-900">Create business</Link>
+              <Link to="/business/new?new=1" className="hover:text-zinc-900">Create business</Link>
               <Link to="/business" className="hover:text-zinc-900">Business dashboard</Link>
               <Link to="/support" className="hover:text-zinc-900">Support</Link>
               <Link to="/legal/privacy" className="hover:text-zinc-900">Privacy</Link>

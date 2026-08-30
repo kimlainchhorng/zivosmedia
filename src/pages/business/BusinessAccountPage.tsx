@@ -115,7 +115,7 @@ export default function BusinessAccountPage() {
               <p className="text-sm text-muted-foreground">Discounts</p>
             </div>
           </div>
-          <Button size="lg" onClick={() => navigate("/business/new")}>
+          <Button size="lg" onClick={() => navigate("/business/new?new=1")}>
             <Plus className="w-5 h-5 mr-2" />
             Create Business Account
           </Button>

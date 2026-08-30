@@ -353,7 +353,7 @@ const quickLinksBusiness: QuickLink[] = [
   { icon: Settings, label: "Shop Settings", href: "/shop-dashboard/settings", description: "Configure store", accent: "hsl(var(--muted-foreground))" },
   { icon: Building2, label: "Hotel Admin", href: "/hotel-admin", description: "Property mgmt", accent: "hsl(263 70% 58%)" },
   { icon: BarChart3, label: "Business Dashboard", href: "/business/dashboard", description: "Org overview", accent: "hsl(198 93% 59%)" },
-  { icon: UserPlus, label: "Add Business", href: "/business/new", description: "Register company", accent: "hsl(199 89% 48%)" },
+  { icon: UserPlus, label: "Add Business", href: "/business/new?new=1", description: "Register company", accent: "hsl(199 89% 48%)" },
   { icon: Globe2, label: "Connect Website", href: "/connect-website", description: "Link your site", accent: "hsl(263 70% 58%)" },
 ];
 
