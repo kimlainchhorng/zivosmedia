@@ -49,7 +49,12 @@ serve(withSecurity("process-withdrawal", async (req, ctx) => {
     }
 
     // Parse & validate input
-    const { amount_cents, method, note, payout_method_id } = await req.json();
+    // Read from a clone: withIdempotency() hashes the request with
+    // `await req.clone().text()`, and cloning a Request whose body is already
+    // consumed is a spec-mandated TypeError ("unusable"). Reading `req`
+    // directly here threw before the payout was ever claimed, and the outer
+    // catch reported it as a flat failure.
+    const { amount_cents, method, note, payout_method_id } = await req.clone().json();
 
     if (!amount_cents || typeof amount_cents !== "number" || amount_cents < 500) {
       throw new Error("Minimum withdrawal is $5.00");

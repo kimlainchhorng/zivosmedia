@@ -46,7 +46,12 @@ serve(withSecurity("creator-payout-method-record", async (req, ctx) => {
     if (userError || !userData.user) throw new Error("Invalid auth");
     const userId = userData.user.id;
 
-    const body = await req.json().catch(() => ({}));
+    // Read from a clone: withIdempotency() hashes the request with
+    // `await req.clone().text()`, and cloning a Request whose body is already
+    // consumed is a spec-mandated TypeError ("unusable"). Reading `req`
+    // directly here threw before the payout was ever claimed, and the outer
+    // catch reported it as a flat failure.
+    const body = await req.clone().json().catch(() => ({}));
     const method = String(body.method || "paypal").trim().toLowerCase();
     const paypalEmail = String(body.paypal_email || "").trim().toLowerCase();
 

@@ -45,7 +45,12 @@ serve(withSecurity("creator-payout-request", async (req, ctx) => {
     const user = ud?.user;
     if (!user) return json({ error: "Invalid auth" }, 401);
 
-    const body = await req.json().catch(() => ({}));
+    // Read from a clone: withIdempotency() hashes the request with
+    // `await req.clone().text()`, and cloning a Request whose body is already
+    // consumed is a spec-mandated TypeError ("unusable"). Reading `req`
+    // directly here threw before the payout was ever claimed, and the outer
+    // catch reported it as a flat failure.
+    const body = await req.clone().json().catch(() => ({}));
     const amount_cents = Math.floor(Number(body.amount_cents || 0));
     const method = String(body.method || "bank_transfer").trim();
     const reference_id = body.reference_id ? String(body.reference_id).slice(0, 200) : null;

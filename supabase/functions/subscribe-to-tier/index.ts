@@ -44,7 +44,12 @@ serve(withSecurity("subscribe-to-tier", async (req, ctx) => {
       });
     }
 
-    const { tier_id, creator_id, amount_cents } = await req.json();
+    // Read from a clone: withIdempotency() hashes the request with
+    // `await req.clone().text()`, and cloning a Request whose body is already
+    // consumed is a spec-mandated TypeError ("unusable"). Reading `req`
+    // directly here threw before the payout was ever claimed, and the outer
+    // catch reported it as a flat failure.
+    const { tier_id, creator_id, amount_cents } = await req.clone().json();
     if (!tier_id || !creator_id) throw new Error("tier_id and creator_id required");
 
     // Use service-role client to read tier securely

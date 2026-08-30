@@ -43,7 +43,12 @@ serve(withSecurity("ar-payout-record", async (req, ctx) => {
     if (userError || !userData.user) throw new Error("Invalid auth");
     const userId = userData.user.id;
 
-    const body = await req.json().catch(() => ({}));
+    // Read from a clone: withIdempotency() hashes the request with
+    // `await req.clone().text()`, and cloning a Request whose body is already
+    // consumed is a spec-mandated TypeError ("unusable"). Reading `req`
+    // directly here threw before the payout was ever claimed, and the outer
+    // catch reported it as a flat failure.
+    const body = await req.clone().json().catch(() => ({}));
     const action = String(body.action || "create") as Action;
     if (action !== "create" && action !== "delete") {
       return json({ error: "Invalid action" }, 400);

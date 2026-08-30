@@ -62,9 +62,16 @@ serve(withSecurity("admin-broadcast-notification", async (req, ctx) => {
   const channel = cleanEnum(body.channel, CHANNELS) ?? "in_app";
   if (!title || !message) return json({ error: "Title and message body are required" }, 400);
 
+  // Who sent the broadcast goes in metadata, not a column: public.notifications
+  // has no actor_id (id, user_id, order_id, channel, category, template, title,
+  // body, action_url, status, provider_message_id, error_message, is_read,
+  // read_at, metadata, created_at, sent_at, updated_at, event_type, to_value,
+  // role — verified against the live schema). Naming it made PostgREST reject
+  // the whole insert, so every broadcast failed with "Broadcast queue write
+  // failed" once this function was deployed.
   const rows = audience.profiles.map((profile: { id: string }) => ({
     user_id: profile.id,
-    actor_id: user.id,
+    metadata: { broadcast_actor_id: user.id },
     title,
     body: message,
     channel,
