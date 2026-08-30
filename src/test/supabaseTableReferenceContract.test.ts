@@ -26,6 +26,27 @@ import { resolve, relative, join } from "node:path";
  *
  * KNOWN_MISSING below is a ratchet, not an approval list. It may shrink; it
  * must not grow.
+ *
+ * 2026-08-29 — three entries removed after being repointed at the relation each
+ * comment already named, verified against production first:
+ *   follows/followers -> user_followers (17 call sites across 10 files; the
+ *     table holds real rows, so follower counts, badge thresholds, creator
+ *     analytics and the GDPR follow graph were all reading zero)
+ *   favorites  -> user_favorites  (the GDPR export reported 0 favorites)
+ *   stores     -> store_profiles  (a shop owner with no career_company was not
+ *     recognised as an employer, and the employer prefill never ran)
+ * The `favorites` comment called the target a product decision between
+ * user_favorites and marketplace_favorites. Both DO exist. Settled on shape,
+ * not availability: the export row is labelled "Saved restaurants, hotels,
+ * items" and user_favorites is the generic table (item_type, item_id,
+ * item_data), whereas marketplace_favorites only holds listing_id. A future
+ * export that wants marketplace saves should add a second row rather than
+ * repoint this one.
+ *
+ * NOTE: this test resolves names against the generated types and the migration
+ * files, NOT against the live database. A table created by a migration that was
+ * never APPLIED still counts as present here — that is how `.from("followers")`
+ * passed while production answered 404.
  */
 
 const repoRoot = process.cwd();
@@ -192,28 +213,16 @@ const KNOWN_MISSING = new Set<string>([
   // rather than restore it. The nearest real relation is noted where one
   // exists; none is a drop-in rename, because the column shapes differ.
 
-  // 11 sites (useSuggestedContacts, BadgesPage, CreatorDashboardPage,
-  // AccountAnalyticsPage, AccountExportPage, AccountSettingsPage). The real
-  // relation is `user_followers`. Follower counts, the badge thresholds that
-  // read them, and the follow graph in the GDPR account export are all
-  // therefore empty. Highest-volume entry in this list.
-  "follows",
   // 5 sites (NotificationsPeek, TodayPlanWidget, UnifiedActivityTimeline,
   // MyRestaurantTripPage, ReservationPage). No restaurant reservation table
   // exists in either source; `cafe_reservations` is the closest relation but
   // is a different vertical. Restaurant booking appears to be unbuilt
   // backend-side while the UI is fully built.
   "restaurant_reservations",
-  // 2 sites (AccountExportPage). The real relations are `user_favorites` and
-  // `marketplace_favorites`; which one the export means is a product call.
-  "favorites",
   // 2 sites (useLoyalty) — redemption history and the redeem write. Loyalty
   // has `loyalty_accounts`, `loyalty_events`, `loyalty_points` and
   // `loyalty_members`, but no redemptions table.
   "loyalty_redemptions",
-  // 2 sites (EmployerDashboardPage, FindEmployeePage). The real relation is
-  // `store_profiles`.
-  "stores",
   // 1 site (MyActivityTripPage). Other verticals have `bus_bookings`,
   // `flight_bookings`, `hotel_bookings`; the activities equivalent was never
   // created.

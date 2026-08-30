@@ -79,7 +79,7 @@ export default function CreatorMilestonesPage() {
         };
       };
       const [followers, posts, allPosts] = await Promise.all([
-        sb.from("followers").select("id", { count: "exact", head: true }).eq("following_id", user.id),
+        sb.from("user_followers").select("id", { count: "exact", head: true }).eq("following_id", user.id),
         sb.from("user_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
         sb.from("user_posts").select("likes_count, comments_count").eq("user_id", user.id),
       ]);

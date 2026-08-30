@@ -70,7 +70,11 @@ export default function FindEmployeePage() {
     (async () => {
       const [coRes, stRes] = await Promise.all([
         (supabase as any).from("career_companies").select("id").eq("owner_id", user.id).limit(1),
-        (supabase as any).from("stores").select("id").eq("owner_id", user.id).limit(1),
+        // public.stores does not exist -- store rows live in store_profiles.
+        // This query 404'd, so stRes.data was always undefined and a shop owner
+        // without a separate career_company was never recognised as an
+        // employer, silently locking them out of posting jobs.
+        (supabase as any).from("store_profiles").select("id").eq("owner_id", user.id).limit(1),
       ]);
       setIsEmployer(((coRes.data?.length ?? 0) + (stRes.data?.length ?? 0)) > 0);
     })();

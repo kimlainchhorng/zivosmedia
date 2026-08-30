@@ -50,8 +50,8 @@ export default function AccountAnalyticsPage() {
         { count: profileViews },
         { data: myPostIds },
       ] = await Promise.all([
-        (supabase as any).from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id),
-        (supabase as any).from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id),
+        (supabase as any).from("user_followers").select("*", { count: "exact", head: true }).eq("following_id", user.id),
+        (supabase as any).from("user_followers").select("*", { count: "exact", head: true }).eq("follower_id", user.id),
         (supabase as any).from("user_posts").select("*", { count: "exact", head: true }).eq("user_id", user.id),
         (supabase as any).from("profile_views").select("*", { count: "exact", head: true }).eq("profile_id", user.id).gte("viewed_at", sinceISO),
         (supabase as any).from("user_posts").select("id").eq("user_id", user.id).limit(500),
@@ -94,7 +94,7 @@ export default function AccountAnalyticsPage() {
       since.setDate(since.getDate() - days);
 
       const { data } = await (supabase as any)
-        .from("follows")
+        .from("user_followers")
         .select("created_at")
         .eq("following_id", user.id)
         .gte("created_at", since.toISOString())

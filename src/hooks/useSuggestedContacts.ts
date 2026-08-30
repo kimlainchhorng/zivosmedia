@@ -45,7 +45,7 @@ export function useSuggestedContacts() {
     // Run the four independent reads in parallel
     const [existingRes, followersRes, dmsRes, dismissedRes] = await Promise.all([
       supabase.from("user_contacts").select("contact_user_id").eq("owner_id", uid),
-      (supabase as any).from("follows").select("follower_id").eq("following_id", uid).limit(50),
+      (supabase as any).from("user_followers").select("follower_id").eq("following_id", uid).limit(50),
       (supabase as any)
         .from("direct_messages")
         .select("sender_id, receiver_id")

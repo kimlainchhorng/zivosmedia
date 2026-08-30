@@ -88,8 +88,8 @@ export default function CreatorGoalsPage() {
         };
       };
       const [followers, following, posts] = await Promise.all([
-        sb.from("followers").select("id", { count: "exact", head: true }).eq("following_id", user.id),
-        sb.from("followers").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
+        sb.from("user_followers").select("id", { count: "exact", head: true }).eq("following_id", user.id),
+        sb.from("user_followers").select("id", { count: "exact", head: true }).eq("follower_id", user.id),
         sb.from("user_posts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       return {

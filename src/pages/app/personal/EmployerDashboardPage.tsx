@@ -77,12 +77,20 @@ export default function EmployerDashboardPage() {
         const { data: js } = await (supabase as any).from("career_jobs").select("*, career_applications(count)").eq("company_id", co.id).order("created_at", { ascending: false });
         setJobs(js ?? []);
       } else if (prefillStoreId) {
-        const { data: store } = await (supabase as any).from("stores").select("name,category,city,country,logo_url,description,website").eq("id", prefillStoreId).maybeSingle();
+        // public.stores does not exist -- store rows live in store_profiles, and
+        // it has no city/country/website columns either, so the old select would
+        // have failed even against the right table. This prefill has therefore
+        // never once run: `store` was always null and the toast never appeared.
+        const { data: store } = await (supabase as any)
+          .from("store_profiles")
+          .select("name,category,address,logo_url,description")
+          .eq("id", prefillStoreId)
+          .maybeSingle();
         if (store) {
           setName(store.name ?? "");
           setIndustry(store.category ?? "");
-          setLocation([store.city, store.country].filter(Boolean).join(", "));
-          setWebsite(store.website ?? "");
+          // store_profiles keeps one free-text address rather than city/country.
+          setLocation(store.address ?? "");
           setDescription(store.description ?? "");
           toast.info("Prefilled from your store — review and save.");
         }

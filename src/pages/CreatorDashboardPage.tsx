@@ -106,7 +106,7 @@ export default function CreatorDashboardPage() {
     queryKey: ["creator-followers", user?.id],
     queryFn: async () => {
       const { count } = await (supabase as any)
-        .from("follows")
+        .from("user_followers")
         .select("id", { count: "exact", head: true })
         .eq("following_id", user!.id);
       return (count as number) || 0;

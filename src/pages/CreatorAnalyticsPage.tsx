@@ -47,7 +47,7 @@ export default function CreatorAnalyticsPage() {
     queryKey: ["creator-follower-count", user?.id],
     queryFn: async () => {
       const { count, error } = await (supabase as any)
-        .from("followers")
+        .from("user_followers")
         .select("*", { count: "exact", head: true })
         .eq("following_id", user!.id);
       if (error) throw error;

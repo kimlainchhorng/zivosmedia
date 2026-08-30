@@ -111,8 +111,8 @@ const buildCategories = (): ExportCategory[] => [
     icon: Users,
     fetch: async (uid) => {
       const [{ data: followers }, { data: following }] = await Promise.all([
-        (supabase as any).from("follows").select("*").eq("following_id", uid),
-        (supabase as any).from("follows").select("*").eq("follower_id", uid),
+        (supabase as any).from("user_followers").select("*").eq("following_id", uid),
+        (supabase as any).from("user_followers").select("*").eq("follower_id", uid),
       ]);
       return [
         ...(followers || []).map((r: any) => ({ ...r, _direction: "follower" })),
@@ -121,8 +121,8 @@ const buildCategories = (): ExportCategory[] => [
     },
     countQuery: async (uid) => {
       const [{ count: a }, { count: b }] = await Promise.all([
-        (supabase as any).from("follows").select("*", { count: "exact", head: true }).eq("following_id", uid),
-        (supabase as any).from("follows").select("*", { count: "exact", head: true }).eq("follower_id", uid),
+        (supabase as any).from("user_followers").select("*", { count: "exact", head: true }).eq("following_id", uid),
+        (supabase as any).from("user_followers").select("*", { count: "exact", head: true }).eq("follower_id", uid),
       ]);
       return (a || 0) + (b || 0);
     },
@@ -132,13 +132,19 @@ const buildCategories = (): ExportCategory[] => [
     label: "Favorites",
     desc: "Saved restaurants, hotels, items",
     icon: Heart,
+    // public.favorites does not exist, so both queries 404'd and this row of a
+    // GDPR data export silently reported "0 favorites". Two real tables could
+    // have been meant: user_favorites (item_type, item_id, item_data) and
+    // marketplace_favorites (listing_id only). This row says "Saved
+    // restaurants, hotels, items", which is the generic one; marketplace saves
+    // would need their own row rather than replacing this.
     fetch: async (uid) => {
-      const { data } = await (supabase as any).from("favorites").select("*").eq("user_id", uid);
+      const { data } = await (supabase as any).from("user_favorites").select("*").eq("user_id", uid);
       return data || [];
     },
     countQuery: async (uid) => {
       const { count } = await (supabase as any)
-        .from("favorites").select("*", { count: "exact", head: true }).eq("user_id", uid);
+        .from("user_favorites").select("*", { count: "exact", head: true }).eq("user_id", uid);
       return count || 0;
     },
   },

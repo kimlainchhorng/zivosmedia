@@ -53,7 +53,7 @@ export default function CloseFriendsPage() {
         };
       };
       const { data: followingRows } = await sb
-        .from("followers")
+        .from("user_followers")
         .select("following_id")
         .eq("follower_id", user.id)
         .limit(200);
