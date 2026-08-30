@@ -43,7 +43,7 @@ serve(withSecurity("merchant-payout-request", async (req, ctx) => {
     if (userError || !userData.user) throw new Error("Invalid auth");
     const userId = userData.user.id;
 
-    // Read the body from a clone. withIdempotency() hashes the request with
+    // Read the body from a clone. the idempotency wrapper hashes the request with
     // `await req.clone().text()`, and cloning a Request whose body has already
     // been consumed is a spec-mandated TypeError ("unusable") — so reading
     // `req` directly here made every call with an Idempotency-Key throw before

@@ -47,7 +47,7 @@ serve(withSecurity("connect-instant-payout", async (req, ctx) => {
       return creatorMonetizationBlockedResponse(corsHeaders);
     }
 
-    // Read from a clone: withIdempotency() hashes the request with
+    // Read from a clone: the idempotency wrapper hashes the request with
     // `await req.clone().text()`, and cloning a Request whose body is already
     // consumed is a spec-mandated TypeError ("unusable"). Reading `req`
     // directly here threw before the payout was ever claimed, and the outer
