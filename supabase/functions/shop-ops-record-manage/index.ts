@@ -11,7 +11,7 @@ import { withErrorHandling } from "../_shared/errors.ts";
 import { getServiceRoleClient, requireUser, requireUserNotBlocked } from "../_shared/auth.ts";
 import { err, ok } from "../_shared/respond.ts";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const BUCKET = "shop-documents";
 
 type Body = {
