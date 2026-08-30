@@ -51,7 +51,7 @@ const POLICY_LINKS = [
     badgeColor: "",
   },
   {
-    to: "/partner-disclosure",
+    to: "/legal/partner-disclosure",
     icon: Handshake,
     label: "Partner Disclosure",
     desc: "How ZIVO works with stores and independent drivers",

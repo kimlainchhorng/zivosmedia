@@ -230,7 +230,7 @@ export default function AffiliateHubPage() {
         <div className="grid grid-cols-2 gap-2.5">
           {[
             { label: "Wallet", icon: Wallet, href: "/wallet", accent: "hsl(38 92% 50%)" },
-            { label: "Referrals", icon: Users, href: "/referral", accent: "hsl(221 83% 53%)" },
+            { label: "Referrals", icon: Users, href: "/referrals", accent: "hsl(221 83% 53%)" },
             { label: "Dashboard", icon: BarChart3, href: "/creator-dashboard", accent: "hsl(198 93% 59%)" },
             { label: "Monetization", icon: TrendingUp, href: "/monetization", accent: "hsl(142 71% 45%)" },
           ].map((a) => (

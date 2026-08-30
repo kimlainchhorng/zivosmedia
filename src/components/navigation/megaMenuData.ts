@@ -80,7 +80,7 @@ export const megaMenuData: MegaMenuData[] = [
       },
     ],
     policies: [
-      { icon: FileText, label: "Ticketing", description: "Flight tickets are issued by ZIVO or its authorized airline ticketing partners.", href: "/partner-disclosure" },
+      { icon: FileText, label: "Ticketing", description: "Flight tickets are issued by ZIVO or its authorized airline ticketing partners.", href: "/legal/partner-disclosure" },
     ],
   },
   {
@@ -123,7 +123,7 @@ export const megaMenuData: MegaMenuData[] = [
       },
     ],
     policies: [
-      { icon: FileText, label: "Reservations", description: "Hotel reservations are confirmed by ZIVO or its accommodation partners.", href: "/partner-disclosure" },
+      { icon: FileText, label: "Reservations", description: "Hotel reservations are confirmed by ZIVO or its accommodation partners.", href: "/legal/partner-disclosure" },
     ],
   },
   {
@@ -158,7 +158,7 @@ export const megaMenuData: MegaMenuData[] = [
       },
     ],
     policies: [
-      { icon: FileText, label: "Rentals", description: "Car rentals are fulfilled by rental companies through ZIVO.", href: "/partner-disclosure" },
+      { icon: FileText, label: "Rentals", description: "Car rentals are fulfilled by rental companies through ZIVO.", href: "/legal/partner-disclosure" },
     ],
   },
   {

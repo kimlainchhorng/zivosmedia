@@ -18,7 +18,7 @@ const DamagePolicy = () => {
       <SEOHead
         title="Damage & Incident Policy - ZIVO P2P Car Rental"
         description="How to report damage, documentation requirements, and dispute resolution for ZIVO peer-to-peer car rentals."
-        canonical="/damage-policy"
+        canonical="/legal/damage-policy"
       />
 
       <Header />

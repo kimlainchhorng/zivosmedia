@@ -275,11 +275,11 @@ export default function Help() {
               {[
                 { topic: "How to search for flights", link: "/flights" },
                 { topic: "Understanding price estimates", link: "/how-it-works" },
-                { topic: "Booking with travel partners", link: "/partner-disclosure" },
+                { topic: "Booking with travel partners", link: "/legal/partner-disclosure" },
                 { topic: "Payment and billing questions", link: "/support/travel-bookings" },
                 { topic: "Managing your account", link: "/account" },
                 { topic: "ZIVO+ membership benefits", link: "/membership" },
-                { topic: "Referral program details", link: "/referral" },
+                { topic: "Referral program details", link: "/referrals" },
                 { topic: "Privacy and data settings", link: "/account/privacy" },
               ].map((item) => (
                 <Link key={item.topic} to={item.link} className="flex items-center justify-between p-3 rounded-xl border border-border/50 hover:border-primary/30 hover:bg-muted/30 transition-all duration-200 group">
