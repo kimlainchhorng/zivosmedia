@@ -38,7 +38,8 @@ const NAV_ITEMS = [
   { label: "Reels", icon: Film, path: "/reels" },
   { label: "Rides", icon: Car, path: "/rides/hub" },
   { label: "Eats", icon: UtensilsCrossed, path: "/eats" },
-  { label: "Map", icon: MapPin, path: "/map" },
+  // "/map" is not a route either; /store-map is the only map page there is.
+  { label: "Map", icon: MapPin, path: "/store-map" },
 ];
 
 const SERVICE_ITEMS = [
@@ -50,7 +51,11 @@ const SERVICE_ITEMS = [
 ];
 
 const SOCIAL_ITEMS = [
-  { label: "Friends", icon: Users, path: "/friends" },
+  // "/friends" is not a route -- this opened Page Not Found. The nearest real
+  // destination is the contacts list; its own heading reads "Contacts", so if
+  // that wording is preferred over "Friends" the label is the thing to change,
+  // not the path.
+  { label: "Friends", icon: Users, path: "/chat/contacts" },
   { label: "Groups", icon: Users, path: "/communities" },
   { label: "Events", icon: Calendar, path: "/events" },
   { label: "Spaces", icon: Mic2, path: "/spaces" },
