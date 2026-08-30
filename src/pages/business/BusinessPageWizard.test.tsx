@@ -547,6 +547,31 @@ describe("BusinessPageWizard — every advertised step is implemented", () => {
     expect(missing, `steps with no render block: ${missing.join(", ")}`).toEqual([]);
   });
 
+  // storage.objects INSERT policy for the store-assets bucket requires the
+  // first path segment to be a store id owned by the caller:
+  //   owner_store.id::text = (storage.foldername(objects.name))[1]
+  // Uploading to `setup/<userId>/...` made segment one the literal "setup", so
+  // every real merchant's upload was refused. It looked fine only because the
+  // separate admin policy has no path constraint.
+  it("uploads store assets under the store id, not a literal folder", () => {
+    expect(source).not.toMatch(/`setup\/\$\{user\.id\}/);
+    expect(source).toMatch(/`\$\{targetStoreId\}\/\$\{kind\}/);
+  });
+
+  // public.restaurants has five NOT NULL columns and no defaults. Missing any
+  // of them fails the insert, and the result used to be discarded.
+  it("supplies every NOT NULL restaurants column and checks the result", () => {
+    const insert = /from\("restaurants"\)\s*\.insert\(\{([\s\S]*?)\}\s*as any\)/.exec(source)?.[1] ?? "";
+    for (const col of ["name:", "cuisine_type:", "address:", "phone:", "email:"]) {
+      expect(insert, `restaurants insert is missing ${col}`).toContain(col);
+    }
+    // phone/email must not be able to arrive as null in a NOT NULL column.
+    expect(insert).not.toMatch(/phone:.*\|\|\s*null/);
+    expect(insert).not.toMatch(/email:.*\|\|\s*null/);
+    // and the error must be inspected, not swallowed
+    expect(source).toMatch(/const \{ error: restErr \} = await supabase\.from\("restaurants"\)/);
+  });
+
   it("collects the fields it persists — no write-only wizard state", () => {
     // Each of these is written into the snapshot by persist(); if a field is
     // saved it must also be reachable, or the user silently ships a default.

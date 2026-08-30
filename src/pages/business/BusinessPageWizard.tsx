@@ -68,6 +68,15 @@ const NEXT_STEP_LABELS: Record<number, string> = {
   5: "Polish",
 };
 
+// restaurants.cuisine_type is NOT NULL. Derive it from the category the owner
+// already picked rather than asking the same question twice.
+const RESTAURANT_CUISINE_BY_CATEGORY: Partial<Record<StoreCategory, string>> = {
+  restaurant: "Restaurant",
+  cafe: "Cafe",
+  bakery: "Bakery",
+  drink: "Drinks",
+};
+
 const PAYMENT_OPTIONS: { value: string; label: string; icon: typeof Banknote }[] = [
   { value: "cash", label: "Cash", icon: Banknote },
   { value: "card", label: "Card", icon: CreditCard },
@@ -375,8 +384,29 @@ export default function BusinessPageWizard() {
     const setBusy = kind === "logo" ? setUploadingLogo : setUploadingBanner;
     setBusy(true);
     try {
+      // The store-assets INSERT policy requires the FIRST path segment to be a
+      // store id owned by the caller:
+      //   owner_store.id::text = (storage.foldername(objects.name))[1]
+      // This uploaded to `setup/<userId>/...`, so segment one was the literal
+      // "setup" and the owner policy could never match. Every upload by a real
+      // merchant was rejected. It only appeared to work because the separate
+      // admin policy has no path constraint, so anyone testing on an admin
+      // account -- which is how this shipped -- sails straight through.
+      let targetStoreId = storeId;
+      if (!targetStoreId) {
+        // Uploads live on steps 4-5, by which point step 2's save has created
+        // the row. If it somehow has not, create it now rather than writing to
+        // a path the policy will refuse.
+        const res = await persist();
+        targetStoreId = res.id;
+      }
+      if (!targetStoreId) {
+        toast.error("Save your business details first, then add the image.");
+        return;
+      }
+
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `setup/${user.id}/${kind}-${Date.now()}.${ext}`;
+      const path = `${targetStoreId}/${kind}-${Date.now()}.${ext}`;
       const { error } = await supabase.storage
         .from("store-assets")
         .upload(path, file, { upsert: true });
@@ -543,6 +573,13 @@ export default function BusinessPageWizard() {
 
   const handleComplete = async () => {
     if (!user || !category) return;
+    // restaurants.address is NOT NULL, and a food business customers cannot
+    // find is not a finished page. Everything else on Polish stays optional.
+    if (RESTAURANT_CATEGORIES.has(category) && !address.trim()) {
+      setStep(6);
+      toast.error("Add your address — customers need it to find you.");
+      return;
+    }
     // Disarm guard immediately so popstate during the save is silent.
     completedRef.current = true;
     setCompleted(true);
@@ -573,14 +610,31 @@ export default function BusinessPageWizard() {
           .eq("owner_id", user.id)
           .maybeSingle();
         if (!existingRest) {
-          await supabase.from("restaurants").insert({
+          // public.restaurants has FIVE NOT NULL columns with no default:
+          // name, cuisine_type, address, phone, email. This insert supplied
+          // neither cuisine_type nor address and passed `null` for phone/email,
+          // then swallowed the result behind `as any` with no error check. So
+          // for every restaurant, cafe, bakery and bar the row was never
+          // created: the owner saw "Business page created" and landed on a
+          // dashboard that reports "No Restaurant Found", with no other screen
+          // in the app able to create it.
+          const { error: restErr } = await supabase.from("restaurants").insert({
             owner_id: user.id,
             name: bizName.trim(),
-            phone: bizPhone.replace(/\D/g, "") || null,
-            email: bizEmail.trim() || null,
+            cuisine_type: RESTAURANT_CUISINE_BY_CATEGORY[category] ?? "Restaurant",
+            address: address.trim(),
+            phone: bizPhone.replace(/\D/g, ""),
+            email: bizEmail.trim(),
             logo_url: logoUrl,
             cover_image_url: bannerUrl,
           } as any);
+          if (restErr) {
+            // Do not claim success we did not achieve. The store page exists,
+            // so keep it and say exactly what is missing.
+            toast.error(
+              `Business page saved, but the ${category} record could not be created: ${restErr.message}`,
+            );
+          }
         }
       }
 
