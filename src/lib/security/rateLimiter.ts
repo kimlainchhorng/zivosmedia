@@ -88,8 +88,13 @@ function getLockoutState(action: string): LockoutState {
     const raw = sessionStorage.getItem(`${LOCKOUT_KEY}_${action}`);
     if (!raw) return { failedAttempts: 0, lockedUntil: null, firstFailure: 0 };
     const state = JSON.parse(raw) as LockoutState;
-    // Reset if window expired
-    if (state.firstFailure && Date.now() - state.firstFailure > LOCKOUT_WINDOW_MS) {
+    // Reset once the attempt window has elapsed — but never while a lockout is
+    // still in effect, or the 20+-attempt 30-minute lockout would be wiped at
+    // the 15-minute window boundary and release an attacker ~15 minutes early.
+    const windowExpired =
+      state.firstFailure && Date.now() - state.firstFailure > LOCKOUT_WINDOW_MS;
+    const lockoutActive = state.lockedUntil != null && Date.now() < state.lockedUntil;
+    if (windowExpired && !lockoutActive) {
       sessionStorage.removeItem(`${LOCKOUT_KEY}_${action}`);
       return { failedAttempts: 0, lockedUntil: null, firstFailure: 0 };
     }

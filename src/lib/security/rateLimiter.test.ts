@@ -121,6 +121,32 @@ describe("recordAuthFailure + progressive lockout", () => {
     expect(recordAuthFailure(action)).toBe(1800);
   });
 
+  // Regression, ported from ZIVO-CHAT (7fab858). The attempt window is 15
+  // minutes but tier 4 locks for 30, and getLockoutState used to clear the
+  // whole record once the window elapsed -- taking the still-active lockedUntil
+  // with it and releasing a 20+-attempt attacker ~15 minutes early.
+  it("keeps the 30-minute lockout enforced past the 15-minute window boundary", async () => {
+    const action = uniqueAction();
+    const base = Date.now();
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(base);
+    try {
+      for (let i = 0; i < 20; i++) recordAuthFailure(action);
+
+      nowSpy.mockReturnValue(base + 14 * 60 * 1000); // inside the attempt window
+      expect((await checkRateLimit(`auth:${action}`)).allowed).toBe(false);
+
+      nowSpy.mockReturnValue(base + 16 * 60 * 1000); // window gone, lockout should remain
+      const midway = await checkRateLimit(`auth:${action}`);
+      expect(midway.allowed).toBe(false);
+      expect(midway.retryAfter).toBeGreaterThan(0);
+
+      nowSpy.mockReturnValue(base + 31 * 60 * 1000); // lockout fully elapsed
+      expect((await checkRateLimit(`auth:${action}`)).allowed).toBe(true);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
+
   it("checkRateLimit honors the progressive lockout for auth keys", async () => {
     const action = uniqueAction();
     for (let i = 0; i < 5; i++) recordAuthFailure(action);
