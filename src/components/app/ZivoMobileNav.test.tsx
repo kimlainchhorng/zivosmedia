@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import * as React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -244,5 +246,31 @@ describe("ZivoMobileNav", () => {
     fireEvent.click(screen.getByRole("button", { name: "Account" }));
 
     expect(screen.getByLabelText("current path")).toHaveTextContent("/account");
+  });
+});
+
+describe("ZivoMobileNav — the unread badge is not clipped", () => {
+  const source = readFileSync(
+    path.join(process.cwd(), "src/components/app/ZivoMobileNav.tsx"),
+    "utf8",
+  );
+
+  // The tab button is rounded-full. The badge sits flush with its top edge at
+  // right-[8%], which puts the badge's top-right corner 7.2px outside a 23.6px
+  // corner radius (measured in the browser at 375x812). With overflow-hidden on
+  // the button that corner is sliced off, which is what the unread count looked
+  // like. Nothing else in the button needs a clip: the gradient lozenge is
+  // inset-1 + rounded-full so it bounds itself, and the label's `truncate` sets
+  // overflow on the span.
+  it("does not clip the tab button", () => {
+    const buttonClasses =
+      /"group relative flex min-h-\[52px\][^"]*"/.exec(source)?.[0] ?? "";
+    expect(buttonClasses).not.toBe("");
+    expect(buttonClasses).not.toContain("overflow-hidden");
+  });
+
+  it("still truncates the active label", () => {
+    // Removing the button's clip must not cost the label its ellipsis.
+    expect(source).toContain("truncate");
   });
 });

@@ -231,7 +231,15 @@ const ZivoMobileNav = forwardRef<HTMLElement, Record<string, never>>(
                     }
                   }}
                   className={cn(
-                    "group relative flex min-h-[52px] min-w-[44px] touch-manipulation items-center justify-center overflow-hidden",
+                    // No overflow-hidden: the button is rounded-full, so a clip
+                    // here cuts the unread badge. The badge sits flush with the
+                    // button's top edge at right-[8%], which puts its top-right
+                    // corner 7.2px outside a 23.6px corner radius -- measured,
+                    // and visible as a sliced-off badge. Nothing else needs the
+                    // clip: the gradient lozenge is inset-1 and rounded-full so
+                    // it bounds itself, and the label's `truncate` sets
+                    // overflow on the span, not here.
+                    "group relative flex min-h-[52px] min-w-[44px] touch-manipulation items-center justify-center",
                     "rounded-full transition-all duration-200 ease-out active:scale-[0.92]",
                     isActive
                       ? "flex-[1.8] flex-row gap-1 px-1.5 text-white"
